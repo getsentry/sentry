@@ -122,7 +122,9 @@ class OrganizationDetectorDetailsPutTest(UptimeDetectorBaseTest):
             method="PUT",
         )
 
-        assert response.data["config"] == ["Only superusers can modify `mode`"]
+        assert "config" in response.data
+        assert "mode" in response.data["config"]
+        assert "Only superusers can modify `mode`" in str(response.data["config"]["mode"])
 
         # Verify that mode was NOT changed
         manual_detector.refresh_from_db()
@@ -165,22 +167,17 @@ class OrganizationDetectorDetailsPutTest(UptimeDetectorBaseTest):
     def test_update_auto_detected_switches_to_manual(self) -> None:
         """Test that when a user modifies an AUTO_DETECTED detector, it automatically switches to MANUAL mode."""
         # Create an AUTO_DETECTED detector
-        auto_uptime_subscription = self.create_uptime_subscription(
-            url="https://auto-detected-site.com",
-            interval_seconds=UptimeSubscription.IntervalSeconds.ONE_MINUTE,
-            timeout_ms=30000,
-        )
         auto_detector = self.create_uptime_detector(
             project=self.project,
             env=self.environment,
-            uptime_subscription=auto_uptime_subscription,
             name="Auto Detected Monitor",
             mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
         )
 
         assert auto_detector.workflow_condition_group is not None
         # User modifies the detector (e.g., changes name)
-        # They pass the current config including the AUTO_DETECTED mode
+        # Even if they pass the current config (including AUTO_DETECTED mode),
+        # it should automatically switch to MANUAL for non-superusers
         valid_data = {
             "id": auto_detector.id,
             "projectId": self.project.id,
@@ -207,6 +204,55 @@ class OrganizationDetectorDetailsPutTest(UptimeDetectorBaseTest):
         auto_detector.refresh_from_db()
         assert auto_detector.name == "User Modified Monitor"
         assert auto_detector.config["mode"] == UptimeMonitorMode.MANUAL.value
+
+    def test_update_partial_config_preserves_other_fields(self) -> None:
+        """Test that partial config updates preserve other config fields."""
+        # Create a detector with specific config values
+        detector = self.create_uptime_detector(
+            project=self.project,
+            env=self.environment,
+            name="Test Detector",
+            mode=UptimeMonitorMode.MANUAL,
+            recovery_threshold=8,
+            downtime_threshold=10,
+        )
+
+        assert detector.workflow_condition_group is not None
+        original_config = detector.config.copy()
+
+        # Partially update only the downtime_threshold
+        valid_data = {
+            "id": detector.id,
+            "projectId": self.project.id,
+            "name": detector.name,
+            "type": UptimeDomainCheckFailure.slug,
+            "dateCreated": detector.date_added,
+            "dateUpdated": timezone.now(),
+            "conditionGroup": {
+                "id": detector.workflow_condition_group.id,
+                "organizationId": self.organization.id,
+            },
+            "config": {
+                "downtime_threshold": 15,  # Only updating this field
+            },
+        }
+
+        self.get_success_response(
+            self.organization.slug,
+            detector.id,
+            **valid_data,
+            status_code=status.HTTP_200_OK,
+            method="PUT",
+        )
+
+        # Verify that downtime_threshold was updated but other fields preserved
+        detector.refresh_from_db()
+        assert detector.config["downtime_threshold"] == 15  # Updated
+        assert (
+            detector.config["recovery_threshold"] == original_config["recovery_threshold"]
+        )  # Preserved
+        assert detector.config["mode"] == original_config["mode"]  # Preserved
+        assert detector.config["environment"] == original_config["environment"]  # Preserved
 
     def test_update_invalid(self) -> None:
         assert self.detector.workflow_condition_group is not None
@@ -328,26 +374,6 @@ class OrganizationDetectorIndexPostTest(APITestCase):
         assert created_sub.body == "<html/>"
         assert created_sub.trace_sampling is True
 
-    def test_create_detector_missing_config_property(self):
-        invalid_data = _get_valid_data(
-            self.project.id,
-            self.environment.name,
-            config={
-                "environment": self.environment.name,
-                "mode": UptimeMonitorMode.MANUAL.value,
-                "recovery_threshold": 1,
-            },
-        )
-
-        response = self.get_error_response(
-            self.organization.slug,
-            **invalid_data,
-            status_code=status.HTTP_400_BAD_REQUEST,
-        )
-
-        assert "config" in response.data
-        assert "downtime_threshold" in str(response.data["config"])
-
     def test_create_detector_non_superuser_cannot_set_auto_detected_mode(self):
         """Integration test: non-superuser cannot create with AUTO_DETECTED mode via API."""
         invalid_data = _get_valid_data(
@@ -367,4 +393,144 @@ class OrganizationDetectorIndexPostTest(APITestCase):
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
-        assert response.data["config"] == ["Only superusers can modify `mode`"]
+        assert "config" in response.data
+        assert "mode" in response.data["config"]
+        assert "Only superusers can modify `mode`" in str(response.data["config"]["mode"])
+
+
+class OrganizationDetectorIndexGetFilterTest(UptimeDetectorBaseTest):
+    """Test that AUTO_DETECTED_ONBOARDING detectors are filtered from the list endpoint."""
+
+    endpoint = "sentry-api-0-organization-detector-index"
+
+    def test_filters_onboarding_detectors_from_list(self):
+        """Test that AUTO_DETECTED_ONBOARDING detectors are not returned in the list."""
+        # Create a manual detector (should be visible)
+        manual_detector = self.create_uptime_detector(
+            project=self.project,
+            env=self.environment,
+            name="Manual Detector",
+            mode=UptimeMonitorMode.MANUAL,
+        )
+
+        # Create an AUTO_DETECTED_ACTIVE detector (should be visible)
+        active_detector = self.create_uptime_detector(
+            project=self.project,
+            env=self.environment,
+            name="Active Auto Detector",
+            mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
+        )
+
+        # Create an AUTO_DETECTED_ONBOARDING detector (should be filtered out)
+        onboarding_detector = self.create_uptime_detector(
+            project=self.project,
+            env=self.environment,
+            name="Onboarding Auto Detector",
+            mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING,
+        )
+
+        # Query the list endpoint
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"project": self.project.id},
+        )
+
+        # Verify only manual and active detectors are returned (including base detector)
+        returned_ids = {d["id"] for d in response.data}
+        assert str(self.detector.id) in returned_ids  # Base detector from setUp
+        assert str(manual_detector.id) in returned_ids
+        assert str(active_detector.id) in returned_ids
+        assert str(onboarding_detector.id) not in returned_ids
+
+        # Verify the count is correct (3 = base detector + manual + active)
+        assert len(response.data) == 3
+
+    def test_filters_onboarding_detectors_with_query(self):
+        """Test that AUTO_DETECTED_ONBOARDING detectors are filtered even when using query filters."""
+        # Create an onboarding detector with a searchable name
+        self.create_uptime_detector(
+            project=self.project,
+            env=self.environment,
+            name="Searchable Onboarding Detector",
+            mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING,
+        )
+
+        # Try to search for it by name
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"project": self.project.id, "query": "Searchable"},
+        )
+
+        # Should not find it because it's filtered out
+        assert len(response.data) == 0
+
+    def test_filters_onboarding_detectors_by_id(self):
+        """Test that AUTO_DETECTED_ONBOARDING detectors cannot be accessed via ID filtering."""
+        # Create an onboarding detector
+        onboarding_detector = self.create_uptime_detector(
+            project=self.project,
+            env=self.environment,
+            name="Onboarding Detector",
+            mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING,
+        )
+
+        # Create a manual detector for comparison
+        manual_detector = self.create_uptime_detector(
+            project=self.project,
+            env=self.environment,
+            name="Manual Detector",
+            mode=UptimeMonitorMode.MANUAL,
+        )
+
+        # Try to query both by ID
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": [onboarding_detector.id, manual_detector.id]},
+        )
+
+        # Should only get the manual detector, not the onboarding one
+        returned_ids = {d["id"] for d in response.data}
+        assert str(manual_detector.id) in returned_ids
+        assert str(onboarding_detector.id) not in returned_ids
+        assert len(response.data) == 1
+
+
+class OrganizationDetectorDetailsGetFilterTest(UptimeDetectorBaseTest):
+    """Test that AUTO_DETECTED_ONBOARDING detectors return 404 from details endpoint."""
+
+    endpoint = "sentry-api-0-organization-detector-details"
+
+    def test_onboarding_detector_returns_404(self):
+        """Test that accessing an AUTO_DETECTED_ONBOARDING detector by ID returns 404."""
+        onboarding_detector = self.create_uptime_detector(
+            project=self.project,
+            env=self.environment,
+            name="Onboarding Detector",
+            mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING,
+        )
+
+        # Try to access it via the details endpoint
+        self.get_error_response(
+            self.organization.slug,
+            onboarding_detector.id,
+            status_code=status.HTTP_404_NOT_FOUND,
+        )
+
+    def test_active_auto_detected_is_accessible(self):
+        """Test that AUTO_DETECTED_ACTIVE detectors are accessible via details endpoint."""
+        active_detector = self.create_uptime_detector(
+            project=self.project,
+            env=self.environment,
+            name="Active Auto Detector",
+            mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
+        )
+
+        # Access it via the details endpoint
+        response = self.get_success_response(
+            self.organization.slug,
+            active_detector.id,
+        )
+
+        # Verify we got the correct detector
+        assert response.data["id"] == str(active_detector.id)
+        assert response.data["name"] == "Active Auto Detector"

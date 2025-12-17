@@ -160,8 +160,8 @@ const DragIndicator = styled('div')`
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  border-radius: ${p => p.theme.borderRadius};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
+  border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.border};
   pointer-events: none;
   display: flex;
@@ -206,7 +206,7 @@ const DragHandle = styled('div')`
   &:hover,
   &:active {
     &::after {
-      background: ${p => p.theme.diffSliderDragHandleHover};
+      background: ${p => p.theme.colors.blue500};
     }
   }
 
@@ -219,7 +219,7 @@ const DragHandle = styled('div')`
   }
 
   &[data-resizing]::after {
-    background: ${p => p.theme.diffSliderDragHandleHover};
+    background: ${p => p.theme.colors.blue500};
   }
 `;
 

@@ -3,7 +3,6 @@ import {motion} from 'framer-motion';
 
 import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 const StepHeading = styled((props: React.ComponentProps<typeof motion.h2>) => (
   <motion.h2
@@ -32,10 +31,9 @@ const StepHeading = styled((props: React.ComponentProps<typeof motion.h2>) => (
     justify-content: center;
     width: 30px;
     height: 30px;
-    background-color: ${p =>
-      isChonkTheme(p.theme) ? p.theme.colors.chonk.yellow400 : p.theme.yellow300};
+    background-color: ${p => p.theme.colors.chonk.yellow400};
     border-radius: 50%;
-    color: ${p => (isChonkTheme(p.theme) ? p.theme.colors.black : p.theme.textColor)};
+    color: ${p => p.theme.colors.black};
     font-size: 1rem;
   }
 `;

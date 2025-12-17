@@ -2,6 +2,7 @@ import CollapsibleSection, {
   type CollapsibleSectionProps,
 } from 'sentry/components/forms/collapsibleSection';
 import type {FieldGroupProps} from 'sentry/components/forms/fieldGroup/types';
+import {SentryMemberSelectorField} from 'sentry/components/forms/fields/sentryMemberSelectorField';
 import SeparatorField from 'sentry/components/forms/fields/separatorField';
 import type {Field} from 'sentry/components/forms/types';
 import type {Scope} from 'sentry/types/core';
@@ -98,6 +99,8 @@ function FieldFromConfig(props: FieldFromConfigProps): React.ReactElement | null
       return (
         <SentryOrganizationRoleSelectorField {...(componentProps as RenderFieldProps)} />
       );
+    case 'sentry_member_selector':
+      return <SentryMemberSelectorField {...(componentProps as RenderFieldProps)} />;
     case 'select_async':
       return <SelectAsyncField {...(componentProps as SelectAsyncFieldProps)} />;
     case 'file':

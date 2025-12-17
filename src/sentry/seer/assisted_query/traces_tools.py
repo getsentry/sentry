@@ -12,6 +12,69 @@ logger = logging.getLogger(__name__)
 API_KEY_SCOPES = ["org:read", "project:read", "event:read"]
 
 
+_SPAN_BUILT_IN_STRING_FIELDS = [
+    "id",
+    "project",
+    "span.description",
+    "span.op",
+    "timestamp",
+    "transaction",
+    "trace",
+    "is_transaction",
+    "sentry.normalized_description",
+    "release",
+    "project.id",
+    "sdk.name",
+    "sdk.version",
+    "span.system",
+    "span.category",
+]
+
+_SPAN_BUILT_IN_NUMBER_FIELDS = [
+    "span.duration",
+    "span.self_time",
+]
+
+
+_LOG_BUILT_IN_STRING_FIELDS = [
+    "trace",
+    "id",
+    "message",
+    "severity",
+    "timestamp",
+]
+
+_LOG_BUILT_IN_NUMBER_FIELDS = [
+    "severity_number",
+]
+
+
+def _get_built_in_fields(item_type: str = "spans") -> list[dict[str, Any]]:
+    """
+    Get built-in fields for the specified item type.
+
+    Args:
+        item_type: Type of trace item ("spans" or "logs")
+
+    Returns:
+        List of built-in field definitions with key and type.
+    """
+    if item_type == "logs":
+        string_fields = _LOG_BUILT_IN_STRING_FIELDS
+        number_fields = _LOG_BUILT_IN_NUMBER_FIELDS
+    else:
+        string_fields = _SPAN_BUILT_IN_STRING_FIELDS
+        number_fields = _SPAN_BUILT_IN_NUMBER_FIELDS
+
+    built_in_fields = []
+    for field in string_fields:
+        built_in_fields.append({"key": field, "type": "string"})
+    for field in number_fields:
+        built_in_fields.append({"key": field, "type": "number"})
+
+    return built_in_fields
+
+
 def get_attribute_names(
     *,
     org_id: int,
@@ -42,14 +105,17 @@ def get_attribute_names(
             "fields": {
                 "string": ["span.op", "span.description", ...],
                 "number": ["span.duration", ...]
-            }
+            },
+            "built_in_fields": [
+                {"key": "span.op", "type": "string"},
+                {"key": "span.duration", "type": "number"},
+                ...
+            ]
         }
     """
     organization = Organization.objects.get(id=org_id)
 
-    stats_period, start, end = validate_date_params(
-        stats_period, start, end, default_stats_period="7d"
-    )
+    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     api_key = ApiKey(organization_id=org_id, scope_list=API_KEY_SCOPES)
 
@@ -78,7 +144,9 @@ def get_attribute_names(
 
         fields[attr_type] = [item["name"] for item in resp.data]
 
-    return {"fields": fields}
+    built_in_fields = _get_built_in_fields(item_type)
+
+    return {"fields": fields, "built_in_fields": built_in_fields}
 
 
 def get_attribute_values_with_substring(
@@ -118,9 +186,7 @@ def get_attribute_values_with_substring(
 
     organization = Organization.objects.get(id=org_id)
 
-    stats_period, start, end = validate_date_params(
-        stats_period, start, end, default_stats_period="7d"
-    )
+    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     api_key = ApiKey(organization_id=org_id, scope_list=API_KEY_SCOPES)
 

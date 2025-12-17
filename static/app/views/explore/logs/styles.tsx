@@ -11,7 +11,6 @@ import Panel from 'sentry/components/panels/panel';
 import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/tables/gridEditable/styles';
 import {space} from 'sentry/styles/space';
 import {NumberContainer} from 'sentry/utils/discover/styles';
-import {chonkStyled} from 'sentry/utils/theme/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import {unreachable} from 'sentry/utils/unreachable';
 import {
@@ -399,7 +398,7 @@ export const LogsSidebarCollapseButton = withChonk(
     ${p =>
       p.sidebarOpen &&
       css`
-        border-left-color: ${p.theme.background};
+        border-left-color: ${p.theme.tokens.background.primary};
         border-top-left-radius: 0px;
         border-bottom-left-radius: 0px;
         margin-left: -13px;
@@ -409,7 +408,7 @@ export const LogsSidebarCollapseButton = withChonk(
       display: block;
     }
   `,
-  chonkStyled(Button)<{sidebarOpen: boolean}>`
+  styled(Button)<{sidebarOpen: boolean}>`
     display: none;
 
     @media (min-width: ${p => p.theme.breakpoints.lg}) {
@@ -422,7 +421,7 @@ export const LogsSidebarCollapseButton = withChonk(
         margin-left: -13px;
 
         &::after {
-          border-left-color: ${p.theme.background};
+          border-left-color: ${p.theme.tokens.background.primary};
           border-top-left-radius: 0px;
           border-bottom-left-radius: 0px;
         }

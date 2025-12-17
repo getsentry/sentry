@@ -43,16 +43,17 @@ export function useBlockNavigation({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isOpen) return;
 
-      // Don't handle Backspace/Enter when file approval or question is pending (they're used for approve/reject/submit)
+      // Don't handle Enter when file approval or question is pending (it's used for approve/submit)
       // or when the run is loading/polling
       if (
         (isFileApprovalPending || isQuestionPending || isPolling) &&
-        (e.key === 'Backspace' || e.key === 'Delete' || e.key === 'Enter')
+        e.key === 'Enter'
       ) {
         return;
       }
 
       if (e.key === 'ArrowUp') {
+        if (isMinimized) return;
         e.preventDefault();
         onNavigate?.();
         if (focusedBlockIndex === -1) {
@@ -76,6 +77,7 @@ export function useBlockNavigation({
           }
         }
       } else if (e.key === 'ArrowDown') {
+        if (isMinimized) return;
         e.preventDefault();
         if (focusedBlockIndex === -1) return;
         onNavigate?.();
@@ -109,15 +111,6 @@ export function useBlockNavigation({
             textareaElement.focus();
             scrollToElement(textareaElement);
           }
-        }
-      } else if (e.key === 'Backspace' && focusedBlockIndex >= 0) {
-        e.preventDefault();
-        onDeleteFromIndex?.(focusedBlockIndex);
-        setFocusedBlockIndex(-1);
-        const textareaElement = textareaRef.current;
-        if (textareaElement) {
-          textareaElement.focus();
-          scrollToElement(textareaElement);
         }
       } else if (e.key === 'Enter' && focusedBlockIndex >= 0) {
         e.preventDefault();

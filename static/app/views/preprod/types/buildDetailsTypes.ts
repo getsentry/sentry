@@ -9,9 +9,11 @@ export interface BuildDetailsApiResponse {
   state: BuildDetailsState;
   vcs_info: BuildDetailsVcsInfo;
   size_info?: BuildDetailsSizeInfo;
+  base_artifact_id?: string | null;
 }
 
 export interface BuildDetailsAppInfo {
+  app_icon_id?: string | null;
   android_app_info?: AndroidAppInfo | null;
   app_id?: string | null;
   apple_app_info?: AppleAppInfo | null;
@@ -62,6 +64,7 @@ interface BuildDetailsSizeInfoProcessing {
 interface BuildDetailsSizeInfoCompleted {
   state: BuildDetailsSizeAnalysisState.COMPLETED;
   size_metrics: BuildDetailsSizeInfoSizeMetric[];
+  base_size_metrics: BuildDetailsSizeInfoSizeMetric[];
 }
 
 interface BuildDetailsSizeInfoFailed {

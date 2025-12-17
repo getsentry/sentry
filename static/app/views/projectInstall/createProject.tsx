@@ -594,7 +594,7 @@ const FormFieldGroup = styled('div')`
   gap: ${space(2)};
   align-items: end;
   padding: ${space(3)} 0;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const FormLabel = styled('div')`
@@ -607,13 +607,13 @@ const ProjectNameInputWrap = styled('div')`
 `;
 
 const ProjectNameInput = styled(Input)`
-  padding-left: calc(${p => p.theme.formPadding.md.paddingLeft}px * 1.5 + 20px);
+  padding-left: calc(${p => p.theme.form.md.paddingLeft}px * 1.5 + 20px);
 `;
 
 const StyledPlatformIcon = styled(PlatformIcon)`
   position: absolute;
   top: 50%;
-  left: ${p => p.theme.formPadding.md.paddingLeft}px;
+  left: ${p => p.theme.form.md.paddingLeft}px;
   transform: translateY(-50%);
 `;
 

@@ -22,7 +22,7 @@ const Category = memo(function Category({category, searchTerm}: Props) {
 export default Category;
 
 const Wrapper = styled('div')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.bold};
 `;

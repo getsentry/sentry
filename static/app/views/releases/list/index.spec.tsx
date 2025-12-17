@@ -20,7 +20,7 @@ import {ReleasesStatusOption} from 'sentry/views/releases/list/releasesStatusOpt
 
 describe('ReleasesList', () => {
   const organization = OrganizationFixture({
-    features: ['search-query-builder-input-flow-changes'],
+    features: ['search-query-builder-input-flow-changes', 'preprod-frontend-routes'],
   });
   const projects = [ProjectFixture({features: ['releases']})];
   const semverVersionInfo = {
@@ -515,6 +515,173 @@ describe('ReleasesList', () => {
 
     expect(await screen.findByTestId('release-card-project-row')).toBeInTheDocument();
     expect(screen.queryByTestId('hidden-projects')).not.toBeInTheDocument();
+  });
+
+  it('renders mobile builds when the mobile-builds tab is selected', async () => {
+    const mobileProject = ProjectFixture({
+      id: '12',
+      slug: 'mobile-project',
+      platform: 'android',
+      features: ['releases'],
+    });
+
+    ProjectsStore.loadInitialData([mobileProject]);
+    PageFiltersStore.updateProjects([Number(mobileProject.id)], null);
+
+    const buildsMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${mobileProject.slug}/preprodartifacts/list-builds/`,
+      body: {builds: []},
+    });
+
+    render(<ReleasesList />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/releases/`,
+          query: {tab: 'mobile-builds', statsPeriod: '7d'},
+        },
+      },
+    });
+
+    expect(await screen.findByText(/No mobile builds found/)).toBeInTheDocument();
+
+    expect(buildsMock).toHaveBeenCalledWith(
+      `/projects/${organization.slug}/${mobileProject.slug}/preprodartifacts/list-builds/`,
+      expect.objectContaining({
+        query: expect.objectContaining({per_page: 25, statsPeriod: '7d'}),
+      })
+    );
+  });
+
+  it('allows searching within the mobile-builds tab', async () => {
+    const mobileProject = ProjectFixture({
+      id: '13',
+      slug: 'mobile-project-2',
+      platform: 'android',
+      features: ['releases'],
+    });
+
+    ProjectsStore.loadInitialData([mobileProject]);
+    PageFiltersStore.updateProjects([Number(mobileProject.id)], null);
+
+    const buildsMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${mobileProject.slug}/preprodartifacts/list-builds/`,
+      body: {
+        builds: [
+          {
+            id: 'build-id',
+            state: 1,
+            app_info: {
+              app_id: 'com.example.app',
+              name: 'Example App',
+              platform: 'android',
+              build_number: '1',
+              version: '1.0.0',
+              date_added: '2024-01-01T00:00:00Z',
+            },
+            size_info: {},
+            vcs_info: {
+              head_sha: 'abcdef1',
+              pr_number: 123,
+              head_ref: 'main',
+            },
+          },
+        ],
+      },
+    });
+
+    render(<ReleasesList />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/releases/`,
+          query: {tab: 'mobile-builds', query: 'sha:abcdef1'},
+        },
+      },
+    });
+
+    expect(
+      await screen.findByPlaceholderText(
+        'Search by build, SHA, branch name, or pull request'
+      )
+    ).toBeInTheDocument();
+
+    await waitFor(() =>
+      expect(buildsMock).toHaveBeenCalledWith(
+        `/projects/${organization.slug}/${mobileProject.slug}/preprodartifacts/list-builds/`,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            per_page: 25,
+            statsPeriod: '14d',
+            query: 'sha:abcdef1',
+          }),
+        })
+      )
+    );
+
+    const searchInput = screen.getByPlaceholderText(
+      'Search by build, SHA, branch name, or pull request'
+    );
+
+    // Clear the input first
+    await userEvent.clear(searchInput);
+
+    // Type the search term and press Enter to submit
+    await userEvent.type(searchInput, 'branch:main{enter}');
+
+    // Wait for the API call with the complete search query
+    await waitFor(() =>
+      expect(buildsMock).toHaveBeenCalledWith(
+        `/projects/${organization.slug}/${mobileProject.slug}/preprodartifacts/list-builds/`,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            per_page: 25,
+            statsPeriod: '14d',
+            query: 'branch:main',
+          }),
+        })
+      )
+    );
+  });
+
+  it('resets tab when switching back to releases tab from mobile builds', async () => {
+    const mobileProject = ProjectFixture({
+      id: '14',
+      slug: 'mobile-project-3',
+      platform: 'android',
+      features: ['releases'],
+    });
+
+    ProjectsStore.loadInitialData([mobileProject]);
+    PageFiltersStore.updateProjects([Number(mobileProject.id)], null);
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${mobileProject.slug}/preprodartifacts/list-builds/`,
+      body: {builds: []},
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/`,
+      body: [],
+    });
+
+    const {router} = render(<ReleasesList />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/releases/`,
+          query: {tab: 'mobile-builds', query: 'sha:abcdef1', statsPeriod: '7d'},
+        },
+      },
+    });
+
+    await userEvent.click(
+      screen.getByRole('tab', {
+        name: 'Releases',
+      })
+    );
+
+    expect(router.location.query.tab).toBeUndefined();
   });
 
   it('autocompletes semver search tag', async () => {

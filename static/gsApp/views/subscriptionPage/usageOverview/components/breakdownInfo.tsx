@@ -5,7 +5,7 @@ import {Text} from '@sentry/scraps/text';
 
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
-import type {DataCategory} from 'sentry/types/core';
+import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
@@ -18,6 +18,7 @@ import type {
   Subscription,
 } from 'getsentry/types';
 import {
+  checkIsAddOnChildCategory,
   displayBudgetName,
   formatReservedWithUnits,
   getSoftCapType,
@@ -25,6 +26,7 @@ import {
   isTrialPlan,
   supportsPayg,
 } from 'getsentry/utils/billing';
+import {calculateSeerUserSpend} from 'getsentry/utils/dataCategory';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
 interface BaseProps {
@@ -43,6 +45,7 @@ interface UsageBreakdownInfoProps extends BaseProps {
   platformReservedField: React.ReactNode;
   productCanUsePayg: boolean;
   recurringReservedSpend: number | null;
+  formattedOtherSpend?: React.ReactNode;
 }
 
 interface DataCategoryUsageBreakdownInfoProps extends BaseProps {
@@ -89,6 +92,7 @@ function UsageBreakdownInfo({
   productCanUsePayg,
   activeProductTrial,
   formattedSoftCapType,
+  formattedOtherSpend,
 }: UsageBreakdownInfoProps) {
   const canUsePayg = productCanUsePayg && supportsPayg(subscription);
   const shouldShowIncludedVolume =
@@ -101,7 +105,10 @@ function UsageBreakdownInfo({
     recurringReservedSpend > 0 &&
     subscription.canSelfServe;
   const shouldShowAdditionalSpend =
-    shouldShowReservedSpend || canUsePayg || defined(formattedSoftCapType);
+    shouldShowReservedSpend ||
+    canUsePayg ||
+    defined(formattedSoftCapType) ||
+    formattedOtherSpend;
 
   if (!shouldShowIncludedVolume && !shouldShowAdditionalSpend) {
     return null;
@@ -176,6 +183,7 @@ function UsageBreakdownInfo({
               )}
             />
           )}
+          {formattedOtherSpend}
         </Flex>
       )}
     </Grid>
@@ -192,47 +200,54 @@ function DataCategoryUsageBreakdownInfo({
   const productCanUsePayg =
     plan.onDemandCategories.includes(category) &&
     hasPaygBudgetForCategory(subscription, category);
-  const platformReserved =
-    plan.planCategories[category]?.find(
-      bucket => bucket.price === 0 && bucket.events >= 0
-    )?.events ?? 0;
-  const platformReservedField = tct('[planName] plan', {planName: plan.name});
   const reserved = metricHistory.reserved ?? 0;
-  const isUnlimited = reserved === UNLIMITED_RESERVED;
-
-  const addOnDataCategories = Object.values(plan.addOnCategories).flatMap(
-    addOn => addOn.dataCategories
-  );
-  const isAddOnChildCategory = addOnDataCategories.includes(category) && !isUnlimited;
+  const platformReserved = subscription.canSelfServe
+    ? (plan.planCategories[category]?.find(
+        bucket => bucket.price === 0 && bucket.events >= 0
+      )?.events ?? 0)
+    : reserved;
+  const platformReservedField = tct('[planName] plan', {planName: plan.name});
 
   const additionalReserved = Math.max(0, reserved - platformReserved);
-  const shouldShowAdditionalReserved =
-    !isAddOnChildCategory &&
-    !isUnlimited &&
-    subscription.canSelfServe &&
-    additionalReserved > 0;
+  const shouldShowAdditionalReserved = additionalReserved > 0;
   const formattedAdditionalReserved = shouldShowAdditionalReserved
     ? formatReservedWithUnits(additionalReserved, category)
     : null;
   const formattedPlatformReserved =
-    isAddOnChildCategory || !reserved
-      ? null
-      : formatReservedWithUnits(
+    reserved > 0
+      ? formatReservedWithUnits(
           shouldShowAdditionalReserved ? platformReserved : reserved,
           category
-        );
+        )
+      : reserved === UNLIMITED_RESERVED
+        ? t('Unlimited')
+        : null;
 
   const gifted = metricHistory.free ?? 0;
-  const formattedGifted =
-    isAddOnChildCategory || !gifted ? null : formatReservedWithUnits(gifted, category);
+  const formattedGifted = gifted ? formatReservedWithUnits(gifted, category) : null;
 
   const paygSpend = metricHistory.onDemandSpendUsed ?? 0;
   const paygCategoryBudget = metricHistory.onDemandBudget ?? 0;
 
+  const isAddOnChildCategory = checkIsAddOnChildCategory(subscription, category, true);
   const recurringReservedSpend = isAddOnChildCategory
     ? null
     : (plan.planCategories[category]?.find(bucket => bucket.events === reserved)?.price ??
       0);
+
+  const otherSpend = calculateSeerUserSpend(metricHistory);
+  const formattedOtherSpend =
+    otherSpend > 0 ? (
+      <UsageBreakdownField
+        field={t('Active contributors spend')}
+        value={displayPriceWithCents({
+          cents: otherSpend,
+        })}
+        help={t(
+          'An active contributor is anyone who opens 2 or more PRs in a connected GitHub repository. Count resets each month.'
+        )}
+      />
+    ) : undefined;
 
   return (
     <UsageBreakdownInfo
@@ -248,6 +263,7 @@ function DataCategoryUsageBreakdownInfo({
       productCanUsePayg={productCanUsePayg}
       activeProductTrial={activeProductTrial}
       formattedSoftCapType={getSoftCapType(metricHistory)}
+      formattedOtherSpend={formattedOtherSpend}
     />
   );
 }
@@ -288,6 +304,9 @@ function ReservedBudgetUsageBreakdownInfo({
   const billedCategory = reservedBudget.dataCategories[0]!;
   const metricHistory = subscription.categories[billedCategory];
   if (!metricHistory) {
+    // we don't normalize metric history here because there should always be a metric history
+    // for a reserved budget, otherwise there is no way to indicate that that category should
+    // be tallied as a budget (reserved = RESERVED_BUDGET_QUOTA)
     return null;
   }
   const recurringReservedSpend =

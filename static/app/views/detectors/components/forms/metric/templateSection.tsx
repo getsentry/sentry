@@ -1,10 +1,11 @@
 import {useContext, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
 import {Heading} from 'sentry/components/core/text/heading';
-import DropdownButton from 'sentry/components/dropdownButton';
 import FormContext from 'sentry/components/forms/formContext';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {t} from 'sentry/locale';
@@ -14,6 +15,7 @@ import {
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {METRIC_TEMPLATE_OPTIONS} from 'sentry/views/detectors/components/forms/metric/metricTemplateOptions';
+import {sanitizeDetectorQuery} from 'sentry/views/detectors/components/forms/metric/sanitizeDetectorQuery';
 import {useDatasetChoices} from 'sentry/views/detectors/components/forms/metric/useDatasetChoices';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
@@ -120,10 +122,9 @@ export function TemplateSection() {
         <CompactSelect
           options={templateOptions}
           value={currentTemplateValue}
-          trigger={(triggerProps, isOpen) => {
+          trigger={triggerProps => {
             return (
               <StyledTriggerButton
-                isOpen={isOpen}
                 {...triggerProps}
                 data-test-id="template-selector"
                 aria-label={selectedOptionLabel || t('Choose a template (optional)')}
@@ -151,10 +152,13 @@ export function TemplateSection() {
               METRIC_DETECTOR_FORM_FIELDS.aggregateFunction,
               uiAggregate
             );
-            // Only set query if template has one and user hasn't customized the filter
-            if (meta.query !== undefined && !currentQuery) {
-              formContext.form?.setValue(METRIC_DETECTOR_FORM_FIELDS.query, meta.query);
-            }
+            const newQuery = currentQuery
+              ? sanitizeDetectorQuery({
+                  dataset: meta.detectorDataset,
+                  query: currentQuery,
+                })
+              : (meta.query ?? '');
+            formContext.form?.setValue(METRIC_DETECTOR_FORM_FIELDS.query, newQuery);
           }}
         />
       </Flex>
@@ -162,6 +166,6 @@ export function TemplateSection() {
   );
 }
 
-const StyledTriggerButton = styled(DropdownButton)`
+const StyledTriggerButton = styled(SelectTrigger.Button)`
   min-width: 425px;
 `;

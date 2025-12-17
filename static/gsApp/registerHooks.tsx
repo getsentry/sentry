@@ -5,6 +5,7 @@ import {IconBusiness} from 'sentry/icons';
 import HookStore from 'sentry/stores/hookStore';
 import type {Hooks} from 'sentry/types/hooks';
 
+import AiSetupConfiguration from 'getsentry/components/ai/aiSetupConfiguration';
 import AiSetupDataConsent from 'getsentry/components/ai/AiSetupDataConsent';
 import CronsBillingBanner from 'getsentry/components/crons/cronsBillingBanner';
 import DashboardBanner from 'getsentry/components/dashboardBanner';
@@ -66,6 +67,7 @@ import SuperuserAccessCategory from 'getsentry/hooks/superuserAccessCategory';
 import TargetedOnboardingHeader from 'getsentry/hooks/targetedOnboardingHeader';
 import {useDashboardDatasetRetentionLimit} from 'getsentry/hooks/useDashboardDatasetRetentionLimit';
 import {useMetricDetectorLimit} from 'getsentry/hooks/useMetricDetectorLimit';
+import {useProductBillingAccess} from 'getsentry/hooks/useProductBillingAccess';
 import rawTrackAnalyticsEvent from 'getsentry/utils/rawTrackAnalyticsEvent';
 import trackMetric from 'getsentry/utils/trackMetric';
 
@@ -197,6 +199,7 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
    */
   'component:insights-date-range-query-limit-footer': () =>
     InsightsDateRangeQueryLimitFooter,
+  'component:ai-setup-configuration': () => AiSetupConfiguration,
   'component:ai-setup-data-consent': () => AiSetupDataConsent,
   'component:codecov-integration-settings-link': () => CodecovSettingsLink,
   'component:continuous-profiling-beta-banner': () => ContinuousProfilingBetaAlertBanner,
@@ -238,6 +241,7 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'react-hook:use-get-max-retention-days': useGetMaxRetentionDays,
   'react-hook:use-metric-detector-limit': useMetricDetectorLimit,
   'react-hook:use-dashboard-dataset-retention-limit': useDashboardDatasetRetentionLimit,
+  'react-hook:use-product-billing-access': useProductBillingAccess,
   'component:partnership-agreement': p => (
     <LazyLoad LazyComponent={PartnershipAgreement} {...p} />
   ),

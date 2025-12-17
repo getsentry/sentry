@@ -6,19 +6,23 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import ConfirmDelete from 'sentry/components/confirmDelete';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import Placeholder from 'sentry/components/placeholder';
 import Version from 'sentry/components/version';
 import {
   IconDelete,
   IconDownload,
   IconEllipsis,
   IconRefresh,
+  IconSettings,
   IconTelescope,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -82,20 +86,21 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
 
   const breadcrumbs: Crumb[] = [
     {
-      to: makeReleasesUrl(project?.id, {
-        appId: buildDetailsData.app_info.app_id ?? undefined,
-      }),
+      to: makeReleasesUrl(project?.id, {tab: 'mobile-builds'}),
       label: 'Releases',
     },
   ];
 
-  if (buildDetailsData.app_info.version) {
+  const version = buildDetailsData.app_info?.version;
+  const buildNumber = buildDetailsData.app_info?.build_number;
+
+  if (version) {
     breadcrumbs.push({
       to: makeReleasesUrl(project?.id, {
-        version: buildDetailsData.app_info.version,
-        appId: buildDetailsData.app_info.app_id ?? undefined,
+        query: version,
+        tab: 'mobile-builds',
       }),
-      label: buildDetailsData.app_info.version,
+      label: version,
     });
   }
 
@@ -103,7 +108,13 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     label: 'Build Details',
   });
 
-  const version = `v${buildDetailsData.app_info.version ?? 'Unknown'} (${buildDetailsData.app_info.build_number ?? 'Unknown'})`;
+  let versionTitle: string | undefined = undefined;
+  if (version) {
+    versionTitle = `v${version}`;
+    if (buildNumber) {
+      versionTitle += ` (${buildNumber})`;
+    }
+  }
 
   const handleCompareClick = () => {
     trackAnalytics('preprod.builds.details.compare_build_clicked', {
@@ -134,8 +145,11 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
           <FeatureBadge type="beta" />
         </Flex>
         <Layout.Title>
-          {project && <IdBadge project={project} avatarSize={28} hideName />}
-          <Version version={version} anchor={false} truncate />
+          <Flex align="center" gap="sm" minHeight="1lh">
+            {project && <IdBadge project={project} avatarSize={28} hideName />}
+            {versionTitle && <Version version={versionTitle} anchor={false} truncate />}
+            {!versionTitle && <Placeholder width="30ch" height="1em" />}
+          </Flex>
         </Layout.Title>
       </Layout.HeaderContent>
 
@@ -156,6 +170,14 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
               {t('Compare Build')}
             </Button>
           </Link>
+          <Feature features="organizations:preprod-issues">
+            <LinkButton
+              size="sm"
+              icon={<IconSettings />}
+              aria-label={t('Settings')}
+              to={`/settings/${organization.slug}/projects/${projectId}/preprod/`}
+            />
+          </Feature>
           <ConfirmDelete
             message={t(
               'Are you sure you want to delete this build? This action cannot be undone and will permanently remove all associated files and data.'

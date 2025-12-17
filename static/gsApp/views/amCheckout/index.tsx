@@ -159,9 +159,7 @@ class AMCheckout extends Component<Props, State> {
       const selectedAll = Object.values(props.subscription.addOns ?? {}).every(
         addOn =>
           // add-on is enabled or not launched yet
-          // if there's no billing flag, we assume it's launched
-          addOn.enabled ||
-          (addOn.billingFlag && !props.organization.features.includes(addOn.billingFlag))
+          addOn.enabled || !addOn.isAvailable
       );
 
       if (selectedAll) {
@@ -535,7 +533,7 @@ class AMCheckout extends Component<Props, State> {
       addOns: Object.values(subscription.addOns ?? {})
         .filter(
           // only populate add-ons that are launched
-          addOn => !addOn.billingFlag || organization.features.includes(addOn.billingFlag)
+          addOn => addOn.isAvailable
         )
         .reduce((acc, addOn) => {
           acc[addOn.apiName] = {
@@ -1050,7 +1048,7 @@ const CheckoutHeader = styled('header')`
   right: 0;
   z-index: 100;
   width: 100%;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border-bottom: 1px solid ${p => p.theme.border};
   display: flex;
   justify-content: center;
@@ -1106,7 +1104,7 @@ const SidePanel = styled('aside')<{isNewCheckout: boolean}>`
             max-width: 26rem;
             border-top: none;
             padding-left: ${p.theme.space['3xl']};
-            background-color: ${p.theme.background};
+            background-color: ${p.theme.tokens.background.primary};
             padding-bottom: ${p.theme.space['3xl']};
           }
         `

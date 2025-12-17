@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import tagstore
+from sentry import features, tagstore
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.helpers.environments import get_environments
@@ -62,12 +62,19 @@ class GroupTagsEndpoint(GroupEndpoint):
 
         environment_ids = [e.id for e in get_environments(request, group.project.organization)]
 
+        use_subtraction_query = features.has(
+            "organizations:issue-tags-subtraction-query",
+            group.project.organization,
+            actor=request.user,
+        )
+
         tag_keys = backend.get_group_tag_keys_and_top_values(
             group,
             environment_ids,
             keys=keys,
             value_limit=value_limit,
             tenant_ids={"organization_id": group.project.organization_id},
+            use_subtraction_query=use_subtraction_query,
         )
 
         data = serialize(tag_keys, request.user)

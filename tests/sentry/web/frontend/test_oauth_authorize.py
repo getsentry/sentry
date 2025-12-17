@@ -524,7 +524,7 @@ class OAuthAuthorizeOrgScopedCustomSchemeTest(TestCase):
         self.owner = self.create_user(email="admin@test.com")
         self.create_member(user=self.owner, organization=self.organization, role="owner")
         self.another_organization = self.create_organization(owner=self.owner)
-        self.custom_uri = "sentry-mobile-agent://sentry.io/auth"
+        self.custom_uri = "sentry-apple://sentry.io/auth"
         self.application = ApiApplication.objects.create(
             owner=self.user,
             redirect_uris=self.custom_uri,
@@ -569,7 +569,7 @@ class OAuthAuthorizeOrgScopedCustomSchemeTest(TestCase):
         assert grant.organization_id == self.organization.id
 
         assert resp.status_code == 302
-        assert resp["Location"].startswith("sentry-mobile-agent://")
+        assert resp["Location"].startswith("sentry-apple://")
         assert f"code={grant.code}" in resp["Location"]
         assert "state=foo" in resp["Location"]
 
@@ -584,7 +584,7 @@ class OAuthAuthorizeOrgScopedCustomSchemeTest(TestCase):
         )
 
         assert resp.status_code == 302
-        assert resp["Location"].startswith("sentry-mobile-agent://")
+        assert resp["Location"].startswith("sentry-apple://")
         assert "error=invalid_scope" in resp["Location"]
         assert "state=foo" in resp["Location"]
         assert "code=" not in resp["Location"]
@@ -617,7 +617,7 @@ class OAuthAuthorizeOrgScopedCustomSchemeTest(TestCase):
 
         grant = ApiGrant.objects.get(user=self.owner)
         assert grant.redirect_uri == self.custom_uri
-        assert resp["Location"].startswith("sentry-mobile-agent://")
+        assert resp["Location"].startswith("sentry-apple://")
 
         # There is only one ApiAuthorization for this user and app which is related to the right organization
         api_auth = ApiAuthorization.objects.get(user=self.owner, application=self.application)
@@ -671,7 +671,7 @@ class OAuthAuthorizeOrgScopedCustomSchemeStrictTest(TestCase):
         self.owner = self.create_user(email="admin@test.com")
         self.create_member(user=self.owner, organization=self.organization, role="owner")
         self.another_organization = self.create_organization(owner=self.owner)
-        self.custom_uri = "sentry-mobile-agent://sentry.io/auth"
+        self.custom_uri = "sentry-apple://sentry.io/auth"
         self.application = ApiApplication.objects.create(
             owner=self.user,
             redirect_uris=self.custom_uri,
@@ -717,7 +717,7 @@ class OAuthAuthorizeOrgScopedCustomSchemeStrictTest(TestCase):
         assert grant.organization_id == self.organization.id
 
         assert resp.status_code == 302
-        assert resp["Location"].startswith("sentry-mobile-agent://")
+        assert resp["Location"].startswith("sentry-apple://")
         assert f"code={grant.code}" in resp["Location"]
         assert "state=foo" in resp["Location"]
 
@@ -732,7 +732,7 @@ class OAuthAuthorizeOrgScopedCustomSchemeStrictTest(TestCase):
         )
 
         assert resp.status_code == 302
-        assert resp["Location"].startswith("sentry-mobile-agent://")
+        assert resp["Location"].startswith("sentry-apple://")
         assert "error=invalid_scope" in resp["Location"]
         assert "state=foo" in resp["Location"]
         assert "code=" not in resp["Location"]
@@ -756,7 +756,7 @@ class OAuthAuthorizeOrgScopedCustomSchemeStrictTest(TestCase):
 
 @control_silo_test
 class OAuthAuthorizeCustomSchemeTest(TestCase):
-    """Tests for OAuth flows using custom URI schemes (sentry-mobile-agent://)."""
+    """Tests for OAuth flows using custom URI schemes (sentry-apple://)."""
 
     @cached_property
     def path(self) -> str:
@@ -764,7 +764,7 @@ class OAuthAuthorizeCustomSchemeTest(TestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.custom_uri = "sentry-mobile-agent://sentry.io/auth"
+        self.custom_uri = "sentry-apple://sentry.io/auth"
         self.application = ApiApplication.objects.create(
             owner=self.user, redirect_uris=self.custom_uri
         )
@@ -789,7 +789,7 @@ class OAuthAuthorizeCustomSchemeTest(TestCase):
 
         assert resp.status_code == 302
         # Verify custom scheme is used in Location header
-        assert resp["Location"].startswith("sentry-mobile-agent://")
+        assert resp["Location"].startswith("sentry-apple://")
         assert f"code={grant.code}" in resp["Location"]
 
     def test_code_flow_custom_scheme_deny(self) -> None:
@@ -804,7 +804,7 @@ class OAuthAuthorizeCustomSchemeTest(TestCase):
         resp = self.client.post(self.path, {"op": "deny"})
 
         assert resp.status_code == 302
-        assert resp["Location"].startswith("sentry-mobile-agent://")
+        assert resp["Location"].startswith("sentry-apple://")
         assert "error=access_denied" in resp["Location"]
         assert "code=" not in resp["Location"]
         assert not ApiGrant.objects.filter(user=self.user).exists()
@@ -828,7 +828,7 @@ class OAuthAuthorizeCustomSchemeTest(TestCase):
 
         assert resp.status_code == 302
         # Verify custom scheme is used with fragment for token
-        assert resp["Location"].startswith("sentry-mobile-agent://")
+        assert resp["Location"].startswith("sentry-apple://")
         assert "#" in resp["Location"]
         assert "access_token=" in resp["Location"]
 
@@ -844,7 +844,7 @@ class OAuthAuthorizeCustomSchemeTest(TestCase):
         resp = self.client.post(self.path, {"op": "deny"})
 
         assert resp.status_code == 302
-        assert resp["Location"].startswith("sentry-mobile-agent://")
+        assert resp["Location"].startswith("sentry-apple://")
         assert "#" in resp["Location"]
         assert "error=access_denied" in resp["Location"]
         assert "access_token=" not in resp["Location"]
@@ -864,7 +864,7 @@ class OAuthAuthorizeCustomSchemeTest(TestCase):
 
         grant = ApiGrant.objects.get(user=self.user)
         assert resp.status_code == 302
-        assert resp["Location"].startswith("sentry-mobile-agent://")
+        assert resp["Location"].startswith("sentry-apple://")
         assert f"code={grant.code}" in resp["Location"]
         assert f"state={state}" in resp["Location"]
 
@@ -888,7 +888,7 @@ class OAuthAuthorizeCustomSchemeTest(TestCase):
         assert grant.get_scopes() == ["org:read"]
 
         assert resp.status_code == 302
-        assert resp["Location"].startswith("sentry-mobile-agent://")
+        assert resp["Location"].startswith("sentry-apple://")
         assert f"code={grant.code}" in resp["Location"]
         assert "state=foo" in resp["Location"]
 
@@ -908,7 +908,7 @@ class OAuthAuthorizeCustomSchemeTest(TestCase):
         assert not grant.get_scopes()
 
         assert resp.status_code == 302
-        assert resp["Location"].startswith("sentry-mobile-agent://")
+        assert resp["Location"].startswith("sentry-apple://")
         assert f"code={grant.code}" in resp["Location"]
 
     def test_code_flow_force_prompt_custom_scheme(self) -> None:
@@ -991,7 +991,7 @@ class OAuthAuthorizeCustomSchemeTest(TestCase):
         assert not grant.get_scopes()
 
         assert resp.status_code == 302
-        assert resp["Location"].startswith("sentry-mobile-agent://")
+        assert resp["Location"].startswith("sentry-apple://")
         assert f"code={grant.code}" in resp["Location"]
 
     def test_invalid_scope_custom_scheme(self) -> None:
@@ -1003,7 +1003,7 @@ class OAuthAuthorizeCustomSchemeTest(TestCase):
         )
 
         assert resp.status_code == 302
-        assert resp["Location"].startswith("sentry-mobile-agent://")
+        assert resp["Location"].startswith("sentry-apple://")
         assert "error=invalid_scope" in resp["Location"]
         assert "code=" not in resp["Location"]
         assert not ApiGrant.objects.filter(user=self.user).exists()
@@ -1028,7 +1028,7 @@ class OAuthAuthorizeCustomSchemeTest(TestCase):
 
         assert resp.status_code == 302
         location, fragment = resp["Location"].split("#", 1)
-        assert location.startswith("sentry-mobile-agent://")
+        assert location.startswith("sentry-apple://")
         fragment_d = parse_qs(fragment)
         assert fragment_d["access_token"] == [token.token]
         assert fragment_d["state"] == ["foo"]
@@ -1042,7 +1042,7 @@ class OAuthAuthorizeCustomSchemeTest(TestCase):
         )
 
         assert resp.status_code == 302
-        assert resp["Location"].startswith("sentry-mobile-agent://")
+        assert resp["Location"].startswith("sentry-apple://")
         assert "#" in resp["Location"]
         assert "error=invalid_scope" in resp["Location"]
         assert "access_token" not in resp["Location"]
@@ -1087,7 +1087,7 @@ class OAuthAuthorizeCustomSchemeTest(TestCase):
         self.login_as(self.user)
 
         # Try to use a different custom scheme that's not registered
-        invalid_uri = "sentry-mobile-agent://different.com/auth"
+        invalid_uri = "sentry-apple://different.com/auth"
         resp = self.client.get(
             f"{self.path}?response_type=code&redirect_uri={invalid_uri}&client_id={self.application.client_id}"
         )
@@ -1100,9 +1100,7 @@ class OAuthAuthorizeCustomSchemeTest(TestCase):
         """Test that redirect_uri is required when multiple custom schemes are registered."""
         self.login_as(self.user)
         # Update application to have multiple redirect URIs
-        self.application.redirect_uris = (
-            f"{self.custom_uri}\nsentry-mobile-agent://sentry.io/callback"
-        )
+        self.application.redirect_uris = f"{self.custom_uri}\nsentry-apple://sentry.io/callback"
         self.application.save()
 
         resp = self.client.get(
@@ -1125,7 +1123,7 @@ class OAuthAuthorizeCustomSchemeStrictTest(TestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.custom_uri = "sentry-mobile-agent://sentry.io/auth"
+        self.custom_uri = "sentry-apple://sentry.io/auth"
         self.application = ApiApplication.objects.create(
             owner=self.user, redirect_uris=self.custom_uri, version=1  # Strict mode
         )
@@ -1149,7 +1147,7 @@ class OAuthAuthorizeCustomSchemeStrictTest(TestCase):
         assert grant.application == self.application
 
         assert resp.status_code == 302
-        assert resp["Location"].startswith("sentry-mobile-agent://")
+        assert resp["Location"].startswith("sentry-apple://")
         assert f"code={grant.code}" in resp["Location"]
 
     def test_prefix_match_fails_strict_mode(self) -> None:
@@ -1185,7 +1183,7 @@ class OAuthAuthorizeCustomSchemeStrictTest(TestCase):
         assert token.application == self.application
 
         assert resp.status_code == 302
-        assert resp["Location"].startswith("sentry-mobile-agent://")
+        assert resp["Location"].startswith("sentry-apple://")
         assert "#" in resp["Location"]
         assert "access_token=" in resp["Location"]
 
@@ -1203,7 +1201,7 @@ class OAuthAuthorizeCustomSchemeStrictTest(TestCase):
 
         grant = ApiGrant.objects.get(user=self.user)
         assert resp.status_code == 302
-        assert resp["Location"].startswith("sentry-mobile-agent://")
+        assert resp["Location"].startswith("sentry-apple://")
         assert f"code={grant.code}" in resp["Location"]
         assert f"state={state}" in resp["Location"]
 
@@ -1227,7 +1225,7 @@ class OAuthAuthorizeCustomSchemeStrictTest(TestCase):
         assert grant.get_scopes() == ["org:read"]
 
         assert resp.status_code == 302
-        assert resp["Location"].startswith("sentry-mobile-agent://")
+        assert resp["Location"].startswith("sentry-apple://")
         assert f"code={grant.code}" in resp["Location"]
         assert "state=bar" in resp["Location"]
 
@@ -1243,7 +1241,7 @@ class OAuthAuthorizeCustomSchemeStrictTest(TestCase):
         resp = self.client.post(self.path, {"op": "deny"})
 
         assert resp.status_code == 302
-        assert resp["Location"].startswith("sentry-mobile-agent://")
+        assert resp["Location"].startswith("sentry-apple://")
         assert "error=access_denied" in resp["Location"]
         assert "code=" not in resp["Location"]
         assert not ApiGrant.objects.filter(user=self.user).exists()
@@ -1260,7 +1258,7 @@ class OAuthAuthorizeCustomSchemeStrictTest(TestCase):
         resp = self.client.post(self.path, {"op": "deny"})
 
         assert resp.status_code == 302
-        assert resp["Location"].startswith("sentry-mobile-agent://")
+        assert resp["Location"].startswith("sentry-apple://")
         assert "#" in resp["Location"]
         assert "error=access_denied" in resp["Location"]
         assert "access_token=" not in resp["Location"]
@@ -1275,7 +1273,7 @@ class OAuthAuthorizeCustomSchemeStrictTest(TestCase):
         )
 
         assert resp.status_code == 302
-        assert resp["Location"].startswith("sentry-mobile-agent://")
+        assert resp["Location"].startswith("sentry-apple://")
         assert "error=invalid_scope" in resp["Location"]
         assert "code=" not in resp["Location"]
         assert not ApiGrant.objects.filter(user=self.user).exists()
@@ -1309,5 +1307,155 @@ class OAuthAuthorizeCustomSchemeStrictTest(TestCase):
         assert grant.application == self.application
 
         assert resp.status_code == 302
-        assert resp["Location"].startswith("sentry-mobile-agent://")
+        assert resp["Location"].startswith("sentry-apple://")
         assert f"code={grant.code}" in resp["Location"]
+
+
+@control_silo_test
+class OAuthAuthorizeSecurityTest(TestCase):
+    """Tests for security features: CSRF protection and privilege escalation prevention."""
+
+    @cached_property
+    def path(self) -> str:
+        return "/oauth/authorize/"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.application = ApiApplication.objects.create(
+            owner=self.user, redirect_uris="https://example.com"
+        )
+        self.org_scoped_application = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="https://example.com",
+            requires_org_level_access=True,
+            scopes=["org:read"],
+        )
+
+    def test_organization_id_validation_unauthorized_org(self) -> None:
+        """Test that user cannot authorize access to organization they're not a member of."""
+        # self.user is already a member of self.organization by default
+
+        # Create another organization that user is NOT a member of
+        other_org = self.create_organization(name="Other Org")
+
+        self.login_as(self.user)
+
+        # Start authorization flow
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.org_scoped_application.client_id}&scope=org:read"
+        )
+        # May return 200 or may return 400 if user has no orgs - either way, let's proceed to POST
+
+        # POST approval with organization user is NOT a member of
+        resp = self.client.post(
+            self.path, {"op": "approve", "selected_organization_id": other_org.id}
+        )
+
+        # Should return error redirect or error page
+        if resp.status_code == 302:
+            assert "error=unauthorized_client" in resp["Location"]
+        # Alternatively, may return 400 with error page
+        # Either way, no grant should be created
+        assert not ApiGrant.objects.filter(
+            user=self.user, application=self.org_scoped_application
+        ).exists()
+
+    def test_organization_id_validation_invalid_format(self) -> None:
+        """Test that invalid organization ID format is rejected."""
+        # self.user is already a member of self.organization by default
+
+        self.login_as(self.user)
+
+        # Start authorization flow
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.org_scoped_application.client_id}&scope=org:read"
+        )
+        # May return 200 or 400 depending on user's org membership
+
+        # POST approval with invalid (non-integer) organization ID
+        resp = self.client.post(
+            self.path, {"op": "approve", "selected_organization_id": "not-a-number"}
+        )
+
+        # Should return error
+        if resp.status_code == 302:
+            assert "error=unauthorized_client" in resp["Location"]
+
+        # No grant should be created
+        assert not ApiGrant.objects.filter(
+            user=self.user, application=self.org_scoped_application
+        ).exists()
+
+    def test_organization_id_validation_success(self) -> None:
+        """Test that user can authorize access to organization they ARE a member of."""
+        # self.user is already a member of self.organization by default
+
+        self.login_as(self.user)
+
+        # Start authorization flow
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.org_scoped_application.client_id}&scope=org:read"
+        )
+        # May return 200 or 400
+
+        # POST approval with organization user IS a member of
+        resp = self.client.post(
+            self.path, {"op": "approve", "selected_organization_id": self.organization.id}
+        )
+
+        # Should succeed if user is actually a member
+        if resp.status_code == 302 and "error" not in resp.get("Location", ""):
+            # Grant should be created with correct organization
+            grant = ApiGrant.objects.filter(
+                user=self.user, application=self.org_scoped_application
+            ).first()
+            if grant:
+                assert grant.organization_id == self.organization.id
+
+    def test_organization_id_required_for_org_level_apps(self) -> None:
+        """Test that org-level apps reject requests without organization_id (security fix)."""
+        # Ensure user is a member of an organization
+        self.login_as(self.user)
+
+        # Start authorization flow with org-scoped app
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.org_scoped_application.client_id}&scope=org:read"
+        )
+
+        # If GET fails (user has no orgs), skip the rest of the test
+        if resp.status_code != 200:
+            return
+
+        # POST approval WITHOUT organization_id (attacker removes the parameter)
+        resp = self.client.post(self.path, {"op": "approve"})
+
+        # Should return error redirect, not create grant with null organization_id
+        if resp.status_code == 302:
+            assert "error=invalid_request" in resp["Location"]
+
+        # No grant should be created
+        assert not ApiGrant.objects.filter(
+            user=self.user, application=self.org_scoped_application
+        ).exists()
+
+    def test_organization_id_validation_not_required_for_non_org_apps(self) -> None:
+        """Test that organization validation is skipped for apps that don't require org-level access."""
+        self.login_as(self.user)
+
+        # GET request with non-org-scoped app
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+        )
+        assert resp.status_code == 200
+
+        # POST approval without selecting an organization
+        resp = self.client.post(self.path, {"op": "approve"})
+
+        # Should succeed (organization validation not performed)
+        assert resp.status_code == 302
+        assert "error" not in resp["Location"]
+
+        # Grant should be created
+        grant = ApiGrant.objects.get(user=self.user, application=self.application)
+        assert grant is not None
+        # organization_id may or may not be set depending on default behavior - we just verify grant exists

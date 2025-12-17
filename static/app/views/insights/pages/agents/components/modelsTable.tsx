@@ -14,7 +14,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -32,6 +31,7 @@ import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useComb
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {ErrorCell} from 'sentry/views/insights/pages/agents/utils/cells';
 import {formatLLMCosts} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
+import {getExploreUrlWithProjectSelection} from 'sentry/views/insights/pages/agents/utils/getExploreUrlWithProjectSelection';
 import {getAIGenerationsFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
@@ -58,7 +58,7 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'count_if(span.status,equals,internal_error)', name: t('Errors'), width: 120},
   {key: 'avg(span.duration)', name: t('Avg'), width: 100},
   {key: 'p95(span.duration)', name: t('P95'), width: 100},
-  {key: 'sum(gen_ai.usage.total_cost)', name: t('Cost'), width: 100},
+  {key: 'sum(gen_ai.cost.total_tokens)', name: t('Cost'), width: 100},
   {
     key: 'sum(gen_ai.usage.input_tokens)',
     name: t('Input tokens (Cached)'),
@@ -77,7 +77,7 @@ const rightAlignColumns = new Set([
   'sum(gen_ai.usage.output_tokens)',
   'sum(gen_ai.usage.output_tokens.reasoning)',
   'sum(gen_ai.usage.input_tokens.cached)',
-  'sum(gen_ai.usage.total_cost)',
+  'sum(gen_ai.cost.total_tokens)',
   'count_if(span.status,equals,internal_error)',
   'avg(span.duration)',
   'p95(span.duration)',
@@ -103,7 +103,7 @@ export function ModelsTable() {
         'sum(gen_ai.usage.output_tokens)',
         'sum(gen_ai.usage.output_tokens.reasoning)',
         'sum(gen_ai.usage.input_tokens.cached)',
-        'sum(gen_ai.usage.total_cost)',
+        'sum(gen_ai.cost.total_tokens)',
         'count()',
         'avg(span.duration)',
         'p95(span.duration)',
@@ -128,7 +128,7 @@ export function ModelsTable() {
       requests: span['count()'] ?? 0,
       avg: span['avg(span.duration)'] ?? 0,
       p95: span['p95(span.duration)'] ?? 0,
-      cost: span['sum(gen_ai.usage.total_cost)'],
+      cost: span['sum(gen_ai.cost.total_tokens)'],
       errors: span['count_if(span.status,equals,internal_error)'] ?? 0,
       inputTokens: Number(span['sum(gen_ai.usage.input_tokens)']),
       inputCachedTokens: Number(span['sum(gen_ai.usage.input_tokens.cached)']),
@@ -207,7 +207,7 @@ const BodyCell = memo(function BodyCell({
 }) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const exploreUrl = getExploreUrl({
+  const exploreUrl = getExploreUrlWithProjectSelection({
     selection,
     organization,
     mode: Mode.SAMPLES,
@@ -259,13 +259,13 @@ const BodyCell = memo(function BodyCell({
       return <DurationCell milliseconds={dataRow.avg} />;
     case 'p95(span.duration)':
       return <DurationCell milliseconds={dataRow.p95} />;
-    case 'sum(gen_ai.usage.total_cost)':
+    case 'sum(gen_ai.cost.total_tokens)':
       return <TextAlignRight>{formatLLMCosts(dataRow.cost)}</TextAlignRight>;
     case 'count_if(span.status,equals,internal_error)':
       return (
         <ErrorCell
           value={dataRow.errors}
-          target={getExploreUrl({
+          target={getExploreUrlWithProjectSelection({
             query: `${query} span.status:internal_error gen_ai.request.model:"${dataRow.model}"`,
             organization,
             selection,

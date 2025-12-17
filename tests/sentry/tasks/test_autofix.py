@@ -5,7 +5,7 @@ import pytest
 from django.test import TestCase
 
 from sentry.seer.autofix.constants import AutofixStatus, SeerAutomationSource
-from sentry.seer.autofix.utils import AutofixState
+from sentry.seer.autofix.utils import AutofixState, get_seer_seat_based_tier_cache_key
 from sentry.seer.models import SeerApiError, SummarizeIssueResponse, SummarizeIssueScores
 from sentry.tasks.autofix import (
     check_autofix_status,
@@ -13,6 +13,7 @@ from sentry.tasks.autofix import (
     generate_issue_summary_only,
 )
 from sentry.testutils.cases import TestCase as SentryTestCase
+from sentry.utils.cache import cache
 
 
 class TestCheckAutofixStatus(TestCase):
@@ -151,8 +152,9 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
 
         configure_seer_for_existing_org(organization_id=self.organization.id)
 
-        # Check org-level option
+        # Check org-level options
         assert self.organization.get_option("sentry:enable_seer_coding") is True
+        assert self.organization.get_option("sentry:default_autofix_automation_tuning") == "medium"
 
         # Check project-level options
         assert project1.get_option("sentry:seer_scanner_automation") is True
@@ -233,3 +235,57 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         # Sentry DB options should still be set before the API call
         assert project1.get_option("sentry:seer_scanner_automation") is True
         assert project2.get_option("sentry:seer_scanner_automation") is True
+
+    @patch("sentry.tasks.autofix.bulk_set_project_preferences")
+    @patch("sentry.tasks.autofix.bulk_get_project_preferences")
+    def test_sets_seat_based_tier_cache_to_true(
+        self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
+    ) -> None:
+        """Test that the seat-based tier cache is set to True after configuring org."""
+        self.create_project(organization=self.organization)
+        mock_bulk_get.return_value = {}
+
+        # Set a cached value before running the task
+        cache_key = get_seer_seat_based_tier_cache_key(self.organization.id)
+        cache.set(cache_key, False, timeout=60 * 60 * 4)
+        assert cache.get(cache_key) is False
+
+        configure_seer_for_existing_org(organization_id=self.organization.id)
+
+        # Cache should be set to True to prevent race conditions
+        assert cache.get(cache_key) is True
+
+    @patch("sentry.tasks.autofix.get_autofix_repos_from_project_code_mappings")
+    @patch("sentry.tasks.autofix.bulk_set_project_preferences")
+    @patch("sentry.tasks.autofix.bulk_get_project_preferences")
+    def test_uses_code_mappings_when_no_existing_preferences(
+        self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock, mock_get_code_mappings: MagicMock
+    ) -> None:
+        """Test that code mappings are used as fallback when no preferences exist."""
+        project = self.create_project(organization=self.organization)
+        mock_bulk_get.return_value = {}
+        mock_repos = [{"provider": "github", "owner": "test-org", "name": "test-repo"}]
+        mock_get_code_mappings.return_value = mock_repos
+
+        configure_seer_for_existing_org(organization_id=self.organization.id)
+
+        mock_get_code_mappings.assert_called_once_with(project)
+        preferences = mock_bulk_set.call_args[0][1]
+        assert preferences[0]["repositories"] == mock_repos
+
+    @patch("sentry.tasks.autofix.get_autofix_repos_from_project_code_mappings")
+    @patch("sentry.tasks.autofix.bulk_set_project_preferences")
+    @patch("sentry.tasks.autofix.bulk_get_project_preferences")
+    def test_preserves_existing_repositories_when_preferences_exist(
+        self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock, mock_get_code_mappings: MagicMock
+    ) -> None:
+        """Test that existing repositories are preserved when preferences exist."""
+        project = self.create_project(organization=self.organization)
+        existing_repos = [{"provider": "github", "owner": "existing-org", "name": "existing-repo"}]
+        mock_bulk_get.return_value = {str(project.id): {"repositories": existing_repos}}
+
+        configure_seer_for_existing_org(organization_id=self.organization.id)
+
+        mock_get_code_mappings.assert_not_called()
+        preferences = mock_bulk_set.call_args[0][1]
+        assert preferences[0]["repositories"] == existing_repos

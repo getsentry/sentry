@@ -51,14 +51,14 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
     | 'solution'
     | 'code_changes'
     | 'open_pr' => {
-    if (organization.features.includes('seer-settings-gtm')) {
+    if (organization.features.includes('seat-based-seer-enabled')) {
       return organization.autoOpenPrs ? 'open_pr' : 'code_changes';
     }
     return 'root_cause';
   }, [organization.features, organization.autoOpenPrs]);
 
   const [automatedRunStoppingPoint, setAutomatedRunStoppingPoint] = useState<
-    'root_cause' | 'solution' | 'code_changes' | 'open_pr'
+    'root_cause' | 'solution' | 'code_changes' | 'open_pr' | 'background_agent'
   >(getDefaultStoppingPoint());
 
   useEffect(() => {
