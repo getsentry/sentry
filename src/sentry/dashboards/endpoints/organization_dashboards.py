@@ -67,6 +67,10 @@ class PrebuiltDashboardId(IntEnum):
     BACKEND_QUERIES_SUMMARY = 3
     WEB_VITALS = 6
     WEB_VITALS_SUMMARY = 7
+    MOBILE_VITALS = 8
+    MOBILE_VITALS_APP_STARTS = 9
+    MOBILE_VITALS_SCREEN_LOADS = 10
+    MOBILE_VITALS_SCREEN_RENDERING = 11
 
 
 class PrebuiltDashboard(TypedDict):
@@ -99,6 +103,22 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.WEB_VITALS,
         "title": "Web Vitals",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS,
+        "title": "Mobile Vitals",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS_APP_STARTS,
+        "title": "App Starts",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS_SCREEN_LOADS,
+        "title": "Screen Loads",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS_SCREEN_RENDERING,
+        "title": "Screen Rendering",
     },
 ]
 
