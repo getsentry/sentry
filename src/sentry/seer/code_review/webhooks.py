@@ -3,7 +3,7 @@ Webhooks for GitHub webhook events.
 
 This module handles GitHub webhook events for code review and schedules tasks to process them.
 
-See tasks.py for the tasks that are scheduled to process the webhook events.
+See webhook_tasks.py for the tasks that are scheduled to process the webhook events.
 
 Currently, this module is only used to handle the webhook events from GitHub when a user clicks "Re-run" on a check run in GitHub UI.
 When a user clicks "Re-run" on a check run in GitHub UI, we enqueue a task to forward the original run ID to Seer so it can rerun the PR review.
@@ -19,9 +19,6 @@ from typing import Any
 from pydantic import ValidationError
 
 from sentry.models.organization import Organization
-
-# TODO: Move that functionality to src/sentry/seer/code_review/utils.py when we have more webhook events to handle.
-from sentry.overwatch.endpoints.overwatch_rpc import _is_eligible_for_code_review
 from sentry.utils import metrics
 
 from .types import GitHubCheckRunAction, GitHubCheckRunEvent
@@ -101,14 +98,7 @@ def _should_handle_github_check_run_event(organization: Organization, action: st
     """
     Determine if the GitHub check_run event should be handled.
     """
-
-    if not _is_eligible_for_code_review(
-        organization,
-        # XXX: Handle these later
-        repository_id=1,
-        integration_id=1,
-        external_identifier="",
-    ):
+    if not organization.features.has("organizations:code-review-beta"):
         return False
 
     return action == GitHubCheckRunAction.REREQUESTED
