@@ -1,11 +1,9 @@
-from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TraceTestCase
 
 
 class RelatedIssuesTest(APITestCase, SnubaTestCase, TraceTestCase):
-    endpoint = "sentry-api-0-issues-related-issues"
     FEATURES: list[str] = []
 
     def setUp(self) -> None:
@@ -16,7 +14,9 @@ class RelatedIssuesTest(APITestCase, SnubaTestCase, TraceTestCase):
         self.group_id: int | None = None
 
     def reverse_url(self) -> str:
-        return reverse(self.endpoint, kwargs={"issue_id": self.group_id})
+        return (
+            f"/api/0/organizations/{self.organization.slug}/issues/{self.group_id}/related-issues/"
+        )
 
     def _data(self, type: str, value: str) -> dict[str, object]:
         return {"type": "error", "metadata": {"type": type, "value": value}}
