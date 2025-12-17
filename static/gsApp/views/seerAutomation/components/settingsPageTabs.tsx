@@ -19,13 +19,19 @@ export default function SettingsPageTabs() {
     [t('Projects'), `/settings/${organization.slug}/seer/projects/`],
     [t('Repos'), `/settings/${organization.slug}/seer/repos/`],
   ];
+  const normalizedTabs = tabs.map<[string, string]>(([label, to]) => [
+    label,
+    normalizeUrl(to),
+  ]);
+  const activeTab =
+    normalizedTabs.find(([, to]) => pathname.startsWith(to))?.[1] ?? pathname;
 
   return (
     <Container borderBottom="primary">
-      <Tabs onChange={key => navigate(key)} value={pathname}>
+      <Tabs onChange={key => navigate(key)} value={activeTab}>
         <TabList>
-          {tabs.map(([label, to]) => (
-            <TabList.Item key={normalizeUrl(to)} to={to}>
+          {normalizedTabs.map(([label, to]) => (
+            <TabList.Item key={to} to={to}>
               {label}
             </TabList.Item>
           ))}
