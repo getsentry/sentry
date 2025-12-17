@@ -8,6 +8,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.eventattachment import EventAttachment, event_attachment_screenshot_filter
 from sentry.search.utils import tokenize_query
 from sentry.services import eventstore
@@ -41,7 +42,9 @@ class EventAttachmentsEndpoint(ProjectEndpoint):
         if event is None:
             return self.respond({"detail": "Event not found"}, status=404)
 
-        queryset = EventAttachment.objects.filter(project_id=project.id, event_id=event.event_id)
+        queryset: BaseQuerySet[EventAttachment] = EventAttachment.objects.filter(
+            project_id=project.id, event_id=event.event_id
+        )
 
         query = request.GET.get("query")
         if query:

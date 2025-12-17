@@ -37,7 +37,9 @@ class SentryAppsStatsEndpoint(SentryAppsBaseEndpoint):
                 "uuid": app.uuid,
                 "slug": app.slug,
                 "name": app.name,
-                "installs": app.installations__count,
+                # installations__count is dynamically added by the .annotate() call above, so it exists
+                # at runtime but the type checker doesn't know about it. This is safe.
+                "installs": app.installations__count,  # type: ignore[attr-defined]
                 "avatars": serialize(avatars_to_app_map[app.id], request.user),
             }
             for app in sentry_apps

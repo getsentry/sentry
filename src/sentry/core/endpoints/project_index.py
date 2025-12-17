@@ -11,6 +11,7 @@ from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import ProjectWithOrganizationSerializer, serialize
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ObjectStatus
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.models.query import in_iexact
 from sentry.models.project import Project
 from sentry.models.projectplatform import ProjectPlatform
@@ -35,7 +36,7 @@ class ProjectIndexEndpoint(Endpoint):
 
         :auth: required
         """
-        queryset = Project.objects.select_related("organization").distinct()
+        queryset: BaseQuerySet[Project] = Project.objects.select_related("organization").distinct()
 
         status = request.GET.get("status", "active")
         if status == "active":

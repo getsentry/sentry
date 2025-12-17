@@ -73,7 +73,7 @@ def make_key(model: Any, prefix: str, kwargs: Mapping[str, Model | int | str]) -
 # we use the actual from_queryset() result.
 if TYPE_CHECKING:
 
-    class _BaseManagerBase(BaseQuerySet[M], DjangoBaseManager[M]):
+    class _BaseManagerBase(BaseQuerySet[M], DjangoBaseManager[M]):  # type: ignore[misc]
         pass
 
 else:
