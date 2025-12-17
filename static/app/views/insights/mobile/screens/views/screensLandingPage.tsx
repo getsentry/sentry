@@ -22,7 +22,7 @@ import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeatu
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
-import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
+import {ReleaseSelector} from 'sentry/views/insights/common/components/releaseSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
@@ -276,7 +276,7 @@ function ScreensLandingPage() {
                       <DatePageFilter {...datePageFilterProps} />
                     </PageFilterBar>
                     <PageFilterBar condensed>
-                      <ReleaseComparisonSelector moduleName={moduleName} />
+                      <ReleaseSelector moduleName={moduleName} />
                     </PageFilterBar>
                   </ToolRibbon>
                 </Container>
