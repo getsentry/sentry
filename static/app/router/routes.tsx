@@ -1404,12 +1404,12 @@ function buildRoutes(): RouteObject[] {
         // new widget builder routes
         {
           path: 'widget-builder/widget/:widgetIndex/edit/',
-          component: make(() => import('sentry/views/dashboards/view')),
+          component: make(() => import('sentry/views/dashboards/create')),
           deprecatedRouteProps: true,
         },
         {
           path: 'widget-builder/widget/new/',
-          component: make(() => import('sentry/views/dashboards/view')),
+          component: make(() => import('sentry/views/dashboards/create')),
           deprecatedRouteProps: true,
         },
       ],

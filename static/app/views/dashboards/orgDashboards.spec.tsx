@@ -12,7 +12,6 @@ import OrgDashboards from 'sentry/views/dashboards/orgDashboards';
 import {DashboardState} from 'sentry/views/dashboards/types';
 
 describe('OrgDashboards', () => {
-  const api = new MockApiClient();
   const organization = OrganizationFixture({
     features: ['dashboards-basic', 'dashboards-edit'],
   });
@@ -82,7 +81,6 @@ describe('OrgDashboards', () => {
         {({dashboard, dashboards}) => {
           return dashboard ? (
             <DashboardDetail
-              api={api}
               initialState={DashboardState.VIEW}
               dashboard={dashboard}
               dashboards={dashboards}
@@ -145,7 +143,6 @@ describe('OrgDashboards', () => {
         {({dashboard, dashboards}) => {
           return dashboard ? (
             <DashboardDetail
-              api={api}
               initialState={DashboardState.VIEW}
               dashboard={dashboard}
               dashboards={dashboards}
@@ -217,7 +214,6 @@ describe('OrgDashboards', () => {
         {({dashboard, dashboards}) => {
           return dashboard ? (
             <DashboardDetail
-              api={api}
               initialState={DashboardState.VIEW}
               dashboard={dashboard}
               dashboards={dashboards}
@@ -246,7 +242,6 @@ describe('OrgDashboards', () => {
         {({dashboard, dashboards}) => {
           return dashboard ? (
             <DashboardDetail
-              api={api}
               initialState={DashboardState.VIEW}
               dashboard={dashboard}
               dashboards={dashboards}
@@ -292,7 +287,6 @@ describe('OrgDashboards', () => {
         {({dashboard, dashboards}) => {
           return dashboard ? (
             <DashboardDetail
-              api={api}
               initialState={DashboardState.VIEW}
               dashboard={dashboard}
               dashboards={dashboards}
@@ -313,7 +307,6 @@ describe('OrgDashboards', () => {
         {({dashboard, dashboards}) => {
           return dashboard ? (
             <DashboardDetail
-              api={api}
               initialState={DashboardState.VIEW}
               dashboard={dashboard}
               dashboards={dashboards}
