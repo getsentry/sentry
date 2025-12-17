@@ -21,10 +21,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {
-  PRIMARY_RELEASE_ALIAS,
-  SECONDARY_RELEASE_ALIAS,
-} from 'sentry/views/insights/common/components/releaseSelector';
 import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -45,15 +41,10 @@ const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} = Span
 
 type Props = {
   primaryRelease?: string;
-  secondaryRelease?: string;
   transaction?: string;
 };
 
-export function SpanOperationTable({
-  transaction,
-  primaryRelease,
-  secondaryRelease,
-}: Props) {
+export function SpanOperationTable({transaction, primaryRelease}: Props) {
   const organization = useOrganization();
   const moduleURL = useModuleURL(ModuleName.MOBILE_VITALS);
   const baseURL = `${moduleURL}/details/`;
@@ -100,31 +91,15 @@ export function SpanOperationTable({
     searchQuery.addFilterValue('os.name', selectedPlatform);
   }
 
-  const queryStringPrimary = appendReleaseFilters(
-    searchQuery,
-    primaryRelease,
-    secondaryRelease
-  );
+  const queryStringPrimary = appendReleaseFilters(searchQuery, primaryRelease);
 
   // Only show comparison when we have two different releases selected
   const baseFields: SpanProperty[] = [PROJECT_ID, SPAN_OP, SPAN_GROUP, SPAN_DESCRIPTION];
-  let spanFields: SpanProperty[] = [];
-  if (defined(primaryRelease) && defined(secondaryRelease)) {
-    spanFields = [
-      `avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`,
-      `avg_if(${SPAN_SELF_TIME},release,equals,${secondaryRelease})`,
-      `avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`,
-    ];
-  } else {
-    spanFields = [`avg(${SPAN_SELF_TIME})`];
-  }
+  const spanFields: SpanProperty[] = [`avg(${SPAN_SELF_TIME})`];
 
   const sort = decodeSorts(location.query[QueryParameterNames.SPANS_SORT])[0] ?? {
     kind: 'desc',
-    field:
-      primaryRelease && secondaryRelease
-        ? `avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`
-        : `avg(${SPAN_SELF_TIME})`,
+    field: `avg(${SPAN_SELF_TIME})`,
   };
 
   const {data, meta, isPending, pageLinks} = useSpans(
@@ -140,30 +115,12 @@ export function SpanOperationTable({
   const columnHeaders: GridColumnHeader[] = [
     {key: SPAN_OP, name: t('Operation'), width: COL_WIDTH_UNDEFINED},
     {key: SPAN_DESCRIPTION, name: t('Span Description'), width: COL_WIDTH_UNDEFINED},
-  ];
-  if (defined(primaryRelease) && defined(secondaryRelease)) {
-    columnHeaders.push({
-      key: `avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`,
-      name: t('Avg Duration (%s)', PRIMARY_RELEASE_ALIAS),
-      width: COL_WIDTH_UNDEFINED,
-    });
-    columnHeaders.push({
-      key: `avg_if(${SPAN_SELF_TIME},release,equals,${secondaryRelease})`,
-      name: t('Avg Duration (%s)', SECONDARY_RELEASE_ALIAS),
-      width: COL_WIDTH_UNDEFINED,
-    });
-    columnHeaders.push({
-      key: `avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`,
-      name: t('Change'),
-      width: COL_WIDTH_UNDEFINED,
-    });
-  } else {
-    columnHeaders.push({
+    {
       key: `avg(${SPAN_SELF_TIME})`,
       name: t('Avg Duration'),
       width: COL_WIDTH_UNDEFINED,
-    });
-  }
+    },
+  ];
 
   function renderBodyCell(column: any, row: any): React.ReactNode {
     if (!meta?.fields) {

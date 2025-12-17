@@ -38,7 +38,6 @@ describe('ScreenLoadEventSamples', () => {
     jest.mocked(useReleaseSelection).mockReturnValue({
       primaryRelease: 'com.example.vu.android@2.10.5',
       isLoading: false,
-      secondaryRelease: 'com.example.vu.android@2.10.3+42',
     });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/events/`,
@@ -130,7 +129,7 @@ describe('ScreenLoadEventSamples', () => {
     );
 
     // Check that headers are set properly
-    expect(screen.getByRole('columnheader', {name: 'Event ID (R1)'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Event ID'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Profile'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'TTID'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'TTFD'})).toBeInTheDocument();

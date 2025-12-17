@@ -12,7 +12,6 @@ import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEd
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {t, tct} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -23,10 +22,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {
-  PRIMARY_RELEASE_ALIAS,
-  SECONDARY_RELEASE_ALIAS,
-} from 'sentry/views/insights/common/components/releaseSelector';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useTTFDConfigured} from 'sentry/views/insights/common/queries/useHasTtfdConfigured';
@@ -46,20 +41,10 @@ const COLUMN_RESIZE_PARAM_NAME = 'events';
 
 type Props = {
   primaryRelease?: string;
-  secondaryRelease?: string;
   transaction?: string;
 };
 
-export function ScreenLoadSpansTable({
-  transaction,
-  primaryRelease,
-  secondaryRelease,
-}: Props) {
-  // Only show comparison when we have two different releases selected
-  const showComparison =
-    defined(primaryRelease) &&
-    defined(secondaryRelease) &&
-    primaryRelease !== secondaryRelease;
+export function ScreenLoadSpansTable({transaction, primaryRelease}: Props) {
   const organization = useOrganization();
   const moduleURL = useModuleURL(ModuleName.MOBILE_VITALS);
   const baseURL = `${moduleURL}/details/`;
@@ -99,11 +84,10 @@ export function ScreenLoadSpansTable({
       searchQuery.addFilterValue(SpanFields.TTID, 'ttid');
     }
 
-    return appendReleaseFilters(searchQuery, primaryRelease, secondaryRelease);
+    return appendReleaseFilters(searchQuery, primaryRelease);
   }, [
     isProjectCrossPlatform,
     primaryRelease,
-    secondaryRelease,
     selectedPlatform,
     spanOp,
     transaction,
@@ -124,15 +108,8 @@ export function ScreenLoadSpansTable({
     'ttfd_contribution_rate()',
     'count()',
     `sum(${SPAN_SELF_TIME})`,
+    `avg(${SPAN_SELF_TIME})`,
   ];
-  if (showComparison) {
-    fields.push(
-      `avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`,
-      `avg_if(${SPAN_SELF_TIME},release,equals,${secondaryRelease})`
-    );
-  } else {
-    fields.push(`avg(${SPAN_SELF_TIME})`);
-  }
 
   const {data, meta, isPending, pageLinks} = useSpans(
     {
@@ -148,27 +125,12 @@ export function ScreenLoadSpansTable({
   const columnHeaders: GridColumnHeader[] = [
     {key: SPAN_OP, name: t('Operation'), width: COL_WIDTH_UNDEFINED},
     {key: SPAN_DESCRIPTION, name: t('Span Description'), width: COL_WIDTH_UNDEFINED},
-  ];
-  if (showComparison) {
-    columnHeaders.push(
-      {
-        key: `avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`,
-        name: t('Avg Duration (%s)', PRIMARY_RELEASE_ALIAS),
-        width: COL_WIDTH_UNDEFINED,
-      },
-      {
-        key: `avg_if(${SPAN_SELF_TIME},release,equals,${secondaryRelease})`,
-        name: t('Avg Duration (%s)', SECONDARY_RELEASE_ALIAS),
-        width: COL_WIDTH_UNDEFINED,
-      }
-    );
-  } else {
-    columnHeaders.push({
+    {
       key: `avg(${SPAN_SELF_TIME})`,
       name: t('Avg Duration'),
       width: COL_WIDTH_UNDEFINED,
-    });
-  }
+    },
+  ];
 
   if (organization.features.includes('insight-modules')) {
     columnHeaders.push({key: 'affects', name: t('Affects'), width: COL_WIDTH_UNDEFINED});

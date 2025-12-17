@@ -25,11 +25,10 @@ export const APP_START_SPANS = [
 
 type Props = {
   primaryRelease?: string;
-  secondaryRelease?: string;
   transaction?: string;
 };
 
-export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: Props) {
+export function SpanOpSelector({transaction, primaryRelease}: Props) {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
@@ -59,11 +58,7 @@ export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: 
     searchQuery.addFilterValue('os.name', selectedPlatform);
   }
 
-  const queryStringPrimary = appendReleaseFilters(
-    searchQuery,
-    primaryRelease,
-    secondaryRelease
-  );
+  const queryStringPrimary = appendReleaseFilters(searchQuery, primaryRelease);
 
   const {data} = useSpans(
     {
