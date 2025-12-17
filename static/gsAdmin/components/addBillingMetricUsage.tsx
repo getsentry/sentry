@@ -134,7 +134,7 @@ function AddBillingMetricUsageModal({
       date: getDateString(date),
     };
 
-    api.request(`/_admin/${orgSlug}/record-usage/`, {
+    api.request(`/customers/${orgSlug}/record-usage/`, {
       method: 'POST',
       data,
       success: () => {
