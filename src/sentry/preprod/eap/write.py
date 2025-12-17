@@ -19,13 +19,13 @@ from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.kafka_config import get_topic_definition
 
 
-def write_preprod_size_metric_to_eap(
+def produce_preprod_size_metric_to_eap(
     size_metric: PreprodArtifactSizeMetrics,
     organization_id: int,
     project_id: int,
 ) -> None:
     """
-    Write a PreprodArtifactSizeMetrics to EAP as a TRACE_ITEM_TYPE_PREPROD trace item.
+    Write a PreprodArtifactSizeMetrics to EAP topic as a TRACE_ITEM_TYPE_PREPROD trace item.
 
     NOTE: EAP is append-only, so this function should only be called after the size metric has been successfully committed
     since we cannot update fields later on. EAP does support ReplacingMergeTree deduplication,

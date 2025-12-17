@@ -6,7 +6,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.models.commitcomparison import CommitComparison
-from sentry.preprod.eap.write import write_preprod_size_metric_to_eap
+from sentry.preprod.eap.write import produce_preprod_size_metric_to_eap
 from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactSizeMetrics,
@@ -61,7 +61,7 @@ class WritePreprodSizeMetricToEAPTest(TestCase):
             analysis_file_id=123,
         )
 
-        write_preprod_size_metric_to_eap(
+        produce_preprod_size_metric_to_eap(
             size_metric=size_metric,
             organization_id=self.organization.id,
             project_id=self.project.id,
@@ -130,7 +130,7 @@ class WritePreprodSizeMetricToEAPTest(TestCase):
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
         )
 
-        write_preprod_size_metric_to_eap(
+        produce_preprod_size_metric_to_eap(
             size_metric=size_metric,
             organization_id=self.organization.id,
             project_id=self.project.id,
