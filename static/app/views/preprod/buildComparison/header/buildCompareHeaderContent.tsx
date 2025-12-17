@@ -67,15 +67,16 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
         </Flex>
         <Heading as="h1">Build comparison</Heading>
         <Flex gap="lg" wrap="wrap" align="center">
-          <Flex gap="sm" align="center">
-            {buildDetails.app_info.name && (
+          {buildDetails.app_info.name && (
+            <Flex gap="sm" align="center">
               <AppIcon
                 appName={buildDetails.app_info.name}
                 appIconId={buildDetails.app_info.app_icon_id}
                 projectId={projectId}
               />
-            )}
-          </Flex>
+              <Text>{buildDetails.app_info.name}</Text>
+            </Flex>
+          )}
           <Flex gap="sm" align="center">
             <InfoIcon>
               {buildDetails.app_info.platform ? (
