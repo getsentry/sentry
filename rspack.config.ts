@@ -26,6 +26,8 @@ import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 // @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
 import LastBuiltPlugin from './build-utils/last-built-plugin.ts';
 // @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
+import {processLoaderHtml} from './build-utils/process-loader-html.ts';
+// @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
 import {remarkUnwrapMdxParagraphs} from './build-utils/remark-unwrap-mdx-paragraphs.ts';
 import packageJson from './package.json' with {type: 'json'};
 
@@ -814,6 +816,13 @@ if (IS_UI_DEV_ONLY) {
 if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
   appConfig.output!.publicPath = '/_assets/';
 
+  // Process loader.html to strip Django template syntax for use in index.ejs
+  const loaderHtmlPath = path.join(
+    import.meta.dirname,
+    'src/sentry/templates/sentry/partial/loader.html'
+  );
+  const loaderHtml = processLoaderHtml(loaderHtmlPath);
+
   /**
    * Generate a index.html file used for running the app in pure client mode.
    * This is currently used for PR deploy previews, where only the frontend
@@ -833,6 +842,7 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
       window: {
         __SENTRY_DEV_UI: true,
       },
+      loaderHtml,
     })
   );
 }
