@@ -1,4 +1,6 @@
-import {useShowNewSeer} from './hooks/useShowNewSeer';
+import showNewSeer from 'sentry/utils/seer/showNewSeer';
+import useOrganization from 'sentry/utils/useOrganization';
+
 import SeerOnboardingLegacy from './onboardingLegacy';
 import SeerOnboardingSeatBased from './onboardingSeatBased';
 
@@ -6,9 +8,9 @@ import SeerOnboardingSeatBased from './onboardingSeatBased';
  * Depending on user's billing, will show either the legacy onboarding, or the newer, seat-based onboarding.
  */
 export default function SeerOnboarding() {
-  const showNewSeer = useShowNewSeer();
+  const organization = useOrganization();
 
-  if (showNewSeer) {
+  if (showNewSeer(organization)) {
     return <SeerOnboardingSeatBased />;
   }
 

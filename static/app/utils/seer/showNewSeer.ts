@@ -1,4 +1,4 @@
-import useOrganization from 'sentry/utils/useOrganization';
+import type {Organization} from 'sentry/types/organization';
 
 /**
  * This hook determines if we should show the new Seer settings/onboarding or not.
@@ -9,9 +9,7 @@ import useOrganization from 'sentry/utils/useOrganization';
  *  - The organization is on the code-review-beta trial
  *  - If the new Seer billing is released
  */
-export function useShowNewSeer() {
-  const organization = useOrganization();
-
+export default function showNewSeer(organization: Organization) {
   // New seer plan
   if (organization.features.includes('seat-based-seer-enabled')) {
     return true;

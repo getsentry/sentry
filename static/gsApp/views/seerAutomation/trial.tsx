@@ -19,12 +19,12 @@ import {Text} from '@sentry/scraps/text/text';
 
 import {IconUpgrade} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import showNewSeer from 'sentry/utils/seer/showNewSeer';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import useSubscription from 'getsentry/hooks/useSubscription';
 import {hasAccessToSubscriptionOverview} from 'getsentry/utils/billing';
-import {useShowNewSeer} from 'getsentry/views/seerAutomation/onboarding/hooks/useShowNewSeer';
 
 const BUTTONS = [
   {
@@ -53,7 +53,6 @@ export default function SeerAutomationTrial() {
   const navigate = useNavigate();
   const organization = useOrganization();
   const subscription = useSubscription();
-  const showNewSeer = useShowNewSeer();
 
   const canVisitSubscriptionPage = hasAccessToSubscriptionOverview(
     subscription,
@@ -63,7 +62,7 @@ export default function SeerAutomationTrial() {
   useEffect(() => {
     // If the org is on the old-seer plan then they shouldn't be here on this new settings page
     // they need to goto the old settings page, or get downgraded off old seer.
-    if (!showNewSeer) {
+    if (!showNewSeer(organization)) {
       navigate(normalizeUrl(`/organizations/${organization.slug}/settings/seer/`));
       return;
     }
@@ -75,7 +74,7 @@ export default function SeerAutomationTrial() {
     }
 
     // Else you don't yet have the new seer plan, then stay here and click to start a trial.
-  }, [navigate, organization.features, organization.slug, showNewSeer]);
+  }, [navigate, organization.features, organization.slug, organization]);
 
   return (
     <Fragment>
