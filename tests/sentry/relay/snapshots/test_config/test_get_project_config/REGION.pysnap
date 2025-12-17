@@ -1,7 +1,5 @@
 ---
-created: '2025-09-30T21:02:50.335965+00:00'
-creator: sentry
-source: tests/sentry/relay/test_config.py
+source: tests/sentry/relay/test_config.py::test_get_project_config
 ---
 config:
   allowedDomains:
@@ -104,6 +102,26 @@ config:
                 op: glob
                 value:
                 - 'ChunkLoadError: Loading chunk *'
+              op: and
+            - inner:
+              - name: ty
+                op: glob
+                value:
+                - ChunkLoadError
+              - name: value
+                op: glob
+                value:
+                - Failed to load chunk *
+              op: and
+            - inner:
+              - name: ty
+                op: glob
+                value:
+                - '*Uncaught *'
+              - name: value
+                op: glob
+                value:
+                - 'ChunkLoadError: Failed to load chunk *'
               op: and
             - inner:
               - name: ty
