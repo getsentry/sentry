@@ -7,6 +7,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import type {Selection} from 'sentry/components/charts/useChartXRangeSelection';
 import {Text} from 'sentry/components/core/text';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -117,7 +118,7 @@ export function CohortComparison({
           <AttributeBreakdownsComponent.FeedbackButton />
         </AttributeBreakdownsComponent.ControlsContainer>
         {isLoading ? (
-          <AttributeBreakdownsComponent.LoadingCharts />
+          <LoadingIndicator />
         ) : error ? (
           <AttributeBreakdownsComponent.ErrorState error={error} />
         ) : (
