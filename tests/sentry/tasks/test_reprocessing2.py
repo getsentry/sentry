@@ -19,7 +19,7 @@ from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupredirect import GroupRedirect
 from sentry.models.userreport import UserReport
 from sentry.plugins.base.v2 import Plugin2
-from sentry.reprocessing2 import is_group_finished
+from sentry.reprocessing2 import is_group_finished, start_group_reprocessing
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
 from sentry.services.eventstore.processing import event_processing_store
@@ -692,3 +692,20 @@ def test_finish_reprocessing(default_project) -> None:
     )
     assert len(redirects) == 1
     assert redirects[0].group_id == new_group.id
+
+
+@django_db_all
+def test_reprocessing_an_ongoing_reprocessing(default_project) -> None:
+    # Pretend that the old group has more than one activity still connected:
+    old_group = Group.objects.create(project=default_project, data={})
+
+    new_group_id = start_group_reprocessing(default_project.id, old_group.id, "delete")
+
+    with pytest.raises(RuntimeError) as e:
+        start_group_reprocessing(default_project.id, new_group_id, "delete")
+    assert "Cannot reprocess group that is being reprocessed to" in str(e)
+
+    finish_reprocessing(default_project.id, old_group.id)
+    assert Group.objects.get(id=new_group_id).data == {}
+    # This should work now, i.e. not raise an exception like above
+    start_group_reprocessing(default_project.id, new_group_id, "delete")

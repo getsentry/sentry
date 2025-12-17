@@ -245,6 +245,15 @@ def finish_reprocessing(project_id: int, group_id: int) -> None:
 
         new_group = Group.objects.get(id=new_group_id)
 
+        # Remove the marker that indicates that the new group is currently being reprocessed to.
+        # Thus making it re-processable.
+        try:
+            del new_group.data["_reprocessing_old_group_id"]
+        except Exception as e:
+            from sentry.reprocessing2 import logger
+
+            logger.exception(str(e))
+
         # Any sort of success message will be shown at the *new* group ID's URL
         GroupRedirect.objects.create(
             organization_id=new_group.project.organization_id,
@@ -255,6 +264,7 @@ def finish_reprocessing(project_id: int, group_id: int) -> None:
         # All the associated models (groupassignee and eventattachments) should
         # have moved to a successor group that may be deleted independently.
         group.delete()
+        new_group.save()
 
     # Tombstone unwanted events that should be dropped after new group
     # is generated after reprocessing
