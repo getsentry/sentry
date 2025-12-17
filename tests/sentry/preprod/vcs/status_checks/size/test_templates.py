@@ -793,18 +793,25 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             [android_artifact, ios_artifact], size_metrics_map, StatusCheckStatus.SUCCESS
         )
 
-        # Split by double newlines - should have 2 table sections (each with header + table)
-        sections = summary.strip().split("\n\n")
-        assert len(sections) == 4  # 2 headers + 2 tables
+        # Build expected URLs
+        android_url = f"http://testserver/organizations/{self.organization.slug}/preprod/{self.project.slug}/{android_artifact.id}"
+        ios_url = f"http://testserver/organizations/{self.organization.slug}/preprod/{self.project.slug}/{ios_artifact.id}"
 
-        # Check for headers and tables
-        assert "## Android Builds" in summary
-        assert "## iOS Builds" in summary
-        assert "Uncompressed Size" in summary
-        assert "Install Size" in summary
+        expected = f"""\
+### Android Builds
 
-        assert "com.example.android" in summary
-        assert "com.example.ios" in summary
+| Name | Configuration | Version | Download Size | Uncompressed Size | Approval |
+|------|--------------|---------|----------|-----------------|----------|
+| [-- (Android)<br>`com.example.android`]({android_url}) | -- | 1.0.0 (1) | 1.0 MB (N/A) | 2.1 MB (N/A) | N/A |
+
+### iOS Builds
+
+| Name | Configuration | Version | Download Size | Install Size | Approval |
+|------|--------------|---------|----------|-----------------|----------|
+| [-- (iOS)<br>`com.example.ios`]({ios_url}) | -- | 2.0.0 (2) | 2.1 MB (N/A) | 3.1 MB (N/A) | N/A |\
+"""
+
+        assert summary == expected
 
 
 @region_silo_test
