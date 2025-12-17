@@ -85,7 +85,9 @@ def _validate_github_check_run_event(event: Mapping[str, Any]) -> GitHubCheckRun
         ValueError: If external_id is not numeric
     """
     validated_event = GitHubCheckRunEvent.parse_obj(event)
-    return int(validated_event.check_run.external_id)
+    # Validate external_id is numeric (raises ValueError if not)
+    int(validated_event.check_run.external_id)
+    return validated_event
 
 
 def _should_handle_github_check_run_event(organization: Organization, action: str) -> bool:

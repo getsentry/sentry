@@ -69,7 +69,7 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
             self._send_check_run_event(orjson.dumps(event_without_action))
 
             mock_task.delay.assert_not_called()
-            mock_logger.warning.assert_called_once_with("github.webhook.check_run.missing-action")
+            mock_logger.error.assert_called_once_with("github.webhook.check_run.missing-action")
 
     @patch("sentry.seer.code_review.webhooks.process_github_webhook_event")
     @with_feature({"organizations:code-review-beta"})
@@ -86,7 +86,9 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
             mock_task.delay.assert_not_called()
             # Verify error was logged (validation errors are logged with exception)
             mock_logger.exception.assert_called_once()
-            assert "Invalid GitHub check_run event payload" in mock_logger.exception.call_args[0][0]
+            assert (
+                "github.webhook.check_run.invalid-payload" in mock_logger.exception.call_args[0][0]
+            )
 
     @patch("sentry.seer.code_review.webhooks.process_github_webhook_event")
     @with_feature({"organizations:code-review-beta"})
@@ -103,7 +105,9 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
             mock_task.delay.assert_not_called()
             # Verify error was logged (ValueError for non-numeric external_id)
             mock_logger.exception.assert_called_once()
-            assert "external_id must be numeric" in mock_logger.exception.call_args[0][0]
+            assert (
+                "github.webhook.check_run.invalid-payload" in mock_logger.exception.call_args[0][0]
+            )
 
     @patch("sentry.seer.code_review.webhooks.process_github_webhook_event")
     @with_feature({"organizations:code-review-beta"})
