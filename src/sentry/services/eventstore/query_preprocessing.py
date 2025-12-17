@@ -1,3 +1,4 @@
+import logging
 from collections import defaultdict
 from collections.abc import Iterable, Mapping
 from datetime import UTC, datetime, timedelta
@@ -8,6 +9,8 @@ from django.core.cache import cache
 from django.db.models import Q, QuerySet
 
 from sentry.models.groupredirect import GroupRedirect
+
+logger = logging.getLogger(__name__)
 
 """
 Clickhouse can only handle a query of size 131072b. Our IDs are about 10b and there are
@@ -97,6 +100,7 @@ def get_all_merged_group_ids(
         span.set_data("true_group_id_len", len(output_set))
 
         if len(output_set) > threshold:
+            logger.warning("Dropping %d group IDs due to threshold", len(output_set) - threshold)
             # Sort by datetime, decreasing, and then take first threshold results
             output_set = {
                 datum[0]
