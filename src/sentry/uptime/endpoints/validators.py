@@ -3,6 +3,7 @@ from collections.abc import Sequence
 from typing import Any, override
 
 import jsonschema
+import requests
 from django.db import router
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
@@ -12,6 +13,8 @@ from sentry import audit_log, quotas
 from sentry.api.fields import ActorField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.auth.superuser import is_active_superuser
+from sentry.conf.server import UPTIME_REGIONS
+from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.environment import Environment
 from sentry.uptime.models import (
@@ -77,6 +80,13 @@ HEADERS_LIST_SCHEMA = {
         ],
     },
 }
+
+
+def get_uptime_checker_region_config(region_slug: str) -> UptimeRegionConfig | None:
+    regions = [r for r in UPTIME_REGIONS if r.slug == region_slug]
+    if len(regions) == 0:
+        return None
+    return regions[0]
 
 
 def compute_http_request_size(
@@ -191,7 +201,27 @@ class UptimeTestValidator(CamelSnakeSerializer):
             attrs.get("body", None),
         )
 
+        check_config = self.create_check(attrs)
+
+        api_endpoint = attrs["region"].api_endpoint
+
+        result = requests.post(
+            f"http://{api_endpoint}/validate_check",
+            json=check_config,
+            timeout=10,
+        )
+
+        if result.status_code >= 400:
+            raise serializers.ValidationError({"error": result.json()})
         return attrs
+
+    def validate_region(self, region):
+        region_config = get_uptime_checker_region_config(region)
+
+        if region_config is None:
+            raise serializers.ValidationError(f"No uptime checker for region {region}")
+
+        return region_config
 
     def validate_url(self, url):
         return _validate_url(url)
@@ -200,6 +230,9 @@ class UptimeTestValidator(CamelSnakeSerializer):
         return _validate_headers(headers)
 
     def create(self, validated_data):
+        return self.create_check(validated_data)
+
+    def create_check(self, validated_data):
         config: CheckConfig = {
             "subscription_id": uuid.uuid4().hex,
             "url": validated_data["url"],
@@ -207,7 +240,7 @@ class UptimeTestValidator(CamelSnakeSerializer):
             "timeout_ms": validated_data["timeout_ms"],
             "trace_sampling": False,
             # We're only going to run in the one specified region.
-            "active_regions": [validated_data["region"]],
+            "active_regions": [validated_data["region"].slug],
             "region_schedule_mode": UptimeRegionScheduleMode.ROUND_ROBIN.value,
         }
 

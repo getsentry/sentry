@@ -16,12 +16,11 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams
-from sentry.conf.server import UPTIME_REGIONS
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.uptime.endpoints.serializers import UptimeDetectorSerializer
-from sentry.uptime.endpoints.validators import UptimeTestValidator
+from sentry.uptime.endpoints.validators import UptimeTestValidator, get_uptime_checker_region_config
 from sentry.uptime.types import CheckConfig
 
 logger = logging.getLogger(__name__)
@@ -68,12 +67,9 @@ class OrganizationUptimeAlertPreviewCheckEndpoint(OrganizationEndpoint):
 
         check_config: CheckConfig = validator.save()
 
-        region = [r for r in UPTIME_REGIONS if r.slug == check_config["active_regions"][0]]
+        region = get_uptime_checker_region_config(check_config["active_regions"][0])
 
-        if len(region) == 0:
-            return self.respond("No such region", status=400)
-
-        api_endpoint = region[0].api_endpoint
+        api_endpoint = region.api_endpoint
 
         result = requests.post(
             f"http://{api_endpoint}/execute_config",
@@ -81,10 +77,9 @@ class OrganizationUptimeAlertPreviewCheckEndpoint(OrganizationEndpoint):
             timeout=10,
         )
 
-        # A 400-class against the uptime-checker should still mean that this sentry-request was
-        # successful.  The result json will contain the error details.
+        # Make sure we propagate the error json in the case of a 400 error
         if result.status_code >= 400 and result.status_code < 500:
-            return self.respond(result.json(), status=200)
+            return self.respond(result.json(), status=result.status_code)
 
         result.raise_for_status()
         return self.respond(result.json())

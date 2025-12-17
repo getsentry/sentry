@@ -1,6 +1,5 @@
 import logging
 
-import requests
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -16,13 +15,11 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams
-from sentry.conf.server import UPTIME_REGIONS
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.uptime.endpoints.serializers import UptimeDetectorSerializer
 from sentry.uptime.endpoints.validators import UptimeTestValidator
-from sentry.uptime.types import CheckConfig
 
 logger = logging.getLogger(__name__)
 
@@ -63,28 +60,6 @@ class OrganizationUptimeAlertValidateCheckEndpoint(OrganizationEndpoint):
         organization: Organization,
     ) -> Response:
         validator = UptimeTestValidator(data=request.data)
-        if not validator.is_valid():
-            return self.respond(validator.errors, status=400)
+        validator.is_valid(raise_exception=True)
 
-        check_config: CheckConfig = validator.save()
-
-        region = [r for r in UPTIME_REGIONS if r.slug == check_config["active_regions"][0]]
-
-        if len(region) == 0:
-            return self.respond("No such region", status=400)
-
-        api_endpoint = region[0].api_endpoint
-
-        result = requests.post(
-            f"http://{api_endpoint}/validate_check",
-            json=check_config,
-            timeout=10,
-        )
-
-        # A 400-class against the uptime-checker should still mean that this sentry-request was
-        # successful.  The result json will contain the error details.
-        if result.status_code >= 400 and result.status_code < 500:
-            return self.respond(result.json(), status=200)
-
-        result.raise_for_status()
         return self.respond({})
