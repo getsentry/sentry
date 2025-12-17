@@ -366,7 +366,7 @@ const ProgressRingDiffSubText = styled(ProgressRingSubText)<{value: number}>`
 // Hover element on mouse
 const PerformanceScoreRingTooltip = styled('div')<{x: number; y: number}>`
   position: absolute;
-  background: ${p => p.theme.backgroundElevated};
+  background: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.border};
   transform: translate3d(${p => p.x - 100}px, ${p => p.y - 74}px, 0px);
@@ -385,7 +385,7 @@ const PerformanceScoreRingTooltipArrow = styled('div')`
   pointer-events: none;
   border-left: 8px solid transparent;
   border-right: 8px solid transparent;
-  border-top: 8px solid ${p => p.theme.backgroundElevated};
+  border-top: 8px solid ${p => p.theme.tokens.background.primary};
   margin-left: -8px;
   &:before {
     border-left: 8px solid transparent;

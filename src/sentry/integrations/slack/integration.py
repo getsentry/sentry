@@ -109,6 +109,20 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         except SlackApiError as e:
             translate_slack_api_error(e)
 
+    def send_threaded_message(
+        self, *, channel_id: str, renderable: SlackRenderable, thread_ts: str
+    ) -> None:
+        client = self.get_client()
+        try:
+            client.chat_postMessage(
+                channel=channel_id,
+                blocks=renderable["blocks"],
+                text=renderable["text"],
+                thread_ts=thread_ts,
+            )
+        except SlackApiError as e:
+            translate_slack_api_error(e)
+
 
 class SlackIntegrationProvider(IntegrationProvider):
     key = IntegrationProviderSlug.SLACK.value

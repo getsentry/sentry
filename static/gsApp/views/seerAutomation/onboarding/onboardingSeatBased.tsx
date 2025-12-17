@@ -5,19 +5,22 @@ import {Alert} from '@sentry/scraps/alert/alert';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
+import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
+import {useSeerOnboardingStep} from 'getsentry/views/seerAutomation/onboarding/hooks/useSeerOnboardingStep';
 
-import {SeerOnboardingProvider} from './onboarding/hooks/seerOnboardingContext';
-import {StepsManager} from './onboarding/stepsManager';
+import {SeerOnboardingProvider} from './hooks/seerOnboardingContext';
+import {StepsManager} from './stepsManager';
 
-export default function SeerOnboardingV2() {
+export default function SeerOnboardingSeatBased() {
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
+  const {isPending, initialStep} = useSeerOnboardingStep();
 
   if (!canWrite) {
     return (
@@ -33,15 +36,19 @@ export default function SeerOnboardingV2() {
       <SettingsPageHeader
         title={t('Set Up Seer')}
         subtitle={t(
-          'Follow these steps to configure Seer for your organization. Seer helps automatically analyze,fix, and prevent issues in your codebase.'
+          'Follow these steps to configure Seer for your organization. Seer helps automatically analyze, fix, and prevent issues in your codebase.'
         )}
       />
 
       <NoProjectMessage organization={organization}>
         <SeerOnboardingProvider>
-          <StyledGuidedSteps>
-            <StepsManager />
-          </StyledGuidedSteps>
+          {isPending ? (
+            <Placeholder />
+          ) : (
+            <StyledGuidedSteps initialStep={initialStep}>
+              <StepsManager />
+            </StyledGuidedSteps>
+          )}
         </SeerOnboardingProvider>
       </NoProjectMessage>
     </Fragment>
