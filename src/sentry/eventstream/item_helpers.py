@@ -49,7 +49,7 @@ def _encode_value(value: Any) -> AnyValue:
         return AnyValue(int_value=value)
     elif isinstance(value, float):
         return AnyValue(double_value=value)
-    elif isinstance(value, list) or isinstance(value, tuple) or isinstance(value, set):
+    elif isinstance(value, list) or isinstance(value, tuple):
         # Not yet processed on EAP side
         return AnyValue(
             array_value=ArrayValue(values=[_encode_value(v) for v in value if v is not None])
@@ -95,6 +95,6 @@ def encode_attributes(
         attributes[formatted_key] = _encode_value(value)
         tag_keys.add(formatted_key)
 
-    attributes["tag_keys"] = _encode_value(tag_keys)
+    attributes["tag_keys"] = _encode_value(sorted(tag_keys))
 
     return attributes

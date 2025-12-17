@@ -1,6 +1,5 @@
 from typing import Any
 
-import pytest
 from sentry_protos.snuba.v1.request_common_pb2 import TRACE_ITEM_TYPE_OCCURRENCE
 from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, ArrayValue, KeyValue, KeyValueList
 
@@ -102,7 +101,6 @@ class ItemHelpersTest(TestCase):
         assert "group_id" not in result
         assert result["field"] == AnyValue(string_value="value")
 
-    @pytest.mark.skip(reason="Flaky. See #105124")
     def test_encode_attributes_with_tags(self) -> None:
         event_data = {
             "field": "value",
