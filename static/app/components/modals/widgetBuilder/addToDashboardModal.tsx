@@ -23,6 +23,7 @@ import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
@@ -187,16 +188,18 @@ function AddToDashboardModal({
 
     const widgetAsQueryParams = convertWidgetToBuilderStateParams(widget);
 
-    navigate({
-      pathname,
-      query: {
-        ...widgetAsQueryParams,
-        title: newWidgetTitle,
-        sort: orderBy ?? widgetAsQueryParams.sort,
-        source,
-        ...(selectedDashboard ? getSavedPageFilters(selectedDashboard) : {}),
-      },
-    });
+    navigate(
+      normalizeUrl({
+        pathname,
+        query: {
+          ...widgetAsQueryParams,
+          title: newWidgetTitle,
+          sort: orderBy ?? widgetAsQueryParams.sort,
+          source,
+          ...(selectedDashboard ? getSavedPageFilters(selectedDashboard) : {}),
+        },
+      })
+    );
     closeModal();
   }
 
