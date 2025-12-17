@@ -1,7 +1,5 @@
 import {Fragment, useState} from 'react';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
-
 import {Flex} from 'sentry/components/core/layout';
 import {IconSentry, IconStar} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
