@@ -3,7 +3,6 @@
 
 import {color} from 'sentry/utils/theme/scraps/tokens/color';
 
-import {withLegacyTokens} from './compat/tokens';
 import {baseTheme} from './base';
 
 const background = {
@@ -1874,7 +1873,7 @@ const syntax = {
 
 export const darkTheme = {
   ...baseTheme,
-  tokens: withLegacyTokens({
+  tokens: {
     background,
     border,
     content,
@@ -1884,5 +1883,5 @@ export const darkTheme = {
     interactive,
     shadow,
     syntax,
-  }),
+  },
 };

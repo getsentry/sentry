@@ -12,6 +12,7 @@ import {css} from '@emotion/react';
 import modifyColor from 'color';
 import {spring, type Transition} from 'framer-motion';
 
+import {withLegacyTokens} from 'sentry/utils/theme/compat';
 // eslint-disable-next-line no-restricted-imports
 import {darkTheme as baseDarkTheme} from 'sentry/utils/theme/scraps/theme/dark';
 // eslint-disable-next-line no-restricted-imports
@@ -1444,6 +1445,8 @@ const lightThemeDefinition = {
   ...lightAliases,
   ...lightShadows,
   ...baseLightTheme,
+  // @TODO: remove backwards-compatability shim
+  tokens: withLegacyTokens(baseLightTheme.tokens),
   focusRing: (baseShadow = `0 0 0 0 ${lightAliases.background}`) => ({
     outline: 'none',
     boxShadow: `${baseShadow}, 0 0 0 2px ${lightAliases.focusBorder}`,
@@ -1491,7 +1494,8 @@ export const darkTheme = {
   ...darkAliases,
   ...darkShadows,
   ...baseDarkTheme,
-
+  // @TODO: remove backwards-compatability shim
+  tokens: withLegacyTokens(baseDarkTheme.tokens),
   focusRing: (baseShadow = `0 0 0 0 ${darkAliases.background}`) => ({
     outline: 'none',
     boxShadow: `${baseShadow}, 0 0 0 2px ${darkAliases.focusBorder}`,
