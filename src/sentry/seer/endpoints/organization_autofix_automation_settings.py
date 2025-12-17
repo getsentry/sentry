@@ -118,13 +118,11 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
         List projects with their autofix automation settings.
 
         :pparam string organization_id_or_slug: the id or slug of the organization.
-        :qparam list[int] projectIds: Optional list of project IDs to filter by.
         :qparam string query: Optional search query to filter by project name or slug.
         :auth: required
         """
         serializer = SeerAutofixSettingGetResponseSerializer(
             data={
-                "projectIds": request.GET.getlist("projectIds") or None,
                 "query": request.GET.get("query"),
             }
         )
