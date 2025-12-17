@@ -315,6 +315,7 @@ def detect_llm_issues_for_project(project_id: int) -> None:
                 "titles": (
                     [issue.title for issue in response_data.issues] if n_found_issues > 0 else None
                 ),
+                "trace_id": trace.trace_id,
             },
         )
         for detected_issue in response_data.issues:
