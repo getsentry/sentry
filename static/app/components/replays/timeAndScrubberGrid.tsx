@@ -2,6 +2,8 @@ import {useCallback, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout/flex';
+
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {DateTime} from 'sentry/components/dateTime';
@@ -101,9 +103,9 @@ export default function TimeAndScrubberGrid({
 
   return (
     <Grid id="replay-timeline-tooltip-container" isCompact={isCompact}>
-      <Padded style={{gridArea: 'currentTime'}}>
+      <Flex justify="center" padding="0 lg" style={{gridArea: 'currentTime'}}>
         <ReplayCurrentTime />
-      </Padded>
+      </Flex>
 
       <TimelineWrapper
         style={{gridArea: 'timeline'}}
@@ -131,7 +133,7 @@ export default function TimeAndScrubberGrid({
         ) : null}
       </ScrubberWrapper>
 
-      <Padded style={{gridArea: 'duration'}}>
+      <Flex justify="center" padding="0 lg" style={{gridArea: 'duration'}}>
         {durationMs === undefined ? (
           '--:--'
         ) : timestampType === 'absolute' ? (
@@ -139,7 +141,7 @@ export default function TimeAndScrubberGrid({
         ) : (
           <Duration duration={[durationMs, 'ms']} precision="sec" />
         )}
-      </Padded>
+      </Flex>
     </Grid>
   );
 }
@@ -170,10 +172,11 @@ const Grid = styled('div')<{isCompact: boolean}>`
 
 const TimelineWrapper = styled('div')`
   position: relative;
-  height: 100%;
+  height: 28px;
   display: flex;
   align-items: center;
   cursor: pointer;
+  overflow: hidden;
 
   & > * {
     height: 20px;
@@ -186,10 +189,4 @@ const ScrubberWrapper = styled('div')`
   display: flex;
   align-items: center;
   cursor: pointer;
-`;
-
-const Padded = styled('div')`
-  display: flex;
-  justify-content: center;
-  padding-inline: ${space(1.5)};
 `;
