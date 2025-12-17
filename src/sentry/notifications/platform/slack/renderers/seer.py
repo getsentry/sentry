@@ -6,6 +6,9 @@ from slack_sdk.models.blocks import (
     MarkdownTextObject,
     PlainTextInputElement,
     PlainTextObject,
+    RichTextBlock,
+    RichTextListElement,
+    RichTextSectionElement,
     SectionBlock,
 )
 
@@ -15,6 +18,7 @@ from sentry.notifications.platform.templates.seer import (
     SeerAutofixError,
     SeerAutofixSuccess,
     SeerAutofixTrigger,
+    SeerAutofixUpdate,
     SeerContextInput,
     SeerContextInputComplete,
 )
@@ -38,6 +42,8 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             return cls.render_autofix_error(data)
         elif isinstance(data, SeerAutofixSuccess):
             return cls.render_autofix_success(data)
+        elif isinstance(data, SeerAutofixUpdate):
+            return cls.render_autofix_update(data)
         elif isinstance(data, SeerContextInput):
             return cls.render_context_input(data)
         elif isinstance(data, SeerContextInputComplete):
@@ -98,6 +104,57 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 ContextBlock(elements=[PlainTextObject(text=f"Run ID: {data.run_id}")]),
             ],
             text="Seer Autofix Success",
+        )
+
+    def render_autofix_update(cls, data: SeerAutofixUpdate) -> SlackRenderable:
+        if data.current_point == AutofixStoppingPoint.ROOT_CAUSE:
+            next_stage_button = cls.render_autofix_button(
+                data=SeerAutofixTrigger(
+                    organization_id=data.organization_id,
+                    project_id=None,
+                    stopping_point=AutofixStoppingPoint.SOLUTION,
+                )
+            )
+        elif data.current_point == AutofixStoppingPoint.SOLUTION:
+            next_stage_button = cls.render_autofix_button(
+                data=SeerAutofixTrigger(
+                    organization_id=data.organization_id,
+                    project_id=None,
+                    stopping_point=AutofixStoppingPoint.CODE_CHANGES,
+                )
+            )
+        elif data.current_point == AutofixStoppingPoint.CODE_CHANGES:
+            next_stage_button = cls.render_autofix_button(
+                data=SeerAutofixTrigger(
+                    organization_id=data.organization_id,
+                    project_id=None,
+                    stopping_point=AutofixStoppingPoint.OPEN_PR,
+                )
+            )
+        elif data.current_point == AutofixStoppingPoint.OPEN_PR:
+            next_stage_button = ButtonElement(
+                text="View Pull Request", style="primary", url=data.group_link
+            )
+
+        return SlackRenderable(
+            blocks=[
+                RichTextBlock(
+                    elements=[
+                        RichTextSectionElement(elements=[{"type": "text", "text": data.summary}]),
+                        RichTextListElement(
+                            elements=[{"type": "text", "text": step} for step in data.steps]
+                        ),
+                    ]
+                ),
+                ActionsBlock(
+                    elements=[
+                        ButtonElement(text="View in Sentry", url=data.group_link),
+                        next_stage_button,
+                    ]
+                ),
+                ContextBlock(elements=[MarkdownTextObject(text=f"Run ID: {data.run_id}")]),
+            ],
+            text="Seer Autofix Update",
         )
 
     @classmethod

@@ -56,7 +56,7 @@ from sentry.models.rule import Rule
 from sentry.notifications.services import notifications_service
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.seer.autofix.utils import AutofixStoppingPoint
-from sentry.seer.entrypoints.integrations.slack import SlackEntrypoint, decode_context_block_id
+from sentry.seer.entrypoints.integrations.slack import SlackEntrypoint
 from sentry.seer.entrypoints.operator import SeerOperator
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.models import User
@@ -590,6 +590,7 @@ class SlackActionEndpoint(Endpoint):
 
         entrypoint = SlackEntrypoint(
             slack_request=slack_request,
+            group=group,
             organization_id=group.project.organization_id,
             autofix_stopping_point=stopping_point,
         )
@@ -600,21 +601,21 @@ class SlackActionEndpoint(Endpoint):
             stopping_point=stopping_point,
         )
 
-    def handle_seer_context_input(self, slack_request: SlackActionRequest) -> Response:
-        actions_list = slack_request.data.get("actions", [])
-        if not actions_list:
-            return self.respond(status=400)
+    # def handle_seer_context_input(self, slack_request: SlackActionRequest) -> Response:
+    #     actions_list = slack_request.data.get("actions", [])
+    #     if not actions_list:
+    #         return self.respond(status=400)
 
-        action = actions_list[0]
-        organization_id, run_id = decode_context_block_id(action["block_id"])
-        message = action["value"]
-        entrypoint = SlackEntrypoint(
-            slack_request=slack_request,
-            organization_id=organization_id,
-        )
-        operator = SeerOperator(entrypoint=entrypoint)
-        operator.update_autofix(run_id=run_id, message=message)
-        return self.respond()
+    #     action = actions_list[0]
+    #     organization_id, run_id = decode_context_block_id(action["block_id"])
+    #     message = action["value"]
+    #     entrypoint = SlackEntrypoint(
+    #         slack_request=slack_request,
+    #         organization_id=organization_id,
+    #     )
+    #     operator = SeerOperator(entrypoint=entrypoint)
+    #     operator.update_autofix(run_id=run_id, message=message)
+    #     return self.respond()
 
     @classmethod
     def get_action_option(cls, slack_request: SlackActionRequest) -> tuple[str | None, str | None]:
@@ -717,7 +718,7 @@ class SlackActionEndpoint(Endpoint):
             return self.handle_enable_notifications(slack_request)
 
         if action_id == SlackAction.SEER_CONTEXT_INPUT.value:
-            return self.handle_seer_context_input(slack_request=slack_request)
+            return self.respond()
 
         action_list = self.get_action_list(slack_request=slack_request)
         return self._handle_group_actions(slack_request, request, action_list)

@@ -14,11 +14,21 @@ from sentry.seer.autofix.utils import AutofixStoppingPoint
 
 @dataclass(frozen=True)
 class SeerAutofixTrigger(NotificationData):
-    project_id: int
     organization_id: int
+    project_id: int | None = None
     source: str = "seer-autofix-trigger"
-    label: str = "Start RCA"
     stopping_point: AutofixStoppingPoint = AutofixStoppingPoint.ROOT_CAUSE
+
+    @property
+    def label(self) -> str:
+        if self.stopping_point == AutofixStoppingPoint.ROOT_CAUSE:
+            return "Start RCA"
+        elif self.stopping_point == AutofixStoppingPoint.SOLUTION:
+            return "Plan a Solution"
+        elif self.stopping_point == AutofixStoppingPoint.CODE_CHANGES:
+            return "Write Code Changes"
+        elif self.stopping_point == AutofixStoppingPoint.OPEN_PR:
+            return "Draft a PR"
 
 
 @template_registry.register(SeerAutofixTrigger.source)
@@ -79,6 +89,40 @@ class SeerAutofixSuccessTemplate(NotificationTemplate[SeerAutofixSuccess]):
 
     def render(self, data: SeerAutofixSuccess) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(subject="Seer Autofix Success", body=[])
+
+
+@dataclass(frozen=True)
+class SeerAutofixUpdate(NotificationData):
+    run_id: int
+    organization_id: int
+    current_point: AutofixStoppingPoint
+    summary: str
+    steps: list[str]
+    group_link: str
+    source: str = "seer-autofix-update"
+
+
+@template_registry.register(SeerAutofixUpdate.source)
+class SeerAutofixUpdateTemplate(NotificationTemplate[SeerAutofixUpdate]):
+    category = NotificationCategory.SEER
+    example_data = SeerAutofixUpdate(
+        source="seer-autofix-update",
+        run_id=12152025,
+        current_point=AutofixStoppingPoint.ROOT_CAUSE,
+        organization_id=1,
+        summary="Undefined variable `name06` in `error_function` causes an unhandled `NameError` during test transaction execution.",
+        steps=[
+            "Flask application starts, initializing Sentry SDK for error capture.",
+            "User triggers the error route, starting the test transaction context.",
+            "The application calls the error function, which contains the bug.",
+            "Attempting to print an undefined variable raises an unhandled NameError.",
+        ],
+        group_link="https://sentry.sentry.io/issues/123456/",
+    )
+    hide_from_debugger = True
+
+    def render(self, data: SeerAutofixUpdate) -> NotificationRenderedTemplate:
+        return NotificationRenderedTemplate(subject="Seer Autofix Update", body=[])
 
 
 @dataclass(frozen=True)
