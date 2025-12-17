@@ -18,6 +18,7 @@ import {useSeerOnboardingStep} from 'getsentry/views/seerAutomation/onboarding/h
 
 import {SeerOnboardingProvider} from './hooks/seerOnboardingContext';
 import {StepsManager} from './stepsManager';
+import {Steps} from './types';
 
 export default function SeerOnboardingSeatBased() {
   const organization = useOrganization();
@@ -27,7 +28,7 @@ export default function SeerOnboardingSeatBased() {
 
   useEffect(() => {
     // GuidedSteps only returns the step number
-    if (!isPending && initialStep === 5) {
+    if (!isPending && initialStep === Steps.WRAP_UP) {
       // users should not be linked to onboarding page after it's been completed, but just in case,
       // redirect them to Seer settings page.
       navigate(normalizeUrl(`/settings/${organization.slug}/seer/`), {replace: true});
