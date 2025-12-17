@@ -61,7 +61,7 @@ function ScreensLandingPage() {
       {
         ...location,
         query: {
-          ...omit(location.query, ['primaryRelease', 'secondaryRelease']),
+          ...omit(location.query, ['primaryRelease']),
         },
       },
       {replace: true}
@@ -276,7 +276,7 @@ function ScreensLandingPage() {
                       <DatePageFilter {...datePageFilterProps} />
                     </PageFilterBar>
                     <PageFilterBar condensed>
-                      <ReleaseComparisonSelector primaryOnly moduleName={moduleName} />
+                      <ReleaseComparisonSelector moduleName={moduleName} />
                     </PageFilterBar>
                   </ToolRibbon>
                 </Container>
