@@ -2163,7 +2163,6 @@ class OrganizationReleaseCreateTest(APITestCase):
         team1 = self.create_team(organization=org)
         team2 = self.create_team(organization=org)
 
-        # User is only a member of team1
         project1 = self.create_project(name="project1", organization=org, teams=[team1])
         project2 = self.create_project(name="project2", organization=org, teams=[team2])
 
