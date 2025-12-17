@@ -62,16 +62,13 @@ def handle_github_check_run_event(organization: Organization, event: Mapping[str
     # Enqueue task to process the rerun request asynchronously
     from .tasks import process_github_webhook_event
 
-    # Capture timestamp for latency tracking
-    enqueued_at = datetime.now(timezone.utc).isoformat()
-
     # Note: bind=True means self is automatically provided, mypy doesn't understand this
     process_github_webhook_event.delay(  # type: ignore[call-arg]
         original_run_id=validated_event.check_run.external_id,
         organization_id=organization.id,
         action=validated_event.action,
         html_url=validated_event.check_run.html_url,
-        enqueued_at=enqueued_at,
+        enqueued_at_str=datetime.now(timezone.utc).isoformat(),
     )
 
     metrics.incr(f"{PREFIX}.enqueued", tags={"status": "success"})

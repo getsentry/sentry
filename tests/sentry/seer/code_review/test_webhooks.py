@@ -48,9 +48,9 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
             assert call_kwargs["organization_id"] == self.organization.id
             assert call_kwargs["action"] == "rerequested"
             assert call_kwargs["html_url"] == self.event_dict["check_run"]["html_url"]
-            # Verify enqueued_at timestamp is included
-            assert "enqueued_at" in call_kwargs
-            assert isinstance(call_kwargs["enqueued_at"], str)
+            # Verify enqueued_at_str timestamp is included
+            assert "enqueued_at_str" in call_kwargs
+            assert isinstance(call_kwargs["enqueued_at_str"], str)
 
     @patch("sentry.seer.code_review.tasks.process_github_webhook_event")
     def test_check_run_skips_when_ai_features_disabled(self, mock_task: MagicMock) -> None:
