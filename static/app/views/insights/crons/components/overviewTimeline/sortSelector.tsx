@@ -1,9 +1,10 @@
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {
   CompositeSelect,
   type CompositeSelectProps,
 } from 'sentry/components/core/compactSelect/composite';
 import type {SelectOption} from 'sentry/components/core/compactSelect/types';
-import DropdownButton from 'sentry/components/dropdownButton';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -79,14 +80,14 @@ export function SortSelector({onChangeOrder, onChangeSort, order, sort, size}: P
     <CompositeSelect
       size={size}
       trigger={props => (
-        <DropdownButton
+        <SelectTrigger.Button
           aria-label={t('Sort Cron Monitors')}
           icon={<IconSort />}
           prefix={t('Sort By')}
           {...props}
         >
           {`${label} \u2014 ${orderLabel}`}
-        </DropdownButton>
+        </SelectTrigger.Button>
       )}
     >
       <CompositeSelect.Region

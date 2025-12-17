@@ -1,13 +1,16 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {DistributedOmit} from 'type-fest';
 
 import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
 import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
-export interface DropdownButtonProps
-  extends Omit<ButtonProps, 'type' | 'prefix' | 'onClick'> {
+export type DropdownButtonProps = DistributedOmit<
+  ButtonProps,
+  'type' | 'prefix' | 'onClick'
+> & {
   /**
    * Whether or not the button should render as open
    */
@@ -20,7 +23,7 @@ export interface DropdownButtonProps
    * Should a chevron icon be shown?
    */
   showChevron?: boolean;
-}
+};
 
 function DropdownButton({
   children,

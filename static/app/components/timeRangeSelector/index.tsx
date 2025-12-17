@@ -1,11 +1,12 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {Button} from 'sentry/components/core/button';
 import type {SelectOption, SingleSelectProps} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
-import DropdownButton from 'sentry/components/dropdownButton';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {DesyncedFilterIndicator} from 'sentry/components/organizations/pageFilters/desyncedFilter';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
@@ -358,7 +359,7 @@ export function TimeRangeSelector({
           onKeyDown={e => e.key === 'Escape' && commitChanges()}
           trigger={
             trigger ??
-            ((triggerProps, isOpen) => {
+            (triggerProps => {
               const relativeSummary = items.some(item => item.value === relative)
                 ? relative?.toUpperCase()
                 : t('Invalid Period');
@@ -366,9 +367,7 @@ export function TimeRangeSelector({
                 start && end ? getAbsoluteSummary(start, end, utc) : relativeSummary;
 
               return (
-                <DropdownButton
-                  isOpen={isOpen}
-                  size={selectProps.size}
+                <SelectTrigger.Button
                   data-test-id="page-filter-timerange-selector"
                   {...triggerProps}
                   {...selectProps.triggerProps}
@@ -379,7 +378,7 @@ export function TimeRangeSelector({
                     </TriggerLabel>
                     {desynced && <DesyncedFilterIndicator />}
                   </TriggerLabelWrap>
-                </DropdownButton>
+                </SelectTrigger.Button>
               );
             })
           }

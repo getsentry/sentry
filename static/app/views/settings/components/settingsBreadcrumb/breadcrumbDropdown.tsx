@@ -1,9 +1,13 @@
-import {useCallback, useContext, useEffect, useRef, type HTMLAttributes} from 'react';
+import {useCallback, useContext, useEffect, useRef} from 'react';
 import {useHover} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import {type OverlayTriggerState} from '@react-stately/overlays';
 
 import {Button} from '@sentry/scraps/button';
+import {
+  SelectTrigger,
+  type SelectTriggerProps,
+} from '@sentry/scraps/compactSelect/trigger';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -74,11 +78,10 @@ function BreadcrumbDropdown({
   );
 }
 
-type MenuCrumbProps = HTMLAttributes<HTMLButtonElement> & {
+type MenuCrumbProps = SelectTriggerProps & {
   crumbLabel: React.ReactNode;
   menuHasHover: boolean;
   isLast?: boolean;
-  ref?: React.Ref<HTMLButtonElement>;
 };
 // XXX(epurkhiser): We have a couple hacks in place to get hover-activation of
 // our CompactSelect working well for these breadcrumbs.
@@ -128,9 +131,10 @@ function MenuCrumb({crumbLabel, menuHasHover, isLast, ...props}: MenuCrumbProps)
   return (
     <Flex alignSelf="center">
       {flexProps => (
-        <Button
+        <SelectTrigger.Button
           {...mergeProps(props, flexProps)}
           priority="link"
+          showChevron={false}
           onPointerEnter={handleOpen}
           onPointerLeave={queueMenuClose}
         >
@@ -138,7 +142,7 @@ function MenuCrumb({crumbLabel, menuHasHover, isLast, ...props}: MenuCrumbProps)
             <Text bold={false}>{crumbLabel} </Text>
             {isLast ? null : <Divider isHover={overlayIsOpen} />}
           </Flex>
-        </Button>
+        </SelectTrigger.Button>
       )}
     </Flex>
   );
