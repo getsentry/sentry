@@ -1,46 +1,52 @@
 import {t} from 'sentry/locale';
-import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {type PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
-import {SpanFields} from 'sentry/views/insights/types';
 
-export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
+export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
-  title: 'Web Vitals',
+  title: 'Web Vitals Page Summary',
   filters: {
-    globalFilter: [
-      {
-        dataset: WidgetType.SPANS,
-        tag: {
-          key: 'span.system',
-          name: 'span.system',
-          kind: FieldKind.TAG,
-        },
-        value: '',
-      },
-      {
-        dataset: WidgetType.SPANS,
-        tag: {
-          key: 'span.action',
-          name: 'span.action',
-          kind: FieldKind.TAG,
-        },
-        value: '',
-      },
-      {
-        dataset: WidgetType.SPANS,
-        tag: {
-          key: 'span.domain',
-          name: 'span.domain',
-          kind: FieldKind.TAG,
-        },
-        value: '',
-      },
-    ],
+    globalFilter: [],
   },
   widgets: [
+    {
+      id: 'score-breakdown-chart',
+      title: t('Score Breakdown'),
+      displayType: DisplayType.AREA,
+      widgetType: WidgetType.SPANS,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          conditions: DEFAULT_QUERY_FILTER,
+          fields: [
+            'performance_score(measurements.score.lcp)',
+            'performance_score(measurements.score.fcp)',
+            'performance_score(measurements.score.inp)',
+            'performance_score(measurements.score.cls)',
+            'performance_score(measurements.score.ttfb)',
+          ],
+          aggregates: [
+            'performance_score(measurements.score.lcp)',
+            'performance_score(measurements.score.fcp)',
+            'performance_score(measurements.score.inp)',
+            'performance_score(measurements.score.cls)',
+            'performance_score(measurements.score.ttfb)',
+          ],
+          columns: [],
+          orderby: '',
+        },
+      ],
+      layout: {
+        y: 0,
+        w: 5,
+        h: 2,
+        x: 0,
+        minH: 2,
+      },
+    },
     {
       id: 'score-breakdown-wheel',
       title: t('Performance Score'),
@@ -85,45 +91,9 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
       ],
       layout: {
         y: 0,
-        w: 2,
+        w: 1,
         h: 2,
-        x: 0,
-        minH: 2,
-      },
-    },
-    {
-      id: 'score-breakdown-chart',
-      title: t('Score Breakdown'),
-      displayType: DisplayType.AREA,
-      widgetType: WidgetType.SPANS,
-      interval: '5m',
-      queries: [
-        {
-          name: '',
-          conditions: DEFAULT_QUERY_FILTER,
-          fields: [
-            'performance_score(measurements.score.lcp)',
-            'performance_score(measurements.score.fcp)',
-            'performance_score(measurements.score.inp)',
-            'performance_score(measurements.score.cls)',
-            'performance_score(measurements.score.ttfb)',
-          ],
-          aggregates: [
-            'performance_score(measurements.score.lcp)',
-            'performance_score(measurements.score.fcp)',
-            'performance_score(measurements.score.inp)',
-            'performance_score(measurements.score.cls)',
-            'performance_score(measurements.score.ttfb)',
-          ],
-          columns: [],
-          orderby: '',
-        },
-      ],
-      layout: {
-        y: 0,
-        w: 4,
-        h: 2,
-        x: 2,
+        x: 5,
         minH: 2,
       },
     },
@@ -248,68 +218,50 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
       },
     },
     {
-      id: 'pages-table',
-      title: t('Pages'),
-      displayType: DisplayType.TABLE,
+      id: 'pageloads-chart',
+      title: t('Pageloads'),
+      displayType: DisplayType.LINE,
       widgetType: WidgetType.SPANS,
       interval: '5m',
-      tableWidths: [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
       queries: [
         {
           name: '',
-          conditions: DEFAULT_QUERY_FILTER,
-          fields: [
-            SpanFields.TRANSACTION,
-            SpanFields.PROJECT,
-            'count()',
-            'p75(measurements.lcp)',
-            'p75(measurements.fcp)',
-            'p75(measurements.cls)',
-            'p75(measurements.ttfb)',
-            'p75(measurements.inp)',
-            'performance_score(measurements.score.total)',
-            'opportunity_score(measurements.score.total)',
-          ],
-          aggregates: [],
-          columns: [
-            SpanFields.TRANSACTION,
-            SpanFields.PROJECT,
-            'count()',
-            'p75(measurements.lcp)',
-            'p75(measurements.fcp)',
-            'p75(measurements.cls)',
-            'p75(measurements.ttfb)',
-            'p75(measurements.inp)',
-            'performance_score(measurements.score.total)',
-            'opportunity_score(measurements.score.total)',
-          ],
-          orderby: `-opportunity_score(measurements.score.total)`,
-          fieldAliases: [
-            t('Pages'),
-            t('Project'),
-            t('Pageloads'),
-            t('LCP'),
-            t('FCP'),
-            t('CLS'),
-            t('TTFB'),
-            t('INP'),
-            t('Perf Score'),
-            t('Opportunity'),
-          ],
-          linkedDashboards: [
-            {
-              dashboardId: '-1',
-              field: SpanFields.TRANSACTION,
-              staticDashboardId: 7,
-            },
-          ],
+          conditions: `span.op:pageload`,
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
+          orderby: '',
         },
       ],
       layout: {
-        y: 3,
-        w: 6,
-        h: 6,
-        x: 0,
+        y: 2,
+        w: 1,
+        h: 2,
+        x: 5,
+        minH: 2,
+      },
+    },
+    {
+      id: 'interactions-chart',
+      title: t('Interactions'),
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          conditions: `span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press]`,
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
+          orderby: '',
+        },
+      ],
+      layout: {
+        y: 4,
+        w: 1,
+        h: 2,
+        x: 5,
         minH: 2,
       },
     },

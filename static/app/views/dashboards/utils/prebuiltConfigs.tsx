@@ -4,10 +4,8 @@ import {HTTP_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfig
 import {QUERIES_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/queries';
 import {QUERIES_SUMMARY_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/querySummary';
 import {SESSION_HEALTH_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/sessionHealth';
-import {
-  WEB_VITALS_PREBUILT_CONFIG,
-  WEB_VITALS_SUMMARY_PREBUILT_CONFIG,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
+import {WEB_VITALS_SUMMARY_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/pageSummary';
+import {WEB_VITALS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
 
 export enum PrebuiltDashboardId {
   FRONTEND_SESSION_HEALTH = 1,
