@@ -208,7 +208,7 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
   );
 }
 
-export const MessagesPanelContainer = styled('div')`
+const MessagesPanelContainer = styled('div')`
   border-right: 1px solid ${p => p.theme.border};
   display: flex;
   flex-direction: column;
