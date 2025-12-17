@@ -288,6 +288,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:insights-queries-dashboard-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable http module dashboard on dashboards platform
     manager.add("organizations:insights-http-dashboard-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable Mobile Vitals Insights module on dashboards platform
+    manager.add("organizations:insights-mobile-vitals-dashboard-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable sentry convention fields
     manager.add("organizations:performance-sentry-conventions-fields", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable querying spans fields stats from comparative workflows project
