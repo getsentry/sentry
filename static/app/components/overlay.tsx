@@ -143,7 +143,7 @@ const OverlayInner = withChonk(
   }>`
     position: relative;
     border-radius: ${p => p.theme.radius.md};
-    background: ${p => p.theme.backgroundElevated};
+    background: ${p => p.theme.tokens.background.primary};
     box-shadow:
       0 0 0 1px ${p => p.theme.translucentBorder},
       ${p => p.theme.dropShadowHeavy};

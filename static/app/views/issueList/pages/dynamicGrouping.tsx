@@ -1394,7 +1394,7 @@ const IssuePreviewLink = styled(Link)`
 
   &:hover {
     border-color: ${p => p.theme.purple300};
-    background: ${p => p.theme.backgroundElevated};
+    background: ${p => p.theme.tokens.background.primary};
   }
 `;
 

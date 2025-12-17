@@ -95,7 +95,7 @@ const Wrapper = styled('div')`
   align-items: center;
   padding-right: ${space(3)};
   gap: ${space(4)};
-  background-color: ${p => p.theme.backgroundElevated};
+  background-color: ${p => p.theme.tokens.background.primary};
   white-space: nowrap;
 
   border-bottom: 1px solid ${p => p.theme.border};

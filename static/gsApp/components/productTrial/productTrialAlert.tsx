@@ -264,7 +264,7 @@ export default ProductTrialAlert;
 
 const TrialAlert = styled(Alert)`
   align-items: center;
-  background: ${p => p.theme.backgroundElevated};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const Heading = styled('div')`

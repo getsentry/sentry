@@ -1246,11 +1246,6 @@ const generateAliases = (
   background: tokens.background.primary,
 
   /**
-   * Elevated background color
-   */
-  backgroundElevated: tokens.background.primary,
-
-  /**
    * Secondary background color used as a slight contrast against primary background
    */
   backgroundSecondary: tokens.background.secondary,
@@ -1601,7 +1596,7 @@ const lightThemeDefinition = {
   ),
   prismDarkVariables: generateThemePrismVariables(
     prismDark,
-    darkAliases.backgroundElevated
+    darkTokens.background.primary
   ),
 
   colors: lightColors,
@@ -1647,7 +1642,7 @@ export const darkTheme: SentryTheme = {
   prismVariables: generateThemePrismVariables(prismDark, darkAliases.backgroundSecondary),
   prismDarkVariables: generateThemePrismVariables(
     prismDark,
-    darkAliases.backgroundElevated
+    darkTokens.background.primary
   ),
 
   colors: darkColors,

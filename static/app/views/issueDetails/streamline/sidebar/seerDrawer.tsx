@@ -555,7 +555,7 @@ const PlaceholderStack = styled('div')`
 `;
 
 const StyledCard = styled('div')`
-  background: ${p => p.theme.backgroundElevated};
+  background: ${p => p.theme.tokens.background.primary};
   overflow: visible;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.radius.md};
