@@ -16,7 +16,7 @@ from sentry.testutils.cases import TestCase
 
 
 class WritePreprodSizeMetricToEAPTest(TestCase):
-    @patch("sentry.preprod.eap.write.eap_producer.produce")
+    @patch("sentry.preprod.eap.write._eap_producer.produce")
     def test_write_preprod_size_metric_encodes_all_fields_correctly(self, mock_produce):
         commit_comparison = CommitComparison.objects.create(
             organization_id=self.organization.id,
@@ -117,7 +117,7 @@ class WritePreprodSizeMetricToEAPTest(TestCase):
         assert attrs["git_base_ref"].string_value == "main"
         assert attrs["git_pr_number"].int_value == 42
 
-    @patch("sentry.preprod.eap.write.eap_producer.produce")
+    @patch("sentry.preprod.eap.write._eap_producer.produce")
     def test_write_preprod_size_metric_handles_optional_fields(self, mock_produce):
         artifact = self.create_preprod_artifact(
             project=self.project,
