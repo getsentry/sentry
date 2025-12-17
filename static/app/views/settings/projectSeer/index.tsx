@@ -30,7 +30,6 @@ import {space} from 'sentry/styles/space';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -650,13 +649,7 @@ function ProjectSeer({
       />
       <SettingsPageHeader
         title={tct('Seer Settings for [projectName]', {
-          projectName: (
-            <span
-              dangerouslySetInnerHTML={{
-                __html: singleLineRenderer(`\`${project.slug}\``),
-              }}
-            />
-          ),
+          projectName: <code>{project.slug}</code>,
         })}
       />
       <ProjectSeerGeneralForm project={project} />
