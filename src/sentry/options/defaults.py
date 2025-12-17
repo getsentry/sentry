@@ -3816,3 +3816,12 @@ register(
     type=Sequence,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Project ID allowlist to enable detailed search debug logging for diagnosing
+# bugs with issue feed search.
+register(
+    "snuba.search.debug-log-project-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)

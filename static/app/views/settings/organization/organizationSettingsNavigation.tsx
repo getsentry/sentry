@@ -7,7 +7,7 @@ import type {Organization} from 'sentry/types/organization';
 import withOrganization from 'sentry/utils/withOrganization';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
 import SettingsNavigation from 'sentry/views/settings/components/settingsNavigation';
-import {getOrganizationNavigationConfiguration} from 'sentry/views/settings/organization/navigationConfiguration';
+import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 import type {NavigationSection} from 'sentry/views/settings/types';
 
 type Props = {
@@ -82,7 +82,7 @@ class OrganizationSettingsNavigation extends Component<Props, State> {
 
     return (
       <SettingsNavigation
-        navigationObjects={getOrganizationNavigationConfiguration({organization})}
+        navigationObjects={getUserOrgNavigationConfiguration()}
         access={access}
         features={features}
         organization={organization}
