@@ -789,7 +789,9 @@ class PullRequestEventWebhook(GitHubWebhook):
                 },
             )
 
-            if created:
+            if created and is_contributor_eligible_for_seat_assignment(
+                user_type, author_association
+            ):
                 # Track AI contributor if eligible
                 contributor, _ = OrganizationContributors.objects.get_or_create(
                     organization_id=organization.id,
@@ -834,9 +836,6 @@ class PullRequestEventWebhook(GitHubWebhook):
 
                     if (
                         locked_contributor
-                        and is_contributor_eligible_for_seat_assignment(
-                            user_type, author_association
-                        )
                         and locked_contributor.num_actions
                         >= ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD
                     ):
