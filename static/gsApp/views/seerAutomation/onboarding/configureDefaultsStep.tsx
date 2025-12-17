@@ -53,7 +53,7 @@ export function ConfigureDefaultsStep() {
   }, [setCurrentStep, currentStep]);
 
   const handleNextStep = useCallback(() => {
-    trackGetsentryAnalytics('seer.onboarding.defaults', {
+    trackGetsentryAnalytics('seer.onboarding.defaults_updated', {
       organization,
       enable_code_review: enableCodeReview,
       enable_root_cause_analysis: proposeFixesEnabled,

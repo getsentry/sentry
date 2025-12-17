@@ -133,7 +133,7 @@ export function ConfigureRootCauseAnalysisStep() {
       }
     }
 
-    trackGetsentryAnalytics('seer.onboarding.root_cause_analysis', {
+    trackGetsentryAnalytics('seer.onboarding.root_cause_analysis_updated', {
       organization,
       auto_create_pr: autoCreatePREnabled,
       projects_mapped: Object.keys(projectRepoMapping).length,

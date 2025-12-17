@@ -95,7 +95,7 @@ export function ConfigureCodeReviewStep() {
         );
       });
 
-    trackGetsentryAnalytics('seer.onboarding.code_review', {
+    trackGetsentryAnalytics('seer.onboarding.code_review_updated', {
       organization,
       added_repositories: selectedCodeReviewRepositories.length,
       removed_repositories: existingRepostoriesToRemove.length,
