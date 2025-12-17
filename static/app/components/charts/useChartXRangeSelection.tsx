@@ -276,6 +276,18 @@ export function useChartXRangeSelection({
       (selectionState.selection.range[0] !== initialSelection.range[0] ||
         selectionState.selection.range[1] !== initialSelection.range[1]);
 
+    const newState = calculateNewState({
+      chartInstance,
+      newRange: initialSelection.range,
+      panelId: initialSelection.panelId,
+    });
+
+    // If we couldn't calculate a new state (ex: out of bounds selection), we clear selection
+    if (!newState) {
+      clearSelection();
+      return;
+    }
+
     const shouldUpdateState =
       !selectionState || (hasInitialSelectionChanged && hasRangeChanged);
 
@@ -283,15 +295,7 @@ export function useChartXRangeSelection({
       return;
     }
 
-    const newState = calculateNewState({
-      chartInstance,
-      newRange: initialSelection.range,
-      panelId: initialSelection.panelId,
-    });
-
-    if (newState) {
-      setSelectionState(newState);
-    }
+    setSelectionState(newState);
   }, [
     initialSelection,
     selectionState,
@@ -491,6 +495,11 @@ function calculateNewState({
   const xMaxPixel = chartInstance.convertToPixel({xAxisIndex: 0}, xMax);
   const yMinPixel = chartInstance.convertToPixel({yAxisIndex: 0}, yMin);
   const [selected_xMin, selected_xMax] = newRange;
+
+  // If the selection is completely out of bounds, return null
+  if (selected_xMin > xMax || selected_xMax < xMin) {
+    return null;
+  }
 
   // Since we can keep dragging beyond the visible range,
   // clamp the ranges to the minimum and maximum values of the visible x axis and y axis
