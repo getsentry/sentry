@@ -9,6 +9,7 @@ import Feature from 'sentry/components/acl/feature';
 import {NoAccess} from 'sentry/components/noAccess';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
+import showNewSeer from 'sentry/utils/seer/showNewSeer';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -17,7 +18,6 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import SeerWizardSetupBanner from 'getsentry/views/seerAutomation/components/seerWizardSetupBanner';
 import SettingsPageTabs from 'getsentry/views/seerAutomation/components/settingsPageTabs';
 import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
-import {useShowNewSeer} from 'getsentry/views/seerAutomation/onboarding/hooks/useShowNewSeer';
 
 interface Props {
   children: React.ReactNode;
@@ -27,13 +27,12 @@ export default function SeerSettingsPageWrapper({children}: Props) {
   const navigate = useNavigate();
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
-  const showNewSeer = useShowNewSeer();
 
   useEffect(() => {
     // If the org is on the old-seer plan then they shouldn't be here on this new settings page
     // Or if we havn't launched the new seer yet.
     // Then they need to see old settings page, or get downgraded off old seer.
-    if (!showNewSeer) {
+    if (!showNewSeer(organization)) {
       navigate(normalizeUrl(`/organizations/${organization.slug}/settings/seer/`));
       return;
     }
@@ -45,7 +44,7 @@ export default function SeerSettingsPageWrapper({children}: Props) {
     }
 
     // Else you do have the new seer plan, then stay here and edit some settings.
-  }, [navigate, organization.features, organization.slug, showNewSeer]);
+  }, [navigate, organization.features, organization.slug, organization]);
 
   return (
     <Feature
