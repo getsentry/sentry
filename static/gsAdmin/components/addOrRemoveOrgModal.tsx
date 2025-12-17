@@ -19,7 +19,7 @@ function AddToOrgModal({Header, Body, userId, closeModal}: AddOrRemoveOrgModalPr
   const onSubmit = async (data: Record<string, any>) => {
     try {
       await api
-        .requestPromise(`/_admin/${data.organizationSlug}/users/${userId}/members/`, {
+        .requestPromise(`/customers/${data.organizationSlug}/users/${userId}/members/`, {
           method: 'POST',
           data: {
             orgRole: data.role,
@@ -78,7 +78,7 @@ function RemoveFromOrgModal({
   const onSubmit = async (data: Record<string, any>) => {
     try {
       await api
-        .requestPromise(`/_admin/${data.organizationSlug}/users/${userId}/members/`, {
+        .requestPromise(`/customers/${data.organizationSlug}/users/${userId}/members/`, {
           method: 'DELETE',
         })
         .then(() => {
