@@ -67,6 +67,9 @@ class PreprodArtifact(DefaultFieldsModel):
                 (cls.APK, "apk"),
             )
 
+        def to_str(self) -> str:
+            return self.name.lower()
+
     class ErrorCode(IntEnum):
         UNKNOWN = 0
         """The error code is unknown. Try to use a descriptive error code if possible."""
