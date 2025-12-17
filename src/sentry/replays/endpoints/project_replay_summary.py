@@ -12,9 +12,10 @@ from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
+from sentry.api.bases.project import ProjectPermission
 from sentry.api.utils import default_start_end_dates
 from sentry.models.project import Project
+from sentry.replays.endpoints.project_replay_endpoint import ProjectReplayEndpoint
 from sentry.replays.lib.seer_api import seer_summarization_connection_pool
 from sentry.replays.lib.storage import storage
 from sentry.replays.post_process import process_raw_response
@@ -44,7 +45,7 @@ class ReplaySummaryPermission(ProjectPermission):
 
 @region_silo_endpoint
 @extend_schema(tags=["Replays"])
-class ProjectReplaySummaryEndpoint(ProjectEndpoint):
+class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
     owner = ApiOwner.REPLAY
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -127,6 +128,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
                 {"sample_rate": self.sample_rate_get} if self.sample_rate_get else None
             ),
         ):
+            self.check_replay_access(request, project)
 
             if not self.has_replay_summary_access(project, request):
                 return self.respond(
@@ -154,6 +156,8 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
                 {"sample_rate": self.sample_rate_post} if self.sample_rate_post else None
             ),
         ):
+            self.check_replay_access(request, project)
+
             if not self.has_replay_summary_access(project, request):
                 return self.respond(
                     {"detail": "Replay summaries are not available for this organization."},

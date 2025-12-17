@@ -6,16 +6,16 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
+from sentry.api.bases.project import ProjectEventPermission
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.project import Project
+from sentry.replays.endpoints.project_replay_endpoint import ProjectReplayEndpoint
 from sentry.replays.query import query_replay_viewed_by_ids
 from sentry.replays.usecases.events import publish_replay_event, viewed_event
 from sentry.replays.usecases.query import execute_query, make_full_aggregation_query
@@ -33,7 +33,7 @@ class ReplayViewedByResponse(TypedDict):
 
 @region_silo_endpoint
 @extend_schema(tags=["Replays"])
-class ProjectReplayViewedByEndpoint(ProjectEndpoint):
+class ProjectReplayViewedByEndpoint(ProjectReplayEndpoint):
     owner = ApiOwner.REPLAY
     publish_status = {"GET": ApiPublishStatus.PUBLIC, "POST": ApiPublishStatus.PRIVATE}
     permission_classes = (ProjectEventPermission,)
@@ -55,10 +55,7 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
     )
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
         """Return a list of users who have viewed a replay."""
-        if not features.has(
-            "organizations:session-replay", project.organization, actor=request.user
-        ):
-            return Response(status=404)
+        self.check_replay_access(request, project)
 
         try:
             uuid.UUID(replay_id)
@@ -98,10 +95,7 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
         if not request.user.is_authenticated:
             return Response(status=400)
 
-        if not features.has(
-            "organizations:session-replay", project.organization, actor=request.user
-        ):
-            return Response(status=404)
+        self.check_replay_access(request, project)
 
         try:
             replay_id = str(uuid.UUID(replay_id))
