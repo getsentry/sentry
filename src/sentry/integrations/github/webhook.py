@@ -84,12 +84,13 @@ def is_contributor_eligible_for_seat_assignment(
 ) -> bool:
     """
     Determine if a contributor is eligible for seat assignment based on their user type and author association.
-    - Contributor must be MEMBER or OWNER of the repo
+    - Contributor must be MEMBER or OWNER of the parent org, or COLLABORATOR on the repo
     - Contributor cannot be a bot
     """
     return user_type != "Bot" and author_association in (
         AuthorAssociation.MEMBER,
         AuthorAssociation.OWNER,
+        AuthorAssociation.COLLABORATOR,
     )
 
 
@@ -802,6 +803,8 @@ class PullRequestEventWebhook(GitHubWebhook):
                 logger.info(
                     "github.webhook.organization_contributor.eligibility_check",
                     extra={
+                        "organization_id": organization.id,
+                        "repository_id": repo.id,
                         "pr_number": number,
                         "user_login": user["login"],
                         "user_type": user_type,
