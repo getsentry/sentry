@@ -23,13 +23,12 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.uptime.endpoints.serializers import UptimeDetectorSerializer
 from sentry.uptime.endpoints.validators import UptimeTestValidator
 from sentry.uptime.types import CheckConfig
-from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
-class OrganizationUptimeAlertTestEndpoint(OrganizationEndpoint):
+class OrganizationUptimeAlertPreviewCheckEndpoint(OrganizationEndpoint):
     owner = ApiOwner.CRONS
 
     publish_status = {
@@ -67,32 +66,25 @@ class OrganizationUptimeAlertTestEndpoint(OrganizationEndpoint):
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 
-        check: CheckConfig = validator.save()
+        check_config: CheckConfig = validator.save()
 
-        region = [r for r in UPTIME_REGIONS if r.slug == check["active_regions"][0]]
+        region = [r for r in UPTIME_REGIONS if r.slug == check_config["active_regions"][0]]
 
         if len(region) == 0:
             return self.respond("No such region", status=400)
 
         api_endpoint = region[0].api_endpoint
 
-        try:
-            result = requests.post(
-                f"http://{api_endpoint}/execute_config",
-                headers={
-                    "content-type": "application/json;charset=utf-8",
-                },
-                data=json.dumps(check).encode("utf-8"),
-                timeout=10,
-            )
-            result.raise_for_status()
-            return self.respond(result.json())
-        except requests.RequestException as e:
-            logger.exception(
-                "uptime.test_endpoint",
-                extra={
-                    "organization_id": organization.id,
-                    "error": str(e),
-                },
-            )
-            return self.respond(status=500)
+        result = requests.post(
+            f"http://{api_endpoint}/execute_config",
+            json=check_config,
+            timeout=10,
+        )
+
+        # A 400-class against the uptime-checker should still mean that this sentry-request was
+        # successful.  The result json will contain the error details.
+        if result.status_code >= 400 and result.status_code < 500:
+            return self.respond(result.json(), status=200)
+
+        result.raise_for_status()
+        return self.respond(result.json())

@@ -602,8 +602,11 @@ from sentry.uptime.endpoints.organiation_uptime_alert_index import (
 from sentry.uptime.endpoints.organization_uptime_alert_index_count import (
     OrganizationUptimeAlertIndexCountEndpoint,
 )
-from sentry.uptime.endpoints.organization_uptime_alert_test import (
-    OrganizationUptimeAlertTestEndpoint,
+from sentry.uptime.endpoints.organization_uptime_alert_preview_check import (
+    OrganizationUptimeAlertPreviewCheckEndpoint,
+)
+from sentry.uptime.endpoints.organization_uptime_alert_validate_check import (
+    OrganizationUptimeAlertValidateCheckEndpoint,
 )
 from sentry.uptime.endpoints.organization_uptime_stats import OrganizationUptimeStatsEndpoint
 from sentry.uptime.endpoints.organization_uptime_summary import OrganizationUptimeSummaryEndpoint
@@ -2616,9 +2619,14 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-uptime-alert-index",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/uptime-test/$",
-        OrganizationUptimeAlertTestEndpoint.as_view(),
-        name="sentry-api-0-organization-uptime-alert-test",
+        r"^(?P<organization_id_or_slug>[^/]+)/uptime-preview-check/$",
+        OrganizationUptimeAlertPreviewCheckEndpoint.as_view(),
+        name="sentry-api-0-organization-uptime-alert-preview-check",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/uptime-validate-check/$",
+        OrganizationUptimeAlertValidateCheckEndpoint.as_view(),
+        name="sentry-api-0-organization-uptime-alert-validate-check",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/uptime-count/$",
