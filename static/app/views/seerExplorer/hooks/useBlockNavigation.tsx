@@ -53,6 +53,7 @@ export function useBlockNavigation({
       }
 
       if (e.key === 'ArrowUp') {
+        if (isMinimized) return;
         e.preventDefault();
         onNavigate?.();
         if (focusedBlockIndex === -1) {
@@ -76,6 +77,7 @@ export function useBlockNavigation({
           }
         }
       } else if (e.key === 'ArrowDown') {
+        if (isMinimized) return;
         e.preventDefault();
         if (focusedBlockIndex === -1) return;
         onNavigate?.();
