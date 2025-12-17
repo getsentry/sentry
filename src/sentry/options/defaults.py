@@ -382,9 +382,15 @@ register("fileblob.upload.use_lock", default=True, flags=FLAG_AUTOMATOR_MODIFIAB
 # Whether to use redis to cache `FileBlob.id` lookups
 register("fileblob.upload.use_blobid_cache", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# New `objectstore` service configuration. Additional supported options:
-# - propagate_traces: bool
-
+# New `objectstore` service configuration. Additional supported options and
+# their defaults:
+#  - propagate_traces: bool = False,
+#  - retries: int | None = None,
+#  - timeout_ms: float | None = None,
+#  - connection_kwargs: Mapping[str, Any] | None = None,
+#
+# For an always up-to-date list, see:
+# https://getsentry.github.io/objectstore/python/objectstore_client.html#objectstore_client.Client
 register(
     "objectstore.config",
     default={"base_url": "http://127.0.0.1:8888"},
@@ -3091,32 +3097,35 @@ register(
 
 # Notification Options - Start
 # Options for migrating to the notification platform
-# Data Export Success notifications
+# Notifications for internal testing
 register(
-    "notifications.platform-rate.data-export-success",
-    type=Float,
-    default=0.0,
+    "notifications.platform-rollout.internal-testing",
+    type=Dict,
+    default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Data Export Failure notifications
+
+# Notifications for Sentry organizations
 register(
-    "notifications.platform-rate.data-export-failure",
-    type=Float,
-    default=0.0,
+    "notifications.platform-rollout.is-sentry",
+    type=Dict,
+    default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Custom Rule Samples Fulfilled notifications
+
+# Notifications for early adopter organizations
 register(
-    "notifications.platform-rate.custom-rule-samples-fulfilled",
-    type=Float,
-    default=0.0,
+    "notifications.platform-rollout.early-adopter",
+    type=Dict,
+    default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Unable to Delete Repository notifications
+
+# Notifications for general access organizations
 register(
-    "notifications.platform-rate.unable-to-delete-repository",
-    type=Float,
-    default=0.0,
+    "notifications.platform-rollout.general-access",
+    type=Dict,
+    default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Notification Options - End
@@ -3805,5 +3814,14 @@ register(
     "dashboards.prebuilt-dashboard-ids",
     default=[],
     type=Sequence,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Project ID allowlist to enable detailed search debug logging for diagnosing
+# bugs with issue feed search.
+register(
+    "snuba.search.debug-log-project-allowlist",
+    type=Sequence,
+    default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )

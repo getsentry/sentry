@@ -247,7 +247,31 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     setIsMinimized(false);
   }, [setFocusedBlockIndex, textareaRef, setIsMinimized]);
 
+  const langfuseUrl = sessionData?.run_id
+    ? `https://langfuse.getsentry.net/project/clx9kma1k0001iebwrfw4oo0z/traces?filter=sessionId%3Bstring%3B%3B%3D%3B${sessionData.run_id}`
+    : undefined;
+
+  const handleOpenLangfuse = useCallback(() => {
+    // Command handler. Disabled in slash command menu for non-employees
+    if (langfuseUrl) {
+      window.open(langfuseUrl, '_blank');
+    }
+  }, [langfuseUrl]);
+
   const openFeedbackForm = useFeedbackForm();
+
+  const handleFeedback = useCallback(() => {
+    if (openFeedbackForm) {
+      openFeedbackForm({
+        formTitle: 'Seer Explorer Feedback',
+        messagePlaceholder: 'How can we make Seer Explorer better for you?',
+        tags: {
+          ['feedback.source']: 'seer_explorer',
+          ...(langfuseUrl ? {['langfuse_url']: langfuseUrl} : {}),
+        },
+      });
+    }
+  }, [openFeedbackForm, langfuseUrl]);
 
   const {menu, isMenuOpen, menuMode, closeMenu, openSessionHistory, openPRWidget} =
     useExplorerMenu({
@@ -261,6 +285,8 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
         onMaxSize: handleMaxSize,
         onMedSize: handleMedSize,
         onNew: startNewSession,
+        onFeedback: openFeedbackForm ? handleFeedback : undefined,
+        onLangfuse: handleOpenLangfuse,
       },
       onChangeSession: switchToRun,
       menuAnchorRef: sessionHistoryButtonRef,
@@ -448,18 +474,6 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     },
   });
 
-  const handleFeedbackClick = useCallback(() => {
-    if (openFeedbackForm) {
-      openFeedbackForm({
-        formTitle: 'Seer Explorer Feedback',
-        messagePlaceholder: 'How can we make Seer Explorer better for you?',
-        tags: {
-          ['feedback.source']: 'seer_explorer',
-        },
-      });
-    }
-  }, [openFeedbackForm]);
-
   const handleSizeToggle = useCallback(() => {
     if (panelSize === 'max') {
       handleMedSize();
@@ -482,7 +496,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
         isPolling={isPolling}
         isSessionHistoryOpen={isMenuOpen && menuMode === 'session-history'}
         onCreatePR={createPR}
-        onFeedbackClick={handleFeedbackClick}
+        onFeedbackClick={handleFeedback}
         onNewChatClick={() => {
           startNewSession();
           focusInput();

@@ -499,7 +499,8 @@ const BlockContent = styled(MarkedText)`
 
   p,
   li,
-  ul {
+  ul,
+  ol {
     margin: -${space(1)} 0;
   }
 
