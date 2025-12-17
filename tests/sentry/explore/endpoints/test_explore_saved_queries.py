@@ -1161,7 +1161,6 @@ class ExploreSavedQueriesTest(APITestCase):
                     "dataset": "metrics",
                     "query": [
                         {
-                            "caseInsensitive": False,
                             "fields": ["avg()"],
                             "mode": "aggregate",
                             "metric": {
@@ -1179,6 +1178,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert data["dataset"] == "metrics"
         assert data["query"] == [
             {
+                "caseInsensitive": False,
                 "fields": ["avg()"],
                 "mode": "aggregate",
                 "metric": {
