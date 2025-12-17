@@ -43,9 +43,9 @@
     </div>
     <% } %>
 
-    <div id="blk_router"></div>
-    <%= htmlWebpackPlugin.options.loaderHtml %>
-
+    <div id="blk_router">
+      <%- htmlWebpackPlugin.options.loaderHtml %>
+    </div>
     <% if (htmlWebpackPlugin.options.window) { %>
     <script>
       <% for (var varName in htmlWebpackPlugin.options.window) { %>
