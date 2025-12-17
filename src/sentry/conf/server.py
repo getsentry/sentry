@@ -1043,7 +1043,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "schedule": task_crontab("0", "*/1", "*", "*", "*"),
     },
     "uptime-write-pending-misses": {
-        "task": "uptime_tasks:sentry.uptime.tasks.write_pending_missed_checks",
+        "task": "uptime:sentry.uptime.tasks.write_pending_missed_checks",
         "schedule": timedelta(minutes=1),
     },
     "poll_tempest": {
