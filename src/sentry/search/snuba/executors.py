@@ -962,8 +962,8 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             return self.empty_result
 
         paginator_results = self.empty_result
-        result_groups = []
-        result_group_ids = set()
+        result_groups: list[tuple[int, Any]] = []
+        result_group_ids: set[int] = set()
 
         max_time = options.get("snuba.search.max-total-chunk-time-seconds")
         time_start = time.time()
