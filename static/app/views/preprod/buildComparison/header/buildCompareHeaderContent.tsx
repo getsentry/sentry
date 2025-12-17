@@ -13,6 +13,7 @@ import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {IconCode, IconDownload, IconJson, IconMobile} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {AppIcon} from 'sentry/views/preprod/components/appIcon';
 import {
   isSizeInfoCompleted,
   type BuildDetailsApiResponse,
@@ -66,14 +67,16 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
         </Flex>
         <Heading as="h1">Build comparison</Heading>
         <Flex gap="lg" wrap="wrap" align="center">
-          <Flex gap="sm" align="center">
-            <AppIcon>
-              <AppIconPlaceholder>
-                {buildDetails.app_info.name?.charAt(0) || ''}
-              </AppIconPlaceholder>
-            </AppIcon>
-            <Text>{buildDetails.app_info.name}</Text>
-          </Flex>
+          {buildDetails.app_info.name && (
+            <Flex gap="sm" align="center">
+              <AppIcon
+                appName={buildDetails.app_info.name}
+                appIconId={buildDetails.app_info.app_icon_id}
+                projectId={projectId}
+              />
+              <Text>{buildDetails.app_info.name}</Text>
+            </Flex>
+          )}
           <Flex gap="sm" align="center">
             <InfoIcon>
               {buildDetails.app_info.platform ? (
@@ -136,23 +139,6 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
     </Flex>
   );
 }
-
-const AppIcon = styled('div')`
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
-  background: ${p => p.theme.purple400};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-`;
-
-const AppIconPlaceholder = styled('div')`
-  color: white;
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.sm};
-`;
 
 const InfoIcon = styled('div')`
   width: 24px;
