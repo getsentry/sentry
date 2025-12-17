@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
+import pytest
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import RetryState
 from urllib3 import BaseHTTPResponse
 from urllib3.exceptions import HTTPError
@@ -83,8 +84,8 @@ class ProcessGitHubWebhookEventTest(TestCase):
                     process_github_webhook_event._func(
                         mock_self,
                         organization_id=self.organization.id,
+                        enqueued_at_str=self.enqueued_at_str,
                         original_run_id=self.original_run_id,
-                        enqueued_at=self.enqueued_at_str,
                     )
                     assert False, "Expected HTTPError to be raised for 500 status"
                 except HTTPError:
@@ -110,8 +111,8 @@ class ProcessGitHubWebhookEventTest(TestCase):
                     process_github_webhook_event._func(
                         mock_self,
                         organization_id=self.organization.id,
+                        enqueued_at_str=self.enqueued_at_str,
                         original_run_id=self.original_run_id,
-                        enqueued_at=self.enqueued_at_str,
                     )
                     assert False, "Expected HTTPError to be raised for 503 status"
                 except HTTPError:
@@ -136,8 +137,8 @@ class ProcessGitHubWebhookEventTest(TestCase):
                     process_github_webhook_event._func(
                         mock_self,
                         organization_id=self.organization.id,
+                        enqueued_at_str=self.enqueued_at_str,
                         original_run_id=self.original_run_id,
-                        enqueued_at=self.enqueued_at_str,
                     )
                     assert False, "Expected HTTPError to be raised for 429 status"
                 except HTTPError:
@@ -163,8 +164,8 @@ class ProcessGitHubWebhookEventTest(TestCase):
             process_github_webhook_event._func(
                 mock_self,
                 organization_id=self.organization.id,
+                enqueued_at_str=self.enqueued_at_str,
                 original_run_id=self.original_run_id,
-                enqueued_at=self.enqueued_at_str,
             )
 
             # Verify client error was tracked in metrics (not retried)
@@ -194,8 +195,8 @@ class ProcessGitHubWebhookEventTest(TestCase):
                     process_github_webhook_event._func(
                         mock_self,
                         organization_id=self.organization.id,
+                        enqueued_at_str=self.enqueued_at_str,
                         original_run_id=self.original_run_id,
-                        enqueued_at=self.enqueued_at_str,
                     )
                     assert False, "Expected MaxRetryError to be raised"
                 except MaxRetryError:
@@ -222,8 +223,8 @@ class ProcessGitHubWebhookEventTest(TestCase):
                     process_github_webhook_event._func(
                         mock_self,
                         organization_id=self.organization.id,
+                        enqueued_at_str=self.enqueued_at_str,
                         original_run_id=self.original_run_id,
-                        enqueued_at=self.enqueued_at_str,
                     )
                     assert False, "Expected TimeoutError to be raised"
                 except TimeoutError:
@@ -249,8 +250,8 @@ class ProcessGitHubWebhookEventTest(TestCase):
                     process_github_webhook_event._func(
                         mock_self,
                         organization_id=self.organization.id,
+                        enqueued_at_str=self.enqueued_at_str,
                         original_run_id=self.original_run_id,
-                        enqueued_at=self.enqueued_at_str,
                     )
                     assert False, "Expected SSLError to be raised"
                 except SSLError:
@@ -277,8 +278,8 @@ class ProcessGitHubWebhookEventTest(TestCase):
                     process_github_webhook_event._func(
                         mock_self,
                         organization_id=self.organization.id,
+                        enqueued_at_str=self.enqueued_at_str,
                         original_run_id=self.original_run_id,
-                        enqueued_at=self.enqueued_at_str,
                     )
                     assert False, "Expected NewConnectionError to be raised"
                 except NewConnectionError:
@@ -305,8 +306,8 @@ class ProcessGitHubWebhookEventTest(TestCase):
                     process_github_webhook_event._func(
                         mock_self,
                         organization_id=self.organization.id,
+                        enqueued_at_str=self.enqueued_at_str,
                         original_run_id=self.original_run_id,
-                        enqueued_at=self.enqueued_at_str,
                     )
                     assert False, "Expected TimeoutError to be raised"
                 except TimeoutError:
@@ -314,6 +315,46 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
                 # Verify exception was NOT logged on early retry
                 mock_logger.exception.assert_not_called()
+
+    @patch("sentry.seer.code_review.tasks.make_signed_seer_api_request")
+    @patch("sentry.seer.code_review.tasks.metrics")
+    def test_unexpected_error_logged_and_tracked(
+        self, mock_metrics: MagicMock, mock_request: MagicMock
+    ) -> None:
+        """Test that unexpected errors (non-HTTPError) are logged and tracked in metrics."""
+        # Simulate an unexpected error (e.g., JSON parsing error)
+        mock_request.side_effect = ValueError("Invalid JSON format")
+
+        with self.options({"coding_workflows.code_review.github.check_run.rerun.enabled": True}):
+            with patch("sentry.seer.code_review.tasks.logger") as mock_logger:
+                # Create mock task self
+                mock_self = self._create_mock_task_self(retries=0)
+
+                # Task should raise the unexpected exception (no retry)
+                with pytest.raises(ValueError, match="Invalid JSON format"):
+                    process_github_webhook_event._func(
+                        mock_self,
+                        organization_id=self.organization.id,
+                        enqueued_at_str=self.enqueued_at_str,
+                        original_run_id=self.original_run_id,
+                    )
+
+                # Verify unexpected error was logged
+                mock_logger.exception.assert_called_once()
+                assert mock_logger.exception.call_args[0][0] == "%s.unexpected_error"
+                assert mock_logger.exception.call_args[0][1] == PREFIX
+
+                # Verify metrics were recorded
+                mock_metrics.incr.assert_called()
+                incr_calls = [call for call in mock_metrics.incr.call_args_list]
+                outcome_calls = [call for call in incr_calls if "outcome" in str(call)]
+                assert len(outcome_calls) > 0
+                # Verify the status includes unexpected_error
+                outcome_call = outcome_calls[0]
+                assert "unexpected_error_ValueError" in str(outcome_call)
+
+                # Verify latency was also recorded
+                mock_metrics.timing.assert_called_once()
 
     @patch("sentry.seer.code_review.tasks.make_signed_seer_api_request")
     @patch("sentry.seer.code_review.tasks.metrics")
@@ -331,8 +372,8 @@ class ProcessGitHubWebhookEventTest(TestCase):
             process_github_webhook_event._func(
                 mock_self,
                 organization_id=self.organization.id,
+                enqueued_at_str=self.enqueued_at_str,
                 original_run_id=self.original_run_id,
-                enqueued_at=self.enqueued_at_str,
             )
 
             # Verify latency metric was recorded
@@ -372,8 +413,8 @@ class ProcessGitHubWebhookEventTest(TestCase):
                     process_github_webhook_event._func(
                         mock_self,
                         organization_id=self.organization.id,
+                        enqueued_at_str=enqueued_at_str,
                         original_run_id=self.original_run_id,
-                        enqueued_at=enqueued_at_str,
                     )
                     # Should not reach here - exception should be raised
                     assert False, "Expected MaxRetryError to be raised"

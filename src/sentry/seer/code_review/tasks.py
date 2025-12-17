@@ -36,7 +36,9 @@ DELAY_BETWEEN_RETRIES = 60  # 1 minute
     silo_mode=SiloMode.REGION,
     bind=True,  # Bind task instance to access self.request.retries for conditional logging
 )
-def process_github_webhook_event(self: Any, *, organization_id: int, **kwargs: Any) -> None:
+def process_github_webhook_event(
+    self: Any, *, organization_id: int, enqueued_at_str: str, **kwargs: Any
+) -> None:
     """
     Process GitHub webhook event by forwarding to Seer if applicable.
 
@@ -45,7 +47,8 @@ def process_github_webhook_event(self: Any, *, organization_id: int, **kwargs: A
     Args:
         self: Task instance (bound via bind=True)
         organization_id: The organization ID (for logging/metrics)
-        **kwargs: Additional logging context & other parameters (including enqueued_at)
+        enqueued_at_str: The timestamp when the task was enqueued
+        **kwargs: Additional logging context & other parameters
     """
     context = {"organization_id": organization_id, **kwargs}
     if not options.get("coding_workflows.code_review.github.check_run.rerun.enabled"):
@@ -54,8 +57,7 @@ def process_github_webhook_event(self: Any, *, organization_id: int, **kwargs: A
         return
 
     original_run_id = kwargs.get("original_run_id")
-    enqueued_at_str = kwargs.get("enqueued_at")
-    if original_run_id is None or enqueued_at_str is None:
+    if original_run_id is None:
         metrics.incr(f"{PREFIX}.outcome", tags={"status": "invalid_task_parameters"})
         raise ValueError("Missing required task parameters.")
 
@@ -73,6 +75,13 @@ def process_github_webhook_event(self: Any, *, organization_id: int, **kwargs: A
             logger.exception("%s.error", PREFIX, extra=context)
             record_metrics(status, enqueued_at_str, is_last_attempt=True)
         raise  # Re-raise to trigger task retry
+    except Exception as e:
+        # Unexpected errors (JSON parsing, config issues, etc.)
+        # These are not retryable and indicate a programming or configuration error
+        status = f"unexpected_error_{e.__class__.__name__}"
+        logger.exception("%s.unexpected_error", PREFIX, extra=context)
+        record_metrics(status, enqueued_at_str, is_last_attempt=True)
+        raise  # Task will fail (no retry for unexpected errors)
 
 
 def make_seer_request(original_run_id: str) -> str:
