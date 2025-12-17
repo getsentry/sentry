@@ -582,6 +582,11 @@ def start_group_reprocessing(
             # During reprocessing the button is greyed out.
             raise RuntimeError("Cannot reprocess group that is currently being reprocessed")
 
+        # TODO: Replace this with a special group.status rather than using data.
+        # Check the marker to avoid reprocessing B if there is a reprocessing A -> B going on at the moment
+        if "_reprocessing_old_group_id" in (group.data or {}):
+            raise RuntimeError("Cannot reprocess group that is being reprocessed to")
+
         original_short_id = group.short_id
         group.status = models.GroupStatus.REPROCESSING
         group.substatus = None
@@ -596,6 +601,13 @@ def start_group_reprocessing(
         group.pk = group.id = None  # type: ignore[assignment]  # XXX: intentional resetting pk
         new_group = group  # rename variable just to avoid confusion
         del group
+
+        # Set a marker indicating that the new group is currently being reprocessed to.
+        try:
+            new_group.data["_reprocessing_old_group_id"] = group_id
+        except Exception as e:
+            logger.exception(str(e))
+
         new_group.status = original_status
         new_group.substatus = original_substatus
         new_group.short_id = original_short_id
