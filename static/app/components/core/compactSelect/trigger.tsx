@@ -19,7 +19,7 @@ export type ButtonTriggerProps = DistributedOmit<DropdownButtonProps, 'ref'> & {
   ref?: React.Ref<TriggerEl>;
 };
 
-export type IconButtonTriggerProps = SetRequired<
+type IconButtonTriggerProps = SetRequired<
   DistributedOmit<DropdownButtonProps, 'ref' | 'showChevron'>,
   'aria-label' | 'icon'
 > & {
