@@ -20,8 +20,7 @@ export type ButtonTriggerProps = DistributedOmit<DropdownButtonProps, 'ref'> & {
 };
 
 export const SelectTrigger = {
-  Button(props: ButtonTriggerProps) {
-    const {ref, ...componentProps} = props;
+  Button({ref, ...props}: ButtonTriggerProps) {
     const selectContext = React.useContext(SelectContext);
     const contextProps = {
       size: selectContext.size,
@@ -32,7 +31,7 @@ export const SelectTrigger = {
     return (
       <DropdownButton
         {...contextProps}
-        {...componentProps}
+        {...props}
         ref={ref as React.Ref<HTMLButtonElement>}
       />
     );
