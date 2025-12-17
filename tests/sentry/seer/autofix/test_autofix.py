@@ -19,7 +19,6 @@ from sentry.seer.autofix.autofix import (
     onboarding_seer_settings_update,
     trigger_autofix,
 )
-from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree
 from sentry.seer.models import SeerRepoDefinition
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
@@ -1476,37 +1475,58 @@ class TestGetLogsForEvent(TestCase):
 
 @pytest.mark.django_db
 class TestOnboardingSeerSettingsUpdate(TestCase):
-    def test_rca_disabled_sets_automation_tuning_off(self) -> None:
-        """Tests that when RCA is disabled, automation tuning is set to OFF for org and projects."""
+    def test_does_not_set_org_options_when_rca_enabled(self) -> None:
+        """Tests that org options are not set"""
         organization = self.create_organization()
-        project1 = self.create_project(organization=organization)
-        project2 = self.create_project(organization=organization)
+
+        assert organization.get_option("sentry:default_autofix_automation_tuning") is None
 
         onboarding_seer_settings_update(
             organization_id=organization.id,
-            is_rca_enabled=False,
+            is_rca_enabled=True,
             is_auto_open_prs_enabled=False,
             project_repo_dict={},
         )
 
         # Verify org-level option is set to OFF
         organization.refresh_from_db()
-        assert (
-            organization.get_option("sentry:default_autofix_automation_tuning")
-            == AutofixAutomationTuningSettings.OFF
+        assert organization.get_option("sentry:default_autofix_automation_tuning") is None
+
+    @patch("sentry.seer.autofix.autofix.bulk_set_project_preferences")
+    def test_rca_disabled_with_auto_prs_and_project_sets_open_pr_stopping_point(
+        self, mock_bulk_set
+    ) -> None:
+        """Tests that when RCA is disabled but auto PRs enabled with a project, stopping point is OPEN_PR."""
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+
+        repo = SeerRepoDefinition(
+            provider="github",
+            owner="getsentry",
+            name="sentry",
+            external_id="789",
         )
 
-        # Verify project-level options are set to OFF
-        project1.refresh_from_db()
-        project2.refresh_from_db()
-        assert (
-            project1.get_option("sentry:autofix_automation_tuning")
-            == AutofixAutomationTuningSettings.OFF
+        onboarding_seer_settings_update(
+            organization_id=organization.id,
+            is_rca_enabled=False,
+            is_auto_open_prs_enabled=True,
+            project_repo_dict={project.id: [repo]},
         )
-        assert (
-            project2.get_option("sentry:autofix_automation_tuning")
-            == AutofixAutomationTuningSettings.OFF
-        )
+
+        # Verify org-level options
+        organization.refresh_from_db()
+
+        # Verify bulk_set_project_preferences is called with OPEN_PR stopping point
+        mock_bulk_set.assert_called_once()
+        call_args = mock_bulk_set.call_args
+        assert call_args[0][0] == organization.id
+        preferences = call_args[0][1]
+        assert len(preferences) == 1
+        assert preferences[0]["organization_id"] == organization.id
+        assert preferences[0]["project_id"] == project.id
+        assert preferences[0]["automated_run_stopping_point"] == "open_pr"
+        assert len(preferences[0]["repositories"]) == 1
 
     @patch("sentry.seer.autofix.autofix.bulk_set_project_preferences")
     def test_rca_enabled_without_auto_prs_sets_code_changes_stopping_point(

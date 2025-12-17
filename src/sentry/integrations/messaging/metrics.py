@@ -35,6 +35,7 @@ class MessagingInteractionType(StrEnum):
     IGNORE = "IGNORE"
     MARK_ONGOING = "MARK_ONGOING"
     VIEW_SUBMISSION = "VIEW_SUBMISSION"
+    SEER_AUTOFIX_START = "SEER_AUTOFIX_START"
 
     # Automatic behaviors
     PROCESS_SHARED_LINK = "PROCESS_SHARED_LINK"

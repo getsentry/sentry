@@ -88,6 +88,7 @@ from sentry.seer.explorer.tools import (
     execute_table_query,
     execute_timeseries_query,
     execute_trace_table_query,
+    get_baseline_tag_distribution,
     get_issue_and_event_details_v2,
     get_log_attributes_for_trace,
     get_metric_attributes_for_trace,
@@ -372,9 +373,7 @@ def get_attributes_and_values(
     """
     Fetches all string attributes and the corresponding values with counts for a given period.
     """
-    stats_period, start, end = validate_date_params(
-        stats_period, start, end, default_stats_period="7d"
-    )
+    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     if stats_period:
         period = parse_stats_period(stats_period) or datetime.timedelta(days=7)
@@ -1039,6 +1038,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "call_on_completion_hook": call_on_completion_hook,
     "get_log_attributes_for_trace": get_log_attributes_for_trace,
     "get_metric_attributes_for_trace": get_metric_attributes_for_trace,
+    "get_baseline_tag_distribution": get_baseline_tag_distribution,
     #
     # Replays
     "get_replay_summary_logs": rpc_get_replay_summary_logs,

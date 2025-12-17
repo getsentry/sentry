@@ -40,6 +40,7 @@ from sentry.integrations.slack.analytics import (
 )
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.integrations.slack.message_builder.routing import decode_action_id
+from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.sdk_client import SlackSdkClient
@@ -476,6 +477,13 @@ class SlackActionEndpoint(Endpoint):
                     ).capture():
                         _ArchiveDialog().open_dialog(slack_request, group)
                     defer_attachment_update = True
+                elif action.name == SlackAction.SEER_AUTOFIX_START:
+                    with self.record_event(
+                        MessagingInteractionType.SEER_AUTOFIX_START, group, request
+                    ).capture():
+                        # TODO(Leander): Implement this
+                        pass
+                    defer_attachment_update = True
             except client.ApiError as error:
                 return self.api_error(slack_request, group, identity_user, error, action.name)
             except serializers.ValidationError as error:
@@ -547,15 +555,26 @@ class SlackActionEndpoint(Endpoint):
 
         return self.respond()
 
+    def handle_seer_context_input(self, slack_request: SlackActionRequest) -> Response:
+        actions_list = slack_request.data.get("actions", [])
+        if not actions_list:
+            return self.respond(status=400)
+
+        # TODO(Leander): Implement this
+        return self.respond()
+
     @classmethod
-    def get_action_option(cls, slack_request: SlackActionRequest) -> str | None:
-        action_option = None
+    def get_action_option(cls, slack_request: SlackActionRequest) -> tuple[str | None, str | None]:
+        action_option, action_id = None, None
         for action_data in slack_request.data.get("actions", []):
             # Get the _first_ value in the action list.
             value = action_data.get("value")
-            if value and not action_option:
+            if value:
+                action_id = action_data.get("action_id")
                 action_option = value
-        return action_option
+                break
+
+        return action_option, action_id
 
     @classmethod
     def get_action_list(cls, slack_request: SlackActionRequest) -> list[BlockKitMessageAction]:
@@ -623,7 +642,7 @@ class SlackActionEndpoint(Endpoint):
 
         # Actions list may be empty when receiving a dialog response.
 
-        action_option = self.get_action_option(slack_request=slack_request)
+        action_option, action_id = self.get_action_option(slack_request=slack_request)
 
         # If a user is just clicking a button link we return a 200
         if action_option in (
@@ -643,6 +662,9 @@ class SlackActionEndpoint(Endpoint):
 
         if action_option in NOTIFICATION_SETTINGS_ACTION_OPTIONS:
             return self.handle_enable_notifications(slack_request)
+
+        if action_id == SlackAction.SEER_CONTEXT_INPUT.value:
+            return self.handle_seer_context_input(slack_request=slack_request)
 
         action_list = self.get_action_list(slack_request=slack_request)
         return self._handle_group_actions(slack_request, request, action_list)

@@ -3,11 +3,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {
   makeEAPSpan,
   makeEAPTrace,
-  makeEventTransaction,
   makeSpan,
   makeTrace,
   makeTransaction,
+  mockSpansResponse,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
+import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 
 import {isMissingInstrumentationNode} from './../traceGuards';
 import {TraceTree} from './traceTree';
@@ -23,6 +24,8 @@ const singleTransactionTrace = makeTrace({
       start_timestamp: start,
       timestamp: start + 2,
       children: [],
+      event_id: 'event-id',
+      project_slug: 'project',
     }),
   ],
   orphan_errors: [],
@@ -97,44 +100,48 @@ const eapChildrenMissingInstrumentationSpans = [
 ];
 
 describe('missing instrumentation', () => {
-  it('adds missing instrumentation between sibling spans', () => {
+  it('adds missing instrumentation between sibling spans', async () => {
     const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
-    TraceTree.FromSpans(
-      tree.root.children[0]!.children[0]!,
-      missingInstrumentationSpans,
-      makeEventTransaction()
-    );
+
+    mockSpansResponse(missingInstrumentationSpans, 'project', 'event-id');
+    await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
+      api: new MockApiClient(),
+      organization,
+      preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
+    });
 
     TraceTree.DetectMissingInstrumentation(tree.root);
     expect(tree.build().serialize()).toMatchSnapshot();
   });
 
-  it('adds missing instrumentation between children spans', () => {
+  it('adds missing instrumentation between children spans', async () => {
     const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
-    TraceTree.FromSpans(
-      tree.root.children[0]!.children[0]!,
-      childrenMissingInstrumentationSpans,
-      makeEventTransaction()
-    );
 
-    TraceTree.DetectMissingInstrumentation(tree.root);
+    mockSpansResponse(childrenMissingInstrumentationSpans, 'project', 'event-id');
+    await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
+      api: new MockApiClient(),
+      organization,
+      preferences: {...DEFAULT_TRACE_VIEW_PREFERENCES, missing_instrumentation: true},
+    });
+
     expect(tree.build().serialize()).toMatchSnapshot();
   });
 
-  it('adds missing instrumentation between two spans that share a common root', () => {
+  it('adds missing instrumentation between two spans that share a common root', async () => {
     const tree = TraceTree.FromTrace(
       makeTrace({
         transactions: [
           makeTransaction({
             span_id: 'parent-transaction',
+            event_id: 'event-id',
+            project_slug: 'project',
           }),
         ],
       }),
       traceMetadata
     );
 
-    TraceTree.FromSpans(
-      tree.root.children[0]!.children[0]!,
+    mockSpansResponse(
       [
         makeSpan({
           op: 'http',
@@ -161,29 +168,37 @@ describe('missing instrumentation', () => {
           timestamp: start + 4,
         }),
       ],
-      makeEventTransaction()
+      'project',
+      'event-id'
     );
 
+    await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
+      api: new MockApiClient(),
+      organization,
+      preferences: {...DEFAULT_TRACE_VIEW_PREFERENCES, missing_instrumentation: false},
+    });
+
     TraceTree.DetectMissingInstrumentation(tree.root);
+
     expect(tree.build().serialize()).toMatchSnapshot();
   });
 
-  it('removes missing instrumentation nodes', () => {
+  it('removes missing instrumentation nodes', async () => {
     const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
-    TraceTree.FromSpans(
-      tree.root.children[0]!.children[0]!,
-      missingInstrumentationSpans,
-      makeEventTransaction()
-    );
+
+    mockSpansResponse(missingInstrumentationSpans, 'project', 'event-id');
+    await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
+      api: new MockApiClient(),
+      organization,
+      preferences: {...DEFAULT_TRACE_VIEW_PREFERENCES, missing_instrumentation: false},
+    });
 
     const snapshot = tree.build().serialize();
 
     TraceTree.DetectMissingInstrumentation(tree.root);
 
     // Assert that missing instrumentation nodes exist
-    expect(
-      TraceTree.Find(tree.root, c => isMissingInstrumentationNode(c))
-    ).not.toBeNull();
+    expect(tree.root.findChild(c => isMissingInstrumentationNode(c))).not.toBeNull();
 
     // Remove it and assert that the tree is back to the original state
     TraceTree.RemoveMissingInstrumentationNodes(tree.root);
@@ -192,30 +207,32 @@ describe('missing instrumentation', () => {
     expect(tree.build().serialize()).toMatchSnapshot();
   });
 
-  it('does not add missing instrumentation for browser SDKs', () => {
+  it('does not add missing instrumentation for browser SDKs', async () => {
     const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
-    TraceTree.FromSpans(
-      tree.root.children[0]!.children[0]!,
-      missingInstrumentationSpans,
-      makeEventTransaction({sdk: {name: 'sentry.javascript.browser', version: '1.0.0'}})
-    );
 
-    TraceTree.DetectMissingInstrumentation(tree.root);
+    mockSpansResponse(missingInstrumentationSpans, 'project', 'event-id');
+    await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
+      api: new MockApiClient(),
+      organization,
+      preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
+    });
 
-    expect(TraceTree.Find(tree.root, c => isMissingInstrumentationNode(c))).toBeNull();
+    expect(tree.root.findChild(c => isMissingInstrumentationNode(c))).toBeNull();
     expect(tree.build().serialize()).toMatchSnapshot();
   });
 
   it.each([
     ['children', childrenMissingInstrumentationSpans],
     ['siblings', missingInstrumentationSpans],
-  ])('idempotent - %s', (_type, setup) => {
+  ])('idempotent - %s', async (_type, setup) => {
     const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
-    TraceTree.FromSpans(
-      tree.root.children[0]!.children[0]!,
-      setup,
-      makeEventTransaction()
-    );
+
+    mockSpansResponse(setup, 'project', 'event-id');
+    await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
+      api: new MockApiClient(),
+      organization,
+      preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
+    });
 
     TraceTree.DetectMissingInstrumentation(tree.root);
     const initial = tree.build().serialize();
@@ -255,9 +272,7 @@ describe('missing instrumentation', () => {
       TraceTree.DetectMissingInstrumentation(tree.root);
 
       // Assert that missing instrumentation nodes exist
-      expect(
-        TraceTree.Find(tree.root, c => isMissingInstrumentationNode(c))
-      ).not.toBeNull();
+      expect(tree.root.findChild(c => isMissingInstrumentationNode(c))).not.toBeNull();
 
       // Remove it and assert that the tree is back to the original state
       TraceTree.RemoveMissingInstrumentationNodes(tree.root);

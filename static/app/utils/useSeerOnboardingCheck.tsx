@@ -8,13 +8,14 @@ interface SeerOnboardingCheckResponse {
   isSeerConfigured: boolean;
 }
 
-export function useSeerOnboardingCheck() {
+export function useSeerOnboardingCheck(enabled = true) {
   const organization = useOrganization();
 
   return useApiQuery<SeerOnboardingCheckResponse>(
     [`/organizations/${organization.slug}/seer/onboarding-check/`],
     {
-      staleTime: 0,
+      enabled,
+      staleTime: 60000, // 1 minute
     }
   );
 }

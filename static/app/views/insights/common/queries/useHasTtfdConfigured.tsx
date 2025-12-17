@@ -5,11 +5,7 @@ import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseCo
 import {useSpans} from './useDiscover';
 
 export function useTTFDConfigured(additionalFilters?: string[]) {
-  const {
-    primaryRelease,
-    secondaryRelease,
-    isLoading: isReleasesLoading,
-  } = useReleaseSelection();
+  const {primaryRelease, isLoading: isReleasesLoading} = useReleaseSelection();
 
   const query = new MutableSearch([
     'is_transaction:true',
@@ -17,7 +13,7 @@ export function useTTFDConfigured(additionalFilters?: string[]) {
     ...(additionalFilters ?? []),
   ]);
 
-  const queryString = appendReleaseFilters(query, primaryRelease, secondaryRelease);
+  const queryString = appendReleaseFilters(query, primaryRelease);
 
   const result = useSpans(
     {
