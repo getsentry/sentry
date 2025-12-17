@@ -897,13 +897,15 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   handleUpdateEditStateWidgets = (widgets: Widget[]) => {
-    const modifiedDashboard = {
-      ...cloneDashboard(this.state.modifiedDashboard ?? this.props.dashboard),
-      widgets,
-    };
-    this.setState({
-      widgetLimitReached: widgets.length >= MAX_WIDGETS,
-      modifiedDashboard,
+    this.setState(state => {
+      const modifiedDashboard = {
+        ...cloneDashboard(state.modifiedDashboard ?? this.props.dashboard),
+        widgets,
+      };
+      return {
+        widgetLimitReached: widgets.length >= MAX_WIDGETS,
+        modifiedDashboard,
+      };
     });
   };
 
