@@ -134,7 +134,7 @@ const StyledLinkButton = styled(LinkButton)`
 
 const ComparisonContainer = styled(Flex)`
   flex-wrap: wrap;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
   gap: ${p => p.theme.space.lg};
   width: 100%;
@@ -182,7 +182,9 @@ export function SizeCompareSelectedBuilds({
         projectType={projectType}
       />
 
-      <Text>{t('vs')}</Text>
+      <Flex align="center">
+        <Text>{t('vs')}</Text>
+      </Flex>
 
       {baseBuildDetails ? (
         <BuildButton
@@ -194,9 +196,11 @@ export function SizeCompareSelectedBuilds({
           projectType={projectType}
         />
       ) : (
-        <SelectBuild>
-          <Text size="sm">{t('Select a build')}</Text>
-        </SelectBuild>
+        <Flex align="center">
+          <SelectBuild>
+            <Text size="sm">{t('Select a build')}</Text>
+          </SelectBuild>
+        </Flex>
       )}
 
       {onTriggerComparison && (
