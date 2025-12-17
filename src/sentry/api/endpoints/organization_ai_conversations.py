@@ -2,7 +2,7 @@ import json  # noqa: S003
 import logging
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, cast
+from typing import Any
 
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -16,7 +16,7 @@ from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 
@@ -29,7 +29,7 @@ def _build_conversation_query(base_query: str, user_query: str) -> str:
     return base_query
 
 
-def _extract_conversation_ids(results: dict[str, Any]) -> list[str]:
+def _extract_conversation_ids(results: EAPResponse) -> list[str]:
     return [
         conv_id for row in results.get("data", []) if (conv_id := row.get("gen_ai.conversation.id"))
     ]
@@ -191,7 +191,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
 
     def _fetch_conversation_ids(
         self, snuba_params, query_string: str, offset: int, limit: int
-    ) -> dict[str, Any]:
+    ) -> EAPResponse:
         return Spans.run_table_query(
             params=snuba_params,
             query_string=query_string,
@@ -230,77 +230,68 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             if conv_id in conversations_map
         ]
 
-    def _fetch_aggregations(self, snuba_params, conversation_ids: list[str]) -> dict[str, Any]:
-        return cast(
-            dict[str, Any],
-            Spans.run_table_query(
-                params=snuba_params,
-                query_string=f"gen_ai.conversation.id:[{','.join(conversation_ids)}]",
-                selected_columns=[
-                    "gen_ai.conversation.id",
-                    "failure_count()",
-                    "count_if(gen_ai.operation.type,equals,ai_client)",
-                    "count_if(gen_ai.operation.type,equals,execute_tool)",
-                    "sum(gen_ai.usage.total_tokens)",
-                    "sum(gen_ai.usage.total_cost)",
-                    "min(precise.start_ts)",
-                    "max(precise.finish_ts)",
-                ],
-                orderby=None,
-                offset=0,
-                limit=len(conversation_ids),
-                referrer=Referrer.API_AI_CONVERSATIONS_COMPLETE.value,
-                config=SearchResolverConfig(auto_fields=True),
-                sampling_mode="HIGHEST_ACCURACY",
-            ),
+    def _fetch_aggregations(self, snuba_params, conversation_ids: list[str]) -> EAPResponse:
+        return Spans.run_table_query(
+            params=snuba_params,
+            query_string=f"gen_ai.conversation.id:[{','.join(conversation_ids)}]",
+            selected_columns=[
+                "gen_ai.conversation.id",
+                "failure_count()",
+                "count_if(gen_ai.operation.type,equals,ai_client)",
+                "count_if(gen_ai.operation.type,equals,execute_tool)",
+                "sum(gen_ai.usage.total_tokens)",
+                "sum(gen_ai.usage.total_cost)",
+                "min(precise.start_ts)",
+                "max(precise.finish_ts)",
+            ],
+            orderby=None,
+            offset=0,
+            limit=len(conversation_ids),
+            referrer=Referrer.API_AI_CONVERSATIONS_COMPLETE.value,
+            config=SearchResolverConfig(auto_fields=True),
+            sampling_mode="HIGHEST_ACCURACY",
         )
 
-    def _fetch_enrichment_data(self, snuba_params, conversation_ids: list[str]) -> dict[str, Any]:
-        return cast(
-            dict[str, Any],
-            Spans.run_table_query(
-                params=snuba_params,
-                query_string=f"gen_ai.conversation.id:[{','.join(conversation_ids)}]",
-                selected_columns=[
-                    "gen_ai.conversation.id",
-                    "gen_ai.operation.type",
-                    "gen_ai.agent.name",
-                    "trace",
-                    "precise.start_ts",
-                ],
-                orderby=["precise.start_ts"],
-                offset=0,
-                limit=10000,
-                referrer=Referrer.API_AI_CONVERSATIONS_ENRICHMENT.value,
-                config=SearchResolverConfig(auto_fields=True),
-                sampling_mode="HIGHEST_ACCURACY",
-            ),
+    def _fetch_enrichment_data(self, snuba_params, conversation_ids: list[str]) -> EAPResponse:
+        return Spans.run_table_query(
+            params=snuba_params,
+            query_string=f"gen_ai.conversation.id:[{','.join(conversation_ids)}]",
+            selected_columns=[
+                "gen_ai.conversation.id",
+                "gen_ai.operation.type",
+                "gen_ai.agent.name",
+                "trace",
+                "precise.start_ts",
+            ],
+            orderby=["precise.start_ts"],
+            offset=0,
+            limit=10000,
+            referrer=Referrer.API_AI_CONVERSATIONS_ENRICHMENT.value,
+            config=SearchResolverConfig(auto_fields=True),
+            sampling_mode="HIGHEST_ACCURACY",
         )
 
-    def _fetch_first_last_io(self, snuba_params, conversation_ids: list[str]) -> dict[str, Any]:
-        return cast(
-            dict[str, Any],
-            Spans.run_table_query(
-                params=snuba_params,
-                query_string=f"gen_ai.conversation.id:[{','.join(conversation_ids)}] gen_ai.operation.type:ai_client",
-                selected_columns=[
-                    "gen_ai.conversation.id",
-                    "gen_ai.request.messages",
-                    "gen_ai.response.text",
-                    "precise.start_ts",
-                    "precise.finish_ts",
-                ],
-                orderby=["precise.start_ts"],
-                offset=0,
-                limit=10000,
-                referrer=Referrer.API_AI_CONVERSATIONS_FIRST_LAST_IO.value,
-                config=SearchResolverConfig(auto_fields=True),
-                sampling_mode="HIGHEST_ACCURACY",
-            ),
+    def _fetch_first_last_io(self, snuba_params, conversation_ids: list[str]) -> EAPResponse:
+        return Spans.run_table_query(
+            params=snuba_params,
+            query_string=f"gen_ai.conversation.id:[{','.join(conversation_ids)}] gen_ai.operation.type:ai_client",
+            selected_columns=[
+                "gen_ai.conversation.id",
+                "gen_ai.request.messages",
+                "gen_ai.response.text",
+                "precise.start_ts",
+                "precise.finish_ts",
+            ],
+            orderby=["precise.start_ts"],
+            offset=0,
+            limit=10000,
+            referrer=Referrer.API_AI_CONVERSATIONS_FIRST_LAST_IO.value,
+            config=SearchResolverConfig(auto_fields=True),
+            sampling_mode="HIGHEST_ACCURACY",
         )
 
     def _build_conversations_from_aggregations(
-        self, aggregations: dict[str, Any]
+        self, aggregations: EAPResponse
     ) -> dict[str, dict[str, Any]]:
         conversations_map: dict[str, dict[str, Any]] = {}
 
@@ -327,7 +318,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         return conversations_map
 
     def _apply_enrichment(
-        self, conversations_map: dict[str, dict[str, Any]], enrichment_data: dict[str, Any]
+        self, conversations_map: dict[str, dict[str, Any]], enrichment_data: EAPResponse
     ) -> None:
         flows_by_conversation: dict[str, list[str]] = defaultdict(list)
         traces_by_conversation: dict[str, set[str]] = defaultdict(set)
@@ -353,7 +344,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             conversation["traceCount"] = len(traces)
 
     def _apply_first_last_io(
-        self, conversations_map: dict[str, dict[str, Any]], first_last_io_data: dict[str, Any]
+        self, conversations_map: dict[str, dict[str, Any]], first_last_io_data: EAPResponse
     ) -> None:
         first_input_by_conv: dict[str, str] = {}
         last_output_by_conv: dict[str, tuple[float, str]] = {}
@@ -386,37 +377,32 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         all_spans = self._fetch_all_spans(snuba_params, conversation_ids)
         return self._aggregate_spans(conversation_ids, all_spans)
 
-    def _fetch_all_spans(self, snuba_params, conversation_ids: list[str]) -> dict[str, Any]:
-        return cast(
-            dict[str, Any],
-            Spans.run_table_query(
-                params=snuba_params,
-                query_string=f"gen_ai.conversation.id:[{','.join(conversation_ids)}]",
-                selected_columns=[
-                    "gen_ai.conversation.id",
-                    "precise.start_ts",
-                    "precise.finish_ts",
-                    "span.status",
-                    "gen_ai.operation.type",
-                    "gen_ai.usage.total_tokens",
-                    "gen_ai.usage.total_cost",
-                    "trace",
-                    "gen_ai.agent.name",
-                    "gen_ai.request.messages",
-                    "gen_ai.response.text",
-                ],
-                orderby=["precise.start_ts"],
-                offset=0,
-                limit=10000,
-                referrer=Referrer.API_AI_CONVERSATIONS_COMPLETE.value,
-                config=SearchResolverConfig(auto_fields=True),
-                sampling_mode="HIGHEST_ACCURACY",
-            ),
+    def _fetch_all_spans(self, snuba_params, conversation_ids: list[str]) -> EAPResponse:
+        return Spans.run_table_query(
+            params=snuba_params,
+            query_string=f"gen_ai.conversation.id:[{','.join(conversation_ids)}]",
+            selected_columns=[
+                "gen_ai.conversation.id",
+                "precise.start_ts",
+                "precise.finish_ts",
+                "span.status",
+                "gen_ai.operation.type",
+                "gen_ai.usage.total_tokens",
+                "gen_ai.usage.total_cost",
+                "trace",
+                "gen_ai.agent.name",
+                "gen_ai.request.messages",
+                "gen_ai.response.text",
+            ],
+            orderby=["precise.start_ts"],
+            offset=0,
+            limit=10000,
+            referrer=Referrer.API_AI_CONVERSATIONS_COMPLETE.value,
+            config=SearchResolverConfig(auto_fields=True),
+            sampling_mode="HIGHEST_ACCURACY",
         )
 
-    def _aggregate_spans(
-        self, conversation_ids: list[str], all_spans: dict[str, Any]
-    ) -> list[dict]:
+    def _aggregate_spans(self, conversation_ids: list[str], all_spans: EAPResponse) -> list[dict]:
         accumulators = self._init_accumulators(conversation_ids)
         self._process_spans(accumulators, all_spans)
         return self._build_results_from_accumulators(conversation_ids, accumulators)
@@ -442,7 +428,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         }
 
     def _process_spans(
-        self, accumulators: dict[str, dict[str, Any]], all_spans: dict[str, Any]
+        self, accumulators: dict[str, dict[str, Any]], all_spans: EAPResponse
     ) -> None:
         for row in all_spans.get("data", []):
             conv_id = row.get("gen_ai.conversation.id", "")
