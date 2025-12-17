@@ -18,7 +18,6 @@ from sentry.seer.anomaly_detection.types import (
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.subscriptions import create_snuba_subscription
 from sentry.workflow_engine.models import Condition, DataPacket
-from sentry.workflow_engine.models.data_source import DataSource
 from sentry.workflow_engine.types import ConditionError, DetectorPriorityLevel
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
@@ -48,7 +47,6 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
             timestamp=datetime.now(UTC),
             entity="test-entity",
         )
-        DataSource.objects.all().delete()
         self.data_source = self.create_data_source(
             source_id=str(packet.subscription_id),
             organization=self.organization,
@@ -109,7 +107,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
             deserialized_body["config"]["expected_seasonality"]
             == self.dc.comparison.get("seasonality").value
         )
-        assert deserialized_body["context"]["source_id"] == self.data_source.id
+        assert deserialized_body["context"]["source_id"] == self.subscription.id
         assert (
             deserialized_body["context"]["source_type"] == DataSourceType.SNUBA_QUERY_SUBSCRIPTION
         )
