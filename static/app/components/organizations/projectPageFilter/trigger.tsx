@@ -1,8 +1,11 @@
 import styled from '@emotion/styled';
 
+import {
+  SelectTrigger,
+  type SelectTriggerProps,
+} from '@sentry/scraps/compactSelect/trigger';
+
 import {Badge} from 'sentry/components/core/badge';
-import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
-import DropdownButton from 'sentry/components/dropdownButton';
 import {DesyncedFilterIndicator} from 'sentry/components/organizations/pageFilters/desyncedFilter';
 import {PlatformList} from 'sentry/components/platformList';
 import {t} from 'sentry/locale';
@@ -10,13 +13,12 @@ import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {trimSlug} from 'sentry/utils/string/trimSlug';
 
-interface ProjectPageFilterTriggerProps extends Omit<DropdownButtonProps, 'value'> {
+interface ProjectPageFilterTriggerProps extends Omit<SelectTriggerProps, 'value'> {
   desynced: boolean;
   memberProjects: Project[];
   nonMemberProjects: Project[];
   ready: boolean;
   value: number[];
-  ref?: React.Ref<HTMLButtonElement>;
 }
 
 export function ProjectPageFilterTrigger({
@@ -71,7 +73,7 @@ export function ProjectPageFilterTrigger({
       : value.length - projectsToShow.length;
 
   return (
-    <DropdownButton
+    <SelectTrigger.Button
       {...props}
       data-test-id="page-filter-project-selector"
       icon={
@@ -91,7 +93,7 @@ export function ProjectPageFilterTrigger({
       {remainingCount > 0 && (
         <StyledBadge type="default">{`+${remainingCount}`}</StyledBadge>
       )}
-    </DropdownButton>
+    </SelectTrigger.Button>
   );
 }
 

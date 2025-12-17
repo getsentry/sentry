@@ -2,13 +2,14 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {Button} from 'sentry/components/core/button';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Grid} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
-import DropdownButton from 'sentry/components/dropdownButton';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {useInfiniteRepositories} from 'sentry/components/prevent/repoSelector/useInfiniteRepositories';
 import {IconInfo} from 'sentry/icons';
@@ -171,20 +172,19 @@ export function RepoSelector() {
       menuFooter={<MenuFooter repoAccessLink={currentOrgGHIntegrationRepoAccessLink} />}
       disabled={disabled}
       emptyMessage={getEmptyMessage()}
-      trigger={(triggerProps, isOpen) => {
+      trigger={triggerProps => {
         const defaultLabel = options.some(item => item.value === repository)
           ? repository
           : t('Select Repo');
 
         return (
-          <DropdownButton
-            isOpen={isOpen}
+          <SelectTrigger.Button
             icon={<IconRepository />}
             data-test-id="page-filter-prevent-repository-selector"
             {...triggerProps}
           >
             <TriggerLabel>{defaultLabel}</TriggerLabel>
-          </DropdownButton>
+          </SelectTrigger.Button>
         );
       }}
     />

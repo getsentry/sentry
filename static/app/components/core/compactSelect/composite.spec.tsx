@@ -3,13 +3,16 @@ import {useState} from 'react';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {CompositeSelect} from './composite';
+import {SelectTrigger} from './trigger';
 
 describe('CompositeSelect', () => {
   it('renders', async () => {
     render(
       <CompositeSelect
         menuTitle="Menu title"
-        trigger={props => <button {...props}>Open menu</button>}
+        trigger={props => (
+          <SelectTrigger.Button {...props}>Open menu</SelectTrigger.Button>
+        )}
       >
         <CompositeSelect.Region
           label="Region 1"
@@ -71,7 +74,12 @@ describe('CompositeSelect', () => {
 
   it('renders disabled trigger button', async () => {
     render(
-      <CompositeSelect disabled trigger={props => <button {...props}>Open menu</button>}>
+      <CompositeSelect
+        disabled
+        trigger={props => (
+          <SelectTrigger.Button {...props}>Open menu</SelectTrigger.Button>
+        )}
+      >
         <CompositeSelect.Region
           label="Region 1"
           onChange={jest.fn()}
@@ -90,7 +98,11 @@ describe('CompositeSelect', () => {
   // focus state. This test ensures that focus moves seamlessly between regions.
   it('manages focus between regions', async () => {
     render(
-      <CompositeSelect trigger={props => <button {...props}>Open menu</button>}>
+      <CompositeSelect
+        trigger={props => (
+          <SelectTrigger.Button {...props}>Open menu</SelectTrigger.Button>
+        )}
+      >
         <CompositeSelect.Region
           label="Region 1"
           onChange={jest.fn()}
@@ -151,7 +163,11 @@ describe('CompositeSelect', () => {
       const [region1, setRegion1] = useState<string>();
       const [region2, setRegion2] = useState<string[]>([]);
       return (
-        <CompositeSelect trigger={props => <button {...props}>Open menu</button>}>
+        <CompositeSelect
+          trigger={props => (
+            <SelectTrigger.Button {...props}>Open menu</SelectTrigger.Button>
+          )}
+        >
           <CompositeSelect.Region
             label="Region 1"
             onChange={selection => {
@@ -233,7 +249,9 @@ describe('CompositeSelect', () => {
       <CompositeSelect
         searchable
         searchPlaceholder="Search placeholder…"
-        trigger={props => <button {...props}>Open menu</button>}
+        trigger={props => (
+          <SelectTrigger.Button {...props}>Open menu</SelectTrigger.Button>
+        )}
       >
         <CompositeSelect.Region
           label="Region 1"
@@ -279,7 +297,12 @@ describe('CompositeSelect', () => {
       const [region1, setRegion1] = useState('choice_one');
       const [region2, setRegion2] = useState<string[]>([]);
       return (
-        <CompositeSelect grid trigger={props => <button {...props}>Open menu</button>}>
+        <CompositeSelect
+          grid
+          trigger={props => (
+            <SelectTrigger.Button {...props}>Open menu</SelectTrigger.Button>
+          )}
+        >
           <CompositeSelect.Region
             label="Region 1"
             onChange={selection => {
@@ -352,7 +375,11 @@ describe('CompositeSelect', () => {
   it('can use numbers as values', async () => {
     const onChange = jest.fn();
     render(
-      <CompositeSelect trigger={props => <button {...props}>Open menu</button>}>
+      <CompositeSelect
+        trigger={props => (
+          <SelectTrigger.Button {...props}>Open menu</SelectTrigger.Button>
+        )}
+      >
         <CompositeSelect.Region
           label="Region 1"
           value={1}

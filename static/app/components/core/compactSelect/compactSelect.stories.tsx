@@ -8,6 +8,7 @@ import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 
+import {SelectTrigger} from './trigger';
 import {CompactSelect} from './';
 
 const countryNameToCode = {
@@ -401,24 +402,35 @@ export default Storybook.story('CompactSelect', story => {
     return (
       <Fragment>
         <p>
-          <code>CompactSelect</code> should always be triggered by a <code>button</code>.
-          By default, it will render a <code>DropdownButton</code> for you. You can
-          customize its appearance by passing <code>triggerProps</code>.
+          <code>CompactSelect</code> should always be triggered by a{' '}
+          <code>SelectTrigger</code>. By default, it will render a{' '}
+          <code>SelectTrigger.Button</code> for you, which is a{' '}
+          <code>DropdownButton</code> under the hood. You can pass a custom trigger with
+          the <code>trigger</code> prop.
         </p>
         <p>
-          To customize the label text inside the trigger button, set{' '}
-          <code>triggerProps.children</code>. By default the selected option's label will
-          be used.
+          Note that <code>props</code> passed to the trigger need to be spread onto the
+          underlying <code>SelectTrigger</code>. Always use a <code>SelectTrigger</code>,
+          there will be type errors when you're trying to use other components.
+        </p>
+        <p>
+          <code>SelectTrigger</code> will inherit props like <code>size</code>,{' '}
+          <code>isOpen</code> and <code>disabled</code> from the{' '}
+          <code>CompactSelect</code>, so you don't need to pass them manually.
         </p>
 
         <CompactSelect
           value={value}
-          triggerProps={{
-            prefix: 'Status Code',
-            priority: 'danger',
-            icon: <IconSiren />,
-            children: option ? `${option.label} (${option.details})` : 'None',
-          }}
+          trigger={props => (
+            <SelectTrigger.Button
+              {...props}
+              prefix="Status Code"
+              priority="danger"
+              icon={<IconSiren />}
+            >
+              {option ? `${option.label} (${option.details})` : 'None'}
+            </SelectTrigger.Button>
+          )}
           onChange={newValue => {
             setValue(newValue.value);
           }}

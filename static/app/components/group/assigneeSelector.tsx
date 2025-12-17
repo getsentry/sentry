@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {assignToActor, clearAssignment} from 'sentry/actionCreators/group';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {AssigneeBadge} from 'sentry/components/assigneeBadge';
@@ -7,7 +9,6 @@ import AssigneeSelectorDropdown, {
   type AssignableEntity,
   type SuggestedAssignee,
 } from 'sentry/components/assigneeSelectorDropdown';
-import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
@@ -92,8 +93,9 @@ export function AssigneeSelector({
       }
       onClear={() => handleAssigneeChange(null)}
       trigger={(props, isOpen) => (
-        <StyledDropdownButton
+        <StyledTrigger
           {...props}
+          showChevron={false}
           aria-label={t('Modify issue assignee')}
           size="zero"
         >
@@ -109,14 +111,14 @@ export function AssigneeSelector({
             showLabel={showLabel}
             chevronDirection={isOpen ? 'up' : 'down'}
           />
-        </StyledDropdownButton>
+        </StyledTrigger>
       )}
       additionalMenuFooterItems={additionalMenuFooterItems}
     />
   );
 }
 
-const StyledDropdownButton = styled(Button)`
+const StyledTrigger = styled(SelectTrigger.Button)`
   font-weight: ${p => p.theme.fontWeight.normal};
   border: none;
   padding: 0;

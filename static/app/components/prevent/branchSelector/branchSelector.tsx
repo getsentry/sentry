@@ -2,11 +2,12 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {Button} from 'sentry/components/core/button';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
-import DropdownButton from 'sentry/components/dropdownButton';
 import {useInfiniteRepositoryBranches} from 'sentry/components/prevent/branchSelector/useInfiniteRepositoryBranches';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {IconBranch} from 'sentry/icons/iconBranch';
@@ -142,10 +143,9 @@ export function BranchSelector() {
       disabled={disabled}
       emptyMessage={getEmptyMessage()}
       closeOnSelect
-      trigger={(triggerProps, isOpen) => {
+      trigger={triggerProps => {
         return (
-          <DropdownButton
-            isOpen={isOpen}
+          <SelectTrigger.Button
             data-test-id="page-filter-branch-selector"
             {...triggerProps}
           >
@@ -157,7 +157,7 @@ export function BranchSelector() {
                 <TriggerLabel>{branch || ALL_BRANCHES}</TriggerLabel>
               </Flex>
             </TriggerLabelWrap>
-          </DropdownButton>
+          </SelectTrigger.Button>
         );
       }}
       menuWidth="22em"
