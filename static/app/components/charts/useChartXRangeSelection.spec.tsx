@@ -178,7 +178,7 @@ describe('useChartXRangeSelection', () => {
       );
     });
 
-    it('should clamp coordinates that exceed axis bounds', async () => {
+    it('should clamp coordinates that exceed axis bounds', () => {
       const onSelectionEnd = jest.fn();
 
       const mockEchartsInstance = {

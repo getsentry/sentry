@@ -245,6 +245,8 @@ export function useChartXRangeSelection({
   }, [chartRef]);
 
   const syncSelectionStates = useCallback(() => {
+    if (disabled) return;
+
     const chartInstance = chartRef.current?.getEchartsInstance();
 
     if (!chartInstance) {
@@ -296,6 +298,7 @@ export function useChartXRangeSelection({
     clearSelection,
     chartRef,
     previousInitialSelection,
+    disabled,
   ]);
 
   // This effect sets up the listener for clicks anywhere on the chart to trigger the
