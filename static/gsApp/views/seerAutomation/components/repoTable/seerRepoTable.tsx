@@ -158,9 +158,11 @@ export default function SeerRepoTable() {
         sort={sort}
       >
         <SimpleTable.Empty>
-          {tct('No repositories found matching [searchTerm].', {
-            searchTerm: <code>{searchTerm}</code>,
-          })}
+          {searchTerm
+            ? tct('No repositories found matching [searchTerm]', {
+                searchTerm: <code>{searchTerm}</code>,
+              })
+            : t('No repositories found')}
         </SimpleTable.Empty>
       </RepoTable>
     );

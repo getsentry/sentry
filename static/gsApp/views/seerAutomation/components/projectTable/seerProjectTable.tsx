@@ -172,9 +172,11 @@ export default function SeerProjectTable() {
         updateBulkAutofixAutomationSettings={updateBulkAutofixAutomationSettings}
       >
         <SimpleTable.Empty>
-          {tct('No projects found matching [searchTerm].', {
-            searchTerm: <code>{searchTerm}</code>,
-          })}
+          {searchTerm
+            ? tct('No projects found matching [searchTerm]', {
+                searchTerm: <code>{searchTerm}</code>,
+              })
+            : t('No projects found')}
         </SimpleTable.Empty>
       </ProjectTable>
     );
