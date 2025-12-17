@@ -12,8 +12,11 @@ import {
   TraceRowConnectors,
   type TraceRowProps,
 } from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
+import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 
 export function TraceEAPSpanRow(props: TraceRowProps<EapSpanNode>) {
+  const otelFriendlyUI = useOTelFriendlyUI();
+
   const spanId = props.node.id;
 
   const childrenCount = getChildrenCount(props.node);
@@ -21,6 +24,11 @@ export function TraceEAPSpanRow(props: TraceRowProps<EapSpanNode>) {
   const icon = (
     <PlatformIcon platform={props.projects[props.node.projectSlug ?? ''] ?? 'default'} />
   );
+
+  // Prefer description over name if it exists for OTel-friendly UI
+  const description = otelFriendlyUI
+    ? props.node.description || props.node.value.name
+    : props.node.description;
 
   return (
     <div
@@ -72,10 +80,8 @@ export function TraceEAPSpanRow(props: TraceRowProps<EapSpanNode>) {
                 <strong className="TraceEmDash"> — </strong>
               </React.Fragment>
             )}
-            <span className="TraceDescription" title={props.node.description}>
-              {props.node.description
-                ? ellipsize(props.node.description, 100)
-                : (spanId ?? 'unknown')}
+            <span className="TraceDescription" title={description}>
+              {description ? ellipsize(description, 100) : (spanId ?? 'unknown')}
             </span>
           </React.Fragment>
         </div>
