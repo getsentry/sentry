@@ -1442,9 +1442,9 @@ const lightThemeDefinition = {
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
   ...deprecatedColorMappings(lightColors),
+  ...baseLightTheme,
   ...lightAliases,
   ...lightShadows,
-  ...baseLightTheme,
   // @TODO: remove backwards-compatability shim
   tokens: withLegacyTokens(baseLightTheme.tokens),
   focusRing: (baseShadow = `0 0 0 0 ${lightAliases.background}`) => ({
@@ -1491,9 +1491,9 @@ export const darkTheme = {
   ...commonTheme,
 
   ...deprecatedColorMappings(darkColors),
+  ...baseDarkTheme,
   ...darkAliases,
   ...darkShadows,
-  ...baseDarkTheme,
   // @TODO: remove backwards-compatability shim
   tokens: withLegacyTokens(baseDarkTheme.tokens),
   focusRing: (baseShadow = `0 0 0 0 ${darkAliases.background}`) => ({
