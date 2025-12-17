@@ -70,16 +70,15 @@ def process_github_webhook_event(
         # SSLError, ProxyError, ProtocolError, ResponseError, DecodeError, etc.
         status = e.__class__.__name__
         metrics.incr(f"{PREFIX}.outcome", tags={"status": f"error_{status}"})
-        if self.request.retries >= MAX_RETRIES - 1:
-            logger.exception("%s.error", PREFIX, extra=context)
-        else:
+        if self.request.retries < MAX_RETRIES - 1:
             should_record_latency = False
+        # Note: Exception automatically captured to Sentry by taskworker on final retry (when retries=MAX_RETRIES-1)
         raise  # Re-raise to trigger task retry (error listed in on= parameter)
     except Exception as e:
         # Unexpected errors (JSON parsing, config issues, etc.)
         # These are not retryable and indicate a programming or configuration error
         status = f"unexpected_error_{e.__class__.__name__}"
-        raise
+        raise  # The task will fail (no retry for unexpected errors, not listed in on= parameter)
     finally:
         metrics.incr(f"{PREFIX}.outcome", tags={"status": status})
         if should_record_latency:
