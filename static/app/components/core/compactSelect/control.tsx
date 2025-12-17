@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import * as React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -20,7 +21,6 @@ import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
 import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
-import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import DropdownButton from 'sentry/components/dropdownButton';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
@@ -33,6 +33,7 @@ import useOverlay from 'sentry/utils/useOverlay';
 import usePrevious from 'sentry/utils/usePrevious';
 
 import type {SingleListProps} from './list';
+import {type ButtonTriggerProps, type SelectTriggerProps} from './trigger';
 import type {SelectKey, SelectOptionOrSection} from './types';
 
 // autoFocus react attribute is sync called on render, this causes
@@ -55,11 +56,13 @@ interface SelectContextValue {
    * Search string to determine whether an option should be rendered in the select list.
    */
   search: string;
+  disabled?: boolean;
   /**
    * The control's overlay state. Useful for opening/closing the menu from inside the
    * selector.
    */
   overlayState?: OverlayTriggerState;
+  size?: FormSize;
 }
 
 export const SelectContext = createContext<SelectContextValue>({
@@ -181,17 +184,12 @@ export interface ControlProps
    * forward `props` and `ref` its outer wrap, otherwise many accessibility features
    * won't work correctly.
    */
-  trigger?: (
-    props: Omit<React.HTMLAttributes<HTMLButtonElement>, 'children'> & {
-      ref?: React.Ref<HTMLButtonElement | null>;
-    },
-    isOpen: boolean
-  ) => React.ReactNode;
+  trigger?: (props: SelectTriggerProps, isOpen: boolean) => React.ReactNode;
 
   /**
    * Props to be passed to the default trigger button.
    */
-  triggerProps?: DropdownButtonProps;
+  triggerProps?: Partial<ButtonTriggerProps>;
 }
 
 /**
@@ -468,8 +466,10 @@ export function Control({
       overlayState,
       overlayIsOpen,
       search,
+      size,
+      disabled,
     };
-  }, [overlayState, overlayIsOpen, search]);
+  }, [overlayState, overlayIsOpen, search, size, disabled]);
 
   const theme = useTheme();
 

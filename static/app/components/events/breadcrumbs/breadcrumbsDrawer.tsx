@@ -2,6 +2,7 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
 
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -135,9 +136,9 @@ export function BreadcrumbsDrawer({
         options={filterOptions}
         maxMenuHeight={400}
         trigger={props => (
-          <Button
-            size="xs"
+          <SelectTrigger.Button
             borderless
+            showChevron={false}
             icon={<IconFilter />}
             aria-label={t('Filter All Breadcrumbs')}
             title={t('Filter')}
@@ -145,14 +146,14 @@ export function BreadcrumbsDrawer({
             {...getFocusProps(BreadcrumbControlOptions.FILTER)}
           >
             {filters.length > 0 ? filters.length : null}
-          </Button>
+          </SelectTrigger.Button>
         )}
       />
       <CompactSelect
         size="xs"
         trigger={props => (
-          <Button
-            size="xs"
+          <SelectTrigger.Button
+            showChevron={false}
             borderless
             icon={<IconSort />}
             aria-label={t('Sort All Breadcrumbs')}
@@ -175,8 +176,8 @@ export function BreadcrumbsDrawer({
       <CompactSelect
         size="xs"
         trigger={props => (
-          <Button
-            size="xs"
+          <SelectTrigger.Button
+            showChevron={false}
             borderless
             icon={
               timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE ? (
