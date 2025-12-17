@@ -201,16 +201,16 @@ type GetsentryEventParameters = {
   'sales.contact_us_clicked': {
     source: string;
   } & HasSub;
-  'seer.onboarding.code_review': {
+  'seer.onboarding.code_review_updated': {
     added_repositories: number;
     removed_repositories: number;
   };
-  'seer.onboarding.defaults': {
+  'seer.onboarding.defaults_updated': {
     auto_create_pr: boolean;
     enable_code_review: boolean;
     enable_root_cause_analysis: boolean;
   };
-  'seer.onboarding.root_cause_analysis': {
+  'seer.onboarding.root_cause_analysis_updated': {
     auto_create_pr: boolean;
     projects_mapped: number;
   };
@@ -364,9 +364,10 @@ export const GETSENTRY_EVENT_MAP: Record<GetsentryEventKey, string> = {
   'replay.list_page.viewed': 'Replay E2E Checkout: Viewed List Page',
   'seer.onboarding.started': 'Seer Onboarding: Started',
   'seer.onboarding.step_changed': 'Seer Onboarding: Step Changed',
-  'seer.onboarding.code_review': 'Seer Onboarding: Code Review',
-  'seer.onboarding.root_cause_analysis': 'Seer Onboarding: Root Cause Analysis',
-  'seer.onboarding.defaults': 'Seer Onboarding: Defaults',
+  'seer.onboarding.code_review_updated': 'Seer Onboarding: Code Review Updated',
+  'seer.onboarding.root_cause_analysis_updated':
+    'Seer Onboarding: Root Cause Analysis Updated',
+  'seer.onboarding.defaults_updated': 'Seer Onboarding: Defaults Updated',
   'upgrade_now.alert.dismiss': 'Upgrade Now Alert: Dismissed',
   'upgrade_now.alert.manage_sub': 'Upgrade Now Alert: Clicked Managed Subscription',
   'upgrade_now.alert.open_modal': 'Upgrade Now Alert: Opened Modal',

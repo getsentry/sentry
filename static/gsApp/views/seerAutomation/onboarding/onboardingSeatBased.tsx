@@ -47,11 +47,13 @@ export default function SeerOnboardingSeatBased() {
   );
 
   useEffect(() => {
-    trackGetsentryAnalytics('seer.onboarding.started', {
-      organization,
-      stepNumber: initialStep,
-    });
-  }, [organization, initialStep]);
+    if (!isPending) {
+      trackGetsentryAnalytics('seer.onboarding.started', {
+        organization,
+        stepNumber: initialStep,
+      });
+    }
+  }, [organization, initialStep, isPending]);
 
   if (!canWrite) {
     return (
