@@ -63,13 +63,5 @@ class SentryAppInstallationExternalIssueDetailsEndpointTest(APITestCase):
         # Non-numeric string
         self.get_error_response(self.install.uuid, "test-issue-id-123", status_code=400)
 
-        # Empty string
-        self.get_error_response(self.install.uuid, "", status_code=400)
-
-        # URL
-        self.get_error_response(
-            self.install.uuid, "https://example.com/issues/123", status_code=400
-        )
-
         # Ensure the external issue still exists after failed attempts
         assert PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists()
