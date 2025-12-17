@@ -23,7 +23,11 @@ export const SelectTrigger = {
   Button(props: ButtonTriggerProps) {
     const {ref, ...componentProps} = props;
     const selectContext = React.useContext(SelectContext);
-    const contextProps = {size: selectContext.size, isOpen: selectContext.overlayIsOpen};
+    const contextProps = {
+      size: selectContext.size,
+      isOpen: selectContext.overlayIsOpen,
+      disabled: selectContext.disabled,
+    };
 
     return (
       <DropdownButton
