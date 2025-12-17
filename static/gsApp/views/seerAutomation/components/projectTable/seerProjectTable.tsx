@@ -14,7 +14,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconSearch} from 'sentry/icons/iconSearch';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -156,6 +156,27 @@ export default function SeerProjectTable() {
       >
         <SimpleTable.Empty>
           <LoadingError />
+        </SimpleTable.Empty>
+      </ProjectTable>
+    );
+  }
+
+  if (filteredProjects.length === 0) {
+    return (
+      <ProjectTable
+        projects={filteredProjects}
+        onSortClick={setSort}
+        sort={sort}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        updateBulkAutofixAutomationSettings={updateBulkAutofixAutomationSettings}
+      >
+        <SimpleTable.Empty>
+          {searchTerm
+            ? tct('No projects found matching [searchTerm]', {
+                searchTerm: <code>{searchTerm}</code>,
+              })
+            : t('No projects found')}
         </SimpleTable.Empty>
       </ProjectTable>
     );
