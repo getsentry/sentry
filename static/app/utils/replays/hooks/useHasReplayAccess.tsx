@@ -1,3 +1,4 @@
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 
@@ -9,7 +10,7 @@ export function useHasReplayAccess() {
   const user = useUser();
   const hasFeature = organization.features.includes('granular-replay-permissions');
 
-  if (user.isSuperuser || !hasFeature || !organization.hasGranularReplayPermissions) {
+  if (isActiveSuperuser() || !hasFeature || !organization.hasGranularReplayPermissions) {
     return true;
   }
 
