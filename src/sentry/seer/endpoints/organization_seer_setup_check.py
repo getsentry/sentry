@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
-class OrganizationSeerSetupCheck(OrganizationEndpoint):
+class OrganizationSeerSetupCheckEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
