@@ -12,7 +12,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
-import {useSeerOnboardingStep} from 'getsentry/views/seerAutomation/onboarding/hooks/useSeerOnboardingStatus';
+import {useSeerOnboardingStep} from 'getsentry/views/seerAutomation/onboarding/hooks/useSeerOnboardingStep';
 
 import {SeerOnboardingProvider} from './hooks/seerOnboardingContext';
 import {StepsManager} from './stepsManager';
