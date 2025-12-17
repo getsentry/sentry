@@ -123,6 +123,13 @@ SizeInfo = Annotated[
 ]
 
 
+class BaseBuildInfo(BaseModel):
+    """Minimal information about the base build for display purposes."""
+
+    version: str | None = None
+    build_number: int | None = None
+
+
 class BuildDetailsApiResponse(BaseModel):
     id: str
     state: PreprodArtifact.ArtifactState
@@ -131,6 +138,7 @@ class BuildDetailsApiResponse(BaseModel):
     size_info: SizeInfo | None = None
     posted_status_checks: PostedStatusChecks | None = None
     base_artifact_id: str | None = None
+    base_build_info: BaseBuildInfo | None = None
 
 
 def platform_from_artifact_type(artifact_type: PreprodArtifact.ArtifactType) -> Platform:
@@ -218,12 +226,18 @@ def transform_preprod_artifact_to_build_details(
 
     base_size_metrics_list: list[PreprodArtifactSizeMetrics] = []
     base_artifact = artifact.get_base_artifact_for_commit().first()
+    base_build_info = None
     if base_artifact:
         base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
             preprod_artifact=base_artifact,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
         )
         base_size_metrics_list = list(base_size_metrics_qs)
+
+        base_build_info = BaseBuildInfo(
+            version=base_artifact.build_version,
+            build_number=base_artifact.build_number,
+        )
 
     size_info = to_size_info(size_metrics_list, base_size_metrics_list)
 
@@ -299,6 +313,7 @@ def transform_preprod_artifact_to_build_details(
         size_info=size_info,
         posted_status_checks=posted_status_checks,
         base_artifact_id=base_artifact.id if base_artifact else None,
+        base_build_info=base_build_info,
     )
 
 
