@@ -324,8 +324,8 @@ const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
 });
 
 const generateLevelTheme = (tokens: Tokens, mode: 'light' | 'dark'): LevelColors => ({
-  sample: tokens.graphics.accent,
-  info: tokens.graphics.accent,
+  sample: tokens.dataviz.semantic.accent,
+  info: tokens.dataviz.semantic.accent,
   // BAD: accessing named colors is forbidden
   // but necessary to differente from orange
   warning: color.categorical[mode].yellow,
@@ -333,11 +333,9 @@ const generateLevelTheme = (tokens: Tokens, mode: 'light' | 'dark'): LevelColors
   // but do have it in the chart palette. This needs to be harcoded
   // because existing users still associate orange with the "error" level.
   error: color.categorical[mode].orange,
-  fatal: tokens.graphics.danger,
-  // BAD: should be `tokens.dataviz.semantic.neutral` once available
-  default: color.neutral[mode][mode === 'light' ? 'opaque800' : 'opaque900'],
-  // BAD: should be `tokens.dataviz.semantic.other` once available
-  unknown: color.neutral[mode][mode === 'light' ? 'opaque400' : 'opaque800'],
+  fatal: tokens.dataviz.semantic.bad,
+  default: tokens.dataviz.semantic.neutral,
+  unknown: tokens.dataviz.semantic.other,
 });
 
 const generateTagTheme = (colors: Colors): TagColors => ({
@@ -1248,23 +1246,23 @@ const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
    * Indicates that something is "active" or "selected"
    * NOTE: These are largely used for form elements, which I haven't mocked in ChonkUI
    */
-  active: tokens.component.link.accent.active,
-  activeHover: tokens.component.link.accent.hover,
-  activeText: tokens.component.link.accent.default,
+  active: tokens.interactive.link.accent.active,
+  activeHover: tokens.interactive.link.accent.hover,
+  activeText: tokens.interactive.link.accent.rest,
 
   /**
    * Indicates that something has "focus", which is different than "active" state as it is more temporal
    * and should be a bit subtler than active
    */
-  focus: tokens.border.accent,
-  focusBorder: tokens.border.accent,
+  focus: tokens.border.accent.vibrant,
+  focusBorder: tokens.border.accent.vibrant,
 
   /**
    * Link color indicates that something is clickable
    */
-  linkColor: tokens.component.link.accent.default,
-  linkHoverColor: tokens.component.link.accent.hover,
-  linkUnderline: tokens.component.link.accent.default,
+  linkColor: tokens.interactive.link.accent.rest,
+  linkHoverColor: tokens.interactive.link.accent.hover,
+  linkUnderline: tokens.interactive.link.accent.rest,
 
   /**
    * Default Progressbar color
@@ -1471,7 +1469,7 @@ const lightThemeDefinition = {
   ),
   prismDarkVariables: generateThemePrismVariables(
     prismDark,
-    darkTokens.background.primary
+    baseDarkTheme.tokens.background.primary
   ),
 
   colors: lightColors,
@@ -1517,7 +1515,7 @@ export const darkTheme = {
   prismVariables: generateThemePrismVariables(prismDark, darkAliases.backgroundSecondary),
   prismDarkVariables: generateThemePrismVariables(
     prismDark,
-    darkTokens.background.primary
+    baseDarkTheme.tokens.background.primary
   ),
 
   colors: darkColors,
