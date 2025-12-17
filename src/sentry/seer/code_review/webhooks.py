@@ -18,6 +18,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
+from sentry import features
 from sentry.models.organization import Organization
 from sentry.utils import metrics
 
@@ -57,7 +58,7 @@ def handle_github_check_run_event(organization: Organization, event: Mapping[str
         return False
 
     # Enqueue task to process the rerun request asynchronously
-    from .tasks import process_github_webhook_event
+    from .webhook_task import process_github_webhook_event
 
     # Note: bind=True means self is automatically provided, mypy doesn't understand this
     process_github_webhook_event.delay(  # type: ignore[call-arg]
@@ -98,7 +99,7 @@ def _should_handle_github_check_run_event(organization: Organization, action: st
     """
     Determine if the GitHub check_run event should be handled.
     """
-    if not organization.features.has("organizations:code-review-beta"):
+    if not features.has("organizations:code-review-beta", organization=organization):
         return False
 
     return action == GitHubCheckRunAction.REREQUESTED

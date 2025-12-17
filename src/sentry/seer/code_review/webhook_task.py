@@ -65,23 +65,26 @@ def process_github_webhook_event(
 
     try:
         status = make_seer_request(original_run_id)
-        record_metrics(status, enqueued_at_str, is_last_attempt=True)
+        is_last_attempt = True
     except HTTPError as e:
         # Catches all urllib3 errors: TimeoutError, MaxRetryError, NewConnectionError,
         # SSLError, ProxyError, ProtocolError, ResponseError, DecodeError, etc.
         status = e.__class__.__name__
-        # Only log and record metrics on the last retry attempt
+        metrics.incr(f"{PREFIX}.outcome", tags={"status": f"error_{status}"})
         if is_last_attempt:
             logger.exception("%s.error", PREFIX, extra=context)
-            record_metrics(status, enqueued_at_str, is_last_attempt=True)
-        raise  # Re-raise to trigger task retry
+        raise  # Re-raise to trigger task retry (error listed in on= parameter)
     except Exception as e:
         # Unexpected errors (JSON parsing, config issues, etc.)
         # These are not retryable and indicate a programming or configuration error
         status = f"unexpected_error_{e.__class__.__name__}"
         logger.exception("%s.unexpected_error", PREFIX, extra=context)
-        record_metrics(status, enqueued_at_str, is_last_attempt=True)
-        raise  # Task will fail (no retry for unexpected errors)
+        is_last_attempt = True  # Record latency for unexpected errors
+        raise  # Task will fail (no retry for unexpected errors, not listed in on= parameter)
+    finally:
+        metrics.incr(f"{PREFIX}.outcome", tags={"status": status})
+        if is_last_attempt:
+            record_latency(status, enqueued_at_str)
 
 
 def make_seer_request(original_run_id: str) -> str:
@@ -105,14 +108,10 @@ def make_seer_request(original_run_id: str) -> str:
     return status
 
 
-def record_metrics(status: str, enqueued_at_str: str, is_last_attempt: bool) -> None:
-    metrics.incr(f"{PREFIX}.outcome", tags={"status": status})
-
-    # Only record latency on the final attempt
-    if is_last_attempt:
-        latency_ms = calculate_latency(enqueued_at_str)
-        if latency_ms > 0:
-            metrics.timing(f"{PREFIX}.e2e_latency", latency_ms, tags={"status": status})
+def record_latency(status: str, enqueued_at_str: str) -> None:
+    latency_ms = calculate_latency(enqueued_at_str)
+    if latency_ms > 0:
+        metrics.timing(f"{PREFIX}.e2e_latency", latency_ms, tags={"status": status})
 
 
 def calculate_latency(enqueued_at_str: str) -> int:
