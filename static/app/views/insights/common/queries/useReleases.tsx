@@ -125,23 +125,15 @@ export function useReleases(
 export function useReleaseSelection(): {
   isLoading: boolean;
   primaryRelease: string | undefined;
-  secondaryRelease: string | undefined;
 } {
   const location = useLocation();
 
   const {isLoading} = useReleases(undefined, undefined);
 
-  // Get release values from query parameters
   const primaryReleaseFromQuery = decodeScalar(location.query.primaryRelease);
-  const secondaryReleaseFromQuery = decodeScalar(location.query.secondaryRelease);
 
   const primaryRelease =
     primaryReleaseFromQuery === '' ? undefined : primaryReleaseFromQuery;
 
-  const secondaryRelease =
-    primaryRelease === undefined || secondaryReleaseFromQuery === ''
-      ? undefined
-      : secondaryReleaseFromQuery;
-
-  return {primaryRelease, secondaryRelease, isLoading};
+  return {primaryRelease, isLoading};
 }

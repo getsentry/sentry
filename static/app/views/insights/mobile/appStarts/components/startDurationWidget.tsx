@@ -29,11 +29,7 @@ interface Props {
 
 function StartDurationWidget({additionalFilters}: Props) {
   const location = useLocation();
-  const {
-    primaryRelease,
-    secondaryRelease,
-    isLoading: isReleasesLoading,
-  } = useReleaseSelection();
+  const {primaryRelease, isLoading: isReleasesLoading} = useReleaseSelection();
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
 
   const startType =
@@ -48,11 +44,10 @@ function StartDurationWidget({additionalFilters}: Props) {
     query.addFilterValue('os.name', selectedPlatform);
   }
 
-  const queryString = appendReleaseFilters(query, primaryRelease, secondaryRelease);
+  const queryString = appendReleaseFilters(query, primaryRelease);
   const search = new MutableSearch(queryString);
   const referrer = Referrer.MOBILE_APP_STARTS_DURATION_CHART;
-  const groupBy =
-    primaryRelease || secondaryRelease ? SpanFields.RELEASE : SpanFields.TRANSACTION;
+  const groupBy = primaryRelease ? SpanFields.RELEASE : SpanFields.TRANSACTION;
   const yAxis: SpanProperty = 'avg(span.duration)';
 
   const {

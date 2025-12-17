@@ -8,7 +8,6 @@ jest.mock('sentry/views/insights/common/queries/useReleases');
 jest.mocked(useReleaseSelection).mockReturnValue({
   primaryRelease: 'com.example.vu.android@2.10.5-alpha.1+42',
   isLoading: false,
-  secondaryRelease: 'com.example.vu.android@2.10.3+42',
 });
 
 describe('SamplesTables', () => {
@@ -72,18 +71,12 @@ describe('SamplesTables', () => {
         'This is a custom Event Samples table for release: com.example.vu.android@2.10.5-alpha.1+42'
       )
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'This is a custom Event Samples table for release: com.example.vu.android@2.10.3+42'
-      )
-    ).toBeInTheDocument();
   });
 
   it('renders single event table when only primary release provided', async () => {
     jest.mocked(useReleaseSelection).mockReturnValue({
       primaryRelease: 'com.example.vu.android@2.10.5-alpha.1+42',
       isLoading: false,
-      secondaryRelease: undefined,
     });
 
     render(
@@ -104,18 +97,12 @@ describe('SamplesTables', () => {
         'Event table for release: com.example.vu.android@2.10.5-alpha.1+42'
       )
     ).toBeInTheDocument();
-
-    // Should not render secondary release table
-    expect(
-      screen.queryByText('Event table for release: com.example.vu.android@2.10.3+42')
-    ).not.toBeInTheDocument();
   });
 
   it('renders single event table when no releases provided', async () => {
     jest.mocked(useReleaseSelection).mockReturnValue({
       primaryRelease: undefined,
       isLoading: false,
-      secondaryRelease: undefined,
     });
 
     render(
@@ -132,36 +119,5 @@ describe('SamplesTables', () => {
 
     // Should render single event table with no release
     expect(await screen.findByText('Event table for release: none')).toBeInTheDocument();
-  });
-
-  it('renders single event table when both releases are the same', async () => {
-    jest.mocked(useReleaseSelection).mockReturnValue({
-      primaryRelease: 'com.example.vu.android@2.10.5-alpha.1+42',
-      isLoading: false,
-      secondaryRelease: 'com.example.vu.android@2.10.5-alpha.1+42',
-    });
-
-    render(
-      <SamplesTables
-        EventSamples={({release}) => (
-          <div>{`Event table for release: ${release || 'none'}`}</div>
-        )}
-        SpanOperationTable={_props => <div>Span Operation table</div>}
-        transactionName=""
-      />
-    );
-
-    await userEvent.click(screen.getByRole('radio', {name: 'By Event'}));
-
-    // Should render single event table, not side-by-side comparison
-    expect(
-      await screen.findByText(
-        'Event table for release: com.example.vu.android@2.10.5-alpha.1+42'
-      )
-    ).toBeInTheDocument();
-
-    // Should not render a second table since releases are the same
-    const eventTables = screen.getAllByText(/Event table for release:/);
-    expect(eventTables).toHaveLength(1);
   });
 });

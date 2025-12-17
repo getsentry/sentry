@@ -2,7 +2,6 @@ import {useMemo} from 'react';
 
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -10,12 +9,7 @@ import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {
-  PRIMARY_RELEASE_ALIAS,
-  SECONDARY_RELEASE_ALIAS,
-} from 'sentry/views/insights/common/components/releaseSelector';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {EventSamplesTable} from 'sentry/views/insights/mobile/screenload/components/tables/eventSamplesTable';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -41,7 +35,6 @@ export function ScreenLoadEventSamples({
 }: Props) {
   const location = useLocation();
   const {selection} = usePageFilters();
-  const {primaryRelease} = useReleaseSelection();
   const cursor = decodeScalar(location.query?.[cursorName]);
   const {selectedPlatform: platform, isProjectCrossPlatform} = useCrossPlatformProject();
 
@@ -84,12 +77,7 @@ export function ScreenLoadEventSamples({
   const sort = decodeSorts(location.query[sortKey])[0] ?? DEFAULT_SORT;
 
   const columnNameMap = {
-    id: defined(release)
-      ? t(
-          'Event ID (%s)',
-          release === primaryRelease ? PRIMARY_RELEASE_ALIAS : SECONDARY_RELEASE_ALIAS
-        )
-      : t('Event ID'),
+    id: t('Event ID'),
     'profile.id': t('Profile'),
     'measurements.time_to_initial_display': t('TTID'),
     'measurements.time_to_full_display': t('TTFD'),

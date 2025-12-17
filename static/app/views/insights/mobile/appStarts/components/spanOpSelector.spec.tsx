@@ -55,13 +55,7 @@ describe('SpanOpSelector', () => {
   });
 
   it('lists all span operations that are stored', async () => {
-    render(
-      <SpanOpSelector
-        primaryRelease="release1"
-        secondaryRelease="release2"
-        transaction="foo-bar"
-      />
-    );
+    render(<SpanOpSelector primaryRelease="release1" transaction="foo-bar" />);
 
     expect(await screen.findByText('All')).toBeInTheDocument();
 
