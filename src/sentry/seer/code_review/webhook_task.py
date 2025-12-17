@@ -61,29 +61,29 @@ def process_github_webhook_event(
         metrics.incr(f"{PREFIX}.outcome", tags={"status": "invalid_task_parameters"})
         raise ValueError("Missing required task parameters.")
 
-    is_last_attempt = self.request.retries >= MAX_RETRIES - 1
+    should_record_latency = True
 
     try:
         status = make_seer_request(original_run_id)
-        is_last_attempt = True
     except HTTPError as e:
         # Catches all urllib3 errors: TimeoutError, MaxRetryError, NewConnectionError,
         # SSLError, ProxyError, ProtocolError, ResponseError, DecodeError, etc.
         status = e.__class__.__name__
         metrics.incr(f"{PREFIX}.outcome", tags={"status": f"error_{status}"})
-        if is_last_attempt:
+        if self.request.retries >= MAX_RETRIES - 1:
             logger.exception("%s.error", PREFIX, extra=context)
+        else:
+            should_record_latency = False
         raise  # Re-raise to trigger task retry (error listed in on= parameter)
     except Exception as e:
         # Unexpected errors (JSON parsing, config issues, etc.)
         # These are not retryable and indicate a programming or configuration error
         status = f"unexpected_error_{e.__class__.__name__}"
         logger.exception("%s.unexpected_error", PREFIX, extra=context)
-        is_last_attempt = True  # Record latency for unexpected errors
         raise  # Task will fail (no retry for unexpected errors, not listed in on= parameter)
     finally:
         metrics.incr(f"{PREFIX}.outcome", tags={"status": status})
-        if is_last_attempt:
+        if should_record_latency:
             record_latency(status, enqueued_at_str)
 
 
