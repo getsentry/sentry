@@ -411,7 +411,7 @@ const DropdownContainer = styled('div')<{isOpen: boolean}>`
   left: -1px;
   right: -1px;
   z-index: ${p => p.theme.zIndex.dropdown};
-  background: ${p => p.theme.backgroundElevated};
+  background: ${p => p.theme.tokens.background.primary};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.radius.md};

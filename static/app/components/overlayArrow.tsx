@@ -7,8 +7,8 @@ import type {ColorOrAlias} from 'sentry/utils/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 
 export interface OverlayArrowProps extends React.ComponentPropsWithRef<'div'> {
-  background?: ColorOrAlias;
-  border?: ColorOrAlias;
+  background?: ColorOrAlias | string;
+  border?: ColorOrAlias | string;
   placement?: PopperProps<any>['placement'];
   ref?: React.Ref<HTMLDivElement>;
   size?: number;
@@ -48,17 +48,27 @@ function ChonkOverlayArrow({
               ${size},0
               ${size / 2},${size * heightRatio + topOffset}
               ${size / 2 - 2},${size * heightRatio + topOffset}`}
-            fill={border ? (theme[border] as string) : theme.tokens.border.primary}
+            fill={
+              border
+                ? ((theme[border as ColorOrAlias] as string) ?? border)
+                : theme.tokens.border.primary
+            }
           />
         ) : null}
         <polygon
           points={`0,0 ${size},0 ${size / 2},${size * heightRatio + topOffset}`}
-          fill={border ? (theme[border] as string) : theme.tokens.border.primary}
+          fill={
+            border
+              ? ((theme[border as ColorOrAlias] as string) ?? border)
+              : theme.tokens.border.primary
+          }
         />
         <polygon
           points={`${offset},0 ${size - offset}, 0 ${size / 2},${size * heightRatio}`}
           fill={
-            background ? (theme[background] as string) : theme.tokens.background.primary
+            background
+              ? ((theme[background as ColorOrAlias] as string) ?? background)
+              : theme.tokens.background.primary
           }
         />
       </svg>
@@ -91,6 +101,7 @@ const ChonkWrap = styled('div')<{
 `;
 
 function LegacyOverlayArrow({size = 16, placement, ref, ...props}: OverlayArrowProps) {
+  const theme = useTheme();
   /**
    * SVG height
    */
@@ -119,7 +130,7 @@ function LegacyOverlayArrow({size = 16, placement, ref, ...props}: OverlayArrowP
         width={w}
         height={h}
         viewBox={`0 0 ${w} ${h}`}
-        background="backgroundElevated"
+        background={theme.tokens.background.primary}
         border="translucentBorder"
       >
         <defs>
@@ -161,7 +172,7 @@ const Wrap = styled('div')<{size: number; placement?: PopperProps<any>['placemen
     `left: 0; transform: translateX(-50%) rotate(-90deg);`}
 `;
 
-const SVG = styled('svg')<{background: ColorOrAlias; border: ColorOrAlias}>`
+const SVG = styled('svg')<{background: string; border: ColorOrAlias}>`
   position: absolute;
   bottom: 50%;
   fill: none;
@@ -171,6 +182,6 @@ const SVG = styled('svg')<{background: ColorOrAlias; border: ColorOrAlias}>`
     stroke: ${p => p.theme[p.border]};
   }
   path.fill {
-    fill: ${p => p.theme[p.background]};
+    fill: ${p => p.background};
   }
 `;

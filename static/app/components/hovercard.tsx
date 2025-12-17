@@ -8,7 +8,6 @@ import {AnimatePresence} from 'framer-motion';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {space} from 'sentry/styles/space';
-import type {ColorOrAlias} from 'sentry/utils/theme';
 import type {UseHoverOverlayProps} from 'sentry/utils/useHoverOverlay';
 import {useHoverOverlay} from 'sentry/utils/useHoverOverlay';
 
@@ -42,14 +41,6 @@ interface HovercardProps extends Omit<UseHoverOverlayProps, 'isHoverable'> {
    * Defaults to document.body
    */
   portalContainer?: HTMLElement;
-  /**
-   * Color of the arrow tip border
-   */
-  tipBorderColor?: ColorOrAlias;
-  /**
-   * Color of the arrow tip
-   */
-  tipColor?: ColorOrAlias;
 }
 
 type UseOverOverlayState = ReturnType<typeof useHoverOverlay>;
@@ -57,13 +48,7 @@ type UseOverOverlayState = ReturnType<typeof useHoverOverlay>;
 interface HovercardContentProps
   extends Pick<
     HovercardProps,
-    | 'animated'
-    | 'bodyClassName'
-    | 'className'
-    | 'header'
-    | 'body'
-    | 'tipColor'
-    | 'tipBorderColor'
+    'animated' | 'bodyClassName' | 'className' | 'header' | 'body'
   > {
   hoverOverlayState: Omit<UseOverOverlayState, 'isOpen' | 'wrapTrigger'>;
 }
@@ -106,8 +91,6 @@ function HovercardContent({
   body,
   bodyClassName,
   className,
-  tipBorderColor,
-  tipColor,
   header,
   hoverOverlayState: {arrowData, arrowProps, overlayProps, placement, update},
 }: HovercardContentProps) {
@@ -121,8 +104,8 @@ function HovercardContent({
         arrowProps={{
           ...arrowProps,
           size: 20,
-          background: tipColor,
-          border: tipBorderColor,
+          background: theme.tokens.background.primary,
+          border: theme.tokens.border.primary,
         }}
         originPoint={arrowData}
         placement={placement}
@@ -145,12 +128,11 @@ function Hovercard({
   header,
   offset = 12,
   displayTimeout = 100,
-  tipBorderColor = 'translucentBorder',
-  tipColor = 'backgroundElevated',
   animated = true,
   portalContainer = document.body,
   ...hoverOverlayProps
 }: HovercardProps): React.ReactElement {
+  const theme = useTheme();
   const {wrapTrigger, isOpen, ...hoverOverlayState} = useHoverOverlay({
     offset,
     displayTimeout,
@@ -181,8 +163,8 @@ function Hovercard({
         body,
         bodyClassName,
         className,
-        tipBorderColor,
-        tipColor,
+        tipBorderColor: theme.tokens.border.primary,
+        tipColor: theme.tokens.background.primary,
         header,
         hoverOverlayState,
       }}

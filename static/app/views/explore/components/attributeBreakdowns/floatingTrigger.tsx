@@ -74,7 +74,7 @@ const List = styled('ul')`
   padding: 0;
   margin-bottom: 0 !important;
   box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
-  background: ${p => p.theme.backgroundElevated};
+  background: ${p => p.theme.tokens.background.primary};
   color: ${p => p.theme.tokens.content.primary};
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.border};

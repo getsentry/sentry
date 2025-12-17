@@ -96,7 +96,7 @@ export const getChonkStylesConfig = ({
     menu: provided => ({
       ...provided,
       zIndex: theme.zIndex.dropdown,
-      background: theme.backgroundElevated,
+      background: theme.tokens.background.primary,
       borderRadius: theme.radius.md,
       border: `1px solid ${theme.border}`,
       boxShadow: 'none',
@@ -287,7 +287,7 @@ export const ChonkCheckWrap = styled('div')<{
       ? css`
           padding: 1px;
           border: solid 1px ${p.theme.border};
-          background: ${p.theme.backgroundElevated};
+          background: ${p.theme.tokens.background.primary};
           border-radius: 2px;
           height: 1em;
           margin-top: 2px;

@@ -371,7 +371,7 @@ export function computeChartTooltip(
   return {
     show: true,
     trigger: 'item',
-    backgroundColor: `${theme.backgroundElevated}`,
+    backgroundColor: `${theme.tokens.background.primary}`,
     borderWidth: 0,
     extraCssText: `box-shadow: 0 0 0 1px ${theme.translucentBorder}, ${theme.dropShadowHeavy}`,
     transitionDuration: 0,

@@ -308,7 +308,7 @@ const MoreDropdown = styled('div')`
   top: 100%;
   right: 0;
   margin-top: 2px;
-  background: ${p => p.theme.backgroundElevated};
+  background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowHeavy};
