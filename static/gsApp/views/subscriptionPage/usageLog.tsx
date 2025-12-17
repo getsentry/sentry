@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 import upperFirst from 'lodash/upperFirst';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -169,10 +170,11 @@ function UsageLog({location, subscription}: Props) {
           onChange={option => {
             handleEventFilter(option?.value);
           }}
-          triggerProps={{
-            size: 'sm',
-            children: selectedEventName ? undefined : t('Select Action'),
-          }}
+          trigger={triggerProps => (
+            <SelectTrigger.Button {...triggerProps} size="sm">
+              {selectedEventName ? undefined : t('Select Action')}
+            </SelectTrigger.Button>
+          )}
         />
         {isError ? (
           <LoadingError onRetry={refetch} />

@@ -2,6 +2,8 @@ import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
@@ -438,9 +440,9 @@ export function HTTPSamplesPanel() {
                   value={query.responseCodeClass}
                   options={HTTP_RESPONSE_CODE_CLASS_OPTIONS}
                   onChange={handleResponseCodeClassChange}
-                  triggerProps={{
-                    prefix: t('Response Code'),
-                  }}
+                  trigger={triggerProps => (
+                    <SelectTrigger.Button {...triggerProps} prefix={t('Response Code')} />
+                  )}
                 />
               </PanelControls>
             </ModuleLayout.Full>

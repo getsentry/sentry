@@ -2,6 +2,8 @@ import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'r
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
@@ -216,19 +218,20 @@ function SidebarContent() {
           <CompactSelect
             value={currentProject?.id}
             onChange={opt => setCurrentProject(projects.find(p => p.id === opt.value))}
-            triggerProps={{
-              'aria-label': currentProject?.slug,
-              children: currentProject ? (
-                <StyledIdBadge
-                  project={currentProject}
-                  avatarSize={16}
-                  hideOverflow
-                  disableLink
-                />
-              ) : (
-                t('Select a project')
-              ),
-            }}
+            trigger={triggerProps => (
+              <SelectTrigger.Button {...triggerProps} aria-label={currentProject?.slug}>
+                {currentProject ? (
+                  <StyledIdBadge
+                    project={currentProject}
+                    avatarSize={16}
+                    hideOverflow
+                    disableLink
+                  />
+                ) : (
+                  t('Select a project')
+                )}
+              </SelectTrigger.Button>
+            )}
             options={projectSelectOptions}
             position="bottom-end"
           />

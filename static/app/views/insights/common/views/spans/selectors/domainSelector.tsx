@@ -2,6 +2,8 @@ import {useCallback, useState} from 'react';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -173,9 +175,9 @@ export function DomainSelector({
           debouncedSetSearch(newValue);
         }
       }}
-      triggerProps={{
-        prefix: domainAlias,
-      }}
+      trigger={triggerProps => (
+        <SelectTrigger.Button {...triggerProps} prefix={domainAlias} />
+      )}
       onChange={newValue => {
         trackAnalytics('insight.general.select_domain_value', {
           organization,

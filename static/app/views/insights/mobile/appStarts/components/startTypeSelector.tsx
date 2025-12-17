@@ -1,3 +1,5 @@
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -26,7 +28,9 @@ export function StartTypeSelector() {
 
   return (
     <CompactSelect
-      triggerProps={{prefix: t('App Start')}}
+      trigger={triggerProps => (
+        <SelectTrigger.Button {...triggerProps} prefix={t('App Start')} />
+      )}
       value={value}
       options={options ?? []}
       onChange={newValue => {

@@ -3,6 +3,8 @@ import partition from 'lodash/partition';
 import {parseAsBoolean, useQueryState} from 'nuqs';
 import {PlatformIcon} from 'platformicons';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
@@ -176,7 +178,9 @@ export function InstrumentationGuide() {
               platform.guides.length > 1 ? (
                 <CompactSelect<GuideKey>
                   size="xs"
-                  triggerProps={{borderless: true, size: 'zero'}}
+                  trigger={triggerProps => (
+                    <SelectTrigger.Button {...triggerProps} borderless size="zero" />
+                  )}
                   value={guideKey ?? 'upsert'}
                   onChange={option => {
                     setPlatformGuide(platformKey, option.value);

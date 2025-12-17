@@ -1,6 +1,8 @@
 import {Fragment, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {Button} from 'sentry/components/core/button';
@@ -112,7 +114,9 @@ function RelocationForm() {
           <li>Files must be tar archives (.tar) </li>
         </ul>
         <CompactSelect
-          triggerProps={{prefix: 'Region'}}
+          trigger={triggerProps => (
+            <SelectTrigger.Button {...triggerProps} prefix="Region" />
+          )}
           value={region.url}
           options={regions.map((r: any) => ({
             label: r.name,

@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import isEmpty from 'lodash/isEmpty';
 import startCase from 'lodash/startCase';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -243,7 +245,9 @@ export function DynamicSamplingPanel({projectId, organization}: Props) {
           <PanelHeaderRight>
             {selectedConfigId && (
               <CompactSelect
-                triggerProps={{size: 'xs', prefix: 'DSN'}}
+                trigger={triggerProps => (
+                  <SelectTrigger.Button {...triggerProps} size="xs" prefix="DSN" />
+                )}
                 value={selectedConfigId}
                 options={Object.keys(projectConfig.configs).map(id => ({
                   value: id,

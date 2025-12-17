@@ -1,3 +1,5 @@
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -22,7 +24,9 @@ function RenderBlockingSelector({value}: {value?: string}) {
 
   return (
     <CompactSelect
-      triggerProps={{prefix: `${t('Blocking')}`}}
+      trigger={triggerProps => (
+        <SelectTrigger.Button {...triggerProps} prefix={`${t('Blocking')}`} />
+      )}
       options={options}
       value={value ?? ''}
       onChange={newValue => {

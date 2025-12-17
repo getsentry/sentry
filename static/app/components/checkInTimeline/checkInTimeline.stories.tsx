@@ -1,6 +1,8 @@
 import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -105,7 +107,9 @@ export default Storybook.story('CheckInTimeline', story => {
         <Controls>
           <DatePageFilter triggerProps={{prefix: 'Time Window'}} />
           <CompactSelect
-            triggerProps={{prefix: 'Spacing'}}
+            trigger={triggerProps => (
+              <SelectTrigger.Button {...triggerProps} prefix="Spacing" />
+            )}
             options={[
               {value: 60, label: '1 Minute'},
               {value: 60 * 5, label: '5 Minute'},

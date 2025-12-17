@@ -1,3 +1,5 @@
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
@@ -20,10 +22,11 @@ function Filters({
   return (
     <FiltersGrid>
       <CompactSelect
-        triggerProps={{
-          prefix: t('Log Level'),
-          children: logLevel.length === 0 ? t('Any') : null,
-        }}
+        trigger={triggerProps => (
+          <SelectTrigger.Button {...triggerProps} prefix={t('Log Level')}>
+            {logLevel.length === 0 ? t('Any') : null}
+          </SelectTrigger.Button>
+        )}
         multiple
         options={logLevels}
         onChange={selected => setLogLevel(selected.map(_ => _.value))}

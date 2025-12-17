@@ -1,6 +1,8 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {Button} from 'sentry/components/core/button/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -499,11 +501,14 @@ export function TraceEventDataSection({
               </LinkButton>
             )}
             <CompactSelect
-              triggerProps={{
-                icon: <IconSort />,
-                size: 'xs',
-                title: sortByTooltip,
-              }}
+              trigger={triggerProps => (
+                <SelectTrigger.Button
+                  {...triggerProps}
+                  icon={<IconSort />}
+                  size="xs"
+                  title={sortByTooltip}
+                />
+              )}
               disabled={!!sortByTooltip}
               position="bottom-end"
               onChange={selectedOption => {
@@ -516,13 +521,17 @@ export function TraceEventDataSection({
               }))}
             />
             <CompactSelect
-              triggerProps={{
-                icon: <IconEllipsis />,
-                size: 'xs',
-                showChevron: false,
-                'aria-label': t('Options'),
-                children: '',
-              }}
+              trigger={triggerProps => (
+                <SelectTrigger.Button
+                  {...triggerProps}
+                  icon={<IconEllipsis />}
+                  size="xs"
+                  showChevron={false}
+                  aria-label={t('Options')}
+                >
+                  {''}
+                </SelectTrigger.Button>
+              )}
               multiple
               position="bottom-end"
               value={displayValues}

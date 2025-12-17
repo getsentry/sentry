@@ -2,6 +2,8 @@ import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {DateTime} from 'sentry/components/dateTime';
@@ -103,7 +105,9 @@ export function CustomerStatsFilters({
   return (
     <Filters>
       <CompactSelect
-        triggerProps={{prefix: 'Data Type'}}
+        trigger={triggerProps => (
+          <SelectTrigger.Button {...triggerProps} prefix="Data Type" />
+        )}
         value={dataType}
         options={Object.entries(DATA_CATEGORY_INFO)
           .filter(([_, categoryInfo]) => categoryInfo.statsInfo.showInternalStats)

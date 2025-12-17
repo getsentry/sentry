@@ -1,3 +1,5 @@
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -88,7 +90,9 @@ export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: 
 
   return (
     <CompactSelect
-      triggerProps={{prefix: t('Operation')}}
+      trigger={triggerProps => (
+        <SelectTrigger.Button {...triggerProps} prefix={t('Operation')} />
+      )}
       value={value}
       options={options ?? []}
       onChange={newValue => {

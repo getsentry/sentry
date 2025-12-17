@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
 import {Flex} from '@sentry/scraps/layout';
 
 import {Button} from 'sentry/components/core/button';
@@ -328,9 +329,11 @@ function FilterSelector({
           </MenuTitleWrapper>
         }
         menuHeaderTrailingItems={renderMenuHeaderTrailingItems}
-        triggerProps={{
-          children: renderFilterSelectorTrigger(activeFilterValues),
-        }}
+        trigger={triggerProps => (
+          <SelectTrigger.Button {...triggerProps}>
+            {renderFilterSelectorTrigger(activeFilterValues)}
+          </SelectTrigger.Button>
+        )}
       />
     );
   }

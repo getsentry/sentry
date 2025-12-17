@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
@@ -26,7 +28,11 @@ function RepositorySwitcher({repositories, activeRepository}: RepositorySwitcher
 
   return (
     <CompactSelect
-      triggerProps={{prefix: t('Filter'), children: activeRepo}}
+      trigger={triggerProps => (
+        <SelectTrigger.Button {...triggerProps} prefix={t('Filter')}>
+          {activeRepo}
+        </SelectTrigger.Button>
+      )}
       value={activeRepo}
       options={repositories.map(repo => ({
         value: repo.name,

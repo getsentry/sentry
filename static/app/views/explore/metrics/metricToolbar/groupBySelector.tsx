@@ -1,5 +1,7 @@
 import {useMemo} from 'react';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import type {SelectOption} from 'sentry/components/core/compactSelect/types';
 import {t} from 'sentry/locale';
@@ -77,9 +79,9 @@ export function GroupBySelector({traceMetric}: GroupBySelectorProps) {
     <CompactSelect<string>
       multiple
       searchable
-      triggerProps={{
-        prefix: t('Group by'),
-      }}
+      trigger={triggerProps => (
+        <SelectTrigger.Button {...triggerProps} prefix={t('Group by')} />
+      )}
       options={enabledOptions}
       value={[...groupBys]}
       loading={isLoading}

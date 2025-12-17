@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
 import {Container, Grid} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -245,10 +246,9 @@ function SpansTabCrossEventSearchBars() {
               aria-label={t('Modify dataset to cross reference')}
               value={crossEvent.type}
               disabled={maxCrossEventQueriesReached}
-              triggerProps={{
-                prefix: t('with'),
-                ...props,
-              }}
+              trigger={triggerProps => (
+                <SelectTrigger.Button {...triggerProps} prefix={t('with')} />
+              )}
               options={[
                 {value: 'spans', label: t('Spans')},
                 {value: 'logs', label: t('Logs')},

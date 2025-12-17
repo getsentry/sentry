@@ -1,6 +1,8 @@
 import type {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {
   CompactSelect,
   type SelectOption,
@@ -56,10 +58,11 @@ export default function SubregionSelector({size}: Props) {
     <CompactSelect
       size={size}
       searchable
-      triggerProps={{
-        prefix: t('Geo region'),
-        children: value.length === 0 ? t('All') : undefined,
-      }}
+      trigger={triggerProps => (
+        <SelectTrigger.Button {...triggerProps} prefix={t('Geo region')}>
+          {value.length === 0 ? t('All') : undefined}
+        </SelectTrigger.Button>
+      )}
       multiple
       loading={isPending}
       clearable

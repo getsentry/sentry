@@ -1,6 +1,8 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import keyBy from 'lodash/keyBy';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
@@ -349,9 +351,9 @@ export function CacheSamplePanel() {
                 value={query.statusClass}
                 options={CACHE_STATUS_OPTIONS}
                 onChange={handleStatusClassChange}
-                triggerProps={{
-                  prefix: t('Status'),
-                }}
+                trigger={triggerProps => (
+                  <SelectTrigger.Button {...triggerProps} prefix={t('Status')} />
+                )}
               />
             </ModuleLayout.Full>
             <ModuleLayout.Half>

@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Button} from 'sentry/components/core/button';
@@ -278,9 +280,9 @@ function SortDropdown() {
   return (
     <CompactSelect
       value={sort}
-      triggerProps={{
-        icon: <IconSort />,
-      }}
+      trigger={triggerProps => (
+        <SelectTrigger.Button {...triggerProps} icon={<IconSort />} />
+      )}
       onChange={newSort => {
         trackAnalytics('issue_views.table.sort_changed', {
           organization,

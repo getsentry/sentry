@@ -2,6 +2,8 @@ import {useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -217,18 +219,20 @@ function EventDisplay({
               }))}
               value={selectedEventId}
               onChange={({value}) => setSelectedEventId(value)}
-              triggerProps={{
-                children: (
-                  <ButtonLabelWrapper>
-                    <TextOverflow>
-                      {eventSelectLabel}:{' '}
-                      <SelectionTextWrapper>
-                        {getShortEventId(selectedEventId)}
-                      </SelectionTextWrapper>
-                    </TextOverflow>
-                  </ButtonLabelWrapper>
-                ),
-              }}
+              trigger={triggerProps => (
+                <SelectTrigger.Button {...triggerProps}>
+                  {
+                    <ButtonLabelWrapper>
+                      <TextOverflow>
+                        {eventSelectLabel}:{' '}
+                        <SelectionTextWrapper>
+                          {getShortEventId(selectedEventId)}
+                        </SelectionTextWrapper>
+                      </TextOverflow>
+                    </ButtonLabelWrapper>
+                  }
+                </SelectTrigger.Button>
+              )}
             />
             <LinkButton
               title={t('Full Event Details')}

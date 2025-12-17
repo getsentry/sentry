@@ -1,3 +1,4 @@
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
 import {Text} from '@sentry/scraps/text';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
@@ -86,7 +87,9 @@ export function DropdownAddTeam({
       onClose={() => onSearch('')}
       onChange={selection => onSelect(selection.value)}
       menuTitle={<Text size="sm">{t('Teams')}</Text>}
-      triggerProps={{children: t('Add Team')}}
+      trigger={triggerProps => (
+        <SelectTrigger.Button {...triggerProps}>{t('Add Team')}</SelectTrigger.Button>
+      )}
       searchPlaceholder={t('Search Teams')}
       emptyMessage={t('No Teams')}
       loading={isLoadingTeams}

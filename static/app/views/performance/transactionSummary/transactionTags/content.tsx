@@ -2,6 +2,8 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Radio} from 'sentry/components/core/radio';
@@ -232,7 +234,9 @@ function InnerContent(
               });
               onChangeAggregateColumn(opt.value);
             }}
-            triggerProps={{prefix: t('X-Axis')}}
+            trigger={triggerProps => (
+              <SelectTrigger.Button {...triggerProps} prefix={t('X-Axis')} />
+            )}
           />
         </FilterActions>
         <TagsDisplay {...props} tagKey={tagSelected} />

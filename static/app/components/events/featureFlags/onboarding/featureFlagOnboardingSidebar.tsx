@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {ExternalLink} from 'sentry/components/core/link';
@@ -136,19 +138,20 @@ function SidebarContent() {
                   platform: newProject?.platform,
                 });
               }}
-              triggerProps={{
-                'aria-label': currentProject?.slug,
-                children: currentProject ? (
-                  <StyledIdBadge
-                    project={currentProject}
-                    avatarSize={16}
-                    hideOverflow
-                    disableLink
-                  />
-                ) : (
-                  t('Select a project')
-                ),
-              }}
+              trigger={triggerProps => (
+                <SelectTrigger.Button {...triggerProps} aria-label={currentProject?.slug}>
+                  {currentProject ? (
+                    <StyledIdBadge
+                      project={currentProject}
+                      avatarSize={16}
+                      hideOverflow
+                      disableLink
+                    />
+                  ) : (
+                    t('Select a project')
+                  )}
+                </SelectTrigger.Button>
+              )}
               options={projectSelectOptions}
               position="bottom-end"
             />
@@ -225,7 +228,11 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
                 sdkSelect: (
                   <CompactSelect
                     size="xs"
-                    triggerProps={{children: sdkProvider.label}}
+                    trigger={triggerProps => (
+                      <SelectTrigger.Button {...triggerProps}>
+                        {sdkProvider.label}
+                      </SelectTrigger.Button>
+                    )}
                     value={sdkProvider.value}
                     onChange={value => {
                       setsdkProvider(value);

@@ -2,6 +2,8 @@ import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -229,7 +231,9 @@ function LaunchpadAdminPage() {
         </Text>
 
         <CompactSelect
-          triggerProps={{prefix: 'Region'}}
+          trigger={triggerProps => (
+            <SelectTrigger.Button {...triggerProps} prefix="Region" />
+          )}
           value={region ? region.url : undefined}
           options={regions.map((r: any) => ({
             label: r.name,

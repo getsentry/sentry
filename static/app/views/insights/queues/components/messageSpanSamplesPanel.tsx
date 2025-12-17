@@ -2,6 +2,8 @@ import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
@@ -327,18 +329,18 @@ export function MessageSpanSamplesPanel() {
                   value={query.traceStatus}
                   options={TRACE_STATUS_SELECT_OPTIONS}
                   onChange={handleTraceStatusChange}
-                  triggerProps={{
-                    prefix: t('Status'),
-                  }}
+                  trigger={triggerProps => (
+                    <SelectTrigger.Button {...triggerProps} prefix={t('Status')} />
+                  )}
                 />
                 {messageActorType === MessageActorType.CONSUMER && (
                   <CompactSelect
                     value={query.retryCount}
                     options={RETRY_COUNT_SELECT_OPTIONS}
                     onChange={handleRetryCountChange}
-                    triggerProps={{
-                      prefix: t('Retries'),
-                    }}
+                    trigger={triggerProps => (
+                      <SelectTrigger.Button {...triggerProps} prefix={t('Retries')} />
+                    )}
                   />
                 )}
               </PanelControls>

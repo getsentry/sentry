@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {IconNot} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
@@ -84,10 +86,11 @@ function DropdownActions({actions, label}: Props) {
           onConfirm: action.onAction,
         });
       }}
-      triggerProps={{
-        'data-test-id': 'detail-actions',
-        children: label,
-      }}
+      trigger={triggerProps => (
+        <SelectTrigger.Button {...triggerProps} data-test-id="detail-actions">
+          {label}
+        </SelectTrigger.Button>
+      )}
     />
   );
 }

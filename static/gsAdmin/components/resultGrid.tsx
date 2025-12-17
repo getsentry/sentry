@@ -2,6 +2,8 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -55,7 +57,9 @@ function Filter({name, queryKey, options, path, location, value}: FilterProps) {
 
   return (
     <CompactSelect
-      triggerProps={{prefix: name, size: 'xs'}}
+      trigger={triggerProps => (
+        <SelectTrigger.Button {...triggerProps} prefix={name} size="xs" />
+      )}
       value={value}
       onChange={opt => onFilter(opt.value)}
       options={allOptions}
@@ -88,7 +92,13 @@ function SortBy({options, path, location, value, onSort = defaultOnSort}: SortBy
 
   return (
     <CompactSelect
-      triggerProps={{icon: <IconList size="xs" />, prefix: 'Sort By'}}
+      trigger={triggerProps => (
+        <SelectTrigger.Button
+          {...triggerProps}
+          icon={<IconList size="xs" />}
+          prefix="Sort By"
+        />
+      )}
       value={value}
       onChange={opt => onSort(opt.value, resolvedPath, query ?? {})}
       options={options.map(item => ({value: item[0], label: item[1]}))}
@@ -460,7 +470,9 @@ class ResultGrid extends Component<ResultGridProps, State> {
         <SortSearchForm onSubmit={this.onSearch}>
           {this.props.isRegional && (
             <CompactSelect
-              triggerProps={{prefix: 'Region'}}
+              trigger={triggerProps => (
+                <SelectTrigger.Button {...triggerProps} prefix="Region" />
+              )}
               value={this.state.region ? this.state.region.url : undefined}
               options={ConfigStore.get('regions').map((r: any) => ({
                 label: r.name,

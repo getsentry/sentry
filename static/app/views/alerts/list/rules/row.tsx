@@ -1,6 +1,8 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import Access from 'sentry/components/acl/access';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
@@ -318,14 +320,18 @@ function RuleListRow({
                 options={dropdownTeams}
                 value={assignee}
                 searchable
-                triggerProps={{
-                  'aria-label': assignee
-                    ? `Assigned to #${teamName?.name}`
-                    : t('Unassigned'),
-                  size: 'zero',
-                  borderless: true,
-                  children: avatarElement,
-                }}
+                trigger={triggerProps => (
+                  <SelectTrigger.Button
+                    {...triggerProps}
+                    aria-label={
+                      assignee ? `Assigned to #${teamName?.name}` : t('Unassigned')
+                    }
+                    size="zero"
+                    borderless
+                  >
+                    {avatarElement}
+                  </SelectTrigger.Button>
+                )}
                 searchPlaceholder={t('Filter teams')}
                 onChange={handleOwnerChange}
               />

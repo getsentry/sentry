@@ -5,6 +5,8 @@ import emailImage from 'sentry-images/spot/releases-tour-email.svg';
 import resolutionImage from 'sentry-images/spot/releases-tour-resolution.svg';
 import statsImage from 'sentry-images/spot/releases-tour-stats.svg';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {openCreateReleaseIntegration} from 'sentry/actionCreators/modal';
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import {Button} from 'sentry/components/core/button';
@@ -246,10 +248,14 @@ sentry-cli releases finalize "$VERSION"`;
               {t('Add New Integration')}
             </Button>
           )}
-          triggerProps={{
-            prefix: selectedApp ? t('Token From') : undefined,
-            children: selectedApp ? undefined : t('Select Integration'),
-          }}
+          trigger={triggerProps => (
+            <SelectTrigger.Button
+              {...triggerProps}
+              prefix={selectedApp ? t('Token From') : undefined}
+            >
+              {selectedApp ? undefined : t('Select Integration')}
+            </SelectTrigger.Button>
+          )}
           onChange={option => {
             const app = apps.find(i => i.slug === option.value)!;
             setSelectedApp(app);

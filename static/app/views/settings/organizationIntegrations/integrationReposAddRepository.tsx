@@ -1,5 +1,7 @@
 import {useMemo, useState} from 'react';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {addRepository, migrateRepository} from 'sentry/actionCreators/integrations';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -141,10 +143,11 @@ export function IntegrationReposAddRepository({
       loading={query.isFetching}
       searchable
       onSearch={setSearch}
-      triggerProps={{
-        busy: adding,
-        children: t('Add Repository'),
-      }}
+      trigger={triggerProps => (
+        <SelectTrigger.Button {...triggerProps} busy={adding}>
+          {t('Add Repository')}
+        </SelectTrigger.Button>
+      )}
       disableSearchFilter
     />
   );

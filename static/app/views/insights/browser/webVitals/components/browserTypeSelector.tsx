@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {ContextIcon} from 'sentry/components/events/contexts/contextIcon';
 import {t} from 'sentry/locale';
@@ -81,10 +83,11 @@ export default function BrowserTypeSelector() {
 
   return (
     <CompactSelect
-      triggerProps={{
-        prefix: t('Browser Type'),
-        children: value.length === 0 ? 'All' : undefined,
-      }}
+      trigger={triggerProps => (
+        <SelectTrigger.Button {...triggerProps} prefix={t('Browser Type')}>
+          {value.length === 0 ? 'All' : undefined}
+        </SelectTrigger.Button>
+      )}
       multiple
       clearable
       value={value}

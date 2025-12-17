@@ -1,6 +1,8 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import UserBadge from 'sentry/components/idBadge/userBadge';
@@ -111,7 +113,9 @@ function HomePage(props: Props) {
       </div>
       <RegionPanel>
         <CompactSelect
-          triggerProps={{prefix: 'Region'}}
+          trigger={triggerProps => (
+            <SelectTrigger.Button {...triggerProps} prefix="Region" />
+          )}
           value={regionUrl}
           options={regions.map((r: any) => ({
             label: r.name,

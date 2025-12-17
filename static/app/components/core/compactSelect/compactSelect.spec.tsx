@@ -379,7 +379,9 @@ describe('CompactSelect', () => {
     it('displays trigger button with prefix', async () => {
       render(
         <CompactSelect
-          triggerProps={{prefix: 'Prefix'}}
+          trigger={triggerProps => (
+            <SelectTrigger.Button {...triggerProps} prefix="Prefix" />
+          )}
           value="opt_one"
           onChange={jest.fn()}
           options={[
@@ -773,7 +775,9 @@ describe('CompactSelect', () => {
       render(
         <CompactSelect
           grid
-          triggerProps={{prefix: 'Prefix'}}
+          trigger={triggerProps => (
+            <SelectTrigger.Button {...triggerProps} prefix="Prefix" />
+          )}
           value="opt_one"
           options={[
             {value: 'opt_one', label: 'Option One'},

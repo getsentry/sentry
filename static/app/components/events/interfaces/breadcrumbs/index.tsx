@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {Button} from 'sentry/components/core/button';
 import type {SelectOption, SelectSection} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -306,10 +308,9 @@ function BreadcrumbsContainer({
         onFilterChange={setFilterSelections}
       />
       <CompactSelect
-        triggerProps={{
-          icon: <IconSort />,
-          size: 'sm',
-        }}
+        trigger={triggerProps => (
+          <SelectTrigger.Button {...triggerProps} icon={<IconSort />} size="sm" />
+        )}
         onChange={selectedOption => {
           setSort(selectedOption.value);
         }}

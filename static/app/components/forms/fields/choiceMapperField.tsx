@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import type {DistributedOmit} from 'type-fest';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {Client} from 'sentry/api';
 import {Button} from 'sentry/components/core/button';
 import {
@@ -346,14 +348,15 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
         options={selectableValues}
         menuWidth={250}
         onChange={addRow}
-        triggerProps={{
-          ...addDropdown.triggerProps,
-          children: (
-            <Flex gap="xs">
-              <IconAdd /> {addButtonText}
-            </Flex>
-          ),
-        }}
+        trigger={triggerProps => (
+          <SelectTrigger.Button {...triggerProps}>
+            {
+              <Flex gap="xs">
+                <IconAdd /> {addButtonText}
+              </Flex>
+            }
+          </SelectTrigger.Button>
+        )}
       />
     );
 

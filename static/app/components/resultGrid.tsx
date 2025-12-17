@@ -1,6 +1,8 @@
 import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import type {RequestOptions} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -35,11 +37,11 @@ function Filter({name, options, path, queryKey, value}: FilterProps) {
 
   const selector = (
     <CompactSelect
-      triggerProps={{
-        size: 'sm',
-        borderless: true,
-        children: currentLabel,
-      }}
+      trigger={triggerProps => (
+        <SelectTrigger.Button {...triggerProps} size="sm" borderless>
+          {currentLabel}
+        </SelectTrigger.Button>
+      )}
       options={[
         {
           value: 'any',
@@ -96,11 +98,11 @@ function SortBy({options, path, value}: SortByProps) {
   const sortBySelector = (
     <div className="sort-options">
       <CompactSelect
-        triggerProps={{
-          size: 'sm',
-          borderless: true,
-          children: currentSortLabel,
-        }}
+        trigger={triggerProps => (
+          <SelectTrigger.Button {...triggerProps} size="sm" borderless>
+            {currentSortLabel}
+          </SelectTrigger.Button>
+        )}
         options={options.map(option => ({
           value: option[0],
           label: option[1],

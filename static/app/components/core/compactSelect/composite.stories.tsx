@@ -1,5 +1,7 @@
 import {Fragment, useState} from 'react';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {Flex} from 'sentry/components/core/layout';
 import {IconSentry, IconStar} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
@@ -148,12 +150,16 @@ export default Storybook.story('CompositeSelect', story => {
           </CompositeSelect>
 
           <CompactSelect
-            triggerProps={{
-              size: 'sm',
-              icon: <IconStar />,
-              children: 'Compact Select Single Select',
-              showChevron: false,
-            }}
+            trigger={triggerProps => (
+              <SelectTrigger.Button
+                {...triggerProps}
+                size="sm"
+                icon={<IconStar />}
+                showChevron={false}
+              >
+                {'Compact Select Single Select'}
+              </SelectTrigger.Button>
+            )}
             value={drink}
             onChange={selection => setDrink(selection.value)}
             options={[
@@ -164,12 +170,16 @@ export default Storybook.story('CompositeSelect', story => {
 
           <CompactSelect
             multiple
-            triggerProps={{
-              size: 'sm',
-              icon: <IconStar />,
-              children: 'Compact Select Multiple Select',
-              showChevron: false,
-            }}
+            trigger={triggerProps => (
+              <SelectTrigger.Button
+                {...triggerProps}
+                size="sm"
+                icon={<IconStar />}
+                showChevron={false}
+              >
+                {'Compact Select Multiple Select'}
+              </SelectTrigger.Button>
+            )}
             value={drinks}
             onChange={selection => setDrinks(selection.map(s => s.value))}
             options={[

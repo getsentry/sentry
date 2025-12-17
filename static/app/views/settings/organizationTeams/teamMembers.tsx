@@ -2,6 +2,8 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {keepPreviousData} from '@tanstack/react-query';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
   openInviteMembersModal,
@@ -169,7 +171,9 @@ function AddMemberDropdown({
       data-test-id="add-member-menu"
       disabled={isDropdownDisabled}
       menuTitle={t('Members')}
-      triggerProps={{children: t('Add Member')}}
+      trigger={triggerProps => (
+        <SelectTrigger.Button {...triggerProps}>{t('Add Member')}</SelectTrigger.Button>
+      )}
       searchPlaceholder={t('Search Members')}
       emptyMessage={t('No members')}
       loading={isOrgMembersFetching}

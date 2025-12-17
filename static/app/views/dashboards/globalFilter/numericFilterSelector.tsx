@@ -2,6 +2,7 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
 import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -321,9 +322,11 @@ function NumericFilterSelector({
           </Flex>
         </MenuBodyWrap>
       }
-      triggerProps={{
-        children: filter.renderSelectorTrigger(),
-      }}
+      trigger={triggerProps => (
+        <SelectTrigger.Button {...triggerProps}>
+          {filter.renderSelectorTrigger()}
+        </SelectTrigger.Button>
+      )}
       menuFooter={
         hasStagedChanges
           ? ({closeOverlay}: any) => (

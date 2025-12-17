@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/react';
 import configureRootCauseAnalysisImg from 'sentry-images/spot/seer-config-connect-2.svg';
 
 import {Button} from '@sentry/scraps/button';
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -257,10 +258,11 @@ export function ConfigureRootCauseAnalysisStep() {
                       searchable
                       value={undefined}
                       strategy="fixed"
-                      triggerProps={{
-                        icon: <IconAdd />,
-                        children: t('Add Repository'),
-                      }}
+                      trigger={triggerProps => (
+                        <SelectTrigger.Button {...triggerProps} icon={<IconAdd />}>
+                          {t('Add Repository')}
+                        </SelectTrigger.Button>
+                      )}
                       onChange={handleAddRepository}
                       options={repositoryOptions}
                       menuTitle={t('Select Repository')}

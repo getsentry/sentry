@@ -2,6 +2,8 @@ import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -118,7 +120,11 @@ function VitalsContent() {
                         });
                         handleFilterChange(opt.value);
                       }}
-                      triggerProps={{prefix: t('Outliers'), children: activeFilter.label}}
+                      trigger={triggerProps => (
+                        <SelectTrigger.Button {...triggerProps} prefix={t('Outliers')}>
+                          {activeFilter.label}
+                        </SelectTrigger.Button>
+                      )}
                     />
                     <Button
                       onClick={() => {
