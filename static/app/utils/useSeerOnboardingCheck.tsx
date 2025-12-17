@@ -15,7 +15,7 @@ export function useSeerOnboardingCheck({
 }: {
   enabled?: boolean;
   staleTime?: number;
-}) {
+} = {}) {
   const organization = useOrganization();
   return useQuery({
     ...apiOptions.as<SeerOnboardingCheckResponse>()(
