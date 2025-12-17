@@ -557,15 +557,10 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         assert subtitle == "1 app analyzed"
 
         # Verify that size changes are calculated and displayed
-        assert "4.2 MB" in summary  # Current download size
-        assert "8.6 MB" in summary  # Current install size
+        # (4.2MB - 4.0MB = 209.7KB, 8.6MB - 8.3MB = 314.6KB)
+        assert "4.2 MB (+209.7 KB)" in summary  # Current download size
+        assert "8.6 MB (+314.6 KB)" in summary  # Current install size
 
-        # Verify that changes are shown (4.2MB - 4.0MB = 209.7KB, 8.6MB - 8.3MB = 314.6KB)
-        assert "+209.7 KB" in summary  # Download change
-        assert "+314.6 KB" in summary  # Install change
-
-        # Verify the table structure includes the Change columns
-        assert "Change" in summary
         assert "com.example.android" in summary
         assert "1.0.3 (42)" in summary
 
@@ -750,6 +745,73 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         # iOS app should show "Install" not "Uncompressed"
         assert "Install" in ios_summary
         assert "Uncompressed" not in ios_summary
+
+    def test_mixed_platforms_render_separate_tables(self):
+        """Mixed Android/iOS artifacts should render separate tables with platform-specific labels."""
+        android_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.android",
+            build_version="1.0.0",
+            build_number=1,
+            artifact_type=PreprodArtifact.ArtifactType.AAB,
+        )
+        ios_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.ios",
+            build_version="2.0.0",
+            build_number=2,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+        )
+
+        android_metrics = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=android_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,
+            max_install_size=2 * 1024 * 1024,
+        )
+        ios_metrics = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=ios_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=2048 * 1024,
+            max_download_size=2048 * 1024,
+            min_install_size=3 * 1024 * 1024,
+            max_install_size=3 * 1024 * 1024,
+        )
+
+        size_metrics_map = {
+            android_artifact.id: [android_metrics],
+            ios_artifact.id: [ios_metrics],
+        }
+
+        _, _, summary = format_status_check_messages(
+            [android_artifact, ios_artifact], size_metrics_map, StatusCheckStatus.SUCCESS
+        )
+
+        # Build expected URLs
+        android_url = f"http://testserver/organizations/{self.organization.slug}/preprod/{self.project.slug}/{android_artifact.id}"
+        ios_url = f"http://testserver/organizations/{self.organization.slug}/preprod/{self.project.slug}/{ios_artifact.id}"
+
+        expected = f"""\
+### Android Builds
+
+| Name | Configuration | Version | Download Size | Uncompressed Size | Approval |
+|------|--------------|---------|----------|-----------------|----------|
+| [-- (Android)<br>`com.example.android`]({android_url}) | -- | 1.0.0 (1) | 1.0 MB (N/A) | 2.1 MB (N/A) | N/A |
+
+### iOS Builds
+
+| Name | Configuration | Version | Download Size | Install Size | Approval |
+|------|--------------|---------|----------|-----------------|----------|
+| [-- (iOS)<br>`com.example.ios`]({ios_url}) | -- | 2.0.0 (2) | 2.1 MB (N/A) | 3.1 MB (N/A) | N/A |\
+"""
+
+        assert summary == expected
 
 
 @region_silo_test
