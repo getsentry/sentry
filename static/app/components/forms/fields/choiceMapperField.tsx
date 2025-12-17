@@ -214,7 +214,7 @@ function AsyncCompactSelectForIntegrationConfig<Value extends string = string>({
       onChange={handleChange}
       onOpenChange={handleOpenChange}
       loading={isFetching}
-      emptyMessage={isFetching ? t('Loading\u2026') : emptyMessage}
+      emptyMessage={isFetching ? t('Loading\u2026') : debouncedQuery ? emptyMessage : ''}
     />
   );
 }
