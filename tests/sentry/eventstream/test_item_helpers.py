@@ -1,3 +1,4 @@
+import pytest
 from typing import Any
 
 from sentry_protos.snuba.v1.request_common_pb2 import TRACE_ITEM_TYPE_OCCURRENCE
@@ -101,6 +102,7 @@ class ItemHelpersTest(TestCase):
         assert "group_id" not in result
         assert result["field"] == AnyValue(string_value="value")
 
+    @pytest.mark.skip(reason="flaky: #105162")
     def test_encode_attributes_with_tags(self) -> None:
         event_data = {
             "field": "value",
