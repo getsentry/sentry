@@ -617,6 +617,7 @@ export type KnownSentryApiUrls =
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/associate/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/unknown/'
+  | '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/images/$imageId/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/installablepreprodartifact/$urlPath/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/preprodartifacts/$headArtifactId/size-analysis/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/preprodartifacts/assemble/'
