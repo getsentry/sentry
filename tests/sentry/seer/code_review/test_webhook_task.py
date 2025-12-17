@@ -64,7 +64,10 @@ class ProcessGitHubWebhookEventTest(TestCase):
         return mock_self
 
     @patch("sentry.seer.code_review.webhook_task.make_signed_seer_api_request")
-    def test_server_error_response_raises_for_retry(self, mock_request: MagicMock) -> None:
+    @patch("sentry.seer.code_review.webhook_task.metrics")
+    def test_server_error_response_raises_for_retry(
+        self, mock_metrics: MagicMock, mock_request: MagicMock
+    ) -> None:
         """Test that Seer 5xx responses are raised to trigger task retry."""
         mock_request.return_value = self._mock_response(
             500, b'{"detail": "Error handling check_run rerun."}'
@@ -81,8 +84,20 @@ class ProcessGitHubWebhookEventTest(TestCase):
                     original_run_id=self.original_run_id,
                 )
 
+            # Verify metric is incremented exactly once (not double-counted)
+            mock_metrics.incr.assert_called()
+            incr_calls = [call for call in mock_metrics.incr.call_args_list]
+            outcome_calls = [call for call in incr_calls if "outcome" in str(call)]
+            assert (
+                len(outcome_calls) == 1
+            ), f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+            assert "HTTPError" in str(outcome_calls[0])
+
     @patch("sentry.seer.code_review.webhook_task.make_signed_seer_api_request")
-    def test_service_unavailable_response_raises_for_retry(self, mock_request: MagicMock) -> None:
+    @patch("sentry.seer.code_review.webhook_task.metrics")
+    def test_service_unavailable_response_raises_for_retry(
+        self, mock_metrics: MagicMock, mock_request: MagicMock
+    ) -> None:
         """Test that Seer 503 (service unavailable) responses are raised to trigger task retry."""
         mock_request.return_value = self._mock_response(503, b'{"detail": "Service unavailable"}')
 
@@ -97,8 +112,20 @@ class ProcessGitHubWebhookEventTest(TestCase):
                     original_run_id=self.original_run_id,
                 )
 
+            # Verify metric is incremented exactly once (not double-counted)
+            mock_metrics.incr.assert_called()
+            incr_calls = [call for call in mock_metrics.incr.call_args_list]
+            outcome_calls = [call for call in incr_calls if "outcome" in str(call)]
+            assert (
+                len(outcome_calls) == 1
+            ), f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+            assert "HTTPError" in str(outcome_calls[0])
+
     @patch("sentry.seer.code_review.webhook_task.make_signed_seer_api_request")
-    def test_rate_limit_response_raises_for_retry(self, mock_request: MagicMock) -> None:
+    @patch("sentry.seer.code_review.webhook_task.metrics")
+    def test_rate_limit_response_raises_for_retry(
+        self, mock_metrics: MagicMock, mock_request: MagicMock
+    ) -> None:
         """Test that Seer 429 (rate limit) responses are raised to trigger task retry."""
         mock_request.return_value = self._mock_response(429, b'{"detail": "Rate limit exceeded"}')
 
@@ -112,6 +139,15 @@ class ProcessGitHubWebhookEventTest(TestCase):
                     enqueued_at_str=self.enqueued_at_str,
                     original_run_id=self.original_run_id,
                 )
+
+            # Verify metric is incremented exactly once (not double-counted)
+            mock_metrics.incr.assert_called()
+            incr_calls = [call for call in mock_metrics.incr.call_args_list]
+            outcome_calls = [call for call in incr_calls if "outcome" in str(call)]
+            assert (
+                len(outcome_calls) == 1
+            ), f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+            assert "HTTPError" in str(outcome_calls[0])
 
     @patch("sentry.seer.code_review.webhook_task.make_signed_seer_api_request")
     @patch("sentry.seer.code_review.webhook_task.metrics")
@@ -136,12 +172,17 @@ class ProcessGitHubWebhookEventTest(TestCase):
             mock_metrics.incr.assert_called()
             incr_calls = [call for call in mock_metrics.incr.call_args_list]
             outcome_calls = [call for call in incr_calls if "outcome" in str(call)]
-            assert len(outcome_calls) > 0
+            assert (
+                len(outcome_calls) == 1
+            ), f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
             outcome_call = outcome_calls[0]
             assert "client_error" in str(outcome_call)
 
     @patch("sentry.seer.code_review.webhook_task.make_signed_seer_api_request")
-    def test_network_error_raises_for_retry(self, mock_request: MagicMock) -> None:
+    @patch("sentry.seer.code_review.webhook_task.metrics")
+    def test_network_error_raises_for_retry(
+        self, mock_metrics: MagicMock, mock_request: MagicMock
+    ) -> None:
         """Test that network errors are re-raised to trigger task retry."""
         from urllib3.exceptions import MaxRetryError
 
@@ -158,8 +199,20 @@ class ProcessGitHubWebhookEventTest(TestCase):
                     original_run_id=self.original_run_id,
                 )
 
+            # Verify metric is incremented exactly once (not double-counted)
+            mock_metrics.incr.assert_called()
+            incr_calls = [call for call in mock_metrics.incr.call_args_list]
+            outcome_calls = [call for call in incr_calls if "outcome" in str(call)]
+            assert (
+                len(outcome_calls) == 1
+            ), f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+            assert "MaxRetryError" in str(outcome_calls[0])
+
     @patch("sentry.seer.code_review.webhook_task.make_signed_seer_api_request")
-    def test_timeout_error_raises_for_retry(self, mock_request: MagicMock) -> None:
+    @patch("sentry.seer.code_review.webhook_task.metrics")
+    def test_timeout_error_raises_for_retry(
+        self, mock_metrics: MagicMock, mock_request: MagicMock
+    ) -> None:
         """Test that timeout errors are re-raised to trigger task retry."""
         from urllib3.exceptions import TimeoutError
 
@@ -176,8 +229,20 @@ class ProcessGitHubWebhookEventTest(TestCase):
                     original_run_id=self.original_run_id,
                 )
 
+            # Verify metric is incremented exactly once (not double-counted)
+            mock_metrics.incr.assert_called()
+            incr_calls = [call for call in mock_metrics.incr.call_args_list]
+            outcome_calls = [call for call in incr_calls if "outcome" in str(call)]
+            assert (
+                len(outcome_calls) == 1
+            ), f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+            assert "TimeoutError" in str(outcome_calls[0])
+
     @patch("sentry.seer.code_review.webhook_task.make_signed_seer_api_request")
-    def test_ssl_error_raises_for_retry(self, mock_request: MagicMock) -> None:
+    @patch("sentry.seer.code_review.webhook_task.metrics")
+    def test_ssl_error_raises_for_retry(
+        self, mock_metrics: MagicMock, mock_request: MagicMock
+    ) -> None:
         """Test that SSL errors are re-raised to trigger task retry."""
         from urllib3.exceptions import SSLError
 
@@ -194,8 +259,20 @@ class ProcessGitHubWebhookEventTest(TestCase):
                     original_run_id=self.original_run_id,
                 )
 
+            # Verify metric is incremented exactly once (not double-counted)
+            mock_metrics.incr.assert_called()
+            incr_calls = [call for call in mock_metrics.incr.call_args_list]
+            outcome_calls = [call for call in incr_calls if "outcome" in str(call)]
+            assert (
+                len(outcome_calls) == 1
+            ), f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+            assert "SSLError" in str(outcome_calls[0])
+
     @patch("sentry.seer.code_review.webhook_task.make_signed_seer_api_request")
-    def test_new_connection_error_raises_for_retry(self, mock_request: MagicMock) -> None:
+    @patch("sentry.seer.code_review.webhook_task.metrics")
+    def test_new_connection_error_raises_for_retry(
+        self, mock_metrics: MagicMock, mock_request: MagicMock
+    ) -> None:
         """Test that connection errors are re-raised to trigger task retry."""
         from urllib3.exceptions import NewConnectionError
 
@@ -212,8 +289,20 @@ class ProcessGitHubWebhookEventTest(TestCase):
                     original_run_id=self.original_run_id,
                 )
 
+            # Verify metric is incremented exactly once (not double-counted)
+            mock_metrics.incr.assert_called()
+            incr_calls = [call for call in mock_metrics.incr.call_args_list]
+            outcome_calls = [call for call in incr_calls if "outcome" in str(call)]
+            assert (
+                len(outcome_calls) == 1
+            ), f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+            assert "NewConnectionError" in str(outcome_calls[0])
+
     @patch("sentry.seer.code_review.webhook_task.make_signed_seer_api_request")
-    def test_network_error_not_logged_on_early_retry(self, mock_request: MagicMock) -> None:
+    @patch("sentry.seer.code_review.webhook_task.metrics")
+    def test_network_error_not_logged_on_early_retry(
+        self, mock_metrics: MagicMock, mock_request: MagicMock
+    ) -> None:
         """Test that network errors are raised on early retry attempts to trigger retry."""
         from urllib3.exceptions import TimeoutError
 
@@ -230,6 +319,18 @@ class ProcessGitHubWebhookEventTest(TestCase):
                     enqueued_at_str=self.enqueued_at_str,
                     original_run_id=self.original_run_id,
                 )
+
+            # Verify metric is incremented exactly once (not double-counted)
+            mock_metrics.incr.assert_called()
+            incr_calls = [call for call in mock_metrics.incr.call_args_list]
+            outcome_calls = [call for call in incr_calls if "outcome" in str(call)]
+            assert (
+                len(outcome_calls) == 1
+            ), f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+            assert "TimeoutError" in str(outcome_calls[0])
+
+            # Verify latency is NOT recorded on early retries (retries < MAX_RETRIES - 1)
+            mock_metrics.timing.assert_not_called()
 
     @patch("sentry.seer.code_review.webhook_task.make_signed_seer_api_request")
     @patch("sentry.seer.code_review.webhook_task.metrics")
@@ -255,7 +356,9 @@ class ProcessGitHubWebhookEventTest(TestCase):
             mock_metrics.incr.assert_called()
             incr_calls = [call for call in mock_metrics.incr.call_args_list]
             outcome_calls = [call for call in incr_calls if "outcome" in str(call)]
-            assert len(outcome_calls) > 0
+            assert (
+                len(outcome_calls) == 1
+            ), f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
             outcome_call = outcome_calls[0]
             assert "unexpected_error_ValueError" in str(outcome_call)
 
