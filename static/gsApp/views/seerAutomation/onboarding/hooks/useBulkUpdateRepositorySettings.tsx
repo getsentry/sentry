@@ -2,9 +2,12 @@ import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import {
   fetchMutation,
   useMutation,
+  useQueryClient,
   type UseMutationOptions,
 } from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+
+import {getRepositoryWithSettingsQueryKey} from 'getsentry/views/seerAutomation/onboarding/hooks/useRepositoryWithSettings';
 
 type RepositorySettings =
   | {
@@ -29,6 +32,7 @@ export function useBulkUpdateRepositorySettings(
     'mutationFn'
   >
 ) {
+  const queryClient = useQueryClient();
   const organization = useOrganization();
 
   return useMutation<RepositoryWithSettings[], Error, RepositorySettings, unknown>({
@@ -37,6 +41,16 @@ export function useBulkUpdateRepositorySettings(
         method: 'PUT',
         url: `/organizations/${organization.slug}/repos/settings/`,
         data,
+      });
+    },
+    onSettled: data => {
+      queryClient.invalidateQueries({
+        queryKey: [`/organizations/${organization.slug}/repos/`],
+      });
+      (data ?? []).forEach(repo => {
+        queryClient.invalidateQueries({
+          queryKey: getRepositoryWithSettingsQueryKey(organization, repo.id),
+        });
       });
     },
     ...options,
