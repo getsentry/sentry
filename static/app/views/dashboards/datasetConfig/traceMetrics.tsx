@@ -111,10 +111,14 @@ function useTraceMetricsSearchBarDataProvider(
 ): SearchBarData {
   const {pageFilters, widgetQuery} = props;
   const hasTraceMetricsDashboards = useHasTraceMetricsDashboards();
+  const {state: widgetBuilderState} = useWidgetBuilderContext();
+
+  const traceMetric = widgetBuilderState.traceMetric ?? {name: '', type: ''};
 
   const traceItemAttributeConfig = {
     traceItemType: TraceItemDataset.TRACEMETRICS,
     enabled: hasTraceMetricsDashboards,
+    query: createTraceMetricFilter(traceMetric),
   };
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
