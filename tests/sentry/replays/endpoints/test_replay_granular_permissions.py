@@ -197,6 +197,24 @@ class TestReplayGranularPermissions(APITestCase):
             response = self.client.get(url)
             assert response.status_code == 200
 
+    def test_inactive_superuser_does_not_have_access(self) -> None:
+        """Superuser without active superuser session cannot bypass granular permissions"""
+        superuser = self.create_user(is_superuser=True)
+        self.create_member(organization=self.organization, user=superuser)
+
+        with self.feature(
+            ["organizations:session-replay", "organizations:granular-replay-permissions"]
+        ):
+            self._enable_granular_permissions()
+            OrganizationMemberReplayAccess.objects.create(
+                organizationmember=self.member_with_access
+            )
+
+            self.login_as(superuser)
+            url = f"/api/0/organizations/{self.organization.slug}/replays/"
+            response = self.client.get(url)
+            assert response.status_code == 403
+
     def test_staff_always_has_access(self) -> None:
         """Staff can access replay data even when not in allowlist"""
         staff_user = self.create_user(is_staff=True)
