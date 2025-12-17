@@ -5,12 +5,14 @@ import {Alert} from '@sentry/scraps/alert/alert';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
+import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
+import {useSeerOnboardingStep} from 'getsentry/views/seerAutomation/onboarding/hooks/useSeerOnboardingStep';
 
 import {SeerOnboardingProvider} from './hooks/seerOnboardingContext';
 import {StepsManager} from './stepsManager';
@@ -18,6 +20,7 @@ import {StepsManager} from './stepsManager';
 export default function SeerOnboardingSeatBased() {
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
+  const {isPending, initialStep} = useSeerOnboardingStep();
 
   if (!canWrite) {
     return (
@@ -39,9 +42,13 @@ export default function SeerOnboardingSeatBased() {
 
       <NoProjectMessage organization={organization}>
         <SeerOnboardingProvider>
-          <StyledGuidedSteps>
-            <StepsManager />
-          </StyledGuidedSteps>
+          {isPending ? (
+            <Placeholder />
+          ) : (
+            <StyledGuidedSteps initialStep={initialStep}>
+              <StepsManager />
+            </StyledGuidedSteps>
+          )}
         </SeerOnboardingProvider>
       </NoProjectMessage>
     </Fragment>

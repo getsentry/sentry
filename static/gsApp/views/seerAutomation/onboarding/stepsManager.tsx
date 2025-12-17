@@ -1,12 +1,9 @@
-import {Fragment, useCallback, useEffect} from 'react';
+import {Fragment} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Alert} from '@sentry/scraps/alert';
 
-import {
-  GuidedSteps,
-  useGuidedStepsContext,
-} from 'sentry/components/guidedSteps/guidedSteps';
+import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import {t} from 'sentry/locale';
 
 import {useSeerOnboardingContext} from 'getsentry/views/seerAutomation/onboarding/hooks/seerOnboardingContext';
@@ -19,34 +16,7 @@ import {ConnectGithubStep} from './connectGithubStep';
 import {NextStepsStep} from './nextStepsStep';
 
 export function StepsManager() {
-  const {currentStep, setCurrentStep} = useGuidedStepsContext();
-
-  const {provider, isProviderPending, installationData, isInstallationPending} =
-    useSeerOnboardingContext();
-
-  const handleStepChange = useCallback(
-    (newStep: number) => {
-      setCurrentStep(newStep);
-    },
-    [setCurrentStep]
-  );
-
-  useEffect(() => {
-    // If we have *any* valid GitHub installations, we can skip to next step
-    if (
-      currentStep === 1 &&
-      !isInstallationPending &&
-      installationData?.find(installation => installation.provider.key === 'github')
-    ) {
-      handleStepChange(2);
-    }
-  }, [
-    currentStep,
-    isInstallationPending,
-    installationData,
-    handleStepChange,
-    setCurrentStep,
-  ]);
+  const {provider, isProviderPending, isInstallationPending} = useSeerOnboardingContext();
 
   if (!isInstallationPending && !isProviderPending && !provider) {
     Sentry.logger.error('Seer: No valid integration found for Seer onboarding');
