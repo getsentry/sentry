@@ -34,11 +34,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupinbox import GroupInboxReason, InboxReasonDetails, add_group_to_inbox
 from sentry.search.eap.occurrences.common_queries import count_occurrences
-from sentry.search.eap.occurrences.rollout_utils import (
-    should_callsite_use_eap_data_in_read,
-    should_double_read_from_eap,
-    validate_read,
-)
+from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.services.eventstore.models import GroupEvent
 from sentry.signals import issue_escalating
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -319,12 +315,11 @@ def is_escalating(group: Group) -> tuple[bool, int | None]:
     snuba_count = get_group_hourly_count_snuba(group)
     group_hourly_count = snuba_count
 
-    if should_double_read_from_eap():
+    if EAPOccurrencesComparator.should_check_experiment("issues.escalating.is_escalating"):
         eap_count = get_group_hourly_count_eap(group)
-        validate_read(snuba_count, eap_count, "issues.escalating.is_escalating")
-
-        if should_callsite_use_eap_data_in_read("issues.escalating.is_escalating"):
-            group_hourly_count = eap_count
+        group_hourly_count = EAPOccurrencesComparator.check_and_choose(
+            snuba_count, eap_count, "issues.escalating.is_escalating"
+        )
 
     forecast_today = EscalatingGroupForecast.fetch_todays_forecast(group.project.id, group.id)
     # Check if current event occurrence is greater than forecast for today's date
