@@ -28,6 +28,7 @@ import type {
   MotionEasing,
   TagVariant,
 } from './types';
+type Tokens = typeof baseDarkTheme.tokens | typeof baseLightTheme.tokens;
 
 type MotionDefinition = Record<MotionDuration, string>;
 
@@ -211,7 +212,7 @@ const generateThemePrismVariables = (
 const generateButtonTheme = (
   colors: Colors,
   alias: Aliases,
-  tokens: ReturnType<typeof generateChonkTokens>
+  tokens: Tokens
 ): ButtonColors => ({
   default: {
     // all alias-based, already derived from new theme
@@ -321,10 +322,7 @@ const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
   },
 });
 
-const generateLevelTheme = (
-  tokens: ReturnType<typeof generateChonkTokens>,
-  mode: 'light' | 'dark'
-): LevelColors => ({
+const generateLevelTheme = (tokens: Tokens, mode: 'light' | 'dark'): LevelColors => ({
   sample: tokens.graphics.accent,
   info: tokens.graphics.accent,
   // BAD: accessing named colors is forbidden
@@ -969,57 +967,6 @@ function makeChartColorPalette<T extends ChartColorPalette>(
   };
 }
 
-// @TODO(jonasbadalic): eventually, we should port component usage to these values
-function generateChonkTokens(colorScheme: typeof lightColors) {
-  return {
-    content: {
-      primary: colorScheme.gray800,
-      muted: colorScheme.gray500,
-      accent: colorScheme.blue500,
-      promotion: colorScheme.pink500,
-      danger: colorScheme.red500,
-      warning: colorScheme.yellow500,
-      success: colorScheme.green500,
-    },
-    graphics: {
-      muted: colorScheme.gray400,
-      accent: colorScheme.blue400,
-      promotion: colorScheme.pink400,
-      danger: colorScheme.red400,
-      warning: colorScheme.yellow400,
-      success: colorScheme.green400,
-    },
-    background: {
-      primary: colorScheme.surface500,
-      secondary: colorScheme.surface400,
-      tertiary: colorScheme.surface300,
-    },
-    border: {
-      primary: colorScheme.surface100,
-      muted: colorScheme.surface200,
-      accent: colorScheme.blue400,
-      promotion: colorScheme.pink400,
-      danger: colorScheme.red400,
-      warning: colorScheme.yellow400,
-      success: colorScheme.green400,
-    },
-    component: {
-      link: {
-        muted: {
-          default: colorScheme.gray500,
-          hover: colorScheme.gray600,
-          active: colorScheme.gray700,
-        },
-        accent: {
-          default: colorScheme.blue500,
-          hover: colorScheme.blue600,
-          active: colorScheme.blue700,
-        },
-      },
-    },
-  };
-}
-
 const lightColors = {
   black: color.black,
   white: color.white,
@@ -1219,14 +1166,11 @@ const darkShadows = {
   dropShadowHeavyTop: '0 -4px 24px rgba(10, 8, 12, 0.36)',
 };
 
-const generateAliases = (
-  tokens: ReturnType<typeof generateChonkTokens>,
-  colors: typeof lightColors
-) => ({
+const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
   /**
    * Text that should not have as much emphasis
    */
-  subText: tokens.content.muted,
+  subText: tokens.content.secondary,
 
   /**
    * Primary background color
@@ -1252,13 +1196,13 @@ const generateAliases = (
    * Primary border color
    */
   border: tokens.border.primary,
-  translucentBorder: tokens.border.primary,
+  translucentBorder: tokens.border.transparent.neutral.moderate,
 
   /**
    * Inner borders, e.g. borders inside of a grid
    */
-  innerBorder: tokens.border.muted,
-  translucentInnerBorder: tokens.border.muted,
+  innerBorder: tokens.border.secondary,
+  translucentInnerBorder: tokens.border.transparent.neutral.moderate,
 
   /**
    * A color that denotes a "success", or something good
@@ -1355,11 +1299,8 @@ const generateAliases = (
   },
 });
 
-const lightTokens = generateChonkTokens(lightColors);
-const darkTokens = generateChonkTokens(darkColors);
-
-const lightAliases = generateAliases(lightTokens, lightColors);
-const darkAliases = generateAliases(generateChonkTokens(darkColors), darkColors);
+const lightAliases = generateAliases(baseLightTheme.tokens, lightColors);
+const darkAliases = generateAliases(baseDarkTheme.tokens, darkColors);
 
 const deprecatedColorMappings = (colors: Colors) => ({
   /** @deprecated */
@@ -1511,9 +1452,9 @@ const lightThemeDefinition = {
   // @TODO: these colors need to be ported
   ...generateThemeUtils(deprecatedColorMappings(lightColors), lightAliases),
   alert: generateAlertTheme(lightColors, lightAliases),
-  button: generateButtonTheme(lightColors, lightAliases, lightTokens),
+  button: generateButtonTheme(lightColors, lightAliases, baseLightTheme.tokens),
   tag: generateTagTheme(lightColors),
-  level: generateLevelTheme(lightTokens, 'light'),
+  level: generateLevelTheme(baseLightTheme.tokens, 'light'),
 
   chart: {
     neutral: modifyColor(lightColors.gray400).lighten(0.8).toString(),
@@ -1559,13 +1500,13 @@ export const darkTheme = {
   // @TODO: these colors need to be ported
   ...generateThemeUtils(deprecatedColorMappings(darkColors), darkAliases),
   alert: generateAlertTheme(darkColors, darkAliases),
-  button: generateButtonTheme(darkColors, darkAliases, darkTokens),
+  button: generateButtonTheme(darkColors, darkAliases, baseDarkTheme.tokens),
   tag: generateTagTheme(darkColors),
-  level: generateLevelTheme(darkTokens, 'dark'),
+  level: generateLevelTheme(baseDarkTheme.tokens, 'dark'),
 
   chart: {
-    neutral: modifyColor(darkColors.gray400).darken(0.35).toString(),
-    colors: CHART_PALETTE_DARK,
+    neutral: baseDarkTheme.tokens.dataviz.semantic.neutral,
+    colors: baseDarkTheme.tokens.dataviz.categorical,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
   },
 
