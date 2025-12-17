@@ -973,10 +973,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "crons:sentry.monitors.tasks.detect_broken_monitor_envs",
         "schedule": task_crontab("0", "15", "mon-fri", "*", "*"),
     },
-    "uptime-write-pending-misses": {
-        "task": "uptime_tasks:sentry.uptime.tasks.write_pending_missed_checks",
-        "schedule": timedelta(minutes=1),
-    },
     "clear-expired-snoozes": {
         "task": "issues:sentry.tasks.clear_expired_snoozes",
         "schedule": task_crontab("*/5", "*", "*", "*", "*"),
@@ -1045,6 +1041,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "uptime-broken-monitor-checker": {
         "task": "uptime:sentry.uptime.tasks.broken_monitor_checker",
         "schedule": task_crontab("0", "*/1", "*", "*", "*"),
+    },
+    "uptime-write-pending-misses": {
+        "task": "uptime_tasks:sentry.uptime.tasks.write_pending_missed_checks",
+        "schedule": timedelta(minutes=1),
     },
     "poll_tempest": {
         "task": "tempest:sentry.tempest.tasks.poll_tempest",

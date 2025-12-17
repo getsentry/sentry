@@ -45,7 +45,7 @@ def _write_pending_missed_checks():
     pending_misses_key = build_pending_misses_key()
     current_time_ms = datetime.now(timezone.utc).timestamp() * 1000
 
-    ready_entries = cluster.zrangebyscore(
+    ready_entries: list[tuple[str, float]] = cluster.zrangebyscore(
         pending_misses_key, "-inf", current_time_ms, withscores=True
     )
 
