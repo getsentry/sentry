@@ -23,9 +23,9 @@ interface UseAITraceResult {
 }
 
 /**
- * Additional attributes to fetch for AI trace spans
+ * Base attributes needed for AI trace display
  */
-export const AI_TRACE_ADDITIONAL_ATTRIBUTES = [
+export const AI_TRACE_BASE_ATTRIBUTES = [
   SpanFields.GEN_AI_AGENT_NAME,
   SpanFields.GEN_AI_FUNCTION_ID,
   SpanFields.GEN_AI_REQUEST_MODEL,
@@ -35,12 +35,18 @@ export const AI_TRACE_ADDITIONAL_ATTRIBUTES = [
   SpanFields.GEN_AI_TOOL_NAME,
   SpanFields.GEN_AI_OPERATION_TYPE,
   SpanFields.GEN_AI_OPERATION_NAME,
+  SpanFields.SPAN_STATUS,
+  'status',
+];
+
+/**
+ * Additional attributes needed for conversation messages display
+ */
+export const AI_CONVERSATION_ATTRIBUTES = [
   SpanFields.GEN_AI_CONVERSATION_ID,
   SpanFields.GEN_AI_REQUEST_MESSAGES,
   SpanFields.GEN_AI_RESPONSE_TEXT,
   SpanFields.GEN_AI_RESPONSE_OBJECT,
-  SpanFields.SPAN_STATUS,
-  'status',
 ];
 
 /**
@@ -100,7 +106,7 @@ export function useAITrace(traceSlug: string, timestamp?: number): UseAITraceRes
   const trace = useTrace({
     traceSlug,
     timestamp,
-    additionalAttributes: AI_TRACE_ADDITIONAL_ATTRIBUTES,
+    additionalAttributes: AI_TRACE_BASE_ATTRIBUTES,
   });
 
   useEffect(() => {

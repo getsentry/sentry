@@ -6,7 +6,8 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
-  AI_TRACE_ADDITIONAL_ATTRIBUTES,
+  AI_CONVERSATION_ATTRIBUTES,
+  AI_TRACE_BASE_ATTRIBUTES,
   processTraceForAINodes,
 } from 'sentry/views/insights/pages/agents/hooks/useAITrace';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
@@ -62,7 +63,10 @@ export function useConversation(
       {
         query: {
           project: -1,
-          additional_attributes: AI_TRACE_ADDITIONAL_ATTRIBUTES,
+          additional_attributes: [
+            ...AI_TRACE_BASE_ATTRIBUTES,
+            ...AI_CONVERSATION_ATTRIBUTES,
+          ],
           statsPeriod: selection.datetime.period,
         },
       },
