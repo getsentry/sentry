@@ -5,7 +5,6 @@ import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
@@ -25,39 +24,11 @@ const SPANS = 'spans';
 
 export function SamplesTables({transactionName}: any) {
   const [sampleType, setSampleType] = useState<typeof EVENT | typeof SPANS>(SPANS);
-  const {primaryRelease, secondaryRelease} = useReleaseSelection();
+  const {primaryRelease} = useReleaseSelection();
   const organization = useOrganization();
 
   const content = useMemo(() => {
     if (sampleType === EVENT) {
-      if (defined(primaryRelease) && defined(secondaryRelease)) {
-        return (
-          <EventSplitContainer>
-            <ErrorBoundary mini>
-              <div>
-                <EventSamples
-                  cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
-                  sortKey={MobileSortKeys.RELEASE_1_EVENT_SAMPLE_TABLE}
-                  release={primaryRelease}
-                  transaction={transactionName}
-                  footerAlignedPagination
-                />
-              </div>
-            </ErrorBoundary>
-            <ErrorBoundary mini>
-              <div>
-                <EventSamples
-                  cursorName={MobileCursors.RELEASE_2_EVENT_SAMPLE_TABLE}
-                  sortKey={MobileSortKeys.RELEASE_2_EVENT_SAMPLE_TABLE}
-                  release={secondaryRelease}
-                  transaction={transactionName}
-                  footerAlignedPagination
-                />
-              </div>
-            </ErrorBoundary>
-          </EventSplitContainer>
-        );
-      }
       return (
         <ErrorBoundary mini>
           <EventSamples
@@ -76,11 +47,10 @@ export function SamplesTables({transactionName}: any) {
         <SpanOperationTable
           transaction={transactionName}
           primaryRelease={primaryRelease}
-          secondaryRelease={secondaryRelease}
         />
       </ErrorBoundary>
     );
-  }, [primaryRelease, sampleType, secondaryRelease, transactionName]);
+  }, [primaryRelease, sampleType, transactionName]);
 
   return (
     <div>
@@ -90,7 +60,6 @@ export function SamplesTables({transactionName}: any) {
             <SpanOpSelector
               primaryRelease={primaryRelease}
               transaction={transactionName}
-              secondaryRelease={secondaryRelease}
             />
           )}
           <DeviceClassSelector
@@ -119,12 +88,6 @@ export function SamplesTables({transactionName}: any) {
     </div>
   );
 }
-
-const EventSplitContainer = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${space(1.5)};
-`;
 
 const Controls = styled('div')`
   display: flex;

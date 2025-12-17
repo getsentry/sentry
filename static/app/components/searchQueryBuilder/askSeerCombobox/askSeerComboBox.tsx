@@ -516,7 +516,7 @@ const Wrapper = styled(Input.withComponent('div'))<{isDropdownOpen: boolean}>`
 const PositionedSearchIconContainer = styled('div')`
   position: absolute;
   left: ${p => p.theme.space.lg};
-  top: ${p => (p.theme.isChonk ? p.theme.space.sm : p.theme.space.md)};
+  top: ${p => p.theme.space.sm};
 `;
 
 const SearchIcon = styled(IconSearch)`
@@ -577,7 +577,7 @@ const SeerFooter = styled('div')`
   justify-content: flex-end;
   padding: ${p => p.theme.space.md};
   border-top: 1px solid ${p => p.theme.border};
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 const SeerContent = styled('div')`

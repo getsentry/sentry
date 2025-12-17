@@ -77,10 +77,11 @@ import {
   convertTableDataToTabularData,
   decodeColumnAliases,
 } from 'sentry/views/dashboards/widgets/tableWidget/utils';
+import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWidget/wheelWidgetVisualization';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
-import {type SpanResponse} from 'sentry/views/insights/types';
+import type {SpanResponse} from 'sentry/views/insights/types';
 
 import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
 
@@ -210,6 +211,15 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     );
   }
 
+  if (widget.displayType === DisplayType.WHEEL) {
+    return (
+      <TransitionChart loading={loading} reloading={loading}>
+        <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
+        <WheelComponent tableResults={tableResults} {...props} />
+      </TransitionChart>
+    );
+  }
+
   const {start, end, period, utc} = selection.datetime;
   const {projects, environments} = selection;
 
@@ -224,7 +234,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     : [];
   // TODO(wmak): Need to change this when updating dashboards to support variable topEvents
   if (shouldColorOther) {
-    colors[colors.length] = theme.chartOther;
+    colors[colors.length] = theme.tokens.content.muted;
   }
 
   // Create a list of series based on the order of the fields,
@@ -356,7 +366,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     },
     yAxis: {
       axisLabel: {
-        color: theme.chartLabel,
+        color: theme.tokens.content.muted,
         formatter: (value: number) => {
           if (timeseriesResultsTypes) {
             return axisLabelFormatterUsingAggregateOutputType(
@@ -687,6 +697,16 @@ function DetailsComponent(props: TableComponentProps): React.ReactNode {
   }
 
   return <DetailsWidgetVisualization span={singleSpan} />;
+}
+
+function WheelComponent(props: TableComponentProps): React.ReactNode {
+  return (
+    <WheelWidgetVisualization
+      tableResults={props.tableResults}
+      loading={props.loading}
+      selection={props.selection}
+    />
+  );
 }
 
 function getChartComponent(chartProps: any, widget: Widget): React.ReactNode {

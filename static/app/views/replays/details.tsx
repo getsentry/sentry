@@ -6,6 +6,10 @@ import AnalyticsArea from 'sentry/components/analyticsArea';
 import {Flex} from 'sentry/components/core/layout';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {
+  ReplayAccess,
+  ReplayAccessFallbackAlert,
+} from 'sentry/components/replays/replayAccess';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -26,6 +30,25 @@ import ReplayDetailsUserBadge from 'sentry/views/replays/detail/header/replayDet
 import ReplayDetailsPage from 'sentry/views/replays/detail/page';
 
 export default function ReplayDetails() {
+  return (
+    <AnalyticsArea name="details">
+      <ReplayAccess
+        fallback={
+          <Fragment>
+            <NewTopHeader>{t('Replay Details')}</NewTopHeader>
+            <Layout.Body>
+              <ReplayAccessFallbackAlert />
+            </Layout.Body>
+          </Fragment>
+        }
+      >
+        <ReplayDetailsContent />
+      </ReplayAccess>
+    </AnalyticsArea>
+  );
+}
+
+function ReplayDetailsContent() {
   const user = useUser();
   const location = useLocation();
   const organization = useOrganization();
@@ -81,23 +104,19 @@ export default function ReplayDetails() {
       <ReplayDetailsPage readerResult={readerResult} />
     </Fragment>
   );
+
   return (
-    <AnalyticsArea name="details">
-      <SentryDocumentTitle title={title}>
-        <FullViewport>
-          {replay ? (
-            <ReplayDetailsProviders
-              replay={replay}
-              projectSlug={readerResult.projectSlug}
-            >
-              {content}
-            </ReplayDetailsProviders>
-          ) : (
-            content
-          )}
-        </FullViewport>
-      </SentryDocumentTitle>
-    </AnalyticsArea>
+    <SentryDocumentTitle title={title}>
+      <FullViewport>
+        {replay ? (
+          <ReplayDetailsProviders replay={replay} projectSlug={readerResult.projectSlug}>
+            {content}
+          </ReplayDetailsProviders>
+        ) : (
+          content
+        )}
+      </FullViewport>
+    </SentryDocumentTitle>
   );
 }
 

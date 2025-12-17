@@ -11,6 +11,7 @@ const MOCK_UNITY_CONTEXT = {
   copy_texture_support: 'Basic, Copy3D, DifferentTypes, TextureToRT, RTToTexture',
   editor_version: '2022.1.23f1',
   install_mode: 'Store',
+  is_main_thread: true,
   rendering_threading_mode: 'LegacyJobified',
   target_frame_rate: '-1',
   // Extra data is still valid and preserved
@@ -45,6 +46,7 @@ describe('UnityContext', () => {
         value: '2022.1.23f1',
       },
       {key: 'install_mode', subject: 'Install Mode', value: 'Store'},
+      {key: 'is_main_thread', subject: 'Is Main Thread', value: true},
       {
         key: 'rendering_threading_mode',
         subject: 'Rendering Threading Mode',

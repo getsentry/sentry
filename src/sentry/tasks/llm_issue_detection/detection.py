@@ -8,6 +8,7 @@ from uuid import uuid4
 import sentry_sdk
 from django.conf import settings
 from pydantic import BaseModel, ValidationError
+from urllib3 import Retry
 
 from sentry import features, options
 from sentry.constants import VALID_PLATFORMS
@@ -29,7 +30,7 @@ logger = logging.getLogger("sentry.tasks.llm_issue_detection")
 
 SEER_ANALYZE_ISSUE_ENDPOINT_PATH = "/v1/automation/issue-detection/analyze"
 SEER_TIMEOUT_S = 180
-SEER_RETRIES = 1
+SEER_RETRIES = Retry(total=1, backoff_factor=2, status_forcelist=[408, 429, 502, 503, 504])
 START_TIME_DELTA_MINUTES = 30
 TRANSACTION_BATCH_SIZE = 100
 NUM_TRANSACTIONS_TO_PROCESS = 20
@@ -51,6 +52,9 @@ class DetectedIssue(BaseModel):
     missing_telemetry: str | None = None
     offender_span_ids: list[str]
     title: str
+    subcategory: str
+    category: str
+    verification_reason: str | None = None
     # context fields, not LLM generated
     trace_id: str
     transaction_name: str
@@ -58,6 +62,7 @@ class DetectedIssue(BaseModel):
 
 class IssueDetectionResponse(BaseModel):
     issues: list[DetectedIssue]
+    traces_analyzed: int
 
 
 class IssueDetectionRequest(BaseModel):
@@ -67,22 +72,7 @@ class IssueDetectionRequest(BaseModel):
 
 
 class LLMIssueDetectionError(Exception):
-    def __init__(
-        self,
-        message: str,
-        status: int | None,
-        project_id: int | None = None,
-        organization_id: int | None = None,
-        response_data: str | None = None,
-        error_message: str | None = None,
-    ):
-        super().__init__(message)
-        self.message = message
-        self.status = status
-        self.project_id = project_id
-        self.organization_id = organization_id
-        self.response_data = response_data
-        self.error_message = error_message
+    pass
 
 
 def get_base_platform(platform: str | None) -> str | None:
@@ -206,15 +196,18 @@ def run_llm_issue_detection() -> None:
     if not enabled_project_ids:
         return
 
-    # Spawn a sub-task for each project
-    for project_id in enabled_project_ids:
-        detect_llm_issues_for_project.delay(project_id)
+    # Spawn a sub-task for each project with staggered delays
+    for index, project_id in enumerate(enabled_project_ids):
+        detect_llm_issues_for_project.apply_async(
+            args=[project_id],
+            countdown=index * 60,
+        )
 
 
 @instrumented_task(
     name="sentry.tasks.llm_issue_detection.detect_llm_issues_for_project",
     namespace=issues_tasks,
-    processing_deadline_duration=300,
+    processing_deadline_duration=10 * 60,
 )
 def detect_llm_issues_for_project(project_id: int) -> None:
     """
@@ -243,19 +236,14 @@ def detect_llm_issues_for_project(project_id: int) -> None:
 
     # Shuffle to randomize order
     random.shuffle(evidence_traces)
-    selections = evidence_traces[:NUM_TRANSACTIONS_TO_PROCESS]
-    logger.info(
-        "Sending traces to analyze",
-        extra={
-            "total_sent_for_analysis": len(selections),
-            "organization_id": organization_id,
-            "project_id": project_id,
-        },
-    )
+    processed_traces = 0
 
-    for evidence_trace in selections:
+    for trace in evidence_traces:
+        if processed_traces >= NUM_TRANSACTIONS_TO_PROCESS:
+            break
+
         seer_request = IssueDetectionRequest(
-            traces=[evidence_trace],
+            traces=[trace],
             organization_id=organization_id,
             project_id=project_id,
         )
@@ -267,24 +255,30 @@ def detect_llm_issues_for_project(project_id: int) -> None:
                 body=json.dumps(seer_request.dict()).encode("utf-8"),
             )
         except Exception as network_error:
-            e = LLMIssueDetectionError(
-                message="Seer network error",
-                status=None,
-                project_id=project_id,
-                organization_id=organization_id,
-                response_data=None,
-                error_message=str(network_error),
+            e = LLMIssueDetectionError("Seer network error")
+            sentry_sdk.set_context(
+                "error_details",
+                {
+                    "project_id": project_id,
+                    "organization_id": organization_id,
+                    "status": None,
+                    "response_data": None,
+                    "error_message": str(network_error),
+                },
             )
             sentry_sdk.capture_exception(e)
             continue
 
         if response.status < 200 or response.status >= 300:
-            e = LLMIssueDetectionError(
-                message="Seer HTTP error",
-                status=response.status,
-                project_id=project_id,
-                organization_id=organization_id,
-                response_data=response.data.decode("utf-8"),
+            e = LLMIssueDetectionError("Seer HTTP error")
+            sentry_sdk.set_context(
+                "error_details",
+                {
+                    "project_id": project_id,
+                    "organization_id": organization_id,
+                    "status": response.status,
+                    "response_data": response.data.decode("utf-8"),
+                },
             )
             sentry_sdk.capture_exception(e)
             continue
@@ -293,18 +287,24 @@ def detect_llm_issues_for_project(project_id: int) -> None:
             raw_response_data = response.json()
             response_data = IssueDetectionResponse.parse_obj(raw_response_data)
         except (ValueError, TypeError, ValidationError) as parse_error:
-            e = LLMIssueDetectionError(
-                message="Seer response parsing error",
-                status=response.status,
-                project_id=project_id,
-                organization_id=organization_id,
-                response_data=response.data.decode("utf-8"),
-                error_message=str(parse_error),
+            e = LLMIssueDetectionError("Seer response parsing error")
+            sentry_sdk.set_context(
+                "error_details",
+                {
+                    "project_id": project_id,
+                    "organization_id": organization_id,
+                    "status": response.status,
+                    "response_data": response.data.decode("utf-8"),
+                    "error_message": str(parse_error),
+                },
             )
-            sentry_sdk.capture_exception(e)
+            sentry_sdk.capture_exception(
+                e,
+            )
             continue
 
         n_found_issues = len(response_data.issues)
+        processed_traces += response_data.traces_analyzed
         logger.info(
             "Seer issue detection success",
             extra={
@@ -323,14 +323,25 @@ def detect_llm_issues_for_project(project_id: int) -> None:
                     detected_issue=detected_issue,
                     project_id=project_id,
                 )
+                logger.info(
+                    "LLM Issue Detection Category",
+                    extra={
+                        "category": detected_issue.category,
+                        "subcategory": detected_issue.subcategory,
+                        "verification_reason": detected_issue.verification_reason,
+                    },
+                )
             except Exception as issue_creation_exception:
-                e = LLMIssueDetectionError(
-                    message="Error creating issue occurrence",
-                    status=None,
-                    project_id=project_id,
-                    organization_id=organization_id,
-                    response_data=detected_issue.title,
-                    error_message=str(issue_creation_exception),
+                e = LLMIssueDetectionError("Error creating issue occurrence")
+                sentry_sdk.set_context(
+                    "error_details",
+                    {
+                        "project_id": project_id,
+                        "organization_id": organization_id,
+                        "status": None,
+                        "response_data": detected_issue.title,
+                        "error_message": str(issue_creation_exception),
+                    },
                 )
                 sentry_sdk.capture_exception(e)
                 continue

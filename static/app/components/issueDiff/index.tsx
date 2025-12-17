@@ -1,220 +1,206 @@
-import {Component} from 'react';
-import isPropValid from '@emotion/is-prop-valid';
+import {lazy, useEffect, useMemo, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {useQuery} from '@tanstack/react-query';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {Client} from 'sentry/api';
 import {isStacktraceNewestFirst} from 'sentry/components/events/interfaces/utils';
+import LazyLoad from 'sentry/components/lazyLoad';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import type SplitDiff from 'sentry/components/splitDiff';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
+import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import getStacktraceBody from 'sentry/utils/getStacktraceBody';
-import withApi from 'sentry/utils/withApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 
-const defaultProps = {
-  baseEventId: 'latest',
-  targetEventId: 'latest',
-};
+const SplitDiffLazy = lazy(() => import('../splitDiff'));
 
-type DefaultProps = typeof defaultProps;
-
-type Props = {
-  api: Client;
+interface IssueDiffProps {
   baseIssueId: string;
-  location: Location;
-  orgId: string;
-  project: Project;
   targetIssueId: string;
   baseEventId?: string;
-  className?: string;
   hasSimilarityEmbeddingsProjectFeature?: boolean;
-  organization?: Organization;
   shouldBeGrouped?: string;
   targetEventId?: string;
-};
+}
 
-type State = {
-  baseEvent: string[];
-  loading: boolean;
-  newestFirst: boolean;
-  targetEvent: string[];
-  SplitDiffAsync?: typeof SplitDiff;
-};
+export function IssueDiff({
+  baseIssueId,
+  targetIssueId,
+  baseEventId = 'latest',
+  targetEventId = 'latest',
+  hasSimilarityEmbeddingsProjectFeature,
+  shouldBeGrouped,
+}: IssueDiffProps) {
+  const organization = useOrganization();
+  const location = useLocation();
+  const hasTrackedAnalytics = useRef(false);
 
-class IssueDiff extends Component<Props, State> {
-  static defaultProps: DefaultProps = defaultProps;
+  const hasSimilarityEmbeddingsFeature =
+    hasSimilarityEmbeddingsProjectFeature || location.query.similarityEmbeddings === '1';
 
-  state: State = {
-    loading: true,
-    baseEvent: [],
-    newestFirst: false,
-    targetEvent: [],
+  const newestFirst = isStacktraceNewestFirst();
 
-    // `SplitDiffAsync` is an async-loaded component
-    // This will eventually contain a reference to the exported component from `./splitDiff`
-    SplitDiffAsync: undefined,
-  };
+  const baseLatestQuery = useQuery({
+    ...apiOptions.as<{eventID: string}>()('/issues/$issueId/events/$eventId/', {
+      path: {
+        issueId: baseIssueId,
+        eventId: 'latest',
+      },
+      staleTime: 60_000,
+    }),
+    enabled: baseEventId === 'latest',
+  });
 
-  componentDidMount() {
-    this.fetchData();
-  }
+  const targetLatestQuery = useQuery({
+    ...apiOptions.as<{eventID: string}>()('/issues/$issueId/events/$eventId/', {
+      path: {
+        issueId: targetIssueId,
+        eventId: 'latest',
+      },
+      staleTime: 60_000,
+    }),
+    enabled: targetEventId === 'latest',
+  });
 
-  fetchData() {
-    const {
-      baseIssueId,
-      targetIssueId,
-      baseEventId,
-      targetEventId,
-      organization,
-      shouldBeGrouped,
-      location,
-      hasSimilarityEmbeddingsProjectFeature,
-    } = this.props;
-    const hasSimilarityEmbeddingsFeature =
-      hasSimilarityEmbeddingsProjectFeature ||
-      location.query.similarityEmbeddings === '1';
+  const resolvedBaseEventId =
+    baseEventId === 'latest' ? baseLatestQuery.data?.eventID : baseEventId;
+  const resolvedTargetEventId =
+    targetEventId === 'latest' ? targetLatestQuery.data?.eventID : targetEventId;
 
-    // Fetch component and event data
-    const asyncFetch = async () => {
-      try {
-        const splitdiffPromise = import('../splitDiff');
-        const {default: SplitDiffAsync} = await splitdiffPromise;
+  const baseEventQuery = useQuery({
+    ...apiOptions.as<Event>()('/issues/$issueId/events/$eventId/', {
+      path: {
+        issueId: baseIssueId,
+        eventId: resolvedBaseEventId ?? '',
+      },
+      staleTime: 60_000,
+    }),
+    enabled: Boolean(resolvedBaseEventId),
+  });
 
-        const [baseEventData, targetEventData] = await Promise.all([
-          this.fetchEvent(baseIssueId, baseEventId ?? 'latest'),
-          this.fetchEvent(targetIssueId, targetEventId ?? 'latest'),
-        ]);
-        const includeLocation = false;
-        const rawTrace = false;
-        const newestFirst = isStacktraceNewestFirst();
-        const includeJSContext = true;
-        const [baseEvent, targetEvent] = await Promise.all([
-          getStacktraceBody({
-            event: baseEventData,
-            hasSimilarityEmbeddingsFeature,
-            includeLocation,
-            rawTrace,
-            newestFirst,
-            includeJSContext,
-          }),
-          getStacktraceBody({
-            event: targetEventData,
-            hasSimilarityEmbeddingsFeature,
-            includeLocation,
-            rawTrace,
-            newestFirst,
-            includeJSContext,
-          }),
-        ]);
+  const targetEventQuery = useQuery({
+    ...apiOptions.as<Event>()('/issues/$issueId/events/$eventId/', {
+      path: {
+        issueId: targetIssueId,
+        eventId: resolvedTargetEventId ?? '',
+      },
+      staleTime: 60_000,
+    }),
+    enabled: Boolean(resolvedTargetEventId),
+  });
 
-        this.setState({
-          SplitDiffAsync,
-          baseEvent,
-          targetEvent,
-          newestFirst,
-          loading: false,
-        });
-        if (organization && hasSimilarityEmbeddingsFeature) {
-          trackAnalytics('issue_details.similar_issues.diff_clicked', {
-            organization,
-            project_id: baseEventData?.projectID,
-            group_id: baseEventData?.groupID,
-            error_message: baseEventData?.message
-              ? baseEventData.message
-              : baseEventData?.title,
-            stacktrace: baseEvent.join('/n '),
-            transaction: this.getTransaction(
-              baseEventData?.tags ? baseEventData.tags : []
-            ),
-            parent_group_id: targetEventData?.groupID,
-            parent_error_message: targetEventData?.message
-              ? targetEventData.message
-              : targetEventData?.title,
-            parent_stacktrace: targetEvent.join('/n '),
-            parent_transaction: this.getTransaction(
-              targetEventData?.tags ? targetEventData.tags : []
-            ),
-            shouldBeGrouped,
-          });
-        }
-      } catch {
-        addErrorMessage(t('Error loading events'));
-      }
-    };
+  const baseStacktrace = useMemo(() => {
+    if (!baseEventQuery.data) {
+      return [];
+    }
+    return getStacktraceBody({
+      event: baseEventQuery.data,
+      hasSimilarityEmbeddingsFeature,
+      includeLocation: false,
+      rawTrace: false,
+      newestFirst,
+      includeJSContext: true,
+    });
+  }, [baseEventQuery.data, hasSimilarityEmbeddingsFeature, newestFirst]);
 
-    asyncFetch();
-  }
-
-  fetchEvent = async (issueId: string, eventId: string) => {
-    const {orgId, project, api} = this.props;
-
-    let paramEventId = eventId;
-
-    if (eventId === 'latest') {
-      const event = await api.requestPromise(`/issues/${issueId}/events/latest/`);
-      paramEventId = event.eventID;
+  const targetStacktrace = useMemo(() => {
+    if (!targetEventQuery.data) {
+      return [];
     }
 
-    const event = await api.requestPromise(
-      `/projects/${orgId}/${project.slug}/events/${paramEventId}/`
-    );
-    return event;
-  };
+    return getStacktraceBody({
+      event: targetEventQuery.data,
+      hasSimilarityEmbeddingsFeature,
+      includeLocation: false,
+      rawTrace: false,
+      newestFirst,
+      includeJSContext: true,
+    });
+  }, [targetEventQuery.data, hasSimilarityEmbeddingsFeature, newestFirst]);
 
-  getTransaction = (tags: any[]) => {
-    return tags.find(tag => tag.key === 'transaction');
-  };
+  useEffect(() => {
+    if (
+      hasTrackedAnalytics.current ||
+      !organization ||
+      !hasSimilarityEmbeddingsFeature ||
+      !baseEventQuery.data ||
+      !targetEventQuery.data
+    ) {
+      return;
+    }
 
-  render() {
-    const {className} = this.props;
-    const {SplitDiffAsync: DiffComponent, loading, baseEvent, targetEvent} = this.state;
+    hasTrackedAnalytics.current = true;
+    trackAnalytics('issue_details.similar_issues.diff_clicked', {
+      organization,
+      project_id: baseEventQuery.data?.projectID,
+      group_id: baseEventQuery.data?.groupID,
+      parent_group_id: targetEventQuery.data?.groupID,
+      shouldBeGrouped,
+    });
+  }, [
+    baseEventQuery.data,
+    hasSimilarityEmbeddingsFeature,
+    organization,
+    shouldBeGrouped,
+    targetEventQuery.data,
+  ]);
 
-    const baseArray = this.state.newestFirst ? baseEvent.toReversed() : baseEvent;
-    const targetArray = this.state.newestFirst ? targetEvent.toReversed() : targetEvent;
+  const baseArray = useMemo(() => {
+    return newestFirst ? baseStacktrace.toReversed() : baseStacktrace;
+  }, [baseStacktrace, newestFirst]);
 
+  const targetArray = useMemo(() => {
+    return newestFirst ? targetStacktrace.toReversed() : targetStacktrace;
+  }, [newestFirst, targetStacktrace]);
+
+  const hasError =
+    baseLatestQuery.isError ||
+    targetLatestQuery.isError ||
+    baseEventQuery.isError ||
+    targetEventQuery.isError;
+
+  const loading = baseEventQuery.isPending || targetEventQuery.isPending;
+
+  if (hasError) {
     return (
-      <StyledIssueDiff className={className} loading={loading}>
-        {loading && <LoadingIndicator />}
-        {!loading &&
-          DiffComponent &&
-          baseArray.map((value, i) => (
-            <DiffComponent
-              key={i}
-              base={value}
-              target={targetArray[i] ?? ''}
-              type="lines"
-            />
-          ))}
+      <StyledIssueDiff isLoading={false}>
+        <LoadingError message={t('Error loading events')} />
       </StyledIssueDiff>
     );
   }
+
+  return (
+    <StyledIssueDiff isLoading={loading}>
+      {loading && <LoadingIndicator />}
+      {!loading &&
+        baseArray.map((value: string, index: number) => (
+          <LazyLoad
+            key={index}
+            LazyComponent={SplitDiffLazy}
+            base={value}
+            target={targetArray[index] ?? ''}
+            type="lines"
+          />
+        ))}
+    </StyledIssueDiff>
+  );
 }
 
-export default withApi(IssueDiff);
-
-// required for tests which do not provide API as context
-export {IssueDiff};
-
-const StyledIssueDiff = styled('div', {
-  shouldForwardProp: p => typeof p === 'string' && isPropValid(p) && p !== 'loading',
-})<Pick<State, 'loading'>>`
+const StyledIssueDiff = styled('div')<{isLoading: boolean}>`
   background-color: ${p => p.theme.backgroundSecondary};
   overflow: auto;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   flex: 1;
   display: flex;
   flex-direction: column;
 
   ${p =>
-    p.loading &&
+    p.isLoading &&
     css`
-      background-color: ${p.theme.background};
+      background-color: ${p.theme.tokens.background.primary};
       justify-content: center;
       align-items: center;
     `};

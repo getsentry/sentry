@@ -281,7 +281,7 @@ const TreeContainer = styled('div')`
   position: relative;
   height: 70%;
   overflow: hidden;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.gray100};
   border-radius: ${p => p.theme.radius.md};
   border-top-left-radius: 0;

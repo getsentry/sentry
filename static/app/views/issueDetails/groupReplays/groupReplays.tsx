@@ -10,6 +10,10 @@ import {
   SelectedReplayIndexProvider,
   useSelectedReplayIndex,
 } from 'sentry/components/replays/queryParams/selectedReplayIndex';
+import {
+  ReplayAccess,
+  ReplayAccessFallbackAlert,
+} from 'sentry/components/replays/replayAccess';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayTable from 'sentry/components/replays/table/replayTable';
 import {
@@ -77,6 +81,14 @@ function ReplayFilterMessage() {
 }
 
 export default function GroupReplays({group}: Props) {
+  return (
+    <ReplayAccess fallback={<ReplayAccessFallbackAlert />}>
+      <GroupReplaysContent group={group} />
+    </ReplayAccess>
+  );
+}
+
+function GroupReplaysContent({group}: Props) {
   const organization = useOrganization();
   const location = useLocation<ReplayListLocationQuery>();
   const hasStreamlinedUI = useHasStreamlinedUI();
@@ -316,7 +328,7 @@ function ReplayOverlay({
 }
 
 const StyledLayoutPage = styled(Layout.Page)<{hasStreamlinedUI?: boolean}>`
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   gap: ${space(1.5)};
 
   ${p =>

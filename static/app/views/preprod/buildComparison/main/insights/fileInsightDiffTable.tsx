@@ -11,7 +11,6 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {
   DiffTableChangeAmountCell,
   DiffTableHeader,
@@ -21,6 +20,7 @@ import {
   type DiffTableSort,
 } from 'sentry/views/preprod/buildComparison/main/diffTable';
 import type {DiffItem, DiffType} from 'sentry/views/preprod/types/appSizeTypes';
+import {formattedSizeDiff} from 'sentry/views/preprod/utils/labelUtils';
 
 const tableHeaders = [
   {
@@ -151,7 +151,7 @@ export function FileInsightItemDiffTable({fileDiffItems}: FileInsightItemDiffTab
             fileDiffItem.size_diff === 0
               ? (fileDiffItem.head_size ?? 0) - (fileDiffItem.base_size ?? 0)
               : fileDiffItem.size_diff;
-          const changeAmount = `${actualDiff > 0 ? '+' : '-'}${formatBytesBase10(Math.abs(actualDiff))}`;
+          const changeAmount = formattedSizeDiff(actualDiff);
 
           return (
             <Fragment key={rowIndex}>
