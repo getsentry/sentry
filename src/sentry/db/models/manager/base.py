@@ -71,7 +71,7 @@ def make_key(model: Any, prefix: str, kwargs: Mapping[str, Model | int | str]) -
 if TYPE_CHECKING:
     # For type checkers, we want to use DjangoBaseManager directly. This preserves the
     # generic type parameters.
-    _base_manager_base = DjangoBaseManager
+    _base_manager_base = DjangoBaseManager.from_queryset(BaseQuerySet)
 else:
     _base_manager_base = DjangoBaseManager.from_queryset(BaseQuerySet, "_base_manager_base")
 
