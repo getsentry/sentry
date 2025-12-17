@@ -1,8 +1,11 @@
 from datetime import datetime, timedelta, timezone
+from unittest.mock import ANY, patch
 from uuid import UUID, uuid4
 
 import pytest
+from django.test import override_settings
 
+from sentry.conf.types.sentry_config import SentryMode
 from sentry.constants import DataCategory
 from sentry.search.eap import constants
 from sentry.testutils.cases import OutcomesSnubaTest
@@ -10,6 +13,7 @@ from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.cursors import Cursor
 from sentry.utils.outcomes import Outcome
+from sentry.utils.snuba_rpc import table_rpc
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
@@ -544,6 +548,34 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert data[0]["message.parameter.username"] == "bob"
         assert data[1]["message.parameter.username"] == "alice"
 
+    def test_high_accuracy_flex_time_filter_trace(self):
+        trace_id = "1" * 32
+        logs = [
+            self.create_ourlog(
+                {"body": "foo", "trace_id": trace_id},
+                timestamp=self.ten_mins_ago,
+            ),
+        ]
+        self.store_ourlogs(logs)
+        response = self.do_request(
+            {
+                "field": ["id", "timestamp", "message"],
+                "query": f"trace:{trace_id}",
+                "orderby": "-timestamp",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "sampling": "HIGHEST_ACCURACY_FLEX_TIME",
+            },
+        )
+        assert response.status_code == 200, response.content
+
+        links = {
+            attrs["rel"]: {**attrs, "href": url}
+            for url, attrs in parse_link_header(response["link"]).items()
+        }
+        assert links["previous"]["results"] == "false"
+        assert links["next"]["results"] == "false"
+
     def test_high_accuracy_flex_time_order_by_timestamp(self):
         logs = [
             self.create_ourlog(
@@ -572,7 +604,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "dataset": self.dataset,
                 "sampling": "HIGHEST_ACCURACY_FLEX_TIME",
             },
-            features={"organizations:ourlogs-high-fidelity": True},
         )
         assert response.status_code == 200, response.content
 
@@ -587,7 +618,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "dataset": self.dataset,
                 "sampling": "HIGHEST_ACCURACY_FLEX_TIME",
             },
-            features={"organizations:ourlogs-high-fidelity": True},
         )
 
         assert response.status_code == 200, response.content
@@ -618,7 +648,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "sampling": "HIGHEST_ACCURACY_FLEX_TIME",
                 "per_page": 10,
             },
-            features={"organizations:ourlogs-high-fidelity": True},
         )
 
         assert response.status_code == 200, response.content
@@ -651,7 +680,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "sampling": "HIGHEST_ACCURACY_FLEX_TIME",
                 "per_page": 5,
             },
-            features={"organizations:ourlogs-high-fidelity": True},
         )
 
         assert response.status_code == 200, response.content
@@ -686,7 +714,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
             "per_page": 5,
         }
 
-        response = self.do_request(request, features={"organizations:ourlogs-high-fidelity": True})
+        response = self.do_request(request)
 
         assert response.status_code == 200, response.content
         assert [row["message"] for row in response.data["data"]] == [
@@ -702,7 +730,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
 
         response = self.do_request(
             {**request, "cursor": links["next"]["cursor"]},
-            features={"organizations:ourlogs-high-fidelity": True},
         )
 
         assert response.status_code == 200, response.content
@@ -772,7 +799,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
             "end": hour_4.isoformat(),
         }
 
-        response = self.do_request(request, features={"organizations:ourlogs-high-fidelity": True})
+        response = self.do_request(request)
 
         assert response.status_code == 200, response.content
         assert [row["message"] for row in response.data["data"]] == ["log 1"]
@@ -786,7 +813,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
 
         response = self.do_request(
             {**request, "cursor": links["next"]["cursor"]},
-            features={"organizations:ourlogs-high-fidelity": True},
         )
 
         assert response.status_code == 200, response.content
@@ -849,7 +875,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
             "end": hour_4.isoformat(),
         }
 
-        response = self.do_request(request, features={"organizations:ourlogs-high-fidelity": True})
+        response = self.do_request(request)
 
         assert response.status_code == 200, response.content
         assert response.data["data"] == []
@@ -863,7 +889,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
 
         response = self.do_request(
             {**request, "cursor": links["next"]["cursor"]},
-            features={"organizations:ourlogs-high-fidelity": True},
         )
 
         assert response.status_code == 200, response.content
@@ -876,15 +901,77 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert links["previous"]["results"] == "false"
         assert links["next"]["results"] == "true"
 
-    def test_high_accuracy_flex_time_without_feature_flag(self):
+    def test_bytes_scanned(self):
+        self.store_ourlogs([self.create_ourlog({"body": "log"}, timestamp=self.ten_mins_ago)])
+
         request = {
             "field": ["timestamp", "message"],
             "orderby": "-timestamp",
             "project": self.project.id,
             "dataset": self.dataset,
-            "sampling": "HIGHEST_ACCURACY_FLEX_TIME",
-            "per_page": 5,
         }
 
         response = self.do_request(request)
-        assert response.status_code == 400
+        assert response.status_code == 200
+        assert response.data["meta"]["bytesScanned"] > 0
+
+    def test_count_message(self):
+        self.store_ourlogs([self.create_ourlog({"body": "log"}, timestamp=self.ten_mins_ago)])
+        request = {
+            "field": ["count(message)"],
+            "project": self.project.id,
+            "dataset": self.dataset,
+            "statsPeriod": "1h",
+        }
+
+        response = self.do_request(request)
+        assert response.status_code == 200
+        assert response.data["data"] == [{"count(message)": 1}]
+
+    @override_settings(SENTRY_MODE=SentryMode.SAAS)
+    def test_no_project_sent_logs(self):
+        project1 = self.create_project()
+        project2 = self.create_project()
+
+        request = {
+            "field": ["timestamp", "message"],
+            "project": [project1.id, project2.id],
+            "dataset": self.dataset,
+            "sort": "-timestamp",
+            "statsPeriod": "1h",
+        }
+
+        response = self.do_request(request)
+        assert response.status_code == 200
+        assert response.data["data"] == []
+
+    @override_settings(SENTRY_MODE=SentryMode.SAAS)
+    @patch("sentry.utils.snuba_rpc.table_rpc", wraps=table_rpc)
+    def test_sent_logs_project_optimization(self, mock_table_rpc):
+        project1 = self.create_project()
+        project2 = self.create_project()
+
+        self.store_ourlogs(
+            [self.create_ourlog({"body": "log"}, project=project1, timestamp=self.ten_mins_ago)]
+        )
+
+        request = {
+            "field": ["timestamp", "message"],
+            "project": [project1.id, project2.id],
+            "dataset": self.dataset,
+            "sort": "-timestamp",
+            "statsPeriod": "1h",
+        }
+
+        response = self.do_request(request)
+        assert response.status_code == 200
+        assert response.data["data"] == [
+            {
+                "timestamp": ANY,
+                "timestamp_precise": ANY,
+                "message": "log",
+            }
+        ]
+
+        mock_table_rpc.assert_called_once()
+        assert mock_table_rpc.call_args.args[0][0].meta.project_ids == [project1.id]

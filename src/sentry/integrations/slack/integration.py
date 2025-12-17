@@ -21,6 +21,7 @@ from sentry.integrations.base import (
 from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.integrations.slack.metrics import translate_slack_api_error
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.tasks.link_slack_user_identities import link_slack_user_identities
 from sentry.integrations.types import IntegrationProviderSlug
@@ -101,13 +102,26 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         self, target: IntegrationNotificationTarget, payload: SlackRenderable
     ) -> None:
         client = self.get_client()
-
         try:
             client.chat_postMessage(
                 channel=target.resource_id, blocks=payload["blocks"], text=payload["text"]
             )
-        except SlackApiError:
-            pass
+        except SlackApiError as e:
+            translate_slack_api_error(e)
+
+    def send_threaded_message(
+        self, *, channel_id: str, renderable: SlackRenderable, thread_ts: str
+    ) -> None:
+        client = self.get_client()
+        try:
+            client.chat_postMessage(
+                channel=channel_id,
+                blocks=renderable["blocks"],
+                text=renderable["text"],
+                thread_ts=thread_ts,
+            )
+        except SlackApiError as e:
+            translate_slack_api_error(e)
 
 
 class SlackIntegrationProvider(IntegrationProvider):

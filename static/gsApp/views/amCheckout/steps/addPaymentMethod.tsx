@@ -16,7 +16,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import CreditCardSetup from 'getsentry/components/creditCardEdit/setup';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {FTCConsentLocation} from 'getsentry/types';
-import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
+import StepHeader from 'getsentry/views/amCheckout/components/stepHeader';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 
 type Props = StepProps;
@@ -127,7 +127,7 @@ const CreditCardOption = styled(PanelItem)<{isSelected?: boolean}>`
     p.isSelected &&
     css`
       background: ${p.theme.backgroundSecondary};
-      color: ${p.theme.textColor};
+      color: ${p.theme.tokens.content.primary};
     `}
 `;
 
@@ -136,21 +136,21 @@ const Label = styled('label')`
   grid-template-columns: max-content auto;
   gap: ${space(1.5)};
   padding: ${space(2)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-weight: normal;
   width: 100%;
   margin: 0;
 `;
 
 const StyledRadio = styled(Radio)`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const CardDetails = styled('div')`
   display: inline-grid;
   gap: ${space(0.75)};
   font-size: ${p => p.theme.fontSize.xl};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-weight: 600;
 `;
 
@@ -163,7 +163,7 @@ const Description = styled(TextBlock)`
 
 const AddCardSetup = styled(CreditCardSetup)`
   padding: ${space(2)} ${space(2)} 0;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 
   .form-actions {
     display: grid;

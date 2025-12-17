@@ -42,9 +42,16 @@ interface FieldProps {
   meta: MetaType;
   column?: TableColumn<keyof TableDataRow>;
   unit?: string;
+  usePortalOnDropdown?: boolean;
 }
 
-export function FieldRenderer({data, meta, unit, column}: FieldProps) {
+export function FieldRenderer({
+  data,
+  meta,
+  unit,
+  column,
+  usePortalOnDropdown,
+}: FieldProps) {
   const userQuery = useQueryParamsQuery();
   const setUserQuery = useSetQueryParamsQuery();
 
@@ -56,6 +63,7 @@ export function FieldRenderer({data, meta, unit, column}: FieldProps) {
       column={column}
       userQuery={userQuery}
       setUserQuery={setUserQuery}
+      usePortalOnDropdown={usePortalOnDropdown}
     />
   );
 }
@@ -90,6 +98,7 @@ export function MultiQueryFieldRenderer({
 interface BaseFieldProps extends FieldProps {
   setUserQuery: (query: string) => void;
   userQuery: string;
+  usePortalOnDropdown?: boolean;
 }
 
 function BaseExploreFieldRenderer({
@@ -99,6 +108,7 @@ function BaseExploreFieldRenderer({
   column,
   userQuery,
   setUserQuery,
+  usePortalOnDropdown,
 }: BaseFieldProps) {
   const location = useLocation();
   const organization = useOrganization();
@@ -188,6 +198,7 @@ function BaseExploreFieldRenderer({
         setUserQuery(query.formatString());
       }}
       allowActions={ALLOWED_CELL_ACTIONS}
+      usePortalOnDropdown={usePortalOnDropdown}
     >
       {rendered}
     </CellAction>

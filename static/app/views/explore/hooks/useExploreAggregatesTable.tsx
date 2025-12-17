@@ -4,16 +4,17 @@ import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import type {RPCQueryExtras} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useProgressiveQuery} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
+  useQueryParamsAggregateCursor,
   useQueryParamsAggregateFields,
   useQueryParamsAggregateSortBys,
   useQueryParamsExtrapolate,
 } from 'sentry/views/explore/queryParams/context';
+import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
 interface UseExploreAggregatesTableOptions {
@@ -63,7 +64,8 @@ function useExploreAggregatesTableImp({
 }: UseExploreAggregatesTableOptions): AggregatesTableResult {
   const {selection} = usePageFilters();
 
-  const dataset = useExploreDataset();
+  const dataset = useSpansDataset();
+  const aggregateCursor = useQueryParamsAggregateCursor();
   const aggregateFields = useQueryParamsAggregateFields({validate: true});
   const aggregateSortBys = useQueryParamsAggregateSortBys();
 
@@ -106,6 +108,7 @@ function useExploreAggregatesTableImp({
   const result = useSpansQuery({
     enabled,
     eventView,
+    cursor: aggregateCursor,
     initialData: [],
     limit,
     referrer: 'api.explore.spans-aggregates-table',

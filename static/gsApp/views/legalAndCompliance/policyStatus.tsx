@@ -29,7 +29,7 @@ export function PolicyStatus({policy}: PolicyStatusProps) {
     return (
       <StatusIconWithTooltip
         tooltip="Included with all accounts"
-        icon={<IconCheckmark isCircled size="sm" color="success" />}
+        icon={<IconCheckmark size="sm" color="success" />}
       />
     );
   }
@@ -40,7 +40,7 @@ export function PolicyStatus({policy}: PolicyStatusProps) {
         tooltip={`Signed by ${policy.consent.userEmail} on ${moment(
           policy.consent.createdAt
         ).format('ll')}`}
-        icon={<IconCheckmark size="sm" isCircled color="success" />}
+        icon={<IconCheckmark size="sm" color="success" />}
       />
     );
   }
@@ -48,7 +48,7 @@ export function PolicyStatus({policy}: PolicyStatusProps) {
   return (
     <StatusIconWithTooltip
       tooltip="Optional, not signed"
-      icon={<IconSubtract isCircled color="gray500" size="sm" />}
+      icon={<IconSubtract color="gray500" size="sm" />}
     />
   );
 }

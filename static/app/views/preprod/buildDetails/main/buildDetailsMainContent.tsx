@@ -1,22 +1,25 @@
-import type {ReactNode} from 'react';
+import {useCallback} from 'react';
+import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {InputGroup} from '@sentry/scraps/input/inputGroup';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
 import Placeholder from 'sentry/components/placeholder';
-import {IconClose, IconGrid, IconSearch} from 'sentry/icons';
+import {IconClose, IconGrid, IconRefresh, IconSearch} from 'sentry/icons';
 import {IconGraphCircle} from 'sentry/icons/iconGraphCircle';
 import {t} from 'sentry/locale';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
+import {BuildDetailsMetricCards} from 'sentry/views/preprod/buildDetails/main/buildDetailsMetricCards';
 import {AppSizeInsights} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsights';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
+import {openMissingDsymModal} from 'sentry/views/preprod/components/missingDsymModal';
 import {AppSizeCategories} from 'sentry/views/preprod/components/visualizations/appSizeCategories';
 import {AppSizeLegend} from 'sentry/views/preprod/components/visualizations/appSizeLegend';
 import {AppSizeTreemap} from 'sentry/views/preprod/components/visualizations/appSizeTreemap';
@@ -31,58 +34,14 @@ import {processInsights} from 'sentry/views/preprod/utils/insightProcessing';
 import {validatedPlatform} from 'sentry/views/preprod/utils/sharedTypesUtils';
 import {filterTreemapElement} from 'sentry/views/preprod/utils/treemapFiltering';
 
-interface LoadingContentProps {
-  children: ReactNode;
-  showSkeleton?: boolean;
-}
-
-function LoadingContent({showSkeleton, children}: LoadingContentProps) {
-  return (
-    <Flex direction="column" gap="lg" minHeight="700px" width="100%">
-      <Grid
-        columns="1fr"
-        rows="1fr"
-        areas={`"all"`}
-        align="center"
-        justify="center"
-        style={{position: 'relative', height: '508px'}}
-        data-testid="treemap-loading-skeleton"
-      >
-        {showSkeleton && (
-          <Container
-            area="all"
-            style={{
-              width: '100%',
-              height: '508px',
-            }}
-          >
-            <Placeholder width="100%" height="508px" />
-          </Container>
-        )}
-        <Flex area="all" direction="column" align="center">
-          {children}
-        </Flex>
-      </Grid>
-      {showSkeleton && (
-        <Flex direction="column" gap="md">
-          <Placeholder width="200px" height="24px" />
-          <Flex gap="md">
-            <Placeholder width="150px" height="60px" />
-            <Placeholder width="150px" height="60px" />
-            <Placeholder width="150px" height="60px" />
-          </Flex>
-        </Flex>
-      )}
-    </Flex>
-  );
-}
-
 interface BuildDetailsMainContentProps {
   appSizeQuery: UseApiQueryResult<AppSizeApiResponse, RequestError>;
   isRerunning: boolean;
   onRerunAnalysis: () => void;
   buildDetailsData?: BuildDetailsApiResponse | null;
   isBuildDetailsPending?: boolean;
+  projectId?: string;
+  projectType?: string | null;
 }
 
 export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
@@ -92,6 +51,8 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     appSizeQuery,
     buildDetailsData,
     isBuildDetailsPending = false,
+    projectType,
+    projectId,
   } = props;
   const {
     data: appSizeData,
@@ -99,6 +60,12 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     isError: isAppSizeError,
     error: appSizeError,
   } = appSizeQuery;
+  const [searchParams, setSearchParams] = useSearchParams();
+  const openInsightsSidebar = useCallback(() => {
+    const next = new URLSearchParams(searchParams);
+    next.set('insights', 'open');
+    setSearchParams(next);
+  }, [searchParams, setSearchParams]);
 
   // If the main data fetch fails, this component will not be rendered
   // so we don't handle 'isBuildDetailsError'.
@@ -154,9 +121,22 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
 
   if (isLoadingRequests) {
     return (
-      <LoadingContent showSkeleton>
-        <LoadingIndicator size={60}>{t('Requesting data...')}</LoadingIndicator>
-      </LoadingContent>
+      <Stack gap="xl" minHeight="700px" width="100%">
+        <Flex gap="lg" wrap="wrap">
+          <Placeholder style={{flex: 1}} height="100px" />
+          <Placeholder style={{flex: 1}} height="100px" />
+          <Placeholder style={{flex: 1}} height="100px" />
+        </Flex>
+        <Stack gap="sm">
+          <Flex width="100%" justify="between" align="center" gap="md">
+            <Placeholder width="92px" height="40px" />
+            <Placeholder style={{flex: 1}} height="40px" />
+          </Flex>
+          <Placeholder width="100%" height="540px" />
+          <Placeholder height="140px" />
+        </Stack>
+        <Placeholder height="200px" />
+      </Stack>
     );
   }
 
@@ -164,12 +144,12 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
 
   if (isSizeInfoProcessing(sizeInfo) || isWaitingForData) {
     return (
-      <LoadingContent>
+      <Flex width="100%" justify="center" align="center" minHeight="60vh">
         <BuildProcessing
           title={t('Running size analysis')}
           message={t('Hang tight, this may take a few minutes...')}
         />
-      </LoadingContent>
+      </Flex>
     );
   }
 
@@ -177,24 +157,34 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   // click to run size analysis.
   if (showNoSizeRequested) {
     return (
-      <LoadingContent>
-        <p>{t('No size analysis.')}</p>
-      </LoadingContent>
+      <Flex width="100%" justify="center" align="center" minHeight="60vh">
+        <BuildError
+          title={t('No size analysis')}
+          message={t('No size analysis is available for this build.')}
+        />
+      </Flex>
     );
   }
 
   if (isSizeFailed) {
     return (
-      <BuildError
-        title={t('Size analysis failed')}
-        message={
-          sizeInfo.error_message || t("Something went wrong, we're looking into it.")
-        }
-      >
-        <Button onClick={onRerunAnalysis} disabled={isRerunning}>
-          {isRerunning ? t('Rerunning...') : t('Retry analysis')}
-        </Button>
-      </BuildError>
+      <Flex width="100%" justify="center" align="center" minHeight="60vh">
+        <BuildError
+          title={t('Size analysis failed')}
+          message={
+            sizeInfo.error_message || t("Something went wrong, we're looking into it.")
+          }
+        >
+          <Button
+            priority="primary"
+            onClick={onRerunAnalysis}
+            disabled={isRerunning}
+            icon={<IconRefresh />}
+          >
+            {isRerunning ? t('Rerunning...') : t('Retry analysis')}
+          </Button>
+        </BuildError>
+      </Flex>
     );
   }
 
@@ -202,25 +192,32 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   // error_{code,message} correctly so we often see this.
   if (isAppSizeError) {
     return (
-      <BuildError
-        title={t('Size analysis failed')}
-        message={appSizeError?.message ?? t('The treemap data could not be loaded')}
-      >
-        <Button onClick={onRerunAnalysis} disabled={isRerunning}>
-          {isRerunning ? t('Rerunning...') : t('Retry analysis')}
-        </Button>
-      </BuildError>
+      <Flex width="100%" justify="center" align="center" minHeight="60vh">
+        <BuildError
+          title={t('Size analysis failed')}
+          message={appSizeError?.message ?? t('The treemap data could not be loaded')}
+        >
+          <Button
+            priority="primary"
+            onClick={onRerunAnalysis}
+            disabled={isRerunning}
+            icon={<IconRefresh />}
+          >
+            {isRerunning ? t('Rerunning...') : t('Retry analysis')}
+          </Button>
+        </BuildError>
+      </Flex>
     );
   }
 
   if (!appSizeData?.treemap?.root) {
     return (
-      <LoadingContent>
+      <Flex width="100%" justify="center" align="center" minHeight="60vh">
         <BuildProcessing
           title={t('Running size analysis')}
           message={t('Hang tight, this may take a few minutes...')}
         />
-      </LoadingContent>
+      </Flex>
     );
   }
 
@@ -229,10 +226,42 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     appSizeData.insights && totalSize > 0
       ? processInsights(appSizeData.insights, totalSize)
       : [];
-
   const categoriesEnabled =
     appSizeData.treemap.category_breakdown &&
     Object.keys(appSizeData.treemap.category_breakdown).length > 0;
+
+  const missingDsymBinaries = appSizeData.missing_dsym_binaries;
+
+  const missingProguardMapping =
+    buildDetailsData?.app_info?.android_app_info?.has_proguard_mapping === false;
+
+  const getAlertMessage = () => {
+    if (missingDsymBinaries && missingDsymBinaries.length > 0) {
+      if (missingDsymBinaries?.length === 1) {
+        return t(
+          'Missing debug symbols for %s. This binary will not have a detailed breakdown.',
+          missingDsymBinaries[0]
+        );
+      }
+      return t(
+        'Missing debug symbols for some binaries (%s and %s others). Those binaries will not have a detailed breakdown. Click to view details.',
+        missingDsymBinaries[0],
+        missingDsymBinaries.length - 1
+      );
+    }
+
+    if (missingProguardMapping) {
+      return t('Missing proguard mapping. Dex will not have a detailed breakdown.');
+    }
+
+    return undefined;
+  };
+
+  const handleAlertClick = () => {
+    if (missingDsymBinaries && missingDsymBinaries.length > 0) {
+      openMissingDsymModal(missingDsymBinaries);
+    }
+  };
 
   // Filter data based on search query and categories
   const filteredRoot = filterTreemapElement(
@@ -256,6 +285,14 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
           <AppSizeTreemap
             root={filteredTreemapData.root}
             searchQuery={searchQuery || ''}
+            unfilteredRoot={appSizeData.treemap.root}
+            alertMessage={getAlertMessage()}
+            onAlertClick={
+              missingDsymBinaries && missingDsymBinaries.length > 1
+                ? handleAlertClick
+                : undefined
+            }
+            onSearchChange={value => setSearchQuery(value || undefined)}
           />
         ) : (
           <Alert type="info">No files found matching "{searchQuery}"</Alert>
@@ -265,65 +302,91 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
       );
   } else {
     visualizationContent = filteredTreemapData ? (
-      <AppSizeTreemap root={filteredTreemapData.root} searchQuery={searchQuery || ''} />
+      <AppSizeTreemap
+        root={filteredTreemapData.root}
+        searchQuery={searchQuery || ''}
+        unfilteredRoot={appSizeData.treemap.root}
+        alertMessage={getAlertMessage()}
+        onAlertClick={
+          missingDsymBinaries && missingDsymBinaries.length > 1
+            ? handleAlertClick
+            : undefined
+        }
+        onSearchChange={value => setSearchQuery(value || undefined)}
+      />
     ) : (
       <Alert type="info">No files found matching "{searchQuery}"</Alert>
     );
   }
 
   return (
-    <Flex direction="column" gap="lg" minHeight="700px" width="100%">
-      <Flex align="center" gap="md">
-        {categoriesEnabled && (
-          <SegmentedControl value={selectedContent} onChange={handleContentChange}>
-            <SegmentedControl.Item key="treemap" icon={<IconGrid />} />
-            <SegmentedControl.Item key="categories" icon={<IconGraphCircle />} />
-          </SegmentedControl>
+    <Stack gap="xl" minHeight="700px" width="100%">
+      <BuildDetailsMetricCards
+        sizeInfo={sizeInfo}
+        processedInsights={processedInsights}
+        totalSize={totalSize}
+        artifactId={buildDetailsData?.id}
+        baseArtifactId={buildDetailsData?.base_artifact_id ?? null}
+        platform={buildDetailsData?.app_info?.platform ?? null}
+        projectType={projectType ?? null}
+        projectId={projectId}
+        onOpenInsightsSidebar={openInsightsSidebar}
+      />
+
+      <Stack gap="sm">
+        <Flex align="center" gap="md">
+          {categoriesEnabled && (
+            <SegmentedControl value={selectedContent} onChange={handleContentChange}>
+              <SegmentedControl.Item key="treemap" icon={<IconGrid />} />
+              <SegmentedControl.Item key="categories" icon={<IconGraphCircle />} />
+            </SegmentedControl>
+          )}
+          {selectedContent === 'treemap' && (
+            <InputGroup style={{flexGrow: 1}}>
+              <InputGroup.LeadingItems>
+                <IconSearch />
+              </InputGroup.LeadingItems>
+              <InputGroup.Input
+                placeholder="Search files"
+                value={searchQuery || ''}
+                onChange={e => setSearchQuery(e.target.value || undefined)}
+              />
+              {searchQuery && (
+                <InputGroup.TrailingItems>
+                  <Button
+                    onClick={() => setSearchQuery(undefined)}
+                    aria-label="Clear search"
+                    borderless
+                    size="zero"
+                  >
+                    <IconClose size="sm" />
+                  </Button>
+                </InputGroup.TrailingItems>
+              )}
+            </InputGroup>
+          )}
+        </Flex>
+        <ChartContainer>{visualizationContent}</ChartContainer>
+        {selectedContent === 'treemap' && appSizeData && (
+          <AppSizeLegend
+            root={appSizeData.treemap.root}
+            selectedCategories={selectedCategories}
+            onToggleCategory={handleToggleCategory}
+          />
         )}
-        {selectedContent === 'treemap' && (
-          <InputGroup style={{flexGrow: 1}}>
-            <InputGroup.LeadingItems>
-              <IconSearch />
-            </InputGroup.LeadingItems>
-            <InputGroup.Input
-              placeholder="Search files"
-              value={searchQuery || ''}
-              onChange={e => setSearchQuery(e.target.value || undefined)}
-            />
-            {searchQuery && (
-              <InputGroup.TrailingItems>
-                <Button
-                  onClick={() => setSearchQuery(undefined)}
-                  aria-label="Clear search"
-                  borderless
-                  size="zero"
-                >
-                  <IconClose size="sm" />
-                </Button>
-              </InputGroup.TrailingItems>
-            )}
-          </InputGroup>
-        )}
-      </Flex>
-      {selectedContent === 'treemap' && appSizeData && (
-        <AppSizeLegend
-          root={appSizeData.treemap.root}
-          selectedCategories={selectedCategories}
-          onToggleCategory={handleToggleCategory}
-        />
-      )}
-      <ChartContainer>{visualizationContent}</ChartContainer>
-      {processedInsights.length > 0 && (
-        <AppSizeInsights
-          processedInsights={processedInsights}
-          platform={validatedPlatform(buildDetailsData?.app_info?.platform)}
-        />
-      )}
-    </Flex>
+      </Stack>
+
+      <AppSizeInsights
+        processedInsights={processedInsights}
+        platform={validatedPlatform(buildDetailsData?.app_info?.platform ?? undefined)}
+        projectType={projectType}
+      />
+    </Stack>
   );
 }
 
 const ChartContainer = styled('div')`
   width: 100%;
   height: 508px;
+  padding-top: ${p => p.theme.space.md};
 `;

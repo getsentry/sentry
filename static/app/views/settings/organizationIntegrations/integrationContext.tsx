@@ -11,7 +11,11 @@ type IntegrationContextProps = {
       | 'integrations_directory_integration_detail'
       | 'integrations_directory'
       | 'onboarding'
-      | 'project_creation';
+      | 'project_creation'
+      | 'seer_onboarding_github'
+      | 'seer_onboarding_code_review'
+      | 'test_analytics_onboarding'
+      | 'test_analytics_org_selector';
     referrer?: string;
   };
   installStatus: string;

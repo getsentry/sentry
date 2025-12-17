@@ -37,15 +37,20 @@ export function ChapterList({timeRanges}: Props) {
     [replay, setCurrentTime]
   );
 
+  // do not include chapters that are before the start of the replay;
+  // we filter these crumbs on the frontend anyway
   const chapterData = useMemo(
     () =>
       timeRanges
-        .map(({period_title, period_start, period_end, error, feedback}) => ({
+        .filter(
+          ({period_start, period_end}) =>
+            period_start >= (replay?.getStartTimestampMs() ?? 0) &&
+            period_end >= (replay?.getStartTimestampMs() ?? 0)
+        )
+        .map(({period_title, period_start, period_end}) => ({
           title: period_title,
           start: period_start,
           end: period_end,
-          error,
-          feedback,
           breadcrumbs:
             replay
               ?.getSummaryChapterFrames()
@@ -238,7 +243,7 @@ const ChapterIconWrapper = styled('div')`
   justify-content: center;
   padding: ${space(0.5)};
   margin-right: ${space(1)};
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   border-radius: 50%;
   z-index: 2; /* needs to be above "ChapterWrapper summary::after" */
 `;
@@ -319,7 +324,7 @@ const Chapter = styled('summary')`
   align-items: center;
   font-size: ${p => p.theme.fontSize.lg};
   padding: 0 ${space(0.75)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 
   &:hover {
     background-color: ${p => p.theme.backgroundSecondary};
@@ -377,7 +382,7 @@ const ChapterTitle = styled('div')`
 const ReplayTimestamp = styled('span')`
   display: flex;
   gap: ${space(0.5)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.normal};
   justify-content: flex-end;

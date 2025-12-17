@@ -214,6 +214,7 @@ export const platforms: PlatformIntegration[] = [
     id: 'go-martini',
     name: 'Martini',
     language: 'go',
+    deprecated: true,
   },
   {
     link: 'https://docs.sentry.io/platforms/go/guides/negroni/',

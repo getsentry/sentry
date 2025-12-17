@@ -1,83 +1,56 @@
-import {renderHook} from 'sentry-test/reactTestingLibrary';
+import type {ReactNode} from 'react';
 
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
-import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
+import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useNavigate');
+function Wrapper({children}: {children: ReactNode}) {
+  return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;
+}
 
-const mockUseLocation = jest.mocked(useLocation);
-const mockUseNavigate = jest.mocked(useNavigate);
+function makeInitialRouterConfig({table}: {table: string}) {
+  return {
+    location: {
+      pathname: `/organizations/org-slug/explore/traces/`,
+      query: {table},
+    },
+  };
+}
 
 describe('useTab', () => {
   it('uses spans as default tab', () => {
-    mockUseLocation.mockReturnValueOnce({
-      pathname: '/',
-      query: {},
-    } as any);
-
-    const {result} = renderHook(useTab);
-    expect(result.current).toEqual([Tab.SPAN, expect.any(Function)]);
+    const {result} = renderHookWithProviders(useTab, {additionalWrapper: Wrapper});
+    expect(result.current[0]).toEqual(Tab.SPAN);
   });
 
   it('uses span tab', () => {
-    mockUseLocation.mockReturnValueOnce({
-      pathname: '/',
-      query: {table: 'span'},
-    } as any);
-
-    const {result} = renderHook(useTab);
-    expect(result.current).toEqual([Tab.SPAN, expect.any(Function)]);
+    const {result} = renderHookWithProviders(useTab, {additionalWrapper: Wrapper});
+    expect(result.current[0]).toEqual(Tab.SPAN);
   });
 
   it('uses trace tab', () => {
-    mockUseLocation.mockReturnValueOnce({
-      pathname: '/',
-      query: {table: 'trace'},
-    } as any);
-
-    const {result} = renderHook(useTab);
-    expect(result.current).toEqual([Tab.TRACE, expect.any(Function)]);
+    const {result} = renderHookWithProviders(useTab, {
+      additionalWrapper: Wrapper,
+      initialRouterConfig: makeInitialRouterConfig({table: 'trace'}),
+    });
+    expect(result.current[0]).toEqual(Tab.TRACE);
   });
 
   it('sets span tab', () => {
-    mockUseLocation.mockReturnValueOnce({
-      pathname: '/',
-      query: {},
-    } as any);
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
-    const {result} = renderHook(useTab);
-    result.current[1](Tab.SPAN);
-    expect(mockNavigate).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        query: {
-          mode: Mode.SAMPLES,
-        },
-      })
-    );
+    const {result} = renderHookWithProviders(useTab, {
+      additionalWrapper: Wrapper,
+      initialRouterConfig: makeInitialRouterConfig({table: 'trace'}),
+    });
+    expect(result.current[0]).toEqual(Tab.TRACE);
+    act(() => result.current[1](Tab.SPAN));
+    expect(result.current[0]).toEqual(Tab.SPAN);
   });
 
   it('sets trace tab', () => {
-    mockUseLocation.mockReturnValueOnce({
-      pathname: '/',
-      query: {},
-    } as any);
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
-    const {result} = renderHook(useTab);
-    result.current[1](Tab.TRACE);
-    expect(mockNavigate).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        query: {
-          mode: Mode.SAMPLES,
-          table: Tab.TRACE,
-        },
-      })
-    );
+    const {result} = renderHookWithProviders(useTab, {additionalWrapper: Wrapper});
+    expect(result.current[0]).toEqual(Tab.SPAN);
+    act(() => result.current[1](Tab.TRACE));
+    expect(result.current[0]).toEqual(Tab.TRACE);
   });
 });

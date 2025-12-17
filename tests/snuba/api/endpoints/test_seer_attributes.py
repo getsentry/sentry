@@ -1,13 +1,11 @@
-from concurrent.futures import TimeoutError
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 from uuid import uuid4
 
-from sentry.seer.endpoints.seer_rpc import (
+from sentry.seer.assisted_query.traces_tools import (
     get_attribute_names,
     get_attribute_values_with_substring,
-    get_attributes_and_values,
-    get_spans,
 )
+from sentry.seer.endpoints.seer_rpc import get_attributes_and_values, get_spans
 from sentry.testutils.cases import BaseSpansTestCase
 from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_organization_trace_item_attributes import (
@@ -33,11 +31,16 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             is_eap=True,
         )
 
-        result = get_attribute_names(
-            org_id=self.organization.id,
-            project_ids=[self.project.id],
-            stats_period="7d",
-        )
+        with self.feature(
+            [
+                "organizations:visibility-explore-view",
+            ]
+        ):
+            result = get_attribute_names(
+                org_id=self.organization.id,
+                project_ids=[self.project.id],
+                stats_period="7d",
+            )
         assert result == {
             "fields": {
                 "string": [
@@ -47,6 +50,25 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 ],
                 "number": ["span.duration"],
             },
+            "built_in_fields": [
+                {"key": "id", "type": "string"},
+                {"key": "project", "type": "string"},
+                {"key": "span.description", "type": "string"},
+                {"key": "span.op", "type": "string"},
+                {"key": "timestamp", "type": "string"},
+                {"key": "transaction", "type": "string"},
+                {"key": "trace", "type": "string"},
+                {"key": "is_transaction", "type": "string"},
+                {"key": "sentry.normalized_description", "type": "string"},
+                {"key": "release", "type": "string"},
+                {"key": "project.id", "type": "string"},
+                {"key": "sdk.name", "type": "string"},
+                {"key": "sdk.version", "type": "string"},
+                {"key": "span.system", "type": "string"},
+                {"key": "span.category", "type": "string"},
+                {"key": "span.duration", "type": "number"},
+                {"key": "span.self_time", "type": "number"},
+            ],
         }
 
     def test_get_attribute_values_with_substring(self) -> None:
@@ -65,27 +87,29 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 is_eap=True,
             )
 
-        result = get_attribute_values_with_substring(
-            org_id=self.organization.id,
-            project_ids=[self.project.id],
-            stats_period="7d",
-            fields_with_substrings=[
-                {
-                    "field": "transaction",
-                    "substring": "ba",
-                },
-                {
-                    "field": "transaction",
-                    "substring": "b",
-                },
-            ],
-            sampled=False,
-        )
+        with self.feature(
+            [
+                "organizations:visibility-explore-view",
+            ]
+        ):
+            result = get_attribute_values_with_substring(
+                org_id=self.organization.id,
+                project_ids=[self.project.id],
+                stats_period="7d",
+                fields_with_substrings=[
+                    {
+                        "field": "transaction",
+                        "substring": "ba",
+                    },
+                    {
+                        "field": "transaction",
+                        "substring": "b",
+                    },
+                ],
+            )
 
         assert result == {
-            "values": {
-                "transaction": {"bar", "baz"},
-            }
+            "transaction": ["bar", "baz"],
         }
 
     def test_get_attributes_and_values(self) -> None:
@@ -118,18 +142,23 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             is_eap=True,
         )
 
-        result = get_attributes_and_values(
-            org_id=self.organization.id,
-            project_ids=[self.project.id],
-            stats_period="7d",
-            sampled=False,
-            attributes_ignored=[
-                "sentry.segment_id",
-                "sentry.event_id",
-                "sentry.raw_description",
-                "sentry.transaction",
-            ],
-        )
+        with self.feature(
+            [
+                "organizations:visibility-explore-view",
+            ]
+        ):
+            result = get_attributes_and_values(
+                org_id=self.organization.id,
+                project_ids=[self.project.id],
+                stats_period="7d",
+                sampled=False,
+                attributes_ignored=[
+                    "sentry.segment_id",
+                    "sentry.event_id",
+                    "sentry.raw_description",
+                    "sentry.transaction",
+                ],
+            )
 
         assert result == {
             "attributes_and_values": {
@@ -153,166 +182,8 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             fields_with_substrings=[],
         )
 
-        expected: dict = {"values": {}}
+        expected: dict = {}
         assert result == expected
-
-    def test_get_attribute_values_with_substring_async_success_and_partial_failures(
-        self,
-    ):
-        """Test concurrent execution with successful results, timeouts, and exceptions"""
-        for transaction in ["foo", "bar"]:
-            self.store_segment(
-                self.project.id,
-                uuid4().hex,
-                uuid4().hex,
-                span_id=uuid4().hex[:16],
-                organization_id=self.organization.id,
-                parent_span_id=None,
-                timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
-                transaction=transaction,
-                duration=100,
-                exclusive_time=100,
-                is_eap=True,
-            )
-
-        with patch("sentry.seer.endpoints.seer_rpc.ThreadPoolExecutor") as mock_executor:
-            mock_executor_instance = Mock()
-            mock_executor.return_value.__enter__.return_value = mock_executor_instance
-
-            mock_future_success = Mock()
-            mock_future_timeout = Mock()
-            mock_future_exception = Mock()
-
-            mock_future_success.result.return_value = ("transaction", {"foo", "bar"})
-            mock_future_timeout.result.side_effect = TimeoutError("Individual timeout")
-            mock_future_exception.result.side_effect = Exception("RPC failed")
-
-            mock_executor_instance.submit.side_effect = [
-                mock_future_success,
-                mock_future_timeout,
-                mock_future_exception,
-            ]
-
-            fields_with_substrings = [
-                {"field": "transaction", "substring": "fo"},
-                {"field": "span.description", "substring": "timeout_field"},
-                {"field": "span.status", "substring": "error_field"},
-            ]
-
-            with patch("sentry.seer.endpoints.seer_rpc.as_completed") as mock_as_completed:
-
-                def as_completed_side_effect(future_to_field_dict, timeout):
-                    return [
-                        mock_future_success,
-                        mock_future_timeout,
-                        mock_future_exception,
-                    ]
-
-                mock_as_completed.side_effect = as_completed_side_effect
-
-                result = get_attribute_values_with_substring(
-                    org_id=self.organization.id,
-                    project_ids=[self.project.id],
-                    stats_period="7d",
-                    fields_with_substrings=fields_with_substrings,
-                    sampled=False,
-                )
-
-                assert result == {
-                    "values": {
-                        "transaction": {"foo", "bar"},
-                    }
-                }
-
-                assert mock_executor_instance.submit.call_count == 3
-                mock_as_completed.assert_called_once()
-
-    def test_get_attribute_values_with_substring_overall_timeout(self) -> None:
-        """Test overall timeout handling with future cancellation"""
-        self.store_segment(
-            self.project.id,
-            uuid4().hex,
-            uuid4().hex,
-            span_id=uuid4().hex[:16],
-            organization_id=self.organization.id,
-            parent_span_id=None,
-            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
-            transaction="foo",
-            duration=100,
-            exclusive_time=100,
-            is_eap=True,
-        )
-
-        with patch("sentry.seer.endpoints.seer_rpc.as_completed") as mock_as_completed:
-            mock_as_completed.side_effect = TimeoutError("Overall timeout")
-
-            with patch("sentry.seer.endpoints.seer_rpc.ThreadPoolExecutor") as mock_executor:
-                mock_executor_instance = Mock()
-                mock_executor.return_value.__enter__.return_value = mock_executor_instance
-
-                mock_future1 = Mock()
-                mock_future2 = Mock()
-                mock_executor_instance.submit.side_effect = [mock_future1, mock_future2]
-
-                result = get_attribute_values_with_substring(
-                    org_id=self.organization.id,
-                    project_ids=[self.project.id],
-                    stats_period="7d",
-                    fields_with_substrings=[
-                        {"field": "transaction", "substring": "fo"},
-                        {"field": "span.description", "substring": "desc"},
-                    ],
-                    sampled=False,
-                )
-
-                assert result == {"values": {}}
-
-                mock_future1.cancel.assert_called_once()
-                mock_future2.cancel.assert_called_once()
-
-    def test_get_attribute_values_with_substring_max_workers_limit(self) -> None:
-        """Test that ThreadPoolExecutor is limited to max 10 workers even with more fields"""
-        self.store_segment(
-            self.project.id,
-            uuid4().hex,
-            uuid4().hex,
-            span_id=uuid4().hex[:16],
-            organization_id=self.organization.id,
-            parent_span_id=None,
-            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
-            transaction="foo",
-            duration=100,
-            exclusive_time=100,
-            is_eap=True,
-        )
-
-        fields_with_substrings = [
-            {"field": "transaction", "substring": f"field_{i}"} for i in range(15)
-        ]
-
-        with patch("sentry.seer.endpoints.seer_rpc.ThreadPoolExecutor") as mock_executor:
-            mock_executor_instance = Mock()
-            mock_executor.return_value.__enter__.return_value = mock_executor_instance
-
-            mock_futures = [Mock() for _ in range(15)]
-            for i, future in enumerate(mock_futures):
-                future.result.return_value = (f"transaction_{i}", {f"value_{i}"})
-
-            mock_executor_instance.submit.side_effect = mock_futures
-
-            with patch("sentry.seer.endpoints.seer_rpc.as_completed") as mock_as_completed:
-                mock_as_completed.return_value = mock_futures
-
-                get_attribute_values_with_substring(
-                    org_id=self.organization.id,
-                    project_ids=[self.project.id],
-                    stats_period="7d",
-                    fields_with_substrings=fields_with_substrings,
-                    sampled=False,
-                )
-
-                mock_executor.assert_called_once_with(max_workers=10)
-                assert mock_executor_instance.submit.call_count == 15
 
     def test_get_spans_basic(self) -> None:
         """Test basic get_spans functionality"""

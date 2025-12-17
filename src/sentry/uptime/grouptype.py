@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import override
 
+from django.db.models import Q
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import CheckResult, CheckStatus
 
 from sentry import options
@@ -15,8 +16,8 @@ from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
 from sentry.uptime.endpoints.validators import UptimeDomainCheckFailureValidator
 from sentry.uptime.models import UptimeSubscription
-from sentry.uptime.subscriptions.subscriptions import build_fingerprint
 from sentry.uptime.types import GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, UptimeMonitorMode
+from sentry.uptime.utils import build_fingerprint
 from sentry.utils import metrics
 from sentry.workflow_engine.handlers.detector.base import DetectorOccurrence, EventData
 from sentry.workflow_engine.handlers.detector.stateful import (
@@ -267,4 +268,5 @@ class UptimeDomainCheckFailure(GroupType):
             },
             "additionalProperties": False,
         },
+        filter=~Q(config__mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING),
     )

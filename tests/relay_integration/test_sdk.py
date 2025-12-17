@@ -6,6 +6,7 @@ import sentry_sdk
 from django.test.utils import override_settings
 from sentry_sdk import Scope
 
+from sentry.models.project import Project
 from sentry.receivers import create_default_projects
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
@@ -85,7 +86,8 @@ def test_recursion_breaker(settings, post_event_with_sdk) -> None:
         with pytest.raises(Exception):
             post_event_with_sdk({"message": "internal client test", "event_id": event_id})
 
-    assert_mock_called_once_with_partial(save, settings.SENTRY_PROJECT, cache_key=f"e:{event_id}:1")
+    project = Project.objects.get(id=1)
+    assert_mock_called_once_with_partial(save, project=project, cache_key=f"e:{event_id}:1")
 
 
 @no_silo_test

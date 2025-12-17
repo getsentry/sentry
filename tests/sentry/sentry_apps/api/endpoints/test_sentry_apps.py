@@ -793,6 +793,21 @@ class PostSentryAppsTest(SentryAppsTest):
             ]
         }
 
+    def test_create_integration_with_token_only_scopes(self) -> None:
+        """Test that token-only scopes (like project:distribution) can be granted
+        even if the user doesn't have them in their role."""
+        self.create_project(organization=self.organization)
+
+        # Token-only scopes like project:distribution are not in any user role,
+        # but should still be grantable to integration tokens
+        data = self.get_data(
+            events=(),
+            scopes=("project:read", "project:distribution"),
+            isInternal=True,
+        )
+        response = self.get_success_response(**data, status_code=201)
+        assert response.data["scopes"] == ["project:distribution", "project:read"]
+
     def test_create_internal_integration_with_non_globally_unique_name(self) -> None:
         # Internal integration names should only need to be unique within an organization.
         self.create_project(organization=self.organization)

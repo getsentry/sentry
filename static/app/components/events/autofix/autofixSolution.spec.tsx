@@ -8,6 +8,7 @@ import {
 
 import {AutofixSolution} from 'sentry/components/events/autofix/autofixSolution';
 import {
+  AutofixStatus,
   type AutofixData,
   type AutofixSolutionTimelineEvent,
 } from 'sentry/components/events/autofix/types';
@@ -37,6 +38,7 @@ describe('AutofixSolution', () => {
     groupId: '123',
     runId: 'run-123',
     solutionSelected: false,
+    status: AutofixStatus.COMPLETED,
   } satisfies React.ComponentProps<typeof AutofixSolution>;
 
   beforeEach(() => {

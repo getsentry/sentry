@@ -9,11 +9,13 @@ import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
 import AutofixHighlightPopup from 'sentry/components/events/autofix/autofixHighlightPopup';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
 import {AutofixSetupWriteAccessModal} from 'sentry/components/events/autofix/autofixSetupWriteAccessModal';
+import {AutofixStepFeedback} from 'sentry/components/events/autofix/autofixStepFeedback';
 import {
   AutofixStatus,
   type AutofixChangesStep,
@@ -127,16 +129,18 @@ const cardAnimationProps: MotionNodeAnimationOptions = {
 };
 
 function BranchButton({change}: {change: AutofixCodebaseChange}) {
-  const {onClick} = useCopyToClipboard({
-    text: change.branch_name ?? '',
-    successMessage: t('Branch name copied.'),
-  });
+  const {copy} = useCopyToClipboard();
 
   return (
     <CopyContainer>
       <CopyButton
         size="xs"
-        onClick={onClick}
+        disabled={!change.branch_name}
+        onClick={() =>
+          copy(change.branch_name ?? '', {
+            successMessage: t('Branch name copied to clipboard.'),
+          })
+        }
         icon={<IconCopy size="xs" />}
         aria-label={t('Copy branch in %s', change.repo_name)}
         title={t('Copy branch in %s', change.repo_name)}
@@ -150,7 +154,7 @@ const CopyContainer = styled('div')`
   display: inline-flex;
   align-items: stretch;
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   background: ${p => p.theme.backgroundSecondary};
   max-width: 25rem;
   min-width: 0;
@@ -160,7 +164,7 @@ const CopyContainer = styled('div')`
 
 const CopyButton = styled(Button)`
   border: none;
-  border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
   border-right: 1px solid ${p => p.theme.border};
   height: auto;
   flex-shrink: 0;
@@ -329,7 +333,7 @@ export function AutofixChanges({
             {step.termination_reason && (
               <TerminationReasonText>{step.termination_reason}</TerminationReasonText>
             )}
-            <ButtonContainer>
+            <Flex justify="end" align="center" gap="md">
               {!prsMade && (
                 <ButtonBar>
                   {branchesMade ? (
@@ -366,6 +370,9 @@ export function AutofixChanges({
                   />
                 </ButtonBar>
               )}
+              {step.status === AutofixStatus.COMPLETED && (
+                <AutofixStepFeedback stepType="changes" groupId={groupId} runId={runId} />
+              )}
               {prsMade &&
                 (step.changes.length === 1 && step.changes[0]?.pull_request?.pr_url ? (
                   <LinkButton
@@ -396,7 +403,7 @@ export function AutofixChanges({
                     )}
                   </ScrollCarousel>
                 ))}
-            </ButtonContainer>
+            </Flex>
           </BottomButtonContainer>
         </ChangesContainer>
       </AnimationWrapper>
@@ -407,7 +414,7 @@ export function AutofixChanges({
 const PreviewContent = styled('div')`
   display: flex;
   flex-direction: column;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   margin-top: ${space(2)};
 `;
 
@@ -419,10 +426,10 @@ const PrefixText = styled('span')``;
 
 const ChangesContainer = styled('div')`
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowMedium};
   padding: ${p => p.theme.space.xl};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const Content = styled('div')`
@@ -453,7 +460,7 @@ const MarkdownAlert = styled(MarkedText)`
   border: 1px solid ${p => p.theme.alert.warning.border};
   background-color: ${p => p.theme.alert.warning.backgroundLight};
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.alert.warning.color};
 `;
 
@@ -508,11 +515,6 @@ const TerminationReasonText = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   flex: 1;
   min-width: 0;
-`;
-
-const ButtonContainer = styled('div')`
-  display: flex;
-  justify-content: flex-end;
 `;
 
 function CreatePRsButton({

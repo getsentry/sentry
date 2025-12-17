@@ -1,14 +1,22 @@
+import {useState} from 'react';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {CompositeSelect} from './composite';
+import {SelectTrigger} from './trigger';
 
-describe('CompactSelect', () => {
+describe('CompositeSelect', () => {
   it('renders', async () => {
     render(
-      <CompositeSelect menuTitle="Menu title">
+      <CompositeSelect
+        menuTitle="Menu title"
+        trigger={props => (
+          <SelectTrigger.Button {...props}>Open menu</SelectTrigger.Button>
+        )}
+      >
         <CompositeSelect.Region
           label="Region 1"
-          defaultValue="choice_one"
+          value="choice_one"
           onChange={() => {}}
           options={[
             {value: 'choice_one', label: 'Choice One'},
@@ -18,7 +26,7 @@ describe('CompactSelect', () => {
         <CompositeSelect.Region
           multiple
           label="Region 2"
-          defaultValue={['choice_three', 'choice_four']}
+          value={['choice_three', 'choice_four']}
           onChange={() => {}}
           options={[
             {value: 'choice_three', label: 'Choice Three'},
@@ -66,10 +74,16 @@ describe('CompactSelect', () => {
 
   it('renders disabled trigger button', async () => {
     render(
-      <CompositeSelect disabled>
+      <CompositeSelect
+        disabled
+        trigger={props => (
+          <SelectTrigger.Button {...props}>Open menu</SelectTrigger.Button>
+        )}
+      >
         <CompositeSelect.Region
           label="Region 1"
-          onChange={() => {}}
+          onChange={jest.fn()}
+          value={undefined}
           options={[
             {value: 'choice_one', label: 'Choice One'},
             {value: 'choice_two', label: 'Choice Two'},
@@ -84,10 +98,15 @@ describe('CompactSelect', () => {
   // focus state. This test ensures that focus moves seamlessly between regions.
   it('manages focus between regions', async () => {
     render(
-      <CompositeSelect>
+      <CompositeSelect
+        trigger={props => (
+          <SelectTrigger.Button {...props}>Open menu</SelectTrigger.Button>
+        )}
+      >
         <CompositeSelect.Region
           label="Region 1"
-          onChange={() => {}}
+          onChange={jest.fn()}
+          value={undefined}
           options={[
             {value: 'choice_one', label: 'Choice One'},
             {value: 'choice_two', label: 'Choice Two'},
@@ -96,7 +115,8 @@ describe('CompactSelect', () => {
         <CompositeSelect.Region
           multiple
           label="Region 2"
-          onChange={() => {}}
+          onChange={jest.fn()}
+          value={undefined}
           options={[
             {value: 'choice_three', label: 'Choice Three'},
             {value: 'choice_four', label: 'Choice Four'},
@@ -138,27 +158,46 @@ describe('CompactSelect', () => {
   it('has separate, async self-contained select regions', async () => {
     const region1Mock = jest.fn();
     const region2Mock = jest.fn();
-    render(
-      <CompositeSelect>
-        <CompositeSelect.Region
-          label="Region 1"
-          onChange={region1Mock}
-          options={[
-            {value: 'choice_one', label: 'Choice One'},
-            {value: 'choice_two', label: 'Choice Two'},
-          ]}
-        />
-        <CompositeSelect.Region
-          multiple
-          label="Region 2"
-          onChange={region2Mock}
-          options={[
-            {value: 'choice_three', label: 'Choice Three'},
-            {value: 'choice_four', label: 'Choice Four'},
-          ]}
-        />
-      </CompositeSelect>
-    );
+
+    function Component() {
+      const [region1, setRegion1] = useState<string>();
+      const [region2, setRegion2] = useState<string[]>([]);
+      return (
+        <CompositeSelect
+          trigger={props => (
+            <SelectTrigger.Button {...props}>Open menu</SelectTrigger.Button>
+          )}
+        >
+          <CompositeSelect.Region
+            label="Region 1"
+            onChange={selection => {
+              region1Mock(selection);
+              setRegion1(selection.value);
+            }}
+            value={region1}
+            options={[
+              {value: 'choice_one', label: 'Choice One'},
+              {value: 'choice_two', label: 'Choice Two'},
+            ]}
+          />
+          <CompositeSelect.Region
+            multiple
+            label="Region 2"
+            onChange={selection => {
+              region2Mock(selection);
+              setRegion2(selection.map(s => s.value));
+            }}
+            value={region2}
+            options={[
+              {value: 'choice_three', label: 'Choice Three'},
+              {value: 'choice_four', label: 'Choice Four'},
+            ]}
+          />
+        </CompositeSelect>
+      );
+    }
+
+    render(<Component />);
 
     // click on the trigger button
     await userEvent.click(screen.getByRole('button'));
@@ -166,9 +205,8 @@ describe('CompactSelect', () => {
     // select Choice One
     await userEvent.click(screen.getByRole('option', {name: 'Choice One'}));
 
-    // Region 1's callback is called, and trigger label is updated
+    // Region 1's callback is called
     expect(region1Mock).toHaveBeenCalledWith({value: 'choice_one', label: 'Choice One'});
-    expect(screen.getByRole('button', {name: 'Choice One'})).toBeInTheDocument();
 
     // open the menu again
     await userEvent.click(screen.getByRole('button'));
@@ -204,15 +242,21 @@ describe('CompactSelect', () => {
     expect(region2Mock).toHaveBeenCalledWith([
       {value: 'choice_three', label: 'Choice Three'},
     ]);
-    expect(screen.getByRole('button', {name: 'Choice One +1'})).toBeInTheDocument();
   });
 
   it('can search', async () => {
     render(
-      <CompositeSelect searchable searchPlaceholder="Search placeholder…">
+      <CompositeSelect
+        searchable
+        searchPlaceholder="Search placeholder…"
+        trigger={props => (
+          <SelectTrigger.Button {...props}>Open menu</SelectTrigger.Button>
+        )}
+      >
         <CompositeSelect.Region
           label="Region 1"
-          onChange={() => {}}
+          onChange={jest.fn()}
+          value={undefined}
           options={[
             {value: 'choice_one', label: 'Choice One'},
             {value: 'choice_two', label: 'Choice Two'},
@@ -221,7 +265,8 @@ describe('CompactSelect', () => {
         <CompositeSelect.Region
           multiple
           label="Region 2"
-          onChange={() => {}}
+          onChange={jest.fn()}
+          value={undefined}
           options={[
             {value: 'choice_three', label: 'Choice Three'},
             {value: 'choice_four', label: 'Choice Four'},
@@ -248,28 +293,44 @@ describe('CompactSelect', () => {
   });
 
   it('works with grid lists', async () => {
-    render(
-      <CompositeSelect grid>
-        <CompositeSelect.Region
-          label="Region 1"
-          defaultValue="choice_one"
-          onChange={() => {}}
-          options={[
-            {value: 'choice_one', label: 'Choice One'},
-            {value: 'choice_two', label: 'Choice Two'},
-          ]}
-        />
-        <CompositeSelect.Region
-          multiple
-          label="Region 2"
-          onChange={() => {}}
-          options={[
-            {value: 'choice_three', label: 'Choice Three'},
-            {value: 'choice_four', label: 'Choice Four'},
-          ]}
-        />
-      </CompositeSelect>
-    );
+    function Component() {
+      const [region1, setRegion1] = useState('choice_one');
+      const [region2, setRegion2] = useState<string[]>([]);
+      return (
+        <CompositeSelect
+          grid
+          trigger={props => (
+            <SelectTrigger.Button {...props}>Open menu</SelectTrigger.Button>
+          )}
+        >
+          <CompositeSelect.Region
+            label="Region 1"
+            onChange={selection => {
+              setRegion1(selection.value);
+            }}
+            value={region1}
+            options={[
+              {value: 'choice_one', label: 'Choice One'},
+              {value: 'choice_two', label: 'Choice Two'},
+            ]}
+          />
+          <CompositeSelect.Region
+            multiple
+            label="Region 2"
+            onChange={selection => {
+              setRegion2(selection.map(s => s.value));
+            }}
+            value={region2}
+            options={[
+              {value: 'choice_three', label: 'Choice Three'},
+              {value: 'choice_four', label: 'Choice Four'},
+            ]}
+          />
+        </CompositeSelect>
+      );
+    }
+
+    render(<Component />);
 
     // click on the trigger button
     await userEvent.click(screen.getByRole('button'));
@@ -314,10 +375,14 @@ describe('CompactSelect', () => {
   it('can use numbers as values', async () => {
     const onChange = jest.fn();
     render(
-      <CompositeSelect>
+      <CompositeSelect
+        trigger={props => (
+          <SelectTrigger.Button {...props}>Open menu</SelectTrigger.Button>
+        )}
+      >
         <CompositeSelect.Region
           label="Region 1"
-          defaultValue={1}
+          value={1}
           onChange={onChange}
           options={[
             {value: 1, label: 'One'},

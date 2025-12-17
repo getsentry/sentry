@@ -15,6 +15,7 @@ export interface StoryResources {
 export interface MDXStoryDescriptor {
   exports: {
     default: React.ComponentType | any;
+    documentation?: TypeLoader.TypeLoaderResult;
     frontmatter?: {
       description: string;
       title: string;
@@ -24,9 +25,6 @@ export interface MDXStoryDescriptor {
       status?: 'in-progress' | 'experimental' | 'stable';
       types?: string;
     };
-    types?:
-      | TypeLoader.ComponentDocWithFilename
-      | Record<string, TypeLoader.ComponentDocWithFilename>;
   };
   filename: string;
 }
@@ -53,6 +51,10 @@ export function useStoryBookFiles() {
 }
 
 async function importStory(filename: string): Promise<StoryDescriptor> {
+  if (!filename) {
+    throw new Error(`Filename is required, got ${filename}`);
+  }
+
   if (filename.endsWith('.mdx')) {
     const story = await mdxContext(filename.replace(/^app\//, './'));
     return {

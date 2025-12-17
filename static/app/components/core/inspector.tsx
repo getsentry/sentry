@@ -29,7 +29,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useUser} from 'sentry/utils/useUser';
 
 type TraceElement = HTMLElement | SVGElement;
 
@@ -44,7 +43,6 @@ export function SentryComponentInspector() {
   const contextMenuElementRef = useRef<HTMLDivElement>(null);
   const skipShowingTooltipRef = useRef<boolean>(false);
 
-  const user: ReturnType<typeof useUser> | null = useUser();
   const organization = useOrganization({allowNull: true});
   const [state, setState] = useState<{
     enabled: null | 'inspector' | 'context-menu';
@@ -58,7 +56,7 @@ export function SentryComponentInspector() {
     {
       match: 'command+i',
       callback: () => {
-        if (NODE_ENV !== 'development' || !user?.isSuperuser) {
+        if (NODE_ENV !== 'development') {
           return;
         }
         setState(prev => ({
@@ -100,7 +98,7 @@ export function SentryComponentInspector() {
   stateRef.current = state;
 
   useLayoutEffect(() => {
-    if (!user || !user.isSuperuser || NODE_ENV !== 'development') {
+    if (NODE_ENV !== 'development') {
       return () => {};
     }
     const onMouseMove = (event: MouseEvent & {preventTrace?: boolean}) => {
@@ -277,7 +275,7 @@ export function SentryComponentInspector() {
       document.body.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('pointerdown', handleClickOutside);
     };
-  }, [state.enabled, contextMenu, user, organization]);
+  }, [state.enabled, contextMenu, organization]);
 
   const tracePreview = useMemo(() => {
     return state.trace?.slice(0, 3) ?? [];
@@ -317,7 +315,7 @@ export function SentryComponentInspector() {
     [storybookFiles]
   );
 
-  if (NODE_ENV !== 'development' || !user?.isSuperuser) {
+  if (NODE_ENV !== 'development') {
     return null;
   }
 
@@ -411,6 +409,7 @@ export function SentryComponentInspector() {
                           componentName={componentName}
                           sourcePath={sourcePath}
                           el={el}
+                          fullTrace={contextMenuTrace}
                           storybook={getComponentStorybookFile(el, storybookFilesLookup)}
                           onAction={() => {
                             contextMenu.setOpen(false);
@@ -476,6 +475,7 @@ function MenuItem(props: {
   contextMenu: ReturnType<typeof useContextMenu>;
   copyToClipboard: (text: string) => void;
   el: TraceElement;
+  fullTrace: TraceElement[];
   onAction: () => void;
   sourcePath: string;
   storybook: string | null;
@@ -648,6 +648,19 @@ function MenuItem(props: {
               >
                 {t('Copy Component Path')}
               </ProfilingContextMenuItemButton>
+              <ProfilingContextMenuItemButton
+                {...props.contextMenu.getMenuItemProps({
+                  onClick: () => {
+                    const llmPrompt = serializeTraceForLLM(props.fullTrace, props.el);
+                    props.copyToClipboard(llmPrompt);
+                    addSuccessMessage(t('LLM prompt copied to clipboard'));
+                    props.onAction();
+                  },
+                })}
+                icon={<IconCopy size="xs" />}
+              >
+                {t('Copy LLM Prompt')}
+              </ProfilingContextMenuItemButton>
             </ProfilingContextMenuGroup>
           </ProfilingContextMenu>,
           props.subMenuPortalRef
@@ -784,4 +797,55 @@ function isCoreComponent(el: unknown): boolean {
 function isViewComponent(el: unknown): boolean {
   if (!isTraceElement(el)) return false;
   return el.dataset.sentrySourcePath?.includes('app/views') ?? false;
+}
+
+export function serializeTraceForLLM(
+  trace: TraceElement[],
+  targetElement: TraceElement
+): string {
+  // Reverse the trace array to show root to leaf (trace is leaf to root)
+  const reversedTrace = [...trace].reverse();
+  const targetIndex = reversedTrace.indexOf(targetElement);
+
+  // Only include components up to and including the target
+  const relevantTrace = reversedTrace.slice(0, targetIndex + 1);
+
+  const lines = relevantTrace.map((el, index) => {
+    const componentName = getComponentName(el);
+    const sourcePath = getSourcePath(el);
+    const isLast = index === relevantTrace.length - 1;
+
+    // Use tree-style box-drawing characters
+    let prefix = '';
+    if (index === 0) {
+      prefix = '┌─';
+    } else if (isLast) {
+      prefix = '└─';
+    } else {
+      prefix = '├─';
+    }
+
+    const suffix = isLast ? ' ◄' : '';
+
+    return `${prefix} ${componentName} (file: ${sourcePath})${suffix}`;
+  });
+
+  const prompt = `# Component Trace
+
+The following is a component hierarchy trace from a React application. This trace represents the DOM hierarchy, not the React component tree. The last component in the hierarchy (marked with ◄) is the target component that should be modified.
+
+${lines.join('\n')}
+
+## Instructions
+
+1. Locate the target component by searching for the component name in the specified file path
+2. If you cannot find an exact match for the component name, consider these alternatives:
+   - The component may be wrapped with \`styled()\`, such as \`styled(ComponentName)\` or \`const StyledComponent = styled(ComponentName)\`
+   - The component may be exported with a different name or wrapped in HOCs
+3. If the target component cannot be found in its file, work up the component tree (towards the root) to find the nearest component that exists
+4. Once located, make the necessary modifications to the target component
+
+Please locate the target component in the codebase and make the necessary modifications.`;
+
+  return prompt;
 }

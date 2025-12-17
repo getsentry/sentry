@@ -16,8 +16,8 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
+import ProjectKeyCredentials from 'sentry/views/settings/project/projectKeys/credentials';
 import {LoaderScript} from 'sentry/views/settings/project/projectKeys/list/loaderScript';
-import ProjectKeyCredentials from 'sentry/views/settings/project/projectKeys/projectKeyCredentials';
 
 type Props = {
   data: ProjectKey;
@@ -108,7 +108,6 @@ function KeyRow({
             showUnreal={!isJsPlatform}
             showSecurityEndpoint={!isJsPlatform}
           />
-
           {isBrowserJavaScript && (
             <LoaderScript
               projectKey={data}

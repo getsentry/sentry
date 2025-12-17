@@ -31,9 +31,9 @@ def test_filter_tags_prod() -> None:
 def test_global() -> None:
     assert get_current_global_tags() == {}
 
-    with global_tags(tag_a=123):
+    with global_tags(tags={"tag_a": 123}):
         assert get_current_global_tags() == {"tag_a": 123}
-        add_global_tags(tag_b=123)
+        add_global_tags(tags={"tag_b": 123})
 
         assert get_current_global_tags() == {"tag_a": 123, "tag_b": 123}
 

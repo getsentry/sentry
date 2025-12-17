@@ -5,7 +5,7 @@ import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
 import {Select} from 'sentry/components/core/select';
-import TeamSelector from 'sentry/components/teamSelector';
+import {TeamSelector} from 'sentry/components/teamSelector';
 import type {ChangeData} from 'sentry/components/timeRangeSelector';
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import {getArbitraryRelativePeriod} from 'sentry/components/timeRangeSelector/utils';
@@ -154,7 +154,7 @@ function TeamStatsControls({
               fontSize: theme.fontSize.md,
               ':before': {
                 ...provided[':before'],
-                color: theme.textColor,
+                color: theme.tokens.content.primary,
                 marginRight: space(1.5),
                 marginLeft: space(0.5),
               },

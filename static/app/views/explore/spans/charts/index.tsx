@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useRef} from 'react';
+import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -9,22 +9,26 @@ import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import useOrganization from 'sentry/utils/useOrganization';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {useChartSelection} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
+import {FloatingTrigger} from 'sentry/views/explore/components/attributeBreakdowns/floatingTrigger';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
-import {FloatingTrigger} from 'sentry/views/explore/components/suspectTags/floatingTrigger';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {useChartBoxSelect} from 'sentry/views/explore/hooks/useChartBoxSelect';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {type SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import type {Tab} from 'sentry/views/explore/hooks/useTab';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
+import type {Mode} from 'sentry/views/explore/queryParams/mode';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {CHART_HEIGHT} from 'sentry/views/explore/settings';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
+import type {RawCounts} from 'sentry/views/explore/useRawCounts';
 import {
   combineConfidenceForSeries,
   prettifyAggregation,
@@ -39,6 +43,8 @@ interface ExploreChartsProps {
   confidences: Confidence[];
   extrapolate: boolean;
   query: string;
+  rawSpanCounts: RawCounts;
+  setTab: (tab: Mode | Tab) => void;
   setVisualizes: (visualizes: BaseVisualize[]) => void;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   visualizes: readonly Visualize[];
@@ -65,10 +71,12 @@ const EXPLORE_CHART_GROUP = 'explore-charts_group';
 export function ExploreCharts({
   query,
   extrapolate,
+  rawSpanCounts,
   timeseriesResult,
   visualizes,
   setVisualizes,
   samplingMode,
+  setTab,
 }: ExploreChartsProps) {
   const topEvents = useTopEvents();
 
@@ -104,6 +112,7 @@ export function ExploreCharts({
         {visualizes.map((visualize, index) => {
           return (
             <Chart
+              setTab={setTab}
               key={`${index}`}
               extrapolate={extrapolate}
               index={index}
@@ -116,6 +125,7 @@ export function ExploreCharts({
               visualize={visualize}
               samplingMode={samplingMode}
               topEvents={topEvents}
+              rawSpanCounts={rawSpanCounts}
             />
           );
         })}
@@ -130,6 +140,8 @@ interface ChartProps {
   onChartTypeChange: (chartType: ChartType) => void;
   onChartVisibilityChange: (visible: boolean) => void;
   query: string;
+  rawSpanCounts: RawCounts;
+  setTab: (tab: Mode | Tab) => void;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   visualize: Visualize;
   samplingMode?: SamplingMode;
@@ -142,30 +154,21 @@ function Chart({
   onChartTypeChange,
   onChartVisibilityChange,
   query,
+  rawSpanCounts,
   visualize,
   timeseriesResult,
   samplingMode,
   topEvents,
+  setTab,
 }: ChartProps) {
+  const organization = useOrganization();
+  const {chartSelection, setChartSelection} = useChartSelection();
   const [interval, setInterval, intervalOptions] = useChartInterval();
 
   const chartHeight = visualize.visible ? CHART_HEIGHT : 50;
 
   const chartRef = useRef<ReactEchartsRef>(null);
-  const triggerWrapperRef = useRef<HTMLDivElement | null>(null);
   const chartWrapperRef = useRef<HTMLDivElement | null>(null);
-
-  const boxSelectOptions = useChartBoxSelect({
-    chartRef,
-    chartWrapperRef,
-    triggerWrapperRef,
-  });
-
-  // Re-activate box selection when the series data changes
-  useEffect(() => {
-    boxSelectOptions.reActivateSelection();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeseriesResult]);
 
   const chartType = visualize.chartType;
   const chartIcon =
@@ -250,6 +253,11 @@ function Chart({
     </Fragment>
   );
 
+  const initialChartSelection =
+    chartSelection && chartSelection.chartIndex === index
+      ? chartSelection.selection
+      : undefined;
+
   return (
     <ChartWrapper ref={chartWrapperRef}>
       <Widget
@@ -260,10 +268,25 @@ function Chart({
             <ChartVisualization
               chartInfo={chartInfo}
               chartRef={chartRef}
-              brush={boxSelectOptions.brush}
-              onBrushEnd={boxSelectOptions.onBrushEnd}
-              onBrushStart={boxSelectOptions.onBrushStart}
-              toolBox={boxSelectOptions.toolBox}
+              chartXRangeSelection={{
+                initialSelection: initialChartSelection,
+                onClearSelection: () => {
+                  setChartSelection(null);
+                },
+                disabled: !organization.features.includes(
+                  'performance-spans-suspect-attributes'
+                ),
+                actionMenuRenderer: (selection, clearSelection) => {
+                  return (
+                    <FloatingTrigger
+                      chartIndex={index}
+                      selection={selection}
+                      clearSelection={clearSelection}
+                      setTab={setTab}
+                    />
+                  );
+                },
+              }}
             />
           )
         }
@@ -279,16 +302,13 @@ function Chart({
                 topEvents ? Math.min(topEvents, chartInfo.series.length) : undefined
               }
               dataScanned={chartInfo.dataScanned}
+              rawSpanCounts={rawSpanCounts}
+              userQuery={query.trim()}
             />
           )
         }
         height={chartHeight}
         revealActions="always"
-      />
-      <FloatingTrigger
-        chartInfo={chartInfo}
-        boxSelectOptions={boxSelectOptions}
-        triggerWrapperRef={triggerWrapperRef}
       />
     </ChartWrapper>
   );

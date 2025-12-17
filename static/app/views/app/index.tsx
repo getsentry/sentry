@@ -7,7 +7,6 @@ import {
   displayExperimentalSpaAlert,
 } from 'sentry/actionCreators/developmentAlerts';
 import {fetchGuides} from 'sentry/actionCreators/guides';
-import {openCommandPalette} from 'sentry/actionCreators/modal';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {initApiClientErrorHandling} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -58,18 +57,6 @@ function App() {
   const {visible: isModalOpen} = useGlobalModal();
   const preloadData = shouldPreloadData(config);
 
-  // Command palette global-shortcut
-  useHotkeys(
-    isModalOpen
-      ? []
-      : [
-          {
-            match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
-            callback: () => openCommandPalette(),
-          },
-        ]
-  );
-
   // Seer explorer panel hook and hotkeys
   const {isOpen: isExplorerPanelOpen, toggleExplorerPanel} = useExplorerPanel();
 
@@ -78,7 +65,7 @@ function App() {
       ? []
       : [
           {
-            match: ['command+/', 'ctrl+/'],
+            match: ['command+/', 'ctrl+/', 'command+.', 'ctrl+.'],
             callback: () => toggleExplorerPanel(),
             includeInputs: true,
           },

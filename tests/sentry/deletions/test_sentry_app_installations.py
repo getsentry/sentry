@@ -129,6 +129,8 @@ class TestSentryAppInstallationDeletionTask(TestCase):
             },
         )
         deletions.exec_sync(self.install)
+        with outbox_runner():
+            pass
 
         action.refresh_from_db()
         assert action.status == ObjectStatus.DISABLED

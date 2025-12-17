@@ -10,6 +10,7 @@ from rest_framework.request import Request
 
 from sentry import options
 from sentry.models.organization import Organization
+from sentry.web.frontend.base import all_silo_view
 
 from .base import GithubWebhookBase
 from .events import InstallationEventWebhook, InstallationRepositoryEventWebhook, PushEventWebhook
@@ -17,6 +18,7 @@ from .events import InstallationEventWebhook, InstallationRepositoryEventWebhook
 logger = logging.getLogger(__name__)
 
 
+@all_silo_view
 class GithubPluginIntegrationsWebhookEndpoint(GithubWebhookBase):
     _handlers = {
         "push": PushEventWebhook,

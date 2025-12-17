@@ -86,6 +86,7 @@ export function OnboardingLayout({
       project,
       isLogsSelected: activeProductSelection.includes(ProductSolution.LOGS),
       isFeedbackSelected: false,
+      isMetricsSelected: activeProductSelection.includes(ProductSolution.METRICS),
       isPerformanceSelected: activeProductSelection.includes(
         ProductSolution.PERFORMANCE_MONITORING
       ),

@@ -44,7 +44,7 @@ export type TracingEventParameters = {
     query_status: 'success' | 'error' | 'pending';
     result_length: number;
     result_missing_root: number;
-    result_mode: 'trace samples' | 'span samples' | 'aggregates';
+    result_mode: 'trace samples' | 'span samples' | 'aggregates' | 'attribute breakdowns';
     sample_counts: number[];
     title: string;
     user_queries: string;
@@ -52,6 +52,7 @@ export type TracingEventParameters = {
     version: 2;
     visualizes: BaseVisualize[];
     visualizes_count: number;
+    attribute_breakdowns_mode?: 'breakdowns' | 'cohort_comparison';
   };
   'trace.explorer.schema_hints_click': {
     source: 'list' | 'drawer';
@@ -131,9 +132,6 @@ export type TracingEventParameters = {
     num_children: number;
     project_platform: string;
     type: string;
-    next_op?: string;
-    parent_op?: string;
-    previous_op?: string;
   };
   'trace.trace_layout.tab_pin': Record<string, unknown>;
   'trace.trace_layout.tab_view': {

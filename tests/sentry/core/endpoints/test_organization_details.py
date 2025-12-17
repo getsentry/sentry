@@ -32,6 +32,7 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationslugreservation import OrganizationSlugReservation
+from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.signals import project_created
 from sentry.silo.safety import unguarded_write
 from sentry.snuba.metrics import TransactionMRI
@@ -755,11 +756,9 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "allowSuperuserAccess": False,
             "allowMemberInvite": False,
             "hideAiFeatures": True,
-            "githubOpenPRBot": False,
-            "githubNudgeInvite": False,
-            "githubPRBot": False,
-            "gitlabPRBot": False,
-            "gitlabOpenPRBot": False,
+            "githubNudgeInvite": True,
+            "githubPRBot": True,
+            "gitlabPRBot": True,
             "allowSharedIssues": False,
             "enhancedPrivacy": True,
             "dataScrubber": True,
@@ -850,10 +849,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["alertsMemberWrite"]) in log.data["alertsMemberWrite"]
         assert "to {}".format(data["hideAiFeatures"]) in log.data["hideAiFeatures"]
         assert "to {}".format(data["githubPRBot"]) in log.data["githubPRBot"]
-        assert "to {}".format(data["githubOpenPRBot"]) in log.data["githubOpenPRBot"]
         assert "to {}".format(data["githubNudgeInvite"]) in log.data["githubNudgeInvite"]
         assert "to {}".format(data["gitlabPRBot"]) in log.data["gitlabPRBot"]
-        assert "to {}".format(data["gitlabOpenPRBot"]) in log.data["gitlabOpenPRBot"]
         assert "to {}".format(data["issueAlertsThreadFlag"]) in log.data["issueAlertsThreadFlag"]
         assert "to {}".format(data["metricAlertsThreadFlag"]) in log.data["metricAlertsThreadFlag"]
         assert "to Default Mode" in log.data["samplingMode"]
@@ -1312,1043 +1309,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_success_response(self.organization.slug, **data)
         assert self.organization.get_option("sentry:default_seer_scanner_automation") is True
 
-    def test_prevent_ai_config_github(self) -> None:
-        data = {
-            "preventAiConfigGithub": {
-                "schema_version": "v1",
-                "default_org_config": {
-                    "org_defaults": {
-                        "bug_prediction": {
-                            "enabled": True,
-                            "sensitivity": "high",
-                            "triggers": {
-                                "on_command_phrase": True,
-                                "on_ready_for_review": False,
-                            },
-                        },
-                        "test_generation": {
-                            "enabled": False,
-                            "triggers": {
-                                "on_command_phrase": False,
-                                "on_ready_for_review": True,
-                            },
-                        },
-                        "vanilla": {
-                            "enabled": True,
-                            "sensitivity": "medium",
-                            "triggers": {
-                                "on_command_phrase": True,
-                                "on_ready_for_review": False,
-                            },
-                        },
-                    },
-                    "repo_overrides": {
-                        "my_repo_name": {
-                            "bug_prediction": {
-                                "enabled": False,
-                                "sensitivity": "low",
-                                "triggers": {
-                                    "on_command_phrase": False,
-                                    "on_ready_for_review": True,
-                                },
-                            },
-                            "test_generation": {
-                                "enabled": True,
-                                "triggers": {
-                                    "on_command_phrase": True,
-                                    "on_ready_for_review": False,
-                                },
-                            },
-                            "vanilla": {
-                                "enabled": False,
-                                "sensitivity": "critical",
-                                "triggers": {
-                                    "on_command_phrase": False,
-                                    "on_ready_for_review": True,
-                                },
-                            },
-                        }
-                    },
-                },
-                "github_organizations": {},
-            }
-        }
-        self.get_success_response(self.organization.slug, **data)
-        assert (
-            self.organization.get_option("sentry:prevent_ai_config_github")
-            == data["preventAiConfigGithub"]
-        )
-
-        data = {
-            "preventAiConfigGithub": {
-                "schema_version": "v1",
-                "default_org_config": {
-                    "org_defaults": {
-                        "bug_prediction": {
-                            "enabled": True,
-                            "sensitivity": "high",
-                            "triggers": {
-                                "on_command_phrase": True,
-                                "on_ready_for_review": False,
-                            },
-                        },
-                        "test_generation": {
-                            "enabled": False,
-                            "triggers": {
-                                "on_command_phrase": False,
-                                "on_ready_for_review": True,
-                            },
-                        },
-                        "vanilla": {
-                            "enabled": True,
-                            "sensitivity": "medium",
-                            "triggers": {
-                                "on_command_phrase": True,
-                                "on_ready_for_review": False,
-                            },
-                        },
-                    },
-                    "repo_overrides": {
-                        "my_repo_name": {
-                            "bug_prediction": {
-                                "enabled": False,
-                                "sensitivity": "low",
-                                "triggers": {
-                                    "on_command_phrase": False,
-                                    "on_ready_for_review": True,
-                                },
-                            },
-                            "test_generation": {
-                                "enabled": True,
-                                "triggers": {
-                                    "on_command_phrase": True,
-                                    "on_ready_for_review": False,
-                                },
-                            },
-                            "vanilla": {
-                                "enabled": False,
-                                "sensitivity": "critical",
-                                "triggers": {
-                                    "on_command_phrase": False,
-                                    "on_ready_for_review": True,
-                                },
-                            },
-                        },
-                        "my_other_repo_name": {
-                            "bug_prediction": {
-                                "enabled": True,
-                                "sensitivity": "medium",
-                                "triggers": {
-                                    "on_command_phrase": True,
-                                    "on_ready_for_review": False,
-                                },
-                            },
-                            "test_generation": {
-                                "enabled": False,
-                                "triggers": {
-                                    "on_command_phrase": False,
-                                    "on_ready_for_review": False,
-                                },
-                            },
-                            "vanilla": {
-                                "enabled": True,
-                                "sensitivity": "high",
-                                "triggers": {
-                                    "on_command_phrase": True,
-                                    "on_ready_for_review": False,
-                                },
-                            },
-                        },
-                    },
-                },
-                "github_organizations": {},
-            }
-        }
-        self.get_success_response(self.organization.slug, **data)
-        assert (
-            self.organization.get_option("sentry:prevent_ai_config_github")
-            == data["preventAiConfigGithub"]
-        )
-
-    def test_prevent_ai_config_github_null_rejected(self) -> None:
-        """Test that setting preventAiConfigGithub to null is rejected"""
-        data = {"preventAiConfigGithub": None}
-        self.get_error_response(self.organization.slug, status_code=400, **data)
-
-    def test_prevent_ai_config_github_get_default(self) -> None:
-        # Verify that when no config is set, it returns the default config
-        expected_default = {
-            "schema_version": "v1",
-            "default_org_config": {
-                "org_defaults": {
-                    "bug_prediction": {
-                        "enabled": False,
-                        "sensitivity": "medium",
-                        "triggers": {
-                            "on_command_phrase": True,
-                            "on_ready_for_review": True,
-                        },
-                    },
-                    "test_generation": {
-                        "enabled": False,
-                        "triggers": {
-                            "on_command_phrase": True,
-                            "on_ready_for_review": False,
-                        },
-                    },
-                    "vanilla": {
-                        "enabled": False,
-                        "sensitivity": "medium",
-                        "triggers": {
-                            "on_command_phrase": True,
-                            "on_ready_for_review": False,
-                        },
-                    },
-                },
-                "repo_overrides": {},
-            },
-            "github_organizations": {},
-        }
-        response = self.get_success_response(self.organization.slug)
-        assert response.data["preventAiConfigGithub"] == expected_default
-
-    def test_prevent_ai_config_github_validation_missing_fields(self) -> None:
-        """Test that missing required fields are rejected"""
-        # Missing default_org_config
-        data: dict[str, dict[str, Any]] = {
-            "preventAiConfigGithub": {"schema_version": "v1", "github_organizations": {}}
-        }
-        response = self.get_error_response(self.organization.slug, status_code=400, **data)
-        # Verify we get a validation error for missing required field
-        assert "preventAiConfigGithub" in response.data
-        error_msg = str(response.data["preventAiConfigGithub"])
-        assert "Prevent AI config option is invalid" in error_msg
-
-    def test_prevent_ai_config_github_validation_invalid_structure(self) -> None:
-        """Test that invalid structures are rejected"""
-        # Not an object
-        data_1 = {"preventAiConfigGithub": "invalid"}
-        response = self.get_error_response(self.organization.slug, status_code=400, **data_1)
-        # Check for validation error
-        error_msg = str(response.data["preventAiConfigGithub"])
-        assert "Prevent AI config option is invalid" in error_msg
-
-        # Missing feature fields
-        data_2: dict[str, dict] = {
-            "preventAiConfigGithub": {
-                "schema_version": "v1",
-                "default_org_config": {
-                    "org_defaults": {
-                        "bug_prediction": {
-                            "enabled": True,
-                            "sensitivity": "high",
-                            # Missing triggers
-                        }
-                    },
-                    "repo_overrides": {},
-                },
-                "github_organizations": {},
-            }
-        }
-        response = self.get_error_response(self.organization.slug, status_code=400, **data_2)
-        # Check for validation error
-        assert "preventAiConfigGithub" in response.data
-        error_msg = str(response.data["preventAiConfigGithub"])
-        assert "Prevent AI config option is invalid" in error_msg
-
-    def test_prevent_ai_config_github_validation_missing_repo_overrides(self) -> None:
-        """Test missing repo_overrides field"""
-        data = {
-            "preventAiConfigGithub": {
-                "schema_version": "v1",
-                "default_org_config": {
-                    "org_defaults": {
-                        "bug_prediction": {
-                            "enabled": True,
-                            "sensitivity": "high",
-                            "triggers": {
-                                "on_command_phrase": True,
-                                "on_ready_for_review": False,
-                            },
-                        },
-                        "test_generation": {
-                            "enabled": False,
-                            "triggers": {
-                                "on_command_phrase": False,
-                                "on_ready_for_review": True,
-                            },
-                        },
-                        "vanilla": {
-                            "enabled": True,
-                            "sensitivity": "medium",
-                            "triggers": {
-                                "on_command_phrase": True,
-                                "on_ready_for_review": False,
-                            },
-                        },
-                    },
-                    # Missing repo_overrides
-                },
-                "github_organizations": {},
-            }
-        }
-        response = self.get_error_response(self.organization.slug, status_code=400, **data)
-        assert "preventAiConfigGithub" in response.data
-
-    def test_prevent_ai_config_github_validation_missing_trigger(self) -> None:
-        """Test missing trigger field"""
-        data = {
-            "preventAiConfigGithub": {
-                "schema_version": "v1",
-                "default_org_config": {
-                    "org_defaults": {
-                        "bug_prediction": {
-                            "enabled": True,
-                            "sensitivity": "high",
-                            "triggers": {
-                                "on_command_phrase": True,
-                                # Missing on_ready_for_review
-                            },
-                        },
-                        "test_generation": {
-                            "enabled": False,
-                            "triggers": {
-                                "on_command_phrase": False,
-                                "on_ready_for_review": True,
-                            },
-                        },
-                        "vanilla": {
-                            "enabled": True,
-                            "sensitivity": "medium",
-                            "triggers": {
-                                "on_command_phrase": True,
-                                "on_ready_for_review": False,
-                            },
-                        },
-                    },
-                    "repo_overrides": {},
-                },
-                "github_organizations": {},
-            }
-        }
-        response = self.get_error_response(self.organization.slug, status_code=400, **data)
-        assert "preventAiConfigGithub" in response.data
-
-    def test_prevent_ai_config_github_validation_missing_setting_field(self) -> None:
-        """Test missing setting field"""
-        data = {
-            "preventAiConfigGithub": {
-                "schema_version": "v1",
-                "default_org_config": {
-                    "org_defaults": {
-                        "bug_prediction": {
-                            "enabled": True,
-                            "sensitivity": "high",
-                            "triggers": {
-                                "on_command_phrase": True,
-                                "on_ready_for_review": False,
-                            },
-                        },
-                        "test_generation": {
-                            "enabled": False,
-                            "triggers": {
-                                "on_command_phrase": False,
-                                "on_ready_for_review": True,
-                            },
-                        },
-                        # Missing vanilla feature
-                    },
-                    "repo_overrides": {},
-                },
-                "github_organizations": {},
-            }
-        }
-        response = self.get_error_response(self.organization.slug, status_code=400, **data)
-        assert "preventAiConfigGithub" in response.data
-
-    def test_prevent_ai_config_github_validation_wrong_data_types(self) -> None:
-        """Test wrong data types"""
-        data = {
-            "preventAiConfigGithub": {
-                "schema_version": "v1",
-                "default_org_config": {
-                    "org_defaults": {
-                        "bug_prediction": {
-                            "enabled": "yes",  # String instead of bool
-                            "sensitivity": "high",
-                            "triggers": {
-                                "on_command_phrase": True,
-                                "on_ready_for_review": False,
-                            },
-                        },
-                        "test_generation": {
-                            "enabled": False,
-                            "triggers": {
-                                "on_command_phrase": False,
-                                "on_ready_for_review": True,
-                            },
-                        },
-                        "vanilla": {
-                            "enabled": True,
-                            "sensitivity": "medium",
-                            "triggers": {
-                                "on_command_phrase": True,
-                                "on_ready_for_review": False,
-                            },
-                        },
-                    },
-                    "repo_overrides": {},
-                },
-                "github_organizations": {},
-            }
-        }
-        response = self.get_error_response(self.organization.slug, status_code=400, **data)
-        # Should get object-level validation error
-        assert "preventAiConfigGithub" in response.data
-        error_msg = str(response.data["preventAiConfigGithub"])
-        assert "Prevent AI config option is invalid" in error_msg
-
-    def test_prevent_ai_config_github_validation_repo_overrides(self) -> None:
-        """Test validation specifically for repo_overrides structure"""
-
-        # Invalid repo override - missing features
-        data = {
-            "preventAiConfigGithub": {
-                "schema_version": "v1",
-                "default_org_config": {
-                    "org_defaults": {
-                        "bug_prediction": {
-                            "enabled": True,
-                            "sensitivity": "high",
-                            "triggers": {
-                                "on_command_phrase": True,
-                                "on_ready_for_review": False,
-                            },
-                        },
-                        "test_generation": {
-                            "enabled": False,
-                            "triggers": {
-                                "on_command_phrase": False,
-                                "on_ready_for_review": True,
-                            },
-                        },
-                        "vanilla": {
-                            "enabled": True,
-                            "sensitivity": "medium",
-                            "triggers": {
-                                "on_command_phrase": True,
-                                "on_ready_for_review": False,
-                            },
-                        },
-                    },
-                    "repo_overrides": {
-                        "my_repo": {
-                            # Missing all features
-                        }
-                    },
-                },
-                "github_organizations": {},
-            }
-        }
-        response = self.get_error_response(self.organization.slug, status_code=400, **data)
-        # Should get object-level validation error
-        assert "preventAiConfigGithub" in response.data
-        error_msg = str(response.data["preventAiConfigGithub"])
-        error_msg = str(response.data["preventAiConfigGithub"])
-        assert "Prevent AI config option is invalid" in error_msg
-
-        # Invalid repo override - wrong field types
-        data = {
-            "preventAiConfigGithub": {
-                "schema_version": "v1",
-                "default_org_config": {
-                    "org_defaults": {
-                        "bug_prediction": {
-                            "enabled": True,
-                            "sensitivity": "high",
-                            "triggers": {
-                                "on_command_phrase": True,
-                                "on_ready_for_review": False,
-                            },
-                        },
-                        "test_generation": {
-                            "enabled": False,
-                            "triggers": {
-                                "on_command_phrase": False,
-                                "on_ready_for_review": True,
-                            },
-                        },
-                        "vanilla": {
-                            "enabled": True,
-                            "sensitivity": "medium",
-                            "triggers": {
-                                "on_command_phrase": True,
-                                "on_ready_for_review": False,
-                            },
-                        },
-                    },
-                    "repo_overrides": {
-                        "my_repo": {
-                            "bug_prediction": {
-                                "enabled": 1,  # Number instead of bool
-                                "sensitivity": "high",
-                                "triggers": {
-                                    "on_command_phrase": True,
-                                    "on_ready_for_review": False,
-                                },
-                            },
-                            "test_generation": {
-                                "enabled": False,
-                                "triggers": {
-                                    "on_command_phrase": False,
-                                    "on_ready_for_review": True,
-                                },
-                            },
-                            "vanilla": {
-                                "enabled": True,
-                                "sensitivity": "medium",
-                                "triggers": {
-                                    "on_command_phrase": True,
-                                    "on_ready_for_review": False,
-                                },
-                            },
-                        }
-                    },
-                },
-                "github_organizations": {},
-            }
-        }
-        response = self.get_error_response(self.organization.slug, status_code=400, **data)
-        assert "preventAiConfigGithub" in response.data
-
-        # Valid repo overrides should work
-        data = {
-            "preventAiConfigGithub": {
-                "schema_version": "v1",
-                "default_org_config": {
-                    "org_defaults": {
-                        "bug_prediction": {
-                            "enabled": True,
-                            "sensitivity": "high",
-                            "triggers": {
-                                "on_command_phrase": True,
-                                "on_ready_for_review": False,
-                            },
-                        },
-                        "test_generation": {
-                            "enabled": False,
-                            "triggers": {
-                                "on_command_phrase": False,
-                                "on_ready_for_review": True,
-                            },
-                        },
-                        "vanilla": {
-                            "enabled": True,
-                            "sensitivity": "medium",
-                            "triggers": {
-                                "on_command_phrase": True,
-                                "on_ready_for_review": False,
-                            },
-                        },
-                    },
-                    "repo_overrides": {
-                        "repo_1": {
-                            "bug_prediction": {
-                                "enabled": False,
-                                "sensitivity": "low",
-                                "triggers": {
-                                    "on_command_phrase": False,
-                                    "on_ready_for_review": True,
-                                },
-                            },
-                            "test_generation": {
-                                "enabled": True,
-                                "triggers": {
-                                    "on_command_phrase": True,
-                                    "on_ready_for_review": False,
-                                },
-                            },
-                            "vanilla": {
-                                "enabled": False,
-                                "sensitivity": "critical",
-                                "triggers": {
-                                    "on_command_phrase": False,
-                                    "on_ready_for_review": True,
-                                },
-                            },
-                        },
-                        "repo_2": {
-                            "bug_prediction": {
-                                "enabled": True,
-                                "sensitivity": "medium",
-                                "triggers": {
-                                    "on_command_phrase": True,
-                                    "on_ready_for_review": False,
-                                },
-                            },
-                            "test_generation": {
-                                "enabled": False,
-                                "triggers": {
-                                    "on_command_phrase": False,
-                                    "on_ready_for_review": False,
-                                },
-                            },
-                            "vanilla": {
-                                "enabled": True,
-                                "sensitivity": "high",
-                                "triggers": {
-                                    "on_command_phrase": True,
-                                    "on_ready_for_review": False,
-                                },
-                            },
-                        },
-                    },
-                },
-                "github_organizations": {},
-            }
-        }
-        self.get_success_response(self.organization.slug, **data)
-        assert (
-            self.organization.get_option("sentry:prevent_ai_config_github")
-            == data["preventAiConfigGithub"]
-        )
-
-    def test_prevent_ai_config_github_with_single_organization(self) -> None:
-        """Test valid configuration with a single organization in github_organizations"""
-        data = {
-            "preventAiConfigGithub": {
-                "schema_version": "v1",
-                "default_org_config": {
-                    "org_defaults": {
-                        "bug_prediction": {
-                            "enabled": False,
-                            "sensitivity": "medium",
-                            "triggers": {
-                                "on_command_phrase": True,
-                                "on_ready_for_review": True,
-                            },
-                        },
-                        "test_generation": {
-                            "enabled": False,
-                            "triggers": {
-                                "on_command_phrase": True,
-                                "on_ready_for_review": False,
-                            },
-                        },
-                        "vanilla": {
-                            "enabled": False,
-                            "sensitivity": "medium",
-                            "triggers": {
-                                "on_command_phrase": True,
-                                "on_ready_for_review": False,
-                            },
-                        },
-                    },
-                    "repo_overrides": {},
-                },
-                "github_organizations": {
-                    "my-org": {
-                        "org_defaults": {
-                            "bug_prediction": {
-                                "enabled": True,
-                                "sensitivity": "high",
-                                "triggers": {
-                                    "on_command_phrase": True,
-                                    "on_ready_for_review": False,
-                                },
-                            },
-                            "test_generation": {
-                                "enabled": True,
-                                "triggers": {
-                                    "on_command_phrase": False,
-                                    "on_ready_for_review": True,
-                                },
-                            },
-                            "vanilla": {
-                                "enabled": False,
-                                "sensitivity": "critical",
-                                "triggers": {
-                                    "on_command_phrase": True,
-                                    "on_ready_for_review": True,
-                                },
-                            },
-                        },
-                        "repo_overrides": {
-                            "sensitive-repo": {
-                                "bug_prediction": {
-                                    "enabled": False,
-                                    "sensitivity": "low",
-                                    "triggers": {
-                                        "on_command_phrase": False,
-                                        "on_ready_for_review": False,
-                                    },
-                                },
-                                "test_generation": {
-                                    "enabled": False,
-                                    "triggers": {
-                                        "on_command_phrase": False,
-                                        "on_ready_for_review": False,
-                                    },
-                                },
-                                "vanilla": {
-                                    "enabled": False,
-                                    "sensitivity": "low",
-                                    "triggers": {
-                                        "on_command_phrase": False,
-                                        "on_ready_for_review": False,
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
-            }
-        }
-        self.get_success_response(self.organization.slug, **data)
-        assert (
-            self.organization.get_option("sentry:prevent_ai_config_github")
-            == data["preventAiConfigGithub"]
-        )
-
-    def test_prevent_ai_config_github_with_multiple_organizations(self) -> None:
-        """Test valid configuration with multiple organizations in github_organizations"""
-        data = {
-            "preventAiConfigGithub": {
-                "schema_version": "v1",
-                "default_org_config": {
-                    "org_defaults": {
-                        "bug_prediction": {
-                            "enabled": False,
-                            "sensitivity": "medium",
-                            "triggers": {
-                                "on_command_phrase": True,
-                                "on_ready_for_review": True,
-                            },
-                        },
-                        "test_generation": {
-                            "enabled": False,
-                            "triggers": {
-                                "on_command_phrase": True,
-                                "on_ready_for_review": False,
-                            },
-                        },
-                        "vanilla": {
-                            "enabled": False,
-                            "sensitivity": "medium",
-                            "triggers": {
-                                "on_command_phrase": True,
-                                "on_ready_for_review": False,
-                            },
-                        },
-                    },
-                    "repo_overrides": {},
-                },
-                "github_organizations": {
-                    "org-alpha": {
-                        "org_defaults": {
-                            "bug_prediction": {
-                                "enabled": True,
-                                "sensitivity": "high",
-                                "triggers": {
-                                    "on_command_phrase": True,
-                                    "on_ready_for_review": False,
-                                },
-                            },
-                            "test_generation": {
-                                "enabled": False,
-                                "triggers": {
-                                    "on_command_phrase": False,
-                                    "on_ready_for_review": True,
-                                },
-                            },
-                            "vanilla": {
-                                "enabled": True,
-                                "sensitivity": "medium",
-                                "triggers": {
-                                    "on_command_phrase": True,
-                                    "on_ready_for_review": False,
-                                },
-                            },
-                        },
-                        "repo_overrides": {},
-                    },
-                    "org-beta": {
-                        "org_defaults": {
-                            "bug_prediction": {
-                                "enabled": False,
-                                "sensitivity": "low",
-                                "triggers": {
-                                    "on_command_phrase": False,
-                                    "on_ready_for_review": True,
-                                },
-                            },
-                            "test_generation": {
-                                "enabled": True,
-                                "triggers": {
-                                    "on_command_phrase": True,
-                                    "on_ready_for_review": False,
-                                },
-                            },
-                            "vanilla": {
-                                "enabled": False,
-                                "sensitivity": "critical",
-                                "triggers": {
-                                    "on_command_phrase": False,
-                                    "on_ready_for_review": False,
-                                },
-                            },
-                        },
-                        "repo_overrides": {
-                            "special-repo": {
-                                "bug_prediction": {
-                                    "enabled": True,
-                                    "sensitivity": "critical",
-                                    "triggers": {
-                                        "on_command_phrase": True,
-                                        "on_ready_for_review": True,
-                                    },
-                                },
-                                "test_generation": {
-                                    "enabled": False,
-                                    "triggers": {
-                                        "on_command_phrase": False,
-                                        "on_ready_for_review": False,
-                                    },
-                                },
-                                "vanilla": {
-                                    "enabled": True,
-                                    "sensitivity": "high",
-                                    "triggers": {
-                                        "on_command_phrase": True,
-                                        "on_ready_for_review": False,
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
-            }
-        }
-        self.get_success_response(self.organization.slug, **data)
-        assert (
-            self.organization.get_option("sentry:prevent_ai_config_github")
-            == data["preventAiConfigGithub"]
-        )
-
-    def test_prevent_ai_config_github_invalid_organization_structure(self) -> None:
-        """Test invalid organization structure in github_organizations"""
-        # Missing org_defaults in organization
-        data = {
-            "preventAiConfigGithub": {
-                "schema_version": "v1",
-                "default_org_config": {
-                    "org_defaults": {
-                        "bug_prediction": {
-                            "enabled": False,
-                            "sensitivity": "medium",
-                            "triggers": {
-                                "on_command_phrase": True,
-                                "on_ready_for_review": True,
-                            },
-                        },
-                        "test_generation": {
-                            "enabled": False,
-                            "triggers": {
-                                "on_command_phrase": True,
-                                "on_ready_for_review": False,
-                            },
-                        },
-                        "vanilla": {
-                            "enabled": False,
-                            "sensitivity": "medium",
-                            "triggers": {
-                                "on_command_phrase": True,
-                                "on_ready_for_review": False,
-                            },
-                        },
-                    },
-                    "repo_overrides": {},
-                },
-                "github_organizations": {
-                    "invalid-org": {
-                        # Missing org_defaults
-                        "repo_overrides": {},
-                    },
-                },
-            }
-        }
-        response = self.get_error_response(self.organization.slug, status_code=400, **data)
-        assert "preventAiConfigGithub" in response.data
-        error_msg = str(response.data["preventAiConfigGithub"])
-        assert "Prevent AI config option is invalid" in error_msg
-
-        # Invalid feature configuration in organization
-        data = {
-            "preventAiConfigGithub": {
-                "schema_version": "v1",
-                "default_org_config": {
-                    "org_defaults": {
-                        "bug_prediction": {
-                            "enabled": False,
-                            "sensitivity": "medium",
-                            "triggers": {
-                                "on_command_phrase": True,
-                                "on_ready_for_review": True,
-                            },
-                        },
-                        "test_generation": {
-                            "enabled": False,
-                            "triggers": {
-                                "on_command_phrase": True,
-                                "on_ready_for_review": False,
-                            },
-                        },
-                        "vanilla": {
-                            "enabled": False,
-                            "sensitivity": "medium",
-                            "triggers": {
-                                "on_command_phrase": True,
-                                "on_ready_for_review": False,
-                            },
-                        },
-                    },
-                    "repo_overrides": {},
-                },
-                "github_organizations": {
-                    "invalid-org": {
-                        "org_defaults": {
-                            "bug_prediction": {
-                                "enabled": "invalid",  # Should be boolean
-                                "sensitivity": "medium",
-                                "triggers": {
-                                    "on_command_phrase": True,
-                                    "on_ready_for_review": True,
-                                },
-                            },
-                            "test_generation": {
-                                "enabled": False,
-                                "triggers": {
-                                    "on_command_phrase": True,
-                                    "on_ready_for_review": False,
-                                },
-                            },
-                            "vanilla": {
-                                "enabled": False,
-                                "sensitivity": "medium",
-                                "triggers": {
-                                    "on_command_phrase": True,
-                                    "on_ready_for_review": False,
-                                },
-                            },
-                        },
-                        "repo_overrides": {},
-                    },
-                },
-            }
-        }
-        response = self.get_error_response(self.organization.slug, status_code=400, **data)
-        assert "preventAiConfigGithub" in response.data
-        error_msg = str(response.data["preventAiConfigGithub"])
-        assert "Prevent AI config option is invalid" in error_msg
-
-    def test_prevent_ai_config_github_mixed_valid_invalid_organizations(self) -> None:
-        """Test configuration with both valid and invalid organizations"""
-        data = {
-            "preventAiConfigGithub": {
-                "schema_version": "v1",
-                "default_org_config": {
-                    "org_defaults": {
-                        "bug_prediction": {
-                            "enabled": False,
-                            "sensitivity": "medium",
-                            "triggers": {
-                                "on_command_phrase": True,
-                                "on_ready_for_review": True,
-                            },
-                        },
-                        "test_generation": {
-                            "enabled": False,
-                            "triggers": {
-                                "on_command_phrase": True,
-                                "on_ready_for_review": False,
-                            },
-                        },
-                        "vanilla": {
-                            "enabled": False,
-                            "sensitivity": "medium",
-                            "triggers": {
-                                "on_command_phrase": True,
-                                "on_ready_for_review": False,
-                            },
-                        },
-                    },
-                    "repo_overrides": {},
-                },
-                "github_organizations": {
-                    "valid-org": {
-                        "org_defaults": {
-                            "bug_prediction": {
-                                "enabled": True,
-                                "sensitivity": "high",
-                                "triggers": {
-                                    "on_command_phrase": True,
-                                    "on_ready_for_review": False,
-                                },
-                            },
-                            "test_generation": {
-                                "enabled": False,
-                                "triggers": {
-                                    "on_command_phrase": False,
-                                    "on_ready_for_review": True,
-                                },
-                            },
-                            "vanilla": {
-                                "enabled": True,
-                                "sensitivity": "medium",
-                                "triggers": {
-                                    "on_command_phrase": True,
-                                    "on_ready_for_review": False,
-                                },
-                            },
-                        },
-                        "repo_overrides": {},
-                    },
-                    "invalid-org": {
-                        "org_defaults": {
-                            "bug_prediction": {
-                                "enabled": True,
-                                "sensitivity": "invalid_sensitivity",  # Invalid enum value
-                                "triggers": {
-                                    "on_command_phrase": True,
-                                    "on_ready_for_review": False,
-                                },
-                            },
-                            "test_generation": {
-                                "enabled": False,
-                                "triggers": {
-                                    "on_command_phrase": False,
-                                    "on_ready_for_review": True,
-                                },
-                            },
-                            "vanilla": {
-                                "enabled": True,
-                                "sensitivity": "medium",
-                                "triggers": {
-                                    "on_command_phrase": True,
-                                    "on_ready_for_review": False,
-                                },
-                            },
-                        },
-                        "repo_overrides": {},
-                    },
-                },
-            }
-        }
-        response = self.get_error_response(self.organization.slug, status_code=400, **data)
-        assert "preventAiConfigGithub" in response.data
-        error_msg = str(response.data["preventAiConfigGithub"])
-        assert "Prevent AI config option is invalid" in error_msg
-
     def test_enabled_console_platforms_present_in_response(self) -> None:
         response = self.get_success_response(self.organization.slug)
         assert "enabledConsolePlatforms" in response.data
@@ -2517,6 +1477,408 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         assert self.organization.get_option("sentry:enable_seer_coding") is True
 
+    @with_feature("organizations:granular-replay-permissions")
+    def test_granular_replay_permissions_flag_set(self) -> None:
+        with assume_test_silo_mode_of(AuditLogEntry):
+            AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
+
+        data = {"hasGranularReplayPermissions": True}
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, **data)
+
+        option_value = OrganizationOption.objects.get(
+            organization=self.organization, key="sentry:granular-replay-permissions"
+        )
+        assert option_value.value is True
+
+        with assume_test_silo_mode_of(AuditLogEntry):
+            log = AuditLogEntry.objects.get(organization_id=self.organization.id)
+        assert "to True" in log.data["hasGranularReplayPermissions"]
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_granular_replay_permissions_flag_unset(self) -> None:
+        self.organization.update_option("sentry:granular-replay-permissions", True)
+        with assume_test_silo_mode_of(AuditLogEntry):
+            AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
+
+        data = {"hasGranularReplayPermissions": False}
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, **data)
+
+        option_value = OrganizationOption.objects.get(
+            organization=self.organization, key="sentry:granular-replay-permissions"
+        )
+        assert option_value.value is False
+
+        with assume_test_silo_mode_of(AuditLogEntry):
+            log = AuditLogEntry.objects.get(organization_id=self.organization.id)
+
+        assert "to False" in log.data["hasGranularReplayPermissions"]
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_granular_replay_permissions_no_spurious_audit_log(self) -> None:
+        self.organization.update_option("sentry:granular-replay-permissions", True)
+        with assume_test_silo_mode_of(AuditLogEntry):
+            AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
+
+        data = {"hasGranularReplayPermissions": True}
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, **data)
+
+        with assume_test_silo_mode_of(AuditLogEntry):
+            audit_logs = AuditLogEntry.objects.filter(organization_id=self.organization.id)
+            assert audit_logs.count() == 0
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_granular_replay_permissions_change_logs_old_value(self) -> None:
+        self.organization.update_option("sentry:granular-replay-permissions", False)
+        with assume_test_silo_mode_of(AuditLogEntry):
+            AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
+
+        data = {"hasGranularReplayPermissions": True}
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, **data)
+
+        option_value = OrganizationOption.objects.get(
+            organization=self.organization, key="sentry:granular-replay-permissions"
+        )
+        assert option_value.value is True
+
+        with assume_test_silo_mode_of(AuditLogEntry):
+            log = AuditLogEntry.objects.get(organization_id=self.organization.id)
+        assert log.data["hasGranularReplayPermissions"] == "from False to True"
+
+    def test_granular_replay_permissions_flag_requires_feature(self) -> None:
+        data = {"hasGranularReplayPermissions": True}
+        self.get_error_response(self.organization.slug, **data, status_code=404)
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_granular_replay_permissions_flag_requires_admin_scope(self) -> None:
+        member_user = self.create_user()
+        self.create_member(
+            organization=self.organization, user=member_user, role="member", teams=[]
+        )
+        self.login_as(member_user)
+
+        data = {"hasGranularReplayPermissions": True}
+        response = self.get_error_response(self.organization.slug, **data, status_code=403)
+        assert response.status_code == 403
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_replay_access_members_add(self) -> None:
+        member1 = self.create_member(
+            organization=self.organization, user=self.create_user(), role="member"
+        )
+        member2 = self.create_member(
+            organization=self.organization, user=self.create_user(), role="member"
+        )
+        with assume_test_silo_mode_of(AuditLogEntry):
+            AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
+
+        data = {"replayAccessMembers": [member1.user_id, member2.user_id]}
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, **data)
+
+        access_members = list(
+            OrganizationMemberReplayAccess.objects.filter(
+                organizationmember__organization=self.organization
+            ).values_list("organizationmember_id", flat=True)
+        )
+        assert set(access_members) == {member1.id, member2.id}
+
+        with assume_test_silo_mode_of(AuditLogEntry):
+            log = AuditLogEntry.objects.get(organization_id=self.organization.id)
+        assert "added 2 user(s)" in log.data["replayAccessMembers"]
+        assert "total: 2 user(s)" in log.data["replayAccessMembers"]
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_replay_access_members_remove(self) -> None:
+        member1 = self.create_member(
+            organization=self.organization, user=self.create_user(), role="member"
+        )
+        member2 = self.create_member(
+            organization=self.organization, user=self.create_user(), role="member"
+        )
+        OrganizationMemberReplayAccess.objects.create(organizationmember=member1)
+        OrganizationMemberReplayAccess.objects.create(organizationmember=member2)
+        with assume_test_silo_mode_of(AuditLogEntry):
+            AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
+
+        data = {"replayAccessMembers": [member1.user_id]}
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, **data)
+
+        access_members = list(
+            OrganizationMemberReplayAccess.objects.filter(
+                organizationmember__organization=self.organization
+            ).values_list("organizationmember_id", flat=True)
+        )
+        assert access_members == [member1.id]
+
+        with assume_test_silo_mode_of(AuditLogEntry):
+            log = AuditLogEntry.objects.get(organization_id=self.organization.id)
+        assert "removed 1 user(s)" in log.data["replayAccessMembers"]
+        assert "total: 1 user(s)" in log.data["replayAccessMembers"]
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_replay_access_members_add_and_remove(self) -> None:
+        member1 = self.create_member(
+            organization=self.organization, user=self.create_user(), role="member"
+        )
+        member2 = self.create_member(
+            organization=self.organization, user=self.create_user(), role="member"
+        )
+        member3 = self.create_member(
+            organization=self.organization, user=self.create_user(), role="member"
+        )
+        OrganizationMemberReplayAccess.objects.create(organizationmember=member1)
+        with assume_test_silo_mode_of(AuditLogEntry):
+            AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
+
+        data = {"replayAccessMembers": [member2.user_id, member3.user_id]}
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, **data)
+
+        access_members = set(
+            OrganizationMemberReplayAccess.objects.filter(
+                organizationmember__organization=self.organization
+            ).values_list("organizationmember_id", flat=True)
+        )
+        assert access_members == {member2.id, member3.id}
+
+        with assume_test_silo_mode_of(AuditLogEntry):
+            log = AuditLogEntry.objects.get(organization_id=self.organization.id)
+        assert "added 2 user(s)" in log.data["replayAccessMembers"]
+        assert "removed 1 user(s)" in log.data["replayAccessMembers"]
+        assert "total: 2 user(s)" in log.data["replayAccessMembers"]
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_replay_access_members_clear_all(self) -> None:
+        member1 = self.create_member(
+            organization=self.organization, user=self.create_user(), role="member"
+        )
+        OrganizationMemberReplayAccess.objects.create(organizationmember=member1)
+        with assume_test_silo_mode_of(AuditLogEntry):
+            AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
+
+        data: dict[str, Any] = {"replayAccessMembers": []}
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, **data)
+
+        access_count = OrganizationMemberReplayAccess.objects.filter(
+            organizationmember__organization=self.organization
+        ).count()
+        assert access_count == 0
+
+        with assume_test_silo_mode_of(AuditLogEntry):
+            log = AuditLogEntry.objects.get(organization_id=self.organization.id)
+        assert "removed 1 user(s)" in log.data["replayAccessMembers"]
+        assert "total: 0 user(s)" in log.data["replayAccessMembers"]
+
+    def test_replay_access_members_requires_feature(self) -> None:
+        member1 = self.create_member(
+            organization=self.organization, user=self.create_user(), role="member"
+        )
+        data = {"replayAccessMembers": [member1.user_id]}
+        self.get_error_response(self.organization.slug, **data, status_code=404)
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_replay_access_members_requires_admin_scope(self) -> None:
+        member_user = self.create_user()
+        self.create_member(
+            organization=self.organization, user=member_user, role="member", teams=[]
+        )
+        self.login_as(member_user)
+
+        other_member = self.create_member(
+            organization=self.organization, user=self.create_user(), role="member"
+        )
+        data = {"replayAccessMembers": [other_member.user_id]}
+        self.get_error_response(self.organization.slug, **data, status_code=403)
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_replay_access_members_invalid_user_ids(self) -> None:
+        nonexistent_id = 999999999
+        data = {"replayAccessMembers": [nonexistent_id]}
+        response = self.get_error_response(self.organization.slug, **data, status_code=400)
+        assert "replayAccessMembers" in response.data
+        assert str(nonexistent_id) in response.data["replayAccessMembers"]
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_replay_access_members_from_other_organization(self) -> None:
+        other_org = self.create_organization(owner=self.create_user())
+        other_org_member = self.create_member(
+            organization=other_org, user=self.create_user(), role="member"
+        )
+        data = {"replayAccessMembers": [other_org_member.user_id]}
+        response = self.get_error_response(self.organization.slug, **data, status_code=400)
+        assert "replayAccessMembers" in response.data
+        assert str(other_org_member.user_id) in response.data["replayAccessMembers"]
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_replay_access_members_mixed_valid_and_invalid(self) -> None:
+        valid_member = self.create_member(
+            organization=self.organization, user=self.create_user(), role="member"
+        )
+        nonexistent_id = 999999999
+        data = {"replayAccessMembers": [valid_member.user_id, nonexistent_id]}
+        response = self.get_error_response(self.organization.slug, **data, status_code=400)
+        assert "replayAccessMembers" in response.data
+        assert str(nonexistent_id) in response.data["replayAccessMembers"]
+        assert str(valid_member.user_id) not in response.data["replayAccessMembers"]
+
+        access_count = OrganizationMemberReplayAccess.objects.filter(
+            organizationmember__organization=self.organization
+        ).count()
+        assert access_count == 0
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_granular_replay_permissions_owner_can_edit(self) -> None:
+        owner = self.create_user()
+        org = self.create_organization(owner=owner)
+        member = self.create_member(organization=org, user=self.create_user(), role="member")
+        self.login_as(owner)
+
+        response = self.get_success_response(
+            org.slug, hasGranularReplayPermissions=True, replayAccessMembers=[member.user_id]
+        )
+
+        assert response.data["hasGranularReplayPermissions"] is True
+        assert member.user_id in response.data["replayAccessMembers"]
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_granular_replay_permissions_manager_can_edit(self) -> None:
+        owner = self.create_user()
+        org = self.create_organization(owner=owner)
+        manager = self.create_user()
+        self.create_member(organization=org, user=manager, role="manager")
+        member = self.create_member(organization=org, user=self.create_user(), role="member")
+        self.login_as(manager)
+
+        response = self.get_success_response(
+            org.slug, hasGranularReplayPermissions=True, replayAccessMembers=[member.user_id]
+        )
+
+        assert response.data["hasGranularReplayPermissions"] is True
+        assert member.user_id in response.data["replayAccessMembers"]
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_granular_replay_permissions_admin_cannot_edit(self) -> None:
+        owner = self.create_user()
+        org = self.create_organization(owner=owner)
+        admin = self.create_user()
+        self.create_member(organization=org, user=admin, role="admin")
+        member = self.create_member(organization=org, user=self.create_user(), role="member")
+        self.login_as(admin)
+
+        self.get_error_response(
+            org.slug, hasGranularReplayPermissions=True, replayAccessMembers=[member.user_id]
+        )
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_granular_replay_permissions_member_cannot_edit_boolean(self) -> None:
+        owner = self.create_user()
+        org = self.create_organization(owner=owner)
+        member_user = self.create_user()
+        self.create_member(organization=org, user=member_user, role="member")
+        self.login_as(member_user)
+
+        self.get_error_response(org.slug, hasGranularReplayPermissions=True, status_code=403)
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_granular_replay_permissions_member_cannot_edit_list(self) -> None:
+        owner = self.create_user()
+        org = self.create_organization(owner=owner)
+        member_user = self.create_user()
+        self.create_member(organization=org, user=member_user, role="member")
+        other_member = self.create_member(organization=org, user=self.create_user(), role="member")
+        self.login_as(member_user)
+
+        self.get_error_response(
+            org.slug, replayAccessMembers=[other_member.user_id], status_code=403
+        )
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_granular_replay_permissions_retrieve_as_owner(self) -> None:
+        owner = self.create_user()
+        org = self.create_organization(owner=owner)
+        member = self.create_member(organization=org, user=self.create_user(), role="member")
+        org.update_option("sentry:granular-replay-permissions", True)
+        OrganizationMemberReplayAccess.objects.create(organizationmember=member)
+        self.login_as(owner)
+
+        response = self.get_success_response(org.slug, method="get")
+
+        assert "hasGranularReplayPermissions" in response.data
+        assert response.data["hasGranularReplayPermissions"] is True
+        assert "replayAccessMembers" in response.data
+        assert member.user_id in response.data["replayAccessMembers"]
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_granular_replay_permissions_retrieve_as_manager(self) -> None:
+        owner = self.create_user()
+        org = self.create_organization(owner=owner)
+        manager = self.create_user()
+        self.create_member(organization=org, user=manager, role="manager")
+        member = self.create_member(organization=org, user=self.create_user(), role="member")
+        org.update_option("sentry:granular-replay-permissions", True)
+        OrganizationMemberReplayAccess.objects.create(organizationmember=member)
+        self.login_as(manager)
+
+        response = self.get_success_response(org.slug, method="get")
+
+        assert "hasGranularReplayPermissions" in response.data
+        assert response.data["hasGranularReplayPermissions"] is True
+        assert "replayAccessMembers" in response.data
+        assert member.user_id in response.data["replayAccessMembers"]
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_granular_replay_permissions_retrieve_as_admin(self) -> None:
+        owner = self.create_user()
+        org = self.create_organization(owner=owner)
+        admin = self.create_user()
+        self.create_member(organization=org, user=admin, role="admin")
+        member = self.create_member(organization=org, user=self.create_user(), role="member")
+        org.update_option("sentry:granular-replay-permissions", True)
+        OrganizationMemberReplayAccess.objects.create(organizationmember=member)
+        self.login_as(admin)
+
+        response = self.get_success_response(org.slug, method="get")
+
+        assert "hasGranularReplayPermissions" in response.data
+        assert response.data["hasGranularReplayPermissions"] is True
+        assert "replayAccessMembers" in response.data
+        assert member.user_id in response.data["replayAccessMembers"]
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_granular_replay_permissions_retrieve_as_member(self) -> None:
+        owner = self.create_user()
+        org = self.create_organization(owner=owner)
+        member_user = self.create_user()
+        self.create_member(organization=org, user=member_user, role="member")
+        other_member = self.create_member(organization=org, user=self.create_user(), role="member")
+        org.update_option("sentry:granular-replay-permissions", True)
+        OrganizationMemberReplayAccess.objects.create(organizationmember=other_member)
+        self.login_as(member_user)
+
+        response = self.get_success_response(org.slug, method="get")
+
+        assert "hasGranularReplayPermissions" in response.data
+        assert response.data["hasGranularReplayPermissions"] is True
+        assert "replayAccessMembers" in response.data
+        assert other_member.user_id in response.data["replayAccessMembers"]
+
+    def test_granular_replay_permissions_retrieve_hidden_without_feature(self) -> None:
+        owner = self.create_user()
+        org = self.create_organization(owner=owner)
+        org.update_option("sentry:granular-replay-permissions", True)
+        self.login_as(owner)
+
+        response = self.get_success_response(org.slug, method="get")
+
+        assert response.data["hasGranularReplayPermissions"] is False
+        assert response.data["replayAccessMembers"] == []
+
 
 class OrganizationDeleteTest(OrganizationDetailsTestBase):
     method = "delete"
@@ -2568,6 +1930,22 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         self.login_as(user)
 
         self.get_error_response(org.slug, status_code=403)
+
+    def test_delete_relocation_pending(self) -> None:
+        org = self.create_organization(
+            owner=self.user, status=OrganizationStatus.RELOCATION_PENDING_APPROVAL
+        )
+        with self.tasks():
+            self.get_success_response(org.slug, status_code=status.HTTP_202_ACCEPTED)
+
+        org = Organization.objects.get(id=org.id)
+        assert org.status == OrganizationStatus.PENDING_DELETION
+
+        deleted_org = DeletedOrganization.objects.get(slug=org.slug)
+        self.assert_valid_deleted_log(deleted_org, org)
+
+        schedule = RegionScheduledDeletion.objects.get(object_id=org.id, model_name="Organization")
+        assert schedule.date_scheduled >= timezone.now() + timedelta(hours=23)
 
     def test_cannot_remove_default(self) -> None:
         with unguarded_write(using=router.db_for_write(Organization)):

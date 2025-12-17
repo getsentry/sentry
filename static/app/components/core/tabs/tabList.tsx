@@ -9,13 +9,14 @@ import type {TabListStateOptions} from '@react-stately/tabs';
 import {useTabListState} from '@react-stately/tabs';
 import type {Node, Orientation} from '@react-types/shared';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import DropdownButton from 'sentry/components/dropdownButton';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {isChonkTheme, withChonk} from 'sentry/utils/theme/withChonk';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import type {TabListItemProps} from './item';
@@ -116,7 +117,6 @@ function OverflowMenu({state, overflowMenuItems, disabled}: any) {
         trigger={triggerProps => (
           <OverflowMenuTrigger
             {...triggerProps}
-            size="sm"
             borderless
             showChevron={false}
             icon={<IconEllipsis />}
@@ -351,9 +351,8 @@ const TabListOverflowWrap = withChonk(
   ChonkStyledTabListOverflowWrap
 );
 
-const OverflowMenuTrigger = styled(DropdownButton)`
+const OverflowMenuTrigger = styled(SelectTrigger.Button)`
   padding-left: ${space(1)};
   padding-right: ${space(1)};
-  color: ${p =>
-    isChonkTheme(p.theme) ? p.theme.tokens.component.link.muted.default : undefined};
+  color: ${p => p.theme.tokens.component.link.muted.default};
 `;

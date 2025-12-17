@@ -47,6 +47,7 @@ import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metr
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OnDemandControlProvider} from 'sentry/utils/performance/contexts/onDemandControl';
 import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
+import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -61,6 +62,7 @@ import {
   isWidgetUsingTransactionName,
   resetPageFilters,
 } from 'sentry/views/dashboards/utils';
+import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import WidgetBuilderV2 from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
@@ -226,8 +228,13 @@ class DashboardDetail extends Component<Props, State> {
 
     if (
       prevProps.organization !== this.props.organization ||
-      prevProps.location !== this.props.location ||
-      prevProps.router !== this.props.router ||
+      // The only part of `location` used by `WidgetLegendSelectionState` is
+      // `unselectedSeries`. Don't bother comparing anything else. Once this
+      // component is a functional component, we'll move the selection state
+      // into a hook, and make sure it doesn't re-render too much.
+      prevProps.location.query.unselectedSeries !==
+        this.props.location.query.unselectedSeries ||
+      prevProps.navigate !== this.props.navigate ||
       prevProps.dashboard !== this.props.dashboard
     ) {
       this.setState({
@@ -495,17 +502,6 @@ class DashboardDetail extends Component<Props, State> {
 
   handleChangeFilter = (activeFilters: DashboardFilters) => {
     const {dashboard, location} = this.props;
-    const {modifiedDashboard} = this.state;
-    const newModifiedDashboard = modifiedDashboard || dashboard;
-
-    if (
-      Object.keys(activeFilters).every(
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        key => !newModifiedDashboard.filters?.[key] && activeFilters[key].length === 0
-      )
-    ) {
-      return;
-    }
 
     const filterParams: Record<string, string[]> = {};
     filterParams[DashboardFilterKeys.RELEASE] = activeFilters[DashboardFilterKeys.RELEASE]
@@ -653,6 +649,9 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onEditWidget = (widget: Widget) => {
+    // Start measuring the "onEdit" click handler duration
+    const start = performance.now();
+
     const {navigate, organization, params, location, dashboard} = this.props;
     const {modifiedDashboard} = this.state;
     const currentDashboard = modifiedDashboard ?? dashboard;
@@ -691,6 +690,17 @@ class DashboardDetail extends Component<Props, State> {
       }),
       {preventScrollReset: true}
     );
+
+    // Schedule stopping the timer for the end of the current task queue tick.
+    // This roughly corresponds to when React finishes the rendering and
+    // painting, and gives a decent idea of how long it took to open the Widget
+    // Builder
+    scheduleMicroTask(() => {
+      const duration = performance.now() - start;
+      Sentry.metrics.distribution('dashboards.widget.onEdit', duration, {
+        unit: 'millisecond',
+      });
+    });
   };
 
   handleSaveWidget = ({index, widget}: {index: number | undefined; widget: Widget}) => {
@@ -990,6 +1000,7 @@ class DashboardDetail extends Component<Props, State> {
                           onUpdate={this.onUpdateWidget}
                           handleUpdateWidgetList={this.handleUpdateWidgetList}
                           handleAddCustomWidget={this.handleAddCustomWidget}
+                          isEmbedded={this.isEmbedded}
                           isPreview={this.isPreview}
                           widgetLegendState={this.state.widgetLegendState}
                         />
@@ -1185,6 +1196,7 @@ class DashboardDetail extends Component<Props, State> {
                                 isPreview={this.isPreview}
                                 onDashboardFilterChange={this.handleChangeFilter}
                                 shouldBusySaveButton={this.state.isSavingDashboardFilters}
+                                prebuiltDashboardId={dashboard.prebuiltId}
                                 onCancel={() => {
                                   resetPageFilters(dashboard, location);
                                   trackAnalytics('dashboards2.filter.cancel', {
@@ -1257,27 +1269,30 @@ class DashboardDetail extends Component<Props, State> {
 
                               <WidgetViewerContext value={{seriesData, setData}}>
                                 <Fragment>
-                                  <Dashboard
-                                    dashboard={modifiedDashboard ?? dashboard}
-                                    isEditingDashboard={this.isEditingDashboard}
-                                    widgetLimitReached={widgetLimitReached}
-                                    onUpdate={this.onUpdateWidget}
-                                    handleUpdateWidgetList={this.handleUpdateWidgetList}
-                                    handleAddCustomWidget={this.handleAddCustomWidget}
-                                    onAddWidget={this.onAddWidget}
-                                    newWidget={newWidget}
-                                    onSetNewWidget={onSetNewWidget}
-                                    isPreview={this.isPreview}
-                                    widgetLegendState={this.state.widgetLegendState}
-                                    onEditWidget={this.onEditWidget}
-                                    newlyAddedWidget={newlyAddedWidget}
-                                    onNewWidgetScrollComplete={
-                                      this.handleScrollToNewWidgetComplete
-                                    }
-                                    useTimeseriesVisualization={
-                                      useTimeseriesVisualization
-                                    }
-                                  />
+                                  <WidgetQueryQueueProvider>
+                                    <Dashboard
+                                      dashboard={modifiedDashboard ?? dashboard}
+                                      isEditingDashboard={this.isEditingDashboard}
+                                      widgetLimitReached={widgetLimitReached}
+                                      onUpdate={this.onUpdateWidget}
+                                      handleUpdateWidgetList={this.handleUpdateWidgetList}
+                                      handleAddCustomWidget={this.handleAddCustomWidget}
+                                      onAddWidget={this.onAddWidget}
+                                      newWidget={newWidget}
+                                      onSetNewWidget={onSetNewWidget}
+                                      isEmbedded={this.isEmbedded}
+                                      isPreview={this.isPreview}
+                                      widgetLegendState={this.state.widgetLegendState}
+                                      onEditWidget={this.onEditWidget}
+                                      newlyAddedWidget={newlyAddedWidget}
+                                      onNewWidgetScrollComplete={
+                                        this.handleScrollToNewWidgetComplete
+                                      }
+                                      useTimeseriesVisualization={
+                                        useTimeseriesVisualization
+                                      }
+                                    />
+                                  </WidgetQueryQueueProvider>
 
                                   <WidgetBuilderV2
                                     isOpen={this.state.isWidgetBuilderOpen}

@@ -101,5 +101,10 @@
   "python.analysis.autoImportCompletions": true,
   "prettier.configPath": "prettier.config.mjs",
   "biome.enabled": false,
-  "cursorpyright.analysis.autoImportCompletions": true
+  "cursorpyright.analysis.autoImportCompletions": true,
+  "mypy-type-checker.path": ["${workspaceFolder}/.venv/bin/mypy"],
+  "mypy-type-checker.args": [
+    "--config-file=${workspaceFolder}/pyproject.toml"
+  ],
+  "mypy-type-checker.cwd": "${workspaceFolder}",
 }

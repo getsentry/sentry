@@ -13,7 +13,7 @@ type PerformanceStatsGroup = {
 };
 
 type PartialUsageStats = {
-  groups: PerformanceStatsGroup[];
+  groups?: PerformanceStatsGroup[];
 };
 
 export function usePerformanceUsageStats({
@@ -49,7 +49,7 @@ export function usePerformanceUsageStats({
 
   return {
     ...results,
-    data: results.data?.groups.find(group =>
+    data: results.data?.groups?.find(group =>
       [
         'transaction_usage_exceeded',
         'span_usage_exceeded',

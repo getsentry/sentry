@@ -9,8 +9,11 @@ import {
   EditDetectorAction,
 } from 'sentry/views/detectors/components/details/common/actions';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
-import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
-import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
+import {
+  makeMonitorBasePathname,
+  makeMonitorTypePathname,
+} from 'sentry/views/detectors/pathnames';
+import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
 
 type DetectorDetailsHeaderProps = {
   detector: Detector;
@@ -19,7 +22,6 @@ type DetectorDetailsHeaderProps = {
 
 export function DetectorDetailsHeader({detector, project}: DetectorDetailsHeaderProps) {
   const organization = useOrganization();
-  const {monitorsLinkPrefix} = useMonitorViewContext();
 
   return (
     <DetailLayout.Header>
@@ -28,7 +30,11 @@ export function DetectorDetailsHeader({detector, project}: DetectorDetailsHeader
           crumbs={[
             {
               label: t('Monitors'),
-              to: makeMonitorBasePathname(organization.slug, monitorsLinkPrefix),
+              to: makeMonitorBasePathname(organization.slug),
+            },
+            {
+              label: getDetectorTypeLabel(detector.type),
+              to: makeMonitorTypePathname(organization.slug, detector.type),
             },
             {label: detector.name},
           ]}

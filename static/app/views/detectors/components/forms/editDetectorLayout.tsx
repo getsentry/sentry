@@ -23,7 +23,9 @@ type EditDetectorLayoutProps<TDetector, TFormData, TUpdatePayload> = {
   detector: TDetector;
   formDataToEndpointPayload: (formData: TFormData) => TUpdatePayload;
   savedDetectorToFormData: (detector: TDetector) => TFormData;
+  envFieldProps?: React.ComponentProps<typeof DetectorBaseFields>['envFieldProps'];
   mapFormErrors?: (error: any) => any;
+  noEnvironment?: boolean;
   previewChart?: React.ReactNode;
 };
 
@@ -38,6 +40,8 @@ export function EditDetectorLayout<
   formDataToEndpointPayload,
   savedDetectorToFormData,
   mapFormErrors,
+  noEnvironment,
+  envFieldProps,
 }: EditDetectorLayoutProps<TDetector, TFormData, TUpdatePayload>) {
   const theme = useTheme();
   const maxWidth = theme.breakpoints.xl;
@@ -71,7 +75,10 @@ export function EditDetectorLayout<
         </div>
 
         <EditLayout.HeaderFields>
-          <DetectorBaseFields />
+          <DetectorBaseFields
+            noEnvironment={noEnvironment}
+            envFieldProps={envFieldProps}
+          />
           {previewChart ?? <div />}
         </EditLayout.HeaderFields>
       </EditLayout.Header>

@@ -91,8 +91,8 @@ function usePerformanceScoreData({query}: {query?: string}): ProjectScoreQuery {
         projects: pageFilterChartParams.project,
         environments: pageFilterChartParams.environment,
         datetime: {
-          start: previousPeriodParams?.start!,
-          end: previousPeriodParams?.end!,
+          start: previousPeriodParams?.start ?? null,
+          end: previousPeriodParams?.end ?? null,
           period: null,
           utc: !!pageFilterChartParams.utc,
         },

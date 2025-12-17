@@ -15,12 +15,10 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.models import IncidentGroupOpenPeriod
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
-@with_feature("organizations:workflow-engine-single-process-metric-issues")
 class IncidentGroupOpenPeriodTest(TestCase):
     def setUp(self) -> None:
         super().setUp()

@@ -1,51 +1,54 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
+import debounce from 'lodash/debounce';
 
-import {act, renderHook} from 'sentry-test/reactTestingLibrary';
+import {renderHook} from 'sentry-test/reactTestingLibrary';
+import {setWindowLocation} from 'sentry-test/utils';
 
 import {
   UrlParamBatchProvider,
   useUrlBatchContext,
 } from 'sentry/utils/url/urlParamBatchContext';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-jest.mock('sentry/utils/useLocation');
+import {testableDebounce} from './testUtils';
+
 jest.mock('sentry/utils/useNavigate');
+jest.mock('lodash/debounce');
 
 describe('UrlParamBatchProvider', () => {
   let mockNavigate: jest.Mock;
+
   beforeEach(() => {
     mockNavigate = jest.fn();
     jest.mocked(useNavigate).mockReturnValue(mockNavigate);
+    jest.mocked(debounce).mockImplementation(testableDebounce);
     jest.useFakeTimers();
   });
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.clearAllTimers();
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
   });
 
   it('should batch updates to the URL query params', () => {
-    jest.mocked(useLocation).mockReturnValue(LocationFixture());
+    setWindowLocation('http://localhost/');
+
     const {result} = renderHook(() => useUrlBatchContext(), {
       wrapper: UrlParamBatchProvider,
     });
     const {batchUrlParamUpdates} = result.current;
 
-    act(() => {
-      batchUrlParamUpdates({foo: 'bar'});
-      batchUrlParamUpdates({potato: 'test'});
-    });
+    batchUrlParamUpdates({foo: 'bar'});
+    batchUrlParamUpdates({potato: 'test'});
 
-    act(() => {
-      jest.runAllTimers();
-    });
+    jest.runAllTimers();
 
     expect(mockNavigate).toHaveBeenCalledTimes(1);
     expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
+      {
+        pathname: '/',
         query: {foo: 'bar', potato: 'test'},
-      }),
+      },
       {replace: true, preventScrollReset: true}
     );
   });

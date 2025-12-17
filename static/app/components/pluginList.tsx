@@ -1,34 +1,25 @@
-import {disablePlugin} from 'sentry/actionCreators/plugins';
 import Panel from 'sentry/components/panels/panel';
 import PanelItem from 'sentry/components/panels/panelItem';
 import PluginConfig from 'sentry/components/pluginConfig';
 import {t} from 'sentry/locale';
 import type {Plugin} from 'sentry/types/integrations';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {useTogglePluginMutation} from 'sentry/views/settings/projectPlugins/useTogglePluginMutation';
 
 type Props = {
-  organization: Organization;
   pluginList: Plugin[];
   project: Project;
-  onDisablePlugin?: (plugin: Plugin) => void;
-  onEnablePlugin?: (plugin: Plugin) => void;
 };
 
-function PluginList({
-  organization,
-  project,
-  pluginList,
-  onDisablePlugin = () => {},
-}: Props) {
+export default function PluginList({project, pluginList}: Props) {
+  const togglePluginMutation = useTogglePluginMutation({
+    projectSlug: project.slug,
+  });
   const handleDisablePlugin = (plugin: Plugin) => {
-    disablePlugin({
-      projectId: project.slug,
-      orgId: organization.slug,
+    togglePluginMutation.mutate({
       pluginId: plugin.slug,
+      shouldEnable: false,
     });
-
-    onDisablePlugin(plugin);
   };
 
   if (!pluginList.length) {
@@ -56,5 +47,3 @@ function PluginList({
     </div>
   );
 }
-
-export default PluginList;

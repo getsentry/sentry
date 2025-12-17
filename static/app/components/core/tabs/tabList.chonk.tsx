@@ -1,13 +1,13 @@
 import {css} from '@emotion/react';
+import styled from '@emotion/styled';
 import type {Orientation} from '@react-types/shared';
 
 import {space} from 'sentry/styles/space';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 
 import type {BaseTabProps} from './tab.chonk';
 import {tabsShouldForwardProp} from './utils';
 
-export const ChonkStyledTabListWrap = chonkStyled('ul', {
+export const ChonkStyledTabListWrap = styled('ul', {
   shouldForwardProp: tabsShouldForwardProp,
 })<{
   orientation: Orientation;
@@ -35,7 +35,7 @@ export const ChonkStyledTabListWrap = chonkStyled('ul', {
         `};
 `;
 
-export const ChonkStyledTabListOverflowWrap = chonkStyled('div')`
+export const ChonkStyledTabListOverflowWrap = styled('div')`
   position: absolute;
   right: 0;
   top: 50%;

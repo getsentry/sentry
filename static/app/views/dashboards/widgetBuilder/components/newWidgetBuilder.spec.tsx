@@ -4,6 +4,7 @@ import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -71,7 +72,14 @@ describe('NewWidgetBuilder', () => {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: [],
+      body: {
+        data: [
+          [[1646100000], [{count: 1}]],
+          [[1646120000], [{count: 1}]],
+        ],
+        start: 1646100000,
+        end: 1646120000,
+      },
     });
 
     MockApiClient.addMockResponse({
@@ -91,6 +99,7 @@ describe('NewWidgetBuilder', () => {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
+      body: [],
     });
   });
 
@@ -98,15 +107,17 @@ describe('NewWidgetBuilder', () => {
 
   it('renders', async () => {
     render(
-      <WidgetBuilderV2
-        isOpen
-        onClose={onCloseMock}
-        dashboard={DashboardFixture([])}
-        dashboardFilters={{}}
-        onSave={onSaveMock}
-        openWidgetTemplates={false}
-        setOpenWidgetTemplates={jest.fn()}
-      />,
+      <PageFiltersContainer skipLoadLastUsed skipInitializeUrlParams disablePersistence>
+        <WidgetBuilderV2
+          isOpen
+          onClose={onCloseMock}
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{}}
+          onSave={onSaveMock}
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </PageFiltersContainer>,
       {
         router,
         organization,

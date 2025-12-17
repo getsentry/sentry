@@ -68,27 +68,8 @@ class ShortIdLookupEndpoint(GroupEndpoint):
                         "assignedTo": {
                             "id": "1",
                             "name": "John Doe",
-                            "username": "johndoe",
                             "email": "john@example.com",
-                            "avatarUrl": "https://secure.gravatar.com/avatar/1234567890abcdef",
-                            "isActive": True,
-                            "hasPasswordAuth": True,
-                            "isManaged": False,
-                            "dateJoined": "2018-01-01T00:00:00Z",
-                            "lastLogin": "2023-12-01T10:00:00Z",
-                            "has2fa": False,
-                            "lastActive": "2023-12-01T10:00:00Z",
-                            "isSuperuser": False,
-                            "isStaff": False,
-                            "experiments": {},
-                            "emails": [
-                                {"id": "1", "email": "john@example.com", "is_verified": True}
-                            ],
-                            "avatar": {
-                                "avatarType": "letter_avatar",
-                                "avatarUuid": None,
-                                "avatarUrl": None,
-                            },
+                            "type": "user",
                         },
                         "count": "1",
                         "culprit": "raven.scripts.runner in main",

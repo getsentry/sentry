@@ -41,6 +41,7 @@ type Options = {
   end?: DateString;
   environment?: readonly string[];
   excludeOther?: boolean;
+  extrapolationMode?: string;
   field?: string[];
   generatePathname?: (org: OrganizationSummary) => string;
   includePrevious?: boolean;
@@ -50,7 +51,7 @@ type Options = {
   period?: string | null;
   project?: readonly number[];
   query?: string;
-  queryExtras?: Record<string, string | boolean | number>;
+  queryExtras?: Record<string, string | boolean | number | string[]>;
   referrer?: string;
   sampling?: SamplingMode;
   start?: DateString;
@@ -108,6 +109,7 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean>(
     includeAllArgs,
     dataset,
     sampling,
+    extrapolationMode,
   }: EventsStatsOptions<IncludeAllArgsType>
 ): IncludeAllArgsType extends true
   ? Promise<ApiResult<EventsStats | MultiSeriesEventsStats>>
@@ -135,6 +137,7 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean>(
       excludeOther: excludeOther ? '1' : undefined,
       dataset,
       sampling,
+      extrapolationMode,
     }).filter(([, value]) => typeof value !== 'undefined')
   );
 

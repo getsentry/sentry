@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
+import {SentryAppAvatar} from '@sentry/scraps/avatar';
+
 import ConfigStore from 'sentry/stores/configStore';
 import type {SentryAppComponent} from 'sentry/types/integrations';
 

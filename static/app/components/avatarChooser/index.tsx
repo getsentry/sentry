@@ -1,9 +1,10 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {OrganizationAvatar} from '@sentry/scraps/avatar';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {BaseAvatarProps} from 'sentry/components/core/avatar/baseAvatar';
-import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
@@ -368,14 +369,14 @@ const AvatarPreview = styled('div')`
   align-items: center;
   justify-content: center;
   padding: ${space(1)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   background-size: 20px 20px;
   background-position:
     0 0,
     0 10px,
     10px -10px,
     -10px 0px;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   background-image:
     linear-gradient(45deg, ${p => p.theme.backgroundSecondary} 25%, rgba(0, 0, 0, 0) 25%),
     linear-gradient(

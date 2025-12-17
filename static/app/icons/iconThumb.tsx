@@ -1,40 +1,25 @@
-import {Fragment} from 'react';
-import {css, useTheme} from '@emotion/react';
-
-import type {SVGIconProps} from './svgIcon';
+import type {SVGIconDirection, SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
 interface Props extends SVGIconProps {
-  direction?: 'up' | 'right' | 'down' | 'left';
+  direction?: Exclude<SVGIconDirection, 'left' | 'right'>;
 }
 
 export function IconThumb({direction = 'up', ...props}: Props) {
-  const theme = useTheme();
-
   return (
     <SvgIcon
       {...props}
-      kind={theme.isChonk ? 'stroke' : 'path'}
-      css={
-        direction
-          ? css`
-              transition: transform 120ms ease-in-out;
-              transform: rotate(${theme.iconDirections[direction]}deg);
-            `
-          : undefined
+      style={
+        direction === 'down'
+          ? {
+              transition: 'transform 120ms ease-in-out',
+              transform: `rotate(${SvgIcon.ICON_DIRECTION_TO_ROTATION_ANGLE[direction] ?? 0}deg)`,
+              ...props.style,
+            }
+          : props.style
       }
     >
-      {theme.isChonk ? (
-        <Fragment>
-          <rect x="2.75" y="6" width="2.75" height="7.25" />
-          <path d="m5.5,13.25h5.5c.96,0,1.79-.69,1.97-1.64l.5-3.25c.23-1.23-.72-2.36-1.97-2.36h-1.6c-.28,0-.5-.22-.5-.5v-2.5c0-.55-.45-1-1-1h-.13c-.38,0-.73.21-.89.55l-1.88,3.45" />
-        </Fragment>
-      ) : (
-        <Fragment>
-          <path d="M12.57,16.01h-5.27c-.7,0-1.41-.09-2.09-.25l-1.91-.47H.74c-.41,0-.75-.34-.75-.75v-7.96c0-.41.34-.75.75-.75h3.15c.61,0,1.13-.44,1.23-1.04l.51-2.93c.1-.59.43-1.11.93-1.45.49-.34,1.09-.47,1.68-.37.59.1,1.11.43,1.45.92.34.49.48,1.09.37,1.68l-.51,2.89h4.19c1.24,0,2.25,1.01,2.25,2.25,0,.68-.31,1.29-.79,1.71.26.37.41.81.41,1.29,0,.8-.42,1.51-1.06,1.91.18.32.28.69.28,1.09,0,1.24-1.01,2.25-2.25,2.25ZM1.49,13.79h1.91c.06,0,.12,0,.18.02l1.99.49c.57.14,1.15.21,1.73.21h5.27c.41,0,.75-.33.75-.75s-.33-.75-.75-.75-.75-.34-.75-.75.34-.75.75-.75h.78c.41,0,.75-.33.75-.75s-.33-.75-.75-.75-.75-.34-.75-.75.34-.75.75-.75h.38c.41,0,.75-.33.75-.75s-.33-.75-.75-.75h-5.09c-.22,0-.43-.1-.58-.27s-.2-.39-.16-.61l.67-3.77c.03-.2,0-.39-.12-.56-.11-.16-.29-.27-.48-.31-.2-.03-.39,0-.56.12-.16.11-.27.29-.31.48l-.51,2.93c-.23,1.32-1.37,2.28-2.71,2.28H1.49v6.46Z" />
-          <path d="M3.4,15.29c-.41,0-.75-.34-.75-.75v-7.96c0-.41.34-.75.75-.75s.75.34.75.75v7.96c0,.41-.34.75-.75.75Z" />
-        </Fragment>
-      )}
+      <path d="M8.38 0C9.55 0 10.49 0.95 10.49 2.11V5H12C13.92 5 15.28 6.61 14.95 8.54L14.95 8.54L14.4 12.46C14.4 12.47 14.4 12.49 14.4 12.5C14.12 14.02 12.82 15 11.36 15H1.75C1.34 15 1 14.66 1 14.25V5.75C1 5.34 1.34 5 1.75 5H4.77L6.45 1.25C6.8 0.49 7.55 0 8.38 0ZM2.5 13.5H4.5V6.5H2.5V13.5ZM8.38 1.5C8.14 1.5 7.92 1.64 7.82 1.86L6 5.91V13.5H11.36C12.14 13.5 12.77 13 12.92 12.23L13.47 8.33L13.47 8.3C13.66 7.27 12.99 6.5 12 6.5H9.74C9.33 6.5 8.99 6.16 8.99 5.75V2.11C8.99 1.77 8.72 1.5 8.38 1.5Z" />
     </SvgIcon>
   );
 }

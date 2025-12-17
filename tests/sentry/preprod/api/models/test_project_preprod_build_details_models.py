@@ -18,7 +18,7 @@ from sentry.testutils.silo import region_silo_test
 class TestToSizeInfo(TestCase):
     def test_to_size_info_none_input(self):
         """Test to_size_info returns None when given None input."""
-        result = to_size_info(None)
+        result = to_size_info([])
         assert result is None
 
     def test_to_size_info_pending_state(self):
@@ -27,7 +27,7 @@ class TestToSizeInfo(TestCase):
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING
         )
 
-        result = to_size_info(size_metrics)
+        result = to_size_info(list([size_metrics]))
 
         assert isinstance(result, SizeInfoPending)
         assert result.state == PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING
@@ -38,7 +38,7 @@ class TestToSizeInfo(TestCase):
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING
         )
 
-        result = to_size_info(size_metrics)
+        result = to_size_info(list([size_metrics]))
 
         assert isinstance(result, SizeInfoProcessing)
         assert result.state == PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING
@@ -47,16 +47,84 @@ class TestToSizeInfo(TestCase):
         """Test to_size_info returns SizeInfoCompleted for COMPLETED state."""
         size_metrics = PreprodArtifactSizeMetrics(
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             max_install_size=1024000,
             max_download_size=512000,
         )
 
-        result = to_size_info(size_metrics)
+        result = to_size_info(list([size_metrics]))
 
         assert isinstance(result, SizeInfoCompleted)
         assert result.state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
         assert result.install_size_bytes == 1024000
         assert result.download_size_bytes == 512000
+
+    def test_to_size_info_completed_state_with_multiple_metrics(self):
+        """Test to_size_info returns SizeInfoCompleted for COMPLETED state with multiple metrics."""
+        size_metrics = [
+            PreprodArtifactSizeMetrics(
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                max_install_size=1024000,
+                max_download_size=512000,
+            ),
+            PreprodArtifactSizeMetrics(
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+                max_install_size=512000,
+                max_download_size=256000,
+            ),
+        ]
+
+        result = to_size_info(size_metrics)
+
+        assert isinstance(result, SizeInfoCompleted)
+        assert result.install_size_bytes == 1024000
+        assert result.download_size_bytes == 512000
+        assert len(result.size_metrics) == 2
+        assert (
+            result.size_metrics[0].metrics_artifact_type
+            == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+        )
+        assert result.size_metrics[0].install_size_bytes == 1024000
+        assert result.size_metrics[0].download_size_bytes == 512000
+        assert (
+            result.size_metrics[1].metrics_artifact_type
+            == PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT
+        )
+        assert result.size_metrics[1].install_size_bytes == 512000
+        assert result.size_metrics[1].download_size_bytes == 256000
+
+    def test_to_size_info_completed_state_with_base_metrics(self):
+        """Test to_size_info includes base size metrics when provided."""
+        size_metrics = [
+            PreprodArtifactSizeMetrics(
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                max_install_size=1024000,
+                max_download_size=512000,
+            ),
+        ]
+        base_size_metrics = [
+            PreprodArtifactSizeMetrics(
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                max_install_size=512000,
+                max_download_size=256000,
+            ),
+        ]
+
+        result = to_size_info(size_metrics, base_size_metrics)
+
+        assert isinstance(result, SizeInfoCompleted)
+        assert len(result.base_size_metrics) == 1
+        base_metric = result.base_size_metrics[0]
+        assert (
+            base_metric.metrics_artifact_type
+            == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+        )
+        assert base_metric.install_size_bytes == 512000
+        assert base_metric.download_size_bytes == 256000
 
     def test_to_size_info_failed_state(self):
         """Test to_size_info returns SizeInfoFailed for FAILED state."""
@@ -66,7 +134,7 @@ class TestToSizeInfo(TestCase):
             error_message="Analysis timed out after 30 minutes",
         )
 
-        result = to_size_info(size_metrics)
+        result = to_size_info(list([size_metrics]))
 
         assert isinstance(result, SizeInfoFailed)
         assert result.state == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED
@@ -91,7 +159,7 @@ class TestToSizeInfo(TestCase):
                 error_message=error_message,
             )
 
-            result = to_size_info(size_metrics)
+            result = to_size_info(list([size_metrics]))
 
             assert isinstance(result, SizeInfoFailed)
             assert result.error_code == error_code
@@ -101,11 +169,12 @@ class TestToSizeInfo(TestCase):
         """Test to_size_info handles completed state with zero sizes."""
         size_metrics = PreprodArtifactSizeMetrics(
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             max_install_size=0,
             max_download_size=0,
         )
 
-        result = to_size_info(size_metrics)
+        result = to_size_info(list([size_metrics]))
 
         assert isinstance(result, SizeInfoCompleted)
         assert result.install_size_bytes == 0
@@ -115,11 +184,12 @@ class TestToSizeInfo(TestCase):
         """Test to_size_info handles completed state with large file sizes."""
         size_metrics = PreprodArtifactSizeMetrics(
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             max_install_size=5000000000,  # ~5GB
             max_download_size=2000000000,  # ~2GB
         )
 
-        result = to_size_info(size_metrics)
+        result = to_size_info(list([size_metrics]))
 
         assert isinstance(result, SizeInfoCompleted)
         assert result.install_size_bytes == 5000000000
@@ -130,12 +200,13 @@ class TestToSizeInfo(TestCase):
         size_metrics = PreprodArtifactSizeMetrics(state=999)  # Invalid state
 
         with pytest.raises(ValueError, match="Unknown SizeAnalysisState 999"):
-            to_size_info(size_metrics)
+            to_size_info(list([size_metrics]))
 
     def test_to_size_info_completed_state_missing_size_fields(self):
         """Test to_size_info raises ValueError when COMPLETED state has None size fields."""
         size_metrics = PreprodArtifactSizeMetrics(
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             max_install_size=None,
             max_download_size=None,
         )
@@ -143,7 +214,7 @@ class TestToSizeInfo(TestCase):
         with pytest.raises(
             ValueError, match="COMPLETED state requires both max_install_size and max_download_size"
         ):
-            to_size_info(size_metrics)
+            to_size_info(list([size_metrics]))
 
     def test_to_size_info_failed_state_no_error_code(self):
         """Test to_size_info raises ValueError when FAILED state has only error_code."""
@@ -156,7 +227,7 @@ class TestToSizeInfo(TestCase):
         with pytest.raises(
             ValueError, match="FAILED state requires both error_code and error_message"
         ):
-            to_size_info(size_metrics)
+            to_size_info(list([size_metrics]))
 
     def test_to_size_info_failed_state_no_error_message(self):
         """Test to_size_info raises ValueError when FAILED state has only error_message."""
@@ -169,4 +240,4 @@ class TestToSizeInfo(TestCase):
         with pytest.raises(
             ValueError, match="FAILED state requires both error_code and error_message"
         ):
-            to_size_info(size_metrics)
+            to_size_info(list([size_metrics]))

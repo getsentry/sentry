@@ -6,12 +6,13 @@ import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {Hovercard} from 'sentry/components/hovercard';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconAdd, IconMegaphone, IconSort} from 'sentry/icons';
+import {IconAdd, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -19,7 +20,6 @@ import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {unreachable} from 'sentry/utils/unreachable';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -326,7 +326,6 @@ export default function IssueViewsList() {
   const navigate = useNavigate();
   const location = useLocation();
   const query = typeof location.query.query === 'string' ? location.query.query : '';
-  const openFeedbackForm = useFeedbackForm();
   const {mutate: createGroupSearchView, isPending: isCreatingView} =
     useCreateGroupSearchView();
 
@@ -366,27 +365,17 @@ export default function IssueViewsList() {
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar>
-              {openFeedbackForm ? (
-                <Button
-                  icon={<IconMegaphone />}
-                  size="sm"
-                  onClick={() => {
-                    openFeedbackForm({
-                      formTitle: t('Give Feedback'),
-                      messagePlaceholder: t(
-                        'How can we make issue views better for you?'
-                      ),
-                      tags: {
-                        ['feedback.source']: 'custom_views',
-                        ['feedback.owner']: 'issues',
-                      },
-                    });
-                  }}
-                >
-                  {t('Give Feedback')}
-                </Button>
-              ) : null}
-
+              <FeedbackButton
+                size="sm"
+                feedbackOptions={{
+                  formTitle: t('Give Feedback'),
+                  messagePlaceholder: t('How can we make issue views better for you?'),
+                  tags: {
+                    ['feedback.source']: 'custom_views',
+                    ['feedback.owner']: 'issues',
+                  },
+                }}
+              />
               <Feature
                 features="organizations:issue-views"
                 hookName="feature-disabled:issue-views"
@@ -486,7 +475,7 @@ const Banner = styled('div')`
   padding: 12px;
   gap: ${space(1)};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 
   background: linear-gradient(
     269.35deg,

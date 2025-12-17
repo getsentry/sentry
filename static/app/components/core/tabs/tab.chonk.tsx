@@ -1,8 +1,8 @@
-import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import {css} from '@emotion/react';
+import styled from '@emotion/styled';
 import type {DOMAttributes, Orientation} from '@react-types/shared';
 
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import type {Theme} from 'sentry/utils/theme';
 
 import {tabsShouldForwardProp} from './utils';
 
@@ -21,13 +21,16 @@ export interface BaseTabProps {
   variant?: 'flat' | 'floating';
 }
 
-export const ChonkStyledTabWrap = chonkStyled('li', {
+export const ChonkStyledTabWrap = styled('li', {
   shouldForwardProp: tabsShouldForwardProp,
 })<{
   overflowing: boolean;
   selected: boolean;
 }>`
-  color: ${p => (p.selected ? p.theme.tokens.component.link.accent.default : p.theme.tokens.component.link.muted.default)};
+  color: ${p =>
+    p.selected
+      ? p.theme.tokens.component.link.accent.default
+      : p.theme.tokens.component.link.muted.default};
   white-space: nowrap;
   cursor: pointer;
 
@@ -48,7 +51,7 @@ export const ChonkStyledTabWrap = chonkStyled('li', {
     `}
 `;
 
-const paddingPerSize = (theme: DO_NOT_USE_ChonkTheme, orientation: Orientation) => ({
+const paddingPerSize = (theme: Theme, orientation: Orientation) => ({
   md: orientation === 'horizontal' ? `10px ${theme.space.xl}` : `10px ${theme.space.md}`,
   sm:
     orientation === 'horizontal'
@@ -72,15 +75,18 @@ export const chonkInnerWrapStyles = ({
   orientation: Orientation;
   selected: boolean;
   size: BaseTabProps['size'];
-  theme: DO_NOT_USE_ChonkTheme;
+  theme: Theme;
   variant: BaseTabProps['variant'];
 }) => css`
   display: flex;
   align-items: center;
   position: relative;
-  ${theme.form[size]};
+  height: ${theme.form[size].height};
+  min-height: ${theme.form[size].minHeight};
+  font-size: ${theme.form[size].fontSize};
+  line-height: ${theme.form[size].lineHeight};
   padding: ${paddingPerSize(theme, orientation)[size]};
-  border-radius: ${theme.borderRadius};
+  border-radius: ${theme.radius.md};
   transform: translateY(1px);
   margin-bottom: ${orientation === 'horizontal' && variant === 'flat'
     ? theme.space.xs
@@ -139,7 +145,7 @@ export const chonkInnerWrapStyles = ({
     background-color: ${theme.colors.blue100};
   `}
 `;
-export const ChonkStyledTabSelectionIndicator = chonkStyled('div')<{
+export const ChonkStyledTabSelectionIndicator = styled('div')<{
   orientation: Orientation;
   selected: boolean;
 }>`

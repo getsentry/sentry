@@ -1,6 +1,7 @@
 import {Grid} from 'sentry/components/core/layout';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import type {Organization} from 'sentry/types/organization';
+import {useNavContext} from 'sentry/views/nav/context';
 
 import type {Subscription} from 'getsentry/types';
 import {
@@ -29,7 +30,12 @@ function getCards(organization: Organization, subscription: Subscription) {
   const cards: React.ReactNode[] = [];
   const isTrialOrFreePlan =
     isTrialPlan(subscription.plan) || isDeveloperPlan(subscription.planDetails);
+
+  // the organization can use PAYG
   const canUsePayg = supportsPayg(subscription);
+
+  // the user can update the PAYG budget
+  const canUpdatePayg = canUsePayg && hasBillingPerms;
 
   if (subscription.canSelfServe && !isTrialOrFreePlan && hasBillingPerms) {
     cards.push(
@@ -41,9 +47,7 @@ function getCards(organization: Organization, subscription: Subscription) {
     );
   }
 
-  const canUpdatePayg = canUsePayg && hasBillingPerms;
-
-  if (canUpdatePayg) {
+  if (canUsePayg) {
     cards.push(
       <PaygCard key="payg" subscription={subscription} organization={organization} />
     );
@@ -73,8 +77,8 @@ function getCards(organization: Organization, subscription: Subscription) {
 
 function HeaderCards({organization, subscription}: HeaderCardsProps) {
   const isNewBillingUI = hasNewBillingUI(organization);
-
   const cards = getCards(organization, subscription);
+  const {isCollapsed: navIsCollapsed} = useNavContext();
 
   return (
     <ErrorBoundary mini>
@@ -83,9 +87,12 @@ function HeaderCards({organization, subscription}: HeaderCardsProps) {
         <Grid
           columns={{
             xs: '1fr',
-            md: `repeat(${cards.length}, minmax(0, 1fr))`,
+            sm: `repeat(min(${cards.length}, 2), minmax(0, 1fr))`,
+            md: navIsCollapsed ? `repeat(${cards.length}, minmax(0, 1fr))` : undefined,
+            lg: `repeat(${cards.length}, minmax(0, 1fr))`,
           }}
           gap="xl"
+          data-test-id="subscription-header-cards"
         >
           {cards}
         </Grid>

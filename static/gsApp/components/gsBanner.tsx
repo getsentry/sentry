@@ -1,10 +1,11 @@
 import React, {Component, Fragment} from 'react';
 import {ThemeProvider} from '@emotion/react';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import Cookies from 'js-cookie';
 import snakeCase from 'lodash/snakeCase';
 import moment from 'moment-timezone';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -17,7 +18,7 @@ import {
 } from 'sentry/actionCreators/prompts';
 import type {Client} from 'sentry/api';
 import {Alert, type AlertProps} from 'sentry/components/core/alert';
-import {Badge} from 'sentry/components/core/badge';
+import {Tag} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -723,7 +724,7 @@ class GSBanner extends Component<Props, State> {
 
   get overageWarningActive(): Record<EventType, boolean> {
     const {subscription} = this.props;
-    // disable warnings if org has on-demand
+    // disable warnings if org has PAYG
     if (
       subscription.hasOverageNotificationsDisabled ||
       subscription.onDemandMaxSpend > 0
@@ -952,11 +953,15 @@ class GSBanner extends Component<Props, State> {
 
       return (
         <Alert.Container>
-          <BannerAlert
+          <Alert
             system
+            type="error"
             data-test-id="banner-alert-past-due"
-            type="muted"
-            trailingItems={<Badge type="warning">{t('Action Required')}</Badge>}
+            trailingItems={
+              <Flex align="center" height="100%">
+                <Tag type="error">{t('Action Required')}</Tag>
+              </Flex>
+            }
           >
             {billingPermissions
               ? tct(
@@ -987,7 +992,7 @@ class GSBanner extends Component<Props, State> {
                     ),
                   }
                 )}
-          </BannerAlert>
+          </Alert>
         </Alert.Container>
       );
     }
@@ -1016,9 +1021,7 @@ class GSBanner extends Component<Props, State> {
         <React.Fragment>
           {productTrialAlerts && productTrialAlerts.length > 0 && productTrialAlerts}
           <Alert.Container>
-            <BannerAlert
-              system
-              type="muted"
+            <InvertedAlert
               trailingItems={
                 <ButtonBar>
                   <LinkButton
@@ -1061,7 +1064,7 @@ class GSBanner extends Component<Props, State> {
                         }),
                 }
               )}
-            </BannerAlert>
+            </InvertedAlert>
           </Alert.Container>
         </React.Fragment>
       );
@@ -1073,23 +1076,12 @@ class GSBanner extends Component<Props, State> {
 
 export default withPromotions(withApi(withSubscription(GSBanner, {noLoader: true})));
 
-// XXX: We have no alert types with this styling, but for now we would like for
-// it to be differentiated.
-const StyledBannerAlert = styled(Alert)`
-  color: ${p => p.theme.headerBackground};
-  background-color: ${p => p.theme.gray500};
-  border: none;
-`;
-
-function BannerAlert(props: AlertProps) {
+function InvertedAlert(props: Omit<AlertProps, 'system' | 'type'>) {
   const invertedTheme = useInvertedTheme();
 
-  if (invertedTheme.isChonk) {
-    return (
-      <ThemeProvider theme={invertedTheme}>
-        <Alert {...props} />
-      </ThemeProvider>
-    );
-  }
-  return <StyledBannerAlert {...props} />;
+  return (
+    <ThemeProvider theme={invertedTheme}>
+      <Alert system type="info" {...props} />
+    </ThemeProvider>
+  );
 }

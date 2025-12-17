@@ -310,6 +310,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     project: currentProject,
     isFeedbackSelected: false,
     isLogsSelected: false,
+    isMetricsSelected: false,
     isPerformanceSelected: true,
     isProfilingSelected: false,
     isReplaySelected: false,

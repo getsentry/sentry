@@ -9,10 +9,6 @@ type UptimeDurationProps = {
 };
 
 export function UptimeDuration({summary, size}: UptimeDurationProps) {
-  if (summary.avgDurationUs === null) {
-    return null;
-  }
-
   const avgDurationSeconds = summary.avgDurationUs / 1000000;
   const avgDurationMs = summary.avgDurationUs / 1000;
 

@@ -8,11 +8,15 @@ from typing import TYPE_CHECKING, Any
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
+from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.sentry_apps.services.app.model import RpcSentryApp
 from sentry.users.services.user.model import RpcUser
 
 from .emails import generate_security_email
 
 if TYPE_CHECKING:
+    from sentry.models.organization import Organization
+    from sentry.sentry_apps.models import SentryApp
     from sentry.users.models.user import User
 
 
@@ -51,3 +55,24 @@ def capture_security_activity(
             current_datetime=current_datetime,
         )
         msg.send_async([account.email])
+
+
+def capture_security_app_activity(
+    organization: Organization | RpcOrganization,
+    sentry_app: SentryApp | RpcSentryApp,
+    activity_type: str,
+    ip_address: str,
+    context: Mapping[str, Any] | None = None,
+) -> None:
+    logger_context = {
+        "ip_address": ip_address,
+        "organization_id": organization.id,
+        "sentry_app_id": sentry_app.id,
+    }
+
+    # Add the installation_id if it exists.
+    if context:
+        if "installation_id" in context:
+            logger_context["installation_id"] = context["installation_id"]
+
+    logger.info("audit.sentry_app.%s", activity_type, extra=logger_context)

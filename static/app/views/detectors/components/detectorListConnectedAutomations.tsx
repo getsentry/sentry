@@ -14,7 +14,6 @@ import {AutomationActionSummary} from 'sentry/views/automations/components/autom
 import {useAutomationsQuery} from 'sentry/views/automations/hooks';
 import {getAutomationActions} from 'sentry/views/automations/hooks/utils';
 import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
-import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 
 type DetectorListConnectedAutomationsProps = {
   automationIds: string[];
@@ -22,7 +21,6 @@ type DetectorListConnectedAutomationsProps = {
 
 function ConnectedAutomationsHoverBody({automationIds}: {automationIds: string[]}) {
   const organization = useOrganization();
-  const {automationsLinkPrefix} = useMonitorViewContext();
   const shownAutomations = automationIds.slice(0, 5);
   const {data, isPending, isError} = useAutomationsQuery({
     ids: automationIds.slice(0, 5),
@@ -54,11 +52,7 @@ function ConnectedAutomationsHoverBody({automationIds}: {automationIds: string[]
         return (
           <HovercardRow
             key={automation.id}
-            to={makeAutomationDetailsPathname(
-              organization.slug,
-              automation.id,
-              automationsLinkPrefix
-            )}
+            to={makeAutomationDetailsPathname(organization.slug, automation.id)}
           >
             <InteractionStateLayer />
             <div>
@@ -104,7 +98,7 @@ export function DetectorListConnectedAutomations({
 }
 
 const ConnectedAutomations = styled('div')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   display: flex;
   flex-direction: row;
   gap: ${space(0.5)};
@@ -125,21 +119,21 @@ const HovercardRow = styled(Link)`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   padding: ${space(1)} ${space(2)};
 
   min-height: 64px;
 
   &:first-child {
-    border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+    border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
   }
 
   &:last-child {
-    border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+    border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   }
 
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 
   &:hover strong {

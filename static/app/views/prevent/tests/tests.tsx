@@ -63,7 +63,7 @@ export default function TestsPage() {
   const {data: integrations = [], isPending: isIntegrationsPending} =
     useGetActiveIntegratedOrgs({organization});
   const regionData = getRegionDataFromOrganization(organization);
-  const isUSStorage = regionData?.name === 'us';
+  const isUSStorage = regionData?.name?.toLowerCase() === 'us';
 
   let mainContent: React.ReactNode;
   if (isIntegrationsPending) {
@@ -201,7 +201,7 @@ const MessageContainer = styled('div')`
   align-items: center;
   text-align: center;
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space['3xl']};
 `;
 

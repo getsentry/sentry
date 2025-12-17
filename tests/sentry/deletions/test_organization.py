@@ -1,5 +1,9 @@
+from typing import Any
+from unittest.mock import patch
 from uuid import uuid4
 
+from sentry.deletions.defaults.organization import OrganizationDeletionTask
+from sentry.deletions.manager import DeletionTaskManager
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
 from sentry.incidents.grouptype import MetricIssue
@@ -394,3 +398,33 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
         assert not DataConditionGroup.objects.filter(id=dcg.id).exists()
         assert not DataCondition.objects.filter(id=dc.id).exists()
         assert not Workflow.objects.filter(id=workflow.id).exists()
+
+    def test_overwatch_notification_on_deletion(self) -> None:
+        """Test that Overwatch notification is scheduled when organization is deleted"""
+
+        org = self.create_organization(name="test")
+        org_id = org.id
+        org_slug = org.slug
+
+        manager = DeletionTaskManager()
+        deletion_task = OrganizationDeletionTask(
+            manager=manager, model=Organization, query={"id": org_id}
+        )
+
+        with patch(
+            "sentry.deletions.defaults.organization.notify_overwatch_organization_deleted"
+        ) as mock_task:
+            with patch(
+                "sentry.deletions.defaults.organization.transaction.on_commit"
+            ) as mock_on_commit:
+
+                def execute_callback(callback: Any, using: Any = None) -> None:
+                    callback()
+
+                mock_on_commit.side_effect = execute_callback
+
+                # Call delete_instance directly
+                deletion_task.delete_instance(org)
+
+                # Verify the task was scheduled via on_commit
+                mock_task.delay.assert_called_once_with(org_id, org_slug)

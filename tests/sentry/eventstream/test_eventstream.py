@@ -1,7 +1,9 @@
 import logging
 import time
 import uuid
-from datetime import timedelta
+from collections.abc import Generator
+from datetime import datetime, timedelta
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -25,14 +27,14 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
     @pytest.fixture(autouse=True)
-    def patch_get_producer(self):
+    def patch_get_producer(self) -> Generator[None]:
         self.kafka_eventstream = KafkaEventStream()
         self.producer_mock = Mock()
 
         with patch.object(KafkaEventStream, "get_producer", return_value=self.producer_mock):
             yield
 
-    def __build_event(self, timestamp):
+    def __build_event(self, timestamp: datetime) -> Event:
         raw_event = {
             "event_id": "a" * 32,
             "message": "foo",
@@ -45,12 +47,12 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         manager.normalize()
         return manager.save(self.project.id)
 
-    def __build_transaction_event(self):
+    def __build_transaction_event(self) -> Event:
         manager = EventManager(load_data("transaction"))
         manager.normalize()
         return manager.save(self.project.id)
 
-    def __produce_event(self, *insert_args, **insert_kwargs):
+    def __produce_event(self, *insert_args: Any, **insert_kwargs: Any) -> None:
         event_type = self.kafka_eventstream._get_event_type(insert_kwargs["event"])
 
         # pass arguments on to Kafka EventManager
@@ -84,7 +86,9 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             event_type=event_type,
         )
 
-    def __produce_payload(self, *insert_args, **insert_kwargs):
+    def __produce_payload(
+        self, *insert_args: Any, **insert_kwargs: Any
+    ) -> tuple[list[tuple[str, str | None]] | dict[str, str | None], Any]:
         # pass arguments on to Kafka EventManager
         self.kafka_eventstream.insert(*insert_args, **insert_kwargs)
 
@@ -98,7 +102,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         # only return headers and body payload
         return produce_kwargs["headers"], payload2
 
-    def test_init_options(self):
+    def test_init_options(self) -> None:
         # options in the constructor shouldn't cause errors
         stream = KafkaEventStream(foo="bar")
         assert stream
@@ -206,7 +210,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
     def test_invalid_groupevent_passed(self, logger: MagicMock) -> None:
         event = self.__build_transaction_event()
         event.group_id = None
-        event.group_ids = [self.group.id]
+        event.groups = [self.group]
         insert_args = ()
         insert_kwargs = {
             "event": event.for_group(self.group),
@@ -416,7 +420,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             contexts_after_processing = send_extra_data_data["contexts"]
             assert contexts_after_processing == {**{"geo": geo_interface}}
 
-    def test_event_forwarding_to_items(self):
+    def test_event_forwarding_to_items(self) -> None:
         create_default_projects()
         es = self.kafka_eventstream
 
@@ -466,3 +470,95 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
                 assert trace_item.organization_id == event.project.organization_id
                 assert trace_item.retention_days == 90
                 assert trace_item.attributes["group_id"].int_value == group_info.group.id
+
+    def test_snuba_event_stream_forwarding_to_items(self) -> None:
+        create_default_projects()
+        es = SnubaEventStream()
+
+        # Prepare a generic event with a span item
+        profile_message = load_data("generic-event-profiling")
+        event_data = {
+            **profile_message["event"],
+            "contexts": {"trace": {"trace_id": uuid.uuid4().hex}},
+            "timestamp": timezone.now().isoformat(),
+        }
+        project_id = event_data.get("project_id", self.project.id)
+
+        occurrence, group_info = self.process_occurrence(
+            event_id=event_data["event_id"],
+            project_id=project_id,
+            event_data=event_data,
+        )
+        assert group_info is not None
+
+        event = Event(
+            event_id=occurrence.event_id,
+            project_id=project_id,
+            data=nodestore.backend.get(Event.generate_node_id(project_id, occurrence.event_id)),
+        )
+        group_event = event.for_group(group_info.group)
+        group_event.occurrence = occurrence
+
+        with self.options({"eventstream.eap_forwarding_rate": 1.0}):
+            # Mock both _send and _send_item to avoid schema validation and verify EAP forwarding
+            with patch.object(es, "_send"), patch.object(es, "_send_item") as mock_send_item:
+                es.insert(
+                    group_event,
+                    is_new=True,
+                    is_regression=True,
+                    is_new_group_environment=False,
+                    primary_hash="",
+                    skip_consume=False,
+                    received_timestamp=event_data["timestamp"],
+                )
+                mock_send_item.assert_called_once()
+
+                trace_item = mock_send_item.call_args[0][0]
+                assert trace_item.item_id == event.event_id.encode("utf-8")
+                assert trace_item.item_type == TRACE_ITEM_TYPE_OCCURRENCE
+                assert trace_item.trace_id == event_data["contexts"]["trace"]["trace_id"]
+                assert trace_item.project_id == event.project_id
+                assert trace_item.organization_id == event.project.organization_id
+                assert trace_item.retention_days == 90
+                assert trace_item.attributes["group_id"].int_value == group_info.group.id
+
+    def test_snuba_event_stream_no_forwarding_when_rate_zero(self) -> None:
+        create_default_projects()
+        es = SnubaEventStream()
+
+        # Prepare a generic event with a span item
+        profile_message = load_data("generic-event-profiling")
+        event_data = {
+            **profile_message["event"],
+            "contexts": {"trace": {"trace_id": uuid.uuid4().hex}},
+            "timestamp": timezone.now().isoformat(),
+        }
+        project_id = event_data.get("project_id", self.project.id)
+
+        occurrence, group_info = self.process_occurrence(
+            event_id=event_data["event_id"],
+            project_id=project_id,
+            event_data=event_data,
+        )
+        assert group_info is not None
+
+        event = Event(
+            event_id=occurrence.event_id,
+            project_id=project_id,
+            data=nodestore.backend.get(Event.generate_node_id(project_id, occurrence.event_id)),
+        )
+        group_event = event.for_group(group_info.group)
+        group_event.occurrence = occurrence
+
+        with self.options({"eventstream.eap_forwarding_rate": 0.0}):
+            with patch.object(es, "_send"), patch.object(es, "_send_item") as mock_send_item:
+                es.insert(
+                    group_event,
+                    is_new=True,
+                    is_regression=True,
+                    is_new_group_environment=False,
+                    primary_hash="",
+                    skip_consume=False,
+                    received_timestamp=event_data["timestamp"],
+                )
+                mock_send_item.assert_not_called()

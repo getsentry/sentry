@@ -1,10 +1,10 @@
-import React, {Fragment} from 'react';
+import React, {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -12,11 +12,12 @@ import Pagination from 'sentry/components/pagination';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCheckmark, IconCommit} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
-  formattedDownloadSize,
-  formattedInstallSize,
+  formattedPrimaryMetricDownloadSize,
+  formattedPrimaryMetricInstallSize,
+  getLabels,
   getPlatformIconFromPlatform,
 } from 'sentry/views/preprod/utils/labelUtils';
 
@@ -27,6 +28,7 @@ interface PreprodBuildsTableProps {
   projectSlug: string;
   error?: boolean;
   hasSearchQuery?: boolean;
+  onRowClick?: (build: BuildDetailsApiResponse) => void;
   pageLinks?: string | null;
 }
 
@@ -35,16 +37,21 @@ export function PreprodBuildsTable({
   isLoading,
   error,
   pageLinks,
+  onRowClick,
   organizationSlug,
   projectSlug,
   hasSearchQuery,
 }: PreprodBuildsTableProps) {
+  const labels = useMemo(
+    () => getLabels(builds[0]?.app_info?.platform ?? undefined),
+    [builds]
+  );
   const header = (
     <SimpleTable.Header>
       <SimpleTable.HeaderCell>{t('App')}</SimpleTable.HeaderCell>
       <SimpleTable.HeaderCell>{t('Build')}</SimpleTable.HeaderCell>
-      <SimpleTable.HeaderCell>{t('Install Size')}</SimpleTable.HeaderCell>
-      <SimpleTable.HeaderCell>{t('Download Size')}</SimpleTable.HeaderCell>
+      <SimpleTable.HeaderCell>{labels.installSizeLabel}</SimpleTable.HeaderCell>
+      <SimpleTable.HeaderCell>{labels.downloadSizeLabel}</SimpleTable.HeaderCell>
       <SimpleTable.HeaderCell>{t('Created')}</SimpleTable.HeaderCell>
     </SimpleTable.Header>
   );
@@ -54,9 +61,9 @@ export function PreprodBuildsTable({
 
     return (
       <SimpleTable.Row key={build.id}>
-        <FullRowLink to={linkUrl}>
+        <FullRowLink to={linkUrl} onClick={() => onRowClick?.(build)}>
           <InteractionStateLayer />
-          <SimpleTable.RowCell justify="flex-start">
+          <SimpleTable.RowCell justify="start">
             {build.app_info?.name || build.app_info?.app_id ? (
               <Flex direction="column" gap="xs">
                 <Flex align="center" gap="sm">
@@ -90,7 +97,7 @@ export function PreprodBuildsTable({
             ) : null}
           </SimpleTable.RowCell>
 
-          <SimpleTable.RowCell justify="flex-start">
+          <SimpleTable.RowCell justify="start">
             <Flex direction="column" gap="xs">
               <Flex align="center" gap="xs">
                 {build.app_info?.version !== null && (
@@ -110,6 +117,13 @@ export function PreprodBuildsTable({
                 <Text size="sm" variant="muted" monospace>
                   {(build.vcs_info?.head_sha?.slice(0, 7) || '--').toUpperCase()}
                 </Text>
+                {build.vcs_info?.pr_number && (
+                  <React.Fragment>
+                    <Text size="sm" variant="muted">
+                      #{build.vcs_info?.pr_number}
+                    </Text>
+                  </React.Fragment>
+                )}
                 {build.vcs_info?.head_ref !== null && (
                   <React.Fragment>
                     <Text size="sm" variant="muted">
@@ -125,11 +139,11 @@ export function PreprodBuildsTable({
           </SimpleTable.RowCell>
 
           <SimpleTable.RowCell>
-            <Text>{formattedInstallSize(build)}</Text>
+            <Text>{formattedPrimaryMetricInstallSize(build.size_info)}</Text>
           </SimpleTable.RowCell>
 
           <SimpleTable.RowCell>
-            <Text>{formattedDownloadSize(build)}</Text>
+            <Text>{formattedPrimaryMetricDownloadSize(build.size_info)}</Text>
           </SimpleTable.RowCell>
 
           <SimpleTable.RowCell>
@@ -158,13 +172,19 @@ export function PreprodBuildsTable({
       <SimpleTable.Empty>
         <Text as="p">
           {hasSearchQuery
-            ? t('No builds found for your search')
-            : t('There are no preprod builds associated with this project.')}
+            ? t('No mobile builds found for your search')
+            : tct('No mobile builds found, see our [link:documentation] for more info.', {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/product/size-analysis/">
+                    {t('Learn more')}
+                  </ExternalLink>
+                ),
+              })}
         </Text>
       </SimpleTable.Empty>
     );
   } else {
-    tableContent = <Fragment>{builds.map(renderBuildRow)}</Fragment>;
+    tableContent = <Fragment>{builds.map(build => renderBuildRow(build))}</Fragment>;
   }
 
   return (

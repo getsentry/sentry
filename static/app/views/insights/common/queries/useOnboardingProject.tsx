@@ -6,7 +6,7 @@ import useProjects from 'sentry/utils/useProjects';
 export function useOnboardingProject({
   property,
 }: {
-  property?: keyof Pick<Project, 'hasLogs' | 'firstTransactionEvent'>;
+  property?: keyof Pick<Project, 'hasLogs' | 'hasTraceMetrics' | 'firstTransactionEvent'>;
 } = {}): Project | undefined {
   const {projects} = useProjects();
   const pageFilters = usePageFilters();

@@ -1,4 +1,4 @@
-import {Fragment, useMemo, type CSSProperties} from 'react';
+import {Fragment, useCallback, useMemo, type CSSProperties} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
@@ -10,7 +10,7 @@ import {useActionableItemsWithProguardErrors} from 'sentry/components/events/int
 import {useGroupSummaryData} from 'sentry/components/group/groupSummary';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCopy, IconWarning} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -53,23 +53,43 @@ function GroupMarkdownButton({group, event}: {event: Event; group: Group}) {
   const markdownText = useMemo(() => {
     return issueAndEventToMarkdown(group, event, groupSummaryData, autofixData);
   }, [group, event, groupSummaryData, autofixData]);
+  const markdownLines = markdownText.trim().split('\n').length.toLocaleString();
 
-  const {onClick: copyMarkdown} = useCopyToClipboard({
-    text: markdownText,
-    successMessage: t('Copied issue to clipboard as Markdown'),
-    errorMessage: t('Could not copy issue to clipboard'),
-    onCopy: () => {
-      trackAnalytics('issue_details.copy_issue_details_as_markdown', {
-        organization,
-        groupId: group.id,
-        eventId: event?.id,
-        hasAutofix: Boolean(autofixData),
-        hasSummary: Boolean(groupSummaryData),
-      });
-    },
-  });
+  const {copy} = useCopyToClipboard();
 
-  return <MarkdownButton onClick={copyMarkdown}>{t('Copy to Clipboard')}</MarkdownButton>;
+  const handleCopyMarkdown = useCallback(() => {
+    copy(markdownText, {successMessage: t('Copied issue to clipboard as Markdown')}).then(
+      () => {
+        trackAnalytics('issue_details.copy_issue_details_as_markdown', {
+          organization,
+          groupId: group.id,
+          eventId: event?.id,
+          hasAutofix: Boolean(autofixData),
+          hasSummary: Boolean(groupSummaryData),
+        });
+      }
+    );
+  }, [
+    copy,
+    markdownText,
+    organization,
+    group.id,
+    event?.id,
+    autofixData,
+    groupSummaryData,
+  ]);
+
+  return (
+    <MarkdownButton
+      title={tct('Copies [numLines] lines of Markdown', {
+        numLines: <strong>{markdownLines}</strong>,
+      })}
+      priority="link"
+      onClick={handleCopyMarkdown}
+    >
+      {t('Copy as Markdown')}
+    </MarkdownButton>
+  );
 }
 
 export function EventTitle({event, group, ref, ...props}: EventNavigationProps) {
@@ -95,28 +115,31 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
   const host = organization.links.regionUrl;
   const jsonUrl = `${host}/api/0/projects/${organization.slug}/${group.project.slug}/events/${event.id}/json/`;
 
-  const {onClick: copyEventId} = useCopyToClipboard({
-    successMessage: t('Event ID copied to clipboard'),
-    text: event.id,
-    onCopy: () =>
+  const {copy} = useCopyToClipboard();
+
+  const handleCopyEventId = useCallback(() => {
+    copy(event.id, {successMessage: t('Event ID copied to clipboard')}).then(() => {
       trackAnalytics('issue_details.copy_event_id_clicked', {
         organization,
         ...getAnalyticsDataForGroup(group),
         ...getAnalyticsDataForEvent(event),
         streamline: true,
-      }),
-  });
+      });
+    });
+  }, [copy, organization, group, event]);
 
   return (
     <div {...props} ref={ref}>
       <EventInfoJumpToWrapper hasProcessingError={!!actionableItems}>
         <EventInfo>
           <EventIdWrapper>
-            <span onClick={copyEventId}>{t('ID: %s', getShortEventId(event.id))}</span>
+            <span onClick={handleCopyEventId}>
+              {t('ID: %s', getShortEventId(event.id))}
+            </span>
             <Button
               aria-label={t('Copy Event ID')}
               title={t('Copy Event ID')}
-              onClick={copyEventId}
+              onClick={handleCopyEventId}
               size="zero"
               borderless
               icon={<IconCopy size="xs" color="subText" />}
@@ -236,14 +259,12 @@ const JsonLink = styled(ExternalLink)`
   }
 `;
 
-const MarkdownButton = styled('button')`
-  background: none;
-  border: none;
-  padding: 0;
+const MarkdownButton = styled(Button)`
   color: ${p => p.theme.subText};
   text-decoration: underline;
   text-decoration-color: ${p => Color(p.theme.gray300).alpha(0.5).string()};
   font-size: inherit;
+  font-weight: normal;
   cursor: pointer;
   white-space: nowrap;
 

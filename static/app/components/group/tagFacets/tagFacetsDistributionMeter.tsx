@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 import type {LocationDescriptor} from 'history';
@@ -7,6 +8,7 @@ import type {LocationDescriptor} from 'history';
 import type {TagSegment} from 'sentry/actionCreators/events';
 import {Button} from 'sentry/components/core/button';
 import {Link} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
@@ -19,7 +21,6 @@ import {appendExcludeTagValuesCondition} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
-const COLORS = ['#402A65', '#694D99', '#9A81C4', '#BBA6DF', '#EAE2F8'];
 const MAX_SEGMENTS = 4;
 const TOOLTIP_DELAY = 800;
 
@@ -36,7 +37,6 @@ type Props = {
 };
 
 function TagFacetsDistributionMeter({
-  colors = COLORS,
   segments,
   title,
   totalValues,
@@ -46,6 +46,8 @@ function TagFacetsDistributionMeter({
   expandByDefault,
   otherUrl,
 }: Props) {
+  const theme = useTheme();
+  const colors = theme.chart.getColorPalette(4);
   const location = useLocation();
   const organization = useOrganization();
   const [expanded, setExpanded] = useState<boolean>(!!expandByDefault);
@@ -124,7 +126,7 @@ function TagFacetsDistributionMeter({
               {value.isOther ? (
                 <OtherSegment
                   aria-label={t('Other segment')}
-                  color={colors[colors.length - 1]!}
+                  color={theme.chart.neutral}
                 />
               ) : (
                 <Segment
@@ -180,14 +182,12 @@ function TagFacetsDistributionMeter({
                     onMouseLeave={() => setHoveredValue(null)}
                   >
                     <LegendDot
-                      color={colors[segment.isOther ? colors.length - 1 : index]!}
+                      color={segment.isOther ? theme.chart.neutral : colors[index]!}
                       focus={focus}
                     />
                     <Tooltip skipWrapper delay={TOOLTIP_DELAY} title={segment.name}>
                       <LegendText unfocus={unfocus}>
-                        {segment.name ?? (
-                          <NotApplicableLabel>{t('n/a')}</NotApplicableLabel>
-                        )}
+                        {segment.name ?? <Text variant="muted">{t('n/a')}</Text>}
                       </LegendText>
                     </Tooltip>
                     <LegendPercent>{`${pctLabel}%`}</LegendPercent>
@@ -282,7 +282,7 @@ const Title = styled('div')`
 
 const TitleType = styled('div')`
   flex: none;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.md};
   margin-right: ${space(1)};
@@ -292,7 +292,7 @@ const TitleType = styled('div')`
 const TitleDescription = styled('div')`
   ${p => p.theme.overflowEllipsis};
   display: flex;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.primary};
   text-align: right;
   font-size: ${p => p.theme.fontSize.md};
   ${p => p.theme.overflowEllipsis};
@@ -368,24 +368,21 @@ const LegendText = styled('span')<{unfocus: boolean}>`
   white-space: nowrap;
   text-overflow: ellipsis;
   transition: color 0.3s;
-  color: ${p => (p.unfocus ? p.theme.gray300 : p.theme.gray400)};
+  color: ${p =>
+    p.unfocus ? p.theme.tokens.content.muted : p.theme.tokens.content.primary};
 `;
 
 const LegendPercent = styled('span')`
   font-size: ${p => p.theme.fontSize.sm};
   margin-left: ${space(1)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.primary};
   text-align: right;
   flex-grow: 1;
 `;
 
 const ExpandToggleButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.muted};
   margin-left: ${space(0.5)};
-`;
-
-const NotApplicableLabel = styled('span')`
-  color: ${p => p.theme.subText};
 `;
 
 const StyledSummary = styled('summary')`

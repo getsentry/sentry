@@ -819,13 +819,13 @@ const Wrapper = styled(PanelItem)<{
         bottom: 0;
         width: 100%;
         height: 100%;
-        background-color: ${p.theme.bodyBackground};
+        background-color: ${p.theme.tokens.background.secondary};
         opacity: 0.4;
       }
 
       @keyframes tintRow {
         0% {
-          background-color: ${p.theme.bodyBackground};
+          background-color: ${p.theme.tokens.background.secondary};
         }
         100% {
           background-color: ${p.theme.backgroundSecondary};
@@ -858,7 +858,7 @@ const GroupCheckBoxWrapper = styled('div')`
 `;
 
 const CheckboxWithBackground = styled(Checkbox)`
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 const CountsWrapper = styled('div')`

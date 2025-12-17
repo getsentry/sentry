@@ -12,7 +12,7 @@ import {
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {Subscription as TSubscription} from 'getsentry/types';
-import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
+import {AddOnCategory, OnDemandBudgetMode, PlanTier} from 'getsentry/types';
 import OnDemandBudgets from 'getsentry/views/onDemandBudgets';
 import OnDemandBudgetEdit from 'getsentry/views/onDemandBudgets/onDemandBudgetEdit';
 
@@ -114,45 +114,6 @@ describe('OnDemandBudgets', () => {
 
     await userEvent.click(screen.getByTestId('add-cc-card'));
     expect(await screen.findByText('Stripe')).toBeInTheDocument();
-  });
-
-  it('allows VC partner accounts to set up on-demand budget without credit card', () => {
-    const subscription = SubscriptionFixture({
-      plan: 'am3_business',
-      planTier: PlanTier.AM3,
-      isFree: false,
-      isTrial: false,
-      supportsOnDemand: true,
-      organization,
-      partner: {
-        externalId: 'x123x',
-        name: 'VC Org',
-        partnership: {
-          id: 'VC',
-          displayName: 'VC',
-          supportNote: '',
-        },
-        isActive: true,
-      },
-      onDemandBudgets: {
-        enabled: false,
-        budgetMode: OnDemandBudgetMode.SHARED,
-        sharedMaxBudget: 0,
-        onDemandSpendUsed: 0,
-      },
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    const isVCPartner = subscription.partner?.partnership?.id === 'VC';
-    createWrapper({
-      subscription,
-      onDemandEnabled: true,
-      hasPaymentSource: isVCPartner,
-    });
-
-    // Should show Set Up Pay-as-you-go button instead of Add Credit Card
-    expect(screen.getByText('Set Up Pay-as-you-go')).toBeInTheDocument();
-    expect(screen.queryByText('Add Credit Card')).not.toBeInTheDocument();
   });
 
   it('renders initial on-demand budget setup state', () => {
@@ -609,6 +570,14 @@ describe('OnDemandBudgets', () => {
         usedSpends: {},
       },
     });
+    // set legacy Seer add-on as unavailable so we don't include warning for both types of Seer
+    subscription.addOns = {
+      ...subscription.addOns,
+      [AddOnCategory.LEGACY_SEER]: {
+        ...subscription.addOns?.[AddOnCategory.LEGACY_SEER]!,
+        isAvailable: false,
+      },
+    };
 
     const activePlan = subscription.planDetails;
 
@@ -645,8 +614,6 @@ describe('OnDemandBudgets', () => {
   });
 
   it('displays per-category warning for multiple categories', () => {
-    // Test with logs-billing only
-    organization.features = ['logs-billing'];
     const subscription = SubscriptionFixture({
       plan: 'am2_business',
       planTier: PlanTier.AM2,
@@ -669,6 +636,14 @@ describe('OnDemandBudgets', () => {
         usedSpends: {},
       },
     });
+    // set legacy Seer add-on as unavailable so we don't include warning for both types of Seer
+    subscription.addOns = {
+      ...subscription.addOns,
+      [AddOnCategory.LEGACY_SEER]: {
+        ...subscription.addOns?.[AddOnCategory.LEGACY_SEER]!,
+        isAvailable: false,
+      },
+    };
 
     const activePlan = subscription.planDetails;
 
@@ -682,7 +657,7 @@ describe('OnDemandBudgets', () => {
       },
     };
 
-    const {rerender} = render(
+    render(
       <OnDemandBudgetEdit
         {...defaultProps}
         subscription={subscription}
@@ -694,26 +669,6 @@ describe('OnDemandBudgets', () => {
     expect(screen.getByTestId('per-category-budget-radio')).toBeInTheDocument();
     expect(screen.getByTestId('per-category-budget-radio')).toBeChecked();
 
-    // When logs-billing is enabled, should show the logs warning
-    expect(
-      screen.getByText(
-        'Additional logs usage is only available through a shared on-demand budget. To enable on-demand usage switch to a shared on-demand budget.'
-      )
-    ).toBeInTheDocument();
-
-    // Test with both seer-billing and logs-billing
-    organization.features = ['seer-billing', 'logs-billing'];
-
-    rerender(
-      <OnDemandBudgetEdit
-        {...defaultProps}
-        subscription={subscription}
-        activePlan={activePlan}
-        onDemandBudget={onDemandBudget}
-      />
-    );
-
-    // When both features are enabled
     expect(
       screen.getByText(
         'Additional logs and Seer usage are only available through a shared on-demand budget. To enable on-demand usage switch to a shared on-demand budget.'

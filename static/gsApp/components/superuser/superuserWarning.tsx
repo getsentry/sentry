@@ -103,9 +103,8 @@ function SuperuserWarning({organization, className}: Props) {
 }
 
 const StyledBadge = styled(Badge)`
-  color: ${p => (p.theme.isChonk ? p.theme.white : undefined)};
-  background: ${p =>
-    p.theme.isChonk ? (p.theme as any).colors.chonk.red400 : undefined};
+  color: ${p => p.theme.white};
+  background: ${p => p.theme.colors.chonk.red400};
 `;
 
 const TooltipContent = styled('div')`

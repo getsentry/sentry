@@ -180,7 +180,7 @@ const CursorLabel = styled(Overlay)<{
   font-variant-numeric: tabular-nums;
   width: max-content;
   padding: ${space(0.75)} ${space(1)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.sm};
   line-height: 1.2;
   position: absolute;

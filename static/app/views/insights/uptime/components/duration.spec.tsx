@@ -5,17 +5,12 @@ import {UptimeDuration} from 'sentry/views/insights/uptime/components/duration';
 
 describe('UptimeDuration', () => {
   const baseSummary: UptimeSummary = {
-    avgDurationUs: null,
+    avgDurationUs: 50_000,
     downtimeChecks: 0,
     failedChecks: 0,
     missedWindowChecks: 0,
     totalChecks: 100,
   };
-
-  it('renders nothing when avgDurationUs is null', () => {
-    const {container} = render(<UptimeDuration summary={baseSummary} />);
-    expect(container).toBeEmptyDOMElement();
-  });
 
   it('renders millisecond durations correctly', () => {
     const summary = {...baseSummary, avgDurationUs: 350_000};

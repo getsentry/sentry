@@ -17,6 +17,10 @@ const productionEntryPoints = [
   // this is imported with require.context
   'static/app/data/forms/*.tsx',
   // --- we should be able to get rid of those: ---
+  // (WIP) design system tokens
+  'static/app/utils/theme/scraps/**/*.tsx',
+  // Only used in stories (so far)
+  'static/app/components/core/quote/*.tsx',
   // Prevent exception until we build out coverage
   'static/app/components/prevent/virtualRenderers/**/*.{js,ts,tsx}',
   // todo we currently keep all icons
@@ -45,6 +49,7 @@ const config: KnipConfig = {
     ...productionEntryPoints.map(entry => `${entry}!`),
     ...testingEntryPoints,
     ...storyBookEntryPoints,
+    'static/eslint/**/index.mjs',
   ],
   project: [
     'static/**/*.{js,mjs,ts,tsx}!',
@@ -57,8 +62,8 @@ const config: KnipConfig = {
     // helper files for stories - it's fine that they are only used in tests
     '!static/app/**/__stories__/*.{js,mjs,ts,tsx}!',
     '!static/app/stories/**/*.{js,mjs,ts,tsx}!',
-    // TEMPORARY! Abdullah Khan: WILL BE REMOVING IN STACKED PRs. Trying to merge PRs in smaller batches.
-    '!static/app/views/performance/newTraceDetails/traceModels/traceTreeNode/**/*.{js,mjs,ts,tsx}!',
+    // ignore eslint plugins in production
+    '!static/eslint/**/*.mjs!',
   ],
   compilers: {
     mdx: async text => String(await compile(text)),

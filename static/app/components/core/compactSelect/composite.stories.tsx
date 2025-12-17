@@ -5,6 +5,7 @@ import {IconSentry, IconStar} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
 import {CompositeSelect} from './composite';
+import {SelectTrigger} from './trigger';
 import {CompactSelect} from './';
 
 const MONTH_OPTIONS = [
@@ -78,12 +79,12 @@ export default Storybook.story('CompositeSelect', story => {
           <code>options</code>.
         </p>
         <CompositeSelect
-          triggerProps={{
-            children: 'Select an Option',
-            showChevron: false,
-            icon: <IconSentry />,
-            size: 'sm',
-          }}
+          size="sm"
+          trigger={props => (
+            <SelectTrigger.Button icon={<IconSentry />} {...props}>
+              Select an Option
+            </SelectTrigger.Button>
+          )}
         >
           <CompositeSelect.Region
             label="Month"
@@ -125,12 +126,12 @@ export default Storybook.story('CompositeSelect', story => {
 
         <Flex gap="md">
           <CompositeSelect
-            triggerProps={{
-              size: 'sm',
-              icon: <IconSentry />,
-              children: 'Composite Select Single Select',
-              showChevron: false,
-            }}
+            size="sm"
+            trigger={props => (
+              <SelectTrigger.Button icon={<IconSentry />} {...props}>
+                Composite Select Single Select
+              </SelectTrigger.Button>
+            )}
           >
             <CompositeSelect.Region
               label="Mains"

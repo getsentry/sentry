@@ -35,30 +35,25 @@ export function UptimeDetailsSidebar({
         <SectionHeading>{t('Checked URL')}</SectionHeading>
         <CodeBlock hideCopyButton>{`${uptimeSub.method} ${uptimeSub.url}`}</CodeBlock>
       </MonitorUrlContainer>
-      <Grid
-        columns={summary && summary.avgDurationUs !== null ? '2fr 1fr 1fr' : '1fr 1fr'}
-        gap="2xl"
-      >
+      <Grid columns="2fr 1fr 1fr" gap="2xl">
         <UptimeContainer>
           <SectionHeading>{t('Legend')}</SectionHeading>
           <DetailsTimelineLegend showMissedLegend={showMissedLegend} />
         </UptimeContainer>
-        {summary && summary.avgDurationUs !== null && (
-          <div>
-            <SectionHeading>{t('Duration')}</SectionHeading>
-            <UptimeContainer>
-              {summary === undefined ? (
-                <Text size="xl">
-                  <Placeholder width="60px" height="1lh" />
-                </Text>
-              ) : summary === null ? (
-                '-'
-              ) : (
-                <UptimeDuration size="xl" summary={summary} />
-              )}
-            </UptimeContainer>
-          </div>
-        )}
+        <div>
+          <SectionHeading>{t('Duration')}</SectionHeading>
+          <UptimeContainer>
+            {summary === undefined ? (
+              <Text size="xl">
+                <Placeholder width="60px" height="1lh" />
+              </Text>
+            ) : summary === null ? (
+              '-'
+            ) : (
+              <UptimeDuration size="xl" summary={summary} />
+            )}
+          </UptimeContainer>
+        </div>
         <div>
           <SectionHeading>{t('Uptime')}</SectionHeading>
           <UptimeContainer>

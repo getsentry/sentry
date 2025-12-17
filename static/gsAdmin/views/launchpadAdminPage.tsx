@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Input} from 'sentry/components/core/input';
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
+import {Link} from 'sentry/components/core/link';
 import {Heading, Text} from 'sentry/components/core/text';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Region} from 'sentry/types/system';
@@ -380,6 +381,27 @@ function LaunchpadAdminPage() {
         {fetchedArtifactInfo && (
           <Container background="secondary" border="primary" radius="md" padding="lg">
             <Flex direction="column" gap="md">
+              {fetchedArtifactInfo.artifact_info?.project?.organization_slug &&
+                fetchedArtifactInfo.artifact_info?.project?.slug &&
+                fetchedArtifactInfo.artifact_info?.id && (
+                  <Container
+                    background="tertiary"
+                    border="primary"
+                    radius="sm"
+                    padding="md"
+                  >
+                    <Flex direction="column" gap="xs">
+                      <Text bold size="sm">
+                        Artifact URL:
+                      </Text>
+                      <Link
+                        to={`https://${fetchedArtifactInfo.artifact_info.project.organization_slug}.sentry.io/preprod/${fetchedArtifactInfo.artifact_info.project.slug}/${fetchedArtifactInfo.artifact_info.id}/`}
+                      >
+                        {`https://${fetchedArtifactInfo.artifact_info.project.organization_slug}.sentry.io/preprod/${fetchedArtifactInfo.artifact_info.project.slug}/${fetchedArtifactInfo.artifact_info.id}/`}
+                      </Link>
+                    </Flex>
+                  </Container>
+                )}
               <Heading as="h3">Fetched Artifact Information</Heading>
               <InfoDisplay>
                 <pre>{JSON.stringify(fetchedArtifactInfo, null, 2)}</pre>
@@ -401,9 +423,9 @@ const StyledInput = styled(Input)`
 `;
 
 const InfoDisplay = styled('div')`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space.md};
   max-height: 400px;
   overflow-y: auto;
@@ -413,7 +435,7 @@ const InfoDisplay = styled('div')`
     font-family: ${p => p.theme.text.familyMono};
     font-size: 12px;
     line-height: 1.4;
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
     white-space: pre-wrap;
     word-break: break-word;
   }

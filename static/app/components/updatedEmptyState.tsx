@@ -92,6 +92,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     platformKey: currentPlatformKey,
     project,
     isLogsSelected: false,
+    isMetricsSelected: false,
     isFeedbackSelected: false,
     isPerformanceSelected: false,
     isProfilingSelected: false,
@@ -227,7 +228,7 @@ const ArcadeWrapper = styled('div')`
 `;
 
 const HeaderWrapper = styled('div')`
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${space(4)};
 `;
 

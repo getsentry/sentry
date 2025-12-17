@@ -1,6 +1,5 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import type {Location} from 'history';
-import moment from 'moment-timezone';
 
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
@@ -12,6 +11,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {openEditCreditCard} from 'getsentry/actionCreators/modal';
 import CreditCardSetup from 'getsentry/components/creditCardEdit/setup';
@@ -29,6 +29,7 @@ interface CreditCardPanelProps {
   subscription: Subscription;
   analyticsEvent?: GetsentryEventKey;
   isNewBillingUI?: boolean;
+  maxPanelWidth?: string;
   shouldExpandInitially?: boolean;
 }
 
@@ -52,6 +53,7 @@ function CreditCardPanel({
   ftcLocation,
   analyticsEvent,
   shouldExpandInitially,
+  maxPanelWidth,
 }: CreditCardPanelProps) {
   const [cardLastFourDigits, setCardLastFourDigits] = useState<string | null>(null);
   const [cardZipCode, setCardZipCode] = useState<string | null>(null);
@@ -61,6 +63,11 @@ function CreditCardPanel({
   const [expandInitially, setExpandInitially] = useState(shouldExpandInitially);
 
   const handleCardUpdated = useCallback((data: Subscription) => {
+    // if the card was successfully updated, reset the billing failure state
+    // so we don't trigger side effects nor render outdated content
+    setFromBillingFailure(false);
+    setReferrer(undefined);
+
     setCardLastFourDigits(data.paymentSource?.last4 || null);
     setCardZipCode(data.paymentSource?.zipCode || null);
     SubscriptionStore.set(data.slug, data);
@@ -158,6 +165,7 @@ function CreditCardPanel({
       border="primary"
       radius="md"
       data-test-id="credit-card-panel"
+      maxWidth={maxPanelWidth}
     >
       <Flex direction="column" gap="lg" width="100%">
         <Heading as="h2" size="lg">
@@ -181,8 +189,8 @@ function CreditCardPanel({
           />
         ) : subscription.paymentSource ? (
           <Fragment>
-            <Text>{`****${subscription.paymentSource.last4} ${moment(new Date(subscription.paymentSource.expYear, subscription.paymentSource.expMonth - 1)).format('MM/YY')}`}</Text>
-            <Text>{`${countryName ? `${countryName} ` : ''} ${subscription.paymentSource.zipCode}`}</Text>
+            <Text>{`${toTitleCase(subscription.paymentSource.brand, {allowInnerUpperCase: true})} ****${subscription.paymentSource.last4} ${String(subscription.paymentSource.expMonth).padStart(2, '0')}/${String(subscription.paymentSource.expYear).slice(-2)}`}</Text>
+            <Text>{`${countryName ? `${countryName} ` : ''} ${subscription.paymentSource.zipCode ? subscription.paymentSource.zipCode : ''}`}</Text>
           </Fragment>
         ) : (
           <Text>{t('No payment method on file')}</Text>

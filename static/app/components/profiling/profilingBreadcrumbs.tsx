@@ -3,7 +3,7 @@ import type {Location} from 'history';
 import omit from 'lodash/omit';
 
 import type {Crumb} from 'sentry/components/breadcrumbs';
-import _Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -26,7 +26,7 @@ function ProfilingBreadcrumbs({organization, trails}: ProfilingBreadcrumbsProps)
     () => trails.map(trail => trailToCrumb(trail, {organization, projects})),
     [organization, trails, projects]
   );
-  return <_Breadcrumbs crumbs={crumbs} />;
+  return <Breadcrumbs crumbs={crumbs} />;
 }
 
 function trailToCrumb(

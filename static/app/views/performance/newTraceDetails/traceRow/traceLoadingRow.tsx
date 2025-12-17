@@ -1,9 +1,8 @@
 import type {Theme} from '@emotion/react';
 
 import Placeholder from 'sentry/components/placeholder';
-import {isTraceNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 import {
   TRACE_COUNT_FORMATTER,
@@ -20,7 +19,7 @@ function randomBetween(min: number, max: number) {
 export function TraceLoadingRow(props: {
   index: number;
   manager: VirtualizedViewManager;
-  node: TraceTreeNode<TraceTree.NodeValue>;
+  node: BaseNode;
   style: React.CSSProperties;
   theme: Theme;
 }) {
@@ -47,14 +46,14 @@ export function TraceLoadingRow(props: {
           }}
         >
           <div
-            className={`TraceChildrenCountWrapper ${isTraceNode(props.node) ? 'Root' : ''}`}
+            className={`TraceChildrenCountWrapper ${props.node.isRootNodeChild() ? 'Root' : ''}`}
           >
             <TraceRowConnectors node={props.node} manager={props.manager} />
-            {props.node.children.length > 0 || props.node.canFetch ? (
+            {props.node.children.length > 0 || props.node.canFetchChildren ? (
               <TraceChildrenButton
                 icon="+"
                 status={props.node.fetchStatus}
-                expanded={props.node.expanded || props.node.zoomedIn}
+                expanded={props.node.expanded || props.node.hasFetchedChildren}
                 onClick={() => void 0}
                 onDoubleClick={() => void 0}
               >

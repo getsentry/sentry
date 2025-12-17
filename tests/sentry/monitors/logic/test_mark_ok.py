@@ -81,7 +81,6 @@ class MarkOkTestCase(TestCase):
                 "checkin_margin": None,
                 "recovery_threshold": None,
             },
-            is_muted=True,
         )
 
         # Start with monitor in an ERROR state

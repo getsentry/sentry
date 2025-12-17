@@ -100,7 +100,7 @@ describe('OnDemandSpend', () => {
     await openPanel();
 
     expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toBeEnabled();
-    expect(screen.queryByLabelText(/On-demand is not supported/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/On-Demand is not supported/)).not.toBeInTheDocument();
     expect(screen.getByPlaceholderText('e.g. 50')).toBeInTheDocument();
 
     // Can type into the input.
@@ -178,7 +178,7 @@ describe('OnDemandSpend', () => {
 
     // Check tooltip
     await userEvent.hover(screen.getByRole('textbox', {name: 'Monthly Max'}));
-    expect(await screen.findByText(/On-demand is not supported/)).toBeInTheDocument();
+    expect(await screen.findByText(/On-Demand is not supported/)).toBeInTheDocument();
 
     const input = screen.getByRole('textbox', {name: 'Monthly Max'});
     expect(input).toBeInTheDocument();
@@ -194,7 +194,7 @@ describe('OnDemandSpend', () => {
 
     // Check tooltip
     await userEvent.hover(screen.getByRole('textbox', {name: 'Monthly Max'}));
-    expect(await screen.findByText(/On-demand is not supported/)).toBeInTheDocument();
+    expect(await screen.findByText(/On-Demand is not supported/)).toBeInTheDocument();
 
     const input = screen.getByRole('textbox', {name: 'Monthly Max'});
     expect(input).toBeInTheDocument();

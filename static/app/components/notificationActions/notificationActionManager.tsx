@@ -240,7 +240,7 @@ function NotificationActionManager({
             isOpen={isOpen}
             aria-label={t('Add Action')}
             size="xs"
-            icon={<IconAdd isCircled />}
+            icon={<IconAdd />}
             disabled={isAddAlertDisabled}
           >
             {t('Add Action')}

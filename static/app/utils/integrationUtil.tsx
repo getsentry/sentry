@@ -9,9 +9,11 @@ import {
   IconGithub,
   IconGitlab,
   IconJira,
+  IconPerforce,
   IconSentry,
   IconVsts,
 } from 'sentry/icons';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import type {Hooks} from 'sentry/types/hooks';
@@ -32,8 +34,6 @@ import type {
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {POPULARITY_WEIGHT} from 'sentry/views/settings/organizationIntegrations/constants';
-
-import type {IconSize} from './theme';
 
 /**
  * TODO: remove alias once all usages are updated
@@ -191,7 +191,7 @@ export const safeGetQsParam = (param: string) => {
 
 export const getIntegrationIcon = (
   integrationType?: string,
-  iconSize: IconSize = 'md'
+  iconSize: SVGIconProps['size'] = 'md'
 ) => {
   switch (integrationType) {
     case 'asana':
@@ -206,6 +206,8 @@ export const getIntegrationIcon = (
     case 'jira':
     case 'jira_server':
       return <IconJira size={iconSize} />;
+    case 'perforce':
+      return <IconPerforce size={iconSize} />;
     case 'vsts':
       return <IconVsts size={iconSize} />;
     case 'codecov':
@@ -230,6 +232,8 @@ export const getIntegrationDisplayName = (integrationType?: string) => {
     case 'jira':
     case 'jira_server':
       return 'Jira';
+    case 'perforce':
+      return 'Perforce';
     case 'vsts':
       return 'Azure DevOps';
     case 'codecov':
@@ -272,13 +276,15 @@ export const getIntegrationSourceUrl = (
 
 export function getCodeOwnerIcon(
   provider: CodeOwner['provider'],
-  iconSize: IconSize = 'md'
+  iconSize: SVGIconProps['size'] = 'md'
 ) {
   switch (provider ?? '') {
     case 'github':
       return <IconGithub size={iconSize} />;
     case 'gitlab':
       return <IconGitlab size={iconSize} />;
+    case 'perforce':
+      return <IconPerforce size={iconSize} />;
     default:
       return <IconSentry size={iconSize} />;
   }

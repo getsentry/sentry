@@ -66,6 +66,7 @@ const AM3_CATEGORY_DISPLAY_NAMES = {
   logBytes: {singular: 'log', plural: 'logs'},
   seerAutofix: {singular: 'issue fix', plural: 'issue fixes'},
   seerScanner: {singular: 'issue scan', plural: 'issue scans'},
+  seerUsers: {singular: 'active contributor', plural: 'active contributors'},
 };
 
 const AM3_DS_CATEGORY_DISPLAY_NAMES = {
@@ -138,7 +139,7 @@ const AM3_DS_FEATURES = [
   'dynamic-sampling-custom',
 ];
 
-export const SEER_TIERS_DEVELOPER = {
+export const LEGACY_SEER_TIERS_DEVELOPER = {
   seerAutofix: [
     {
       events: 0,
@@ -157,7 +158,7 @@ export const SEER_TIERS_DEVELOPER = {
   ],
 };
 
-export const SEER_TIERS_TRIAL_OR_ENTERPRISE = {
+export const LEGACY_SEER_TIERS_TRIAL_OR_ENTERPRISE = {
   seerAutofix: [
     {
       events: -2,
@@ -176,7 +177,7 @@ export const SEER_TIERS_TRIAL_OR_ENTERPRISE = {
   ],
 };
 
-export const SEER_TIERS = {
+export const LEGACY_SEER_TIERS = {
   seerAutofix: [
     {
       events: -2,
@@ -207,7 +208,7 @@ export const SEER_TIERS = {
   ],
 };
 
-export const SEER_TIERS_ANNUAL = {
+export const LEGACY_SEER_TIERS_ANNUAL = {
   seerAutofix: [
     {
       events: -2,
@@ -234,6 +235,17 @@ export const SEER_TIERS_ANNUAL = {
       unitPrice: 0,
       price: 0,
       onDemandPrice: 1.25,
+    },
+  ],
+};
+
+export const SEER_TIERS = {
+  seerUsers: [
+    {
+      events: 0,
+      unitPrice: 0,
+      price: 0,
+      onDemandPrice: 0,
     },
   ],
 };
@@ -988,6 +1000,7 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.5,
         },
       ],
+      ...LEGACY_SEER_TIERS,
       ...SEER_TIERS,
     },
   },
@@ -1487,7 +1500,8 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.5,
         },
       ],
-      ...SEER_TIERS_ANNUAL,
+      ...LEGACY_SEER_TIERS_ANNUAL,
+      ...SEER_TIERS,
     },
     dashboardLimit: -1,
     metricDetectorLimit: -1,
@@ -1586,7 +1600,8 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.5,
         },
       ],
-      ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      ...LEGACY_SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      ...SEER_TIERS,
     },
     dashboardLimit: -1,
     metricDetectorLimit: -1,
@@ -1685,7 +1700,8 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.5,
         },
       ],
-      ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      ...LEGACY_SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      ...SEER_TIERS,
     },
     dashboardLimit: -1,
     metricDetectorLimit: -1,
@@ -1792,7 +1808,8 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.5,
         },
       ],
-      ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      ...LEGACY_SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      ...SEER_TIERS,
     },
     dashboardLimit: -1,
     metricDetectorLimit: -1,
@@ -1899,7 +1916,8 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.5,
         },
       ],
-      ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      ...LEGACY_SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      ...SEER_TIERS,
     },
     dashboardLimit: -1,
     metricDetectorLimit: -1,
@@ -1998,7 +2016,8 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.5,
         },
       ],
-      ...SEER_TIERS_DEVELOPER,
+      ...LEGACY_SEER_TIERS_DEVELOPER,
+      ...SEER_TIERS,
     },
     dashboardLimit: 10,
     metricDetectorLimit: 20,
@@ -2097,7 +2116,8 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.5,
         },
       ],
-      ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      ...LEGACY_SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      ...SEER_TIERS,
     },
     dashboardLimit: 20,
     metricDetectorLimit: 20,
@@ -2204,7 +2224,8 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.5,
         },
       ],
-      ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      ...LEGACY_SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      ...SEER_TIERS,
     },
     dashboardLimit: 20,
     metricDetectorLimit: 20,
@@ -2707,6 +2728,7 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.5,
         },
       ],
+      ...LEGACY_SEER_TIERS,
       ...SEER_TIERS,
     },
   },
@@ -3208,7 +3230,8 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.5,
         },
       ],
-      ...SEER_TIERS_ANNUAL,
+      ...LEGACY_SEER_TIERS_ANNUAL,
+      ...SEER_TIERS,
     },
   },
   am3_t: {

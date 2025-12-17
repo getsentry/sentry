@@ -113,7 +113,12 @@ class IssuesByTagProcessor:
             users = EventUser.for_tags(self.group.project_id, [i.value for i in items])
         else:
             users = {}
-        return [GroupTagValueAndEventUser(item, users.get(item.value)) for item in items]
+        return [
+            GroupTagValueAndEventUser(
+                item, users.get(item.value) if item.value is not None else None
+            )
+            for item in items
+        ]
 
     def get_serialized_data(self, limit: int = 1000, offset: int = 0) -> list[dict[str, str]]:
         """

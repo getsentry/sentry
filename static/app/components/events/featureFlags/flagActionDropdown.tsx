@@ -28,9 +28,7 @@ export default function FlagActionDropdown({
   }) => LocationDescriptor | undefined;
   result: string;
 }) {
-  const {onClick: handleCopy} = useCopyToClipboard({
-    text: flag,
-  });
+  const {copy} = useCopyToClipboard();
   const location = useLocation();
   const {baseUrl} = useGroupDetailsRoute();
   const [isVisible, setIsVisible] = useState(false);
@@ -68,7 +66,8 @@ export default function FlagActionDropdown({
         {
           key: 'copy-value',
           label: t('Copy flag value to clipboard'),
-          onAction: handleCopy,
+          onAction: () =>
+            copy(result, {successMessage: t('Flag value copied to clipboard.')}),
         },
       ]}
     />

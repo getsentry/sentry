@@ -124,8 +124,8 @@ export const GridHead = styled('thead')<{sticky?: boolean}>`
   user-select: none;
   color: ${p => p.theme.subText};
 
-  border-top-left-radius: ${p => p.theme.borderRadius};
-  border-top-right-radius: ${p => p.theme.borderRadius};
+  border-top-left-radius: ${p => p.theme.radius.md};
+  border-top-right-radius: ${p => p.theme.radius.md};
 
   ${p => (p.sticky ? `position: sticky; top: 0; z-index: ${Z_INDEX_STICKY_HEADER}` : '')}
 `;
@@ -175,6 +175,7 @@ export const GridHeadCellStatic = styled('th')`
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
+  justify-content: center;
 
   &:first-child {
     padding: ${p => p.theme.space.md} 0 ${p => p.theme.space.md}
@@ -199,15 +200,15 @@ export const GridRow = styled('tr')<{isClickable?: boolean}>`
   grid-column: 1/-1;
 
   &:not(thead > &) {
-    background-color: ${p => p.theme.background};
+    background-color: ${p => p.theme.tokens.background.primary};
 
     &:not(:last-child) {
       border-bottom: 1px solid ${p => p.theme.innerBorder};
     }
 
     &:last-child {
-      border-bottom-left-radius: ${p => p.theme.borderRadius};
-      border-bottom-right-radius: ${p => p.theme.borderRadius};
+      border-bottom-left-radius: ${p => p.theme.radius.md};
+      border-bottom-right-radius: ${p => p.theme.radius.md};
     }
   }
 

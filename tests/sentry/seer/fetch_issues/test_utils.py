@@ -201,13 +201,31 @@ class TestGetLatestIssueEvent(TestCase):
         assert isinstance(result, dict)
         assert result["id"] == group.id
         assert result["title"] == group.title
-        assert "events" in result
         assert len(result["events"]) == 1
         assert result["events"][0]["id"] == event.event_id
 
-    def test_get_latest_issue_event_group_not_found(self):
+    def test_get_latest_issue_event_not_found(self):
         nonexistent_group_id = 999999
         result = get_latest_issue_event(nonexistent_group_id, self.organization.id)
+        assert result == {}
+
+    def test_get_latest_issue_event_with_short_id(self):
+        data = load_data("python", timestamp=before_now(minutes=1))
+        event = self.store_event(data=data, project_id=self.project.id)
+        group = event.group
+
+        assert group is not None
+        result = get_latest_issue_event(group.qualified_short_id, self.organization.id)
+
+        assert result is not None
+        assert isinstance(result, dict)
+        assert result["id"] == group.id
+        assert result["title"] == group.title
+        assert len(result["events"]) == 1
+        assert result["events"][0]["id"] == event.event_id
+
+    def test_get_latest_issue_event_with_short_id_not_found(self):
+        result = get_latest_issue_event("INVALID-SHORT-ID", self.organization.id)
         assert result == {}
 
     def test_get_latest_issue_event_no_events(self):

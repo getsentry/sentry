@@ -55,7 +55,7 @@ export enum ModelAge {
   NEWEST = 'newest',
 }
 
-export enum Attributes {
+export enum Attribute {
   MESSAGE = 'message',
   PLATFORM = 'platform',
   ENVIRONMENT = 'environment',

@@ -1,5 +1,6 @@
 import * as qs from 'query-string';
 
+import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Hooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
@@ -8,6 +9,7 @@ import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {uniqueId} from 'sentry/utils/guid';
 import localStorage from 'sentry/utils/localStorage';
 import sessionStorage from 'sentry/utils/sessionStorage';
+import {readStorageValue} from 'sentry/utils/useSessionStorage';
 
 import type {Subscription} from 'getsentry/types';
 import {hasNewBillingUI} from 'getsentry/utils/billing';
@@ -73,9 +75,16 @@ const getCustomReferrer = () => {
   try {
     // pull the referrer from the query parameter of the page
     const {referrer} = qs.parse(window.location.search) || {};
+    // pull the referrer from session storage.
+    const storedReferrer = readStorageValue<string | null>(CUSTOM_REFERRER_KEY, null);
+    // ?referrer takes precedence, but still unset session stored referrer.
+    if (storedReferrer) {
+      sessionStorage.removeItem(CUSTOM_REFERRER_KEY);
+    }
     if (referrer && typeof referrer === 'string') {
       return referrer;
     }
+    return storedReferrer;
   } catch {
     // ignore if this fails to parse
     // this can happen if we have an invalid query string

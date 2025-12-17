@@ -30,10 +30,9 @@ import {
   getTraceAttributesTreeActions,
   sortAttributes,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
+import type {UptimeCheckNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/uptimeCheckNode';
 import {useTraceState} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
-import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 type CustomRenderersProps = AttributesFieldRendererProps<RenderFunctionBaggage>;
@@ -81,14 +80,13 @@ export function Attributes({
 }: {
   attributes: TraceItemResponseAttribute[];
   location: Location;
-  node: TraceTreeNode<TraceTree.EAPSpan | TraceTree.UptimeCheck>;
+  node: EapSpanNode | UptimeCheckNode;
   organization: Organization;
   project: Project | undefined;
   theme: Theme;
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const traceState = useTraceState();
-  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
   const columnCount =
     traceState.preferences.layout === 'drawer left' ||
     traceState.preferences.layout === 'drawer right'
@@ -102,26 +100,18 @@ export function Attributes({
       attribute => !HIDDEN_ATTRIBUTES.includes(attribute.name)
     );
 
-    const filteredByOTelMode = onlyVisibleAttributes.filter(attribute => {
-      if (shouldUseOTelFriendlyUI) {
-        return !['span.description', 'span.op'].includes(attribute.name);
-      }
-
-      return attribute.name !== 'span.name';
-    });
-
     if (!searchQuery.trim()) {
-      return filteredByOTelMode;
+      return onlyVisibleAttributes;
     }
 
     const normalizedSearchQuery = searchQuery.toLowerCase().trim();
 
-    const onlyMatchingAttributes = filteredByOTelMode.filter(attribute => {
+    const onlyMatchingAttributes = onlyVisibleAttributes.filter(attribute => {
       return attribute.name.toLowerCase().trim().includes(normalizedSearchQuery);
     });
 
     return onlyMatchingAttributes;
-  }, [attributes, searchQuery, shouldUseOTelFriendlyUI]);
+  }, [attributes, searchQuery]);
 
   const customRenderers: Record<
     string,
@@ -174,9 +164,6 @@ export function Attributes({
       return formatDollars(+Number(props.item.value).toFixed(10));
     },
     [SpanFields.GEN_AI_COST_TOTAL_TOKENS]: (props: CustomRenderersProps) => {
-      return formatDollars(+Number(props.item.value).toFixed(10));
-    },
-    [SpanFields.GEN_AI_USAGE_TOTAL_COST]: (props: CustomRenderersProps) => {
       return formatDollars(+Number(props.item.value).toFixed(10));
     },
   };

@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 import Color from 'color';
 
+import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DeviceName} from 'sentry/components/deviceName';
 import Version from 'sentry/components/version';
@@ -48,16 +49,22 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
               : hasMultipleItems && percentage >= 100
                 ? '>99%'
                 : `${cappedPercentage.toFixed(0)}%`;
+
+          let valueComponent: React.ReactNode = tagValue.value;
+          if (tagValue.value === '') {
+            valueComponent = <Text variant="muted">{t('(empty)')}</Text>;
+          } else {
+            if (tag.key === 'release') {
+              valueComponent = <Version version={tagValue.value} anchor={false} />;
+            } else if (tag.key === 'device') {
+              valueComponent = <DeviceName value={tagValue.value} />;
+            }
+          }
+
           return (
             <TagValueRow key={tagValueIdx}>
-              <Tooltip delay={300} title={tagValue.name} skipWrapper>
-                <TagValue>
-                  {tag.key === 'release' ? (
-                    <Version version={tagValue.name} anchor={false} />
-                  ) : (
-                    <DeviceName value={tagValue.name} />
-                  )}
-                </TagValue>
+              <Tooltip delay={300} title={valueComponent} skipWrapper>
+                <TagValue>{valueComponent}</TagValue>
               </Tooltip>
               <Tooltip
                 title={tct('[count] of [total] tagged events', {
@@ -116,13 +123,13 @@ const TagPanel = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.border};
   padding: ${space(1)};
 `;
 
 const TagHeader = styled('h5')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.bold};
   margin: 0;

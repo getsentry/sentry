@@ -24,7 +24,11 @@ import {
   isUnlimitedReserved,
   UsageAction,
 } from 'getsentry/utils/billing';
-import {getPlanCategoryName, sortCategoriesWithKeys} from 'getsentry/utils/dataCategory';
+import {
+  getCategoryInfoFromPlural,
+  getPlanCategoryName,
+  sortCategoriesWithKeys,
+} from 'getsentry/utils/dataCategory';
 
 import {ButtonWrapper, SubscriptionBody} from './styles';
 
@@ -64,18 +68,21 @@ function UsageAlert({subscription, usage}: Props) {
       hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
     });
 
+    const categoryInfo = getCategoryInfoFromPlural(category);
+    const isAbbreviated = categoryInfo?.formatting.projectedAbbreviated ?? true;
+
     const formattedAmount = formatReservedWithUnits(projected, category, {
-      isAbbreviated: category !== DataCategory.ATTACHMENTS,
+      isAbbreviated,
     });
 
-    return category === DataCategory.ATTACHMENTS
-      ? `${formattedAmount} of attachments`
-      : `${formattedAmount} ${displayName}`;
+    return isAbbreviated
+      ? `${formattedAmount} ${displayName}`
+      : `${formattedAmount} of ${displayName}`;
   }
 
   function projectedCategoryOverages() {
-    // hide projected overages for plans with on-demand for now since
-    // shared on-demand budget can be applied to any data category
+    // hide projected overages for plans with on-demand/PAYG for now since
+    // shared on-demand/PAYG budget can be applied to any data category
     if (subscription.onDemandMaxSpend) {
       return [];
     }

@@ -844,24 +844,6 @@ function printVirtualizedList(container: HTMLElement) {
   console.log(stdout.join('\n'));
 }
 
-// @ts-expect-error ignore this line
-function printTabs() {
-  const tabs = screen.queryAllByTestId(DRAWER_TABS_TEST_ID);
-  const stdout: string[] = [];
-
-  for (const tab of tabs) {
-    let text = tab.textContent ?? 'empty tab??';
-    if (tab.hasAttribute('aria-selected')) {
-      text = 'active' + text;
-    }
-    stdout.push(text);
-  }
-
-  // This is a debug fn, we need it to log
-  // eslint-disable-next-line no-console
-  console.log(stdout.join(' | '));
-}
-
 async function assertHighlightedRowAtIndex(
   virtualizedContainer: HTMLElement,
   index: number
@@ -1079,7 +1061,7 @@ describe('trace view', () => {
     });
 
     it('scrolls to sibling autogroup node', async () => {
-      mockQueryString('?node=ag-http0&node=txn-1');
+      mockQueryString('?node=ag-span0&node=txn-1');
 
       const {virtualizedContainer} = await completeTestSetup();
       await within(virtualizedContainer).findAllByText(/Autogrouped/i);
@@ -1167,16 +1149,11 @@ describe('trace view', () => {
     ] as Array<`?${string}`>)('logs if path is not found: %s', async path => {
       mockQueryString(path);
 
-      const sentryScopeMock = {
-        setFingerprint: jest.fn(),
-        captureMessage: jest.fn(),
-      } as any;
-
-      jest.spyOn(Sentry, 'withScope').mockImplementation((f: any) => f(sentryScopeMock));
+      jest.spyOn(Sentry.logger, 'warn');
       await pageloadTestSetup();
 
       await waitFor(() => {
-        expect(sentryScopeMock.captureMessage).toHaveBeenCalledWith(
+        expect(Sentry.logger.warn).toHaveBeenCalledWith(
           'Failed to scroll to node in trace tree'
         );
       });

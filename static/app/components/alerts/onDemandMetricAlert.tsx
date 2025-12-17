@@ -5,6 +5,7 @@ import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconClose, IconWarning} from 'sentry/icons';
+import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import type {Color} from 'sentry/utils/theme';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
@@ -58,9 +59,9 @@ export function OnDemandMetricAlert({
       <InfoAlert type="info">
         {message}
         {dismissable && (
-          <DismissButton
-            priority="link"
+          <Button
             size="sm"
+            priority="transparent"
             icon={<IconClose />}
             aria-label={t('Close Alert')}
             onClick={dismiss}
@@ -85,15 +86,8 @@ const InfoAlert = styled(Alert)`
   }
 `;
 
-const DismissButton = styled(Button)`
-  pointer-events: all;
-  &:hover {
-    opacity: 0.5;
-  }
-`;
-
 const HoverableIconWarning = styled(IconWarning)`
-  min-width: ${p => p.theme.iconSizes.sm};
+  min-width: ${() => SvgIcon.ICON_SIZES.sm};
   &:hover {
     cursor: pointer;
   }

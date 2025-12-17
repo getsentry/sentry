@@ -5,10 +5,9 @@ import * as qs from 'query-string';
 import {Alert} from '@sentry/scraps/alert';
 
 import {openBulkEditMonitorsModal} from 'sentry/actionCreators/modal';
-import {deleteProjectProcessingErrorByType} from 'sentry/actionCreators/monitors';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -30,26 +29,17 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {
-  CronsLandingPanel,
-  isValidGuide,
-  isValidPlatform,
-} from 'sentry/views/insights/crons/components/cronsLandingPanel';
+import {CronsLandingPanel} from 'sentry/views/insights/crons/components/cronsLandingPanel';
 import {NewMonitorButton} from 'sentry/views/insights/crons/components/newMonitorButton';
 import {OverviewTimeline} from 'sentry/views/insights/crons/components/overviewTimeline';
 import {OwnerFilter} from 'sentry/views/insights/crons/components/ownerFilter';
-import {MonitorProcessingErrors} from 'sentry/views/insights/crons/components/processingErrors/monitorProcessingErrors';
-import {makeMonitorListErrorsQueryKey} from 'sentry/views/insights/crons/components/processingErrors/utils';
+import {GlobalMonitorProcessingErrors} from 'sentry/views/insights/crons/components/processingErrors/globalMonitorProcessingErrors';
+import {useCronsUpsertGuideState} from 'sentry/views/insights/crons/components/useCronsUpsertGuideState';
 import {MODULE_DESCRIPTION, MODULE_DOC_LINK} from 'sentry/views/insights/crons/settings';
-import type {
-  CheckinProcessingError,
-  Monitor,
-  ProcessingErrorType,
-} from 'sentry/views/insights/crons/types';
+import type {Monitor} from 'sentry/views/insights/crons/types';
 import {makeMonitorListQueryKey} from 'sentry/views/insights/crons/utils';
 
 const CronsListPageHeader = HookOrDefault({
@@ -57,12 +47,10 @@ const CronsListPageHeader = HookOrDefault({
 });
 
 function CronsOverview() {
-  const api = useApi();
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
-  const platform = decodeScalar(location.query?.platform) ?? null;
-  const guide = decodeScalar(location.query?.guide);
+  const {guideVisible} = useCronsUpsertGuideState();
   const project = decodeList(location.query?.project);
 
   const queryKey = makeMonitorListQueryKey(organization, location.query);
@@ -73,13 +61,6 @@ function CronsOverview() {
     isPending,
     refetch,
   } = useApiQuery<Monitor[]>(queryKey, {
-    staleTime: 0,
-  });
-
-  const processingErrorQueryKey = makeMonitorListErrorsQueryKey(organization, project);
-  const {data: processingErrors, refetch: refetchErrors} = useApiQuery<
-    CheckinProcessingError[]
-  >(processingErrorQueryKey, {
     staleTime: 0,
   });
 
@@ -96,18 +77,6 @@ function CronsOverview() {
     });
   };
 
-  async function handleDismissError(errorType: ProcessingErrorType, projectId: string) {
-    await deleteProjectProcessingErrorByType(
-      api,
-      organization.slug,
-      projectId,
-      errorType
-    );
-    await refetchErrors();
-  }
-
-  const showAddMonitor = !isValidPlatform(platform) || !isValidGuide(guide);
-
   const page = (
     <Fragment>
       <CronsListPageHeader organization={organization} />
@@ -123,7 +92,7 @@ function CronsOverview() {
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar>
-            <FeedbackWidgetButton />
+            <FeedbackButton />
             <Button
               icon={<IconList />}
               size="sm"
@@ -137,8 +106,8 @@ function CronsOverview() {
             >
               {t('Manage Monitors')}
             </Button>
-            {showAddMonitor && (
-              <NewMonitorButton size="sm" icon={<IconAdd isCircled />}>
+            {!guideVisible && (
+              <NewMonitorButton size="sm" icon={<IconAdd />}>
                 {t('Add Cron Monitor')}
               </NewMonitorButton>
             )}
@@ -171,18 +140,9 @@ function CronsOverview() {
               onSearch={handleSearch}
             />
           </Filters>
-          {!!processingErrors?.length && (
-            <Alert.Container>
-              <MonitorProcessingErrors
-                checkinErrors={processingErrors}
-                onDismiss={handleDismissError}
-              >
-                {t(
-                  'Errors were encountered while ingesting check-ins for the selected projects'
-                )}
-              </MonitorProcessingErrors>
-            </Alert.Container>
-          )}
+          <Alert.Container>
+            <GlobalMonitorProcessingErrors project={project} />
+          </Alert.Container>
           {isPending ? (
             <LoadingIndicator />
           ) : monitorList?.length ? (

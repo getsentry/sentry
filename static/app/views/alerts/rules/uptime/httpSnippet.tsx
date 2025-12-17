@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {generateSentryTraceHeader} from '@sentry/core';
 
@@ -15,6 +15,8 @@ interface Props {
 }
 
 export function HTTPSnippet({body, headers, method, url, traceSampling}: Props) {
+  const [selectedTab, setSelectedTab] = useState('http');
+
   const exampleTrace = useMemo(
     () =>
       generateSentryTraceHeader(undefined, undefined, traceSampling ? undefined : false),
@@ -32,27 +34,45 @@ export function HTTPSnippet({body, headers, method, url, traceSampling}: Props) 
     : urlObject.pathname;
 
   const appendedBody = body ? `\r\n${body}` : '';
-  const additionaLheaders = [
+  const additionaLheaders: Array<[string, string]> = [
     ...headers,
     [
       'User-Agent',
       'SentryUptimeBot/1.0 (+http://docs.sentry.io/product/alerts/uptime-monitoring/)',
     ],
-    ['Sentry-Trace', exampleTrace],
   ];
 
-  if (appendedBody !== '') {
+  if (exampleTrace) {
+    additionaLheaders.push(['Sentry-Trace', exampleTrace]);
+  }
+
+  if (appendedBody) {
     additionaLheaders.push(['Content-Size', new Blob([appendedBody]).size.toString()]);
   }
 
   const joinedHeaders =
     additionaLheaders.map(([key, value]) => `${key}: ${value}`).join('\r\n') + '\r\n';
 
-  const request = `${method} ${pathname} HTTP/1.1\r\nHost: ${urlObject.host}\r\n${joinedHeaders}${appendedBody}`;
+  const httpRequest = `${method} ${pathname} HTTP/1.1\r\nHost: ${urlObject.host}\r\n${joinedHeaders}${appendedBody}`;
+
+  const headerArgs = additionaLheaders
+    .map(([key, value]) => `-H "${key}: ${value.replace(/"/g, '\\"')}"`)
+    .join(' \\\n  ');
+
+  const bodyArg = body ? ` \\\n  -d '${body.replace(/'/g, "'\\''")}'` : '';
+  const curlCommand = `curl -X ${method} \\\n  ${headerArgs}${bodyArg} \\\n  "${url}"`;
 
   return (
-    <MaxSizedSnippet filename={t('Expected Check Request')} language="http">
-      {request}
+    <MaxSizedSnippet
+      language={selectedTab === 'http' ? 'http' : 'bash'}
+      tabs={[
+        {label: t('HTTP Request'), value: 'http'},
+        {label: t('cURL Example'), value: 'curl'},
+      ]}
+      selectedTab={selectedTab}
+      onTabClick={setSelectedTab}
+    >
+      {selectedTab === 'http' ? httpRequest : curlCommand}
     </MaxSizedSnippet>
   );
 }

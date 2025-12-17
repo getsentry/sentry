@@ -107,13 +107,21 @@ function SudoModal({
   // authenticator will always produce a new challenge. We don't want to render
   // the WebAuthnAssert and then re-render with a different challenge, causing
   // the prompt to trigger twice.
-  const {data: authenticators = [], isFetchedAfterMount: authenticatorsLoaded} =
-    useApiQuery<Authenticator[]>(['/authenticators/'], {
-      // Fetch authenticators after preload requests to avoid overwriting session cookie
-      enabled: !bootstrapIsPending,
-      staleTime: 0,
-      retry: false,
-    });
+  const {
+    data: authenticators = [],
+    isFetching: authenticatorsFetching,
+    isFetchedAfterMount: authenticatorsLoaded,
+  } = useApiQuery<Authenticator[]>(['/authenticators/'], {
+    // Fetch authenticators after preload requests to avoid overwriting session cookie
+    enabled: !bootstrapIsPending,
+    staleTime: 0,
+    retry: false,
+    // Immeditealy refetch authenticators on window / tab focus. If a user had
+    // multiple tabs open and required authentication in any other tabs we may
+    // have stomped the session state the request sets, and will need to reload
+    // session state immediately.
+    refetchOnWindowFocus: true,
+  });
 
   const handleSubmitCOPS = () => {
     setState(prevState => ({
@@ -257,7 +265,7 @@ function SudoModal({
       return null;
     }
 
-    if (!authenticatorsLoaded || bootstrapIsPending) {
+    if (authenticatorsFetching || !authenticatorsLoaded || bootstrapIsPending) {
       return <LoadingIndicator />;
     }
 

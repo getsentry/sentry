@@ -200,7 +200,7 @@ class UptimeSummarySerializerResponse(TypedDict):
     failedChecks: int
     downtimeChecks: int
     missedWindowChecks: int
-    avgDurationUs: float | None
+    avgDurationUs: float
 
 
 @register(UptimeSummary)

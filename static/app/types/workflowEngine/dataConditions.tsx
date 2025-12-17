@@ -1,4 +1,8 @@
 import {PriorityLevel} from 'sentry/types/group';
+import type {
+  Attribute,
+  MatchType,
+} from 'sentry/views/automations/components/actionFilters/constants';
 
 import type {Action} from './actions';
 
@@ -46,6 +50,7 @@ export enum DataConditionType {
   EVENT_FREQUENCY = 'event_frequency',
   EVENT_UNIQUE_USER_FREQUENCY = 'event_unique_user_frequency',
   PERCENT_SESSIONS = 'percent_sessions',
+  ANOMALY_DETECTION = 'anomaly_detection',
 }
 
 export enum DataConditionGroupLogicType {
@@ -106,3 +111,21 @@ export interface DataConditionHandler {
   type: DataConditionType;
   handlerSubgroup?: DataConditionHandlerSubgroupType;
 }
+
+interface BaseSubfilter {
+  id: string;
+  match: MatchType;
+  value: string;
+}
+
+export interface AttributeSubfilter extends BaseSubfilter {
+  attribute: Attribute;
+  key: never;
+}
+
+export interface TagSubfilter extends BaseSubfilter {
+  attribute: never;
+  key: string;
+}
+
+export type Subfilter = AttributeSubfilter | TagSubfilter | BaseSubfilter;

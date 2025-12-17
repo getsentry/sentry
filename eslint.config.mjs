@@ -1,4 +1,3 @@
-// @ts-check
 /**
  * To get started with this ESLint Configuration list be sure to read at least
  * these sections of the docs:
@@ -34,6 +33,8 @@ import globals from 'globals';
 import invariant from 'invariant';
 import typescript from 'typescript-eslint';
 
+import * as sentryScrapsPlugin from './static/eslint/eslintPluginScraps/index.mjs';
+
 invariant(react.configs.flat, 'For typescript');
 invariant(react.configs.flat.recommended, 'For typescript');
 invariant(react.configs.flat['jsx-runtime'], 'For typescript');
@@ -43,6 +44,10 @@ invariant(react.configs.flat['jsx-runtime'], 'For typescript');
 // and slowest settings, and for pre-commit, where we want to run the linter
 // faster.
 // Some output is provided to help people toggle these settings locally.
+const IS_PRECOMMIT =
+  process.env.SENTRY_PRECOMMIT !== undefined &&
+  Boolean(JSON.parse(process.env.SENTRY_PRECOMMIT));
+const IS_CI = process.env.CI !== undefined && Boolean(JSON.parse(process.env.CI));
 const enableTypeAwareLinting = (function () {
   // If we ask for something specific, use that.
   if (process.env.SENTRY_ESLINT_TYPEAWARE !== undefined) {
@@ -50,11 +55,8 @@ const enableTypeAwareLinting = (function () {
   }
 
   // If we're inside a pre-commit hook, defer to whether we're in CI.
-  if (
-    process.env.SENTRY_PRECOMMIT !== undefined &&
-    Boolean(JSON.parse(process.env.SENTRY_PRECOMMIT))
-  ) {
-    return process.env.CI !== undefined && Boolean(JSON.parse(process.env.CI));
+  if (IS_PRECOMMIT) {
+    return IS_CI;
   }
 
   // By default, enable type-aware linting.
@@ -127,17 +129,17 @@ const restrictedImportPaths = [
   {
     name: 'sentry/views/insights/common/components/insightsTimeSeriesWidget',
     message:
-      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/?name=app%2Fviews%2Fdashboards%2Fwidgets%2FtimeSeriesWidget%2FtimeSeriesWidgetVisualization.stories.tsx&query=timeseries#deeplinking for more information',
+      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information',
   },
   {
     name: 'sentry/views/insights/common/components/insightsLineChartWidget',
     message:
-      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/?name=app%2Fviews%2Fdashboards%2Fwidgets%2FtimeSeriesWidget%2FtimeSeriesWidgetVisualization.stories.tsx&query=timeseries#deeplinking for more information',
+      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information',
   },
   {
     name: 'sentry/views/insights/common/components/insightsAreaChartWidget',
     message:
-      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/?name=app%2Fviews%2Fdashboards%2Fwidgets%2FtimeSeriesWidget%2FtimeSeriesWidgetVisualization.stories.tsx&query=timeseries#deeplinking for more information',
+      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information',
   },
 ];
 
@@ -418,6 +420,13 @@ export default typescript.config([
     },
   },
   {
+    name: 'plugin/@sentry/scraps',
+    plugins: {'@sentry/scraps': sentryScrapsPlugin},
+    rules: {
+      '@sentry/scraps/no-token-import': 'error',
+    },
+  },
+  {
     name: 'plugin/no-relative-import-paths',
     // https://github.com/MelvinVermeer/eslint-plugin-no-relative-import-paths?tab=readme-ov-file#rule-options
     plugins: {'no-relative-import-paths': noRelativeImportPaths},
@@ -584,7 +593,27 @@ export default typescript.config([
       '@typescript-eslint/no-empty-function': 'off', // TODO(ryan953): Fix violations and delete this line
 
       // Customization
-      '@typescript-eslint/no-unused-vars': 'off', // disabled in favor of "noUnusedLocals": true in tsconfig
+      '@typescript-eslint/no-unused-vars':
+        // Favor "noUnusedLocals": true in CI, but enable in pre-commit to catch unused imports without running tsc
+        IS_PRECOMMIT && !IS_CI
+          ? [
+              'error',
+              {
+                vars: 'all',
+                args: 'all',
+                caughtErrors: 'none',
+
+                // Ignore vars that start with an underscore
+                // e.g. if you want to omit a property using object spread:
+                //
+                //   const {name: _name, ...props} = this.props;
+                //
+                varsIgnorePattern: '^_',
+                argsIgnorePattern: '^_',
+                destructuredArrayIgnorePattern: '^_',
+              },
+            ]
+          : 'off',
     },
   },
   {
@@ -744,6 +773,20 @@ export default typescript.config([
     },
 
     rules: {
+      'import/no-nodejs-modules': 'off',
+    },
+  },
+  {
+    name: 'eslint',
+    files: ['static/eslint/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+
+    rules: {
+      'no-console': 'off',
       'import/no-nodejs-modules': 'off',
     },
   },
@@ -1044,6 +1087,11 @@ export default typescript.config([
         {
           type: 'scripts',
           pattern: 'scripts',
+        },
+        // --- eslint ---
+        {
+          type: 'eslint',
+          pattern: 'static/eslint',
         },
       ],
     },

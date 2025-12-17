@@ -212,3 +212,94 @@ class OrganizationUptimeStatsEndpointWithEAPTests(
                 "success": 1,
                 "missed_window": 0,
             }
+
+    def test_missing_ok_checks_around_downtime(self) -> None:
+        """
+        Test that OK checks before and after downtime are included in the timeline.
+
+        Reproduces the bug where OK checks with NO_INCIDENT status were being overwritten
+        by checks with IN_INCIDENT status in the same time buckets.
+
+        Timeline:
+        - 2 OK checks before incident (NO_INCIDENT)
+        - 1 failure (NO_INCIDENT, failure threshold not met)
+        - 1 failure (IN_INCIDENT, failure threshold met, downtime starts)
+        - 2 OK checks during recovery (IN_INCIDENT, recovery threshold not met)
+        - 2 OK checks after recovery (NO_INCIDENT, recovery threshold met)
+        """
+        detector_subscription_id = uuid.uuid4().hex
+        uptime_subscription = self.create_uptime_subscription(
+            url="https://test-downtime.com", subscription_id=detector_subscription_id
+        )
+        detector = self.create_uptime_detector(
+            uptime_subscription=uptime_subscription,
+            downtime_threshold=2,
+            recovery_threshold=2,
+        )
+
+        base_time = datetime(2025, 10, 29, 13, 30, 0, tzinfo=timezone.utc)
+
+        test_scenarios = [
+            # 2 OK checks before incident
+            (base_time, "success", IncidentStatus.NO_INCIDENT),
+            (base_time + timedelta(minutes=1), "success", IncidentStatus.NO_INCIDENT),
+            # First failure (failure threshold = 2, not yet downtime)
+            (base_time + timedelta(minutes=2), "failure", IncidentStatus.NO_INCIDENT),
+            # Second failure (failure threshold met, downtime starts)
+            (base_time + timedelta(minutes=3), "failure", IncidentStatus.IN_INCIDENT),
+            # 2 OK checks during recovery (still IN_INCIDENT)
+            (base_time + timedelta(minutes=4), "success", IncidentStatus.IN_INCIDENT),
+            (base_time + timedelta(minutes=5), "success", IncidentStatus.IN_INCIDENT),
+            # 2 OK checks after recovery
+            (base_time + timedelta(minutes=6), "success", IncidentStatus.NO_INCIDENT),
+            (base_time + timedelta(minutes=7), "success", IncidentStatus.NO_INCIDENT),
+        ]
+
+        uptime_results = [
+            self.create_eap_uptime_result(
+                subscription_id=uuid.UUID(detector_subscription_id).hex,
+                guid=uuid.UUID(detector_subscription_id).hex,
+                request_url="https://test-downtime.com",
+                scheduled_check_time=scheduled_time,
+                check_status=check_status,
+                incident_status=incident_status,
+            )
+            for scheduled_time, check_status, incident_status in test_scenarios
+        ]
+        self.store_uptime_results(uptime_results)
+
+        start_time = base_time
+        end_time = base_time + timedelta(minutes=8)
+
+        with self.feature(self.features):
+            response = self.get_success_response(
+                self.organization.slug,
+                project=[self.project.id],
+                uptimeDetectorId=[str(detector.id)],
+                since=start_time.timestamp(),
+                until=end_time.timestamp(),
+                resolution="1m",
+            )
+        data = json.loads(json.dumps(response.data))
+        timeline = data[str(detector.id)]
+
+        assert len(timeline) == 8, f"Expected 8 buckets, got {len(timeline)}"
+
+        # Buckets 0-1: OK checks before incident
+        assert timeline[0][1]["success"] == 1, "First check should be success"
+        assert timeline[1][1]["success"] == 1, "Second check should be success"
+
+        # Bucket 2: First failure (threshold not met)
+        assert timeline[2][1]["failure"] == 1, "Third check should be failure"
+        assert timeline[2][1]["failure_incident"] == 0
+
+        # Bucket 3: Second failure (threshold met, downtime starts)
+        assert timeline[3][1]["failure_incident"] == 1, "Fourth check should be failure_incident"
+
+        # Buckets 4-5: OK checks during recovery (still IN_INCIDENT)
+        assert timeline[4][1]["success"] == 1, "Fifth check should be success"
+        assert timeline[5][1]["success"] == 1, "Sixth check should be success"
+
+        # Buckets 6-7: OK checks after recovery
+        assert timeline[6][1]["success"] == 1, "Seventh check should be success"
+        assert timeline[7][1]["success"] == 1, "Eighth check should be success"

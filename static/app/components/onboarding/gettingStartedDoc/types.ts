@@ -87,6 +87,7 @@ export enum ProductSolution {
   SESSION_REPLAY = 'session-replay',
   PROFILING = 'profiling',
   LOGS = 'logs',
+  METRICS = 'metrics',
 }
 
 export interface DocsParams<
@@ -96,6 +97,7 @@ export interface DocsParams<
   dsn: ProjectKey['dsn'];
   isFeedbackSelected: boolean;
   isLogsSelected: boolean;
+  isMetricsSelected: boolean;
   isPerformanceSelected: boolean;
   isProfilingSelected: boolean;
   isReplaySelected: boolean;
@@ -167,6 +169,7 @@ export interface Docs<PlatformOptions extends BasePlatformOptions = BasePlatform
   feedbackOnboardingNpm?: OnboardingConfig<PlatformOptions>;
   logsOnboarding?: OnboardingConfig<PlatformOptions>;
   mcpOnboarding?: OnboardingConfig<PlatformOptions>;
+  metricsOnboarding?: OnboardingConfig<PlatformOptions>;
   performanceOnboarding?: OnboardingConfig<PlatformOptions>;
   platformOptions?: PlatformOptions;
   profilingOnboarding?: OnboardingConfig<PlatformOptions>;

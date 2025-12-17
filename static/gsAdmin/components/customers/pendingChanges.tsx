@@ -10,7 +10,7 @@ import {DataCategory} from 'sentry/types/core';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import {usePlanMigrations} from 'getsentry/hooks/usePlanMigrations';
 import type {Plan, PlanMigration, Subscription} from 'getsentry/types';
-import {formatReservedWithUnits} from 'getsentry/utils/billing';
+import {displayBudgetName, formatReservedWithUnits} from 'getsentry/utils/billing';
 import {
   getPlanCategoryName,
   getReservedBudgetDisplayName,
@@ -307,7 +307,8 @@ function getOnDemandChanges(subscription: Subscription) {
       );
       changes.push(
         <span>
-          On-demand budget — {current} → {change}
+          {displayBudgetName(pendingChanges.planDetails, {title: true, withBudget: true})}{' '}
+          — {current} → {change}
         </span>
       );
     }
@@ -316,7 +317,8 @@ function getOnDemandChanges(subscription: Subscription) {
     const change = getStringForPrice(pendingChanges.onDemandMaxSpend);
     changes.push(
       <span>
-        On-demand maximum — {old} → {change}
+        {displayBudgetName(pendingChanges.planDetails, {title: true})} maximum — {old} →{' '}
+        {change}
       </span>
     );
   }

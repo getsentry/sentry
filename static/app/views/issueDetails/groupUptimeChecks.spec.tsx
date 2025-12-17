@@ -3,10 +3,9 @@ import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {UptimeCheckFixture} from 'sentry-fixture/uptimeCheck';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, type RouterConfig} from 'sentry-test/reactTestingLibrary';
 
 import GroupStore from 'sentry/stores/groupStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
@@ -29,9 +28,12 @@ describe('GroupUptimeChecks', () => {
   });
   const organization = OrganizationFixture();
   const project = ProjectFixture();
-  const router = RouterFixture({
-    params: {groupId: group.id},
-  });
+  const initialRouterConfig: RouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/issues/${group.id}/uptime-checks/`,
+    },
+    route: `/organizations/:orgId/issues/:groupId/uptime-checks/`,
+  };
 
   beforeEach(() => {
     GroupStore.init();
@@ -66,8 +68,7 @@ describe('GroupUptimeChecks', () => {
 
     render(<GroupUptimeChecks />, {
       organization,
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig,
     });
     expect(await screen.findByText('All Uptime Checks')).toBeInTheDocument();
     for (const column of ['Timestamp', 'Status', 'Duration', 'Trace', 'Region']) {
@@ -93,8 +94,7 @@ describe('GroupUptimeChecks', () => {
 
     render(<GroupUptimeChecks />, {
       organization,
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig,
     });
     expect(await screen.findByText('All Uptime Checks')).toBeInTheDocument();
     expect(screen.queryByText('No matching uptime checks found')).not.toBeInTheDocument();
@@ -129,8 +129,7 @@ describe('GroupUptimeChecks', () => {
 
     render(<GroupUptimeChecks />, {
       organization,
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig,
     });
     expect(await screen.findByText('All Uptime Checks')).toBeInTheDocument();
 

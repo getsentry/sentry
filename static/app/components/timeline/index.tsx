@@ -2,12 +2,12 @@ import type {CSSProperties} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {space} from 'sentry/styles/space';
 import type {Color} from 'sentry/utils/theme';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 export interface TimelineItemProps {
-  icon: React.ReactNode;
   title: React.ReactNode;
   children?: React.ReactNode;
   className?: string;
@@ -16,6 +16,7 @@ export interface TimelineItemProps {
     iconBorder: string | Color;
     title: string | Color;
   };
+  icon?: React.ReactNode;
   isActive?: boolean;
   onClick?: React.MouseEventHandler<HTMLDivElement>;
   onMouseEnter?: React.MouseEventHandler<HTMLDivElement>;
@@ -24,6 +25,7 @@ export interface TimelineItemProps {
   showLastLine?: boolean;
   style?: CSSProperties;
   timestamp?: React.ReactNode;
+  titleTrailingItems?: React.ReactNode;
 }
 
 function Item({
@@ -33,6 +35,7 @@ function Item({
   colorConfig,
   timestamp,
   isActive = false,
+  titleTrailingItems,
   ref,
   ...props
 }: TimelineItemProps) {
@@ -45,16 +48,23 @@ function Item({
 
   return (
     <Row ref={ref} {...props}>
-      <IconWrapper
-        style={{
-          borderColor: isActive ? iconBorder : 'transparent',
-          color: iconColor,
-        }}
-        className="timeline-icon-wrapper"
-      >
-        {icon}
-      </IconWrapper>
-      <Title style={{color: titleColor}}>{title}</Title>
+      {icon ? (
+        <IconWrapper
+          style={{
+            borderColor: isActive ? iconBorder : 'transparent',
+            color: iconColor,
+          }}
+          className="timeline-icon-wrapper"
+        >
+          {icon}
+        </IconWrapper>
+      ) : (
+        <IconWrapper className="timeline-icon-wrapper" />
+      )}
+      <Flex align="center" gap="xs" wrap="wrap">
+        <Title style={{color: titleColor}}>{title}</Title>
+        {titleTrailingItems}
+      </Flex>
       {timestamp ?? <div />}
       <Spacer />
       <Content>{children}</Content>
@@ -63,14 +73,11 @@ function Item({
 }
 
 function makeDefaultColorConfig(theme: Theme) {
-  if (isChonkTheme(theme)) {
-    return {
-      title: theme.colors.content.primary,
-      icon: theme.colors.content.muted,
-      iconBorder: theme.colors.content.muted,
-    };
-  }
-  return {title: theme.gray400, icon: theme.gray300, iconBorder: theme.gray200};
+  return {
+    title: theme.tokens.content.primary,
+    icon: theme.tokens.content.muted,
+    iconBorder: theme.tokens.content.muted,
+  };
 }
 
 const Row = styled('div')<{showLastLine?: boolean}>`
@@ -87,7 +94,8 @@ const Row = styled('div')<{showLastLine?: boolean}>`
   &:last-child {
     margin-bottom: 0;
     /* Show/hide connecting line from the last element of the timeline */
-    background: ${p => (p.showLastLine ? 'transparent' : p.theme.background)};
+    background: ${p =>
+      p.showLastLine ? 'transparent' : p.theme.tokens.background.primary};
   }
 `;
 
@@ -95,7 +103,7 @@ const IconWrapper = styled('div')`
   grid-column: span 1;
   border-radius: 100%;
   border: 1px solid;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   z-index: 10;
   svg {
     display: block;

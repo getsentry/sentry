@@ -48,7 +48,7 @@ import {
   TraceDrawerActionKind,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/utils';
@@ -67,7 +67,7 @@ export function SpanDescription({
   attributes: TraceItemResponseAttribute[];
   avgSpanDuration: number | undefined;
   location: Location;
-  node: TraceTreeNode<TraceTree.EAPSpan>;
+  node: EapSpanNode;
   organization: Organization;
   project: Project | undefined;
   hideNodeActions?: boolean;
@@ -144,7 +144,7 @@ export function SpanDescription({
           to={getSearchInExploreTarget(
             organization,
             location,
-            project?.id,
+            node.projectId?.toString(),
             exploreAttributeName,
             exploreAttributeValue,
             TraceDrawerActionKind.INCLUDE
@@ -188,7 +188,7 @@ export function SpanDescription({
         </StyledCodeSnippet>
         {codeFilepath ? (
           <StackTraceMiniFrame
-            projectId={project?.id}
+            projectId={node.projectId?.toString()}
             event={event}
             frame={{
               filename: codeFilepath,
@@ -213,6 +213,7 @@ export function SpanDescription({
           <CopyToClipboardButton
             borderless
             size="zero"
+            aria-label={t('Copy span URL to clipboard')}
             text={spanURL}
             tooltipProps={{disabled: true}}
           />
@@ -245,6 +246,7 @@ export function SpanDescription({
           borderless
           size="zero"
           text={span.name}
+          aria-label={t('Copy span name to clipboard')}
           tooltipProps={{disabled: true}}
         />
       </DescriptionWrapper>
@@ -260,6 +262,7 @@ export function SpanDescription({
               borderless
               size="zero"
               text={formattedDescription}
+              aria-label={t('Copy formatted description to clipboard')}
               tooltipProps={{disabled: true}}
             />
           </Fragment>
@@ -272,12 +275,13 @@ export function SpanDescription({
   return (
     <TraceDrawerComponents.Highlights
       node={node}
-      transaction={undefined}
       project={project}
       avgDuration={avgSpanDuration ? avgSpanDuration / 1000 : undefined}
       headerContent={value}
       bodyContent={actions}
       hideNodeActions={hideNodeActions}
+      footerContent={<TraceDrawerComponents.HighLightEAPOpsBreakdown node={node} />}
+      comparisonDescription={t('Average duration for this span over the last 24 hours')}
       highlightedAttributes={getHighlightedSpanAttributes({
         attributes,
         spanId: span.event_id,
@@ -310,7 +314,7 @@ function ResourceImageDescription({
 }: {
   attributes: TraceItemResponseAttribute[];
   formattedDescription: string;
-  node: TraceTreeNode<TraceTree.EAPSpan>;
+  node: EapSpanNode;
 }) {
   const span = node.value;
 
@@ -336,7 +340,7 @@ function ResourceImageDescription({
       ) : (
         <DisabledImages
           onClickShowLinks={() => setShowLinks(true)}
-          projectSlug={span.project_slug}
+          projectSlug={span.project_slug ?? node.projectSlug}
         />
       )}
     </StyledDescriptionWrapper>
@@ -363,6 +367,7 @@ function ResourceImage(props: {
           borderless
           size="zero"
           text={fileName}
+          aria-label={t('Copy file name to clipboard')}
           title={t('Copy file name')}
         />
       </FilenameContainer>

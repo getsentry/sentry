@@ -5,8 +5,9 @@ from datetime import timedelta
 from typing import Any
 
 import orjson
+from django.conf import settings
 from django.urls import reverse
-from rb.clients import LocalClient
+from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry import options
 from sentry.models.authprovider import AuthProvider
@@ -17,7 +18,6 @@ from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 from sentry.utils.security import get_secure_token
 
-_REDIS_KEY = "verificationKeyStorage"
 _TTL = timedelta(minutes=10)
 SSO_VERIFICATION_KEY = "confirm_account_verification_key"
 
@@ -48,8 +48,8 @@ def send_one_time_account_confirm_link(
     return link
 
 
-def get_redis_cluster() -> LocalClient:
-    return redis.clusters.get("default").get_local_client_for_key(_REDIS_KEY)
+def _get_redis_client() -> RedisCluster[str] | StrictRedis[str]:
+    return redis.redis_clusters.get(settings.SENTRY_AUTH_IDPMIGRATION_REDIS_CLUSTER)
 
 
 # Helper function for serializing named tuples with orjson.
@@ -96,7 +96,7 @@ class AccountConfirmLink:
         metrics.incr("idpmigration.confirm_link_sent", sample_rate=1.0)
 
     def store_in_redis(self) -> None:
-        cluster = get_redis_cluster()
+        client = _get_redis_client()
 
         member = organization_service.check_membership_by_id(
             organization_id=self.organization.id, user_id=self.user.id
@@ -110,7 +110,7 @@ class AccountConfirmLink:
             "identity_id": self.identity_id,
             "provider": self.provider.provider,
         }
-        cluster.setex(
+        client.setex(
             self.verification_key,
             int(_TTL.total_seconds()),
             orjson.dumps(verification_value, default=_serialize_named_tuple).decode(),
@@ -118,9 +118,9 @@ class AccountConfirmLink:
 
 
 def get_verification_value_from_key(key: str) -> dict[str, Any] | None:
-    cluster = get_redis_cluster()
+    client = _get_redis_client()
     verification_key = f"auth:one-time-key:{key}"
-    verification_str = cluster.get(verification_key)
+    verification_str = client.get(verification_key)
     if verification_str is None:
         metrics.incr("idpmigration.confirmation_failure", sample_rate=1.0)
         return None

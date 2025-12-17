@@ -9,7 +9,7 @@ from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.handlers.workflow import workflow_status_update_handler
@@ -67,32 +67,6 @@ class WorkflowStatusUpdateHandlerTests(TestCase):
             workflow_status_update_handler(group, message, activity)
             mock_incr.assert_called_with("workflow_engine.tasks.error.no_detector_id")
 
-    def test__feature_flag(self) -> None:
-        detector = self.create_detector(project=self.project)
-        group = self.create_group(project=self.project)
-        activity = Activity(
-            project=self.project,
-            group=group,
-            type=ActivityType.SET_RESOLVED.value,
-            data={"fingerprint": ["test_fingerprint"]},
-        )
-        message = StatusChangeMessageData(
-            id="test_message_id",
-            project_id=self.project.id,
-            new_status=GroupStatus.RESOLVED,
-            new_substatus=None,
-            fingerprint=["test_fingerprint"],
-            detector_id=detector.id,
-            activity_data={"test": "test"},
-        )
-
-        with mock.patch(
-            "sentry.workflow_engine.tasks.workflows.process_workflow_activity.delay"
-        ) as mock_delay:
-            workflow_status_update_handler(group, message, activity)
-            mock_delay.assert_not_called()
-
-    @with_feature("organizations:workflow-engine-single-process-metric-issues")
     def test_single_processing(self) -> None:
         detector = self.create_detector(project=self.project)
         group = self.create_group(project=self.project, type=MetricIssue.type_id)
@@ -122,7 +96,6 @@ class WorkflowStatusUpdateHandlerTests(TestCase):
                 detector_id=detector.id,
             )
 
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
     def test_dual_processing(self) -> None:
         detector = self.create_detector(project=self.project)
         group = self.create_group(project=self.project, type=MetricIssue.type_id)
@@ -165,7 +138,9 @@ class TestProcessWorkflowActivity(TestCase):
         self.activity.save()
         self.detector = self.create_detector(type=MetricIssue.slug)
 
-    def test_process_workflow_activity__no_workflows(self) -> None:
+    @override_options({"workflow_engine.evaluation_log_sample_rate": 1.0})
+    @mock.patch("sentry.workflow_engine.tasks.workflows.logger")
+    def test_process_workflow_activity__no_workflows(self, mock_logger) -> None:
         with mock.patch(
             "sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers",
             return_value=set(),
@@ -178,6 +153,22 @@ class TestProcessWorkflowActivity(TestCase):
             # Short-circuit evaluation, no workflows associated
             assert mock_evaluate.call_count == 0
 
+            mock_logger.info.assert_called_once_with(
+                "workflow_engine.process_workflows.evaluation.workflows.not_triggered",
+                extra={
+                    "workflow_ids": None,
+                    "detection_type": self.detector.type,
+                    "event_id": None,
+                    "group_id": self.activity.group.id,
+                    "action_filter_group_ids": [],
+                    "triggered_action_ids": [],
+                    "triggered_workflow_ids": [],
+                    "delayed_conditions": None,
+                    "debug_msg": "No workflows are associated with the detector in the event",
+                },
+            )
+
+    @override_options({"workflow_engine.evaluation_log_sample_rate": 1.0})
     @mock.patch(
         "sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers",
         return_value=(set(), {}),
@@ -186,8 +177,9 @@ class TestProcessWorkflowActivity(TestCase):
         "sentry.workflow_engine.processors.workflow.evaluate_workflows_action_filters",
         return_value=set(),
     )
+    @mock.patch("sentry.workflow_engine.tasks.workflows.logger")
     def test_process_workflow_activity__workflows__no_actions(
-        self, mock_eval_actions, mock_evaluate
+        self, mock_logger, mock_eval_actions, mock_evaluate
     ):
         self.workflow = self.create_workflow(organization=self.organization)
         self.create_detector_workflow(
@@ -209,8 +201,26 @@ class TestProcessWorkflowActivity(TestCase):
         mock_evaluate.assert_called_once_with({self.workflow}, event_data, mock.ANY)
         assert mock_eval_actions.call_count == 0
 
+        mock_logger.info.assert_called_once_with(
+            "workflow_engine.process_workflows.evaluation.workflows.triggered",
+            extra={
+                "workflow_ids": [self.workflow.id],
+                "detection_type": self.detector.type,
+                "group_id": self.activity.group.id,
+                "event_id": None,
+                "action_filter_group_ids": [],
+                "triggered_action_ids": [],
+                "triggered_workflow_ids": [],
+                "delayed_conditions": None,
+                "debug_msg": "No items were triggered or queued for slow evaluation",
+            },
+        )
+
     @mock.patch("sentry.workflow_engine.processors.action.filter_recently_fired_workflow_actions")
-    def test_process_workflow_activity(self, mock_filter_actions: mock.MagicMock) -> None:
+    @mock.patch("sentry.workflow_engine.tasks.workflows.logger")
+    def test_process_workflow_activity(
+        self, mock_logger, mock_filter_actions: mock.MagicMock
+    ) -> None:
         self.workflow = self.create_workflow(organization=self.organization)
 
         self.action_group = self.create_data_condition_group(logic_type="any-short")
@@ -239,7 +249,54 @@ class TestProcessWorkflowActivity(TestCase):
 
         mock_filter_actions.assert_called_once_with({self.action_group}, expected_event_data)
 
-    @with_feature("organizations:workflow-engine-single-process-metric-issues")
+    @override_options({"workflow_engine.evaluation_log_sample_rate": 1.0})
+    @mock.patch("sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers")
+    @mock.patch("sentry.workflow_engine.tasks.workflows.logger")
+    def test_process_workflow_activity__success_logs(
+        self, mock_logger, mock_evaluate_workflow_triggers
+    ) -> None:
+        self.workflow = self.create_workflow(organization=self.organization)
+
+        # Add additional data to ensure logs work as expected
+        self.workflow.when_condition_group = self.create_data_condition_group()
+        self.create_data_condition(condition_group=self.workflow.when_condition_group)
+        self.workflow.save()
+
+        self.action_group = self.create_data_condition_group(logic_type="any-short")
+        self.action = self.create_action()
+        self.create_data_condition_group_action(
+            condition_group=self.action_group,
+            action=self.action,
+        )
+        self.create_workflow_data_condition_group(self.workflow, self.action_group)
+
+        self.create_detector_workflow(
+            detector=self.detector,
+            workflow=self.workflow,
+        )
+
+        mock_evaluate_workflow_triggers.return_value = ({self.workflow}, {})
+        process_workflow_activity(
+            activity_id=self.activity.id,
+            group_id=self.group.id,
+            detector_id=self.detector.id,
+        )
+
+        mock_logger.info.assert_called_once_with(
+            "workflow_engine.process_workflows.evaluation.actions.triggered",
+            extra={
+                "workflow_ids": [self.workflow.id],
+                "detection_type": self.detector.type,
+                "group_id": self.activity.group.id,
+                "event_id": None,
+                "action_filter_group_ids": [self.action_group.id],
+                "triggered_action_ids": [self.action.id],
+                "triggered_workflow_ids": [self.workflow.id],
+                "delayed_conditions": None,
+                "debug_msg": None,
+            },
+        )
+
     @mock.patch(
         "sentry.workflow_engine.models.incident_groupopenperiod.update_incident_based_on_open_period_status_change"
     )  # rollout code that is independently tested
@@ -284,8 +341,6 @@ class TestProcessWorkflowActivity(TestCase):
                 sample_rate=1.0,
             )
 
-    @with_feature("organizations:workflow-engine-single-process-metric-issues")
-    @with_feature("organizations:workflow-engine-process-metric-issue-workflows")
     @mock.patch("sentry.issues.status_change_consumer.get_group_from_fingerprint")
     @mock.patch(
         "sentry.workflow_engine.models.incident_groupopenperiod.update_incident_based_on_open_period_status_change"

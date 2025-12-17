@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
-import {t, tct, tn} from 'sentry/locale';
+import {tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -12,8 +12,13 @@ import {
 } from 'getsentry/components/crons/cronsBannerUpgradeCTA';
 import withSubscription from 'getsentry/components/withSubscription';
 import {useBillingConfig} from 'getsentry/hooks/useBillingConfig';
-import type {BillingConfig, MonitorCountResponse, Subscription} from 'getsentry/types';
-import {getTrialDaysLeft} from 'getsentry/utils/billing';
+import type {
+  BillingConfig,
+  MonitorCountResponse,
+  Plan,
+  Subscription,
+} from 'getsentry/types';
+import {displayBudgetName, getTrialDaysLeft} from 'getsentry/utils/billing';
 
 interface Props {
   organization: Organization;
@@ -53,7 +58,7 @@ export function CronsBillingBanner({organization, subscription}: Props) {
     return null;
   }
 
-  // Show alert for when we have disabled all monitors due to insufficient on-demand
+  // Show alert for when we have disabled all monitors due to insufficient PAYG
   if (
     data.enabledMonitorCount === 0 &&
     data.overQuotaMonitorCount > 0 &&
@@ -84,13 +89,18 @@ export function CronsBillingBanner({organization, subscription}: Props) {
     );
   }
 
-  // If the user's trial has ended and they aren't on a plan with on-demand
+  // If the user's trial has ended and they aren't on a plan with PAYG
   if (
     daysSinceTrial >= 0 &&
     daysSinceTrial <= 7 &&
     !subscription.planDetails.allowOnDemand
   ) {
-    return <TrialEndedBanner hasBillingAccess={hasBillingAccess} />;
+    return (
+      <TrialEndedBanner
+        hasBillingAccess={hasBillingAccess}
+        plan={subscription.planDetails}
+      />
+    );
   }
 
   return null;
@@ -131,15 +141,17 @@ function TrialEndingBanner({
   );
 }
 
-function TrialEndedBanner({hasBillingAccess}: BannerProps) {
+function TrialEndedBanner({hasBillingAccess, plan}: BannerProps & {plan: Plan}) {
   return (
     <TrialBanner hasBillingAccess={hasBillingAccess}>
       {hasBillingAccess
-        ? t(
-            'Your free business trial has ended. One cron job monitor is included in your current plan. If you want to monitor more than one cron job, please increase your on-demand budget.'
+        ? tct(
+            'Your free business trial has ended. One cron job monitor is included in your current plan. If you want to monitor more than one cron job, please increase your [budgetTerm].',
+            {budgetTerm: displayBudgetName(plan, {withBudget: true})}
           )
-        : t(
-            "Your free business trial has ended. One cron job monitor is included in your current plan. If you want to monitor more than one cron job, please ask your organization's owner or billing manager to set up an on-demand budget for cron monitoring."
+        : tct(
+            "Your free business trial has ended. One cron job monitor is included in your current plan. If you want to monitor more than one cron job, please ask your organization's owner or billing manager to set up [budgetTerm] for cron monitoring.",
+            {budgetTerm: displayBudgetName(plan)}
           )}
     </TrialBanner>
   );

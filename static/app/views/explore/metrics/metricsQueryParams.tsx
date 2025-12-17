@@ -4,6 +4,11 @@ import {useCallback, useMemo} from 'react';
 import {defined} from 'sentry/utils';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import {defaultQuery, type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {
+  MetricsFrozenContextProvider,
+  type MetricsFrozenForTracesProviderProps,
+} from 'sentry/views/explore/metrics/metricsFrozenContext';
+import {MetricsStateQueryParamsProvider} from 'sentry/views/explore/metrics/metricsStateQueryParamsProvider';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {
   QueryParamsContextProvider,
@@ -20,6 +25,7 @@ import {
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
 
 interface TraceMetricContextValue {
+  metric: TraceMetric;
   removeMetric: () => void;
   setTraceMetric: (traceMetric: TraceMetric) => void;
 }
@@ -35,6 +41,9 @@ interface MetricsQueryParamsProviderProps {
   removeMetric: () => void;
   setQueryParams: (queryParams: ReadableQueryParams) => void;
   setTraceMetric: (traceMetric: TraceMetric) => void;
+  traceMetric: TraceMetric;
+  freeze?: MetricsFrozenForTracesProviderProps;
+  isStateBased?: boolean;
 }
 
 export function MetricsQueryParamsProvider({
@@ -43,6 +52,9 @@ export function MetricsQueryParamsProvider({
   setQueryParams,
   setTraceMetric,
   removeMetric,
+  traceMetric,
+  freeze,
+  isStateBased,
 }: MetricsQueryParamsProviderProps) {
   const setWritableQueryParams = useCallback(
     (writableQueryParams: WritableQueryParams) => {
@@ -60,22 +72,32 @@ export function MetricsQueryParamsProvider({
 
   const traceMetricContextValue = useMemo(
     () => ({
+      metric: traceMetric,
       setTraceMetric,
       removeMetric,
     }),
-    [setTraceMetric, removeMetric]
+    [setTraceMetric, removeMetric, traceMetric]
   );
+
+  const QueryContextProvider = isStateBased
+    ? MetricsStateQueryParamsProvider
+    : QueryParamsContextProvider;
 
   return (
     <TraceMetricContext value={traceMetricContextValue}>
-      <QueryParamsContextProvider
-        queryParams={queryParams}
-        setQueryParams={setWritableQueryParams}
-        isUsingDefaultFields
-        shouldManageFields={false}
+      <MetricsFrozenContextProvider
+        traceIds={freeze?.traceIds ?? []}
+        tracePeriod={freeze?.tracePeriod}
       >
-        {children}
-      </QueryParamsContextProvider>
+        <QueryContextProvider
+          queryParams={queryParams}
+          setQueryParams={setWritableQueryParams}
+          isUsingDefaultFields
+          shouldManageFields={false}
+        >
+          {children}
+        </QueryContextProvider>
+      </MetricsFrozenContextProvider>
     </TraceMetricContext>
   );
 }
@@ -101,6 +123,17 @@ export function useMetricVisualize(): VisualizeFunction {
     return visualizes[0];
   }
   throw new Error('Only 1 visualize per metric allowed');
+}
+
+export function useMetricLabel(): string {
+  const visualize = useMetricVisualize();
+  const {metric} = useTraceMetricContext();
+
+  if (!visualize.parsedFunction) {
+    return metric.name;
+  }
+
+  return `${visualize.parsedFunction.name}(${metric.name})`;
 }
 
 export function useSetTraceMetric() {

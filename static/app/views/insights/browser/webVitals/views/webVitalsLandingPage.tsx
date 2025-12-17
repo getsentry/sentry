@@ -6,8 +6,10 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DataCategory} from 'sentry/types/core';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import BrowserTypeSelector from 'sentry/views/insights/browser/webVitals/components/browserTypeSelector';
 import {PerformanceScoreChart} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import {PagePerformanceTable} from 'sentry/views/insights/browser/webVitals/components/tables/pagePerformanceTable';
@@ -18,11 +20,14 @@ import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/w
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import useHasDashboardsPlatformizedWebVitals from 'sentry/views/insights/browser/webVitals/utils/useHasDashboardsPlatformizedWebVitals';
+import {PlatformizedWebVitalsOverview} from 'sentry/views/insights/browser/webVitals/views/platformizedOverview';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {useWebVitalsDrawer} from 'sentry/views/insights/common/utils/useWebVitalsDrawer';
+import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {ModuleName, SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 
 const WEB_VITALS_COUNT = 5;
@@ -76,6 +81,7 @@ function WebVitalsLandingPage() {
                 extraFilters={
                   <Fragment>
                     <BrowserTypeSelector />
+                    <SubregionSelector />
                   </Fragment>
                 }
               />
@@ -145,8 +151,21 @@ export function WebVitalMetersPlaceholder() {
 }
 
 function PageWithProviders() {
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.SPANS],
+  });
+
+  const hasDashboardsPlatformizedWebVitals = useHasDashboardsPlatformizedWebVitals();
+  if (hasDashboardsPlatformizedWebVitals) {
+    return <PlatformizedWebVitalsOverview />;
+  }
+
   return (
-    <ModulePageProviders moduleName="vital" analyticEventName="insight.page_loads.vital">
+    <ModulePageProviders
+      moduleName="vital"
+      analyticEventName="insight.page_loads.vital"
+      maxPickableDays={maxPickableDays.maxPickableDays}
+    >
       <WebVitalsLandingPage />
     </ModulePageProviders>
   );
@@ -188,7 +207,7 @@ const LoadingBox = styled('div')`
   min-width: 140px;
   height: 90px;
   background-color: ${p => p.theme.gray100};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const PagesTooltip = styled('span')`

@@ -14,12 +14,8 @@ import {ellipsize} from 'sentry/utils/string/ellipsize';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
-import {
-  isEAPSpanNode,
-  isSpanNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 
 export function TraceProfiles({tree}: {tree: TraceTree}) {
   const {projects} = useProjects();
@@ -41,8 +37,8 @@ export function TraceProfiles({tree}: {tree: TraceTree}) {
   );
 
   const onProfileLinkClick = useCallback(
-    (profile: TraceTree.Profile) => {
-      if ('profiler_id' in profile) {
+    (type: 'continuous' | 'transaction') => {
+      if (type === 'continuous') {
         traceAnalytics.trackViewContinuousProfile(organization);
       } else {
         traceAnalytics.trackViewTransactionProfile(organization);
@@ -59,96 +55,72 @@ export function TraceProfiles({tree}: {tree: TraceTree}) {
       </ProfilesTableRow>
 
       {profiles.map((node, index) => {
-        const profile = node.profiles?.[0];
+        const profileId = node.profileId;
+        const profilerId = node.profilerId;
 
-        if (!profile) {
+        if (!profileId && !profilerId) {
           return null;
         }
 
-        const query = isTransactionNode(node)
-          ? {
-              eventId: node.value.event_id,
-            }
-          : isSpanNode(node)
-            ? {
-                eventId: TraceTree.ParentTransaction(node)?.value?.event_id,
-              }
-            : {};
+        const query = getProfileRouteQueryFromNode(node);
 
-        const link =
-          'profiler_id' in profile
-            ? generateContinuousProfileFlamechartRouteWithQuery({
-                organization,
-                profilerId: profile.profiler_id,
-                start: new Date(node.space[0]).toISOString(),
-                end: new Date(node.space[0] + node.space[1]).toISOString(),
-                projectSlug: node.metadata.project_slug as string,
-                query,
-              })
-            : generateProfileFlamechartRouteWithQuery({
-                organization,
-                projectSlug: node.metadata.project_slug as string,
-                profileId: profile.profile_id,
-                query,
-              });
+        const link = profilerId
+          ? generateContinuousProfileFlamechartRouteWithQuery({
+              organization,
+              profilerId,
+              start: new Date(node.space[0]).toISOString(),
+              end: new Date(node.space[0] + node.space[1]).toISOString(),
+              projectSlug: node.projectSlug ?? '',
+              query,
+            })
+          : generateProfileFlamechartRouteWithQuery({
+              organization,
+              projectSlug: node.projectSlug ?? '',
+              profileId: profileId!,
+              query,
+            });
 
-        const profileOrProfilerId =
-          'profiler_id' in profile ? profile.profiler_id : profile.profile_id;
+        const profileOrProfilerId = profilerId || profileId;
 
-        if (isTransactionNode(node)) {
-          const event = (
-            <Fragment>
-              <PlatformIcon
-                platform={projectLookup[node.value.project_slug] ?? 'default'}
-              />
-              <span>{node.value['transaction.op']}</span> —{' '}
-              <span>{node.value.transaction}</span>
-            </Fragment>
-          );
-          return (
-            <ProfilesTableRow key={index}>
-              <div>{event}</div>
-              <div>
-                <Link to={link} onClick={() => onProfileLinkClick(profile)}>
-                  {profileOrProfilerId.substring(0, 8)}
-                </Link>
-              </div>
-            </ProfilesTableRow>
-          );
-        }
-        if (isSpanNode(node) || isEAPSpanNode(node)) {
-          const spanId =
-            'span_id' in node.value ? node.value.span_id : node.value.event_id;
-          const event = (
-            <Fragment>
-              {node.value.project_slug && (
-                <PlatformIcon
-                  platform={projectLookup[node.value.project_slug] ?? 'default'}
-                />
-              )}
-              <span>{node.value.op ?? '<unknown>'}</span> —{' '}
-              <span className="TraceDescription" title={node.value.description}>
-                {node.value.description
-                  ? ellipsize(node.value.description, 100)
-                  : (spanId ?? 'unknown')}
-              </span>
-            </Fragment>
-          );
-          return (
-            <ProfilesTableRow key={index}>
-              <div>{event}</div>
-              <div>
-                <Link to={link} onClick={() => onProfileLinkClick(profile)}>
-                  {profileOrProfilerId.substring(0, 8)}
-                </Link>
-              </div>
-            </ProfilesTableRow>
-          );
-        }
-        return null;
+        const event = (
+          <Fragment>
+            {node.projectSlug && (
+              <PlatformIcon platform={projectLookup[node.projectSlug] ?? 'default'} />
+            )}
+            <span>{node.op ?? '<unknown>'}</span> —{' '}
+            <span className="TraceDescription" title={node.description}>
+              {node.description
+                ? ellipsize(node.description, 100)
+                : (node.id ?? 'unknown')}
+            </span>
+          </Fragment>
+        );
+        return (
+          <ProfilesTableRow key={index}>
+            <div>{event}</div>
+            <div>
+              <Link
+                to={link}
+                onClick={() =>
+                  onProfileLinkClick(profilerId ? 'continuous' : 'transaction')
+                }
+              >
+                {profileOrProfilerId!.substring(0, 8)}
+              </Link>
+            </div>
+          </ProfilesTableRow>
+        );
       })}
     </ProfilesTable>
   );
+}
+
+function getProfileRouteQueryFromNode(node: BaseNode) {
+  const threadId = node.attributes?.['thread.id'] ?? undefined;
+  return {
+    eventId: node.transactionId,
+    tid: typeof threadId === 'string' ? threadId : undefined,
+  };
 }
 
 const ProfilesTable = styled('div')`
@@ -157,7 +129,7 @@ const ProfilesTable = styled('div')`
   grid-template-rows: auto;
   width: 100%;
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 
   > div {
     white-space: nowrap;
@@ -189,9 +161,9 @@ const ProfilesTableRow = styled('div')`
   }
 
   &:first-child {
-    background-color: ${p => p.theme.background};
-    border-top-left-radius: ${p => p.theme.borderRadius};
-    border-top-right-radius: ${p => p.theme.borderRadius};
+    background-color: ${p => p.theme.tokens.background.primary};
+    border-top-left-radius: ${p => p.theme.radius.md};
+    border-top-right-radius: ${p => p.theme.radius.md};
   }
 
   &:not(:last-child) {

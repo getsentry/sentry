@@ -37,7 +37,10 @@ describe('WidgetBuilderSlideout', () => {
 
     jest.mocked(useParams).mockReturnValue({widgetIndex: undefined});
 
-    MockApiClient.addMockResponse({url: '/organizations/org-slug/recent-searches/'});
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/widgets/',
@@ -66,7 +69,6 @@ describe('WidgetBuilderSlideout', () => {
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
-          isOpen
           openWidgetTemplates={false}
           setOpenWidgetTemplates={jest.fn()}
         />
@@ -106,7 +108,6 @@ describe('WidgetBuilderSlideout', () => {
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
-          isOpen
           openWidgetTemplates={false}
           setOpenWidgetTemplates={jest.fn()}
         />
@@ -143,7 +144,6 @@ describe('WidgetBuilderSlideout', () => {
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
-          isOpen
           openWidgetTemplates={false}
           setOpenWidgetTemplates={jest.fn()}
         />
@@ -181,7 +181,6 @@ describe('WidgetBuilderSlideout', () => {
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
-          isOpen
           openWidgetTemplates={false}
           setOpenWidgetTemplates={jest.fn()}
         />
@@ -213,7 +212,6 @@ describe('WidgetBuilderSlideout', () => {
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
-          isOpen
           openWidgetTemplates={false}
           setOpenWidgetTemplates={jest.fn()}
         />
@@ -254,7 +252,6 @@ describe('WidgetBuilderSlideout', () => {
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
-          isOpen
           openWidgetTemplates={false}
           setOpenWidgetTemplates={jest.fn()}
         />
@@ -298,7 +295,6 @@ describe('WidgetBuilderSlideout', () => {
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
-          isOpen
           openWidgetTemplates={false}
           setOpenWidgetTemplates={jest.fn()}
         />
@@ -338,7 +334,6 @@ describe('WidgetBuilderSlideout', () => {
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
-          isOpen
           openWidgetTemplates={false}
           setOpenWidgetTemplates={jest.fn()}
         />
@@ -385,7 +380,6 @@ describe('WidgetBuilderSlideout', () => {
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
-          isOpen
           openWidgetTemplates={false}
           setOpenWidgetTemplates={jest.fn()}
         />
@@ -423,7 +417,6 @@ describe('WidgetBuilderSlideout', () => {
           onQueryConditionChange={jest.fn()}
           onSave={onSave}
           setIsPreviewDraggable={jest.fn()}
-          isOpen
           openWidgetTemplates={false}
           setOpenWidgetTemplates={jest.fn()}
         />
@@ -455,7 +448,6 @@ describe('WidgetBuilderSlideout', () => {
           onQueryConditionChange={jest.fn()}
           onSave={onSave}
           setIsPreviewDraggable={jest.fn()}
-          isOpen
           openWidgetTemplates={false}
           setOpenWidgetTemplates={jest.fn()}
         />
@@ -486,7 +478,6 @@ describe('WidgetBuilderSlideout', () => {
           onQueryConditionChange={jest.fn()}
           onSave={onSave}
           setIsPreviewDraggable={jest.fn()}
-          isOpen
           openWidgetTemplates
           setOpenWidgetTemplates={jest.fn()}
         />
@@ -511,7 +502,6 @@ describe('WidgetBuilderSlideout', () => {
           onQueryConditionChange={jest.fn()}
           onSave={onSave}
           setIsPreviewDraggable={jest.fn()}
-          isOpen
           openWidgetTemplates
           setOpenWidgetTemplates={jest.fn()}
         />
@@ -536,7 +526,6 @@ describe('WidgetBuilderSlideout', () => {
           onQueryConditionChange={jest.fn()}
           onSave={onSave}
           setIsPreviewDraggable={jest.fn()}
-          isOpen
           openWidgetTemplates={false}
           setOpenWidgetTemplates={jest.fn()}
         />
@@ -565,7 +554,6 @@ describe('WidgetBuilderSlideout', () => {
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
-          isOpen
           openWidgetTemplates={false}
           setOpenWidgetTemplates={jest.fn()}
         />
@@ -606,7 +594,6 @@ describe('WidgetBuilderSlideout', () => {
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
-          isOpen
           openWidgetTemplates={false}
           setOpenWidgetTemplates={jest.fn()}
         />
@@ -636,5 +623,69 @@ describe('WidgetBuilderSlideout', () => {
     expect(
       screen.queryByTestId('transaction-widget-disabled-wrapper')
     ).not.toBeInTheDocument();
+  });
+
+  it('should not show the query filter builder if the widget is an issue and a chart display type', () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid={false}
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.ISSUE,
+              displayType: DisplayType.LINE,
+            },
+          }),
+        }),
+        deprecatedRouterMocks: true,
+      }
+    );
+
+    expect(screen.queryByLabelText('Add a search term')).not.toBeInTheDocument();
+  });
+
+  it('should not show the group by selector if the widget is an issue and a chart display type', () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid={false}
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.ISSUE,
+              displayType: DisplayType.LINE,
+            },
+          }),
+        }),
+        deprecatedRouterMocks: true,
+      }
+    );
+
+    expect(screen.queryByText('Group by')).not.toBeInTheDocument();
   });
 });

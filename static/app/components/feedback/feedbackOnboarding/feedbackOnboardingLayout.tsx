@@ -47,6 +47,7 @@ export function FeedbackOnboardingLayout({
       project,
       isLogsSelected: false,
       isFeedbackSelected: true,
+      isMetricsSelected: false,
       isPerformanceSelected: false,
       isProfilingSelected: false,
       isReplaySelected: false,

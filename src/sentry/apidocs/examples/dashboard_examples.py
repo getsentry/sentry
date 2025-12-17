@@ -77,6 +77,7 @@ DASHBOARD_OBJECT = {
         "teamsWithEditAccess": [],
     },
     "isFavorited": False,
+    "prebuiltId": None,
 }
 
 DASHBOARDS_OBJECT = [
@@ -120,6 +121,7 @@ DASHBOARDS_OBJECT = [
         "widgetPreview": [],
         "permissions": {"isEditableByEveryone": True, "teamsWithEditAccess": []},
         "isFavorited": False,
+        "prebuiltId": None,
     },
     {
         "id": "2",
@@ -161,6 +163,7 @@ DASHBOARDS_OBJECT = [
         "widgetPreview": [],
         "permissions": None,
         "isFavorited": False,
+        "prebuiltId": None,
     },
 ]
 

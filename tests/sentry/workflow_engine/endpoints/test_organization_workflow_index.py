@@ -2,25 +2,27 @@ from collections.abc import Sequence
 from typing import Any
 from unittest import mock
 
+import responses
+
 from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.notifications.models.notificationaction import ActionTarget
+from sentry.incidents.grouptype import MetricIssue
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
-from sentry.workflow_engine.models import (
-    Action,
-    DetectorWorkflow,
-    Workflow,
-    WorkflowDataConditionGroup,
-    WorkflowFireHistory,
+from sentry.workflow_engine.models import Action, DetectorWorkflow, Workflow, WorkflowFireHistory
+from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.typings.notification_action import (
+    ActionTarget,
+    ActionType,
+    SentryAppIdentifier,
 )
-from tests.sentry.workflow_engine.test_base import MockActionValidatorTranslator
+from tests.sentry.workflow_engine.test_base import BaseWorkflowTest, MockActionValidatorTranslator
 
 
 class OrganizationWorkflowAPITestCase(APITestCase):
@@ -52,7 +54,6 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
                 workflow=workflow,
                 group=self.group,
                 event_id=self.event.event_id,
-                is_single_written=True,
             )
 
     def test_simple(self) -> None:
@@ -125,7 +126,9 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
 
     def test_sort_by_connected_detectors(self) -> None:
         detector = self.create_detector(project=self.project, name="A Test Detector")
-        detector_two = self.create_detector(project=self.project, name="B Test Detector 2")
+        detector_two = self.create_detector(
+            project=self.project, name="B Test Detector 2", type=MetricIssue.slug
+        )
 
         self.create_detector_workflow(
             workflow=self.workflow,
@@ -208,13 +211,6 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         ][0]
 
     def test_sort_by_last_triggered(self) -> None:
-        # Fresh fire for self.workflow that would impact sorting if not ignored.
-        WorkflowFireHistory.objects.create(
-            workflow=self.workflow,
-            group=self.group,
-            event_id=self.event.event_id,
-            is_single_written=False,
-        )
         response = self.get_success_response(
             self.organization.slug, qs_params={"sortBy": "lastTriggered"}
         )
@@ -350,53 +346,6 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         assert len(response3.data) == 2
         assert {self.workflow.name, self.workflow_two.name} == {w["name"] for w in response3.data}
 
-    def test_sort_by_last_triggered_with_non_single_written_only(self) -> None:
-        workflow_never_fired = self.create_workflow(
-            organization_id=self.organization.id, name="Never Fired"
-        )
-
-        workflow_non_single_written_only = self.create_workflow(
-            organization_id=self.organization.id, name="Non Single Written Only"
-        )
-        WorkflowFireHistory.objects.create(
-            workflow=workflow_non_single_written_only,
-            group=self.group,
-            event_id=self.event.event_id,
-            is_single_written=False,
-        )
-
-        # Test ascending order (lastTriggered)
-        response = self.get_success_response(
-            self.organization.slug, qs_params={"sortBy": "lastTriggered"}
-        )
-
-        # Workflows without single-written history should come first, then those with it
-        expected_ascending_order = [
-            self.workflow_three.name,
-            workflow_never_fired.name,
-            workflow_non_single_written_only.name,
-            self.workflow.name,
-            self.workflow_two.name,
-        ]
-
-        assert [w["name"] for w in response.data] == expected_ascending_order
-
-        # Test descending order (-lastTriggered)
-        response_desc = self.get_success_response(
-            self.organization.slug, qs_params={"sortBy": "-lastTriggered"}
-        )
-
-        # In descending order, workflows with single-written history should come first
-        expected_descending_order = [
-            self.workflow_two.name,
-            self.workflow.name,
-            workflow_non_single_written_only.name,
-            workflow_never_fired.name,
-            self.workflow_three.name,
-        ]
-
-        assert [w["name"] for w in response_desc.data] == expected_descending_order
-
     def test_compound_query(self) -> None:
         self.create_detector_workflow(
             workflow=self.workflow, detector=self.create_detector(project=self.project)
@@ -424,7 +373,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
 
 
 @region_silo_test
-class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
+class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkflowTest):
     method = "POST"
 
     def setUp(self) -> None:
@@ -446,6 +395,21 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
             role="member",
             organization=self.organization,
         )
+        self.basic_condition = [
+            {
+                "type": Condition.EQUAL.value,
+                "comparison": 1,
+                "conditionResult": True,
+            }
+        ]
+        self.sentry_app, _ = self.create_sentry_app_with_schema()
+        self.sentry_app_settings = [
+            {"name": "alert_prefix", "value": "[Not Good]"},
+            {"name": "channel", "value": "#ignored-errors"},
+            {"name": "best_emoji", "value": ":fire:"},
+            {"name": "teamId", "value": "1"},
+            {"name": "assigneeId", "value": "3"},
+        ]
 
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.workflow.create_audit_entry")
     def test_create_workflow__basic(self, mock_audit: mock.MagicMock) -> None:
@@ -475,18 +439,12 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
 
         assert response.status_code == 201
         new_workflow = Workflow.objects.get(id=response.data["id"])
-        assert new_workflow.config == self.valid_workflow["config"]
+        assert response.data == serialize(new_workflow)
 
     def test_create_workflow__with_triggers(self) -> None:
         self.valid_workflow["triggers"] = {
             "logicType": "any",
-            "conditions": [
-                {
-                    "type": "eq",
-                    "comparison": 1,
-                    "conditionResult": True,
-                }
-            ],
+            "conditions": self.basic_condition,
         }
 
         response = self.get_success_response(
@@ -496,10 +454,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
 
         assert response.status_code == 201
         new_workflow = Workflow.objects.get(id=response.data["id"])
-        assert new_workflow.when_condition_group is not None
-        assert str(new_workflow.when_condition_group.id) == response.data.get("triggers", {}).get(
-            "id"
-        )
+        assert response.data == serialize(new_workflow)
 
     @mock.patch(
         "sentry.notifications.notification_action.registry.action_validator_registry.get",
@@ -509,13 +464,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
         self.valid_workflow["actionFilters"] = [
             {
                 "logicType": "any",
-                "conditions": [
-                    {
-                        "type": "eq",
-                        "comparison": 1,
-                        "conditionResult": True,
-                    }
-                ],
+                "conditions": self.basic_condition,
                 "actions": [
                     {
                         "type": Action.Type.SLACK,
@@ -538,11 +487,155 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
 
         assert response.status_code == 201
         new_workflow = Workflow.objects.get(id=response.data["id"])
-        new_action_filters = WorkflowDataConditionGroup.objects.filter(workflow=new_workflow)
-        assert len(new_action_filters) == len(response.data.get("actionFilters", []))
-        assert str(new_action_filters[0].condition_group.id) == response.data.get(
-            "actionFilters", []
-        )[0].get("id")
+        assert response.data == serialize(new_workflow)
+
+    @mock.patch(
+        "sentry.notifications.notification_action.registry.action_validator_registry.get",
+        return_value=MockActionValidatorTranslator,
+    )
+    def test_create_workflow__with_fallthrough_type_action(
+        self, mock_action_validator: mock.MagicMock
+    ) -> None:
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": self.basic_condition,
+                "actions": [
+                    {
+                        "type": Action.Type.EMAIL,
+                        "config": {
+                            "targetType": "issue_owners",
+                        },
+                        "data": {"fallthroughType": "ActiveMembers"},
+                    },
+                ],
+            }
+        ]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            raw_data=self.valid_workflow,
+        )
+
+        assert response.status_code == 201
+        new_workflow = Workflow.objects.get(id=response.data["id"])
+        assert response.data == serialize(new_workflow)
+
+    @responses.activate
+    def test_create_workflow_with_sentry_app_action(self) -> None:
+        """
+        Test that you can add a sentry app with settings
+        (e.g. a sentry app that makes a ticket in some 3rd party system as opposed to one without settings)
+        """
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/sentry/alert-rule",
+            status=200,
+        )
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": self.basic_condition,
+                "actions": [
+                    {
+                        "config": {
+                            "sentryAppIdentifier": SentryAppIdentifier.SENTRY_APP_ID,
+                            "targetIdentifier": str(self.sentry_app.id),
+                            "targetType": ActionType.SENTRY_APP,
+                        },
+                        "data": {"settings": self.sentry_app_settings},
+                        "type": Action.Type.SENTRY_APP,
+                    },
+                ],
+            }
+        ]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            raw_data=self.valid_workflow,
+        )
+        updated_workflow = Workflow.objects.get(id=response.data["id"])
+        assert response.data == serialize(updated_workflow)
+
+    @responses.activate
+    def test_create_sentry_app_action_missing_settings(self) -> None:
+        """
+        Test that if you forget to pass settings to your sentry app action it will fail and tell you why.
+        Settings are only required if the sentry app schema is not an empty dict
+        """
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/sentry/alert-rule",
+            status=200,
+        )
+
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": self.basic_condition,
+                "actions": [
+                    {
+                        "config": {
+                            "sentryAppIdentifier": SentryAppIdentifier.SENTRY_APP_ID,
+                            "targetIdentifier": str(self.sentry_app.id),
+                            "targetType": ActionType.SENTRY_APP,
+                        },
+                        "data": {},
+                        "type": Action.Type.SENTRY_APP,
+                    },
+                ],
+            }
+        ]
+        response = self.get_response(
+            self.organization.slug,
+            raw_data=self.valid_workflow,
+        )
+
+        assert response.status_code == 400
+        assert "'settings' is a required property" in str(response.data).lower()
+
+    @responses.activate
+    def test_create_sentry_app_action_no_settings(self) -> None:
+        """
+        Test that if you are creating a sentry app action for a sentry app that has no schema it works as expected when settings are not passed
+        because settings are not expected
+        """
+        sentry_app = self.create_sentry_app(
+            name="Moo Deng's Wind Sentry App",
+            organization=self.organization,
+            is_alertable=True,
+        )
+        self.create_sentry_app_installation(slug=sentry_app.slug, organization=self.organization)
+
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/sentry/alert-rule",
+            status=200,
+        )
+
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": self.basic_condition,
+                "actions": [
+                    {
+                        "config": {
+                            "sentryAppIdentifier": SentryAppIdentifier.SENTRY_APP_ID,
+                            "targetIdentifier": str(sentry_app.id),
+                            "targetType": ActionType.SENTRY_APP,
+                        },
+                        "data": {},
+                        "type": Action.Type.SENTRY_APP,
+                    },
+                ],
+            }
+        ]
+        response = self.get_success_response(
+            self.organization.slug,
+            raw_data=self.valid_workflow,
+        )
+        updated_workflow = Workflow.objects.get(id=response.data["id"])
+        assert response.data == serialize(updated_workflow)
 
     def test_create_invalid_workflow(self) -> None:
         self.valid_workflow["name"] = ""
@@ -673,7 +766,8 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
 
         assert Workflow.objects.count() == 0
 
-    def test_create_workflow_with_unauthorized_detectors(self) -> None:
+    def test_create_workflow_with_other_project_detector(self) -> None:
+        self.organization.update_option("sentry:alerts_member_write", True)
         self.organization.flags.allow_joinleave = False
         self.organization.save()
 
@@ -690,15 +784,24 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
             "detectorIds": [other_detector.id],
         }
 
-        self.get_error_response(
+        self.get_success_response(
             self.organization.slug,
             raw_data=workflow_data,
-            status_code=403,
         )
 
-        # Verify no detector-workflow connections were created
+        # Verify detector-workflow connections was created
         created_detector_workflows = DetectorWorkflow.objects.all()
-        assert created_detector_workflows.count() == 0
+        assert created_detector_workflows.count() == 1
+
+    def test_cannot_create_workflow_without_alerts_write(self) -> None:
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(user=self.member_user)
+
+        self.get_error_response(
+            self.organization.slug,
+            raw_data=self.valid_workflow,
+            status_code=403,
+        )
 
 
 @region_silo_test

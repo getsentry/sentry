@@ -210,9 +210,7 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
     organization,
     daysToSnooze:
       -1 *
-      getDaysSinceDate(
-        subscription?.onDemandPeriodEnd ?? moment().utc().toDate().toDateString()
-      ),
+      getDaysSinceDate(subscription?.onDemandPeriodEnd ?? moment().utc().toISOString()),
     isDismissed: isSnoozedForCurrentPeriod,
     options: {
       enabled: promptsToCheck.length > 0,
@@ -262,7 +260,7 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
       );
       localStorage.setItem(
         `billing-status-last-shown-date-${organization.id}`,
-        moment().utc().toDate().toDateString()
+        moment().utc().toISOString()
       );
     }
   }, [
@@ -334,11 +332,11 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
 export default PrimaryNavigationQuotaExceeded;
 
 const Container = styled('div')`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const Header = styled('div')`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   padding: ${p => p.theme.space.xl};
   border-bottom: 1px solid ${p => p.theme.border};
 `;
