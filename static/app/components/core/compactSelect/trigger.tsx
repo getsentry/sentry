@@ -11,11 +11,17 @@ type TriggerEl =
       type: 'only use SelectTrigger for the trigger prop!';
     });
 
-export type SelectTriggerProps = React.HTMLAttributes<TriggerEl> & {
+export type SelectTriggerProps = SetRequired<
+  React.HTMLAttributes<TriggerEl>,
+  'children'
+> & {
   ref?: React.Ref<TriggerEl>;
 };
 
-export type ButtonTriggerProps = DistributedOmit<DropdownButtonProps, 'ref'> & {
+export type ButtonTriggerProps = SetRequired<
+  DistributedOmit<DropdownButtonProps, 'ref'>,
+  'children'
+> & {
   ref?: React.Ref<TriggerEl>;
 };
 

@@ -349,9 +349,7 @@ export default Storybook.story('CompactSelect', story => {
         <Storybook.Grid>
           <CompactSelect
             size="md"
-            triggerProps={{
-              prefix: t('Character'),
-            }}
+            trigger={props => <SelectTrigger.Button {...props} prefix={t('Character')} />}
             value={values}
             onChange={handleValueChange}
             options={options}
@@ -361,9 +359,7 @@ export default Storybook.story('CompactSelect', story => {
           />
           <CompactSelect
             size="sm"
-            triggerProps={{
-              prefix: t('Character'),
-            }}
+            trigger={props => <SelectTrigger.Button {...props} prefix={t('Character')} />}
             value={values}
             onChange={handleValueChange}
             options={options}
@@ -373,9 +369,7 @@ export default Storybook.story('CompactSelect', story => {
           />
           <CompactSelect
             size="xs"
-            triggerProps={{
-              prefix: t('Character'),
-            }}
+            trigger={props => <SelectTrigger.Button {...props} prefix={t('Character')} />}
             value={values}
             onChange={handleValueChange}
             options={options}
