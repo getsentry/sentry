@@ -185,6 +185,8 @@ class RuleSerializer(RuleSetSerializer):
 
         if owner.is_team:
             request = self.context.get("request")
+            if request and request.access.has_scope("team:admin"):
+                return owner
             if request and hasattr(request, "user") and request.user:
                 user_is_team_member = OrganizationMemberTeam.objects.filter(
                     team_id=owner.id,

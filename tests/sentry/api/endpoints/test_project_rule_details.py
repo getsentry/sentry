@@ -673,6 +673,15 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
 
     def test_team_owner_not_member(self) -> None:
         team = self.create_team(organization=self.organization)
+        # Create a non-privileged member user (without team:admin scope)
+        member_user = self.create_user()
+        self.create_member(
+            user=member_user,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        self.login_as(member_user)
         payload = {
             "name": "hello world",
             "owner": f"team:{team.id}",
@@ -693,6 +702,38 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             str(response.data["owner"][0])
             == "You must be a member of a team to assign it as the rule owner."
         )
+
+    def test_team_owner_not_member_with_team_admin_scope(self) -> None:
+        """Test that users with team:admin scope can assign a team they're not a member of as the owner"""
+        team = self.create_team(organization=self.organization)
+        # Create a manager user who has team:admin scope
+        manager_user = self.create_user()
+        self.create_member(
+            user=manager_user,
+            organization=self.organization,
+            role="manager",
+            teams=[self.team],
+        )
+        self.login_as(manager_user)
+        payload = {
+            "name": "hello world",
+            "owner": f"team:{team.id}",
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
+            "conditions": self.first_seen_condition,
+        }
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            self.rule.id,
+            status_code=status.HTTP_200_OK,
+            **payload,
+        )
+        assert response.data["owner"] == f"team:{team.id}"
+        rule = Rule.objects.get(id=response.data["id"])
+        assert rule.owner_team_id == team.id
+        assert rule.owner_user_id is None
 
     def test_update_name(self) -> None:
         conditions = [
