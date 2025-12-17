@@ -1287,3 +1287,25 @@ class ExploreSavedQueriesTest(APITestCase):
         data = response.data
         assert data["start"] is not None
         assert data["end"] is not None
+
+    def test_save_with_case_insensitive(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Case insensitive query",
+                    "projects": self.project_ids,
+                    "dataset": "spans",
+                    "query": [
+                        {
+                            "fields": ["span.op"],
+                            "mode": "samples",
+                            "caseInsensitive": True,
+                        }
+                    ],
+                    "range": "24h",
+                },
+            )
+        assert response.status_code == 201, response.content
+        data = response.data
+        assert data["query"][0]["caseInsensitive"] is True
