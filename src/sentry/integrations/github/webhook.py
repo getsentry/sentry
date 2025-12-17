@@ -793,10 +793,7 @@ class PullRequestEventWebhook(GitHubWebhook):
                 logger.info(
                     "github.webhook.pull_request.contributor_eligibility_check",
                     extra={
-                        "organization_id": organization.id,
-                        "repository_id": repo.id,
                         "pr_number": number,
-                        "user_id": user["id"],
                         "user_login": user["login"],
                         "user_type": user_type,
                         "author_association": author_association,
