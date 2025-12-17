@@ -245,8 +245,8 @@ def finish_reprocessing(project_id: int, group_id: int) -> None:
 
         new_group = Group.objects.get(id=new_group_id)
 
-        # Remove the maker that indicates that the new group is currently being reprocessed to.
-        # Thus freeing it up for being re-processable.
+        # Remove the marker that indicates that the new group is currently being reprocessed to.
+        # Thus making it re-processable.
         try:
             del new_group.data["_reprocessing_old_group_id"]
         except Exception as e:
