@@ -668,7 +668,6 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         """App ID filter uses case-sensitive exact match (no partial matches, no case variants)."""
         url = self._get_url()
 
-        # Different case should not match
         response = self.client.get(
             f"{url}?app_id=COM.EXAMPLE.APP",
             format="json",
@@ -677,7 +676,6 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         assert response.status_code == 200
         assert len(response.json()["builds"]) == 0
 
-        # Partial match should not work
         response = self.client.get(
             f"{url}?app_id=com.example",
             format="json",
@@ -740,7 +738,6 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
 
         url = self._get_url()
 
-        # Exact case match: "Release" only finds "Release"
         response = self.client.get(
             f"{url}?build_configuration=Release",
             format="json",
@@ -751,7 +748,6 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         assert len(resp_data["builds"]) == 1
         assert resp_data["builds"][0]["app_info"]["build_configuration"] == "Release"
 
-        # Different case: "RELEASE" only finds "RELEASE"
         response = self.client.get(
             f"{url}?build_configuration=RELEASE",
             format="json",
@@ -761,7 +757,6 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         assert len(response.json()["builds"]) == 1
         assert response.json()["builds"][0]["app_info"]["build_configuration"] == "RELEASE"
 
-        # Partial match: "Release" does not match "ReleaseProduction"
         response = self.client.get(
             f"{url}?build_configuration=Release",
             format="json",
@@ -769,4 +764,4 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         )
         assert response.status_code == 200
         matched_configs = {b["app_info"]["build_configuration"] for b in response.json()["builds"]}
-        assert matched_configs == {"Release"}  # Does not include "ReleaseProduction"
+        assert matched_configs == {"Release"}
