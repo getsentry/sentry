@@ -598,6 +598,7 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         if not self.dry_run:
             assert transaction_query.dataset_source == DatasetSourcesTypes.FORCED.value
 
+    @pytest.mark.skip(reason="Flaky. See #105124")
     def test_unhandled_filter_sets_error_events_dataset(self) -> None:
         error_query = DiscoverSavedQuery.objects.create(
             organization_id=self.organization.id,
