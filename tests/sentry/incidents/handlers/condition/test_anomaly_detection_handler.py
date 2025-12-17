@@ -119,6 +119,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
             deserialized_body["context"]["cur_window"]["value"]
             == self.data_packet.packet.values["value"]
         )
+        mock_seer_request.reset_mock()
 
     @mock.patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
