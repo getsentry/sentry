@@ -48,10 +48,19 @@ function renderToolMessage(content: any) {
   return content;
 }
 
-function parseAIMessages(messages: string): AIMessage[] | string {
+export function parseAIMessages(messages: unknown): AIMessage[] | string {
   try {
-    const array: any[] = Array.isArray(messages) ? messages : JSON.parse(messages);
-    return array
+    const parsedMessages = Array.isArray(messages)
+      ? messages
+      : typeof messages === 'string'
+        ? JSON.parse(messages)
+        : undefined;
+
+    if (!Array.isArray(parsedMessages)) {
+      throw new TypeError('AI messages payload is not an array');
+    }
+
+    return parsedMessages
       .map((message: any) => {
         if (!message.role || !message.content) {
           return null;
@@ -76,7 +85,17 @@ function parseAIMessages(messages: string): AIMessage[] | string {
     } catch {
       // ignore errors with browsers that don't support `cause`
     }
-    return messages;
+    if (typeof messages === 'string') {
+      return messages;
+    }
+    if (messages === undefined || messages === null) {
+      return '';
+    }
+    try {
+      return JSON.stringify(messages);
+    } catch {
+      return String(messages);
+    }
   }
 }
 
@@ -110,7 +129,7 @@ function transformInputMessages(inputMessages: string) {
   }
 }
 
-function transformPrompt(prompt: string) {
+export function transformPrompt(prompt: string) {
   try {
     const json = JSON.parse(prompt);
     const result = [];
@@ -121,9 +140,16 @@ function transformPrompt(prompt: string) {
         content: system,
       });
     }
-    const parsedMessages = parseAIMessages(messages);
-    if (parsedMessages) {
-      result.push(...parsedMessages);
+    if (messages) {
+      const parsedMessages = parseAIMessages(messages);
+      if (Array.isArray(parsedMessages)) {
+        result.push(...parsedMessages);
+      } else if (typeof parsedMessages === 'string' && parsedMessages.length > 0) {
+        result.push({
+          role: 'user',
+          content: parsedMessages,
+        });
+      }
     }
     return JSON.stringify(result);
   } catch (error) {
@@ -132,7 +158,7 @@ function transformPrompt(prompt: string) {
     } catch {
       // ignore errors with browsers that don't support `cause`
     }
-    return undefined;
+    return prompt;
   }
 }
 
