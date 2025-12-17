@@ -1526,6 +1526,7 @@ class TestOnboardingSeerSettingsUpdate(TestCase):
         assert preferences[0]["organization_id"] == organization.id
         assert preferences[0]["project_id"] == project.id
         assert preferences[0]["automated_run_stopping_point"] == "open_pr"
+        assert preferences[0]["autofix_automation_tuning"] == "off"
         assert len(preferences[0]["repositories"]) == 1
 
     @patch("sentry.seer.autofix.autofix.bulk_set_project_preferences")
@@ -1558,6 +1559,7 @@ class TestOnboardingSeerSettingsUpdate(TestCase):
         assert preferences[0]["organization_id"] == organization.id
         assert preferences[0]["project_id"] == project.id
         assert preferences[0]["automated_run_stopping_point"] == "code_changes"
+        assert preferences[0]["autofix_automation_tuning"] == "medium"
         assert len(preferences[0]["repositories"]) == 1
 
     @patch("sentry.seer.autofix.autofix.bulk_set_project_preferences")
@@ -1586,3 +1588,4 @@ class TestOnboardingSeerSettingsUpdate(TestCase):
         preferences = call_args[0][1]
         assert len(preferences) == 1
         assert preferences[0]["automated_run_stopping_point"] == "open_pr"
+        assert preferences[0]["autofix_automation_tuning"] == "medium"

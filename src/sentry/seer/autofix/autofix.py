@@ -612,6 +612,7 @@ def onboarding_seer_settings_update(
                 "organization_id": organization_id,
                 "project_id": project_id,
                 "repositories": [repo.dict() for repo in repositories],
+                "autofix_automation_tuning": rca_default_tuning,
                 "automated_run_stopping_point": stopping_point,
             }
         )
