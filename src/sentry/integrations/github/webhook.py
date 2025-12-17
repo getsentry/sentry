@@ -90,6 +90,7 @@ def is_contributor_eligible_for_seat_assignment(
     return user_type != "Bot" and author_association in (
         AuthorAssociation.MEMBER,
         AuthorAssociation.OWNER,
+        AuthorAssociation.COLLABORATOR,
     )
 
 
@@ -796,19 +797,6 @@ class PullRequestEventWebhook(GitHubWebhook):
                     tags={
                         "organization_id": organization.id,
                         "repository_id": repo.id,
-                    },
-                )
-
-                logger.info(
-                    "github.webhook.organization_contributor.eligibility_check",
-                    extra={
-                        "pr_number": number,
-                        "user_login": user["login"],
-                        "user_type": user_type,
-                        "author_association": author_association,
-                        "is_eligible": is_contributor_eligible_for_seat_assignment(
-                            user_type, author_association
-                        ),
                     },
                 )
 

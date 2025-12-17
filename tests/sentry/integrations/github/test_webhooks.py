@@ -1174,7 +1174,7 @@ class PullRequestEventWebhook(APITestCase):
         "sentry.integrations.github.webhook.should_create_or_increment_contributor_seat",
         return_value=True,
     )
-    def test_no_contributor_tracking_for_non_member_contributor(
+    def test_no_contributor_tracking_for_non_collaborator_contributor(
         self,
         mock_should_create_or_increment_contributor_seat: MagicMock,
         mock_assign_seat: MagicMock,
@@ -1197,7 +1197,7 @@ class PullRequestEventWebhook(APITestCase):
             integration.add_organization(self.project.organization.id, self.user)
 
         body = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
-        body["pull_request"]["author_association"] = "COLLABORATOR"
+        body["pull_request"]["author_association"] = "CONTRIBUTOR"
         modified_body = json.dumps(body).encode("utf-8")
 
         self.client.post(
