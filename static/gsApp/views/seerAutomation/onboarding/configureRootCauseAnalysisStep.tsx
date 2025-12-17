@@ -133,12 +133,6 @@ export function ConfigureRootCauseAnalysisStep() {
       }
     }
 
-    trackGetsentryAnalytics('seer.onboarding.root_cause_analysis_updated', {
-      organization,
-      auto_create_pr: autoCreatePREnabled,
-      projects_mapped: Object.keys(projectRepoMapping).length,
-    });
-
     // Only submit if RCA is disabled (empty mapping is fine) or there are valid mappings
     const hasMappings = Object.keys(projectRepoMapping).length > 0;
     if (!hasMappings) {
@@ -187,6 +181,11 @@ export function ConfigureRootCauseAnalysisStep() {
     Promise.all([doUpdateAutofix(), doSubmitOnboarding()])
       .then(() => {
         addSuccessMessage(t('Root Cause Analysis settings saved successfully'));
+        trackGetsentryAnalytics('seer.onboarding.root_cause_analysis_updated', {
+          organization,
+          auto_create_pr: autoCreatePREnabled,
+          projects_mapped: Object.keys(projectRepoMapping).length,
+        });
         setCurrentStep(currentStep + 1);
       })
       .catch(() => {

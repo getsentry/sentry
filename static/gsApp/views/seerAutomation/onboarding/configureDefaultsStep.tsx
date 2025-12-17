@@ -53,13 +53,6 @@ export function ConfigureDefaultsStep() {
   }, [setCurrentStep, currentStep]);
 
   const handleNextStep = useCallback(() => {
-    trackGetsentryAnalytics('seer.onboarding.defaults_updated', {
-      organization,
-      enable_code_review: enableCodeReview,
-      enable_root_cause_analysis: proposeFixesEnabled,
-      auto_create_pr: autoCreatePREnabled,
-    });
-
     updateOrganization(
       {
         defaultAutofixAutomationTuning: proposeFixesEnabled ? 'medium' : 'off',
@@ -68,8 +61,15 @@ export function ConfigureDefaultsStep() {
       },
       {
         onSuccess: () => {
-          setCurrentStep(currentStep + 1);
+          trackGetsentryAnalytics('seer.onboarding.defaults_updated', {
+            organization,
+            enable_code_review: enableCodeReview,
+            enable_root_cause_analysis: proposeFixesEnabled,
+            auto_create_pr: autoCreatePREnabled,
+          });
+
           addSuccessMessage(t('Seer default settings updated successfully'));
+          setCurrentStep(currentStep + 1);
         },
         onError: () => {
           addErrorMessage(

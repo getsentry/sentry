@@ -95,12 +95,6 @@ export function ConfigureCodeReviewStep() {
         );
       });
 
-    trackGetsentryAnalytics('seer.onboarding.code_review_updated', {
-      organization,
-      added_repositories: selectedCodeReviewRepositories.length,
-      removed_repositories: existingRepostoriesToRemove.length,
-    });
-
     const promises = [
       // This is intentionally serial bc they both mutate the same resource (the organization)
       // And react-query will only resolve the latest mutation
@@ -114,7 +108,15 @@ export function ConfigureCodeReviewStep() {
           // the user will have an overwhelming number of repositories to map.
           clearRootCauseAnalysisRepositories();
         }
+
         addSuccessMessage(t('AI Code Review settings updated successfully'));
+
+        trackGetsentryAnalytics('seer.onboarding.code_review_updated', {
+          organization,
+          added_repositories: selectedCodeReviewRepositories.length,
+          removed_repositories: existingRepostoriesToRemove.length,
+        });
+
         setCurrentStep(currentStep + 1);
       })
       .catch(() => {
