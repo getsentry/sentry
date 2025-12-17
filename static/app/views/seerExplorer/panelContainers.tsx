@@ -113,7 +113,7 @@ const PanelContainer = styled(motion.div)<{
     `
       : `
       width: 50vw;
-      height: 55vh;
+      height: 60vh;
       margin-left: -25vw;
     `}
 
