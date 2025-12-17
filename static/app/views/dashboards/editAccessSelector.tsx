@@ -4,6 +4,8 @@ import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import AvatarList, {CollapsedAvatars} from 'sentry/components/core/avatar/avatarList';
 import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
@@ -348,16 +350,20 @@ function EditAccessSelector({
       searchable
       options={allDropdownOptions}
       value={selectedOptions}
-      triggerProps={{
-        children: listOnly
-          ? [triggerAvatars]
-          : [
-              <LabelContainer key="selector-label">{t('Editors:')}</LabelContainer>,
-              triggerAvatars,
-            ],
-        borderless: listOnly,
-        style: listOnly ? {padding: 2} : {},
-      }}
+      trigger={triggerProps => (
+        <SelectTrigger.Button
+          {...triggerProps}
+          borderless={listOnly}
+          style={listOnly ? {padding: 2} : {}}
+        >
+          {listOnly
+            ? [triggerAvatars]
+            : [
+                <LabelContainer key="selector-label">{t('Editors:')}</LabelContainer>,
+                triggerAvatars,
+              ]}
+        </SelectTrigger.Button>
+      )}
       searchPlaceholder={t('Search Teams')}
       isOpen={isMenuOpen}
       onOpenChange={newOpenState => {

@@ -1,6 +1,7 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
 import {Flex} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -165,15 +166,19 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
           }}
           menuTitle={t('Version')}
           menuWidth={548}
-          triggerProps={{
-            prefix: t('Version'),
-            'aria-label': t('Version'),
-            children: version
-              ? undefined
-              : isFetching
-                ? t('Loading\u2026')
-                : t('Select a version'),
-          }}
+          trigger={triggerProps => (
+            <SelectTrigger.Button
+              {...triggerProps}
+              prefix={t('Version')}
+              aria-label={t('Version')}
+            >
+              {version
+                ? undefined
+                : isFetching
+                  ? t('Loading\u2026')
+                  : t('Select a version')}
+            </SelectTrigger.Button>
+          )}
           onClose={() => setSearchQuery('')}
         />
         {selectionError ? <ErrorText role="alert">{selectionError}</ErrorText> : null}

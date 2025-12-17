@@ -2,6 +2,8 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {IconList} from 'sentry/icons';
@@ -106,10 +108,9 @@ function FlamegraphThreadSelector({
 
   return (
     <StyledCompactSelect
-      triggerProps={{
-        icon: <IconList />,
-        size: 'xs',
-      }}
+      trigger={triggerProps => (
+        <SelectTrigger.Button {...triggerProps} icon={<IconList />} size="xs" />
+      )}
       options={[
         {key: 'profiles', label: t('Profiles'), options: profileOptions},
         {

@@ -2,6 +2,8 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
 import {Button} from 'sentry/components/core/button';
@@ -291,14 +293,20 @@ export function WizardProjectSelection({
         value={newProjectPlatform as string}
         searchable
         options={platformOptions}
-        triggerProps={{
-          icon: newProjectPlatform ? (
-            <PlatformIcon platform={newProjectPlatform} size={16} />
-          ) : null,
-          children: newProjectPlatform
-            ? platforms.find(p => p.id === newProjectPlatform)?.name
-            : t('Select a platform'),
-        }}
+        trigger={triggerProps => (
+          <SelectTrigger.Button
+            {...triggerProps}
+            icon={
+              newProjectPlatform ? (
+                <PlatformIcon platform={newProjectPlatform} size={16} />
+              ) : null
+            }
+          >
+            {newProjectPlatform
+              ? platforms.find(p => p.id === newProjectPlatform)?.name
+              : t('Select a platform')}
+          </SelectTrigger.Button>
+        )}
         onChange={({value}) => {
           setNewProjectPlatform(value as string);
         }}
@@ -328,16 +336,22 @@ export function WizardProjectSelection({
             value={selectedOrgId as string}
             searchable
             options={orgOptions}
-            triggerProps={{
-              icon: selectedOrg ? (
-                <OrganizationAvatar size={16} organization={selectedOrg} />
-              ) : null,
-              children: selectedOrg ? (
-                getOrgDisplayName(selectedOrg)
-              ) : (
-                <SelectPlaceholder>{t('Select an organization')}</SelectPlaceholder>
-              ),
-            }}
+            trigger={triggerProps => (
+              <SelectTrigger.Button
+                {...triggerProps}
+                icon={
+                  selectedOrg ? (
+                    <OrganizationAvatar size={16} organization={selectedOrg} />
+                  ) : null
+                }
+              >
+                {selectedOrg ? (
+                  getOrgDisplayName(selectedOrg)
+                ) : (
+                  <SelectPlaceholder>{t('Select an organization')}</SelectPlaceholder>
+                )}
+              </SelectTrigger.Button>
+            )}
             onChange={({value}) => {
               if (value !== selectedOrgId) {
                 setSelectedOrgId(value as string);
@@ -364,18 +378,24 @@ export function WizardProjectSelection({
               value={selectedProjectId as string}
               searchable
               options={sortedProjectOptions}
-              triggerProps={{
-                icon: isCreateProjectSelected ? (
-                  <IconAdd />
-                ) : selectedProject ? (
-                  <ProjectBadge avatarSize={16} project={selectedProject} hideName />
-                ) : null,
-                children: isCreateProjectSelected
-                  ? t('Create Project')
-                  : selectedProject?.slug || (
-                      <SelectPlaceholder>{t('Select a project')}</SelectPlaceholder>
-                    ),
-              }}
+              trigger={triggerProps => (
+                <SelectTrigger.Button
+                  {...triggerProps}
+                  icon={
+                    isCreateProjectSelected ? (
+                      <IconAdd />
+                    ) : selectedProject ? (
+                      <ProjectBadge avatarSize={16} project={selectedProject} hideName />
+                    ) : null
+                  }
+                >
+                  {isCreateProjectSelected
+                    ? t('Create Project')
+                    : selectedProject?.slug || (
+                        <SelectPlaceholder>{t('Select a project')}</SelectPlaceholder>
+                      )}
+                </SelectTrigger.Button>
+              )}
               onChange={({value}) => {
                 setSelectedProjectId(value as string);
               }}
@@ -424,14 +444,18 @@ export function WizardProjectSelection({
                         searchKey: team.slug,
                       })) || []
                     }
-                    triggerProps={{
-                      icon: selectedTeam ? (
-                        <IdBadge avatarSize={16} team={selectedTeam} hideName />
-                      ) : null,
-                      children: selectedTeam
-                        ? `#${selectedTeam.slug}`
-                        : t('Select a team'),
-                    }}
+                    trigger={triggerProps => (
+                      <SelectTrigger.Button
+                        {...triggerProps}
+                        icon={
+                          selectedTeam ? (
+                            <IdBadge avatarSize={16} team={selectedTeam} hideName />
+                          ) : null
+                        }
+                      >
+                        {selectedTeam ? `#${selectedTeam.slug}` : t('Select a team')}
+                      </SelectTrigger.Button>
+                    )}
                     onChange={({value}) => {
                       setNewProjectTeam(value as string);
                     }}

@@ -1,6 +1,8 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Link} from 'sentry/components/core/link';
@@ -115,7 +117,9 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
           value={functionType}
           options={SLOWEST_FUNCTION_OPTIONS}
           onChange={onChangeFunctionType}
-          triggerProps={{borderless: true, size: 'zero' as const}}
+          trigger={triggerProps => (
+            <SelectTrigger.Button {...triggerProps} borderless size="zero" />
+          )}
           offset={4}
         />
         <SlowestFunctionsPagination

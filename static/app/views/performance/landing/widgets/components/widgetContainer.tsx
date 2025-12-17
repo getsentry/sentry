@@ -292,7 +292,9 @@ function WidgetInteractiveTitle({
       options={menuOptions}
       value={chartSetting}
       onChange={handleChange}
-      triggerProps={{borderless: true, size: 'zero'}}
+      trigger={triggerProps => (
+        <SelectTrigger.Button {...triggerProps} borderless size="zero" />
+      )}
       offset={4}
     />
   );

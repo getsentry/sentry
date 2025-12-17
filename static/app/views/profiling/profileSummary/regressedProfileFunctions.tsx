@@ -2,6 +2,8 @@ import {useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Link} from 'sentry/components/core/link';
@@ -174,7 +176,9 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
           value={trendType}
           options={TREND_FUNCTION_OPTIONS}
           onChange={onChangeTrendType}
-          triggerProps={{borderless: true, size: 'zero' as const}}
+          trigger={triggerProps => (
+            <SelectTrigger.Button {...triggerProps} borderless size="zero" />
+          )}
           offset={4}
         />
         <RegressedFunctionsPagination

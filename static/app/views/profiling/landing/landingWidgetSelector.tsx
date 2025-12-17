@@ -2,6 +2,8 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
@@ -83,7 +85,9 @@ export function LandingWidgetSelector({
       value={selectedWidget}
       options={options}
       onChange={onWidgetChange}
-      triggerProps={{borderless: true, size: 'zero'}}
+      trigger={triggerProps => (
+        <SelectTrigger.Button {...triggerProps} borderless size="zero" />
+      )}
       offset={4}
     />
   );

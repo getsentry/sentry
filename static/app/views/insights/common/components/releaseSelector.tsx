@@ -2,6 +2,8 @@ import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {DateTime} from 'sentry/components/dateTime';
@@ -103,13 +105,17 @@ function ReleaseSelector({
 
   return (
     <StyledCompactSelect
-      triggerProps={{
-        icon: <IconReleases />,
-        title: selectorValue,
-        prefix: triggerLabelPrefix,
-        children: triggerLabel,
-        'aria-label': t('Filter Release'),
-      }}
+      trigger={triggerProps => (
+        <SelectTrigger.Button
+          {...triggerProps}
+          icon={<IconReleases />}
+          title={selectorValue}
+          prefix={triggerLabelPrefix}
+          aria-label={t('Filter Release')}
+        >
+          {triggerLabel}
+        </SelectTrigger.Button>
+      )}
       menuTitle={t('Filter Release')}
       loading={isLoading}
       searchable

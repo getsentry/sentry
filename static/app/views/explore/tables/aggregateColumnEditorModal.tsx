@@ -4,6 +4,8 @@ import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
@@ -307,13 +309,17 @@ function GroupBySelector({
       value={groupBy.groupBy}
       onChange={handleChange}
       searchable
-      triggerProps={{
-        children: label,
-        prefix: t('Group By'),
-        style: {
-          width: '100%',
-        },
-      }}
+      trigger={triggerProps => (
+        <SelectTrigger.Button
+          {...triggerProps}
+          prefix={t('Group By')}
+          style={{
+            width: '100%',
+          }}
+        >
+          {label}
+        </SelectTrigger.Button>
+      )}
     />
   );
 }
@@ -400,12 +406,15 @@ function AggregateSelector({
         value={parsedFunction?.name}
         onChange={handleFunctionChange}
         searchable
-        triggerProps={{
-          prefix: t('Function'),
-          style: {
-            width: '100%',
-          },
-        }}
+        trigger={triggerProps => (
+          <SelectTrigger.Button
+            {...triggerProps}
+            prefix={t('Function')}
+            style={{
+              width: '100%',
+            }}
+          />
+        )}
       />
       {aggregateDefinition?.parameters?.map((param, index) => {
         return (
@@ -417,11 +426,14 @@ function AggregateSelector({
             onChange={option => handleArgumentChange(index, option)}
             searchable
             disabled={argumentOptions.length === 1}
-            triggerProps={{
-              style: {
-                width: '100%',
-              },
-            }}
+            trigger={triggerProps => (
+              <SelectTrigger.Button
+                {...triggerProps}
+                style={{
+                  width: '100%',
+                }}
+              />
+            )}
           />
         );
       })}
@@ -433,11 +445,14 @@ function AggregateSelector({
           onChange={option => handleArgumentChange(0, option)}
           searchable
           disabled
-          triggerProps={{
-            style: {
-              width: '100%',
-            },
-          }}
+          trigger={triggerProps => (
+            <SelectTrigger.Button
+              {...triggerProps}
+              style={{
+                width: '100%',
+              }}
+            />
+          )}
         />
       )}
     </Fragment>
