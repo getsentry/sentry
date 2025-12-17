@@ -663,3 +663,131 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         assert no_commit_build is not None
         assert no_commit_build["vcs_info"]["head_sha"] is None
         assert no_commit_build["vcs_info"]["pr_number"] is None
+
+    # Case-insensitive exact match tests for app_id
+    def test_list_builds_filter_app_id_exact_match_same_case(self) -> None:
+        url = self._get_url()
+        response = self.client.get(
+            f"{url}?app_id=com.example.app",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert len(resp_data["builds"]) == 1
+        assert resp_data["builds"][0]["app_info"]["app_id"] == "com.example.app"
+
+    def test_list_builds_filter_app_id_exact_match_different_case(self) -> None:
+        url = self._get_url()
+        response = self.client.get(
+            f"{url}?app_id=COM.EXAMPLE.APP",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert len(resp_data["builds"]) == 1
+        assert resp_data["builds"][0]["app_info"]["app_id"] == "com.example.app"
+
+    def test_list_builds_filter_app_id_partial_match_no_results(self) -> None:
+        url = self._get_url()
+        response = self.client.get(
+            f"{url}?app_id=com.example",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+        assert response.status_code == 200
+        resp_data = response.json()
+        # Should return no results because we use exact match (iexact), not contains (icontains)
+        assert len(resp_data["builds"]) == 0
+
+    # Case-insensitive exact match tests for build_configuration
+    def test_list_builds_filter_build_configuration_exact_match_same_case(self) -> None:
+        build_config = self.create_preprod_build_configuration(
+            name="Release",
+            project=self.project,
+        )
+
+        self.create_preprod_artifact(
+            project=self.project,
+            file_id=self.file.id,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            app_id="com.example.release",
+            app_name="ReleaseApp",
+            build_version="1.0.0",
+            build_number=100,
+            build_configuration=build_config,
+            installable_app_file_id=1240,
+        )
+
+        url = self._get_url()
+        response = self.client.get(
+            f"{url}?build_configuration=Release",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert len(resp_data["builds"]) == 1
+        assert resp_data["builds"][0]["app_info"]["build_configuration"] == "Release"
+
+    def test_list_builds_filter_build_configuration_exact_match_different_case(self) -> None:
+        build_config = self.create_preprod_build_configuration(
+            name="Debug",
+            project=self.project,
+        )
+
+        self.create_preprod_artifact(
+            project=self.project,
+            file_id=self.file.id,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            app_id="com.example.debug",
+            app_name="DebugApp",
+            build_version="1.0.0",
+            build_number=101,
+            build_configuration=build_config,
+            installable_app_file_id=1241,
+        )
+
+        url = self._get_url()
+        response = self.client.get(
+            f"{url}?build_configuration=DEBUG",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert len(resp_data["builds"]) == 1
+        assert resp_data["builds"][0]["app_info"]["build_configuration"] == "Debug"
+
+    def test_list_builds_filter_build_configuration_partial_match_no_results(self) -> None:
+        build_config = self.create_preprod_build_configuration(
+            name="ReleaseProduction",
+            project=self.project,
+        )
+
+        self.create_preprod_artifact(
+            project=self.project,
+            file_id=self.file.id,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            app_id="com.example.releaseprod",
+            app_name="ReleaseProdApp",
+            build_version="1.0.0",
+            build_number=102,
+            build_configuration=build_config,
+            installable_app_file_id=1242,
+        )
+
+        url = self._get_url()
+        response = self.client.get(
+            f"{url}?build_configuration=Release",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+        assert response.status_code == 200
+        resp_data = response.json()
+        # Should return no results because we use exact match (iexact), not contains (icontains)
+        assert len(resp_data["builds"]) == 0
