@@ -8,7 +8,7 @@ from django.utils import timezone
 from sentry.constants import ObjectStatus
 from sentry.incidents.subscription_processor import SubscriptionProcessor
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import QuerySubscription
+from sentry.snuba.models import SnubaQuery
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.types import DetectorPriorityLevel
@@ -60,12 +60,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
     @patch("sentry.incidents.subscription_processor.metrics")
     def test_has_downgraded_incidents_performance(self, mock_metrics: MagicMock) -> None:
-        data_source = self.detector.data_sources.first()
-        query_subscription = QuerySubscription.objects.get(id=int(data_source.source_id))
-        query_subscription.snuba_query.update(
-            time_window=15 * 60, dataset=Dataset.Transactions.value
-        )
-        query_subscription.snuba_query.save()
+        snuba_query = self.get_snuba_query(self.detector)
+        snuba_query.update(time_window=15 * 60, dataset=Dataset.Transactions.value)
+        snuba_query.save()
 
         processor = SubscriptionProcessor(self.sub)
         message = self.build_subscription_update(
@@ -80,12 +77,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
     @patch("sentry.incidents.subscription_processor.metrics")
     def test_has_downgraded_on_demand(self, mock_metrics: MagicMock) -> None:
-        data_source = self.detector.data_sources.first()
-        query_subscription = QuerySubscription.objects.get(id=int(data_source.source_id))
-        query_subscription.snuba_query.update(
-            time_window=15 * 60, dataset=Dataset.PerformanceMetrics.value
-        )
-        query_subscription.snuba_query.save()
+        snuba_query = self.get_snuba_query(self.detector)
+        snuba_query.update(time_window=15 * 60, dataset=Dataset.PerformanceMetrics.value)
+        snuba_query.save()
 
         processor = SubscriptionProcessor(self.sub)
         message = self.build_subscription_update(
@@ -99,7 +93,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             )
 
     @patch("sentry.incidents.subscription_processor.metrics")
-    def test_test_skip_already_processed_update(self, mock_metrics: MagicMock) -> None:
+    def test_skip_already_processed_update(self, mock_metrics: MagicMock) -> None:
         assert self.send_update(value=self.critical_threshold + 1) is True
         mock_metrics.incr.reset_mock()
         assert self.send_update(value=self.critical_threshold + 1) is False
@@ -188,25 +182,25 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
     @cached_property
     def comparison_detector_above(self):
-        detector = self.metric_detector
-        detector.config.update({"comparison_delta": 60 * 60})
-        detector.save()
-        self.update_threshold(detector, DetectorPriorityLevel.HIGH, 150)
-        self.update_threshold(detector, DetectorPriorityLevel.OK, 150)
-        snuba_query = self.get_snuba_query(detector)
-        snuba_query.update(time_window=60 * 60)
-        return detector
+        self.detector.config.update({"comparison_delta": 60 * 60})
+        self.detector.save()
+        self.update_threshold(self.detector, DetectorPriorityLevel.HIGH, 150)
+        self.update_threshold(self.detector, DetectorPriorityLevel.OK, 150)
+        self.snuba_query = self.get_snuba_query(self.detector)
+        self.snuba_query.update(time_window=60 * 60)
+        return self.detector
 
     @cached_property
     def comparison_detector_below(self):
-        detector = self.metric_detector
-        detector.config.update({"comparison_delta": 60 * 60})
-        detector.save()
-        DataCondition.objects.filter(condition_group=detector.workflow_condition_group).delete()
-        self.set_up_data_conditions(detector, Condition.LESS, 50, None, 50)
-        snuba_query = self.get_snuba_query(detector)
-        snuba_query.update(time_window=60 * 60)
-        return detector
+        self.detector.config.update({"comparison_delta": 60 * 60})
+        self.detector.save()
+        self.DataCondition.objects.filter(
+            condition_group=self.detector.workflow_condition_group
+        ).delete()
+        self.set_up_data_conditions(self.detector, Condition.LESS, 50, None, 50)
+        self.snuba_query = self.get_snuba_query(self.detector)
+        self.snuba_query.update(time_window=60 * 60)
+        return self.detector
 
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
     def test_comparison_alert_above(self, helper_metrics):
@@ -402,6 +396,59 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
                 project_id=self.project.id,
             )
 
+        self.metrics.incr.reset_mock()
+        self.send_update(2, timedelta(minutes=-9))
+        # Shouldn't trigger, since there are 4 events in the comparison period, and 2/4 == 50%
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
+
+        self.send_update(4, timedelta(minutes=-8))
+        # Shouldn't trigger, since there are 4 events in the comparison period, and 4/4 == 100%
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
+
+        self.send_update(6, timedelta(minutes=-7))
+        # Shouldn't trigger: 6/4 == 150%, but we want > 150%
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
+
+        self.send_update(7, timedelta(minutes=-6))
+        # Should trigger: 7/4 == 175% > 150%
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.HIGH
+
+        # Check that we successfully resolve
+        self.send_update(6, timedelta(minutes=-5))
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
+
+    @patch("sentry.incidents.utils.process_update_helpers.metrics")
+    def test_comparison_alert_eap(self, helper_metrics):
+        detector = self.comparison_detector_above
+        self.snuba_query.update(
+            dataset=Dataset.EventsAnalyticsPlatform.value,
+            type=SnubaQuery.Type.PERFORMANCE.value,
+        )
+        self.send_update(self.critical_threshold + 1, timedelta(minutes=-10))
+
+        # Shouldn't trigger, since there should be no data in the comparison period
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
+        helper_metrics.incr.assert_has_calls(
+            [
+                call("incidents.alert_rules.skipping_update_comparison_value_invalid"),
+            ]
+        )
+        self.metrics.incr.assert_has_calls(
+            [
+                call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
+            ]
+        )
+        comparison_delta = timedelta(seconds=detector.config["comparison_delta"])
+        comparison_date = timezone.now() - comparison_delta
+
+        for i in range(4):
+            self.store_event(
+                data={
+                    "timestamp": (comparison_date - timedelta(minutes=30 + i)).isoformat(),
+                    "environment": self.environment.name,
+                },
+                project_id=self.project.id,
+            )
         self.metrics.incr.reset_mock()
         self.send_update(2, timedelta(minutes=-9))
         # Shouldn't trigger, since there are 4 events in the comparison period, and 2/4 == 50%
