@@ -26,5 +26,5 @@ class ProjectReplayEndpoint(ProjectEndpoint):
         ):
             raise NotFound()
 
-        if not has_replay_permission(project.organization, request.user):
+        if not has_replay_permission(request, project.organization):
             raise PermissionDenied()

@@ -69,7 +69,7 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
         """
         Retrieve a collection of replay delete jobs.
         """
-        if not has_replay_permission(project.organization, request.user):
+        if not has_replay_permission(request, project.organization):
             return Response(status=403)
 
         queryset = ReplayDeletionJobModel.objects.filter(
@@ -90,7 +90,7 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
         """
         Create a new replay deletion job.
         """
-        if not has_replay_permission(project.organization, request.user):
+        if not has_replay_permission(request, project.organization):
             return Response(status=403)
 
         serializer = ReplayDeletionJobCreateSerializer(data=request.data)
