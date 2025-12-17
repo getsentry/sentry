@@ -42,6 +42,7 @@ type ParamKeys =
   | 'release'
   | 'relocationUuid'
   | 'replaySlug'
+  | 'repoId'
   | 'ruleId'
   | 'scrubbingId'
   | 'searchId'
