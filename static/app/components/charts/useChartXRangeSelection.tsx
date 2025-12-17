@@ -14,6 +14,7 @@ import type {EChartsInstance} from 'echarts-for-react';
 
 import ToolBox from 'sentry/components/charts/components/toolBox';
 import type {EChartBrushEndHandler, EChartBrushStartHandler} from 'sentry/types/echarts';
+import usePrevious from 'sentry/utils/usePrevious';
 
 export type Selection = {
   /**
@@ -146,6 +147,8 @@ export function useChartXRangeSelection({
   const tooltipFrameRef = useRef<number | null>(null);
   const brushStateSyncFrameRef = useRef<number | null>(null);
 
+  const previousInitialSelection = usePrevious(initialSelection);
+
   const clearSelection = useCallback(() => {
     if (!selectionState?.selection) return;
 
@@ -221,11 +224,15 @@ export function useChartXRangeSelection({
         setSelectionState(newState);
 
         if (newState) {
-          onSelectionEnd?.(callbackParams);
+          onSelectionEnd?.({
+            selectionState: newState,
+            setSelectionState,
+            clearSelection,
+          });
         }
       }
     },
-    [onSelectionEnd, callbackParams]
+    [onSelectionEnd, setSelectionState, clearSelection]
   );
 
   const enableBrushMode = useCallback(() => {
@@ -237,10 +244,73 @@ export function useChartXRangeSelection({
     });
   }, [chartRef]);
 
+  const syncSelectionStates = useCallback(() => {
+    if (disabled) return;
+
+    const chartInstance = chartRef.current?.getEchartsInstance();
+
+    if (!chartInstance) {
+      return;
+    }
+
+    const hasInitialSelectionChanged = previousInitialSelection !== initialSelection;
+
+    // Initial selection changed to undefined, so we clear the selection
+    // Example: Back navigation to an unselected chart region state
+    if (hasInitialSelectionChanged && !initialSelection) {
+      clearSelection();
+      return;
+    }
+
+    // No initial selection to sync
+    if (!initialSelection) {
+      return;
+    }
+
+    // Determine if we need to update state. This is the case when:
+    // 1. No current selection state BUT initialSelection is defined, so we initialize the selection state
+    // 2. Initial selection changed and range is different.
+    //    Example: Back navigation from one selected chart region state to another selected chart region state.
+    const hasRangeChanged =
+      selectionState &&
+      (selectionState.selection.range[0] !== initialSelection.range[0] ||
+        selectionState.selection.range[1] !== initialSelection.range[1]);
+
+    const newState = calculateNewState({
+      chartInstance,
+      newRange: initialSelection.range,
+      panelId: initialSelection.panelId,
+    });
+
+    // If we couldn't calculate a new state (ex: out of bounds selection), we clear selection
+    if (!newState) {
+      clearSelection();
+      return;
+    }
+
+    const shouldUpdateState =
+      !selectionState || (hasInitialSelectionChanged && hasRangeChanged);
+
+    if (!shouldUpdateState) {
+      return;
+    }
+
+    setSelectionState(newState);
+  }, [
+    initialSelection,
+    selectionState,
+    clearSelection,
+    chartRef,
+    previousInitialSelection,
+    disabled,
+  ]);
+
   // This effect sets up the listener for clicks anywhere on the chart to trigger the
   // onChartClick callback if it is passed in. The params to it include state management functions,
   // giving the consumer full control over the selection state.
   useEffect(() => {
+    if (disabled) return;
+
     const chartInstance = chartRef.current?.getEchartsInstance();
     if (!chartInstance) return;
 
@@ -258,7 +328,7 @@ export function useChartXRangeSelection({
     return () => {
       dom.removeEventListener('click', handleClickAnywhere);
     };
-  }, [enableBrushMode, callbackParams, chartRef, onChartClick]);
+  }, [enableBrushMode, callbackParams, chartRef, onChartClick, disabled]);
 
   // This effect fires whenever state changes. It:
   // - Re-draws the selection box in the chart on state change enforcing persistence.
@@ -304,20 +374,7 @@ export function useChartXRangeSelection({
     // Everything inside `requestAnimationFrame` is called only after the current render cycle completes,
     // and this ensures ECharts has fully processed all the dispatchActions like the one above.
     brushStateSyncFrameRef.current = requestAnimationFrame(() => {
-      // We only propagate the range of the selection box to the consumers,
-      // so we need to calculate the rest of the state from the `initialSelection` prop on load.
-      if (initialSelection && !selectionState) {
-        const newState = calculateNewState({
-          chartInstance,
-          newRange: initialSelection.range,
-          panelId: initialSelection.panelId,
-        });
-
-        if (newState) {
-          setSelectionState(newState);
-        }
-      }
-
+      syncSelectionStates();
       enableBrushMode();
     });
 
@@ -339,6 +396,7 @@ export function useChartXRangeSelection({
     chartsGroupName,
     initialSelection,
     deps,
+    syncSelectionStates,
   ]);
 
   const brush: BrushComponentOption | undefined = useMemo(() => {
@@ -437,6 +495,11 @@ function calculateNewState({
   const xMaxPixel = chartInstance.convertToPixel({xAxisIndex: 0}, xMax);
   const yMinPixel = chartInstance.convertToPixel({yAxisIndex: 0}, yMin);
   const [selected_xMin, selected_xMax] = newRange;
+
+  // If the selection is completely out of bounds, return null
+  if (selected_xMin > xMax || selected_xMax < xMin) {
+    return null;
+  }
 
   // Since we can keep dragging beyond the visible range,
   // clamp the ranges to the minimum and maximum values of the visible x axis and y axis
