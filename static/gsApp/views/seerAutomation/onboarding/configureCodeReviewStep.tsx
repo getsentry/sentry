@@ -15,6 +15,7 @@ import {
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
+import {DEFAULT_CODE_REVIEW_TRIGGERS} from 'sentry/types/integrations';
 
 import {useSeerOnboardingContext} from 'getsentry/views/seerAutomation/onboarding/hooks/seerOnboardingContext';
 import {useBulkUpdateRepositorySettings} from 'getsentry/views/seerAutomation/onboarding/hooks/useBulkUpdateRepositorySettings';
@@ -24,11 +25,6 @@ import {RepositorySelector} from './repositorySelector';
 
 // This is the max # of repos that we will allow to be pre-selected.
 const MAX_REPOSITORIES_TO_PRESELECT = 10;
-const DEFAULT_CODE_REVIEW_TRIGGERS = [
-  'on_command_phrase',
-  'on_new_commit',
-  'on_ready_for_review',
-];
 
 export function ConfigureCodeReviewStep() {
   const {currentStep, setCurrentStep} = useGuidedStepsContext();
