@@ -11,6 +11,7 @@ interface UseQueryParamStateWithScalarDecoder<T> {
   decoder?: typeof decodeScalar;
   deserializer?: (value: ReturnType<typeof decodeScalar>) => T | undefined;
   serializer?: (value: T) => string;
+  syncStateWithUrl?: boolean;
 }
 
 interface UseQueryParamStateWithListDecoder<T> {
@@ -18,6 +19,7 @@ interface UseQueryParamStateWithListDecoder<T> {
   fieldName: string;
   deserializer?: (value: ReturnType<typeof decodeList>) => T;
   serializer?: (value: T) => string[];
+  syncStateWithUrl?: boolean;
 }
 
 interface UseQueryParamStateWithSortsDecoder<T> {
@@ -25,6 +27,7 @@ interface UseQueryParamStateWithSortsDecoder<T> {
   fieldName: string;
   serializer: (value: T) => string[];
   deserializer?: (value: ReturnType<typeof decodeSorts>) => T;
+  syncStateWithUrl?: boolean;
 }
 
 type UseQueryParamStateProps<T> =
@@ -48,6 +51,7 @@ export function useQueryParamState<T = string>({
   decoder,
   deserializer,
   serializer,
+  syncStateWithUrl = false,
 }: UseQueryParamStateProps<T>): [
   T | undefined,
   (newField: T | undefined, options?: UseQueryParamStateOptions) => void,
@@ -79,8 +83,10 @@ export function useQueryParamState<T = string>({
 
   // Sync local state when URL query params change (e.g., browser back/forward navigation)
   useEffect(() => {
+    if (!syncStateWithUrl) return;
+
     setLocalState(deserializeValue());
-  }, [deserializeValue]);
+  }, [deserializeValue, syncStateWithUrl]);
 
   const updateField = useCallback(
     (newField: T | undefined, options: UseQueryParamStateOptions = {updateUrl: true}) => {
