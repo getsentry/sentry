@@ -477,7 +477,10 @@ export function Control({
     <SelectContext value={contextValue}>
       <ControlWrap {...wrapperProps}>
         {trigger ? (
-          trigger(mergeProps(triggerKeyboardProps, overlayTriggerProps), overlayIsOpen)
+          trigger(
+            mergeProps({id: triggerProps.id}, triggerKeyboardProps, overlayTriggerProps),
+            overlayIsOpen
+          )
         ) : (
           <DropdownButton
             size={size}
