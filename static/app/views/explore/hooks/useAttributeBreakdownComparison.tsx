@@ -87,7 +87,7 @@ function useAttributeBreakdownComparison({
       {query: queryParams},
     ],
     {
-      staleTime: Infinity,
+      staleTime: 0,
       enabled: !!aggregateFunction && !!range,
     }
   );

@@ -270,20 +270,24 @@ function Chart({
               chartRef={chartRef}
               chartXRangeSelection={{
                 initialSelection: initialChartSelection,
+                onChartClick: params => {
+                  if (!params.selectionState) return;
+
+                  // Always show the action menu when the chart is clicked.
+                  params.setSelectionState({
+                    ...params.selectionState,
+                    isActionMenuVisible: true,
+                  });
+                },
                 onClearSelection: () => {
                   setChartSelection(null);
                 },
                 disabled: !organization.features.includes(
                   'performance-spans-suspect-attributes'
                 ),
-                actionMenuRenderer: (selection, clearSelection) => {
+                actionMenuRenderer: params => {
                   return (
-                    <FloatingTrigger
-                      chartIndex={index}
-                      selection={selection}
-                      clearSelection={clearSelection}
-                      setTab={setTab}
-                    />
+                    <FloatingTrigger chartIndex={index} params={params} setTab={setTab} />
                   );
                 },
               }}

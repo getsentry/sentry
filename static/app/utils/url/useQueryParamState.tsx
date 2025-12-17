@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {defined} from 'sentry/utils';
@@ -11,6 +11,7 @@ interface UseQueryParamStateWithScalarDecoder<T> {
   decoder?: typeof decodeScalar;
   deserializer?: (value: ReturnType<typeof decodeScalar>) => T | undefined;
   serializer?: (value: T) => string;
+  syncStateWithUrl?: boolean;
 }
 
 interface UseQueryParamStateWithListDecoder<T> {
@@ -18,6 +19,7 @@ interface UseQueryParamStateWithListDecoder<T> {
   fieldName: string;
   deserializer?: (value: ReturnType<typeof decodeList>) => T;
   serializer?: (value: T) => string[];
+  syncStateWithUrl?: boolean;
 }
 
 interface UseQueryParamStateWithSortsDecoder<T> {
@@ -25,6 +27,7 @@ interface UseQueryParamStateWithSortsDecoder<T> {
   fieldName: string;
   serializer: (value: T) => string[];
   deserializer?: (value: ReturnType<typeof decodeSorts>) => T;
+  syncStateWithUrl?: boolean;
 }
 
 type UseQueryParamStateProps<T> =
@@ -48,6 +51,7 @@ export function useQueryParamState<T = string>({
   decoder,
   deserializer,
   serializer,
+  syncStateWithUrl = false,
 }: UseQueryParamStateProps<T>): [
   T | undefined,
   (newField: T | undefined, options?: UseQueryParamStateOptions) => void,
@@ -60,9 +64,9 @@ export function useQueryParamState<T = string>({
       [fieldName]: decoder ?? decodeScalar,
     },
   });
-  const [localState, setLocalState] = useState<T | undefined>(() => {
-    const decodedValue = parsedQueryParams[fieldName];
 
+  const deserializeValue = useCallback((): T | undefined => {
+    const decodedValue = parsedQueryParams[fieldName];
     if (!defined(decodedValue)) {
       return undefined;
     }
@@ -71,9 +75,18 @@ export function useQueryParamState<T = string>({
       ? deserializer(decodedValue as any)
       : // TODO(nar): This is a temporary fix to avoid type errors
         // When the deserializer isn't provided, we should return the value
-        // if T is a string, or else return undefined
+        // if T is a string, number, boolean, or array, or else return undefined
         (decodedValue as T);
-  });
+  }, [parsedQueryParams, fieldName, deserializer]);
+
+  const [localState, setLocalState] = useState<T | undefined>(deserializeValue);
+
+  // Sync local state when URL query params change (e.g., browser back/forward navigation)
+  useEffect(() => {
+    if (!syncStateWithUrl) return;
+
+    setLocalState(deserializeValue());
+  }, [deserializeValue, syncStateWithUrl]);
 
   const updateField = useCallback(
     (newField: T | undefined, options: UseQueryParamStateOptions = {updateUrl: true}) => {
