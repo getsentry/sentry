@@ -305,6 +305,8 @@ export function useChartXRangeSelection({
   // onChartClick callback if it is passed in. The params to it include state management functions,
   // giving the consumer full control over the selection state.
   useEffect(() => {
+    if (disabled) return;
+
     const chartInstance = chartRef.current?.getEchartsInstance();
     if (!chartInstance) return;
 
@@ -322,7 +324,7 @@ export function useChartXRangeSelection({
     return () => {
       dom.removeEventListener('click', handleClickAnywhere);
     };
-  }, [enableBrushMode, callbackParams, chartRef, onChartClick]);
+  }, [enableBrushMode, callbackParams, chartRef, onChartClick, disabled]);
 
   // This effect fires whenever state changes. It:
   // - Re-draws the selection box in the chart on state change enforcing persistence.
