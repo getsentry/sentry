@@ -432,7 +432,7 @@ class TestHasProjectConnectedRepos(TestCase):
         mock_cache.set.assert_called_once_with(
             f"seer-project-has-repos:{self.organization.id}:{self.project.id}",
             True,
-            timeout=60 * 60,
+            timeout=60 * 15,
         )
 
     @patch("sentry.seer.autofix.utils.get_autofix_repos_from_project_code_mappings")
@@ -456,7 +456,7 @@ class TestHasProjectConnectedRepos(TestCase):
         mock_cache.set.assert_called_once_with(
             f"seer-project-has-repos:{self.organization.id}:{self.project.id}",
             False,
-            timeout=60 * 60,
+            timeout=60 * 15,
         )
 
     @patch("sentry.seer.autofix.utils.get_autofix_repos_from_project_code_mappings")
@@ -478,7 +478,7 @@ class TestHasProjectConnectedRepos(TestCase):
         mock_cache.set.assert_called_once_with(
             f"seer-project-has-repos:{self.organization.id}:{self.project.id}",
             False,
-            timeout=60 * 60,
+            timeout=60 * 15,
         )
 
     @patch("sentry.seer.autofix.utils.get_autofix_repos_from_project_code_mappings")
@@ -503,7 +503,7 @@ class TestHasProjectConnectedRepos(TestCase):
         mock_cache.set.assert_called_once_with(
             f"seer-project-has-repos:{self.organization.id}:{self.project.id}",
             True,
-            timeout=60 * 60,
+            timeout=60 * 15,
         )
 
     @patch("sentry.seer.autofix.utils.cache")
@@ -529,6 +529,24 @@ class TestHasProjectConnectedRepos(TestCase):
         assert result is False
         mock_get_preferences.assert_not_called()
         mock_cache.set.assert_not_called()
+
+    @patch("sentry.seer.autofix.utils.cache")
+    @patch("sentry.seer.autofix.utils.get_project_seer_preferences")
+    def test_skip_cache_bypasses_cached_value(self, mock_get_preferences, mock_cache):
+        """Test skip_cache=True bypasses cache and calls API."""
+        mock_cache.get.return_value = False  # Cache has False
+        mock_preference = Mock()
+        mock_preference.repositories = [{"provider": "github", "owner": "test", "name": "repo"}]
+        mock_response = Mock()
+        mock_response.preference = mock_preference
+        mock_get_preferences.return_value = mock_response
+
+        result = has_project_connected_repos(self.organization.id, self.project.id, skip_cache=True)
+
+        assert result is True  # Fresh value from API, not cached False
+        mock_cache.get.assert_not_called()  # Cache not checked
+        mock_get_preferences.assert_called_once()  # API was called
+        mock_cache.set.assert_called_once()  # Cache still updated
 
     @patch("sentry.seer.autofix.utils.get_autofix_repos_from_project_code_mappings")
     @patch("sentry.seer.autofix.utils.cache")
