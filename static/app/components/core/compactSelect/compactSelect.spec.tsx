@@ -3,6 +3,10 @@ import {expectTypeOf} from 'expect-type';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
+import DropdownButton from 'sentry/components/dropdownButton';
+
 import {CompactSelect, type SelectOption} from './';
 
 describe('CompactSelect', () => {
@@ -89,6 +93,39 @@ describe('CompactSelect', () => {
               Array<SelectOption<'opt_one' | 'opt_two'>>
             >();
             return true;
+          }}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+        />
+      );
+    });
+
+    it('should only allow SelectTrigger as trigger', () => {
+      const value: 'opt_one' | 'opt_two' = 'opt_one';
+      void (
+        <CompactSelect
+          value={value}
+          onChange={() => {}}
+          trigger={props => {
+            // @ts-expect-error should only allow SelectTrigger components
+            return <DropdownButton {...props}>Trigger</DropdownButton>;
+          }}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+        />
+      );
+
+      void (
+        <CompactSelect
+          value={value}
+          onChange={() => {}}
+          trigger={props => {
+            // no type error here
+            return <SelectTrigger.Button {...props}>Trigger</SelectTrigger.Button>;
           }}
           options={[
             {value: 'opt_one', label: 'Option One'},

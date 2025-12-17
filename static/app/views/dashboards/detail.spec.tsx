@@ -241,7 +241,6 @@ describe('Dashboards > Detail', () => {
       render(
         <CreateDashboard
           {...RouteComponentPropsFixture()}
-          organization={initialData.organization}
           params={{templateId: 'default-template', widgetId: '2'}}
           router={initialData.router}
           location={{...initialData.router.location, pathname: '/widget/2/'}}
@@ -988,7 +987,6 @@ describe('Dashboards > Detail', () => {
       render(
         <CreateDashboard
           {...RouteComponentPropsFixture()}
-          organization={initialData.organization}
           params={{templateId: undefined}}
           router={initialData.router}
           location={{
@@ -1032,7 +1030,6 @@ describe('Dashboards > Detail', () => {
       render(
         <CreateDashboard
           {...RouteComponentPropsFixture()}
-          organization={initialData.organization}
           params={{templateId: 'default-template'}}
           router={initialData.router}
           location={{
@@ -1080,7 +1077,6 @@ describe('Dashboards > Detail', () => {
       render(
         <CreateDashboard
           {...RouteComponentPropsFixture()}
-          organization={initialData.organization}
           params={{templateId: 'default-template'}}
           router={initialData.router}
           location={initialData.router.location}
@@ -2296,11 +2292,8 @@ describe('Dashboards > Detail', () => {
           })}
           dashboards={[]}
           onDashboardUpdate={jest.fn()}
-          newWidget={undefined}
-          onSetNewWidget={() => {}}
         />,
         {
-          organization: initialData.organization,
           deprecatedRouterMocks: true,
         }
       );
@@ -2349,8 +2342,6 @@ describe('Dashboards > Detail', () => {
             dashboard={DashboardFixture([])}
             dashboards={[]}
             onDashboardUpdate={jest.fn()}
-            newWidget={undefined}
-            onSetNewWidget={() => {}}
           />,
           {
             organization: initialData.organization,
@@ -2372,8 +2363,6 @@ describe('Dashboards > Detail', () => {
             dashboard={DashboardFixture([])}
             dashboards={[]}
             onDashboardUpdate={jest.fn()}
-            newWidget={undefined}
-            onSetNewWidget={() => {}}
           />,
           {
             organization: initialData.organization,
@@ -2395,8 +2384,6 @@ describe('Dashboards > Detail', () => {
             dashboard={DashboardFixture([])}
             dashboards={[]}
             onDashboardUpdate={jest.fn()}
-            newWidget={undefined}
-            onSetNewWidget={() => {}}
           />,
           {
             organization: initialData.organization,
@@ -2418,8 +2405,6 @@ describe('Dashboards > Detail', () => {
             dashboard={DashboardFixture([])}
             dashboards={[]}
             onDashboardUpdate={jest.fn()}
-            newWidget={undefined}
-            onSetNewWidget={() => {}}
           />,
           {
             organization: initialData.organization,
@@ -2452,8 +2437,6 @@ describe('Dashboards > Detail', () => {
             dashboard={mockDashboard}
             dashboards={[]}
             onDashboardUpdate={jest.fn()}
-            newWidget={undefined}
-            onSetNewWidget={() => {}}
           />,
           {
             organization: initialData.organization,
@@ -2499,8 +2482,6 @@ describe('Dashboards > Detail', () => {
             dashboard={mockDashboard}
             dashboards={[]}
             onDashboardUpdate={jest.fn()}
-            newWidget={undefined}
-            onSetNewWidget={() => {}}
           />,
           {
             organization: initialData.organization,
@@ -2546,8 +2527,6 @@ describe('Dashboards > Detail', () => {
             dashboard={mockDashboard}
             dashboards={[]}
             onDashboardUpdate={jest.fn()}
-            newWidget={undefined}
-            onSetNewWidget={() => {}}
           />,
           {
             organization: initialData.organization,
@@ -2603,11 +2582,10 @@ describe('Dashboards > Detail', () => {
             dashboard={mockDashboard}
             dashboards={[]}
             onDashboardUpdate={jest.fn()}
-            newWidget={undefined}
-            onSetNewWidget={() => {}}
           />,
           {
             organization: initialData.organization,
+
             deprecatedRouterMocks: true,
           }
         );
