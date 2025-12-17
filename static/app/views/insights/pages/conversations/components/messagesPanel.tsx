@@ -1,0 +1,264 @@
+import {useCallback, useMemo} from 'react';
+import styled from '@emotion/styled';
+
+import ClippedBox from 'sentry/components/clippedBox';
+import {Stack} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
+import EmptyMessage from 'sentry/components/emptyMessage';
+import {IconUser} from 'sentry/icons';
+import {IconBot} from 'sentry/icons/iconBot';
+import {t} from 'sentry/locale';
+import {MarkedText} from 'sentry/utils/marked/markedText';
+import {getIsAiGenerationSpan} from 'sentry/views/insights/pages/agents/utils/query';
+import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
+import {SpanFields} from 'sentry/views/insights/types';
+import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+
+interface UserMessage {
+  content: string;
+  nodeId: null;
+  role: 'user';
+  timestamp: number;
+}
+
+interface AssistantMessage {
+  content: string;
+  nodeId: string;
+  role: 'assistant';
+  timestamp: number;
+}
+
+type ConversationMessage = UserMessage | AssistantMessage;
+
+interface RequestMessage {
+  content: string | Array<{text: string}>;
+  role: string;
+}
+
+/**
+ * Extracts messages from LLM generation spans.
+ * User messages come from gen_ai.request.messages, assistant messages from gen_ai.response.text
+ */
+function extractMessagesFromNodes(nodes: AITraceSpanNode[]): ConversationMessage[] {
+  const messages: ConversationMessage[] = [];
+  const seenUserMessages = new Set<string>();
+  const seenAssistantMessages = new Set<string>();
+
+  for (const node of nodes) {
+    const genAiOpType = node.attributes?.[SpanFields.GEN_AI_OPERATION_TYPE] as
+      | string
+      | undefined;
+    if (!getIsAiGenerationSpan(genAiOpType)) {
+      continue;
+    }
+
+    const timestamp = 'start_timestamp' in node.value ? node.value.start_timestamp : 0;
+
+    // Extract user input from request messages
+    const requestMessages = node.attributes?.[SpanFields.GEN_AI_REQUEST_MESSAGES] as
+      | string
+      | undefined;
+    if (requestMessages) {
+      try {
+        const messagesArray: RequestMessage[] = JSON.parse(requestMessages);
+        const userMessage = messagesArray.findLast(msg => msg.role === 'user');
+        if (userMessage?.content) {
+          const content =
+            typeof userMessage.content === 'string'
+              ? userMessage.content
+              : (userMessage.content[0]?.text ?? '');
+          // Deduplicate user messages by content
+          if (content && !seenUserMessages.has(content)) {
+            seenUserMessages.add(content);
+            messages.push({role: 'user', content, timestamp, nodeId: null});
+          }
+        }
+      } catch {
+        // If JSON parsing fails, use the raw string
+        if (!seenUserMessages.has(requestMessages)) {
+          seenUserMessages.add(requestMessages);
+          messages.push({
+            role: 'user',
+            content: requestMessages,
+            timestamp,
+            nodeId: null,
+          });
+        }
+      }
+    }
+
+    // Extract assistant output - link to the span node
+    const responseText =
+      (node.attributes?.[SpanFields.GEN_AI_RESPONSE_TEXT] as string | undefined) ||
+      (node.attributes?.[SpanFields.GEN_AI_RESPONSE_OBJECT] as string | undefined);
+    // Deduplicate assistant messages by content
+    if (responseText && !seenAssistantMessages.has(responseText)) {
+      seenAssistantMessages.add(responseText);
+      messages.push({
+        role: 'assistant',
+        content: responseText,
+        timestamp: timestamp + 1,
+        nodeId: node.id,
+      });
+    }
+  }
+
+  // Sort by timestamp
+  messages.sort((a, b) => a.timestamp - b.timestamp);
+
+  return messages;
+}
+
+interface MessagesPanelProps {
+  nodes: AITraceSpanNode[];
+  onSelectNode: (node: AITraceSpanNode) => void;
+  selectedNodeId: string | null;
+}
+
+export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPanelProps) {
+  const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
+
+  const nodeMap = useMemo(() => {
+    const map = new Map<string, AITraceSpanNode>();
+    for (const node of nodes) {
+      map.set(node.id, node);
+    }
+    return map;
+  }, [nodes]);
+
+  const handleMessageClick = useCallback(
+    (nodeId: string | null) => {
+      if (nodeId) {
+        const node = nodeMap.get(nodeId);
+        if (node) {
+          onSelectNode(node);
+        }
+      }
+    },
+    [nodeMap, onSelectNode]
+  );
+
+  if (messages.length === 0) {
+    return (
+      <MessagesPanelContainer>
+        <PanelHeader>{t('Messages')}</PanelHeader>
+        <EmptyMessage>{t('No messages found')}</EmptyMessage>
+      </MessagesPanelContainer>
+    );
+  }
+
+  return (
+    <MessagesPanelContainer>
+      <PanelHeader>{t('Messages')}</PanelHeader>
+      <MessagesListContainer>
+        <Stack gap="md">
+          {messages.map((message, index) => {
+            const isClickable = message.role === 'assistant' && message.nodeId !== null;
+            const isSelected = message.nodeId === selectedNodeId;
+            return (
+              <MessageBubble
+                key={index}
+                role={message.role}
+                isClickable={isClickable}
+                isSelected={isSelected}
+                onClick={
+                  isClickable ? () => handleMessageClick(message.nodeId) : undefined
+                }
+              >
+                <MessageHeader>
+                  {message.role === 'user' ? (
+                    <IconUser size="sm" />
+                  ) : (
+                    <IconBot size="sm" />
+                  )}
+                  <Text bold size="sm">
+                    {message.role === 'user' ? t('User') : t('Assistant')}
+                  </Text>
+                </MessageHeader>
+                <StyledClippedBox
+                  clipHeight={200}
+                  buttonProps={{priority: 'default', size: 'xs'}}
+                >
+                  <MessageContent>
+                    <MarkedText
+                      as={TraceDrawerComponents.MarkdownContainer}
+                      text={message.content}
+                    />
+                  </MessageContent>
+                </StyledClippedBox>
+              </MessageBubble>
+            );
+          })}
+        </Stack>
+      </MessagesListContainer>
+    </MessagesPanelContainer>
+  );
+}
+
+export const MessagesPanelContainer = styled('div')`
+  border-right: 1px solid ${p => p.theme.border};
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+`;
+
+const PanelHeader = styled('h6')`
+  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: bold;
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
+  margin: 0;
+  flex-shrink: 0;
+`;
+
+const MessagesListContainer = styled('div')`
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: ${p => p.theme.space.md};
+`;
+
+const MessageBubble = styled('div')<{
+  role: 'user' | 'assistant';
+  isClickable?: boolean;
+  isSelected?: boolean;
+}>`
+  background-color: ${p =>
+    p.role === 'user' ? p.theme.backgroundSecondary : p.theme.tokens.background.primary};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.radius.md};
+  overflow: hidden;
+  ${p =>
+    p.isClickable &&
+    `
+    cursor: pointer;
+    &:hover {
+      border-color: ${p.theme.purple200};
+      background-color: ${p.theme.backgroundSecondary};
+    }
+  `}
+  ${p =>
+    p.isSelected &&
+    `
+    outline: 2px solid ${p.theme.purple200};
+    outline-offset: -2px;
+  `}
+`;
+
+const MessageHeader = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.sm};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
+  background-color: ${p => p.theme.backgroundSecondary};
+  border-bottom: 1px solid ${p => p.theme.border};
+`;
+
+const StyledClippedBox = styled(ClippedBox)`
+  padding: 0;
+`;
+
+const MessageContent = styled('div')`
+  padding: ${p => p.theme.space.sm};
+  font-size: ${p => p.theme.fontSize.sm};
+  word-break: break-word;
+`;
