@@ -95,6 +95,6 @@ def encode_attributes(
         attributes[formatted_key] = _encode_value(value)
         tag_keys.add(formatted_key)
 
-    attributes["tag_keys"] = _encode_value(tag_keys)
+    attributes["tag_keys"] = _encode_value(sorted(tag_keys))
 
     return attributes
