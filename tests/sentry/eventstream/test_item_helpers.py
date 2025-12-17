@@ -102,7 +102,7 @@ class ItemHelpersTest(TestCase):
         assert "group_id" not in result
         assert result["field"] == AnyValue(string_value="value")
 
-    @pytest.mark.skip(reason="Flaky: non-deterministic set ordering causing failures. See #105124")
+    @pytest.mark.skip(reason="Flaky. See #105124")
     def test_encode_attributes_with_tags(self) -> None:
         event_data = {
             "field": "value",
