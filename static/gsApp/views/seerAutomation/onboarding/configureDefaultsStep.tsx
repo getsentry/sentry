@@ -20,6 +20,8 @@ import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUpdateOrganization} from 'sentry/utils/useUpdateOrganization';
 
+import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+
 import {
   Field,
   FieldDescription,
@@ -51,6 +53,13 @@ export function ConfigureDefaultsStep() {
   }, [setCurrentStep, currentStep]);
 
   const handleNextStep = useCallback(() => {
+    trackGetsentryAnalytics('seer.onboarding.defaults', {
+      organization,
+      enable_code_review: enableCodeReview,
+      enable_root_cause_analysis: proposeFixesEnabled,
+      auto_create_pr: autoCreatePREnabled,
+    });
+
     updateOrganization(
       {
         defaultAutofixAutomationTuning: proposeFixesEnabled ? 'medium' : 'off',
@@ -76,6 +85,7 @@ export function ConfigureDefaultsStep() {
     updateOrganization,
     currentStep,
     setCurrentStep,
+    organization,
   ]);
 
   return (

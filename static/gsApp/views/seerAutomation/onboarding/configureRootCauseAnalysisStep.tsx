@@ -25,6 +25,8 @@ import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
+import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+
 import {useSeerOnboardingContext} from './hooks/seerOnboardingContext';
 import {useCodeMappings} from './hooks/useCodeMappings';
 import {
@@ -131,6 +133,12 @@ export function ConfigureRootCauseAnalysisStep() {
       }
     }
 
+    trackGetsentryAnalytics('seer.onboarding.root_cause_analysis', {
+      organization,
+      auto_create_pr: autoCreatePREnabled,
+      projects_mapped: Object.keys(projectRepoMapping).length,
+    });
+
     // Only submit if RCA is disabled (empty mapping is fine) or there are valid mappings
     const hasMappings = Object.keys(projectRepoMapping).length > 0;
     if (!hasMappings) {
@@ -192,7 +200,7 @@ export function ConfigureRootCauseAnalysisStep() {
     repositoryProjectMapping,
     selectedRootCauseAnalysisRepositories,
     autoCreatePREnabled,
-    organization.id,
+    organization,
   ]);
 
   const handleRepositoryProjectMappingsChange = useCallback(
