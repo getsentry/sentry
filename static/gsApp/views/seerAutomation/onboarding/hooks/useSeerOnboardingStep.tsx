@@ -14,7 +14,7 @@ export function useSeerOnboardingStep() {
     } = statusQuery.data;
 
     if (isSeerConfigured) {
-      initialStep = 4; // Next steps
+      initialStep = 5; // Next steps
     } else if (!hasSupportedScmIntegration) {
       initialStep = 1; // Connect GitHub
     } else if (!isCodeReviewEnabled) {
