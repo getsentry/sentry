@@ -72,8 +72,8 @@ class OrganizationRepositoryCommitsEndpoint(OrganizationEndpoint):
         List a Repository's Commits
         """
         try:
-            repo = Repository.objects.get(id=repo_id, organization_id=organization.id)
-        except Repository.DoesNotExist:
+            repo = Repository.objects.get(id=int(repo_id), organization_id=organization.id)
+        except (Repository.DoesNotExist, ValueError):
             raise ResourceDoesNotExist
 
         queryset = Commit.objects.filter(repository_id=repo.id).select_related("author")

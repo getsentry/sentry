@@ -52,8 +52,8 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization: Organization, repo_id) -> Response:
         try:
-            repo = Repository.objects.get(id=repo_id, organization_id=organization.id)
-        except Repository.DoesNotExist:
+            repo = Repository.objects.get(id=int(repo_id), organization_id=organization.id)
+        except (Repository.DoesNotExist, ValueError):
             raise ResourceDoesNotExist
 
         expand = request.GET.getlist("expand", [])
@@ -64,8 +64,8 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
             return Response(status=401)
 
         try:
-            repo = Repository.objects.get(id=repo_id, organization_id=organization.id)
-        except Repository.DoesNotExist:
+            repo = Repository.objects.get(id=int(repo_id), organization_id=organization.id)
+        except (Repository.DoesNotExist, ValueError):
             raise ResourceDoesNotExist
 
         if repo.status == ObjectStatus.DELETION_IN_PROGRESS:
@@ -126,8 +126,8 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
             return Response(status=401)
 
         try:
-            repo = Repository.objects.get(id=repo_id, organization_id=organization.id)
-        except Repository.DoesNotExist:
+            repo = Repository.objects.get(id=int(repo_id), organization_id=organization.id)
+        except (Repository.DoesNotExist, ValueError):
             raise ResourceDoesNotExist
 
         with transaction.atomic(router.db_for_write(Repository)):
