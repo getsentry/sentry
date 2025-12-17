@@ -382,9 +382,15 @@ register("fileblob.upload.use_lock", default=True, flags=FLAG_AUTOMATOR_MODIFIAB
 # Whether to use redis to cache `FileBlob.id` lookups
 register("fileblob.upload.use_blobid_cache", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# New `objectstore` service configuration. Additional supported options:
-# - propagate_traces: bool
-
+# New `objectstore` service configuration. Additional supported options and
+# their defaults:
+#  - propagate_traces: bool = False,
+#  - retries: int | None = None,
+#  - timeout_ms: float | None = None,
+#  - connection_kwargs: Mapping[str, Any] | None = None,
+#
+# For an always up-to-date list, see:
+# https://getsentry.github.io/objectstore/python/objectstore_client.html#objectstore_client.Client
 register(
     "objectstore.config",
     default={"base_url": "http://127.0.0.1:8888"},
@@ -3091,32 +3097,35 @@ register(
 
 # Notification Options - Start
 # Options for migrating to the notification platform
-# Data Export Success notifications
+# Notifications for internal testing
 register(
-    "notifications.platform-rate.data-export-success",
-    type=Float,
-    default=0.0,
+    "notifications.platform-rollout.internal-testing",
+    type=Dict,
+    default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Data Export Failure notifications
+
+# Notifications for Sentry organizations
 register(
-    "notifications.platform-rate.data-export-failure",
-    type=Float,
-    default=0.0,
+    "notifications.platform-rollout.is-sentry",
+    type=Dict,
+    default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Custom Rule Samples Fulfilled notifications
+
+# Notifications for early adopter organizations
 register(
-    "notifications.platform-rate.custom-rule-samples-fulfilled",
-    type=Float,
-    default=0.0,
+    "notifications.platform-rollout.early-adopter",
+    type=Dict,
+    default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Unable to Delete Repository notifications
+
+# Notifications for general access organizations
 register(
-    "notifications.platform-rate.unable-to-delete-repository",
-    type=Float,
-    default=0.0,
+    "notifications.platform-rollout.general-access",
+    type=Dict,
+    default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Notification Options - End
@@ -3690,9 +3699,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Controls whether an org should read data both from Snuba and EAP.
-# Will not use or display the EAP data to the user; rather, will just compare the
-# data from each source and log whether they match.
+# Controls whether occurrence data should be read from both Snuba and EAP.
+# Will not use or display the EAP data to the user; rather, will just (1) issue
+# the queries to ensure that reads are functional and (2) compare the data from
+# each source and log whether they match.
+# This option should be controlled on a region-by-region basis.
 register(
     "eap.occurrences.should_double_read",
     type=Bool,
@@ -3700,15 +3711,15 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Controls whether a callsite should use EAP data instead of Snuba data.
-# Callsites should only be added after they're known to be safe.
+# Controls whether a given callsite should use occurrence data from EAP instead
+# of Snuba. Callsites should only be added here after they're known to be safe.
+# This option should be controlled on a region-by-region basis.
 register(
     "eap.occurrences.callsites_using_eap_data_allowlist",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
-
 
 # Killswich for LLM issue detection
 register(

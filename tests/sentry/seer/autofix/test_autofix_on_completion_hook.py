@@ -289,7 +289,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
             file_patches=[file_patch],
         )
         state.blocks = [block]
-        state.get_file_patches_by_repo.return_value = {"test-repo": [file_patch]}
+        state.get_diffs_by_repo.return_value = {"test-repo": [file_patch]}
 
         AutofixOnCompletionHook._send_step_webhook(self.organization, 123, {}, state)
 

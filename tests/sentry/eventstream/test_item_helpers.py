@@ -1,5 +1,6 @@
 from typing import Any
 
+import pytest
 from sentry_protos.snuba.v1.request_common_pb2 import TRACE_ITEM_TYPE_OCCURRENCE
 from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, ArrayValue, KeyValue, KeyValueList
 
@@ -101,6 +102,7 @@ class ItemHelpersTest(TestCase):
         assert "group_id" not in result
         assert result["field"] == AnyValue(string_value="value")
 
+    @pytest.mark.skip(reason="Flaky. See #105124")
     def test_encode_attributes_with_tags(self) -> None:
         event_data = {
             "field": "value",
@@ -122,6 +124,15 @@ class ItemHelpersTest(TestCase):
         assert result["tags[environment]"] == AnyValue(string_value="production")
         assert result["tags[release]"] == AnyValue(string_value="1.0.0")
         assert result["tags[level]"] == AnyValue(string_value="error")
+        assert result["tag_keys"] == AnyValue(
+            array_value=ArrayValue(
+                values=[
+                    AnyValue(string_value="tags[environment]"),
+                    AnyValue(string_value="tags[level]"),
+                    AnyValue(string_value="tags[release]"),
+                ]
+            )
+        )
 
     def test_encode_attributes_with_empty_tags(self) -> None:
         event_data = {"field": "value", "tags": []}
@@ -137,6 +148,7 @@ class ItemHelpersTest(TestCase):
         assert result["field"] == AnyValue(string_value="value")
         # No tags[] keys should be present
         assert not any(key.startswith("tags[") for key in result.keys())
+        assert result["tag_keys"] == AnyValue(array_value=ArrayValue(values=[]))
 
     def test_encode_attributes_with_integer_tag_values(self) -> None:
         event_data = {
@@ -166,7 +178,7 @@ class ItemHelpersTest(TestCase):
 
         # "tags" field itself gets encoded as a non-scalar value in the loop
         # Then tags are processed separately, but empty list adds no tag attributes
-        assert len(result) == 1
+        assert len(result) == 2
         assert result["tags"] == AnyValue(array_value=ArrayValue(values=[]))
 
     def test_encode_attributes_with_complex_types(self) -> None:

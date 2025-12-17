@@ -29,6 +29,7 @@ import type {ProcessedInsight} from 'sentry/views/preprod/utils/insightProcessin
 import {
   formattedPrimaryMetricDownloadSize,
   formattedPrimaryMetricInstallSize,
+  formattedSizeDiff,
   getLabels,
   getTrend,
 } from 'sentry/views/preprod/utils/labelUtils';
@@ -252,8 +253,7 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
                             fontWeight: 'normal',
                           }}
                         >
-                          {card.delta.diff > 0 ? '+' : card.delta.diff < 0 ? '-' : ''}
-                          {formatBytesBase10(Math.abs(card.delta.diff))}
+                          {formattedSizeDiff(card.delta.diff)}
                           {card.delta.percentageChange !== 0 && (
                             <Text
                               as="span"

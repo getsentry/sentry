@@ -239,10 +239,10 @@ const LineNumber = styled('div')<{lineType: DiffLineType}>`
 
   ${p =>
     p.lineType === DiffLineType.ADDED &&
-    `background-color: ${DIFF_COLORS.added}; color: ${p.theme.textColor}`};
+    `background-color: ${DIFF_COLORS.added}; color: ${p.theme.tokens.content.primary}`};
   ${p =>
     p.lineType === DiffLineType.REMOVED &&
-    `background-color: ${DIFF_COLORS.removed}; color: ${p.theme.textColor}`};
+    `background-color: ${DIFF_COLORS.removed}; color: ${p.theme.tokens.content.primary}`};
 
   & + & {
     padding-left: 0;
@@ -260,10 +260,10 @@ const DiffContent = styled('div')<{lineType: DiffLineType}>`
 
   ${p =>
     p.lineType === DiffLineType.ADDED &&
-    `background-color: ${DIFF_COLORS.addedRow}; color: ${p.theme.textColor}`};
+    `background-color: ${DIFF_COLORS.addedRow}; color: ${p.theme.tokens.content.primary}`};
   ${p =>
     p.lineType === DiffLineType.REMOVED &&
-    `background-color: ${DIFF_COLORS.removedRow}; color: ${p.theme.textColor}`};
+    `background-color: ${DIFF_COLORS.removedRow}; color: ${p.theme.tokens.content.primary}`};
 
   &::before {
     content: ${p =>

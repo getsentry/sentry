@@ -6,11 +6,22 @@ import {
 } from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-interface RepositorySettings {
-  codeReviewTriggers: string[];
-  enabledCodeReview: boolean;
-  repositoryIds: string[];
-}
+type RepositorySettings =
+  | {
+      enabledCodeReview: boolean;
+      repositoryIds: string[];
+      codeReviewTriggers?: never;
+    }
+  | {
+      codeReviewTriggers: string[];
+      repositoryIds: string[];
+      enabledCodeReview?: never;
+    }
+  | {
+      codeReviewTriggers: string[];
+      enabledCodeReview: boolean;
+      repositoryIds: string[];
+    };
 
 export function useBulkUpdateRepositorySettings(
   options?: Omit<
@@ -21,15 +32,11 @@ export function useBulkUpdateRepositorySettings(
   const organization = useOrganization();
 
   return useMutation<RepositoryWithSettings[], Error, RepositorySettings, unknown>({
-    mutationFn: (data: RepositorySettings) => {
-      return fetchMutation<RepositoryWithSettings[]>({
+    mutationFn: data => {
+      return fetchMutation({
         method: 'PUT',
         url: `/organizations/${organization.slug}/repos/settings/`,
-        data: {
-          codeReviewTriggers: data.codeReviewTriggers,
-          enabledCodeReview: data.enabledCodeReview,
-          repositoryIds: data.repositoryIds,
-        },
+        data,
       });
     },
     ...options,
