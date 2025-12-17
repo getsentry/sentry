@@ -135,6 +135,6 @@ Based on the shape of the errors I saw:
 
 ## ❓Question for you (only if the intent differs)
 
-If your type-system fix is intended to *enforce* stronger `BaseQuerySet` usage everywhere, I’ll bias the plan toward tightening annotations.
+If your type-system fix is intended to _enforce_ stronger `BaseQuerySet` usage everywhere, I’ll bias the plan toward tightening annotations.
 
 If instead it’s intended to be “mostly compatible” and avoid forcing broad `BaseQuerySet` usage, we should loosen some annotations to accept `QuerySet` more often.
