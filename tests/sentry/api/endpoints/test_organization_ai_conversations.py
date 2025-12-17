@@ -632,3 +632,92 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]["conversationId"] == conversation_id_1
+
+    def test_optimized_query_produces_same_results(self) -> None:
+        """Test that useOptimizedQuery=true produces the same results as the default path"""
+        now = before_now(days=25).replace(microsecond=0)
+        trace_id = uuid4().hex
+        conversation_id = uuid4().hex
+
+        first_messages = [{"role": "user", "content": "What's the weather?"}]
+        last_response_text = "It's sunny today"
+
+        # Create a conversation with various span types
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=4),
+            op="gen_ai.invoke_agent",
+            operation_type="invoke_agent",
+            agent_name="Weather Agent",
+            trace_id=trace_id,
+        )
+
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=3),
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            tokens=100,
+            cost=0.001,
+            trace_id=trace_id,
+            messages=first_messages,
+            response_text="Let me check",
+        )
+
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=2),
+            op="gen_ai.execute_tool",
+            operation_type="execute_tool",
+            trace_id=trace_id,
+        )
+
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=1),
+            op="gen_ai.chat",
+            status="internal_error",
+            operation_type="ai_client",
+            tokens=50,
+            cost=0.0005,
+            trace_id=trace_id,
+            messages=[{"role": "user", "content": "Thanks"}],
+            response_text=last_response_text,
+        )
+
+        base_query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        # Get results from default path
+        default_response = self.do_request(base_query)
+        assert default_response.status_code == 200
+        assert len(default_response.data) == 1
+
+        # Get results from optimized path
+        optimized_query = {**base_query, "useOptimizedQuery": "true"}
+        optimized_response = self.do_request(optimized_query)
+        assert optimized_response.status_code == 200
+        assert len(optimized_response.data) == 1
+
+        # Compare results - they should be identical
+        default_conv = default_response.data[0]
+        optimized_conv = optimized_response.data[0]
+
+        assert optimized_conv["conversationId"] == default_conv["conversationId"]
+        assert optimized_conv["errors"] == default_conv["errors"]
+        assert optimized_conv["llmCalls"] == default_conv["llmCalls"]
+        assert optimized_conv["toolCalls"] == default_conv["toolCalls"]
+        assert optimized_conv["totalTokens"] == default_conv["totalTokens"]
+        assert optimized_conv["totalCost"] == default_conv["totalCost"]
+        assert optimized_conv["traceCount"] == default_conv["traceCount"]
+        assert optimized_conv["flow"] == default_conv["flow"]
+        assert optimized_conv["firstInput"] == default_conv["firstInput"]
+        assert optimized_conv["lastOutput"] == default_conv["lastOutput"]
+        # Duration and timestamp may have minor differences due to timing, but should be close
+        assert optimized_conv["duration"] == default_conv["duration"]
+        assert optimized_conv["timestamp"] == default_conv["timestamp"]
+        # traceIds may be in different order, compare as sets
+        assert set(optimized_conv["traceIds"]) == set(default_conv["traceIds"])
