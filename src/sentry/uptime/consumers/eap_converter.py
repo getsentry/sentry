@@ -61,6 +61,7 @@ def convert_uptime_request_to_trace_item(
     request_sequence: int,
     item_id: bytes,
     incident_status: IncidentStatus,
+    is_late: bool = False,
 ) -> TraceItem:
     """
     Convert an individual request to a denormalized UptimeResult TraceItem.
@@ -77,6 +78,7 @@ def convert_uptime_request_to_trace_item(
     attributes["check_status"] = _anyvalue(result["status"])
     if "region" in result:
         attributes["region"] = _anyvalue(result["region"])
+    attributes["late"] = _anyvalue(is_late)
 
     attributes["scheduled_check_time_us"] = _anyvalue(ms_to_us(result["scheduled_check_time_ms"]))
     attributes["actual_check_time_us"] = _anyvalue(ms_to_us(result["actual_check_time_ms"]))
@@ -149,6 +151,7 @@ def convert_uptime_result_to_trace_items(
     project: Project,
     result: CheckResult,
     incident_status: IncidentStatus,
+    is_late: bool = False,
 ) -> list[TraceItem]:
     """
     Convert a complete uptime result to a list of denormalized TraceItems.
@@ -172,7 +175,7 @@ def convert_uptime_result_to_trace_items(
         item_id = int(uuid.uuid5(UPTIME_NAMESPACE, name).hex, 16).to_bytes(16, "little")
 
         request_item = convert_uptime_request_to_trace_item(
-            project, result, request_info, sequence, item_id, incident_status
+            project, result, request_info, sequence, item_id, incident_status, is_late=is_late
         )
         trace_items.append(request_item)
 

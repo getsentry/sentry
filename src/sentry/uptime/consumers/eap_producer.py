@@ -35,6 +35,7 @@ def produce_eap_uptime_result(
     detector: Detector,
     result: CheckResult,
     metric_tags: dict[str, str],
+    is_late: bool = False,
 ) -> None:
     """
     Produces TraceItems to the EAP topic for uptime check results.
@@ -50,7 +51,7 @@ def produce_eap_uptime_result(
             incident_status = IncidentStatus.NO_INCIDENT
 
         trace_items = convert_uptime_result_to_trace_items(
-            detector.project, result, incident_status
+            detector.project, result, incident_status, is_late=is_late
         )
         topic = get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"]
 

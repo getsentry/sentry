@@ -205,6 +205,31 @@ def handle_active_result(
     )
 
 
+def handle_late_result(
+    detector: Detector,
+    result: CheckResult,
+    metric_tags: dict[str, str],
+):
+    """
+    Handle a late result that arrived after we backfilled a miss.
+    Writes to EAP with late=True but does not trigger notifications.
+    """
+    logger.info(
+        "uptime.result_processor.late_result",
+        extra={
+            "detector_id": detector.id,
+            "scheduled_check_time_ms": result["scheduled_check_time_ms"],
+            "status": result["status"],
+        },
+    )
+    metrics.incr(
+        "uptime.result_processor.late_result",
+        tags={**metric_tags, "late_status": result["status"]},
+        sample_rate=1.0,
+    )
+    produce_eap_uptime_result(detector, result, metric_tags, is_late=True)
+
+
 class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
     subscription_model = UptimeSubscription
 
@@ -296,6 +321,17 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
 
         # Nothing to do if we've already processed this result at an earlier time
         if result["scheduled_check_time_ms"] <= last_update_ms:
+            # Check if this is a late result for a backfilled miss
+            if features.has("organizations:uptime-upgrade-late-results", organization):
+                backfill_key = build_backfilled_miss_key(
+                    detector, int(result["scheduled_check_time_ms"])
+                )
+                if cluster.get(backfill_key):
+                    handle_late_result(detector, result, metric_tags)
+                    cluster.delete(backfill_key)
+                    cluster.zrem(build_pending_misses_key(), backfill_key)
+                    return
+
             # If the scheduled check time is older than the most recent update then we've already processed it.
             # We can end up with duplicates due to Kafka replaying tuples, or due to the uptime checker processing
             # the same check multiple times and sending duplicate results.

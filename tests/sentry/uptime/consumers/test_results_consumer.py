@@ -1453,6 +1453,110 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
 
         assert mock_produce.call_count == 2
 
+    @mock.patch("sentry.uptime.consumers.eap_producer._eap_items_producer.produce")
+    @override_options({"uptime.use-eap": True})
+    def test_late_result_upgrades_backfilled_miss(self, mock_produce: MagicMock) -> None:
+        """Test that a late result upgrades a backfilled miss."""
+        with self.feature("organizations:uptime-upgrade-late-results"):
+            cluster = get_cluster()
+
+            # Set up a prior check time
+            prior_check_time_ms = int(
+                (datetime.now(timezone.utc) - timedelta(minutes=10)).timestamp() * 1000
+            )
+            cluster.set(build_last_update_key(self.detector), prior_check_time_ms)
+            cluster.set(build_last_seen_interval_key(self.detector), 300 * 1000)
+
+            # Send a current result (this will trigger backfilling a miss)
+            current_result = self.create_uptime_result(
+                self.subscription.subscription_id,
+                scheduled_check_time=datetime.now(timezone.utc),
+            )
+            self.send_result(current_result)
+
+            # Verify the miss was backfilled and stored in Redis
+            missed_time_ms = prior_check_time_ms + 300 * 1000
+            backfill_key = build_backfilled_miss_key(self.detector, missed_time_ms)
+            assert cluster.get(backfill_key) is not None
+            assert cluster.zscore(build_pending_misses_key(), backfill_key) is not None
+
+            # Clear the mock to count only the late result
+            mock_produce.reset_mock()
+
+            # Send a late result for the missed time
+            late_result = self.create_uptime_result(
+                self.subscription.subscription_id,
+                scheduled_check_time=datetime.fromtimestamp(missed_time_ms / 1000, tz=timezone.utc),
+            )
+            late_result["status"] = "success"
+
+            self.send_result(late_result)
+
+            # Verify the late result was written to EAP
+            assert mock_produce.call_count == 1
+
+            # Verify Redis keys were cleaned up
+            assert cluster.get(backfill_key) is None
+            assert cluster.zscore(build_pending_misses_key(), backfill_key) is None
+
+    @mock.patch("sentry.uptime.consumers.eap_producer._eap_items_producer.produce")
+    @override_options({"uptime.use-eap": True})
+    def test_late_result_without_backfill_is_skipped(self, mock_produce: MagicMock) -> None:
+        """Test that a late result without a backfill key is skipped as a normal duplicate."""
+        with self.feature("organizations:uptime-upgrade-late-results"):
+            cluster = get_cluster()
+
+            # Set up a prior check time
+            prior_check_time_ms = int(
+                (datetime.now(timezone.utc) - timedelta(minutes=10)).timestamp() * 1000
+            )
+            cluster.set(build_last_update_key(self.detector), prior_check_time_ms)
+
+            # Send a late result without any backfill key
+            late_result = self.create_uptime_result(
+                self.subscription.subscription_id,
+                scheduled_check_time=datetime.fromtimestamp(
+                    prior_check_time_ms / 1000, tz=timezone.utc
+                ),
+            )
+
+            self.send_result(late_result)
+
+            # Verify nothing was written to EAP
+            assert mock_produce.call_count == 0
+
+    @mock.patch("sentry.uptime.consumers.eap_producer._eap_items_producer.produce")
+    @override_options({"uptime.use-eap": True})
+    def test_late_result_without_feature_flag(self, mock_produce: MagicMock) -> None:
+        """Test that late results are skipped when feature flag is disabled."""
+        cluster = get_cluster()
+
+        # Set up scenario: we've processed checks up to time T
+        current_time_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+        cluster.set(build_last_update_key(self.detector), current_time_ms)
+        cluster.set(build_last_seen_interval_key(self.detector), 300 * 1000)
+
+        # Manually create a backfill key for an earlier miss (simulating it was created before flag was disabled)
+        missed_time_ms = current_time_ms - 300 * 1000
+        backfill_key = build_backfilled_miss_key(self.detector, missed_time_ms)
+        cluster.set(backfill_key, json.dumps({"status": "missed_window"}))
+        cluster.zadd(build_pending_misses_key(), {backfill_key: missed_time_ms})
+
+        # Send a late result for the missed time WITHOUT feature flag
+        late_result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=datetime.fromtimestamp(missed_time_ms / 1000, tz=timezone.utc),
+        )
+
+        with self.feature("organizations:uptime"):
+            self.send_result(late_result)
+
+        # Verify nothing was written to EAP (normal duplicate skip)
+        assert mock_produce.call_count == 0
+
+        # Verify backfill key still exists (wasn't upgraded)
+        assert cluster.get(backfill_key) is not None
+
 
 @thread_leak_allowlist(reason="uptime consumers", issue=97045)
 class ProcessResultSerialTest(ProcessResultTest):
