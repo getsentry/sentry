@@ -1235,13 +1235,10 @@ function buildRoutes(): RouteObject[] {
         },
         {
           path: 'onboarding/',
-          name: t('Configure Seer for All Projects'),
-          component: make(() => import('getsentry/views/seerAutomation/onboarding')),
-        },
-        {
-          path: 'onboarding-v2/',
           name: t('Setup Wizard'),
-          component: make(() => import('getsentry/views/seerAutomation/onboardingV2')),
+          component: make(
+            () => import('getsentry/views/seerAutomation/onboarding/onboarding')
+          ),
         },
       ],
     },
@@ -1351,17 +1348,14 @@ function buildRoutes(): RouteObject[] {
     {
       path: ':projectId/',
       component: make(() => import('sentry/views/projectDetail')),
-      deprecatedRouteProps: true,
     },
     {
       path: ':projectId/events/:eventId/',
       component: errorHandler(ProjectEventRedirect),
-      deprecatedRouteProps: true,
     },
     {
       path: ':projectId/getting-started/',
       component: make(() => import('sentry/views/projectInstall/gettingStarted')),
-      deprecatedRouteProps: true,
     },
   ];
   const projectsRoutes: SentryRouteObject = {

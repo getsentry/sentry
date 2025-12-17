@@ -42,9 +42,6 @@ import {RepositoryToProjectConfiguration} from './repositoryToProjectConfigurati
 
 export function ConfigureRootCauseAnalysisStep() {
   const organization = useOrganization();
-  const [proposeFixesEnabled, setProposeFixesEnabled] = useState(
-    organization.defaultAutofixAutomationTuning !== 'off'
-  );
   const [autoCreatePREnabled, setAutoCreatePREnabled] = useState(
     organization.autoOpenPrs ?? false
   );
@@ -132,14 +129,15 @@ export function ConfigureRootCauseAnalysisStep() {
 
     // Only submit if RCA is disabled (empty mapping is fine) or there are valid mappings
     const hasMappings = Object.keys(projectRepoMapping).length > 0;
-    if (proposeFixesEnabled && !hasMappings) {
-      addErrorMessage(t('At least one repository must be mapped to a project'));
+    if (!hasMappings) {
+      // Otherwise, there is nothing mapped so nothing to do here, can advance to the next step.
+      setCurrentStep(currentStep + 1);
       return;
     }
 
     submitOnboarding(
       {
-        fixes: proposeFixesEnabled,
+        fixes: true,
         pr_creation: autoCreatePREnabled,
         project_repo_mapping: projectRepoMapping,
       },
@@ -159,7 +157,6 @@ export function ConfigureRootCauseAnalysisStep() {
     submitOnboarding,
     repositoryProjectMapping,
     selectedRootCauseAnalysisRepositories,
-    proposeFixesEnabled,
     autoCreatePREnabled,
     organization.id,
   ]);
@@ -221,36 +218,20 @@ export function ConfigureRootCauseAnalysisStep() {
         <MaxWidthPanel>
           <PanelBody>
             <PanelDescription>
+              <Text bold>{t('Root Cause Analysis')}</Text>
               <p>
                 {t(
-                  'Pair your projects with your repositories to make sure Seer can analyze your codebase.'
+                  'For all projects added below, Seer will automatically analyze highly actionable issues, and create a root cause analysis and proposed solution without a user needing to prompt it. '
                 )}
               </p>
             </PanelDescription>
 
             <Field>
               <Flex direction="column" flex="1" gap="xs">
-                <FieldLabel>{t('Enable Root Cause Analysis')}</FieldLabel>
-                <FieldDescription>
-                  <Text>
-                    {t(
-                      'For all new projects, Seer will automatically analyze highly actionable issues, create a root cause analysis, and propose a solution. '
-                    )}
-                  </Text>
-                </FieldDescription>
-              </Flex>
-              <Switch
-                size="lg"
-                checked={proposeFixesEnabled}
-                onChange={() => setProposeFixesEnabled(!proposeFixesEnabled)}
-              />
-            </Field>
-            <Field>
-              <Flex direction="column" flex="1" gap="xs">
                 <FieldLabel>{t('Automatic PR Creation')}</FieldLabel>
                 <FieldDescription>
                   {t(
-                    'For all projects below AND newly added projects, Seer will be able to create a pull request.'
+                    'For all projects below, Seer will be able to create a pull request.'
                   )}
                 </FieldDescription>
               </Flex>
@@ -307,9 +288,9 @@ export function ConfigureRootCauseAnalysisStep() {
           onClick={handleNextStep}
           priority={isFinishDisabled ? 'default' : 'primary'}
           disabled={isSubmitOnboardingPending || isFinishDisabled}
-          aria-label={t('Last Step')}
+          aria-label={t('Next Step')}
         >
-          {t('Last Step')}
+          {t('Next Step')}
         </Button>
         {isSubmitOnboardingPending && <InlineLoadingIndicator size={20} />}
       </GuidedSteps.ButtonWrapper>

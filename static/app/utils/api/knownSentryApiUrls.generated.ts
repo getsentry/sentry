@@ -481,6 +481,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/profiling/flamegraph/'
   | '/organizations/$organizationIdOrSlug/profiling/function-trends/'
   | '/organizations/$organizationIdOrSlug/profiling/has-chunks/'
+  | '/organizations/$organizationIdOrSlug/project-keys/'
   | '/organizations/$organizationIdOrSlug/project-templates/'
   | '/organizations/$organizationIdOrSlug/project-templates/$templateId/'
   | '/organizations/$organizationIdOrSlug/project-transaction-threshold-override/'
