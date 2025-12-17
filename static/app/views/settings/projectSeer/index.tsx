@@ -681,7 +681,7 @@ export default function ProjectSeerContainer() {
   if (!organization.features.includes('autofix-seer-preferences')) {
     return (
       <FeatureDisabled
-        features={['autofix-seer-preferences']}
+        features={['organizations:autofix-seer-preferences']}
         hideHelpToggle
         message={t('Autofix is not enabled for this organization.')}
         featureName={t('Autofix')}
