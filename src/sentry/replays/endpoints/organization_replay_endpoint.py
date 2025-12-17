@@ -24,5 +24,5 @@ class OrganizationReplayEndpoint(OrganizationEndpoint):
         if not features.has("organizations:session-replay", organization, actor=request.user):
             raise NotFound()
 
-        if not has_replay_permission(organization, request.user):
+        if not has_replay_permission(request, organization):
             raise PermissionDenied()
