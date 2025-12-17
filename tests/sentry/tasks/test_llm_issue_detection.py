@@ -88,6 +88,7 @@ class LLMIssueDetectionTest(TestCase):
             transaction_name="test_transaction",
             subcategory="Connection Pool Exhaustion",
             category="Database",
+            verification_reason="Problem is correctly identified",
         )
 
         create_issue_occurrence_from_detection(
@@ -195,6 +196,7 @@ class LLMIssueDetectionTest(TestCase):
                     "transaction_name": "POST /some/thing",
                     "category": "Database",
                     "subcategory": "N+1 Query",
+                    "verification_reason": "Problem is correctly identified",
                 },
                 {
                     "title": "Memory Leak Risk",
@@ -207,6 +209,7 @@ class LLMIssueDetectionTest(TestCase):
                     "transaction_name": "GET /another/",
                     "category": "Memory",
                     "subcategory": "Memory Leak",
+                    "verification_reason": "Problem is correctly identified",
                 },
             ],
             "traces_analyzed": 1,
@@ -303,6 +306,7 @@ class LLMIssueDetectionTest(TestCase):
                     "transaction_name": "GET /another/",
                     "category": "General",
                     "subcategory": "Success",
+                    "verification_reason": "Problem is correctly identified",
                 }
             ],
             "traces_analyzed": 1,
