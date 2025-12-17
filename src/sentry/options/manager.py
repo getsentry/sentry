@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import sys
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from enum import Enum
 from typing import TYPE_CHECKING
 from typing import Any as TAny
@@ -450,7 +450,7 @@ class OptionsManager:
         if not opt.type.test(value):
             raise TypeError(f"{key!r}: got {_type(value)!r}, expected {opt.type!r}")
 
-    def all(self):
+    def all(self) -> Iterable[Key]:
         """
         Return an iterator for all keys in the registry.
         """
