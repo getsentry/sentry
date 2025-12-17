@@ -21,10 +21,9 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 
 
-SEER_CODEGEN_PATH = "/v1/automation/codegen"
 # This needs to match the value defined in the Seer API:
 # https://github.com/getsentry/seer/blob/main/src/seer/routes/codegen.py
-SEER_PR_REVIEW_RERUN_PATH = f"{SEER_CODEGEN_PATH}/rerun"
+SEER_PR_REVIEW_RERUN_PATH = "/v1/automation/codegen/pr-review/rerun"
 PREFIX = "seer.code_review.check_run.rerun"
 MAX_RETRIES = 3
 DELAY_BETWEEN_RETRIES = 60  # 1 minute
