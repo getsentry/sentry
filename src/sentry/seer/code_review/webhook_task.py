@@ -69,7 +69,6 @@ def process_github_webhook_event(
         # Catches all urllib3 errors: TimeoutError, MaxRetryError, NewConnectionError,
         # SSLError, ProxyError, ProtocolError, ResponseError, DecodeError, etc.
         status = e.__class__.__name__
-        metrics.incr(f"{PREFIX}.outcome", tags={"status": f"error_{status}"})
         if self.request.retries < MAX_RETRIES - 1:
             should_record_latency = False
         # Exception automatically captured to Sentry by taskworker on final retry
