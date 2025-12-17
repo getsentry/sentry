@@ -69,9 +69,13 @@ def make_key(model: Any, prefix: str, kwargs: Mapping[str, Model | int | str]) -
 
 
 if TYPE_CHECKING:
-    # For type checkers, we want to use DjangoBaseManager directly. This preserves the
-    # generic type parameters.
-    _base_manager_base = DjangoBaseManager
+    # For type checkers, we create a class that inherits from both DjangoBaseManager
+    # and BaseQuerySet. This mirrors what from_queryset() does at runtime - it creates
+    # a manager class with all queryset methods available. By inheriting from both,
+    # we preserve generic type parameters AND make BaseQuerySet methods available.
+    class _base_manager_base(DjangoBaseManager[M], BaseQuerySet[M]):
+        pass
+
 else:
     _base_manager_base = DjangoBaseManager.from_queryset(BaseQuerySet, "_base_manager_base")
 
