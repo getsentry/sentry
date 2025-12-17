@@ -7,9 +7,9 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import type {DiffItem, InsightDiffItem} from 'sentry/views/preprod/types/appSizeTypes';
 import {getInsightConfig} from 'sentry/views/preprod/utils/insightProcessing';
+import {formattedSizeDiff} from 'sentry/views/preprod/utils/labelUtils';
 
 interface InsightDiffRowProps {
   children: React.ReactNode;
@@ -84,7 +84,7 @@ export function InsightDiffRow({
                   <Text>
                     {t(
                       'Potential savings: %s',
-                      formatBytesBase10(insight.total_savings_change)
+                      formattedSizeDiff(insight.total_savings_change)
                     )}{' '}
                     <Text
                       variant={insight.total_savings_change > 0 ? 'danger' : 'success'}
