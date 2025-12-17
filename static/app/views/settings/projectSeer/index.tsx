@@ -200,7 +200,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
   const {data: codingAgentIntegrations} = useCodingAgentIntegrations();
 
-  const isTriageSignalsFeatureOn = project.features.includes('triage-signals-v0');
+  const isTriageSignalsFeatureOn = project.features.includes('seer-user-billing');
   const canWriteProject = hasEveryAccess(['project:read'], {organization, project});
 
   const cursorIntegrations =
@@ -294,7 +294,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
     [preference, updateProjectSeerPreferences]
   );
 
-  // Handler for Auto-open PR toggle (triage-signals-v0)
+  // Handler for Auto-open PR toggle (seer-user-billing)
   // Controls whether Seer auto-opens PRs
   // OFF = stop at code_changes, ON = stop at open_pr
   const handleAutoOpenPrChange = useCallback(
@@ -327,7 +327,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
     ]
   );
 
-  // Handler for Cursor handoff toggle (triage-signals-v0)
+  // Handler for Cursor handoff toggle (seer-user-billing)
   // When ON: stops at root_cause and hands off to Cursor
   // When OFF: defaults to code_changes (user can then enable auto-open PR if desired)
   const handleCursorHandoffChange = useCallback(
@@ -459,7 +459,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
     },
   } satisfies FieldObject;
 
-  // For triage-signals-v0: Simple toggle for Auto-open PR
+  // For seer-user-billing: Simple toggle for Auto-open PR
   // OFF = stop at code_changes, ON = stop at open_pr
   const autoOpenPrToggleField = {
     name: 'autoOpenPr',
@@ -479,7 +479,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
     disabled: ({model}) => model?.getValue('cursorHandoff') === true,
   } satisfies FieldObject;
 
-  // For triage-signals-v0: Simple toggle for Cursor handoff
+  // For seer-user-billing: Simple toggle for Cursor handoff
   // When ON: stops at root_cause and hands off to Cursor
   const cursorHandoffToggleField = {
     name: 'cursorHandoff',
@@ -565,7 +565,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
           automated_run_stopping_point: preference?.automation_handoff
             ? 'cursor_handoff'
             : (preference?.automated_run_stopping_point ?? 'root_cause'),
-          // For triage-signals-v0 mode (toggles) - only include when flag is on
+          // For seer-user-billing mode (toggles) - only include when flag is on
           ...(isTriageSignalsFeatureOn && {
             autoOpenPr: preference?.automated_run_stopping_point === 'open_pr',
             cursorHandoff: Boolean(preference?.automation_handoff),

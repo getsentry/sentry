@@ -545,9 +545,9 @@ describe('ProjectSeer', () => {
     }
   });
 
-  it('hides Scan Issues toggle when triage-signals-v0 feature flag is enabled', async () => {
+  it('hides Scan Issues toggle when seer-user-billing feature flag is enabled', async () => {
     const projectWithFeatureFlag = ProjectFixture({
-      features: ['triage-signals-v0'],
+      features: ['seer-user-billing'],
       autofixAutomationTuning: 'medium', // Already enabled, so no auto-enable PUT
     });
 
@@ -567,7 +567,7 @@ describe('ProjectSeer', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('shows Scan Issues toggle when triage-signals-v0 feature flag is disabled', async () => {
+  it('shows Scan Issues toggle when seer-user-billing feature flag is disabled', async () => {
     render(<ProjectSeer />, {
       organization,
       outletContext: {project},
@@ -580,10 +580,10 @@ describe('ProjectSeer', () => {
     expect(toggle).toBeInTheDocument();
   });
 
-  describe('Auto-Trigger Fixes with triage-signals-v0', () => {
+  describe('Auto-Trigger Fixes with seer-user-billing', () => {
     it('shows as toggle when flag enabled, dropdown when disabled', async () => {
       const projectWithFlag = ProjectFixture({
-        features: ['triage-signals-v0'],
+        features: ['seer-user-billing'],
         seerScannerAutomation: true,
         autofixAutomationTuning: 'medium', // Already enabled, so no auto-enable PUT
       });
@@ -622,14 +622,14 @@ describe('ProjectSeer', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('toggle is always checked when triage-signals-v0 flag is enabled', async () => {
+    it('toggle is always checked when seer-user-billing flag is enabled', async () => {
       // When flag is on, the toggle is always checked regardless of stored value
       // because we default to ON for triage signals users
       render(<ProjectSeer />, {
         organization,
         outletContext: {
           project: ProjectFixture({
-            features: ['triage-signals-v0'],
+            features: ['seer-user-billing'],
             seerScannerAutomation: true,
             autofixAutomationTuning: 'medium',
           }),
@@ -652,7 +652,7 @@ describe('ProjectSeer', () => {
         organization,
         outletContext: {
           project: ProjectFixture({
-            features: ['triage-signals-v0'],
+            features: ['seer-user-billing'],
             seerScannerAutomation: true,
             autofixAutomationTuning: 'medium', // Start with enabled so no auto-enable
           }),
@@ -688,7 +688,7 @@ describe('ProjectSeer', () => {
         organization,
         outletContext: {
           project: ProjectFixture({
-            features: ['triage-signals-v0'],
+            features: ['seer-user-billing'],
             seerScannerAutomation: true,
             autofixAutomationTuning: 'off', // Existing org with it disabled
           }),
@@ -706,7 +706,7 @@ describe('ProjectSeer', () => {
         organization,
         outletContext: {
           project: ProjectFixture({
-            features: ['triage-signals-v0'],
+            features: ['seer-user-billing'],
             seerScannerAutomation: true,
             autofixAutomationTuning: undefined, // New org
           }),
@@ -1226,13 +1226,13 @@ describe('ProjectSeer', () => {
     });
   });
 
-  describe('Auto-open PR and Cursor Handoff toggles with triage-signals-v0', () => {
+  describe('Auto-open PR and Cursor Handoff toggles with seer-user-billing', () => {
     it('shows Auto-open PR toggle when Auto-Trigger is ON', async () => {
       render(<ProjectSeer />, {
         organization,
         outletContext: {
           project: ProjectFixture({
-            features: ['triage-signals-v0'],
+            features: ['seer-user-billing'],
             autofixAutomationTuning: 'medium',
           }),
         },
@@ -1247,7 +1247,7 @@ describe('ProjectSeer', () => {
         organization,
         outletContext: {
           project: ProjectFixture({
-            features: ['triage-signals-v0'],
+            features: ['seer-user-billing'],
             autofixAutomationTuning: 'off',
           }),
         },
@@ -1298,7 +1298,7 @@ describe('ProjectSeer', () => {
         organization: orgWithCursor,
         outletContext: {
           project: ProjectFixture({
-            features: ['triage-signals-v0'],
+            features: ['seer-user-billing'],
             autofixAutomationTuning: 'medium',
           }),
         },
@@ -1315,7 +1315,7 @@ describe('ProjectSeer', () => {
         organization,
         outletContext: {
           project: ProjectFixture({
-            features: ['triage-signals-v0'],
+            features: ['seer-user-billing'],
             autofixAutomationTuning: 'medium',
           }),
         },
@@ -1343,7 +1343,7 @@ describe('ProjectSeer', () => {
         organization,
         outletContext: {
           project: ProjectFixture({
-            features: ['triage-signals-v0'],
+            features: ['seer-user-billing'],
             autofixAutomationTuning: 'medium',
           }),
         },
@@ -1415,7 +1415,7 @@ describe('ProjectSeer', () => {
         organization: orgWithCursor,
         outletContext: {
           project: ProjectFixture({
-            features: ['triage-signals-v0'],
+            features: ['seer-user-billing'],
             autofixAutomationTuning: 'medium',
           }),
         },
@@ -1480,7 +1480,7 @@ describe('ProjectSeer', () => {
         organization: orgWithCursor,
         outletContext: {
           project: ProjectFixture({
-            features: ['triage-signals-v0'],
+            features: ['seer-user-billing'],
             autofixAutomationTuning: 'medium',
           }),
         },
@@ -1514,7 +1514,7 @@ describe('ProjectSeer', () => {
         organization,
         outletContext: {
           project: ProjectFixture({
-            features: ['triage-signals-v0'],
+            features: ['seer-user-billing'],
             autofixAutomationTuning: 'medium',
           }),
         },
@@ -1587,7 +1587,7 @@ describe('ProjectSeer', () => {
         organization: orgWithCursor,
         outletContext: {
           project: ProjectFixture({
-            features: ['triage-signals-v0'],
+            features: ['seer-user-billing'],
             autofixAutomationTuning: 'medium',
           }),
         },
