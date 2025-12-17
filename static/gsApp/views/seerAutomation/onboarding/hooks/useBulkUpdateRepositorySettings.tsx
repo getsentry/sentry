@@ -9,7 +9,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import {getRepositoryWithSettingsQueryKey} from 'getsentry/views/seerAutomation/onboarding/hooks/useRepositoryWithSettings';
 
-type RepositorySettings =
+export type RepositorySettings =
   | {
       enabledCodeReview: boolean;
       repositoryIds: string[];
@@ -43,7 +43,8 @@ export function useBulkUpdateRepositorySettings(
         data,
       });
     },
-    onSettled: data => {
+    ...options,
+    onSettled: (data, error, variables, context) => {
       queryClient.invalidateQueries({
         queryKey: [`/organizations/${organization.slug}/repos/`],
       });
@@ -52,7 +53,7 @@ export function useBulkUpdateRepositorySettings(
           queryKey: getRepositoryWithSettingsQueryKey(organization, repo.id),
         });
       });
+      options?.onSettled?.(data, error, variables, context);
     },
-    ...options,
   });
 }
