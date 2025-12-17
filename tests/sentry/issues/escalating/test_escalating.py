@@ -25,6 +25,7 @@ from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupFo
 from sentry.issues.grouptype import GroupCategory, ProfileFileIOGroupType
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import GroupInbox
+from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.sentry_metrics.client.snuba import build_mri
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -414,7 +415,7 @@ class TestGetGroupHourlyCountEAP(TestCase):
         mock_eap.return_value = 5
         mock_forecast.return_value = 50
 
-        with self.options({"eap.occurrences.should_double_read": True}):
+        with self.options({EAPOccurrencesComparator._should_eval_option_name(): True}):
             result = is_escalating(group)
 
         # Should escalate because Snuba count (100) > forecast (50)
@@ -436,8 +437,8 @@ class TestGetGroupHourlyCountEAP(TestCase):
 
         with self.options(
             {
-                "eap.occurrences.should_double_read": True,
-                "eap.occurrences.callsites_using_eap_data_allowlist": [
+                EAPOccurrencesComparator._should_eval_option_name(): True,
+                EAPOccurrencesComparator._callsite_allowlist_option_name(): [
                     "issues.escalating.is_escalating"
                 ],
             }
