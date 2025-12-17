@@ -36,6 +36,7 @@ import {
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceItemAttributesWithConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 // This is a placeholder that currently signals that no metric is selected
@@ -72,11 +73,12 @@ function TraceMetricsSearchBar({
   const hasTraceMetricsDashboards = useHasTraceMetricsDashboards();
   const {state: widgetBuilderState} = useWidgetBuilderContext();
 
-  const traceMetric = widgetBuilderState.traceMetric;
+  const traceMetric = widgetBuilderState.traceMetric ?? {name: '', type: ''};
 
   const traceItemAttributeConfig = {
     traceItemType: TraceItemDataset.TRACEMETRICS,
     enabled: hasTraceMetricsDashboards,
+    query: createTraceMetricFilter(traceMetric),
   };
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
@@ -109,10 +111,14 @@ function useTraceMetricsSearchBarDataProvider(
 ): SearchBarData {
   const {pageFilters, widgetQuery} = props;
   const hasTraceMetricsDashboards = useHasTraceMetricsDashboards();
+  const {state: widgetBuilderState} = useWidgetBuilderContext();
+
+  const traceMetric = widgetBuilderState.traceMetric ?? {name: '', type: ''};
 
   const traceItemAttributeConfig = {
     traceItemType: TraceItemDataset.TRACEMETRICS,
     enabled: hasTraceMetricsDashboards,
+    query: createTraceMetricFilter(traceMetric),
   };
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
