@@ -5,7 +5,7 @@ import time
 from collections.abc import Mapping, MutableMapping, Sequence
 from concurrent.futures import Future
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import BrokerValue
@@ -197,7 +197,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         real_topic = get_topic_definition(topic)["real_topic_name"]
 
         try:
-            produce_future: Future[BrokerValue[KafkaPayload]] = producer.produce(
+            produce_future = producer.produce(
                 destination=ArroyoTopic(real_topic),
                 payload=KafkaPayload(
                     key=str(project_id).encode("utf-8") if not skip_semantic_partitioning else None,
@@ -207,7 +207,8 @@ class KafkaEventStream(SnubaProtocolEventStream):
                     headers=[(k, v.encode("utf-8")) for k, v in headers.items()],
                 ),
             )
-            produce_future.add_done_callback(
+            # Since use_simple_futures=False, we know this is a Future
+            cast(Future[BrokerValue[KafkaPayload]], produce_future).add_done_callback(
                 lambda future: self.delivery_callback(
                     future.exception() if future.exception() is not None else None,
                     future.result().payload.value if future.result() is not None else None,
@@ -217,10 +218,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
             logger.exception("Could not publish message: %s", error)
             return
 
-        if not asynchronous:
-            # flush() is a convenience method that calls poll() until len() is zero
-            producer.flush()
-
     def requires_post_process_forwarder(self) -> bool:
         return True
 
@@ -228,7 +225,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         producer = self.get_producer(Topic.SNUBA_ITEMS)
         real_topic = get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"]
         try:
-            producer.produce(
+            _ = producer.produce(
                 destination=ArroyoTopic(real_topic),
                 payload=KafkaPayload(
                     key=None, value=EAP_ITEMS_CODEC.encode(trace_item), headers=[]
