@@ -86,7 +86,7 @@ class PrebuiltDashboard(TypedDict):
 # deprecate once this feature is released.
 # Note B: Consider storing all dashboard and widget data in the database instead of relying on matching
 # prebuilt_id on the frontend, if there are issues.
-# Note C: These titles should match the titles in the frontend so that the results returned by the API match the titles in the frontend.
+# Note C: These titles should match the configs in the `PREBUILT_DASHBOARDS` constant in the frontend so that the results returned by the API match the titles in the frontend.
 PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,

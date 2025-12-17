@@ -27,6 +27,8 @@ export enum PrebuiltDashboardId {
 
 export type PrebuiltDashboard = Omit<DashboardDetails, 'id'>;
 
+// NOTE: These configs must be in sync with the prebuilt dashboards declared in
+// the backend in the `PREBUILT_DASHBOARDS` constant.
 export const PREBUILT_DASHBOARDS: Record<PrebuiltDashboardId, PrebuiltDashboard> = {
   [PrebuiltDashboardId.FRONTEND_SESSION_HEALTH]: SESSION_HEALTH_PREBUILT_CONFIG,
   [PrebuiltDashboardId.BACKEND_QUERIES]: QUERIES_PREBUILT_CONFIG,
