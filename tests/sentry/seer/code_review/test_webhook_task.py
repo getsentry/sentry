@@ -31,21 +31,17 @@ class ProcessGitHubWebhookEventTest(TestCase):
         """
         task = process_github_webhook_event
 
-        # Verify retry configuration exists
         assert task.retry is not None, "Task should have retry configuration"
 
-        # Verify HTTPError is in the allowed exception types
         # This is what allows the taskworker to actually retry on HTTPError
         assert HTTPError in task.retry._allowed_exception_types, (
             "HTTPError must be in retry allowlist for retries to work. "
             "Without this, the task will fail immediately despite times=3."
         )
 
-        # Verify retry count and delay
         assert task.retry._times == 3, "Task should retry 3 times"
         assert task.retry._delay == 60, "Task should delay 60 seconds between retries"
 
-        # Verify should_retry returns True for HTTPError
         from urllib3.exceptions import MaxRetryError
 
         retry_state = RetryState(attempts=0, max_attempts=3)
@@ -75,10 +71,8 @@ class ProcessGitHubWebhookEventTest(TestCase):
         )
 
         with self.options({"coding_workflows.code_review.github.check_run.rerun.enabled": True}):
-            # Create mock task self on last retry
             mock_self = self._create_mock_task_self(retries=2)
 
-            # Task should raise HTTPError to trigger retry
             with pytest.raises(HTTPError):
                 process_github_webhook_event._func(
                     mock_self,
@@ -93,10 +87,8 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_request.return_value = self._mock_response(503, b'{"detail": "Service unavailable"}')
 
         with self.options({"coding_workflows.code_review.github.check_run.rerun.enabled": True}):
-            # Create mock task self on last retry
             mock_self = self._create_mock_task_self(retries=2)
 
-            # Task should raise HTTPError to trigger retry
             with pytest.raises(HTTPError):
                 process_github_webhook_event._func(
                     mock_self,
@@ -111,10 +103,8 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_request.return_value = self._mock_response(429, b'{"detail": "Rate limit exceeded"}')
 
         with self.options({"coding_workflows.code_review.github.check_run.rerun.enabled": True}):
-            # Create mock task self on last retry
             mock_self = self._create_mock_task_self(retries=2)
 
-            # Task should raise HTTPError to trigger retry
             with pytest.raises(HTTPError):
                 process_github_webhook_event._func(
                     mock_self,
@@ -132,10 +122,9 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_request.return_value = self._mock_response(400, b'{"detail": "Bad request"}')
 
         with self.options({"coding_workflows.code_review.github.check_run.rerun.enabled": True}):
-            # Create mock task self
             mock_self = self._create_mock_task_self(retries=0)
 
-            # Task should NOT raise exception (client errors are permanent)
+            # Client errors are permanent, should not raise exception
             process_github_webhook_event._func(
                 mock_self,
                 organization_id=self.organization.id,
@@ -143,13 +132,11 @@ class ProcessGitHubWebhookEventTest(TestCase):
                 original_run_id=self.original_run_id,
             )
 
-            # Verify client error was tracked in metrics (not retried)
+            # Client error tracked in metrics, not retried
             mock_metrics.incr.assert_called()
-            # Check that status includes client_error
             incr_calls = [call for call in mock_metrics.incr.call_args_list]
             outcome_calls = [call for call in incr_calls if "outcome" in str(call)]
             assert len(outcome_calls) > 0
-            # Verify the status tag indicates client error
             outcome_call = outcome_calls[0]
             assert "client_error" in str(outcome_call)
 
@@ -161,10 +148,8 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_request.side_effect = MaxRetryError(None, "test", reason="Connection failed")  # type: ignore[arg-type]
 
         with self.options({"coding_workflows.code_review.github.check_run.rerun.enabled": True}):
-            # Create mock task self on last retry
             mock_self = self._create_mock_task_self(retries=2)
 
-            # Task should raise exception to trigger retry
             with pytest.raises(MaxRetryError):
                 process_github_webhook_event._func(
                     mock_self,
@@ -181,10 +166,8 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_request.side_effect = TimeoutError("Request timed out")
 
         with self.options({"coding_workflows.code_review.github.check_run.rerun.enabled": True}):
-            # Create mock task self on last retry
             mock_self = self._create_mock_task_self(retries=2)
 
-            # Task should raise exception to trigger retry
             with pytest.raises(TimeoutError):
                 process_github_webhook_event._func(
                     mock_self,
@@ -201,10 +184,8 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_request.side_effect = SSLError("Certificate verification failed")
 
         with self.options({"coding_workflows.code_review.github.check_run.rerun.enabled": True}):
-            # Create mock task self on last retry
             mock_self = self._create_mock_task_self(retries=2)
 
-            # Task should raise exception to trigger retry
             with pytest.raises(SSLError):
                 process_github_webhook_event._func(
                     mock_self,
@@ -221,10 +202,8 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_request.side_effect = NewConnectionError(None, "Failed to establish connection")  # type: ignore[arg-type]
 
         with self.options({"coding_workflows.code_review.github.check_run.rerun.enabled": True}):
-            # Create mock task self on last retry
             mock_self = self._create_mock_task_self(retries=2)
 
-            # Task should raise exception to trigger retry
             with pytest.raises(NewConnectionError):
                 process_github_webhook_event._func(
                     mock_self,
@@ -241,10 +220,9 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_request.side_effect = TimeoutError("Request timed out")
 
         with self.options({"coding_workflows.code_review.github.check_run.rerun.enabled": True}):
-            # Create mock task self on first retry (not last)
+            # First retry (not last)
             mock_self = self._create_mock_task_self(retries=0)
 
-            # Task should raise exception to trigger retry
             with pytest.raises(TimeoutError):
                 process_github_webhook_event._func(
                     mock_self,
@@ -259,14 +237,13 @@ class ProcessGitHubWebhookEventTest(TestCase):
         self, mock_metrics: MagicMock, mock_request: MagicMock
     ) -> None:
         """Test that unexpected errors (non-HTTPError) are tracked in metrics and raised."""
-        # Simulate an unexpected error (e.g., JSON parsing error)
+        # e.g., JSON parsing error
         mock_request.side_effect = ValueError("Invalid JSON format")
 
         with self.options({"coding_workflows.code_review.github.check_run.rerun.enabled": True}):
-            # Create mock task self
             mock_self = self._create_mock_task_self(retries=0)
 
-            # Task should raise the unexpected exception (no retry)
+            # Unexpected exceptions are not retried
             with pytest.raises(ValueError, match="Invalid JSON format"):
                 process_github_webhook_event._func(
                     mock_self,
@@ -275,16 +252,13 @@ class ProcessGitHubWebhookEventTest(TestCase):
                     original_run_id=self.original_run_id,
                 )
 
-            # Verify metrics were recorded
             mock_metrics.incr.assert_called()
             incr_calls = [call for call in mock_metrics.incr.call_args_list]
             outcome_calls = [call for call in incr_calls if "outcome" in str(call)]
             assert len(outcome_calls) > 0
-            # Verify the status includes unexpected_error
             outcome_call = outcome_calls[0]
             assert "unexpected_error_ValueError" in str(outcome_call)
 
-            # Verify latency was also recorded
             mock_metrics.timing.assert_called_once()
 
     @patch("sentry.seer.code_review.webhook_task.make_signed_seer_api_request")
@@ -296,10 +270,8 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_request.return_value = self._mock_response(200, b"{}")
 
         with self.options({"coding_workflows.code_review.github.check_run.rerun.enabled": True}):
-            # Create mock task self for first attempt
             mock_self = self._create_mock_task_self(retries=0)
 
-            # Execute task with enqueued_at timestamp
             process_github_webhook_event._func(
                 mock_self,
                 organization_id=self.organization.id,
@@ -307,12 +279,10 @@ class ProcessGitHubWebhookEventTest(TestCase):
                 original_run_id=self.original_run_id,
             )
 
-            # Verify latency metric was recorded
             mock_metrics.timing.assert_called_once()
             call_args = mock_metrics.timing.call_args[0]
             assert call_args[0] == f"{PREFIX}.e2e_latency"
-            # Latency should be >= 2000ms (2 seconds base + test overhead)
-            # Allow wide tolerance for test execution time (1-5 seconds total)
+            # 2 seconds base + test overhead, allow wide tolerance (1-5 seconds total)
             assert (
                 1000 <= call_args[1] <= 5000
             ), f"Expected latency between 1-5s, got {call_args[1]}ms"
@@ -325,10 +295,8 @@ class ProcessGitHubWebhookEventTest(TestCase):
         """Test that latency is tracked once on final attempt after max retries with failures."""
         from urllib3.exceptions import MaxRetryError
 
-        # Make the Seer API call fail 3 times with HTTPError
         mock_request.side_effect = MaxRetryError(None, "test", reason="Connection failed")  # type: ignore[arg-type]
 
-        # Create an enqueued_at timestamp in the past to simulate retry delays
         # With MAX_RETRIES=3, there are 2 delays between 3 attempts: (3-1) * 60s = 120s
         enqueued_at_str = (
             datetime.now(timezone.utc)
@@ -336,7 +304,6 @@ class ProcessGitHubWebhookEventTest(TestCase):
         ).isoformat()
 
         with self.options({"coding_workflows.code_review.github.check_run.rerun.enabled": True}):
-            # Simulate 3 attempts (initial + 2 retries)
             for retry_count in range(MAX_RETRIES):
                 mock_self = self._create_mock_task_self(retries=retry_count)
 
@@ -347,22 +314,19 @@ class ProcessGitHubWebhookEventTest(TestCase):
                         enqueued_at_str=enqueued_at_str,
                         original_run_id=self.original_run_id,
                     )
-                    # Should not reach here - exception should be raised
                     assert False, "Expected MaxRetryError to be raised"
                 except MaxRetryError:
                     pass  # Expected
 
-            # Verify timing was called exactly once (on the last attempt only)
+            # Timing called exactly once on the last attempt only
             mock_metrics.timing.assert_called_once()
             call_args = mock_metrics.timing.call_args[0]
             assert call_args[0] == f"{PREFIX}.e2e_latency"
 
-            # Verify timing has status tag
             call_kwargs = mock_metrics.timing.call_args[1]
             assert "tags" in call_kwargs
             assert "status" in call_kwargs["tags"]
 
-            # Latency should be approximately 2 minutes (120,000ms)
             # With MAX_RETRIES=3, there are 2 delays: (3-1) * 60s = 120s
             # Allow tolerance for test execution time (3 attempts add overhead)
             expected_latency_ms = (MAX_RETRIES - 1) * DELAY_BETWEEN_RETRIES * 1000  # 120,000ms

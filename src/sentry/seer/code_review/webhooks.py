@@ -57,13 +57,12 @@ def handle_github_check_run_event(organization: Organization, event: Mapping[str
     try:
         validated_event = _validate_github_check_run_event(event)
     except (ValidationError, ValueError):
-        # Do not raise an exception here to prevent sending a 500 error to GitHub
-        # which would trigger a retry.
+        # Prevent sending a 500 error to GitHub which would trigger a retry
         logger.exception("github.webhook.check_run.invalid-payload")
         metrics.incr(f"{PREFIX}.outcome", tags={"status": "invalid_payload"})
         return False
 
-    # Note: bind=True means self is automatically provided, mypy doesn't understand this
+    # bind=True means self is automatically provided, mypy doesn't understand this
     process_github_webhook_event.delay(  # type: ignore[call-arg]
         original_run_id=validated_event.check_run.external_id,
         organization_id=organization.id,
@@ -85,8 +84,7 @@ def _validate_github_check_run_event(event: Mapping[str, Any]) -> GitHubCheckRun
         ValueError: If external_id is not numeric
     """
     validated_event = GitHubCheckRunEvent.parse_obj(event)
-    # Validate external_id is numeric (raises ValueError if not)
-    int(validated_event.check_run.external_id)
+    int(validated_event.check_run.external_id)  # Raises ValueError if not numeric
     return validated_event
 
 

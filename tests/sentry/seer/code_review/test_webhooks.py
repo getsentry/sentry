@@ -16,7 +16,6 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
 
     def _send_check_run_event(self, event_data: bytes | str) -> HttpResponseBase:
         """Helper to send check_run event with Pydantic validation."""
-        # Parse and validate event data
         self.event_dict = (
             orjson.loads(event_data) if isinstance(event_data, (bytes, str)) else event_data
         )
@@ -41,14 +40,12 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
         with self.options({"coding_workflows.code_review.github.check_run.rerun.enabled": True}):
             self._send_check_run_event(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
 
-            # Verify task was enqueued with correct parameters
             mock_task.delay.assert_called_once()
             call_kwargs = mock_task.delay.call_args[1]
             assert call_kwargs["original_run_id"] == self.event_dict["check_run"]["external_id"]
             assert call_kwargs["organization_id"] == self.organization.id
             assert call_kwargs["action"] == "rerequested"
             assert call_kwargs["html_url"] == self.event_dict["check_run"]["html_url"]
-            # Verify enqueued_at_str timestamp is included
             assert "enqueued_at_str" in call_kwargs
             assert isinstance(call_kwargs["enqueued_at_str"], str)
 
@@ -75,16 +72,14 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
     @with_feature({"organizations:code-review-beta"})
     def test_check_run_fails_when_external_id_missing(self, mock_task: MagicMock) -> None:
         """Test that missing external_id is handled gracefully."""
-        # Create event without external_id
         event_without_external_id = orjson.loads(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
         del event_without_external_id["check_run"]["external_id"]
 
         with patch("sentry.seer.code_review.webhooks.logger") as mock_logger:
             self._send_check_run_event(orjson.dumps(event_without_external_id))
 
-            # Verify NO task was enqueued
             mock_task.delay.assert_not_called()
-            # Verify error was logged (validation errors are logged with exception)
+            # Validation errors are logged with exception
             mock_logger.exception.assert_called_once()
             assert (
                 "github.webhook.check_run.invalid-payload" in mock_logger.exception.call_args[0][0]
@@ -94,16 +89,14 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
     @with_feature({"organizations:code-review-beta"})
     def test_check_run_fails_when_external_id_not_numeric(self, mock_task: MagicMock) -> None:
         """Test that non-numeric external_id is handled gracefully."""
-        # Create event with non-numeric external_id
         event_with_invalid_external_id = orjson.loads(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
         event_with_invalid_external_id["check_run"]["external_id"] = "not-a-number"
 
         with patch("sentry.seer.code_review.webhooks.logger") as mock_logger:
             self._send_check_run_event(orjson.dumps(event_with_invalid_external_id))
 
-            # Verify NO task was enqueued
             mock_task.delay.assert_not_called()
-            # Verify error was logged (ValueError for non-numeric external_id)
+            # ValueError raised for non-numeric external_id
             mock_logger.exception.assert_called_once()
             assert (
                 "github.webhook.check_run.invalid-payload" in mock_logger.exception.call_args[0][0]
@@ -116,10 +109,8 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
 
         self._send_check_run_event(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
 
-        # Verify task was enqueued once
         mock_task.delay.assert_called_once()
         call_kwargs = mock_task.delay.call_args[1]
-        # Verify the external_id and organization_id are passed
         assert call_kwargs["original_run_id"] == self.event_dict["check_run"]["external_id"]
         assert call_kwargs["organization_id"] == self.organization.id
 

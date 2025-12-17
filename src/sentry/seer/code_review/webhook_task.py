@@ -34,7 +34,7 @@ DELAY_BETWEEN_RETRIES = 60  # 1 minute
     namespace=seer_code_review_tasks,
     retry=Retry(times=MAX_RETRIES, delay=DELAY_BETWEEN_RETRIES, on=(HTTPError,)),
     silo_mode=SiloMode.REGION,
-    bind=True,  # Bind task instance to access self.request.retries for conditional logging
+    bind=True,  # Access self.request.retries for conditional logging
 )
 def process_github_webhook_event(
     self: Any, *, organization_id: int, enqueued_at_str: str, **kwargs: Any
@@ -72,13 +72,12 @@ def process_github_webhook_event(
         metrics.incr(f"{PREFIX}.outcome", tags={"status": f"error_{status}"})
         if self.request.retries < MAX_RETRIES - 1:
             should_record_latency = False
-        # Note: Exception automatically captured to Sentry by taskworker on final retry (when retries=MAX_RETRIES-1)
-        raise  # Re-raise to trigger task retry (error listed in on= parameter)
+        # Exception automatically captured to Sentry by taskworker on final retry
+        raise  # Trigger task retry (error listed in on= parameter)
     except Exception as e:
-        # Unexpected errors (JSON parsing, config issues, etc.)
-        # These are not retryable and indicate a programming or configuration error
+        # Unexpected errors are not retryable and indicate a programming or configuration error
         status = f"unexpected_error_{e.__class__.__name__}"
-        raise  # The task will fail (no retry for unexpected errors, not listed in on= parameter)
+        raise  # Task will fail, no retry for unexpected errors not listed in on= parameter
     finally:
         metrics.incr(f"{PREFIX}.outcome", tags={"status": status})
         if should_record_latency:
@@ -95,10 +94,9 @@ def make_seer_request(original_run_id: str) -> str:
     )
     # Retry on server errors (5xx) and rate limits (429), but not client errors (4xx)
     if response.status >= 500 or response.status == 429:
-        # Server error or rate limit - transient, should retry
         raise HTTPError(f"Seer returned retryable status {response.status}")
     elif response.status >= 400:
-        # Client error (4xx except 429) - permanent, don't retry
+        # Client errors are permanent, don't retry
         status = f"client_error_{response.status}"
     else:
         status = "success"
@@ -119,7 +117,7 @@ def calculate_latency(enqueued_at_str: str) -> int:
         processing_started_at = datetime.now(timezone.utc)
         return int((processing_started_at - enqueued_at).total_seconds() * 1000)
     except (ValueError, TypeError) as e:
-        # Log but don't fail the task if timestamp parsing fails
+        # Don't fail the task if timestamp parsing fails
         logger.warning(
             "%s.invalid_timestamp",
             PREFIX,
