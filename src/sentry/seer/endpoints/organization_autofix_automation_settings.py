@@ -24,6 +24,8 @@ from sentry.seer.autofix.utils import (
     bulk_set_project_preferences,
     default_seer_project_preference,
 )
+from sentry.seer.endpoints.organization_seer_onboarding import ProjectRepoMappingField
+from sentry.seer.models import SeerRepoDefinition
 
 
 class SeerAutofixSettingGetResponseSerializer(serializers.Serializer):
@@ -47,6 +49,22 @@ class SeerAutofixSettingsPostSerializer(SeerAutofixSettingsSerializer):
         max_length=1000,
         help_text="List of project IDs to create/update settings for.",
     )
+    projectRepoMappings = ProjectRepoMappingField(
+        required=False,
+        allow_null=True,
+        help_text="Optional mapping of project IDs to repository configurations. If provided, updates the repository list for each specified project.",
+    )
+
+    def validate(self, data):
+        if (
+            "autofixAutomationTuning" not in data
+            and "automatedRunStoppingPoint" not in data
+            and "projectRepoMappings" not in data
+        ):
+            raise serializers.ValidationError(
+                "At least one of 'autofixAutomationTuning', 'automatedRunStoppingPoint', or 'projectRepoMappings' must be provided."
+            )
+        return data
 
 
 @region_silo_endpoint
@@ -100,13 +118,11 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
         List projects with their autofix automation settings.
 
         :pparam string organization_id_or_slug: the id or slug of the organization.
-        :qparam list[int] projectIds: Optional list of project IDs to filter by.
         :qparam string query: Optional search query to filter by project name or slug.
         :auth: required
         """
         serializer = SeerAutofixSettingGetResponseSerializer(
             data={
-                "projectIds": request.GET.getlist("projectIds") or None,
                 "query": request.GET.get("query"),
             }
         )
@@ -133,6 +149,8 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
         """
         Bulk create/update the autofix automation settings of projects in a single request.
 
+        NOTE: When ProjectRepoMappings are provided, it will overwrite the existing repositories for that project.
+
         :pparam string organization_id_or_slug: the id or slug of the organization.
         :auth: required
         """
@@ -143,38 +161,62 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
         project_ids = set[int](serializer.validated_data["projectIds"] or [])
         autofix_automation_tuning = serializer.validated_data.get("autofixAutomationTuning")
         automated_run_stopping_point = serializer.validated_data.get("automatedRunStoppingPoint")
+        project_repo_mappings = serializer.validated_data.get("projectRepoMappings")
 
         projects = self.get_projects(request, organization, project_ids=project_ids)
+        projects_by_id = {project.id: project for project in projects}
+
+        # Filter projectRepoMappings to only include validated project IDs
+        filtered_repo_mappings: dict[int, list] = {}
+        if project_repo_mappings:
+            filtered_repo_mappings = {
+                proj_id: repos
+                for proj_id, repos in project_repo_mappings.items()
+                if proj_id in projects_by_id
+            }
 
         preferences_to_set: list[dict[str, Any]] = []
-        if automated_run_stopping_point:
-            project_ids_list = [project.id for project in projects]
-            existing_preferences = bulk_get_project_preferences(organization.id, project_ids_list)
 
-            for project in projects:
-                project_id_str = str(project.id)
+        if automated_run_stopping_point or filtered_repo_mappings:
+            existing_preferences = bulk_get_project_preferences(
+                organization.id, list(projects_by_id.keys())
+            )
+
+            for proj_id, project in projects_by_id.items():
+                has_stopping_point_update = automated_run_stopping_point is not None
+                has_repo_update = proj_id in filtered_repo_mappings
+
+                if not has_stopping_point_update and not has_repo_update:
+                    continue
+
+                project_id_str = str(proj_id)
                 existing_pref = existing_preferences.get(project_id_str, {})
 
-                preferences_to_set.append(
-                    {
-                        **default_seer_project_preference(project).dict(),
-                        **existing_pref,
-                        "organization_id": organization.id,
-                        "project_id": project.id,
-                        "automated_run_stopping_point": automated_run_stopping_point,
-                    }
-                )
+                pref_update: dict[str, Any] = {
+                    **default_seer_project_preference(project).dict(),
+                    **existing_pref,
+                    "organization_id": organization.id,
+                    "project_id": proj_id,
+                }
+
+                if has_stopping_point_update:
+                    pref_update["automated_run_stopping_point"] = automated_run_stopping_point
+
+                if has_repo_update:
+                    repos_data = filtered_repo_mappings[proj_id]
+                    pref_update["repositories"] = [
+                        SeerRepoDefinition(**repo_data).dict() for repo_data in repos_data
+                    ]
+
+                preferences_to_set.append(pref_update)
 
         # Wrap DB writes and Seer API call in a transaction.
         # If Seer API fails, DB changes are rolled back.
         with transaction.atomic(router.db_for_write(ProjectOption)):
             if autofix_automation_tuning:
-                autofix_automation_tuning_value = (
-                    autofix_automation_tuning or AutofixAutomationTuningSettings.OFF.value
-                )
                 for project in projects:
                     project.update_option(
-                        "sentry:autofix_automation_tuning", autofix_automation_tuning_value
+                        "sentry:autofix_automation_tuning", autofix_automation_tuning
                     )
 
             if preferences_to_set:
