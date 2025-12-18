@@ -62,7 +62,7 @@ function useSavedQueryForDataset(dataset: 'spans' | 'logs') {
   const queryParams = useQueryParams();
   const {id, title} = queryParams;
 
-  const [caseInsensitivity] = useCaseInsensitivity();
+  const [caseInsensitive] = useCaseInsensitivity();
   const {saveQueryFromSavedQuery, updateQueryFromSavedQuery} = useFromSavedQuery();
 
   const requestData = useMemo((): ExploreSavedQueryRequest => {
@@ -72,9 +72,9 @@ function useSavedQueryForDataset(dataset: 'spans' | 'logs') {
       pageFilters,
       interval,
       title: title ?? '',
-      caseInsensitivity: caseInsensitivity ? '1' : undefined,
+      caseInsensitive: caseInsensitive ? '1' : undefined,
     });
-  }, [dataset, queryParams, pageFilters, interval, title, caseInsensitivity]);
+  }, [dataset, queryParams, pageFilters, interval, title, caseInsensitive]);
 
   const {saveQueryApi, updateQueryApi} = useCreateOrUpdateSavedQuery(id);
 
@@ -204,14 +204,14 @@ function convertQueryParamsToRequest({
   pageFilters,
   interval,
   title,
-  caseInsensitivity,
+  caseInsensitive,
 }: {
   dataset: 'spans' | 'logs';
   interval: string;
   pageFilters: ReturnType<typeof usePageFilters>;
   queryParams: ReadableQueryParams;
   title: string;
-  caseInsensitivity?: '1';
+  caseInsensitive?: '1';
 }): ExploreSavedQueryRequest {
   const {selection} = pageFilters;
   const {datetime, projects, environments} = selection;
@@ -259,7 +259,7 @@ function convertQueryParamsToRequest({
         query,
         mode,
         aggregateField: aggregateFields,
-        caseInsensitive: caseInsensitivity,
+        caseInsensitive,
       },
     ],
   };
