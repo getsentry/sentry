@@ -425,3 +425,85 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         preferences = call_args[0][1]
         assert len(preferences) == 1
         assert preferences[0]["repositories"] == []
+
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_set_project_preferences"
+    )
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
+    )
+    def test_post_overwrites_existing_repos(
+        self, mock_bulk_get_preferences, mock_bulk_set_preferences
+    ):
+        project = self.create_project(organization=self.organization)
+
+        mock_bulk_get_preferences.return_value = {
+            str(project.id): {
+                "repositories": [{"name": "old-repo", "owner": "old-owner", "external_id": "111"}],
+            }
+        }
+
+        new_repo_data = {
+            "provider": "github",
+            "owner": "new-owner",
+            "name": "new-repo",
+            "externalId": "222",
+        }
+
+        response = self.client.post(
+            self.url,
+            {
+                "projectIds": [project.id],
+                "projectRepoMappings": {
+                    str(project.id): [new_repo_data],
+                },
+            },
+        )
+        assert response.status_code == 204
+
+        mock_bulk_set_preferences.assert_called_once()
+        call_args = mock_bulk_set_preferences.call_args
+        preferences = call_args[0][1]
+        assert len(preferences) == 1
+        assert len(preferences[0]["repositories"]) == 1
+        assert preferences[0]["repositories"][0]["name"] == "new-repo"
+        assert preferences[0]["repositories"][0]["owner"] == "new-owner"
+        assert preferences[0]["repositories"][0]["external_id"] == "222"
+
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_set_project_preferences"
+    )
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
+    )
+    def test_post_only_updates_projects_with_changes(
+        self, mock_bulk_get_preferences, mock_bulk_set_preferences
+    ):
+        project1 = self.create_project(organization=self.organization)
+        project2 = self.create_project(organization=self.organization)
+
+        mock_bulk_get_preferences.return_value = {}
+
+        repo_data = {
+            "provider": "github",
+            "owner": "test-org",
+            "name": "test-repo",
+            "externalId": "12345",
+        }
+
+        response = self.client.post(
+            self.url,
+            {
+                "projectIds": [project1.id, project2.id],
+                "projectRepoMappings": {
+                    str(project1.id): [repo_data],
+                },
+            },
+        )
+        assert response.status_code == 204
+
+        mock_bulk_set_preferences.assert_called_once()
+        call_args = mock_bulk_set_preferences.call_args
+        preferences = call_args[0][1]
+        assert len(preferences) == 1
+        assert preferences[0]["project_id"] == project1.id

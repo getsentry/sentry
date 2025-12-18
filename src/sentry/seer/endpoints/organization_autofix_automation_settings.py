@@ -181,6 +181,12 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
             )
 
             for proj_id, project in projects_by_id.items():
+                has_stopping_point_update = automated_run_stopping_point is not None
+                has_repo_update = proj_id in filtered_repo_mappings
+
+                if not has_stopping_point_update and not has_repo_update:
+                    continue
+
                 project_id_str = str(proj_id)
                 existing_pref = existing_preferences.get(project_id_str, {})
 
@@ -191,10 +197,10 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
                     "project_id": proj_id,
                 }
 
-                if automated_run_stopping_point:
+                if has_stopping_point_update:
                     pref_update["automated_run_stopping_point"] = automated_run_stopping_point
 
-                if proj_id in filtered_repo_mappings:
+                if has_repo_update:
                     repos_data = filtered_repo_mappings[proj_id]
                     pref_update["repositories"] = [
                         SeerRepoDefinition(**repo_data).dict() for repo_data in repos_data
