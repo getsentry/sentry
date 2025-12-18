@@ -100,7 +100,7 @@ function SortBy({options, path, value}: SortByProps) {
       <CompactSelect
         trigger={triggerProps => (
           <SelectTrigger.Button {...triggerProps} size="sm" borderless>
-            {currentSortLabel}
+            {currentSortLabel ?? triggerProps.children}
           </SelectTrigger.Button>
         )}
         options={options.map(option => ({

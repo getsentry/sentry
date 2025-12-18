@@ -230,7 +230,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
                     size="xs"
                     trigger={triggerProps => (
                       <SelectTrigger.Button {...triggerProps}>
-                        {sdkProvider.label}
+                        {sdkProvider.label ?? triggerProps.children}
                       </SelectTrigger.Button>
                     )}
                     value={sdkProvider.value}

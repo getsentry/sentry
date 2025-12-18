@@ -49,7 +49,7 @@ function FilterBar({
             multiple
             trigger={triggerProps => (
               <SelectTrigger.Button {...triggerProps} prefix={t('Alert Type')}>
-                {selectedAlertTypes.length === 0 ? t('All') : undefined}
+                {selectedAlertTypes.length === 0 ? t('All') : triggerProps.children}
               </SelectTrigger.Button>
             )}
             menuFooter={

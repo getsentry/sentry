@@ -20,7 +20,7 @@ type Props = {
     skipConfirmModal?: boolean;
     visible?: boolean;
   }>;
-  label?: string;
+  label: string;
 };
 
 /**

@@ -30,7 +30,7 @@ function RepositorySwitcher({repositories, activeRepository}: RepositorySwitcher
     <CompactSelect
       trigger={triggerProps => (
         <SelectTrigger.Button {...triggerProps} prefix={t('Filter')}>
-          {activeRepo}
+          {activeRepo ?? triggerProps.children}
         </SelectTrigger.Button>
       )}
       value={activeRepo}

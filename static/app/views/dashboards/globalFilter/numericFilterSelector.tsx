@@ -55,7 +55,7 @@ interface NumericFilterState {
   isValidValue: boolean;
   operatorOptions: Array<SelectOption<Operator>>;
   renderInputField: () => React.ReactNode;
-  renderSelectorTrigger: () => React.ReactNode;
+  renderSelectorTrigger: () => React.JSX.Element;
   resetValues: () => void;
   setStagedOperator: (operator: TermOperator) => void;
   setStagedValue: (value: string) => void;

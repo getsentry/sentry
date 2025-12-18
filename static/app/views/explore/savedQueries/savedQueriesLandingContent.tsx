@@ -48,7 +48,8 @@ export function SavedQueriesLandingContent() {
         <CompactSelect
           trigger={triggerProps => (
             <SelectTrigger.Button {...triggerProps} icon={<IconSort />} size="md">
-              {sortOptions.find(option => option.value === sort)?.label}
+              {sortOptions.find(option => option.value === sort)?.label ??
+                triggerProps.children}
             </SelectTrigger.Button>
           )}
           options={sortOptions}

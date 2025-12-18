@@ -303,7 +303,7 @@ export function WizardProjectSelection({
             }
           >
             {newProjectPlatform
-              ? platforms.find(p => p.id === newProjectPlatform)?.name
+              ? platforms.find(p => p.id === newProjectPlatform)!.name
               : t('Select a platform')}
           </SelectTrigger.Button>
         )}

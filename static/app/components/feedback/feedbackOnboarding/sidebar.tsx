@@ -270,7 +270,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
                         size="xs"
                         trigger={triggerProps => (
                           <SelectTrigger.Button {...triggerProps}>
-                            {jsFramework.label}
+                            {jsFramework.label ?? triggerProps.children}
                           </SelectTrigger.Button>
                         )}
                         value={jsFramework.value}

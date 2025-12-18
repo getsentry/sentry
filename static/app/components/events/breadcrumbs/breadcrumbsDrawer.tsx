@@ -145,7 +145,7 @@ export function BreadcrumbsDrawer({
             {...props}
             {...getFocusProps(BreadcrumbControlOptions.FILTER)}
           >
-            {filters.length > 0 ? filters.length : null}
+            {filters.length > 0 ? filters.length : ''}
           </SelectTrigger.Button>
         )}
       />

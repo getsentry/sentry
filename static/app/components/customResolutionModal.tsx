@@ -173,7 +173,7 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
               aria-label={t('Version')}
             >
               {version
-                ? undefined
+                ? triggerProps.children
                 : isFetching
                   ? t('Loading\u2026')
                   : t('Select a version')}
