@@ -121,9 +121,7 @@ function VitalsContent() {
                         handleFilterChange(opt.value);
                       }}
                       trigger={triggerProps => (
-                        <SelectTrigger.Button {...triggerProps} prefix={t('Outliers')}>
-                          {activeFilter.label}
-                        </SelectTrigger.Button>
+                        <SelectTrigger.Button {...triggerProps} prefix={t('Outliers')} />
                       )}
                     />
                     <Button
