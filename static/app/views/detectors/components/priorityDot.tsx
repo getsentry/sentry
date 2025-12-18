@@ -9,7 +9,7 @@ export const PriorityDot = styled('div')<{priority: PriorityLevel | 'resolved'}>
   background-color: ${p => {
     switch (p.priority) {
       case PriorityLevel.HIGH:
-        return p.theme.red300;
+        return p.theme.colors.red400;
       case PriorityLevel.MEDIUM:
         return p.theme.colors.yellow500;
       case 'resolved':

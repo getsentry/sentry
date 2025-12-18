@@ -606,7 +606,7 @@ function getMetricChartTooltipFormatter({
 
     const changeStatusColor =
       changeStatus === AlertRuleTriggerType.CRITICAL
-        ? theme.red300
+        ? theme.colors.red400
         : changeStatus === AlertRuleTriggerType.WARNING
           ? theme.colors.yellow400
           : theme.colors.green400;

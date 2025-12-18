@@ -31,13 +31,13 @@ export const testStatusLabel = {
 
 export const testStatusStyle: TickStyle<string> = theme => ({
   error: {
-    labelColor: theme.red400,
-    tickColor: theme.red300,
+    labelColor: theme.colors.red500,
+    tickColor: theme.colors.red400,
   },
   timeout: {
-    labelColor: theme.red400,
-    tickColor: theme.red300,
-    hatchTick: theme.red200,
+    labelColor: theme.colors.red500,
+    tickColor: theme.colors.red400,
+    hatchTick: theme.colors.red200,
   },
   ok: {
     labelColor: theme.colors.green500,

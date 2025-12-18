@@ -261,7 +261,7 @@ export function getMetricDetectorChartOption(
         const incidentColor =
           warningCondition && !statusChanges.some(({value}) => value === 'high')
             ? theme.colors.yellow400
-            : theme.red300;
+            : theme.colors.red400;
 
         const incidentStartDate = new Date(openPeriod.start).getTime();
         const incidentCloseDate = openPeriod.end
@@ -287,7 +287,8 @@ export function getMetricDetectorChartOption(
             : new Date(incidentEnd).getTime(),
           lastPoint
         );
-        const areaColor = warningCondition ? theme.colors.yellow400 : theme.red300;
+        const areaColor = warningCondition ? theme.colors.yellow400 : theme.colors.red400;
+
         if (areaEnd > areaStart) {
           series.push(
             createStatusAreaSeries(areaColor, areaStart, areaEnd, minChartValue)
@@ -312,7 +313,7 @@ export function getMetricDetectorChartOption(
             lastPoint
           );
           const statusAreaColor =
-            activity.value === 'high' ? theme.red300 : theme.colors.yellow400;
+            activity.value === 'high' ? theme.colors.red400 : theme.colors.yellow400;
           if (statusAreaEnd > statusAreaStart) {
             series.push(
               createStatusAreaSeries(
@@ -334,7 +335,7 @@ export function getMetricDetectorChartOption(
           const selectedIncidentColor =
             incidentColor === theme.colors.yellow400
               ? theme.colors.yellow100
-              : theme.red100;
+              : theme.colors.red100;
 
           // Is areaSeries used anywhere?
           areaSeries.push({
@@ -374,7 +375,10 @@ export function getMetricDetectorChartOption(
     typeof criticalCondition?.comparison === 'number'
   ) {
     const criticalThreshold = criticalCondition.comparison;
-    const criticalThresholdLine = createThresholdSeries(theme.red300, criticalThreshold);
+    const criticalThresholdLine = createThresholdSeries(
+      theme.colors.red400,
+      criticalThreshold
+    );
     series.push(criticalThresholdLine);
     maxThresholdValue = Math.max(maxThresholdValue, criticalThreshold);
   }

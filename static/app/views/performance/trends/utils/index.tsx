@@ -110,8 +110,8 @@ export function makeTrendToColorMapping(theme: Theme) {
       default: theme.colors.green400,
     },
     [TrendChangeType.REGRESSION]: {
-      lighter: theme.red200,
-      default: theme.red300,
+      lighter: theme.colors.red200,
+      default: theme.colors.red400,
     },
     neutral: {
       lighter: theme.colors.yellow200,
