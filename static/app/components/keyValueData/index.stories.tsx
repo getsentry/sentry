@@ -266,7 +266,7 @@ function generateContentItems(theme: Theme): KeyValueDataContentProps[] {
           </span>
         ),
         value: (
-          <span style={{color: theme.pink300}}>
+          <span style={{color: theme.colors.pink400}}>
             Custom Value Node <IconCodecov />
           </span>
         ),

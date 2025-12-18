@@ -295,7 +295,7 @@ const ChapterWrapper = styled('details')`
 
   [data-is-feedback='true'] {
     &:hover {
-      border-top: 1px solid ${p => p.theme.pink100};
+      border-top: 1px solid ${p => p.theme.colors.pink100};
     }
   }
 
@@ -341,10 +341,10 @@ const Chapter = styled('summary')`
   }
 
   [data-is-feedback='true'] & {
-    color: ${p => p.theme.pink300};
+    color: ${p => p.theme.colors.pink400};
 
     &:hover {
-      background-color: ${p => p.theme.pink100};
+      background-color: ${p => p.theme.colors.pink100};
     }
   }
 

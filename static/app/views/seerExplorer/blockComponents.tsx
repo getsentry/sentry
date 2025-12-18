@@ -449,9 +449,9 @@ const ResponseDot = styled('div')<{
   background: ${p => {
     switch (p.status) {
       case 'loading':
-        return p.theme.pink400;
+        return p.theme.colors.pink500;
       case 'pending':
-        return p.theme.pink400;
+        return p.theme.colors.pink500;
       case 'content':
         return p.theme.colors.blue500;
       case 'success':
