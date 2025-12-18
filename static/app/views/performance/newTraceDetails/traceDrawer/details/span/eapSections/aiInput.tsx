@@ -12,10 +12,7 @@ import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import usePrevious from 'sentry/utils/usePrevious';
-import type {
-  TraceItemDetailsMeta,
-  TraceItemResponseAttribute,
-} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   getIsAiNode,
   getTraceNodeAttribute,
@@ -178,17 +175,19 @@ function useInvalidRoleDetection(roles: string[]) {
 export function AIInputSection({
   node,
   attributes,
-  attributesMeta,
   event,
 }: {
   node: EapSpanNode | SpanNode | TransactionNode;
   attributes?: TraceItemResponseAttribute[];
-  attributesMeta?: TraceItemDetailsMeta;
   event?: EventTransaction;
 }) {
   const shouldRender = getIsAiNode(node) && hasAIInputAttribute(node, attributes, event);
-  const messagesMeta = attributesMeta?.['gen_ai.request.messages']?.meta as any;
-  const originalMessagesLength: number | undefined = messagesMeta?.['']?.len;
+  const originalMessagesLength = getTraceNodeAttribute(
+    'gen_ai.request.messages.original_length',
+    node,
+    event,
+    attributes
+  );
 
   let promptMessages = shouldRender
     ? getTraceNodeAttribute('gen_ai.request.messages', node, event, attributes)
@@ -244,7 +243,9 @@ export function AIInputSection({
         <MessagesArrayRenderer
           key={node.id}
           messages={messages}
-          originalLength={originalMessagesLength}
+          originalLength={
+            defined(originalMessagesLength) ? Number(originalMessagesLength) : undefined
+          }
         />
       ) : null}
       {toolArgs ? (

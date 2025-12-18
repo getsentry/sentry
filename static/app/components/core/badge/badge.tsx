@@ -15,12 +15,12 @@ function makeBadgeTheme(
   switch (props.type) {
     case 'alpha':
       return {
-        background: `linear-gradient(90deg, ${theme.colors.pink400}, ${theme.yellow300})`,
+        background: `linear-gradient(90deg, ${theme.colors.pink400}, ${theme.colors.yellow400})`,
         color: theme.white,
       };
     case 'beta':
       return {
-        background: `linear-gradient(90deg, ${theme.purple300}, ${theme.colors.pink400})`,
+        background: `linear-gradient(90deg, ${theme.colors.blue400}, ${theme.colors.pink400})`,
         color: theme.white,
       };
     // @TODO(jonasbadalic) default, experimental and internal all look the same and should be consolidated
@@ -33,12 +33,12 @@ function makeBadgeTheme(
       };
     case 'new':
       return {
-        background: `linear-gradient(90deg, ${theme.blue300}, ${theme.green300})`,
+        background: `linear-gradient(90deg, ${theme.blue300}, ${theme.colors.green400})`,
         color: theme.white,
       };
     case 'warning':
       return {
-        background: theme.yellow300,
+        background: theme.colors.yellow400,
         color: theme.gray500,
       };
     default:

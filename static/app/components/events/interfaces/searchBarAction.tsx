@@ -1,12 +1,13 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import type {
   SelectOption,
   SelectOptionOrSection,
 } from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import DropdownButton from 'sentry/components/dropdownButton';
 import SearchBar from 'sentry/components/searchBar';
 import {t, tn} from 'sentry/locale';
 
@@ -29,22 +30,6 @@ function SearchBarAction({
   onFilterChange,
   className,
 }: Props) {
-  const trigger: React.ComponentProps<typeof CompactSelect>['trigger'] = (
-    props,
-    isOpen
-  ) => (
-    <StyledTrigger
-      isOpen={isOpen}
-      size="sm"
-      priority={filterSelections && filterSelections.length > 0 ? 'primary' : 'default'}
-      {...props}
-    >
-      {filterSelections?.length
-        ? tn('%s Active Filter', '%s Active Filters', filterSelections.length)
-        : t('Filter By')}
-    </StyledTrigger>
-  );
-
   return (
     <Wrapper className={className}>
       {filterOptions && (
@@ -55,7 +40,18 @@ function SearchBarAction({
           options={filterOptions}
           value={filterSelections?.map(f => f.value)}
           onChange={onFilterChange}
-          trigger={trigger}
+          trigger={props => (
+            <StyledTrigger
+              priority={
+                filterSelections && filterSelections.length > 0 ? 'primary' : 'default'
+              }
+              {...props}
+            >
+              {filterSelections?.length
+                ? tn('%s Active Filter', '%s Active Filters', filterSelections.length)
+                : t('Filter By')}
+            </StyledTrigger>
+          )}
         />
       )}
       <StyledSearchBar
@@ -98,6 +94,6 @@ const StyledSearchBar = styled(SearchBar)<{blendWithFilter?: boolean}>`
     `}
 `;
 
-const StyledTrigger = styled(DropdownButton)`
+const StyledTrigger = styled(SelectTrigger.Button)`
   border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
 `;
