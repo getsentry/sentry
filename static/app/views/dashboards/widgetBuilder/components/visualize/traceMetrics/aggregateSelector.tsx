@@ -1,6 +1,8 @@
 import {useEffect, useMemo} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {t} from 'sentry/locale';
 import {
   type AggregationKeyWithAlias,
@@ -103,9 +105,9 @@ export function AggregateSelector({
           });
         }
       }}
-      triggerProps={{
-        'aria-label': t('Aggregate Selection'),
-      }}
+      trigger={triggerProps => (
+        <SelectTrigger.Button {...triggerProps} aria-label={t('Aggregate Selection')} />
+      )}
     />
   );
 }
