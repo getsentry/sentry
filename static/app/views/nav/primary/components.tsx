@@ -583,7 +583,7 @@ export const SidebarList = styled('ul')<{isMobile: boolean; compact?: boolean}>`
   width: 100%;
 
   /* TriggerWrap div is getting in the way here */
-  > div,
+  > div > li,
   > li {
     width: 100%;
   }
