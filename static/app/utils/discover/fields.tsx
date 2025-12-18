@@ -349,6 +349,7 @@ export const AGGREGATIONS = {
     ...getDocsAndOutputType(AggregationKey.EPS),
     parameters: [],
     isSortable: true,
+    outputType: 'rate',
     multiPlotType: 'area',
   },
   [AggregationKey.EPM]: {
