@@ -176,11 +176,12 @@ class AlertRuleIndexMixin(Endpoint):
 
         # Verify that get_projects is available (requires OrganizationEndpoint)
         if not hasattr(self, "get_projects"):
-            sentry_sdk.capture_message(
-                "get_projects not available in check_can_create_alert",
-                level="error",
-                extras={"organization_id": organization.id},
-            )
+            with sentry_sdk.isolation_scope() as scope:
+                scope.set_extra("organization_id", organization.id)
+                sentry_sdk.capture_message(
+                    "get_projects not available in check_can_create_alert",
+                    level="error",
+                )
             raise PermissionDenied
 
         # team admins should be able to create alerts for the projects they have access to
