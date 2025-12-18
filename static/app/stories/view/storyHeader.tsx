@@ -6,6 +6,8 @@ import {Link} from 'sentry/components/core/link';
 import {Heading} from 'sentry/components/core/text';
 import {IconGithub, IconLink} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {StorySearch} from './storySearch';
 
@@ -29,9 +31,10 @@ function ScrapsLogo(props: React.SVGProps<SVGSVGElement>) {
 }
 
 export function StoryHeader() {
+  const organization = useOrganization();
   return (
     <HeaderGrid>
-      <Link to="/stories">
+      <Link to={normalizeUrl(`/organizations/${organization.slug}/stories/`)}>
         <Heading as="h1" variant="accent">
           <Flex align="center" gap="md">
             <StyledScrapsLogo />

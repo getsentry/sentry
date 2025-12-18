@@ -233,11 +233,11 @@ class _LegacyBrowserFilterSerializer(_FilterSerializer):
 Specifies which legacy browser filters should be active. Anything excluded from the list will be
 disabled. The options are:
 - `ie` - Internet Explorer Version 11 and lower
-- `edge` - Edge Version 18 and lower
-- `safari` - Safari Version 11 and lower
-- `firefox` - Firefox Version 66 and lower
-- `chrome` - Chrome Version 62 and lower
-- `opera` - Opera Version 50 and lower
+- `edge` - Edge Version 110 and lower
+- `safari` - Safari Version 15 and lower
+- `firefox` - Firefox Version 110 and lower
+- `chrome` - Chrome Version 110 and lower
+- `opera` - Opera Version 99 and lower
 - `android` - Android Version 3 and lower
 - `opera_mini` - Opera Mini Version 34 and lower
 
@@ -347,8 +347,13 @@ def _chunk_load_error_filter() -> RuleCondition:
     https://domain.com/_next/static/chunks/29107295-0151559bd23117ba.js)
     """
     values = [
+        # Webpack
         ("ChunkLoadError", "Loading chunk *"),
         ("*Uncaught *", "ChunkLoadError: Loading chunk *"),
+        # Turbopack
+        ("ChunkLoadError", "Failed to load chunk *"),
+        ("*Uncaught *", "ChunkLoadError: Failed to load chunk *"),
+        # Promise rejections
         ("Error", "Uncaught (in promise): ChunkLoadError*"),
     ]
 

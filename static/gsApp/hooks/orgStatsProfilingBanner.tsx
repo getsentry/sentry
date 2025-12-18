@@ -70,7 +70,7 @@ const BannerGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {

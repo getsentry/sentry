@@ -500,13 +500,13 @@ const NavButtons = styled('div')`
 
     &:first-child {
       ${StyledNavButton} {
-        border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
+        border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
       }
     }
 
     &:last-child {
       ${StyledNavButton} {
-        border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+        border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
       }
     }
   }
@@ -554,7 +554,7 @@ const CopyIconContainer = styled('span')`
   display: none;
   align-items: center;
   padding: ${space(0.25)};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   position: absolute;
   right: 0;
   top: 50%;

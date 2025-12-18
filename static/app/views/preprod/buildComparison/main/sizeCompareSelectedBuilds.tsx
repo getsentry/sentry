@@ -76,33 +76,44 @@ function BuildButton({
         })
       }
     >
-      <Flex direction="column" gap="xs">
-        <Flex align="center" gap="sm">
-          {icon}
-          <Text size="sm" variant="accent" bold>
-            {label}
-          </Text>
-          {!buildNumber && (
-            <Text size="sm" variant="accent" bold>
-              {`#${buildId}`}
-            </Text>
-          )}
-          {sha && (
-            <Flex align="center" gap="xs">
-              <IconCommit size="xs" />
-              <Text size="sm" variant="accent" bold monospace>
-                {sha}
+      <ContentWrapper>
+        <ClippedContent>
+          <Flex direction="column" gap="xs">
+            <Flex align="center" gap="sm">
+              {icon}
+              <Text size="sm" variant="accent" bold>
+                {label}
+              </Text>
+              {!buildNumber && (
+                <Text size="sm" variant="accent" bold>
+                  {`#${buildId}`}
+                </Text>
+              )}
+              {sha && (
+                <Flex align="center" gap="xs">
+                  <IconCommit size="xs" />
+                  <Text size="sm" variant="accent" bold monospace>
+                    {sha}
+                  </Text>
+                </Flex>
+              )}
+              {branchName && (
+                <BuildBranch>
+                  <Text size="sm" variant="muted">
+                    {branchName}
+                  </Text>
+                </BuildBranch>
+              )}
+            </Flex>
+            <Flex align="center" gap="sm">
+              <Text size="sm" variant="muted">
+                {metadataParts.join(' • ')}
               </Text>
             </Flex>
-          )}
-          {branchName && (
-            <BuildBranch>
-              <Text size="sm" variant="muted">
-                {branchName}
-              </Text>
-            </BuildBranch>
-          )}
-          {onRemove && (
+          </Flex>
+        </ClippedContent>
+        {onRemove && (
+          <CloseButtonWrapper>
             <Button
               onClick={e => {
                 e.preventDefault();
@@ -115,14 +126,9 @@ function BuildButton({
               aria-label={t('Clear base build')}
               icon={<IconClose size="xs" color="purple400" />}
             />
-          )}
-        </Flex>
-        <Flex align="center" gap="sm">
-          <Text size="sm" variant="muted">
-            {metadataParts.join(' • ')}
-          </Text>
-        </Flex>
-      </Flex>
+          </CloseButtonWrapper>
+        )}
+      </ContentWrapper>
     </StyledLinkButton>
   );
 }
@@ -130,11 +136,33 @@ function BuildButton({
 const StyledLinkButton = styled(LinkButton)`
   height: auto;
   min-height: auto;
+
+  /* Override ButtonLabel overflow to allow close button to extend beyond */
+  > span:last-child {
+    overflow: visible;
+  }
+`;
+
+const ContentWrapper = styled('div')`
+  position: relative;
+  width: 100%;
+`;
+
+const ClippedContent = styled('div')`
+  overflow: hidden;
+`;
+
+const CloseButtonWrapper = styled('div')`
+  position: absolute;
+  top: 0;
+  right: -6px;
+  background-color: ${p => p.theme.colors.surface500};
+  border-radius: ${p => p.theme.radius.xs};
 `;
 
 const ComparisonContainer = styled(Flex)`
   flex-wrap: wrap;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
   gap: ${p => p.theme.space.lg};
   width: 100%;
@@ -182,7 +210,9 @@ export function SizeCompareSelectedBuilds({
         projectType={projectType}
       />
 
-      <Text>{t('vs')}</Text>
+      <Flex align="center">
+        <Text>{t('vs')}</Text>
+      </Flex>
 
       {baseBuildDetails ? (
         <BuildButton
@@ -194,9 +224,11 @@ export function SizeCompareSelectedBuilds({
           projectType={projectType}
         />
       ) : (
-        <SelectBuild>
-          <Text size="sm">{t('Select a build')}</Text>
-        </SelectBuild>
+        <Flex align="center">
+          <SelectBuild>
+            <Text size="sm">{t('Select a build')}</Text>
+          </SelectBuild>
+        </Flex>
       )}
 
       {onTriggerComparison && (
@@ -227,12 +259,12 @@ export function SizeCompareSelectedBuilds({
 const BuildBranch = styled('span')`
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
   background-color: ${p => p.theme.gray100};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const SelectBuild = styled('div')`
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border-style: dashed;
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
 `;

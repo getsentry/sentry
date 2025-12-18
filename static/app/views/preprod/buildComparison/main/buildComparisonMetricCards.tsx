@@ -4,7 +4,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {PercentChange} from 'sentry/components/percentChange';
-import {IconArrow, IconCode, IconDownload} from 'sentry/icons';
+import {IconCode, IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {MetricCard} from 'sentry/views/preprod/components/metricCard';
@@ -12,7 +12,11 @@ import type {
   SizeAnalysisComparisonResults,
   SizeComparisonApiResponse,
 } from 'sentry/views/preprod/types/appSizeTypes';
-import {getLabels} from 'sentry/views/preprod/utils/labelUtils';
+import {
+  formattedSizeDiff,
+  getLabels,
+  getTrend,
+} from 'sentry/views/preprod/utils/labelUtils';
 
 interface BuildComparisonMetricCardsProps {
   comparisonResponse: SizeComparisonApiResponse | undefined;
@@ -113,8 +117,7 @@ export function BuildComparisonMetricCards(props: BuildComparisonMetricCardsProp
                       gap: '0.25em',
                     }}
                   >
-                    {metric.diff > 0 ? '+' : metric.diff < 0 ? '-' : ''}
-                    {formatBytesBase10(Math.abs(metric.diff))}
+                    {formattedSizeDiff(metric.diff)}
                     {metric.percentageChange !== 0 && (
                       <Text
                         as="span"
@@ -152,25 +155,4 @@ export function BuildComparisonMetricCards(props: BuildComparisonMetricCardsProp
       })}
     </Flex>
   );
-}
-
-function getTrend(diff: number): {
-  variant: 'danger' | 'success' | 'muted';
-  icon?: React.ReactNode;
-} {
-  if (diff > 0) {
-    return {
-      variant: 'danger',
-      icon: <IconArrow direction="up" size="xs" />,
-    };
-  }
-
-  if (diff < 0) {
-    return {
-      variant: 'success',
-      icon: <IconArrow direction="down" size="xs" />,
-    };
-  }
-
-  return {variant: 'muted'};
 }

@@ -1,5 +1,6 @@
-import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
 
 import {assignToActor, clearAssignment} from 'sentry/actionCreators/group';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -8,7 +9,6 @@ import AssigneeSelectorDropdown, {
   type AssignableEntity,
   type SuggestedAssignee,
 } from 'sentry/components/assigneeSelectorDropdown';
-import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
@@ -82,8 +82,6 @@ export function AssigneeSelector({
   additionalMenuFooterItems,
   showLabel = false,
 }: AssigneeSelectorProps) {
-  const theme = useTheme();
-
   return (
     <AssigneeSelectorDropdown
       group={group}
@@ -95,10 +93,10 @@ export function AssigneeSelector({
       }
       onClear={() => handleAssigneeChange(null)}
       trigger={(props, isOpen) => (
-        <StyledDropdownButton
+        <StyledTrigger
           {...props}
+          showChevron={false}
           aria-label={t('Modify issue assignee')}
-          borderless={!theme.isChonk}
           size="zero"
         >
           <AssigneeBadge
@@ -113,14 +111,14 @@ export function AssigneeSelector({
             showLabel={showLabel}
             chevronDirection={isOpen ? 'up' : 'down'}
           />
-        </StyledDropdownButton>
+        </StyledTrigger>
       )}
       additionalMenuFooterItems={additionalMenuFooterItems}
     />
   );
 }
 
-const StyledDropdownButton = styled(Button)`
+const StyledTrigger = styled(SelectTrigger.Button)`
   font-weight: ${p => p.theme.fontWeight.normal};
   border: none;
   padding: 0;
@@ -128,12 +126,7 @@ const StyledDropdownButton = styled(Button)`
   border-radius: 20px;
   box-shadow: none;
 
-  ${p =>
-    // Chonk tags have a smaller border radius, so we need make sure it matches.
-    p.theme.isChonk &&
-    css`
-      > span > div {
-        border-radius: 20px;
-      }
-    `}
+  > span > div {
+    border-radius: 20px;
+  }
 `;

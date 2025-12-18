@@ -149,8 +149,13 @@ export const Text = styled(
           : 'block'
         : undefined};
 
-  font-family: ${p => (p.monospace ? p.theme.text.familyMono : p.theme.text.family)};
-  font-weight: ${p => (p.bold ? p.theme.fontWeight.bold : undefined)};
+  font-family: ${p => p.theme.font.family[p.monospace ? 'mono' : 'sans']};
+  font-weight: ${p =>
+    p.bold === true
+      ? p.theme.font.weight.medium
+      : p.bold === false
+        ? p.theme.font.weight.regular
+        : undefined};
   font-variant-numeric: ${p =>
     [
       p.tabular ? 'tabular-nums' : undefined,

@@ -1048,7 +1048,7 @@ const CheckoutHeader = styled('header')`
   right: 0;
   z-index: 100;
   width: 100%;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border-bottom: 1px solid ${p => p.theme.border};
   display: flex;
   justify-content: center;
@@ -1104,7 +1104,7 @@ const SidePanel = styled('aside')<{isNewCheckout: boolean}>`
             max-width: 26rem;
             border-top: none;
             padding-left: ${p.theme.space['3xl']};
-            background-color: ${p.theme.background};
+            background-color: ${p.theme.tokens.background.primary};
             padding-bottom: ${p.theme.space['3xl']};
           }
         `

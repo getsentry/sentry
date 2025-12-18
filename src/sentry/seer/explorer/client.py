@@ -136,7 +136,7 @@ class SeerExplorerClient:
             state = client.push_changes(run_id)
 
             # Get PR info for each repo
-            for repo_name in state.get_file_patches_by_repo().keys():
+            for repo_name in state.get_diffs_by_repo().keys():
                 pr_state = state.get_pr_state(repo_name)
                 if pr_state and pr_state.pr_url:
                     print(f"PR created: {pr_state.pr_url}")
@@ -193,6 +193,7 @@ class SeerExplorerClient:
         on_page_context: str | None = None,
         artifact_key: str | None = None,
         artifact_schema: type[BaseModel] | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> int:
         """
         Start a new Seer Explorer session.
@@ -202,6 +203,7 @@ class SeerExplorerClient:
             on_page_context: Optional context from the user's screen
             artifact_key: Optional key to identify this artifact (required if artifact_schema is provided)
             artifact_schema: Optional Pydantic model to generate a structured artifact
+            metadata: Optional metadata to store with the run (e.g., stopping_point, group_id)
 
         Returns:
             int: The run ID that can be used to fetch results or continue the conversation
@@ -245,6 +247,9 @@ class SeerExplorerClient:
         if self.category_key and self.category_value:
             payload["category_key"] = self.category_key
             payload["category_value"] = self.category_value
+
+        if metadata:
+            payload["metadata"] = metadata
 
         body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
 

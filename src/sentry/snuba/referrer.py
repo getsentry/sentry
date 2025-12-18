@@ -488,6 +488,7 @@ class Referrer(StrEnum):
     API_AI_CONVERSATIONS = "api.ai-conversations"
     API_AI_CONVERSATIONS_COMPLETE = "api.ai-conversations.complete"
     API_AI_CONVERSATIONS_ENRICHMENT = "api.ai-conversations.enrichment"
+    API_AI_CONVERSATIONS_FIRST_LAST_IO = "api.ai-conversations.first-last-io"
     API_AI_PIPELINES_VIEW = "api.ai-pipelines.view"
     API_AI_PIPELINES_DETAILS_VIEW = "api.ai-pipelines.details.view"
     API_PROFILING_ONBOARDING = "profiling-onboarding"
@@ -678,6 +679,12 @@ class Referrer(StrEnum):
     IS_ESCALATING_GROUP = "sentry.issues.escalating.is_escalating"
     ISSUE_DETAILS_STREAMLINE_GRAPH = "issue_details.streamline_graph"
     ISSUE_DETAILS_STREAMLINE_LIST = "issue_details.streamline_list"
+    ISSUES_SUSPECT_FLAGS_QUERY_BASELINE_SET = "issues.suspect_flags.query_baseline_set"
+    ISSUES_SUSPECT_FLAGS_QUERY_SELECTION_SET = "issues.suspect_flags.query_selection_set"
+    ISSUES_SUSPECT_FLAGS_QUERY_ERROR_COUNTS = "issues.suspect_flags.query_error_counts"
+    ISSUES_SUSPECT_TAGS_QUERY_BASELINE_SET = "issues.suspect_tags.query_baseline_set"
+    ISSUES_SUSPECT_TAGS_QUERY_SELECTION_SET = "issues.suspect_tags.query_selection_set"
+    ISSUES_SUSPECT_TAGS_QUERY_ERROR_COUNTS = "issues.suspect_tags.query_error_counts"
 
     INSIGHTS_MOBILE_HAS_TTFDCONFIGURED = "insights.mobile.hasTTFDConfigured"
     INSIGHTS_TIME_SPENT_TOTAL_TIME = "insights.time_spent.total_time"
@@ -794,6 +801,8 @@ class Referrer(StrEnum):
     SEARCH_SNUBA_GROUP_ATTRIBUTES_SEARCH_QUERY = "search.snuba.group_attributes_search.query"
     SEARCH_SNUBA_GROUP_ATTRIBUTES_SEARCH_HITS = "search.snuba.group_attributes_search.hits"
     SEER_RPC = "seer.rpc"
+    SEER_EXPLORER_INDEX = "seer.explorer_index"
+    SEER_EXPLORER_TOOLS = "seer.explorer_tools"
     SERIALIZERS_GROUPSERIALIZERSNUBA__EXECUTE_ERROR_SEEN_STATS_QUERY = (
         "serializers.GroupSerializerSnuba._execute_error_seen_stats_query"
     )
@@ -842,6 +851,9 @@ class Referrer(StrEnum):
     SUBSCRIPTIONS_EXECUTOR = "subscriptions_executor"
     TAGSTORE__GET_TAG_KEY_AND_TOP_VALUES = "tagstore.__get_tag_key_and_top_values"
     TAGSTORE__GET_TAG_KEYS_AND_TOP_VALUES = "tagstore._get_tag_keys_and_top_values"
+    TAGSTORE__GET_TAG_KEYS_AND_TOP_VALUES_EMPTY_COUNTS = (
+        "tagstore._get_tag_keys_and_top_values_empty_counts"
+    )
     TAGSTORE__GET_TAG_KEYS = "tagstore.__get_tag_keys"
     TAGSTORE_GET_GROUP_LIST_TAG_VALUE = "tagstore.get_group_list_tag_value"
     TAGSTORE_GET_GROUP_TAG_VALUE_ITER = "tagstore.get_group_tag_value_iter"

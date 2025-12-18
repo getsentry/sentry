@@ -3,6 +3,7 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
+from sentry import features
 from sentry.constants import ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT, HIDE_AI_FEATURES_DEFAULT
 from sentry.models.organization import Organization
 from sentry.overwatch_webhooks.overwatch_consent.model import RpcOrganizationConsentStatus
@@ -28,13 +29,18 @@ class DatabaseBackedOverwatchConsentService(OverwatchConsentService):
             hide_ai_features = bool(
                 org.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
             )
-            pr_review_test_generation_enabled = bool(
-                org.get_option(
-                    "sentry:enable_pr_review_test_generation",
-                    ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
+            if features.has("organizations:seat-based-seer-enabled", org):
+                # Seat-based plan orgs don't need to check the PR review toggle
+                has_consent = not hide_ai_features
+            else:
+                # Usage-based plan orgs and others need to check the PR review toggle
+                pr_review_test_generation_enabled = bool(
+                    org.get_option(
+                        "sentry:enable_pr_review_test_generation",
+                        ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
+                    )
                 )
-            )
-            has_consent = not hide_ai_features and pr_review_test_generation_enabled
+                has_consent = not hide_ai_features and pr_review_test_generation_enabled
 
             result[org.id] = RpcOrganizationConsentStatus(
                 organization_id=org.id,

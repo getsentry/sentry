@@ -221,7 +221,7 @@ const Wrapper = styled('div')<{isRounded: boolean}>`
   position: relative;
   height: 100%;
   background: var(--prism-block-background);
-  border-radius: ${p => (p.isRounded ? p.theme.borderRadius : '0px')};
+  border-radius: ${p => (p.isRounded ? p.theme.radius.md : '0px')};
 
   pre {
     margin: 0;
@@ -237,10 +237,10 @@ const Header = styled('div')<{isFloating: boolean}>`
   display: flex;
   align-items: center;
 
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
   color: var(--prism-base);
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.medium};
   z-index: 2;
 
   ${p =>

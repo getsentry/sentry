@@ -443,7 +443,7 @@ const InstallButton = styled(Button)`
 
 const StyledButton = styled(Button)`
   color: ${p => p.theme.subText};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 
   border: ${p => `1px solid ${p.theme.gray300}`};
   box-sizing: border-box;

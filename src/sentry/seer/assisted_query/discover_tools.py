@@ -183,9 +183,7 @@ def get_event_filter_keys(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
-    stats_period, start, end = validate_date_params(
-        stats_period, start, end, default_stats_period="7d"
-    )
+    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     # Treat empty projects as a query for all projects.
     if not project_ids:
@@ -254,9 +252,7 @@ def get_event_filter_key_values(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
-    stats_period, start, end = validate_date_params(
-        stats_period, start, end, default_stats_period="7d"
-    )
+    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     # Treat empty projects as a query for all projects.
     if not project_ids:

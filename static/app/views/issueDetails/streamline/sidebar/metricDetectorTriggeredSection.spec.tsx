@@ -27,6 +27,10 @@ describe('MetricDetectorTriggeredSection', () => {
       url: '/organizations/org-slug/users/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/?end=2017-10-17T02%3A41%3A20.000Z&limit=5&project=1&query=issue.type%3Aerror%20event.type%3Aerror%20is%3Aunresolved&sort=freq&start=2019-05-21T17%3A59%3A00.000Z',
+      body: [],
+    });
   });
 
   it('renders nothing when event has no occurrence', () => {
@@ -87,9 +91,8 @@ describe('MetricDetectorTriggeredSection', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders metric detector details with static condition', () => {
+  it('renders metric detector details with static condition', async () => {
     const event = EventFixture({
-      dateCreated: undefined,
       occurrence: {
         id: '1',
         eventId: 'event-1',
@@ -111,7 +114,7 @@ describe('MetricDetectorTriggeredSection', () => {
     render(<MetricDetectorTriggeredSection event={event} />);
 
     // Check sections exist by aria-label
-    expect(screen.getByRole('region', {name: 'Message'})).toBeInTheDocument();
+    expect(await screen.findByRole('region', {name: 'Message'})).toBeInTheDocument();
     expect(screen.getByRole('region', {name: 'Triggered Condition'})).toBeInTheDocument();
 
     // Check message content
@@ -137,7 +140,7 @@ describe('MetricDetectorTriggeredSection', () => {
     const startDate = '2023-12-31T23:58:00.000Z';
 
     const contributingIssuesMock = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/?end=2017-10-17T02%3A41%3A20.000Z&limit=5&query=issue.type%3Aerror%20event.type%3Aerror%20is%3Aunresolved&sort=freq&start=${encodeURIComponent(startDate)}`,
+      url: `/organizations/org-slug/issues/?end=2017-10-17T02%3A41%3A20.000Z&limit=5&project=1&query=issue.type%3Aerror%20event.type%3Aerror%20is%3Aunresolved&sort=freq&start=${encodeURIComponent(startDate)}`,
       body: [GroupFixture()],
     });
 

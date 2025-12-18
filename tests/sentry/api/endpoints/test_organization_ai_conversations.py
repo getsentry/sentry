@@ -6,6 +6,7 @@ from django.urls import reverse
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase, SpanTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils import json
 
 LLM_TOKENS = 100
 LLM_COST = 0.001
@@ -30,6 +31,8 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
         cost=None,
         trace_id=None,
         agent_name=None,
+        messages=None,
+        response_text=None,
     ):
         span_data = {"gen_ai.conversation.id": conversation_id}
         if operation_type:
@@ -37,9 +40,14 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
         if tokens is not None:
             span_data["gen_ai.usage.total_tokens"] = tokens
         if cost is not None:
-            span_data["gen_ai.usage.total_cost"] = cost
+            span_data["gen_ai.cost.total_tokens"] = cost
         if agent_name is not None:
             span_data["gen_ai.agent.name"] = agent_name
+        if messages is not None:
+            # Serialize as JSON string since test infrastructure doesn't support list attributes
+            span_data["gen_ai.request.messages"] = json.dumps(messages)
+        if response_text is not None:
+            span_data["gen_ai.response.text"] = response_text
 
         extra_data = {
             "description": description or "default",
@@ -107,10 +115,14 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
         trace_id = uuid4().hex
         conversation_id = uuid4().hex
 
+        first_messages = [{"role": "user", "content": "Hello, I need help"}]
+        last_response_text = "Here is the final answer"
+
         self.store_ai_span(
             conversation_id=conversation_id,
             timestamp=now - timedelta(seconds=4),
             op="gen_ai.invoke_agent",
+            operation_type="invoke_agent",
             description="Customer Support Agent",
             agent_name="Customer Support Agent",
             trace_id=trace_id,
@@ -124,12 +136,15 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
             tokens=LLM_TOKENS,
             cost=LLM_COST,
             trace_id=trace_id,
+            messages=first_messages,
+            response_text="Let me help you with that",
         )
 
         self.store_ai_span(
             conversation_id=conversation_id,
             timestamp=now - timedelta(seconds=2),
             op="gen_ai.execute_tool",
+            operation_type="execute_tool",
             trace_id=trace_id,
         )
 
@@ -137,6 +152,7 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
             conversation_id=conversation_id,
             timestamp=now - timedelta(seconds=1),
             op="gen_ai.invoke_agent",
+            operation_type="invoke_agent",
             description="Response Generator",
             agent_name="Response Generator",
             trace_id=trace_id,
@@ -151,6 +167,8 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
             tokens=LLM_TOKENS,
             cost=LLM_COST,
             trace_id=trace_id,
+            messages=[{"role": "user", "content": "Thanks"}],
+            response_text=last_response_text,
         )
 
         query = {
@@ -176,6 +194,10 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
         assert conversation["flow"] == ["Customer Support Agent", "Response Generator"]
         assert len(conversation["traceIds"]) == 1
         assert conversation["traceIds"][0] == trace_id
+        # firstInput: first user message content from first ai_client span
+        # lastOutput: gen_ai.response.text from last ai_client span
+        assert conversation["firstInput"] == "Hello, I need help"
+        assert conversation["lastOutput"] == last_response_text
 
     def test_conversation_spanning_multiple_traces(self) -> None:
         """Test a conversation with spans across multiple traces"""
@@ -188,6 +210,7 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
             conversation_id=conversation_id,
             timestamp=now - timedelta(seconds=3),
             op="gen_ai.invoke_agent",
+            operation_type="invoke_agent",
             description="Research Agent",
             agent_name="Research Agent",
             trace_id=trace_id_1,
@@ -207,6 +230,7 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
             conversation_id=conversation_id,
             timestamp=now - timedelta(seconds=1),
             op="gen_ai.invoke_agent",
+            operation_type="invoke_agent",
             description="Summarization Agent",
             agent_name="Summarization Agent",
             trace_id=trace_id_2,
@@ -356,6 +380,8 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
         assert conversation["totalCost"] == 0.0
         assert conversation["flow"] == []
         assert len(conversation["traceIds"]) == 1
+        assert conversation["firstInput"] is None
+        assert conversation["lastOutput"] is None
 
     def test_mixed_error_statuses(self) -> None:
         """Test that various error statuses are counted correctly"""
@@ -411,6 +437,7 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
                 conversation_id=conversation_id,
                 timestamp=timestamp,
                 op="gen_ai.invoke_agent",
+                operation_type="invoke_agent",
                 description=agent_name,
                 agent_name=agent_name,
                 trace_id=trace_id,
@@ -473,3 +500,224 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
         assert conversation["llmCalls"] == 1
         assert conversation["totalTokens"] == 50
         assert conversation["totalCost"] == 0.005
+
+    def test_first_input_last_output(self) -> None:
+        """Test firstInput and lastOutput are correctly populated from ai_client spans"""
+        now = before_now(days=90).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        trace_id = uuid4().hex
+
+        first_user_content = "What is the weather?"
+        last_response_text = "The weather is sunny!"
+
+        # First ai_client span with input
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=3),
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            trace_id=trace_id,
+            messages=[{"role": "user", "content": first_user_content}],
+            response_text="Let me check...",
+        )
+
+        # Middle ai_client span
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=2),
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            trace_id=trace_id,
+            messages=[
+                {"role": "user", "content": "What is the weather?"},
+                {"role": "assistant", "content": "Let me check..."},
+                {"role": "user", "content": "Thanks"},
+            ],
+            response_text="Processing your request...",
+        )
+
+        # Last ai_client span with output
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=1),
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            trace_id=trace_id,
+            messages=[{"role": "user", "content": "Any updates?"}],
+            response_text=last_response_text,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+
+        conversation = response.data[0]
+        # firstInput: first user message content from first ai_client span
+        # lastOutput: gen_ai.response.text from last ai_client span
+        assert conversation["firstInput"] == first_user_content
+        assert conversation["lastOutput"] == last_response_text
+
+    def test_first_input_last_output_no_ai_client_spans(self) -> None:
+        """Test firstInput and lastOutput are None when no ai_client spans exist"""
+        now = before_now(days=91).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        trace_id = uuid4().hex
+
+        # Only invoke_agent spans, no ai_client spans
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=2),
+            op="gen_ai.invoke_agent",
+            agent_name="Test Agent",
+            trace_id=trace_id,
+        )
+
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=1),
+            op="gen_ai.execute_tool",
+            trace_id=trace_id,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+
+        conversation = response.data[0]
+        assert conversation["firstInput"] is None
+        assert conversation["lastOutput"] is None
+
+    def test_query_filter(self) -> None:
+        """Test that query parameter filters conversations"""
+        now = before_now(days=30).replace(microsecond=0)
+        conversation_id_1 = uuid4().hex
+        conversation_id_2 = uuid4().hex
+
+        # Conversation 1 with specific agent
+        self.store_ai_span(
+            conversation_id=conversation_id_1,
+            timestamp=now - timedelta(seconds=2),
+            op="gen_ai.invoke_agent",
+            agent_name="WeatherBot",
+        )
+
+        # Conversation 2 with different agent
+        self.store_ai_span(
+            conversation_id=conversation_id_2,
+            timestamp=now - timedelta(seconds=1),
+            op="gen_ai.invoke_agent",
+            agent_name="NewsBot",
+        )
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+            "query": "gen_ai.agent.name:WeatherBot",
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["conversationId"] == conversation_id_1
+
+    def test_optimized_query_produces_same_results(self) -> None:
+        """Test that useOptimizedQuery=true produces the same results as the default path"""
+        now = before_now(days=25).replace(microsecond=0)
+        trace_id = uuid4().hex
+        conversation_id = uuid4().hex
+
+        first_messages = [{"role": "user", "content": "What's the weather?"}]
+        last_response_text = "It's sunny today"
+
+        # Create a conversation with various span types
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=4),
+            op="gen_ai.invoke_agent",
+            operation_type="invoke_agent",
+            agent_name="Weather Agent",
+            trace_id=trace_id,
+        )
+
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=3),
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            tokens=100,
+            cost=0.001,
+            trace_id=trace_id,
+            messages=first_messages,
+            response_text="Let me check",
+        )
+
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=2),
+            op="gen_ai.execute_tool",
+            operation_type="execute_tool",
+            trace_id=trace_id,
+        )
+
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=1),
+            op="gen_ai.chat",
+            status="internal_error",
+            operation_type="ai_client",
+            tokens=50,
+            cost=0.0005,
+            trace_id=trace_id,
+            messages=[{"role": "user", "content": "Thanks"}],
+            response_text=last_response_text,
+        )
+
+        base_query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        # Get results from default path
+        default_response = self.do_request(base_query)
+        assert default_response.status_code == 200
+        assert len(default_response.data) == 1
+
+        # Get results from optimized path
+        optimized_query = {**base_query, "useOptimizedQuery": "true"}
+        optimized_response = self.do_request(optimized_query)
+        assert optimized_response.status_code == 200
+        assert len(optimized_response.data) == 1
+
+        # Compare results - they should be identical
+        default_conv = default_response.data[0]
+        optimized_conv = optimized_response.data[0]
+
+        assert optimized_conv["conversationId"] == default_conv["conversationId"]
+        assert optimized_conv["errors"] == default_conv["errors"]
+        assert optimized_conv["llmCalls"] == default_conv["llmCalls"]
+        assert optimized_conv["toolCalls"] == default_conv["toolCalls"]
+        assert optimized_conv["totalTokens"] == default_conv["totalTokens"]
+        assert optimized_conv["totalCost"] == default_conv["totalCost"]
+        assert optimized_conv["traceCount"] == default_conv["traceCount"]
+        assert optimized_conv["flow"] == default_conv["flow"]
+        assert optimized_conv["firstInput"] == default_conv["firstInput"]
+        assert optimized_conv["lastOutput"] == default_conv["lastOutput"]
+        # Duration and timestamp may have minor differences due to timing, but should be close
+        assert optimized_conv["duration"] == default_conv["duration"]
+        assert optimized_conv["timestamp"] == default_conv["timestamp"]
+        # traceIds may be in different order, compare as sets
+        assert set(optimized_conv["traceIds"]) == set(default_conv["traceIds"])
