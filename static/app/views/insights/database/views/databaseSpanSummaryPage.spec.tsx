@@ -261,7 +261,7 @@ describe('DatabaseSpanSummaryPage', () => {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: ['epm()'],
-          caseInsensitive: 0,
+          caseInsensitive: undefined,
         },
       })
     );
@@ -287,7 +287,7 @@ describe('DatabaseSpanSummaryPage', () => {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: ['avg(span.self_time)'],
-          caseInsensitive: 0,
+          caseInsensitive: undefined,
         },
       })
     );
