@@ -1922,6 +1922,39 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         finally:
             options.set("snuba.search.max-pre-snuba-candidates", prev_max_pre)
 
+    def test_too_many_candidates_with_selective_postgres_filter(self) -> None:
+        """
+        Test that selective postgres-only filters (like assigned:) return results
+        even when there are too many candidates.
+
+        This tests the fallback-to-truncation behavior: when sampling returns 0 hits
+        for selective filters, we truncate group_ids instead of returning empty.
+        """
+        # Create additional groups assigned to the user to exceed max_candidates
+        group3 = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group3"],
+                "event_id": "c" * 32,
+                "timestamp": before_now(seconds=100).isoformat(),
+            },
+            project_id=self.project.id,
+        ).group
+        GroupAssignee.objects.create(user_id=self.user.id, group=group3, project=self.project)
+
+        # Set max_candidates to 1 so we trigger too_many_candidates with 2+ assigned groups
+        with self.options({"snuba.search.max-pre-snuba-candidates": 1}):
+            # Search with assigned: filter (selective postgres-only filter)
+            # Before the fix, this would return empty results due to failed sampling
+            # After the fix, this should return results via fallback to truncation
+            results = self.make_query(
+                search_filter_query=f"assigned:{self.user.username}",
+                count_hits=True,
+            )
+            # Should return at least one result (truncated to max_candidates)
+            # Both self.group2 and group3 are assigned to the user
+            assert len(results.results) >= 1
+            assert all(g in {self.group2, group3} for g in results.results)
+
     def test_optimizer_enabled(self) -> None:
         prev_optimizer_enabled = options.get("snuba.search.pre-snuba-candidates-optimizer")
         options.set("snuba.search.pre-snuba-candidates-optimizer", True)
