@@ -225,7 +225,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
         top: '0',
         emphasis: {
           itemStyle: {
-            color: theme.surface100,
+            color: theme.colors.surface200,
             textStyle: {
               fontSize: 12,
               fontWeight: 'bold',

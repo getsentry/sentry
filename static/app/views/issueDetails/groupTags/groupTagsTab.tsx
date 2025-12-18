@@ -200,7 +200,7 @@ const TagBarBackground = styled('div')<{widthPercent: string}>`
   top: 0;
   bottom: 0;
   left: 0;
-  background: ${p => p.theme.surface100};
+  background: ${p => p.theme.colors.surface200};
   border-radius: ${p => p.theme.radius.md};
   width: ${p => p.widthPercent};
 `;

@@ -188,7 +188,7 @@ const EventItemRoot = styled(Link)`
   font-size: ${p => p.theme.fontSize.sm};
 
   &:hover {
-    background-color: ${p => p.theme.surface200};
+    background-color: ${p => p.theme.colors.surface300};
     color: ${p => p.theme.tokens.content.primary};
   }
 `;
