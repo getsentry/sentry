@@ -6,6 +6,7 @@ import round from 'lodash/round';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Text} from 'sentry/components/core/text';
 import LoadingError from 'sentry/components/loadingError';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {PanelTable} from 'sentry/components/panels/panelTable';
@@ -19,7 +20,6 @@ import type {Project} from 'sentry/types/project';
 import {formatFloat} from 'sentry/utils/number/formatFloat';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {getCountSeries, getCrashFreeRate, getSeriesSum} from 'sentry/utils/sessions';
-import type {ColorOrAlias} from 'sentry/utils/theme';
 import {displayCrashFreePercent} from 'sentry/views/releases/utils';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
@@ -187,10 +187,10 @@ function TeamStability({
     }
 
     return (
-      <SubText color={trend >= 0 ? 'successText' : 'errorText'}>
+      <Text variant={trend >= 0 ? 'success' : 'danger'}>
         {`${round(Math.abs(trend), 3)}\u0025`}
         <PaddedIconArrow direction={trend >= 0 ? 'up' : 'down'} size="xs" />
-      </SubText>
+      </Text>
     );
   }
 
@@ -285,8 +285,4 @@ const ScoreWrapper = styled('div')`
 
 const PaddedIconArrow = styled(IconArrow)`
   margin: 0 ${space(0.5)};
-`;
-
-const SubText = styled('div')<{color: ColorOrAlias}>`
-  color: ${p => p.theme[p.color]};
 `;
