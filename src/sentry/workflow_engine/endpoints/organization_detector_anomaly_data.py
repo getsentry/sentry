@@ -16,7 +16,7 @@ from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.organization import Organization
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_threshold_data_from_seer
 from sentry.snuba.models import QuerySubscription
-from sentry.workflow_engine.models import DataSourceDetector, Detector
+from sentry.workflow_engine.models import Detector
 
 logger = logging.getLogger(__name__)
 
@@ -40,12 +40,11 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
         except (Detector.DoesNotExist, ValueError):
             raise ResourceDoesNotExist
 
-        data_source_detector = DataSourceDetector.objects.filter(detector_id=detector.id).first()
-        if not data_source_detector:
+        data_source = detector.data_sources.first()
+        if not data_source:
             return Response(
-                {"detail": "Could not find detector, data source not found"}, status=500
+                {"detail": "Could not find query subscription, data source not found"}, status=500
             )
-        data_source = data_source_detector.data_source
 
         try:
             return QuerySubscription.objects.get(id=int(data_source.source_id))
@@ -54,7 +53,7 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
                 {
                     "detail": f"Could not find detector, query subscription {data_source.source_id} not found"
                 },
-                status=500,
+                status=404,
             )
 
     def _get_subscription_from_alert_rule(
@@ -98,7 +97,7 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
             )
             return Response(
                 {"detail": "Could not find query subscription for alert rule"},
-                status=500,
+                status=404,
             )
 
     @extend_schema(
