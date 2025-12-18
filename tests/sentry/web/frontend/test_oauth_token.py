@@ -629,6 +629,42 @@ class OAuthTokenRefreshTokenTest(TestCase):
         assert token2.refresh_token != self.token.refresh_token
         assert token2.refresh_token
 
+    def test_inactive_application_rejects_token_refresh(self) -> None:
+        """Test that inactive applications cannot refresh tokens.
+
+        This verifies that when an application is deactivated (e.g., for security
+        reasons), existing refresh tokens cannot be used to generate new access
+        tokens, preventing the application from continuing to access the API.
+        """
+        self.login_as(self.user)
+
+        # Deactivate the application after token was created
+        from sentry.models.apiapplication import ApiApplicationStatus
+
+        self.application.status = ApiApplicationStatus.inactive
+        self.application.save()
+
+        # Attempt to refresh the token
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "refresh_token",
+                "client_id": self.application.client_id,
+                "refresh_token": self.token.refresh_token,
+                "client_secret": self.client_secret,
+            },
+        )
+
+        # Should fail because application is not active
+        assert resp.status_code == 400
+        assert resp.json() == {"error": "invalid_client"}
+
+        # Verify the token was not refreshed (still has old values)
+        token_after = ApiToken.objects.get(id=self.token.id)
+        assert token_after.token == self.token.token
+        assert token_after.refresh_token == self.token.refresh_token
+        assert token_after.expires_at == self.token.expires_at
+
 
 @control_silo_test
 class OAuthTokenOrganizationScopedTest(TestCase):

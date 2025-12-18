@@ -326,6 +326,13 @@ class OAuthTokenView(View):
         if scope:
             return {"error": "invalid_request"}
 
+        # Check application status to prevent inactive applications from refreshing tokens.
+        # This prevents deactivated applications from generating new access tokens.
+        from sentry.models.apiapplication import ApiApplicationStatus
+
+        if application.status != ApiApplicationStatus.active:
+            return {"error": "invalid_client", "reason": "application not active"}
+
         try:
             refresh_token = ApiToken.objects.get(
                 application=application, refresh_token=refresh_token_code
