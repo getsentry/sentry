@@ -134,7 +134,7 @@ const StyledLinkButton = styled(LinkButton)`
 
 const ComparisonContainer = styled(Flex)`
   flex-wrap: wrap;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
   gap: ${p => p.theme.space.lg};
   width: 100%;
@@ -182,7 +182,9 @@ export function SizeCompareSelectedBuilds({
         projectType={projectType}
       />
 
-      <Text>{t('vs')}</Text>
+      <Flex align="center">
+        <Text>{t('vs')}</Text>
+      </Flex>
 
       {baseBuildDetails ? (
         <BuildButton
@@ -194,9 +196,11 @@ export function SizeCompareSelectedBuilds({
           projectType={projectType}
         />
       ) : (
-        <SelectBuild>
-          <Text size="sm">{t('Select a build')}</Text>
-        </SelectBuild>
+        <Flex align="center">
+          <SelectBuild>
+            <Text size="sm">{t('Select a build')}</Text>
+          </SelectBuild>
+        </Flex>
       )}
 
       {onTriggerComparison && (
@@ -227,12 +231,12 @@ export function SizeCompareSelectedBuilds({
 const BuildBranch = styled('span')`
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
   background-color: ${p => p.theme.gray100};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const SelectBuild = styled('div')`
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border-style: dashed;
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
 `;

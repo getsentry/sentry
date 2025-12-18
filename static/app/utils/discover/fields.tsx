@@ -623,7 +623,15 @@ export type AggregationKeyWithAlias = `${AggregationKey}` | keyof typeof ALIASES
 
 export type AggregationOutputType = Extract<
   ColumnType,
-  'number' | 'integer' | 'date' | 'duration' | 'percentage' | 'string' | 'size' | 'rate'
+  | 'number'
+  | 'integer'
+  | 'date'
+  | 'duration'
+  | 'percentage'
+  | 'string'
+  | 'size'
+  | 'rate'
+  | 'score'
 >;
 
 export type PlotType = 'bar' | 'line' | 'area';

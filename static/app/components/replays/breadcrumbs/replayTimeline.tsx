@@ -2,7 +2,6 @@ import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import Stacked from 'sentry/components/container/stacked';
-import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {
   MajorGridlines,
@@ -87,6 +86,7 @@ export default function ReplayTimeline() {
 
 const CenteredStack = styled(Stacked)`
   align-items: center;
+  position: absolute;
 `;
 
 const VisibleStack = styled(Stacked)`
@@ -94,7 +94,8 @@ const VisibleStack = styled(Stacked)`
   width: 100%;
 `;
 
-const VisiblePanel = styled(Panel)`
+const VisiblePanel = styled('div')`
+  border-radius: ${p => p.theme.radius.md};
   height: 100%;
   width: 100%;
   margin: 0;

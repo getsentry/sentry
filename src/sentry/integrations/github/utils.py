@@ -8,7 +8,15 @@ from urllib.parse import urlparse
 
 from rest_framework.response import Response
 
-from sentry import options
+from sentry import features, options, quotas
+from sentry.constants import DataCategory, ObjectStatus
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.organization import Organization
+from sentry.models.organizationcontributors import OrganizationContributors
+from sentry.models.repository import Repository
+from sentry.models.repositorysettings import RepositorySettings
+from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.utils import jwt
 
 logger = logging.getLogger(__name__)
@@ -78,3 +86,80 @@ def parse_github_blob_url(repo_url: str, source_url: str) -> tuple[str, str]:
 
     branch, _, remainder = after_blob.partition("/")
     return branch, remainder.lstrip("/")
+
+
+def _is_code_review_enabled_for_repo(repository_id: int) -> bool:
+    """Check if code review is explicitly enabled for this repository."""
+    return RepositorySettings.objects.filter(
+        repository_id=repository_id,
+        enabled_code_review=True,
+    ).exists()
+
+
+def _is_autofix_enabled_for_repo(organization_id: int, repository_id: int) -> bool:
+    """
+    Check if autofix automation is enabled (not "off") for any project
+    associated with this repository via code mappings.
+    """
+    repo_configs = RepositoryProjectPathConfig.objects.filter(
+        repository_id=repository_id,
+        organization_id=organization_id,
+    ).values_list("project_id", flat=True)
+
+    if not repo_configs:
+        return False
+
+    return (
+        ProjectOption.objects.filter(
+            project_id__in=repo_configs,
+            project__status=ObjectStatus.ACTIVE,
+            key="sentry:autofix_automation_tuning",
+        )
+        .exclude(value=AutofixAutomationTuningSettings.OFF.value)
+        .exclude(value__isnull=True)
+        .exists()
+    )
+
+
+def _has_code_review_or_autofix_enabled(organization_id: int, repository_id: int) -> bool:
+    """
+    Check if either code review is enabled for the repo OR autofix automation
+    is enabled for any linked project.
+    """
+    return _is_code_review_enabled_for_repo(repository_id) or _is_autofix_enabled_for_repo(
+        organization_id, repository_id
+    )
+
+
+def should_create_or_increment_contributor_seat(
+    organization: Organization, repo: Repository, contributor: OrganizationContributors
+) -> bool:
+    """
+    Guard for OrganizationContributor creation/incrementing and seat assignment.
+
+    Determines if we should create or increment an OrganizationContributor record
+    and potentially assign a new seat.
+
+    Logic:
+    1. Require seat-based Seer to be enabled for the organization
+    2. Exclude organizations in code-review-beta cohort (they use a different flow)
+    3. Require code review OR autofix to be enabled for the repo
+    4. Check Seer quota (returns True if contributor has seat OR quota available)
+    """
+    if not features.has("organizations:seat-based-seer-enabled", organization):
+        return False
+
+    if features.has("organizations:code-review-beta", organization):
+        return False
+
+    if not _has_code_review_or_autofix_enabled(organization.id, repo.id):
+        return False
+
+    if repo.integration_id is None:
+        return False
+
+    return quotas.backend.check_seer_quota(
+        org_id=organization.id,
+        data_category=DataCategory.SEER_USER,
+        seat_object=contributor,
+    )

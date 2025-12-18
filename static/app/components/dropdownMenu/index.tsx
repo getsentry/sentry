@@ -125,7 +125,7 @@ export interface DropdownMenuProps
    * not been provided), then `triggerProps` will be passed on to the button
    * component.
    */
-  triggerProps?: DropdownButtonProps;
+  triggerProps?: Partial<DropdownButtonProps>;
   /**
    * Whether to render the menu inside a React portal (false by default). This should
    * only be enabled if necessary, e.g. when the dropdown menu is inside a small,

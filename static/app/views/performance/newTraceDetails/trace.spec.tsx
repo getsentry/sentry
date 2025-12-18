@@ -844,24 +844,6 @@ function printVirtualizedList(container: HTMLElement) {
   console.log(stdout.join('\n'));
 }
 
-// @ts-expect-error ignore this line
-function printTabs() {
-  const tabs = screen.queryAllByTestId(DRAWER_TABS_TEST_ID);
-  const stdout: string[] = [];
-
-  for (const tab of tabs) {
-    let text = tab.textContent ?? 'empty tab??';
-    if (tab.hasAttribute('aria-selected')) {
-      text = 'active' + text;
-    }
-    stdout.push(text);
-  }
-
-  // This is a debug fn, we need it to log
-  // eslint-disable-next-line no-console
-  console.log(stdout.join(' | '));
-}
-
 async function assertHighlightedRowAtIndex(
   virtualizedContainer: HTMLElement,
   index: number
@@ -1079,7 +1061,7 @@ describe('trace view', () => {
     });
 
     it('scrolls to sibling autogroup node', async () => {
-      mockQueryString('?node=ag-http0&node=txn-1');
+      mockQueryString('?node=ag-span0&node=txn-1');
 
       const {virtualizedContainer} = await completeTestSetup();
       await within(virtualizedContainer).findAllByText(/Autogrouped/i);

@@ -23,11 +23,10 @@ from snuba_sdk import (
 )
 from snuba_sdk import Request as SnubaRequest
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import NoProjects, OrganizationEndpoint
+from sentry.api.bases.organization import NoProjects
 from sentry.api.event_search import QueryToken, parse_search_query
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
@@ -36,6 +35,7 @@ from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, Visibility
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
+from sentry.replays.endpoints.organization_replay_endpoint import OrganizationReplayEndpoint
 from sentry.replays.lib.new_query.conditions import IntegerScalar
 from sentry.replays.lib.new_query.fields import FieldProtocol, IntegerColumnField
 from sentry.replays.lib.new_query.parsers import parse_int
@@ -75,7 +75,7 @@ class ReplaySelectorResponse(TypedDict):
 
 @region_silo_endpoint
 @extend_schema(tags=["Replays"])
-class OrganizationReplaySelectorIndexEndpoint(OrganizationEndpoint):
+class OrganizationReplaySelectorIndexEndpoint(OrganizationReplayEndpoint):
     owner = ApiOwner.REPLAY
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
@@ -106,8 +106,8 @@ class OrganizationReplaySelectorIndexEndpoint(OrganizationEndpoint):
     )
     def get(self, request: Request, organization: Organization) -> Response:
         """Return a list of selectors for a given organization."""
-        if not features.has("organizations:session-replay", organization, actor=request.user):
-            return Response(status=404)
+        self.check_replay_access(request, organization)
+
         try:
             filter_params = self.get_replay_filter_params(request, organization)
         except NoProjects:

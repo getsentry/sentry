@@ -12,6 +12,7 @@ from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import reformat_timestamp_ms_to_isoformat
 from sentry.models.organization import Organization
+from sentry.replays.permissions import has_replay_permission
 
 
 @region_silo_endpoint
@@ -52,6 +53,9 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsEndpointBase):
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has("organizations:session-replay", organization, actor=request.user):
             return Response(status=404)
+
+        if not has_replay_permission(request, organization):
+            return Response(status=403)
 
         try:
             snuba_params = self.get_snuba_params(request, organization)

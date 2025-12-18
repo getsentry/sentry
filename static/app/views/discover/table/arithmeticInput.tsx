@@ -289,13 +289,11 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
 }
 
 const Container = styled('div')<{isOpen: boolean}>`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   position: relative;
 
   border-radius: ${p =>
-    p.isOpen
-      ? `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`
-      : p.theme.borderRadius};
+    p.isOpen ? `${p.theme.radius.md} ${p.theme.radius.md} 0 0` : p.theme.radius.md};
 
   .show-sidebar & {
     background: ${p => p.theme.backgroundSecondary};
@@ -413,10 +411,10 @@ const DropdownContainer = styled('div')<{isOpen: boolean}>`
   left: -1px;
   right: -1px;
   z-index: ${p => p.theme.zIndex.dropdown};
-  background: ${p => p.theme.backgroundElevated};
+  background: ${p => p.theme.tokens.background.primary};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   margin-top: ${space(1)};
   max-height: 300px;
   overflow-y: auto;

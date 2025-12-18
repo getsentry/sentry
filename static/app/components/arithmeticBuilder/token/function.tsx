@@ -717,7 +717,7 @@ const FunctionWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
   align-items: flex-start;
   position: relative;
   border: 1px solid ${p => p.theme.innerBorder};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   height: fit-content;
   /* Ensures that filters do not grow outside of the container */
   min-width: 0;

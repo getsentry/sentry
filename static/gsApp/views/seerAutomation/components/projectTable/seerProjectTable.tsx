@@ -1,19 +1,25 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {debounce, parseAsString, useQueryState} from 'nuqs';
 
 import {InputGroup} from '@sentry/scraps/input/inputGroup';
 import {Stack} from '@sentry/scraps/layout/stack';
 
+import {
+  useGetBulkAutofixAutomationSettings,
+  useUpdateBulkAutofixAutomationSettings,
+  type AutofixAutomationSettings,
+} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconSearch} from 'sentry/icons/iconSearch';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {parseAsSort} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -21,9 +27,61 @@ import useProjects from 'sentry/utils/useProjects';
 import ProjectTableHeader from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTableHeader';
 import SeerProjectTableRow from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTableRow';
 
+function getDefaultAutofixSettings(
+  organization: Organization,
+  projectId: string
+): AutofixAutomationSettings {
+  return {
+    autofixAutomationTuning: organization.defaultAutofixAutomationTuning ?? 'off',
+    automatedRunStoppingPoint: organization.autoOpenPrs ? 'open_pr' : 'code_changes',
+    projectId,
+    reposCount: 0,
+  };
+}
+
 export default function SeerProjectTable() {
+  const queryClient = useQueryClient();
   const organization = useOrganization();
   const {projects, fetching, fetchError} = useProjects();
+
+  const {pages: autofixAutomationSettings, isFetching: isFetchingSettings} =
+    useGetBulkAutofixAutomationSettings();
+
+  const [mutationData, setMutations] = useState<
+    Record<string, Partial<AutofixAutomationSettings>>
+  >({});
+
+  const {mutate: updateBulkAutofixAutomationSettings} =
+    useUpdateBulkAutofixAutomationSettings({
+      onSuccess: (_data, variables) => {
+        const {projectIds, ...rest} = variables;
+        setMutations(prev => {
+          const updated = {...prev};
+          projectIds.forEach(projectId => {
+            updated[projectId] = {
+              ...prev[projectId],
+              ...rest,
+            };
+          });
+          return updated;
+        });
+      },
+      onSettled: () => {
+        queryClient.invalidateQueries({
+          queryKey: [`/organizations/${organization.slug}/autofix/automation-settings/`],
+        });
+      },
+    });
+
+  const autofixSettingsByProjectId = useMemo(
+    () =>
+      new Map(
+        autofixAutomationSettings.flatMap(page =>
+          page.map(setting => [String(setting.projectId), setting])
+        )
+      ),
+    [autofixAutomationSettings]
+  );
 
   const [searchTerm, setSearchTerm] = useQueryState(
     'query',
@@ -35,7 +93,7 @@ export default function SeerProjectTable() {
     parseAsSort.withDefault({field: 'project', kind: 'asc'})
   );
 
-  const queryKey: ApiQueryKey = ['seer-projects', {query: {query: searchTerm}}];
+  const queryKey: ApiQueryKey = ['seer-projects', {query: {query: searchTerm, sort}}];
 
   const sortedProjects = useMemo(() => {
     return projects.toSorted((a, b) => {
@@ -63,7 +121,7 @@ export default function SeerProjectTable() {
     const lowerCase = searchTerm?.toLowerCase() ?? '';
     if (lowerCase) {
       return sortedProjects.filter(project =>
-        project.name.toLowerCase().includes(lowerCase)
+        project.slug.toLowerCase().includes(lowerCase)
       );
     }
     return sortedProjects;
@@ -77,6 +135,7 @@ export default function SeerProjectTable() {
         sort={sort}
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
+        updateBulkAutofixAutomationSettings={updateBulkAutofixAutomationSettings}
       >
         <SimpleTable.Empty>
           <LoadingIndicator />
@@ -93,6 +152,7 @@ export default function SeerProjectTable() {
         sort={sort}
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
+        updateBulkAutofixAutomationSettings={updateBulkAutofixAutomationSettings}
       >
         <SimpleTable.Empty>
           <LoadingError />
@@ -101,30 +161,56 @@ export default function SeerProjectTable() {
     );
   }
 
-  return (
-    <Fragment>
-      <ListItemCheckboxProvider
-        hits={filteredProjects.length}
-        knownIds={filteredProjects.map(project => project.id)}
-        queryKey={queryKey}
+  if (filteredProjects.length === 0) {
+    return (
+      <ProjectTable
+        projects={filteredProjects}
+        onSortClick={setSort}
+        sort={sort}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        updateBulkAutofixAutomationSettings={updateBulkAutofixAutomationSettings}
       >
-        <ProjectTable
-          projects={filteredProjects}
-          onSortClick={setSort}
-          sort={sort}
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-        >
-          {filteredProjects.map(project => (
-            <SeerProjectTableRow
-              key={project.id}
-              project={project}
-              organization={organization}
-            />
-          ))}
-        </ProjectTable>
-      </ListItemCheckboxProvider>
-    </Fragment>
+        <SimpleTable.Empty>
+          {searchTerm
+            ? tct('No projects found matching [searchTerm]', {
+                searchTerm: <code>{searchTerm}</code>,
+              })
+            : t('No projects found')}
+        </SimpleTable.Empty>
+      </ProjectTable>
+    );
+  }
+
+  return (
+    <ListItemCheckboxProvider
+      hits={filteredProjects.length}
+      knownIds={filteredProjects.map(project => project.id)}
+      queryKey={queryKey}
+    >
+      <ProjectTable
+        projects={filteredProjects}
+        onSortClick={setSort}
+        sort={sort}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        updateBulkAutofixAutomationSettings={updateBulkAutofixAutomationSettings}
+      >
+        {filteredProjects.map(project => (
+          <SeerProjectTableRow
+            key={project.id}
+            project={project}
+            isFetchingSettings={isFetchingSettings}
+            autofixSettings={{
+              ...getDefaultAutofixSettings(organization, project.id),
+              ...autofixSettingsByProjectId.get(project.id),
+              ...mutationData[project.id],
+            }}
+            updateBulkAutofixAutomationSettings={updateBulkAutofixAutomationSettings}
+          />
+        ))}
+      </ProjectTable>
+    </ListItemCheckboxProvider>
   );
 }
 
@@ -135,6 +221,7 @@ function ProjectTable({
   searchTerm,
   setSearchTerm,
   sort,
+  updateBulkAutofixAutomationSettings,
 }: {
   children: React.ReactNode;
   onSortClick: (sort: Sort) => void;
@@ -142,6 +229,9 @@ function ProjectTable({
   searchTerm: string;
   setSearchTerm: ReturnType<typeof useQueryState<string>>[1];
   sort: Sort;
+  updateBulkAutofixAutomationSettings: ReturnType<
+    typeof useUpdateBulkAutofixAutomationSettings
+  >['mutate'];
 }) {
   return (
     <Stack gap="lg">
@@ -162,7 +252,12 @@ function ProjectTable({
       </FiltersContainer>
 
       <SimpleTableWithColumns>
-        <ProjectTableHeader projects={projects} onSortClick={onSortClick} sort={sort} />
+        <ProjectTableHeader
+          projects={projects}
+          onSortClick={onSortClick}
+          sort={sort}
+          updateBulkAutofixAutomationSettings={updateBulkAutofixAutomationSettings}
+        />
         {children}
       </SimpleTableWithColumns>
     </Stack>

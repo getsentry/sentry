@@ -67,9 +67,14 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
     def convert_args(self, request: Request, detector_id, *args, **kwargs):
         args, kwargs = super().convert_args(request, *args, **kwargs)
         try:
-            detector = Detector.objects.select_related("project").get(id=detector_id)
-            if detector.project.organization_id != kwargs["organization"].id:
-                raise ResourceDoesNotExist
+            detector = (
+                Detector.objects.with_type_filters()
+                .select_related("project")
+                .get(
+                    id=detector_id,
+                    project__organization_id=kwargs["organization"].id,
+                )
+            )
             kwargs["detector"] = detector
         except Detector.DoesNotExist:
             raise ResourceDoesNotExist

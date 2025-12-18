@@ -83,9 +83,9 @@ dependencies = [
     "sentry-arroyo>=2.35.0",
     "sentry-conventions>=0.3.0",
     "sentry-forked-email-reply-parser>=0.5.12.post1",
-    "sentry-kafka-schemas>=2.1.15",
+    "sentry-kafka-schemas>=2.1.16",
     "sentry-ophio>=1.1.3",
-    "sentry-protos>=0.4.7",
+    "sentry-protos>=0.4.10",
     "sentry-redis-tools>=0.5.0",
     "sentry-relay>=0.9.22",
     "sentry-sdk[http2]>=2.47.0",
@@ -143,7 +143,7 @@ default = true
 dev = [
     "black>=25.1.0",
     "covdefaults>=2.3.0",
-    "devservices>=1.2.3",
+    "devservices>=1.2.4",
     "docker>=7.1.0",
     "ephemeral-port-reserve>=1.1.4",
     "flake8>=7.3.0",
@@ -239,6 +239,13 @@ filterwarnings = [
 
     # pytest has not yet implemented the replacement for this yet
     "ignore:The --looponfail command line argument.*",
+
+    # `ATTRIBUTE_NAMES` is a constant from the `sentry-conventions` library.
+    # We don't want to immediately block any sentry-conventions library updates
+    # with errors on new deprecations, and some code may depend on the value of
+    # a deprecated constant. But, still report it as a warning so that we're
+    # informed and can evaluate.
+    "default:ATTRIBUTE_NAMES\\..* is deprecated.*:DeprecationWarning",
 ]
 looponfailroots = ["src", "tests"]
 
@@ -592,6 +599,7 @@ module = [
     "sentry.search.eap.*",
     "sentry.search.snuba.backend",
     "sentry.security.*",
+    "sentry.seer.code_review.*",
     "sentry.seer.fetch_issues.*",
     "sentry.seer.services.*",
     "sentry.seer.similarity.*",
@@ -630,6 +638,7 @@ module = [
     "sentry.taskworker.*",
     "sentry.tempest.endpoints.*",
     "sentry.tempest.migrations.*",
+    "sentry.testutils.helpers.github",
     "sentry.testutils.helpers.task_runner",
     "sentry.testutils.helpers.usage_accountant",
     "sentry.testutils.notifications.*",
@@ -737,7 +746,7 @@ module = [
     "tests.sentry.digests.*",
     "tests.sentry.discover.translation.*",
     "tests.sentry.event_manager.test_event_manager",
-    "tests.sentry.eventstream.kafka.*",
+    "tests.sentry.eventstream.*",
     "tests.sentry.eventtypes.*",
     "tests.sentry.flags.*",
     "tests.sentry.grouping.*",
@@ -821,6 +830,7 @@ module = [
     "tests.sentry.runner.commands.test_cleanup",
     "tests.sentry.security.*",
     "tests.sentry.seer.anomaly_detection.*",
+    "tests.sentry.seer.code_review.*",
     "tests.sentry.seer.workflows.*",
     "tests.sentry.sentry_apps.api.*",
     "tests.sentry.sentry_apps.external_issues.*",

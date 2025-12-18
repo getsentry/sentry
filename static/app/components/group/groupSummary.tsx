@@ -2,6 +2,8 @@ import {isValidElement, useEffect, useLayoutEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {AiPrivacyTooltip} from 'sentry/components/aiPrivacyTooltip';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
@@ -72,7 +74,7 @@ export function useGroupSummaryData(group: Group) {
   return {data, isPending};
 }
 
-function useGroupSummary(
+export function useGroupSummary(
   group: Group,
   event: Event | null | undefined,
   project: Project,
@@ -390,7 +392,7 @@ function GroupSummaryFull({
   ];
 
   return (
-    <div data-testid="group-summary">
+    <Container data-testid="group-summary" width="100%">
       {isError ? <div>{t('Error loading summary')}</div> : null}
       <Content>
         <InsightGrid>
@@ -438,7 +440,7 @@ function GroupSummaryFull({
           </ResummarizeWrapper>
         )}
       </Content>
-    </div>
+    </Container>
   );
 }
 
@@ -458,7 +460,7 @@ const InsightGrid = styled('div')`
 const InsightCard = styled('div')`
   display: flex;
   flex-direction: column;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   width: 100%;
   min-height: 0;
 `;
