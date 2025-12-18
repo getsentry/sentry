@@ -12,9 +12,14 @@ import {
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
 import {BuildDetailsSidebarAppInfo} from 'sentry/views/preprod/buildDetails/sidebar/buildDetailsSidebarAppInfo';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {BuildDetailsState} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {
+  formatBuildName,
+  getBaseBuildUrl,
+} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {
   getBranchUrl,
   getPrUrl,
@@ -31,6 +36,7 @@ interface BuildDetailsSidebarContentProps {
 
 export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProps) {
   const {buildDetailsData, isBuildDetailsPending = false, artifactId, projectId} = props;
+  const organization = useOrganization();
 
   if (isBuildDetailsPending || !buildDetailsData) {
     return <SidebarLoadingSkeleton data-testid="sidebar-loading-skeleton" />;
@@ -78,6 +84,31 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
         ),
       },
     },
+    ...(vcsInfo.base_sha
+      ? [
+          {
+            item: {
+              key: 'Base Build',
+              subject: 'Base Build',
+              value: buildDetailsData.base_build_info
+                ? makeLinkableValue(
+                    formatBuildName(
+                      buildDetailsData.base_build_info.version,
+                      buildDetailsData.base_build_info.build_number
+                    ),
+                    buildDetailsData.base_artifact_id && projectId
+                      ? getBaseBuildUrl({
+                          baseArtifactId: buildDetailsData.base_artifact_id,
+                          organizationSlug: organization.slug,
+                          projectId,
+                        })
+                      : null
+                  )
+                : '-',
+            },
+          },
+        ]
+      : []),
     {
       item: {
         key: 'PR Number',
@@ -145,7 +176,7 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
 
       {/* VCS info */}
       {hasVcsInfo ? (
-        <KeyValueData.Card title="Git details" contentItems={vcsInfoContentItems} />
+        <KeyValueData.Card title="Build Metadata" contentItems={vcsInfoContentItems} />
       ) : (
         <Container
           border="primary"
