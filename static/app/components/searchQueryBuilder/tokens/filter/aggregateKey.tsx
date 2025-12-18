@@ -147,7 +147,7 @@ const KeyButton = styled(UnstyledButton)`
 `;
 
 const FnName = styled('span')`
-  color: ${p => p.theme.green400};
+  color: ${p => p.theme.colors.green500};
 `;
 
 const UnfocusedText = styled('span')`
@@ -169,7 +169,7 @@ const KeyEditing = styled('div')`
 
   :focus-within {
     ${Parameters} {
-      background-color: ${p => p.theme.purple100};
+      background-color: ${p => p.theme.colors.blue100};
       height: 100%;
     }
   }

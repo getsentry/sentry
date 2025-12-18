@@ -21,6 +21,7 @@ import {BuildComparisonMetricCards} from 'sentry/views/preprod/buildComparison/m
 import {InsightComparisonSection} from 'sentry/views/preprod/buildComparison/main/insightComparisonSection';
 import {SizeCompareItemDiffTable} from 'sentry/views/preprod/buildComparison/main/sizeCompareItemDiffTable';
 import {SizeCompareSelectedBuilds} from 'sentry/views/preprod/buildComparison/main/sizeCompareSelectedBuilds';
+import {TreemapDiffSection} from 'sentry/views/preprod/buildComparison/main/treemapDiffSection';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
 import {
@@ -319,6 +320,12 @@ export function SizeCompareMainContent() {
           )}
         </Flex>
       </Container>
+
+      {/* Treemap Diff Section */}
+      {comparisonDataQuery.data?.diff_items &&
+        comparisonDataQuery.data.diff_items.length > 0 && (
+          <TreemapDiffSection diffItems={comparisonDataQuery.data.diff_items} />
+        )}
     </Flex>
   );
 }

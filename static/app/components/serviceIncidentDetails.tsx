@@ -186,9 +186,9 @@ function getIndicatorColor({
 }): string {
   const indicatorColor: Record<StatusPageIncidentUpdate['status'], string> = {
     investigating: theme.red200,
-    identified: theme.blue200,
-    monitoring: theme.yellow200,
-    resolved: theme.green200,
+    identified: theme.colors.blue200,
+    monitoring: theme.colors.yellow200,
+    resolved: theme.colors.green200,
   };
   return indicatorColor[status];
 }

@@ -323,7 +323,7 @@ const StyledList = styled(List)`
 `;
 
 const Suggestions = styled('div')`
-  background-color: ${p => p.theme.surface100};
+  background-color: ${p => p.theme.colors.surface200};
   border-radius: ${p => p.theme.radius.md};
   padding: ${space(1)} ${space(1)} ${space(1)} ${space(2)};
 `;

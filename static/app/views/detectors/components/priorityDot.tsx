@@ -11,9 +11,9 @@ export const PriorityDot = styled('div')<{priority: PriorityLevel | 'resolved'}>
       case PriorityLevel.HIGH:
         return p.theme.red300;
       case PriorityLevel.MEDIUM:
-        return p.theme.yellow400;
+        return p.theme.colors.yellow500;
       case 'resolved':
-        return p.theme.green300;
+        return p.theme.colors.green400;
       default:
         return p.theme.colors.gray400;
     }

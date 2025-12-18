@@ -8,6 +8,7 @@ from uuid import uuid4
 import sentry_sdk
 from django.conf import settings
 from pydantic import BaseModel, ValidationError
+from urllib3 import Retry
 
 from sentry import features, options
 from sentry.constants import VALID_PLATFORMS
@@ -29,7 +30,7 @@ logger = logging.getLogger("sentry.tasks.llm_issue_detection")
 
 SEER_ANALYZE_ISSUE_ENDPOINT_PATH = "/v1/automation/issue-detection/analyze"
 SEER_TIMEOUT_S = 180
-SEER_RETRIES = 1
+SEER_RETRIES = Retry(total=1, backoff_factor=2, status_forcelist=[408, 429, 502, 503, 504])
 START_TIME_DELTA_MINUTES = 30
 TRANSACTION_BATCH_SIZE = 100
 NUM_TRANSACTIONS_TO_PROCESS = 20
@@ -53,7 +54,7 @@ class DetectedIssue(BaseModel):
     title: str
     subcategory: str
     category: str
-    verification_reason: str | None = None
+    verification_reason: str
     # context fields, not LLM generated
     trace_id: str
     transaction_name: str
@@ -61,6 +62,7 @@ class DetectedIssue(BaseModel):
 
 class IssueDetectionResponse(BaseModel):
     issues: list[DetectedIssue]
+    traces_analyzed: int
 
 
 class IssueDetectionRequest(BaseModel):
@@ -232,21 +234,34 @@ def detect_llm_issues_for_project(project_id: int) -> None:
     if not evidence_traces:
         return
 
-    # Shuffle to randomize order
-    random.shuffle(evidence_traces)
-    selections = evidence_traces[:NUM_TRANSACTIONS_TO_PROCESS]
     logger.info(
-        "Sending traces to analyze",
+        "Getting traces for detection",
         extra={
-            "total_sent_for_analysis": len(selections),
             "organization_id": organization_id,
             "project_id": project_id,
+            "num_traces": len(evidence_traces),
+            "num_unique_traces": len({trace.trace_id for trace in evidence_traces}),
         },
     )
+    # Shuffle to randomize order
+    random.shuffle(evidence_traces)
+    processed_traces = 0
 
-    for evidence_trace in selections:
+    for trace in evidence_traces:
+        if processed_traces >= NUM_TRANSACTIONS_TO_PROCESS:
+            break
+
+        logger.info(
+            "Sending Seer Request for Detection",
+            extra={
+                "trace_id": trace.trace_id,
+                "transaction_name": trace.transaction_name,
+                "organization_id": organization_id,
+                "project_id": project_id,
+            },
+        )
         seer_request = IssueDetectionRequest(
-            traces=[evidence_trace],
+            traces=[trace],
             organization_id=organization_id,
             project_id=project_id,
         )
@@ -307,18 +322,25 @@ def detect_llm_issues_for_project(project_id: int) -> None:
             continue
 
         n_found_issues = len(response_data.issues)
-        logger.info(
-            "Seer issue detection success",
-            extra={
-                "num_traces": 1,
-                "num_issues": n_found_issues,
-                "organization_id": organization_id,
-                "project_id": project_id,
-                "titles": (
-                    [issue.title for issue in response_data.issues] if n_found_issues > 0 else None
-                ),
-            },
-        )
+        num_traces_analyzed = response_data.traces_analyzed
+        processed_traces += response_data.traces_analyzed
+        if num_traces_analyzed > 0:
+            logger.info(
+                "Seer issue detection success",
+                extra={
+                    "num_traces": 1,
+                    "num_issues": n_found_issues,
+                    "organization_id": organization_id,
+                    "project_id": project_id,
+                    "titles": (
+                        [issue.title for issue in response_data.issues]
+                        if n_found_issues > 0
+                        else None
+                    ),
+                    "trace_id": trace.trace_id,
+                    "traces_analyzed": num_traces_analyzed,
+                },
+            )
         for detected_issue in response_data.issues:
             try:
                 create_issue_occurrence_from_detection(

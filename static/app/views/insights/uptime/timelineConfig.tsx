@@ -39,8 +39,8 @@ export const reasonToText: Record<
 
 export const tickStyle: TickStyle<CheckStatus> = theme => ({
   [CheckStatus.SUCCESS]: {
-    labelColor: theme.green400,
-    tickColor: theme.green300,
+    labelColor: theme.colors.green500,
+    tickColor: theme.colors.green400,
   },
   [CheckStatus.FAILURE]: {
     labelColor: theme.red400,

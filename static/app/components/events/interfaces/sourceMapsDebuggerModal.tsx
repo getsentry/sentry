@@ -650,7 +650,9 @@ export function SourceMapsDebuggerModal({
               >
                 <StyledProgressRing
                   progressColor={
-                    activeTab === 'debug-ids' ? theme.purple300 : theme.colors.gray400
+                    activeTab === 'debug-ids'
+                      ? theme.colors.blue400
+                      : theme.colors.gray400
                   }
                   backgroundColor={theme.colors.gray200}
                   value={sourceResolutionResults.debugIdProgressPercent * 100}
@@ -672,7 +674,7 @@ export function SourceMapsDebuggerModal({
               >
                 <StyledProgressRing
                   progressColor={
-                    activeTab === 'release' ? theme.purple300 : theme.colors.gray400
+                    activeTab === 'release' ? theme.colors.blue400 : theme.colors.gray400
                   }
                   backgroundColor={theme.colors.gray200}
                   value={sourceResolutionResults.releaseProgressPercent * 100}
@@ -690,7 +692,7 @@ export function SourceMapsDebuggerModal({
               >
                 <StyledProgressRing
                   progressColor={
-                    activeTab === 'fetching' ? theme.purple300 : theme.colors.gray400
+                    activeTab === 'fetching' ? theme.colors.blue400 : theme.colors.gray400
                   }
                   backgroundColor={theme.colors.gray200}
                   value={sourceResolutionResults.scrapingProgressPercent * 100}
@@ -2038,8 +2040,8 @@ const ListItemTitle = styled('p')<{status: 'none' | 'checked' | 'alert' | 'quest
     ({
       none: p.theme.subText,
       question: p.theme.subText,
-      checked: p.theme.green300,
-      alert: p.theme.yellow400,
+      alert: p.theme.colors.yellow500,
+      checked: p.theme.colors.green400,
     })[p.status]};
 `;
 

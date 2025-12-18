@@ -155,6 +155,7 @@ function SearchQueryBuilderBooleanSelect({
             options={LOGIC_OPERATOR_OPTIONS}
             trigger={triggerProps => {
               return (
+                // @ts-expect-error we don't allow arbitrary buttons as triggers
                 <OpButton
                   disabled={disabled}
                   aria-label={t('Edit logic operator: %s', tokenText)}

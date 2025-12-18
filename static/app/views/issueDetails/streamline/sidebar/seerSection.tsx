@@ -176,6 +176,7 @@ export default function SeerSection({
         <ExplorerArtifactPreviews
           artifacts={explorerArtifacts}
           blocks={explorerRunState?.blocks ?? []}
+          prStates={explorerRunState?.repo_pr_states}
         />
       );
     }

@@ -223,7 +223,7 @@ export function getMetricAlertChartOption(
   let warningDuration = 0;
 
   series.push(
-    createStatusAreaSeries(theme.green300, firstPoint, lastPoint, minChartValue)
+    createStatusAreaSeries(theme.colors.green400, firstPoint, lastPoint, minChartValue)
   );
 
   if (showWaitingForData) {
@@ -264,7 +264,7 @@ export function getMetricAlertChartOption(
           warningTrigger &&
           statusChanges.some(({value}) => Number(value) === IncidentStatus.CRITICAL)
             ? theme.red300
-            : theme.yellow300;
+            : theme.colors.yellow400;
 
         const incidentStartDate = new Date(incident.dateStarted).getTime();
         const incidentCloseDate = incident.dateClosed
@@ -291,13 +291,13 @@ export function getMetricAlertChartOption(
             : new Date(incidentEnd).getTime(),
           lastPoint
         );
-        const areaColor = warningTrigger ? theme.yellow300 : theme.red300;
+        const areaColor = warningTrigger ? theme.colors.yellow400 : theme.red300;
         if (areaEnd > areaStart) {
           series.push(
             createStatusAreaSeries(areaColor, areaStart, areaEnd, minChartValue)
           );
 
-          if (areaColor === theme.yellow300) {
+          if (areaColor === theme.colors.yellow400) {
             warningDuration += Math.abs(areaEnd - areaStart);
           } else {
             criticalDuration += Math.abs(areaEnd - areaStart);
@@ -318,7 +318,7 @@ export function getMetricAlertChartOption(
           const statusAreaColor =
             activity.value === `${IncidentStatus.CRITICAL}`
               ? theme.red300
-              : theme.yellow300;
+              : theme.colors.yellow400;
           if (statusAreaEnd > statusAreaStart) {
             series.push(
               createStatusAreaSeries(
@@ -328,7 +328,7 @@ export function getMetricAlertChartOption(
                 minChartValue
               )
             );
-            if (statusAreaColor === theme.yellow300) {
+            if (statusAreaColor === theme.colors.yellow400) {
               warningDuration += Math.abs(statusAreaEnd - statusAreaStart);
             } else {
               criticalDuration += Math.abs(statusAreaEnd - statusAreaStart);
@@ -338,7 +338,9 @@ export function getMetricAlertChartOption(
 
         if (selectedIncident && incident.id === selectedIncident.id) {
           const selectedIncidentColor =
-            incidentColor === theme.yellow300 ? theme.yellow100 : theme.red100;
+            incidentColor === theme.colors.yellow400
+              ? theme.colors.yellow100
+              : theme.red100;
 
           // Is areaSeries used anywhere?
           areaSeries.push({
@@ -362,7 +364,10 @@ export function getMetricAlertChartOption(
   let maxThresholdValue = 0;
   if (!rule.comparisonDelta && warningTrigger?.alertThreshold) {
     const {alertThreshold} = warningTrigger;
-    const warningThresholdLine = createThresholdSeries(theme.yellow300, alertThreshold);
+    const warningThresholdLine = createThresholdSeries(
+      theme.colors.yellow400,
+      alertThreshold
+    );
     series.push(warningThresholdLine);
     maxThresholdValue = Math.max(maxThresholdValue, alertThreshold);
   }
@@ -376,7 +381,7 @@ export function getMetricAlertChartOption(
 
   if (!rule.comparisonDelta && rule.resolveThreshold) {
     const resolveThresholdLine = createThresholdSeries(
-      theme.green300,
+      theme.colors.green400,
       rule.resolveThreshold
     );
     series.push(resolveThresholdLine);
