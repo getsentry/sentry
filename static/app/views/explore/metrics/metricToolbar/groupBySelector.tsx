@@ -74,7 +74,7 @@ export function GroupBySelector({traceMetric}: GroupBySelectorProps) {
   const isLoading = numberTagsLoading || stringTagsLoading;
 
   return (
-    <CompactSelect<string>
+    <CompactSelect
       multiple
       searchable
       triggerProps={{
