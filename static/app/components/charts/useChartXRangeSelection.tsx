@@ -110,14 +110,19 @@ export type ChartXRangeSelectionProps = {
   initialSelection?: Selection;
 
   /**
-   * The callback that is called when the chart is clicked.
-   */
-  onChartClick?: (params: SelectionCallbackParams) => void;
-
-  /**
    * The callback that is called when the selection is cleared.
    */
   onClearSelection?: (params: SelectionCallbackParams) => void;
+
+  /**
+   * The callback that is called when the chart is clicked inside the selection box.
+   */
+  onInsideSelectionClick?: (params: SelectionCallbackParams) => void;
+
+  /**
+   * The callback that is called when the chart is clicked outside the selection box and the action menu.
+   */
+  onOutsideSelectionClick?: (params: SelectionCallbackParams) => void;
 
   /**
    * The callback that is called when the selection/dragging ends.
@@ -134,8 +139,9 @@ export function useChartXRangeSelection({
   chartRef,
   onSelectionEnd,
   onSelectionStart,
-  onChartClick,
   onClearSelection,
+  onInsideSelectionClick,
+  onOutsideSelectionClick,
   actionMenuRenderer,
   chartsGroupName,
   initialSelection,
@@ -305,30 +311,68 @@ export function useChartXRangeSelection({
     disabled,
   ]);
 
-  // This effect sets up the listener for clicks anywhere on the chart to trigger the
-  // onChartClick callback if it is passed in. The params to it include state management functions,
-  // giving the consumer full control over the selection state.
   useEffect(() => {
-    if (disabled) return;
+    if (disabled || !selectionState?.selection) return;
 
     const chartInstance = chartRef.current?.getEchartsInstance();
     if (!chartInstance) return;
 
-    const dom = chartInstance.getDom();
+    const handleInsideSelectionClick = (event: MouseEvent) => {
+      const [selectedMin, selectedMax] = selectionState.selection.range;
 
-    const handleClickAnywhere = (event: MouseEvent) => {
-      event.preventDefault();
+      const xMinPixel = chartInstance.convertToPixel({xAxisIndex: 0}, selectedMin);
+      const xMaxPixel = chartInstance.convertToPixel({xAxisIndex: 0}, selectedMax);
 
-      onChartClick?.(callbackParams);
+      // @ts-expect-error TODO Abdullah Khan: chartInstance.getModel is a private method, but we access it to get the axis extremes
+      // could not find a better way, this works out perfectly for now. Passing down the entire series data to the hook is more gross.
+      const yAxis = chartInstance.getModel()?.getComponent?.('yAxis', 0);
+      if (!yAxis) return;
+
+      const yMin = yAxis.axis.scale.getExtent()[0];
+      const yMinPixel = chartInstance.convertToPixel({yAxisIndex: 0}, yMin);
+
+      const chartRect = chartInstance.getDom().getBoundingClientRect();
+
+      const left = chartRect.left + xMinPixel;
+      const right = chartRect.left + xMaxPixel;
+      const top = chartRect.top;
+      const bottom = chartRect.top + yMinPixel;
+
+      const {clientX, clientY} = event;
+
+      if (clientX >= left && clientX <= right && clientY >= top && clientY <= bottom) {
+        onInsideSelectionClick?.(callbackParams);
+        return;
+      }
+
+      // Check if the click was on an element that is a child of the action menu
+      // to prevent triggering the onOutsideSelectionClick callback. The action menu items
+      // have their own onClick handlers.
+      let el = event.target as HTMLElement | null;
+      while (el) {
+        if (el.dataset?.chartXRangeSelectionActionMenu !== undefined) {
+          return;
+        }
+        el = el.parentElement;
+      }
+
+      onOutsideSelectionClick?.(callbackParams);
     };
 
-    dom.addEventListener('click', handleClickAnywhere);
+    document.body.addEventListener('click', handleInsideSelectionClick, true);
 
     // eslint-disable-next-line consistent-return
     return () => {
-      dom.removeEventListener('click', handleClickAnywhere);
+      document.body.removeEventListener('click', handleInsideSelectionClick, true);
     };
-  }, [enableBrushMode, callbackParams, chartRef, onChartClick, disabled]);
+  }, [
+    disabled,
+    selectionState,
+    chartRef,
+    onInsideSelectionClick,
+    onOutsideSelectionClick,
+    callbackParams,
+  ]);
 
   // This effect fires whenever state changes. It:
   // - Re-draws the selection box in the chart on state change enforcing persistence.
@@ -438,6 +482,7 @@ export function useChartXRangeSelection({
 
     return createPortal(
       <div
+        data-chart-x-range-selection-action-menu
         style={{
           position: 'absolute',
           transform,
