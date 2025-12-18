@@ -10,9 +10,10 @@ from requests import RequestException, Response
 from requests.exceptions import ChunkedEncodingError, ConnectionError, Timeout
 from rest_framework import status
 
-from sentry import options
+from sentry import features, options
 from sentry.exceptions import RestrictedIPAddress
 from sentry.http import safe_urlopen
+from sentry.organizations.services.organization.service import organization_service
 from sentry.sentry_apps.metrics import (
     SentryAppEventType,
     SentryAppWebhookFailureReason,
@@ -50,7 +51,7 @@ def _handle_webhook_timeout(signum: int, frame: FrameType | None) -> None:
     """Handler for when a webhook request exceeds the hard timeout deadline.
     - This is a workaround for safe_create_connection sockets hanging when the given url
     cannot be reached or resolved.
-    - TODO: Add sentry app disabling logic here
+    - TODO(christinarlong): Add sentry app disabling logic here
     """
     raise WebhookTimeoutError("Webhook request exceeded hard timeout deadline")
 
@@ -117,17 +118,30 @@ def send_and_save_webhook_request(
         )
 
         assert url is not None
-
-        timeout_seconds = int(options.get("sentry-apps.webhook.hard-timeout.sec"))
-
         try:
-            with timeout_alarm(timeout_seconds, _handle_webhook_timeout):
+            organization_context = organization_service.get_organization_by_id(
+                id=app_platform_event.install.organization_id,
+            )
+            if organization_context is not None and features.has(
+                "organizations:sentry-app-webhook-hard-timeout",
+                organization_context.organization,
+            ):
+                timeout_seconds = int(options.get("sentry-apps.webhook.hard-timeout.sec"))
+                with timeout_alarm(timeout_seconds, _handle_webhook_timeout):
+                    response = safe_urlopen(
+                        url=url,
+                        data=app_platform_event.body,
+                        headers=app_platform_event.headers,
+                        timeout=options.get("sentry-apps.webhook.timeout.sec"),
+                    )
+            else:
                 response = safe_urlopen(
                     url=url,
                     data=app_platform_event.body,
                     headers=app_platform_event.headers,
                     timeout=options.get("sentry-apps.webhook.timeout.sec"),
                 )
+
         except WebhookTimeoutError:
             lifecycle.record_halt(
                 halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.HARD_TIMEOUT}"

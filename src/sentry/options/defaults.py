@@ -2426,7 +2426,7 @@ register(
 # Hard timeout for webhook requests to prevent indefinite hangs
 register(
     "sentry-apps.webhook.hard-timeout.sec",
-    default=3.0,
+    default=5.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
