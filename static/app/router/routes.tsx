@@ -1551,12 +1551,10 @@ function buildRoutes(): RouteObject[] {
         {
           path: 'crons/',
           component: make(() => import('sentry/views/alerts/rules/crons')),
-          deprecatedRouteProps: true,
           children: [
             {
               path: ':projectId/:monitorSlug/details/',
               component: make(() => import('sentry/views/alerts/rules/crons/details')),
-              deprecatedRouteProps: true,
             },
           ],
         },
