@@ -1911,14 +1911,6 @@ function buildRoutes(): RouteObject[] {
             ),
           },
           {
-            path: 'vitals/',
-            handle: {tab: TransactionSummaryTab.WEB_VITALS},
-            component: make(
-              () =>
-                import('sentry/views/performance/transactionSummary/transactionVitals')
-            ),
-          },
-          {
             path: 'tags/',
             handle: {tab: TransactionSummaryTab.TAGS},
             component: make(
