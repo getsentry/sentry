@@ -91,7 +91,7 @@ export default function AlertRuleStatus({rule}: Props) {
   return (
     <Flex align="center">
       {rule.detectionType !== AlertRuleComparisonType.DYNAMIC && (
-        <IconArrow color={iconVariant} direction={iconDirection} />
+        <IconArrow variant={iconVariant} direction={iconDirection} />
       )}
       {rule.detectionType === AlertRuleComparisonType.DYNAMIC ? (
         <TriggerText>{statusLabel}</TriggerText>
