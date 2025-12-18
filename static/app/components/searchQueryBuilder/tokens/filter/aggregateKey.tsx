@@ -147,7 +147,7 @@ const KeyButton = styled(UnstyledButton)`
 `;
 
 const FnName = styled('span')`
-  color: ${p => p.theme.green400};
+  color: ${p => p.theme.colors.green500};
 `;
 
 const UnfocusedText = styled('span')`

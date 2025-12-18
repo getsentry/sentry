@@ -225,7 +225,7 @@ export function getMetricDetectorChartOption(
   let warningDuration = 0;
 
   series.push(
-    createStatusAreaSeries(theme.green300, firstPoint, lastPoint, minChartValue)
+    createStatusAreaSeries(theme.colors.green400, firstPoint, lastPoint, minChartValue)
   );
 
   if (showWaitingForData) {
@@ -379,7 +379,7 @@ export function getMetricDetectorChartOption(
     typeof resolutionCondition?.comparison === 'number'
   ) {
     const resolveThresholdLine = createThresholdSeries(
-      theme.green300,
+      theme.colors.green400,
       resolutionCondition.comparison
     );
     series.push(resolveThresholdLine);
