@@ -247,7 +247,7 @@ function SpansTabCrossEventSearchBars() {
               value={crossEvent.type}
               disabled={maxCrossEventQueriesReached}
               trigger={triggerProps => (
-                <SelectTrigger.Button {...triggerProps} prefix={t('with')} />
+                <SelectTrigger.Button {...triggerProps} {...props} prefix={t('with')} />
               )}
               options={[
                 {value: 'spans', label: t('Spans')},
