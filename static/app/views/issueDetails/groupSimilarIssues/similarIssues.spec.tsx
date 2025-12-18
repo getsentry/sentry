@@ -59,8 +59,22 @@ describe('Issues Similar View', () => {
       body: {features: ['similarity-view']},
     });
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/related-issues/`,
+      url: `/organizations/org-slug/issues/${group.id}/related-issues/`,
+      match: [
+        MockApiClient.matchQuery({
+          type: 'same_root_cause',
+        }),
+      ],
       body: {data: [], type: 'same_root_cause'},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/related-issues/`,
+      match: [
+        MockApiClient.matchQuery({
+          type: 'trace_connected',
+        }),
+      ],
+      body: {data: [], type: 'trace_connected'},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/tags/`,
@@ -214,8 +228,22 @@ describe('Issues Similar Embeddings View', () => {
       body: {features: ['similarity-embeddings']},
     });
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/related-issues/`,
+      url: `/organizations/org-slug/issues/${group.id}/related-issues/`,
+      match: [
+        MockApiClient.matchQuery({
+          type: 'same_root_cause',
+        }),
+      ],
       body: {data: [], type: 'same_root_cause'},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/related-issues/`,
+      match: [
+        MockApiClient.matchQuery({
+          type: 'trace_connected',
+        }),
+      ],
+      body: {data: [], type: 'trace_connected'},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/tags/`,
