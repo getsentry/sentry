@@ -59,14 +59,15 @@ class ApiTokenTest(TestCase):
             token = install.api_token
             org_id = token.organization_id
 
-        with assume_test_silo_mode(SiloMode.REGION):
-            assert ApiTokenReplica.objects.get(apitoken_id=token.id).organization_id == org_id
+            with assume_test_silo_mode(SiloMode.REGION):
+                assert ApiTokenReplica.objects.get(apitoken_id=token.id).organization_id == org_id
 
         with outbox_runner(), self.tasks():
             install.delete()
 
-        with assume_test_silo_mode(SiloMode.REGION):
-            assert ApiTokenReplica.objects.get(apitoken_id=token.id).organization_id is None
+            with assume_test_silo_mode(SiloMode.REGION):
+                assert ApiTokenReplica.objects.get(apitoken_id=token.id).organization_id is None
+
         assert token.organization_id is None
 
     def test_last_chars_are_set(self) -> None:
@@ -149,12 +150,13 @@ class ApiTokenTest(TestCase):
         user = self.create_user()
         with outbox_runner(), self.tasks():
             token = ApiToken.objects.create(user_id=user.id)
-        with assume_test_silo_mode(SiloMode.REGION):
-            replica = ApiTokenReplica.objects.get(apitoken_id=token.id)
-            assert (
-                f"{replica} is swug"
-                == f"replica_token_id={replica.id}, token_id={token.id} is swug"
-            )
+
+            with assume_test_silo_mode(SiloMode.REGION):
+                replica = ApiTokenReplica.objects.get(apitoken_id=token.id)
+                assert (
+                    f"{replica} is swug"
+                    == f"replica_token_id={replica.id}, token_id={token.id} is swug"
+                )
 
     def test_delete_token_removes_replica(self) -> None:
         user = self.create_user()
@@ -195,8 +197,7 @@ class ApiTokenTest(TestCase):
         user = self.create_user()
 
         with override_options({"users:api-token-async-flush": [user.id]}):
-            with self.tasks():
-                token = ApiToken.objects.create(user_id=user.id)
+            token = ApiToken.objects.create(user_id=user.id)
 
             outboxes = ControlOutbox.objects.filter(
                 shard_scope=OutboxScope.USER_SCOPE,
@@ -205,11 +206,33 @@ class ApiTokenTest(TestCase):
                 object_identifier=token.id,
             )
             assert outboxes.exists()
-            assert outboxes.count() > 0  # Should have one per region
+            assert outboxes.count() > 0
 
-            # Verify replica does NOT exist yet (because outboxes haven't been processed)
             with assume_test_silo_mode(SiloMode.REGION):
                 assert not ApiTokenReplica.objects.filter(apitoken_id=token.id).exists()
+
+    def test_outboxes_created_on_update_with_async_flush(self) -> None:
+        user = self.create_user()
+
+        with override_options({"users:api-token-async-flush": [user.id]}):
+            with outbox_runner(), self.tasks():
+                token = ApiToken.objects.create(user_id=user.id)
+
+            updated_expires_at = timezone.now() + timedelta(days=30)
+            token.update(expires_at=updated_expires_at)
+
+            outboxes = ControlOutbox.objects.filter(
+                shard_scope=OutboxScope.USER_SCOPE,
+                shard_identifier=user.id,
+                category=OutboxCategory.API_TOKEN_UPDATE,
+                object_identifier=token.id,
+            )
+            assert outboxes.exists()
+            assert outboxes.count() > 0
+
+            with assume_test_silo_mode(SiloMode.REGION):
+                replica = ApiTokenReplica.objects.get(apitoken_id=token.id)
+                assert replica.expires_at != updated_expires_at
 
     def test_async_replication_creates_replica_after_processing(self) -> None:
         user = self.create_user()
