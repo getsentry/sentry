@@ -38,10 +38,10 @@ type Props = {
   allOptionTitle: string;
   onChange: (selectedOption: SelectOption<SelectKey>) => void;
   sortBy: ReleasesSortByOption;
+  triggerLabel: string;
+  triggerLabelPrefix: string;
   selectorName?: string;
   selectorValue?: string;
-  triggerLabel?: string;
-  triggerLabelPrefix?: string;
 };
 
 function ReleaseSelector({
