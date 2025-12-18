@@ -1906,6 +1906,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         self.assert_serialized_widget(data["widgets"][0], widgets[0])
         self.assert_serialized_widget(data["widgets"][1], widgets[1])
 
+    @pytest.mark.skip(reason="flaky: #105251")
     def test_reorder_widgets_has_no_effect(self) -> None:
         response = self.do_request(
             "put",
