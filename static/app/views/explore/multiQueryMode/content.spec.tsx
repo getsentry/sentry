@@ -680,6 +680,52 @@ describe('MultiQueryModeContent', () => {
     ]);
   });
 
+  it('allows changing case insensitivity', async () => {
+    let queries: any;
+    function Component() {
+      queries = useReadQueriesFromLocation();
+      return <MultiQueryModeContent />;
+    }
+
+    render(
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+        <Component />
+      </TraceItemAttributeProvider>
+    );
+
+    expect(queries).toEqual([
+      {
+        yAxes: ['count(span.duration)'],
+        sortBys: [
+          {
+            field: 'timestamp',
+            kind: 'desc',
+          },
+        ],
+        fields: ['id', 'span.duration', 'timestamp'],
+        groupBys: [],
+        query: '',
+      },
+    ]);
+
+    await userEvent.click(screen.getByLabelText('Ignore case'));
+    expect(queries).toEqual([
+      {
+        caseInsensitive: '1',
+        yAxes: ['count(span.duration)'],
+        sortBys: [
+          {
+            field: 'timestamp',
+            kind: 'desc',
+          },
+        ],
+        fields: ['id', 'span.duration', 'timestamp'],
+        groupBys: [],
+        query: '',
+      },
+    ]);
+  });
+
   it('allows adding a query', async () => {
     let queries: any;
     function Component() {
