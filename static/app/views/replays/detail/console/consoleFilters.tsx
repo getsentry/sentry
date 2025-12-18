@@ -24,7 +24,7 @@ function Filters({
       <CompactSelect
         trigger={triggerProps => (
           <SelectTrigger.Button {...triggerProps} prefix={t('Log Level')}>
-            {logLevel.length === 0 ? t('Any') : null}
+            {logLevel.length === 0 ? t('Any') : triggerProps.children}
           </SelectTrigger.Button>
         )}
         multiple

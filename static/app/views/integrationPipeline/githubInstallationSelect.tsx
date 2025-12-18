@@ -183,7 +183,7 @@ export function GithubInstallationSelect({
           value={installationID}
           trigger={triggerProps => (
             <SelectTrigger.Button {...triggerProps}>
-              {installationID ? undefined : 'Choose Installation'}
+              {installationID ? triggerProps.children : 'Choose Installation'}
             </SelectTrigger.Button>
           )}
         />

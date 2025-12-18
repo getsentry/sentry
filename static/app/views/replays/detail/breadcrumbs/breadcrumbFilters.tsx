@@ -24,7 +24,7 @@ function BreadcrumbFilters({
       <CompactSelect
         trigger={triggerProps => (
           <SelectTrigger.Button {...triggerProps} prefix={t('Type')}>
-            {type.length === 0 ? t('Any') : null}
+            {type.length === 0 ? t('Any') : triggerProps.children}
           </SelectTrigger.Button>
         )}
         multiple

@@ -172,7 +172,7 @@ function UsageLog({location, subscription}: Props) {
           }}
           trigger={triggerProps => (
             <SelectTrigger.Button {...triggerProps} size="sm">
-              {selectedEventName ? undefined : t('Select Action')}
+              {selectedEventName ? triggerProps.children : t('Select Action')}
             </SelectTrigger.Button>
           )}
         />

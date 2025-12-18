@@ -60,7 +60,7 @@ export default function SubregionSelector({size}: Props) {
       searchable
       trigger={triggerProps => (
         <SelectTrigger.Button {...triggerProps} prefix={t('Geo region')}>
-          {value.length === 0 ? t('All') : undefined}
+          {value.length === 0 ? t('All') : triggerProps.children}
         </SelectTrigger.Button>
       )}
       multiple

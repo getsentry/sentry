@@ -43,7 +43,7 @@ export default function ErrorFilters({
         size="sm"
         trigger={triggerProps => (
           <SelectTrigger.Button {...triggerProps} prefix={t('Filter')}>
-            {selectValue?.length === 0 ? t('Any') : null}
+            {selectValue?.length === 0 ? t('Any') : triggerProps.children}
           </SelectTrigger.Button>
         )}
         value={selectValue}

@@ -253,7 +253,7 @@ sentry-cli releases finalize "$VERSION"`;
               {...triggerProps}
               prefix={selectedApp ? t('Token From') : undefined}
             >
-              {selectedApp ? undefined : t('Select Integration')}
+              {selectedApp ? triggerProps.children : t('Select Integration')}
             </SelectTrigger.Button>
           )}
           onChange={option => {

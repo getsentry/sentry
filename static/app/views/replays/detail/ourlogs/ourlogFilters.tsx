@@ -31,7 +31,7 @@ export function OurLogFilters({
       <CompactSelect
         trigger={triggerProps => (
           <SelectTrigger.Button {...triggerProps} prefix={t('Log Level')}>
-            {selectValues.length === 0 ? t('Any') : null}
+            {selectValues.length === 0 ? t('Any') : triggerProps.children}
           </SelectTrigger.Button>
         )}
         multiple

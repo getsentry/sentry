@@ -189,7 +189,9 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
           {selectedValue ? (
             selectedValue === EventNavDropdownOption.RECOMMENDED ? (
               t('Recommended')
-            ) : undefined
+            ) : (
+              triggerProps.children
+            )
           ) : (
             <TimeSince
               date={event.dateCreated ?? event.dateReceived}

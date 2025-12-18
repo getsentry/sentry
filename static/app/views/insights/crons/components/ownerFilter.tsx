@@ -55,7 +55,7 @@ export function OwnerFilter({selectedOwners, onChangeFilter}: OwnerFilterProps) 
       }}
       trigger={triggerProps => (
         <SelectTrigger.Button {...triggerProps}>
-          {selectedOwners.length ? undefined : t('All Owners')}
+          {selectedOwners.length ? triggerProps.children : t('All Owners')}
         </SelectTrigger.Button>
       )}
     />
