@@ -43,23 +43,14 @@ from sentry.utils import json
 
 
 class IsContributorEligibleForSeatAssignmentTest(TestCase):
-    def test_user_with_member_association_is_eligible(self):
-        assert is_contributor_eligible_for_seat_assignment("User", "MEMBER")
-
-    def test_user_with_owner_association_is_eligible(self):
-        assert is_contributor_eligible_for_seat_assignment("User", "OWNER")
-
-    def test_user_with_collaborator_association_is_eligible(self):
-        assert is_contributor_eligible_for_seat_assignment("User", "COLLABORATOR")
-
-    def test_user_with_contributor_association_is_not_eligible(self):
-        assert not is_contributor_eligible_for_seat_assignment("User", "CONTRIBUTOR")
+    def test_user_is_eligible(self):
+        assert is_contributor_eligible_for_seat_assignment("User")
 
     def test_bot_is_not_eligible(self):
-        assert not is_contributor_eligible_for_seat_assignment("Bot", "MEMBER")
+        assert not is_contributor_eligible_for_seat_assignment("Bot")
 
     def test_user_with_none_type_is_eligible(self):
-        assert is_contributor_eligible_for_seat_assignment(None, "MEMBER")
+        assert is_contributor_eligible_for_seat_assignment(None)
 
 
 class WebhookTest(APITestCase):
