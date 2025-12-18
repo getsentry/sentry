@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import type {AlertVariant} from 'sentry/utils/theme';
 
-type Status = AlertVariant | 'resolved';
+type StatusVariant = AlertVariant | 'resolved';
 export interface StatusIndicatorProps {
-  status: Status;
+  status: StatusVariant;
   tooltipTitle: React.ReactNode;
 }
 
