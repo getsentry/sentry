@@ -90,7 +90,7 @@ function ResourceTypeSelector({value}: {value?: string}) {
     <CompactSelect
       style={{maxWidth: '200px'}}
       trigger={triggerProps => (
-        <SelectTrigger.Button {...triggerProps} prefix={`${t('Type')}`} />
+        <SelectTrigger.Button {...triggerProps} prefix={t('Type')} />
       )}
       options={options}
       value={value ?? ''}

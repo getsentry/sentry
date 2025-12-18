@@ -25,7 +25,7 @@ function RenderBlockingSelector({value}: {value?: string}) {
   return (
     <CompactSelect
       trigger={triggerProps => (
-        <SelectTrigger.Button {...triggerProps} prefix={`${t('Blocking')}`} />
+        <SelectTrigger.Button {...triggerProps} prefix={t('Blocking')} />
       )}
       options={options}
       value={value ?? ''}
