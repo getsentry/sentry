@@ -500,7 +500,9 @@ def process_workflows(
     if features.has("organizations:workflow-engine-process-workflows-logs", organization):
         log_context.set_verbose(True)
 
-    workflows = _get_associated_workflows(event_detectors.detectors, environment, event_data)
+    workflows = _get_associated_workflows(
+        [event_detectors.preferred_detector], environment, event_data
+    )
     workflow_evaluation_data.workflows = workflows
 
     if not workflows:
