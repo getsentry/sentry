@@ -1943,7 +1943,14 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         )
 
         # Set max_candidates=1 to trigger too_many_candidates with 2 assigned groups
-        with self.options({"snuba.search.max-pre-snuba-candidates": 1}):
+        with self.options(
+            {
+                "snuba.search.max-pre-snuba-candidates": 1,
+                "snuba.search.truncate-group-ids-for-selective-filters-project-allowlist": [
+                    self.project.id
+                ],
+            }
+        ):
             # Mock calculate_hits to return 0, simulating failed sampling
             with mock.patch.object(
                 PostgresSnubaQueryExecutor, "calculate_hits", return_value=0
