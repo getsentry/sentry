@@ -1031,16 +1031,16 @@ const TraceStylingWrapper = styled('div')`
   &.light {
     .TracePattern {
       &.info {
-        --pattern-odd: ${p => p.theme.blue400};
-        --pattern-even: ${p => p.theme.blue300};
+        --pattern-odd: ${p => p.theme.colors.blue500};
+        --pattern-even: ${p => p.theme.colors.blue400};
       }
       &.warning {
         --pattern-odd: ${p => p.theme.colors.yellow500};
         --pattern-even: ${p => p.theme.colors.yellow400};
       }
       &.occurence {
-        --pattern-odd: ${p => p.theme.blue400};
-        --pattern-even: ${p => p.theme.blue300};
+        --pattern-odd: ${p => p.theme.colors.blue500};
+        --pattern-even: ${p => p.theme.colors.blue400};
       }
 
       &.profile {
@@ -1073,16 +1073,16 @@ const TraceStylingWrapper = styled('div')`
   &.dark {
     .TracePattern {
       &.info {
-        --pattern-odd: ${p => p.theme.blue400};
-        --pattern-even: ${p => p.theme.blue300};
+        --pattern-odd: ${p => p.theme.colors.blue500};
+        --pattern-even: ${p => p.theme.colors.blue400};
       }
       &.warning {
         --pattern-odd: ${p => p.theme.colors.yellow500};
         --pattern-even: ${p => p.theme.colors.yellow400};
       }
       &.occurence {
-        --pattern-odd: ${p => p.theme.blue400};
-        --pattern-even: ${p => p.theme.blue300};
+        --pattern-odd: ${p => p.theme.colors.blue500};
+        --pattern-even: ${p => p.theme.colors.blue400};
       }
 
       &.profile {
@@ -1123,7 +1123,7 @@ const TraceStylingWrapper = styled('div')`
     --row-background-odd: ${p => p.theme.backgroundSecondary};
     --row-background-hover: ${p => p.theme.backgroundTertiary};
     --row-background-focused: ${p => p.theme.backgroundTertiary};
-    --row-outline: ${p => p.theme.blue300};
+    --row-outline: ${p => p.theme.colors.blue400};
     --row-children-button-border-color: ${p => p.theme.border};
 
     /* allow empty blocks so we can keep an exhaustive list of classnames for future reference */
@@ -1270,10 +1270,10 @@ const TraceStylingWrapper = styled('div')`
     }
 
     &.Highlight {
-      box-shadow: inset 0 0 0 1px ${p => p.theme.blue300} !important;
+      box-shadow: inset 0 0 0 1px ${p => p.theme.colors.blue400} !important;
 
       .TraceLeftColumn {
-        box-shadow: inset 0px 0 0px 1px ${p => p.theme.blue300} !important;
+        box-shadow: inset 0px 0 0px 1px ${p => p.theme.colors.blue400} !important;
       }
     }
 
@@ -1310,7 +1310,7 @@ const TraceStylingWrapper = styled('div')`
     }
 
     &.Autogrouped {
-      color: ${p => p.theme.blue300};
+      color: ${p => p.theme.colors.blue400};
 
       .TraceDescription {
         font-weight: ${p => p.theme.fontWeight.bold};
@@ -1319,7 +1319,7 @@ const TraceStylingWrapper = styled('div')`
       .TraceChildrenCountWrapper {
         button {
           color: ${p => p.theme.white};
-          background-color: ${p => p.theme.blue300};
+          background-color: ${p => p.theme.colors.blue400};
         }
         svg {
           fill: ${p => p.theme.white};

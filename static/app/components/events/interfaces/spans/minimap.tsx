@@ -45,7 +45,7 @@ class ActualMinimap extends PureComponent<{
               style={{
                 backgroundColor:
                   payload.type === 'span_group_chain'
-                    ? this.props.theme.blue300
+                    ? this.props.theme.colors.blue400
                     : spanBarColor,
                 left: spanLeft,
                 width: spanWidth,
@@ -71,7 +71,7 @@ class ActualMinimap extends PureComponent<{
                 return (
                   <MinimapSpanBar
                     style={{
-                      backgroundColor: this.props.theme.blue300,
+                      backgroundColor: this.props.theme.colors.blue400,
                       left: spanLeft,
                       width: spanWidth,
                       minWidth: 0,

@@ -63,7 +63,7 @@ const SidebarPanelItemRoot = styled('div')`
 
 const Title = styled(ExternalLink)<Pick<BroadcastPanelItemProps, 'hasSeen'>>`
   font-size: ${p => p.theme.fontSize.lg};
-  color: ${p => p.theme.blue400};
+  color: ${p => p.theme.colors.blue500};
   ${p => !p.hasSeen && `font-weight: ${p.theme.fontWeight.bold}`};
   &:focus-visible {
     box-shadow: none;

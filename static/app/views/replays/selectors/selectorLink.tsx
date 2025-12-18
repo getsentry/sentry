@@ -63,7 +63,7 @@ const StyledLink = styled(Link)`
 `;
 
 const StyledTextOverflow = styled(TextOverflow)`
-  color: ${p => p.theme.blue300};
+  color: ${p => p.theme.colors.blue400};
 `;
 
 const TooltipContainer = styled('div')`
