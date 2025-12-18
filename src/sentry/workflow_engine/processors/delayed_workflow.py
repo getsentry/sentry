@@ -388,7 +388,7 @@ def get_condition_query_groups(
         slow_conditions = dcg_to_slow_conditions[dcg.id]
         workflow_id = event_data.dcg_to_workflow.get(dcg.id)
         workflow_env = workflows_to_envs[workflow_id] if workflow_id else None
-        timestamp = event_data.dcg_to_timestamp[dcg.id]
+        timestamp = event_data.dcg_to_timestamp.get(dcg.id)
         if timestamp is not None:
             delay = now - timestamp
             # If it's been more than 1.5 minutes, we're taking too long to process the event and
