@@ -16,10 +16,7 @@ export type SelectTriggerProps = Omit<React.HTMLAttributes<TriggerEl>, 'children
   ref?: React.Ref<TriggerEl>;
 };
 
-export type ButtonTriggerProps = DistributedOmit<
-  DropdownButtonProps,
-  'ref' | 'children'
-> & {
+type ButtonTriggerProps = DistributedOmit<DropdownButtonProps, 'ref' | 'children'> & {
   children: NonNullable<React.ReactNode>;
   ref?: React.Ref<TriggerEl>;
 };
