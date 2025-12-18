@@ -1275,6 +1275,11 @@ function buildRoutes(): RouteObject[] {
         },
       ],
     },
+    {
+      path: 'console-sdk-invites/',
+      name: t('Console SDK Invites'),
+      component: make(() => import('getsentry/views/consoleSdkInvites')),
+    },
   ];
   const orgSettingsRoutes: SentryRouteObject = {
     component: make(
