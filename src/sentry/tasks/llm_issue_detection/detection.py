@@ -322,21 +322,25 @@ def detect_llm_issues_for_project(project_id: int) -> None:
             continue
 
         n_found_issues = len(response_data.issues)
+        num_traces_analyzed = response_data.traces_analyzed
         processed_traces += response_data.traces_analyzed
-        logger.info(
-            "Seer issue detection success",
-            extra={
-                "num_traces": 1,
-                "num_issues": n_found_issues,
-                "organization_id": organization_id,
-                "project_id": project_id,
-                "titles": (
-                    [issue.title for issue in response_data.issues] if n_found_issues > 0 else None
-                ),
-                "trace_id": trace.trace_id,
-                "traces_analyzed": response_data.traces_analyzed,
-            },
-        )
+        if num_traces_analyzed > 0:
+            logger.info(
+                "Seer issue detection success",
+                extra={
+                    "num_traces": 1,
+                    "num_issues": n_found_issues,
+                    "organization_id": organization_id,
+                    "project_id": project_id,
+                    "titles": (
+                        [issue.title for issue in response_data.issues]
+                        if n_found_issues > 0
+                        else None
+                    ),
+                    "trace_id": trace.trace_id,
+                    "traces_analyzed": num_traces_analyzed,
+                },
+            )
         for detected_issue in response_data.issues:
             try:
                 create_issue_occurrence_from_detection(
