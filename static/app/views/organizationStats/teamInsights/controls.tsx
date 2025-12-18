@@ -6,8 +6,11 @@ import moment from 'moment-timezone';
 
 import {Select} from 'sentry/components/core/select';
 import {TeamSelector} from 'sentry/components/teamSelector';
-import type {ChangeData} from 'sentry/components/timeRangeSelector';
-import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
+import {
+  TimeRangeSelector,
+  TimeRangeSelectTrigger,
+  type ChangeData,
+} from 'sentry/components/timeRangeSelector';
 import {getArbitraryRelativePeriod} from 'sentry/components/timeRangeSelector/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -203,13 +206,13 @@ function TeamStatsControls({
           ...relativeOptions,
           ...props.arbitraryOptions,
         })}
-        triggerProps={{
-          prefix: t('Date Range'),
-          children:
-            period &&
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-            (relativeOptions[period] || getArbitraryRelativePeriod(period)[period]),
-        }}
+        trigger={triggerProps => (
+          <TimeRangeSelectTrigger {...triggerProps} prefix={t('Date Range')}>
+            {period &&
+              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+              (relativeOptions[period] || getArbitraryRelativePeriod(period)[period])}
+          </TimeRangeSelectTrigger>
+        )}
       />
     </ControlsWrapper>
   );

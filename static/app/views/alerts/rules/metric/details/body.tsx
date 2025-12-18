@@ -11,8 +11,11 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
-import type {ChangeData} from 'sentry/components/timeRangeSelector';
-import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
+import {
+  TimeRangeSelector,
+  TimeRangeSelectTrigger,
+  type ChangeData,
+} from 'sentry/components/timeRangeSelector';
 import {IconClose} from 'sentry/icons';
 import {t, tct, tctCode} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -196,12 +199,14 @@ export default function MetricDetailsBody({
               relativeOptions={relativeOptions}
               showAbsolute={false}
               disallowArbitraryRelativeRanges
-              triggerProps={{
-                children: timePeriod.custom
-                  ? timePeriod.label
-                  : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                    relativeOptions[timePeriod.period ?? ''],
-              }}
+              trigger={triggerProps => (
+                <TimeRangeSelectTrigger {...triggerProps}>
+                  {timePeriod.custom
+                    ? timePeriod.label
+                    : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                      relativeOptions[timePeriod.period ?? '']}
+                </TimeRangeSelectTrigger>
+              )}
             />
             {selectedIncident && (
               <Tooltip

@@ -6,8 +6,11 @@ import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {DateTime} from 'sentry/components/dateTime';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import type {ChangeData} from 'sentry/components/timeRangeSelector';
-import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
+import {
+  TimeRangeSelector,
+  TimeRangeSelectTrigger,
+  type ChangeData,
+} from 'sentry/components/timeRangeSelector';
 import {DATA_CATEGORY_INFO, DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {space} from 'sentry/styles/space';
 import {DataCategoryExact} from 'sentry/types/core';
@@ -117,15 +120,15 @@ export function CustomerStatsFilters({
         onChange={opt => onChange(opt.value)}
       />
       <DateTimeRange
-        triggerProps={{
-          prefix: 'Date Range',
-          children:
-            !period && !start && !end
+        trigger={triggerProps => (
+          <TimeRangeSelectTrigger {...triggerProps} prefix="Date Range">
+            {!period && !start && !end
               ? onDemand
                 ? onDemandLabel
                 : DEFAULT_RELATIVE_PERIODS['90d']
-              : undefined,
-        }}
+              : triggerProps.children}
+          </TimeRangeSelectTrigger>
+        )}
         relative={period ?? ''}
         start={start ?? null}
         end={end ?? null}
