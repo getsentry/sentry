@@ -57,12 +57,8 @@ class WorkflowData:
                     )
 
                 # Sort conditions and actions for consistent hashing
-                group_conditions.sort(
-                    key=lambda c: (c["type"], json.dumps(c["comparison"], sort_keys=True))
-                )
-                group_actions.sort(
-                    key=lambda a: (a["type"], json.dumps(a["config"], sort_keys=True))
-                )
+                group_conditions.sort(key=lambda c: (c["type"], json.dumps(c["comparison"])))
+                group_actions.sort(key=lambda a: (a["type"], json.dumps(a["config"])))
 
                 action_groups.append(
                     {
@@ -72,10 +68,8 @@ class WorkflowData:
                 )
 
         # Sort trigger conditions and action groups for consistent hashing
-        trigger_conditions.sort(
-            key=lambda c: (c["type"], json.dumps(c["comparison"], sort_keys=True))
-        )
-        action_groups.sort(key=lambda g: json.dumps(g, sort_keys=True))
+        trigger_conditions.sort(key=lambda c: (c["type"], json.dumps(c["comparison"])))
+        action_groups.sort(key=lambda g: json.dumps(g))
 
         workflow_data = {
             "organization_id": self.workflow.organization_id,
@@ -86,7 +80,7 @@ class WorkflowData:
             "action_groups": action_groups,
         }
 
-        return json.dumps(workflow_data, sort_keys=True)
+        return json.dumps(workflow_data)
 
 
 def deduplicate_workflows(app: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
