@@ -123,13 +123,6 @@ SizeInfo = Annotated[
 ]
 
 
-class BaseBuildInfo(BaseModel):
-    """Minimal information about the base build for display purposes."""
-
-    version: str | None = None
-    build_number: int | None = None
-
-
 class BuildDetailsApiResponse(BaseModel):
     id: str
     state: PreprodArtifact.ArtifactState
@@ -138,7 +131,7 @@ class BuildDetailsApiResponse(BaseModel):
     size_info: SizeInfo | None = None
     posted_status_checks: PostedStatusChecks | None = None
     base_artifact_id: str | None = None
-    base_build_info: BaseBuildInfo | None = None
+    base_build_info: BuildDetailsAppInfo | None = None
 
 
 def platform_from_artifact_type(artifact_type: PreprodArtifact.ArtifactType) -> Platform:
@@ -151,6 +144,52 @@ def platform_from_artifact_type(artifact_type: PreprodArtifact.ArtifactType) -> 
             return Platform.ANDROID
         case _:
             raise ValueError(f"Unknown artifact type: {artifact_type}")
+
+
+def create_build_details_app_info(artifact: PreprodArtifact) -> BuildDetailsAppInfo:
+    """Factory function to create BuildDetailsAppInfo from a PreprodArtifact."""
+    platform = None
+    # artifact_type can be null before preprocessing has completed
+    if artifact.artifact_type is not None:
+        platform = platform_from_artifact_type(artifact.artifact_type)
+
+    apple_app_info = None
+    if platform == Platform.IOS or platform == Platform.MACOS:
+        legacy_missing_dsym_binaries = (
+            artifact.extras.get("missing_dsym_binaries", []) if artifact.extras else []
+        )
+        has_missing_dsym_binaries = (
+            artifact.extras.get("has_missing_dsym_binaries", False)
+            or len(legacy_missing_dsym_binaries) > 0
+            if artifact.extras
+            else False
+        )
+        apple_app_info = AppleAppInfo(has_missing_dsym_binaries=has_missing_dsym_binaries)
+
+    android_app_info = None
+    if platform == Platform.ANDROID:
+        android_app_info = AndroidAppInfo(
+            has_proguard_mapping=(
+                artifact.extras.get("has_proguard_mapping", True) if artifact.extras else True
+            )
+        )
+
+    return BuildDetailsAppInfo(
+        app_id=artifact.app_id,
+        name=artifact.app_name,
+        version=artifact.build_version,
+        build_number=artifact.build_number,
+        date_added=(artifact.date_added.isoformat() if artifact.date_added else None),
+        date_built=(artifact.date_built.isoformat() if artifact.date_built else None),
+        artifact_type=artifact.artifact_type,
+        platform=platform,
+        is_installable=is_installable_artifact(artifact),
+        build_configuration=(
+            artifact.build_configuration.name if artifact.build_configuration else None
+        ),
+        apple_app_info=apple_app_info,
+        android_app_info=android_app_info,
+    )
 
 
 def to_size_info(
@@ -233,60 +272,11 @@ def transform_preprod_artifact_to_build_details(
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
         )
         base_size_metrics_list = list(base_size_metrics_qs)
-
-        base_build_info = BaseBuildInfo(
-            version=base_artifact.build_version,
-            build_number=base_artifact.build_number,
-        )
+        base_build_info = create_build_details_app_info(base_artifact)
 
     size_info = to_size_info(size_metrics_list, base_size_metrics_list)
 
-    platform = None
-    # artifact_type can be null before preprocessing has completed
-    if artifact.artifact_type is not None:
-        platform = platform_from_artifact_type(artifact.artifact_type)
-
-    apple_app_info = None
-    if platform == Platform.IOS or platform == Platform.MACOS:
-        legacy_missing_dsym_binaries = (
-            artifact.extras.get("missing_dsym_binaries", []) if artifact.extras else []
-        )
-        has_missing_dsym_binaries = (
-            artifact.extras.get("has_missing_dsym_binaries", False)
-            or len(legacy_missing_dsym_binaries) > 0
-            if artifact.extras
-            else False
-        )
-        apple_app_info = AppleAppInfo(has_missing_dsym_binaries=has_missing_dsym_binaries)
-
-    android_app_info = None
-    if platform == Platform.ANDROID:
-        android_app_info = AndroidAppInfo(
-            has_proguard_mapping=(
-                artifact.extras.get("has_proguard_mapping", True) if artifact.extras else True
-            )
-        )
-
-    app_info = BuildDetailsAppInfo(
-        app_id=artifact.app_id,
-        name=artifact.app_name,
-        version=artifact.build_version,
-        build_number=artifact.build_number,
-        date_added=(artifact.date_added.isoformat() if artifact.date_added else None),
-        date_built=(artifact.date_built.isoformat() if artifact.date_built else None),
-        artifact_type=artifact.artifact_type,
-        platform=(
-            platform_from_artifact_type(artifact.artifact_type)
-            if artifact.artifact_type is not None
-            else None
-        ),
-        is_installable=is_installable_artifact(artifact),
-        build_configuration=(
-            artifact.build_configuration.name if artifact.build_configuration else None
-        ),
-        apple_app_info=apple_app_info,
-        android_app_info=android_app_info,
-    )
+    app_info = create_build_details_app_info(artifact)
 
     vcs_info = BuildDetailsVcsInfo(
         head_sha=(artifact.commit_comparison.head_sha if artifact.commit_comparison else None),

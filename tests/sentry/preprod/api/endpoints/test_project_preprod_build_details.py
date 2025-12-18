@@ -482,8 +482,16 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
         resp_data = response.json()
         assert resp_data["base_artifact_id"] == str(base_artifact.id)
         assert resp_data["base_build_info"] is not None
+        # base_build_info now returns full BuildDetailsAppInfo
         assert resp_data["base_build_info"]["version"] == "0.9.0"
         assert resp_data["base_build_info"]["build_number"] == 41
+        assert resp_data["base_build_info"]["app_id"] == base_artifact.app_id
+        assert resp_data["base_build_info"]["name"] == base_artifact.app_name
+        assert resp_data["base_build_info"]["artifact_type"] == base_artifact.artifact_type
+        assert "date_added" in resp_data["base_build_info"]
+        assert "date_built" in resp_data["base_build_info"]
+        assert "is_installable" in resp_data["base_build_info"]
+        assert "platform" in resp_data["base_build_info"]
 
     def test_base_build_info_none_when_no_base_artifact(self) -> None:
         """Test that base_build_info is None when no base artifact exists."""
