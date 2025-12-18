@@ -1,5 +1,6 @@
 import {Component, Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {mergeProps} from '@react-aria/utils';
 import {useQuery} from '@tanstack/react-query';
 import type {DistributedOmit} from 'type-fest';
 
@@ -324,13 +325,19 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
         menuWidth={250}
         disabled={false}
         emptyMessage={noResultsMessage ?? t('No results found')}
-        triggerProps={{
-          ...restDropdownProps.triggerProps,
-          children: (
-            <Flex gap="xs">
-              <IconAdd /> {addButtonText}
-            </Flex>
-          ),
+        trigger={(triggerProps, isOpen) => {
+          const mergedProps = mergeProps(triggerProps, {
+            children: (
+              <Flex gap="xs">
+                <IconAdd /> {addButtonText}
+              </Flex>
+            ),
+          });
+          return restDropdownProps?.trigger ? (
+            restDropdownProps.trigger(mergedProps, isOpen)
+          ) : (
+            <SelectTrigger.Button {...mergedProps} />
+          );
         }}
       />
     ) : (
@@ -348,15 +355,20 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
         options={selectableValues}
         menuWidth={250}
         onChange={addRow}
-        trigger={triggerProps => (
-          <SelectTrigger.Button {...triggerProps}>
-            {
+        trigger={(triggerProps, isOpen) => {
+          const mergedProps = mergeProps(triggerProps, {
+            children: (
               <Flex gap="xs">
                 <IconAdd /> {addButtonText}
               </Flex>
-            }
-          </SelectTrigger.Button>
-        )}
+            ),
+          });
+          return addDropdown?.trigger ? (
+            addDropdown.trigger(mergedProps, isOpen)
+          ) : (
+            <SelectTrigger.Button {...mergedProps} />
+          );
+        }}
       />
     );
 
