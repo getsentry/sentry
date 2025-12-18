@@ -1391,45 +1391,6 @@ const deprecatedColorMappings = (colors: Colors) => ({
   },
 
   /** @deprecated */
-  get lightModeBlack() {
-    return colors.black;
-  },
-  /** @deprecated */
-  get lightModeWhite() {
-    return colors.white;
-  },
-
-  /** @deprecated */
-  get surface100() {
-    return colors.surface200;
-  },
-  /** @deprecated */
-  get surface200() {
-    return colors.surface300;
-  },
-  /** @deprecated */
-  get surface300() {
-    return colors.surface400;
-  },
-  /** @deprecated */
-  get surface400() {
-    return colors.surface500;
-  },
-  /** @deprecated */
-  get surface500() {
-    return colors.surface500;
-  },
-
-  /** @deprecated */
-  get translucentSurface100() {
-    return colors.surface100;
-  },
-  /** @deprecated */
-  get translucentSurface200() {
-    return colors.surface200;
-  },
-
-  /** @deprecated */
   get gray500() {
     return colors.gray800;
   },

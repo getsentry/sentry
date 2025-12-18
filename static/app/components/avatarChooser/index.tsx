@@ -430,7 +430,7 @@ const AvatarActions = styled('div')`
   top: ${space(0.25)};
   right: ${space(0.25)};
   display: flex;
-  background: ${p => p.theme.translucentSurface200};
+  background: ${p => p.theme.colors.surface200};
   padding: ${space(0.25)};
   border-radius: 3px;
 `;
