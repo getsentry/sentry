@@ -16,6 +16,7 @@ from sentry.issues.suspect_tags import (
     query_error_counts,
     query_selection_set,
 )
+from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.testutils.cases import SnubaTestCase, TestCase
 
 
@@ -152,14 +153,12 @@ class QueryErrorCountsTest(TestCase):
 
         assert result == 0
 
-    @mock.patch("sentry.issues.suspect_tags.validate_read")
     @mock.patch("sentry.issues.suspect_tags._query_error_counts_eap")
     @mock.patch("sentry.issues.suspect_tags._query_error_counts_snuba")
     def test_uses_snuba_as_source_of_truth(
         self,
         mock_snuba: mock.MagicMock,
         mock_eap: mock.MagicMock,
-        mock_validate: mock.MagicMock,
     ) -> None:
         mock_snuba.return_value = 100
         mock_eap.return_value = 50
@@ -167,7 +166,7 @@ class QueryErrorCountsTest(TestCase):
         start = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(hours=1)
         end = datetime.datetime.now(tz=datetime.UTC)
 
-        with self.options({"eap.occurrences.should_double_read": True}):
+        with self.options({EAPOccurrencesComparator._should_eval_option_name(): True}):
             result = query_error_counts(
                 organization_id=1,
                 project_id=1,
@@ -180,16 +179,13 @@ class QueryErrorCountsTest(TestCase):
         assert result == 100
         mock_snuba.assert_called_once()
         mock_eap.assert_called_once()
-        mock_validate.assert_called_once_with(100, 50, "issues.suspect_tags.query_error_counts")
 
-    @mock.patch("sentry.issues.suspect_tags.validate_read")
     @mock.patch("sentry.issues.suspect_tags._query_error_counts_eap")
     @mock.patch("sentry.issues.suspect_tags._query_error_counts_snuba")
     def test_uses_eap_as_source_of_truth(
         self,
         mock_snuba: mock.MagicMock,
         mock_eap: mock.MagicMock,
-        mock_validate: mock.MagicMock,
     ) -> None:
         mock_snuba.return_value = 100
         mock_eap.return_value = 50
@@ -199,8 +195,8 @@ class QueryErrorCountsTest(TestCase):
 
         with self.options(
             {
-                "eap.occurrences.should_double_read": True,
-                "eap.occurrences.callsites_using_eap_data_allowlist": [
+                EAPOccurrencesComparator._should_eval_option_name(): True,
+                EAPOccurrencesComparator._callsite_allowlist_option_name(): [
                     "issues.suspect_tags.query_error_counts"
                 ],
             }
@@ -217,4 +213,3 @@ class QueryErrorCountsTest(TestCase):
         assert result == 50
         mock_snuba.assert_called_once()
         mock_eap.assert_called_once()
-        mock_validate.assert_called_once_with(100, 50, "issues.suspect_tags.query_error_counts")

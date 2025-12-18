@@ -8,11 +8,7 @@ from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.eap.occurrences.common_queries import count_occurrences
-from sentry.search.eap.occurrences.rollout_utils import (
-    should_callsite_use_eap_data_in_read,
-    should_double_read_from_eap,
-    validate_read,
-)
+from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.seer.workflows.compare import KeyedValueCount, keyed_kl_score
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
@@ -322,13 +318,12 @@ def query_error_counts(
     )
     error_count = snuba_count
 
-    if should_double_read_from_eap():
+    if EAPOccurrencesComparator.should_check_experiment("issues.suspect_tags.query_error_counts"):
         eap_count = _query_error_counts_eap(
             organization_id, project_id, start, end, environment_names, group_id
         )
-        validate_read(snuba_count, eap_count, "issues.suspect_tags.query_error_counts")
-
-        if should_callsite_use_eap_data_in_read("issues.suspect_tags.query_error_counts"):
-            error_count = eap_count
+        error_count = EAPOccurrencesComparator.check_and_choose(
+            snuba_count, eap_count, "issues.suspect_tags.query_error_counts"
+        )
 
     return error_count
