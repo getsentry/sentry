@@ -355,6 +355,7 @@ export const AGGREGATIONS = {
     ...getDocsAndOutputType(AggregationKey.EPM),
     parameters: [],
     isSortable: true,
+    outputType: 'rate',
     multiPlotType: 'area',
   },
   [AggregationKey.SAMPLE_COUNT]: {

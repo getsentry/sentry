@@ -2,6 +2,7 @@ import type {Series} from 'sentry/types/echarts';
 import type {EventsStats} from 'sentry/types/organization';
 import {
   aggregateOutputType,
+  RateUnit,
   type AggregationOutputType,
 } from 'sentry/utils/discover/fields';
 import type {Widget} from 'sentry/views/dashboards/types';
@@ -27,9 +28,11 @@ export function transformLegacySeriesToPlottables(
 
   const plottables = timeseriesResults
     .map(series => {
+      const unaliasedSeriesName =
+        series.seriesName.split(' : ')[1]?.trim() ?? series.seriesName;
       const fieldType =
-        timeseriesResultsTypes?.[series.seriesName] ??
-        aggregateOutputType(series.seriesName);
+        timeseriesResultsTypes?.[unaliasedSeriesName] ??
+        aggregateOutputType(unaliasedSeriesName);
       const {valueType, valueUnit} = mapAggregationTypeToValueTypeAndUnit(fieldType);
       const timeSeries = convertEventsStatsToTimeSeriesData(
         series.seriesName,
@@ -90,6 +93,11 @@ function mapAggregationTypeToValueTypeAndUnit(aggregationType: AggregationOutput
   valueUnit: TimeSeries['meta']['valueUnit'];
 } {
   switch (aggregationType) {
+    // note: we only have a per minute rate function epm(), right now
+    case 'rate':
+      return {valueType: 'rate', valueUnit: RateUnit.PER_MINUTE};
+    case 'duration':
+      return {valueType: 'duration', valueUnit: null};
     case 'score':
       return {valueType: 'score', valueUnit: null};
     case 'percentage':
