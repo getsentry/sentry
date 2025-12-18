@@ -270,13 +270,24 @@ function Chart({
               chartRef={chartRef}
               chartXRangeSelection={{
                 initialSelection: initialChartSelection,
-                onChartClick: params => {
+                onInsideSelectionClick: params => {
                   if (!params.selectionState) return;
 
-                  // Always show the action menu when the chart is clicked.
                   params.setSelectionState({
                     ...params.selectionState,
                     isActionMenuVisible: true,
+                  });
+                },
+                onOutsideSelectionClick: params => {
+                  if (
+                    !params.selectionState ||
+                    !params.selectionState.isActionMenuVisible
+                  )
+                    return;
+
+                  params.setSelectionState({
+                    ...params.selectionState,
+                    isActionMenuVisible: false,
                   });
                 },
                 onClearSelection: () => {
