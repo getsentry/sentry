@@ -69,7 +69,7 @@ describe('Related Issues View', () => {
 
   it('renders with same root issues', async () => {
     const sameRootIssuesMock = MockApiClient.addMockResponse({
-      url: `/issues/${groupId}/related-issues/`,
+      url: `/organizations/${orgSlug}/issues/${groupId}/related-issues/`,
       match: [
         MockApiClient.matchQuery({
           type: 'same_root_cause',
@@ -78,7 +78,7 @@ describe('Related Issues View', () => {
       body: onlySameRootData,
     });
     MockApiClient.addMockResponse({
-      url: `/issues/${groupId}/related-issues/`,
+      url: `/organizations/${orgSlug}/issues/${groupId}/related-issues/`,
       match: [
         MockApiClient.matchQuery({
           type: 'trace_connected',
@@ -111,7 +111,7 @@ describe('Related Issues View', () => {
 
   it('renders with trace connected issues', async () => {
     MockApiClient.addMockResponse({
-      url: `/issues/${groupId}/related-issues/`,
+      url: `/organizations/${orgSlug}/issues/${groupId}/related-issues/`,
       match: [
         MockApiClient.matchQuery({
           type: 'same_root_cause',
@@ -120,7 +120,7 @@ describe('Related Issues View', () => {
       body: [],
     });
     const traceIssuesMock = MockApiClient.addMockResponse({
-      url: `/issues/${groupId}/related-issues/`,
+      url: `/organizations/${orgSlug}/issues/${groupId}/related-issues/`,
       match: [
         MockApiClient.matchQuery({
           type: 'trace_connected',

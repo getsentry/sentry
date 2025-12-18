@@ -47,7 +47,7 @@ function RelatedIssuesSection({group, relationType}: RelatedIssuesSectionProps) 
     refetch,
   } = useApiQuery<RelatedIssuesResponse>(
     [
-      `/issues/${group.id}/related-issues/`,
+      `/organizations/${organization.slug}/issues/${group.id}/related-issues/`,
       {
         query: {
           type: relationType,
