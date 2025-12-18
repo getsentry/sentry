@@ -40,7 +40,7 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
         if tokens is not None:
             span_data["gen_ai.usage.total_tokens"] = tokens
         if cost is not None:
-            span_data["gen_ai.usage.total_cost"] = cost
+            span_data["gen_ai.cost.total_tokens"] = cost
         if agent_name is not None:
             span_data["gen_ai.agent.name"] = agent_name
         if messages is not None:
