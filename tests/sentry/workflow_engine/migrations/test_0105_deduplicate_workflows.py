@@ -22,6 +22,7 @@ class MockWorkflowConfig(TypedDict, total=False):
     action_filters: list[DataCondition] | None
     enabled: bool | None
     triggers: list[DataCondition] | None
+    config: dict | None
     mock_actions: bool
     mock_action_filters: bool
     mock_triggers: bool
@@ -60,6 +61,11 @@ DEFAULT_WORKFLOW_CONFIGS: list[MockWorkflowConfig] = [
     },
     {
         "enabled": False,
+    },
+    {
+        "config": {
+            "frequency": 1440,
+        },
     },
 ]
 
@@ -260,6 +266,11 @@ DUPLICATE_WORKFLOW_CONFIGS: list[MockWorkflowConfig] = [
     {
         "enabled": False,
     },
+    {
+        "config": {
+            "frequency": 1440,
+        }
+    },
 ]
 
 
@@ -278,6 +289,7 @@ class TestDeduplicateWorkflows(TestMigrations):
             "triggers": None,
             "action_filters": None,
             "actions": None,
+            "config": None,
             "enabled": True,
             "mock_triggers": True,
             "mock_action_filters": True,
@@ -286,7 +298,11 @@ class TestDeduplicateWorkflows(TestMigrations):
         }
 
         # create workflow
-        workflow = self.create_workflow(organization=org, enabled=config["enabled"])
+        workflow = self.create_workflow(
+            organization=org,
+            enabled=config["enabled"],
+            config=config["config"],
+        )
 
         # connect the workflow new a new detector
         detector = self.create_detector()
