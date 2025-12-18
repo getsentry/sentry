@@ -161,12 +161,13 @@ const generateThemeUtils = (
   colors: ReturnType<typeof deprecatedColorMappings>,
   aliases: Aliases
 ) => ({
-  tooltipUnderline: (underlineColor: ColorOrAlias = 'gray300') => ({
+  tooltipUnderline: (underlineColor: ColorOrAlias | string = 'gray300') => ({
     textDecoration: 'underline' as const,
     textDecorationThickness: '0.75px',
     textUnderlineOffset: '1.25px',
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    textDecorationColor: colors[underlineColor] ?? aliases[underlineColor],
+    textDecorationColor:
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      colors[underlineColor] ?? aliases[underlineColor] ?? underlineColor,
     textDecorationStyle: 'dotted' as const,
   }),
   overflowEllipsis: css`
