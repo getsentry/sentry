@@ -37,18 +37,20 @@ const MOCK_REDACTION = {
 describe('UserContext', () => {
   it('returns values and according to the parameters', () => {
     const result = getUserContextData({data: MOCK_USER_CONTEXT});
-    
+
     // Extract the actionButton from the email item for comparison
     const emailItem = result.find(item => item.key === 'email');
     const {actionButton, ...emailItemWithoutButton} = emailItem || {};
-    
-    expect(result.map(item => {
-      if (item.key === 'email') {
-        const {actionButton: _, ...rest} = item;
-        return rest;
-      }
-      return item;
-    })).toEqual([
+
+    expect(
+      result.map(item => {
+        if (item.key === 'email') {
+          const {actionButton: _, ...rest} = item;
+          return rest;
+        }
+        return item;
+      })
+    ).toEqual([
       {
         key: 'email',
         subject: 'Email',
@@ -77,7 +79,7 @@ describe('UserContext', () => {
         meta: undefined,
       },
     ]);
-    
+
     // Verify actionButton exists for email
     expect(actionButton).toBeDefined();
   });
@@ -116,12 +118,7 @@ describe('UserContext', () => {
 
     const event = EventFixture();
     render(
-      <ContextCard
-        event={event}
-        type="default"
-        alias="user"
-        value={MOCK_USER_CONTEXT}
-      />
+      <ContextCard event={event} type="default" alias="user" value={MOCK_USER_CONTEXT} />
     );
 
     const copyButton = screen.getByRole('button', {name: 'Copy email to clipboard'});
