@@ -11,6 +11,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Switch} from 'sentry/components/core/switch';
+import {useUpdateBulkAutofixAutomationSettings} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import {
   GuidedSteps,
   useGuidedStepsContext,
@@ -69,6 +70,9 @@ export function ConfigureRootCauseAnalysisStep() {
 
   const {mutate: submitOnboarding, isPending: isSubmitOnboardingPending} =
     useSubmitSeerOnboarding();
+
+  const {mutate: updateAutofix, isPending: isUpdateAutofixPending} =
+    useUpdateBulkAutofixAutomationSettings();
 
   useEffect(() => {
     if (!isCodeMappingsLoading && codeMappingsMap.size > 0) {
@@ -135,26 +139,56 @@ export function ConfigureRootCauseAnalysisStep() {
       return;
     }
 
-    submitOnboarding(
-      {
-        fixes: true,
-        pr_creation: autoCreatePREnabled,
-        project_repo_mapping: projectRepoMapping,
-      },
-      {
-        onSuccess: () => {
-          addSuccessMessage(t('Root Cause Analysis settings saved successfully'));
-          setCurrentStep(currentStep + 1);
-        },
-        onError: () => {
-          addErrorMessage(t('Failed to save settings'));
-        },
-      }
-    );
+    const doUpdateAutofix = () =>
+      new Promise<void>((resolve, reject) => {
+        updateAutofix(
+          {
+            autofixAutomationTuning: 'medium',
+            projectIds: Object.keys(projectRepoMapping),
+          },
+          {
+            onSuccess: () => {
+              resolve();
+            },
+            onError: () => {
+              reject(new Error(t('Failed to update autofix settings')));
+            },
+          }
+        );
+      });
+
+    const doSubmitOnboarding = () =>
+      new Promise<void>((resolve, reject) => {
+        submitOnboarding(
+          {
+            fixes: true,
+            pr_creation: autoCreatePREnabled,
+            project_repo_mapping: projectRepoMapping,
+          },
+          {
+            onSuccess: () => {
+              resolve();
+            },
+            onError: () => {
+              reject(new Error(t('Failed to save settings')));
+            },
+          }
+        );
+      });
+
+    Promise.all([doUpdateAutofix(), doSubmitOnboarding()])
+      .then(() => {
+        addSuccessMessage(t('Root Cause Analysis settings saved successfully'));
+        setCurrentStep(currentStep + 1);
+      })
+      .catch(() => {
+        addErrorMessage(t('Failed to save settings'));
+      });
   }, [
     setCurrentStep,
     currentStep,
     submitOnboarding,
+    updateAutofix,
     repositoryProjectMapping,
     selectedRootCauseAnalysisRepositories,
     autoCreatePREnabled,
@@ -287,12 +321,16 @@ export function ConfigureRootCauseAnalysisStep() {
           size="md"
           onClick={handleNextStep}
           priority={isFinishDisabled ? 'default' : 'primary'}
-          disabled={isSubmitOnboardingPending || isFinishDisabled}
+          disabled={
+            isUpdateAutofixPending || isSubmitOnboardingPending || isFinishDisabled
+          }
           aria-label={t('Next Step')}
         >
           {t('Next Step')}
         </Button>
-        {isSubmitOnboardingPending && <InlineLoadingIndicator size={20} />}
+        {(isUpdateAutofixPending || isSubmitOnboardingPending) && (
+          <InlineLoadingIndicator size={20} />
+        )}
       </GuidedSteps.ButtonWrapper>
     </Fragment>
   );
