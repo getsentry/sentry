@@ -85,7 +85,7 @@ export default function BrowserTypeSelector() {
     <CompactSelect
       trigger={triggerProps => (
         <SelectTrigger.Button {...triggerProps} prefix={t('Browser Type')}>
-          {value.length === 0 ? 'All' : undefined}
+          {value.length === 0 ? t('All') : triggerProps.children}
         </SelectTrigger.Button>
       )}
       multiple
