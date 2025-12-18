@@ -1810,6 +1810,14 @@ def test_as_trace_item() -> None:
         "trace_id": "trace-123",
         "replay_id": "replay-456",
         "segment_id": 1,
+        "user_id": "user-123",
+        "user_email": "test@example.com",
+        "user_name": "Test User",
+        "user_ip": "192.168.1.1",
+        "user_geo_city": "San Francisco",
+        "user_geo_country_code": "US",
+        "user_geo_region": "California",
+        "user_geo_subdivision": "CA",
     }
 
     event = {
@@ -1835,6 +1843,16 @@ def test_as_trace_item() -> None:
     assert result.attributes["to"].string_value == "/new-page"
     assert result.attributes["replay_id"].string_value == "replay-456"  # Should be added
 
+    # User attributes
+    assert result.attributes["user_id"].string_value == "user-123"
+    assert result.attributes["user_email"].string_value == "test@example.com"
+    assert result.attributes["user_name"].string_value == "Test User"
+    assert result.attributes["user_ip"].string_value == "192.168.1.1"
+    assert result.attributes["user_geo_city"].string_value == "San Francisco"
+    assert result.attributes["user_geo_country_code"].string_value == "US"
+    assert result.attributes["user_geo_region"].string_value == "California"
+    assert result.attributes["user_geo_subdivision"].string_value == "CA"
+
 
 def test_as_trace_item_with_no_trace_id() -> None:
     context: EventContext = {
@@ -1845,6 +1863,14 @@ def test_as_trace_item_with_no_trace_id() -> None:
         "trace_id": None,
         "replay_id": "replay-456",
         "segment_id": 1,
+        "user_id": None,
+        "user_email": None,
+        "user_name": None,
+        "user_ip": None,
+        "user_geo_city": None,
+        "user_geo_country_code": None,
+        "user_geo_region": None,
+        "user_geo_subdivision": None,
     }
 
     event = {
@@ -1871,6 +1897,14 @@ def test_as_trace_item_returns_none_for_unsupported_event() -> None:
         "trace_id": "trace-123",
         "replay_id": "replay-456",
         "segment_id": 1,
+        "user_id": None,
+        "user_email": None,
+        "user_name": None,
+        "user_ip": None,
+        "user_geo_city": None,
+        "user_geo_country_code": None,
+        "user_geo_region": None,
+        "user_geo_subdivision": None,
     }
 
     event: dict[str, Any] = {"data": {"payload": {}}}
@@ -1891,6 +1925,14 @@ def test_parse_events(options_get: mock.MagicMock) -> None:
             "retention_days": 1,
             "segment_id": 1,
             "trace_id": None,
+            "user_id": None,
+            "user_email": None,
+            "user_name": None,
+            "user_ip": None,
+            "user_geo_city": None,
+            "user_geo_country_code": None,
+            "user_geo_region": None,
+            "user_geo_subdivision": None,
         },
         [
             {
@@ -1949,6 +1991,14 @@ def test_parse_events_disabled(options_get: mock.MagicMock) -> None:
             "retention_days": 1,
             "segment_id": 1,
             "trace_id": None,
+            "user_id": None,
+            "user_email": None,
+            "user_name": None,
+            "user_ip": None,
+            "user_geo_city": None,
+            "user_geo_country_code": None,
+            "user_geo_region": None,
+            "user_geo_subdivision": None,
         },
         [
             {
