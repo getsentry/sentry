@@ -1,4 +1,5 @@
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {useQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface SeerOnboardingCheckResponse {
@@ -8,13 +9,24 @@ interface SeerOnboardingCheckResponse {
   isSeerConfigured: boolean;
 }
 
-export function useSeerOnboardingCheck() {
+export function useSeerOnboardingCheck({
+  enabled = true,
+  staleTime = 0,
+}: {
+  enabled?: boolean;
+  staleTime?: number;
+} = {}) {
   const organization = useOrganization();
-
-  return useApiQuery<SeerOnboardingCheckResponse>(
-    [`/organizations/${organization.slug}/seer/onboarding-check/`],
-    {
-      staleTime: 0,
-    }
-  );
+  return useQuery({
+    ...apiOptions.as<SeerOnboardingCheckResponse>()(
+      '/organizations/$organizationIdOrSlug/seer/onboarding-check/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+        },
+        staleTime,
+      }
+    ),
+    enabled,
+  });
 }

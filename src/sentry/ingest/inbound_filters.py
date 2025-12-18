@@ -347,8 +347,13 @@ def _chunk_load_error_filter() -> RuleCondition:
     https://domain.com/_next/static/chunks/29107295-0151559bd23117ba.js)
     """
     values = [
+        # Webpack
         ("ChunkLoadError", "Loading chunk *"),
         ("*Uncaught *", "ChunkLoadError: Loading chunk *"),
+        # Turbopack
+        ("ChunkLoadError", "Failed to load chunk *"),
+        ("*Uncaught *", "ChunkLoadError: Failed to load chunk *"),
+        # Promise rejections
         ("Error", "Uncaught (in promise): ChunkLoadError*"),
     ]
 

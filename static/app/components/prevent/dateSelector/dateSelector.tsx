@@ -1,9 +1,10 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import DropdownButton from 'sentry/components/dropdownButton';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {IconCalendar} from 'sentry/icons/iconCalendar';
 import {t} from 'sentry/locale';
@@ -44,14 +45,13 @@ export function DateSelector() {
       onChange={handleChange}
       menuTitle={t('Filter to time period')}
       menuWidth="16rem"
-      trigger={(triggerProps, isOpen) => {
+      trigger={triggerProps => {
         const defaultLabel = options.some(item => item.value === preventPeriod)
           ? preventPeriod?.toUpperCase()
           : t('Invalid Period');
 
         return (
-          <DropdownButton
-            isOpen={isOpen}
+          <SelectTrigger.Button
             icon={<IconCalendar />}
             data-test-id="prevent-time-selector"
             {...triggerProps}
@@ -59,7 +59,7 @@ export function DateSelector() {
             <TriggerLabelWrap>
               <TriggerLabel>{defaultLabel}</TriggerLabel>
             </TriggerLabelWrap>
-          </DropdownButton>
+          </SelectTrigger.Button>
         );
       }}
     />

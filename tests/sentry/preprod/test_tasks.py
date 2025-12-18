@@ -35,15 +35,6 @@ from tests.sentry.tasks.test_assemble import BaseAssembleTest
 
 @thread_leak_allowlist(reason="preprod tasks", issue=97039)
 class AssemblePreprodArtifactTest(BaseAssembleTest):
-    def tearDown(self) -> None:
-        """Clean up assembly status and force garbage collection to close unclosed files"""
-        import gc
-
-        # Force garbage collection to clean up any unclosed file handles
-        gc.collect()
-
-        super().tearDown()
-
     def test_assemble_preprod_artifact_success(self) -> None:
         """Test that assemble_preprod_artifact succeeds with build_configuration"""
         content = b"test preprod artifact content"
@@ -760,6 +751,82 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
         )
         assert second_analysis_file is not None
         assert main_metrics.analysis_file_id == second_analysis_file.id
+
+    def test_assemble_preprod_artifact_size_analysis_writes_to_eap_when_flag_enabled(self) -> None:
+        """Test that size metrics are written to EAP when feature flag is enabled"""
+        with self.feature("organizations:preprod-size-metrics-eap-write"):
+            with patch("sentry.preprod.tasks.produce_preprod_size_metric_to_eap") as mock_eap_write:
+                status, details = self._run_task_and_verify_status(
+                    b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": null, "app_components": [{"component_type": 0, "name": "Main App", "app_id": "com.example.app", "path": "/", "download_size": 1000, "install_size": 2000}]}'
+                )
+
+                assert status == ChunkFileState.OK
+                assert details is None
+
+                # Verify produce_preprod_size_metric_to_eap was called exactly once
+                # We have other integration tests that verify the EAP write itself works
+                assert mock_eap_write.call_count == 1
+
+                call_args = mock_eap_write.call_args
+                assert call_args is not None
+                size_metric = call_args.kwargs["size_metric"]
+                assert size_metric.preprod_artifact_id == self.preprod_artifact.id
+                assert call_args.kwargs["organization_id"] == self.organization.id
+                assert call_args.kwargs["project_id"] == self.project.id
+
+    def test_assemble_preprod_artifact_size_analysis_skips_eap_when_flag_disabled(self) -> None:
+        """Test that size metrics are NOT written to EAP when feature flag is disabled"""
+        with patch("sentry.preprod.tasks.produce_preprod_size_metric_to_eap") as mock_eap_write:
+            status, details = self._run_task_and_verify_status(
+                b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": null, "app_components": [{"component_type": 0, "name": "Main App", "app_id": "com.example.app", "path": "/", "download_size": 1000, "install_size": 2000}]}'
+            )
+
+            assert status == ChunkFileState.OK
+            assert details is None
+
+            # Verify produce_preprod_size_metric_to_eap was NOT called
+            mock_eap_write.assert_not_called()
+
+    def test_assemble_preprod_artifact_size_analysis_eap_write_failure_does_not_fail_task(
+        self,
+    ) -> None:
+        """Test that EAP write failures don't cause the main task to fail"""
+        with self.feature("organizations:preprod-size-metrics-eap-write"):
+            with patch(
+                "sentry.preprod.tasks.produce_preprod_size_metric_to_eap",
+                side_effect=Exception("EAP write failed"),
+            ):
+                status, details = self._run_task_and_verify_status(
+                    b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": null, "app_components": [{"component_type": 0, "name": "Main App", "app_id": "com.example.app", "path": "/", "download_size": 1000, "install_size": 2000}]}'
+                )
+
+                assert status == ChunkFileState.OK
+                assert details is None
+
+                size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+                    preprod_artifact=self.preprod_artifact
+                )
+                assert len(size_metrics) == 1
+                assert (
+                    size_metrics[0].state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+                )
+
+    def test_assemble_preprod_artifact_size_analysis_writes_multiple_metrics_to_eap(self) -> None:
+        """Test that all size metrics (main + components) are written to EAP when flag is enabled"""
+        with self.feature("organizations:preprod-size-metrics-eap-write"):
+            with patch("sentry.preprod.tasks.produce_preprod_size_metric_to_eap") as mock_eap_write:
+                status, details = self._run_task_and_verify_status(
+                    b'{"analysis_duration": 2.5, "download_size": 5000, "install_size": 10000, "treemap": null, "analysis_version": "1.0", "app_components": [{"component_type": 0, "name": "Main App", "app_id": "com.example.app", "path": "/", "download_size": 3000, "install_size": 6000}, {"component_type": 1, "name": "Watch App", "app_id": "com.example.app.watchkitapp", "path": "/Watch", "download_size": 2000, "install_size": 4000}]}'
+                )
+
+                assert status == ChunkFileState.OK
+                assert details is None
+
+                assert mock_eap_write.call_count == 2
+
+                for call in mock_eap_write.call_args_list:
+                    assert call.kwargs["organization_id"] == self.organization.id
+                    assert call.kwargs["project_id"] == self.project.id
 
 
 class DetectExpiredPreprodArtifactsTest(TestCase):

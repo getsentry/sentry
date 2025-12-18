@@ -758,7 +758,7 @@ const CheckboxLabel = styled('label')`
 const UnreadIndicator = styled('div')`
   width: 8px;
   height: 8px;
-  background-color: ${p => p.theme.purple400};
+  background-color: ${p => p.theme.colors.blue500};
   border-radius: 50%;
   margin-top: 1px;
   margin-left: ${space(2)};
@@ -819,13 +819,13 @@ const Wrapper = styled(PanelItem)<{
         bottom: 0;
         width: 100%;
         height: 100%;
-        background-color: ${p.theme.bodyBackground};
+        background-color: ${p.theme.tokens.background.secondary};
         opacity: 0.4;
       }
 
       @keyframes tintRow {
         0% {
-          background-color: ${p.theme.bodyBackground};
+          background-color: ${p.theme.tokens.background.secondary};
         }
         100% {
           background-color: ${p.theme.backgroundSecondary};

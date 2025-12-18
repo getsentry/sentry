@@ -49,11 +49,7 @@ export function ScreenCharts({additionalFilters}: Props) {
   const colorPalette = theme.chart.getColorPalette(4);
   const {isProjectCrossPlatform, selectedPlatform: platform} = useCrossPlatformProject();
 
-  const {
-    primaryRelease,
-    secondaryRelease,
-    isLoading: isReleasesLoading,
-  } = useReleaseSelection();
+  const {primaryRelease, isLoading: isReleasesLoading} = useReleaseSelection();
 
   const queryString = useMemo(() => {
     const query = new MutableSearch([
@@ -68,14 +64,8 @@ export function ScreenCharts({additionalFilters}: Props) {
 
     query.addFilterValue('is_transaction', 'true');
 
-    return appendReleaseFilters(query, primaryRelease, secondaryRelease);
-  }, [
-    additionalFilters,
-    isProjectCrossPlatform,
-    platform,
-    primaryRelease,
-    secondaryRelease,
-  ]);
+    return appendReleaseFilters(query, primaryRelease);
+  }, [additionalFilters, isProjectCrossPlatform, platform, primaryRelease]);
 
   const query = new MutableSearch(queryString);
   const groupBy = defined(primaryRelease) ? SpanFields.RELEASE : SpanFields.TRANSACTION;

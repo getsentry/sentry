@@ -290,7 +290,7 @@ const TokenGroup = styled('span')<TokenGroupProps>`
   --token-bg: ${p => p.theme.searchTokenBackground[colorType(p)]};
   --token-border: ${p => p.theme.searchTokenBorder[colorType(p)]};
   --token-value-color: ${p =>
-    p.invalid ? p.theme.red400 : p.warning ? p.theme.gray400 : p.theme.blue400};
+    p.invalid ? p.theme.red400 : p.warning ? p.theme.gray400 : p.theme.colors.blue500};
 
   position: relative;
   animation-name: ${shakeAnimation};
@@ -358,7 +358,7 @@ const Operator = styled('span')`
   border-left: none;
   border-right: none;
   margin: -1px 0;
-  color: ${p => p.theme.pink400};
+  color: ${p => p.theme.colors.pink500};
 `;
 
 const Value = styled('span')`
@@ -381,7 +381,7 @@ const FreeText = styled('span')`
 
 const Unit = styled('span')`
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.green400};
+  color: ${p => p.theme.colors.green500};
 `;
 
 const LogicBoolean = styled('span')<{invalid: boolean}>`
@@ -391,11 +391,11 @@ const LogicBoolean = styled('span')<{invalid: boolean}>`
 `;
 
 const Boolean = styled('span')`
-  color: ${p => p.theme.pink400};
+  color: ${p => p.theme.colors.pink500};
 `;
 
 const DateTime = styled('span')`
-  color: ${p => p.theme.green400};
+  color: ${p => p.theme.colors.green500};
 `;
 
 const ListComma = styled('span')`
@@ -410,16 +410,16 @@ const InList = styled('span')`
   &:before {
     content: '[';
     font-weight: ${p => p.theme.fontWeight.bold};
-    color: ${p => p.theme.purple400};
+    color: ${p => p.theme.colors.blue500};
   }
   &:after {
     content: ']';
     font-weight: ${p => p.theme.fontWeight.bold};
-    color: ${p => p.theme.purple400};
+    color: ${p => p.theme.colors.blue500};
   }
 
   ${Value} {
-    color: ${p => p.theme.purple400};
+    color: ${p => p.theme.colors.blue500};
   }
 `;
 
@@ -438,7 +438,7 @@ const LogicGroup = styled(({children, ...props}: any) => (
     &:before {
       position: absolute;
       top: -5px;
-      color: ${p => p.theme.pink400};
+      color: ${p => p.theme.colors.pink500};
       font-size: 16px;
       font-weight: ${p => p.theme.fontWeight.bold};
     }
