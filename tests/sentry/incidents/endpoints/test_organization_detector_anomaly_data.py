@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 from sentry.incidents.grouptype import MetricIssue
-from sentry.snuba.models import QuerySubscription
+from sentry.snuba.subscriptions import create_snuba_subscription
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
@@ -21,10 +21,9 @@ class OrganizationDetectorAnomalyDataEndpointTest(BaseWorkflowTest, APITestCase)
         self.data_condition_group = self.create_data_condition_group()
         with self.tasks():
             self.snuba_query = self.create_snuba_query()
-            self.subscription = QuerySubscription.objects.create(
+            self.subscription = create_snuba_subscription(
                 project=self.project,
-                status=QuerySubscription.Status.ACTIVE.value,
-                subscription_id="123",
+                subscription_type="metrics_alerts",
                 snuba_query=self.snuba_query,
             )
         self.data_source = self.create_data_source(
@@ -72,9 +71,9 @@ class OrganizationDetectorAnomalyDataEndpointTest(BaseWorkflowTest, APITestCase)
             self.detector.id,
             start="1729178100.0",
             end="1729179000.0",
-            status_code=500,
+            status_code=404,
         )
-        assert response.data["detail"] == "Could not find detector, data source not found"
+        assert response.data["detail"] == "Could not find query subscription for detector"
 
     @with_feature("organizations:anomaly-detection-threshold-data")
     @patch(
@@ -165,10 +164,9 @@ class OrganizationDetectorAnomalyDataLegacyAlertTest(BaseWorkflowTest, APITestCa
 
         with self.feature("organizations:incidents"), self.tasks():
             self.snuba_query = self.create_snuba_query()
-            self.subscription = QuerySubscription.objects.create(
+            self.subscription = create_snuba_subscription(
                 project=self.project,
-                status=QuerySubscription.Status.ACTIVE.value,
-                subscription_id="456",
+                subscription_type="metrics_alerts",
                 snuba_query=self.snuba_query,
             )
             self.alert_rule = self.create_alert_rule(
@@ -234,7 +232,7 @@ class OrganizationDetectorAnomalyDataLegacyAlertTest(BaseWorkflowTest, APITestCa
             legacy_alert="true",
             start="1729178100.0",
             end="1729179000.0",
-            status_code=500,
+            status_code=404,
         )
         assert response.data["detail"] == "Could not find query subscription for alert rule"
 

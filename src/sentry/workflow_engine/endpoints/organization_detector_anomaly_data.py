@@ -21,6 +21,12 @@ from sentry.workflow_engine.models import Detector
 logger = logging.getLogger(__name__)
 
 
+class SubscriptionNotFound(Exception):
+    """Raised when a QuerySubscription cannot be found."""
+
+    pass
+
+
 @extend_schema(tags=["Workflows"])
 @region_silo_endpoint
 class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
@@ -31,7 +37,7 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
 
     def _get_subscription_from_detector(
         self, detector_id: str, organization: Organization
-    ) -> QuerySubscription | Response:
+    ) -> QuerySubscription:
         """Look up QuerySubscription from a detector ID."""
         try:
             detector = Detector.objects.with_type_filters().get(
@@ -42,23 +48,13 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
 
         data_source = detector.data_sources.first()
         if not data_source:
-            return Response(
-                {"detail": "Could not find query subscription, data source not found"}, status=500
-            )
+            raise SubscriptionNotFound
 
-        try:
-            return QuerySubscription.objects.get(id=int(data_source.source_id))
-        except QuerySubscription.DoesNotExist:
-            return Response(
-                {
-                    "detail": f"Could not find detector, query subscription {data_source.source_id} not found"
-                },
-                status=404,
-            )
+        return QuerySubscription.objects.get(id=int(data_source.source_id))
 
     def _get_subscription_from_alert_rule(
         self, alert_rule_id: str, organization: Organization
-    ) -> QuerySubscription | Response:
+    ) -> QuerySubscription:
         """Look up QuerySubscription from a legacy alert rule ID."""
         try:
             alert_rule = AlertRule.objects.get(id=int(alert_rule_id), organization=organization)
@@ -77,28 +73,15 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
             )
             raise ResourceDoesNotExist
 
-        try:
-            subscription = QuerySubscription.objects.get(snuba_query_id=alert_rule.snuba_query_id)
-            logger.info(
-                "anomaly_data.subscription_found",
-                extra={
-                    "alert_rule_id": alert_rule_id,
-                    "subscription_id": subscription.id,
-                },
-            )
-            return subscription
-        except QuerySubscription.DoesNotExist:
-            logger.warning(
-                "anomaly_data.subscription_not_found",
-                extra={
-                    "alert_rule_id": alert_rule_id,
-                    "snuba_query_id": alert_rule.snuba_query_id,
-                },
-            )
-            return Response(
-                {"detail": "Could not find query subscription for alert rule"},
-                status=404,
-            )
+        subscription = QuerySubscription.objects.get(snuba_query_id=alert_rule.snuba_query_id)
+        logger.info(
+            "anomaly_data.subscription_found",
+            extra={
+                "alert_rule_id": alert_rule_id,
+                "subscription_id": subscription.id,
+            },
+        )
+        return subscription
 
     @extend_schema(
         operation_id="Retrieve Anomaly Detection Threshold Data for a Detector",
@@ -134,7 +117,6 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
         except ValueError:
             return Response({"detail": "start and end must be valid timestamps"}, status=400)
 
-        # If legacy_alert=true, treat detector_id as an alert rule ID
         is_legacy_alert = request.GET.get("legacy_alert", "").lower() == "true"
 
         logger.info(
@@ -148,16 +130,19 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
             },
         )
 
-        if is_legacy_alert:
-            result = self._get_subscription_from_alert_rule(detector_id, organization)
-        else:
-            result = self._get_subscription_from_detector(detector_id, organization)
-
-        # If result is a Response, it's an error
-        if isinstance(result, Response):
-            return result
-
-        query_subscription = result
+        try:
+            if is_legacy_alert:
+                query_subscription = self._get_subscription_from_alert_rule(
+                    detector_id, organization
+                )
+            else:
+                query_subscription = self._get_subscription_from_detector(detector_id, organization)
+        except (QuerySubscription.DoesNotExist, SubscriptionNotFound):
+            model_type = "alert rule" if is_legacy_alert else "detector"
+            return Response(
+                {"detail": f"Could not find query subscription for {model_type}"},
+                status=404,
+            )
 
         data = get_anomaly_threshold_data_from_seer(
             subscription=query_subscription, start=start_float, end=end_float
