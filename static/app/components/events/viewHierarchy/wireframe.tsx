@@ -113,7 +113,7 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, platform}: WireframeP
       const overlay = overlayRef?.getContext('2d');
       if (overlay) {
         setupCanvasContext(overlay, modelToView);
-        overlay.fillStyle = theme.blue200;
+        overlay.fillStyle = theme.colors.blue200;
 
         if (selectedRect) {
           overlay.fillRect(
@@ -125,12 +125,12 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, platform}: WireframeP
         }
 
         if (hoverRect) {
-          overlay.fillStyle = theme.blue100;
+          overlay.fillStyle = theme.colors.blue100;
           overlay.fillRect(hoverRect.x, hoverRect.y, hoverRect.width, hoverRect.height);
         }
       }
     },
-    [overlayRef, setupCanvasContext, theme.blue100, theme.blue200]
+    [overlayRef, setupCanvasContext, theme.colors.blue100, theme.colors.blue200]
   );
 
   const drawViewHierarchy = useCallback(

@@ -96,11 +96,11 @@ const TYPE_SCALE: TypeScaleItem[] = [
 const InlineLinkExampleStyles = `styled('a')\`
   color: \${p => p.theme.blue300};
   text-decoration: underline;
-  text-decoration-color: ${(p: any) => p.theme.blue100};
+  text-decoration-color: ${(p: any) => p.theme.colors.blue100};
   cursor: pointer;
 
   &:hover {
-    text-decoration-color: ${(p: any) => p.theme.blue200};
+    text-decoration-color: ${(p: any) => p.theme.colors.blue200};
   }
 \`;
 `;
@@ -536,12 +536,12 @@ const Block = styled('div')`
 `;
 
 const FixedExternalLink = styled(ExternalLink)`
-  color: ${p => p.theme.blue300};
-  text-decoration: underline ${p => p.theme.blue100};
+  color: ${p => p.theme.colors.blue400};
+  text-decoration: underline ${p => p.theme.colors.blue100};
 
   :hover {
-    color: ${p => p.theme.blue300};
-    text-decoration: underline ${p => p.theme.blue200};
+    color: ${p => p.theme.colors.blue400};
+    text-decoration: underline ${p => p.theme.colors.blue200};
   }
 `;
 
