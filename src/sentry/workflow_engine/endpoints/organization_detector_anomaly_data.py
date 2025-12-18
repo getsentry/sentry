@@ -50,7 +50,10 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
         if not data_source:
             raise SubscriptionNotFound
 
-        return QuerySubscription.objects.get(id=int(data_source.source_id))
+        try:
+            return QuerySubscription.objects.get(id=int(data_source.source_id))
+        except ValueError:
+            raise SubscriptionNotFound
 
     def _get_subscription_from_alert_rule(
         self, alert_rule_id: str, organization: Organization
