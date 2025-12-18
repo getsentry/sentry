@@ -61,7 +61,7 @@ function getMaxPickableDaysBySubscription(
     case DataCategory.SPANS:
     case DataCategory.SPANS_INDEXED: {
       // first day we started 13 months downsampled retention
-      const firstAvailableDate = moment('2025-08-26');
+      const firstAvailableDate = moment('2025-09-01');
       const now = moment();
       const elapsedDays = Math.max(0, Math.round(now.diff(firstAvailableDate, 'days')));
 

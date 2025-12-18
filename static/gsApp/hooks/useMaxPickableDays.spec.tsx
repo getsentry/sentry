@@ -191,7 +191,7 @@ describe('useMaxPickableDays', () => {
       });
     });
 
-    it('returns 127/127 for spans on 2025/12/31', () => {
+    it('returns 121/121 for spans on 2025/12/31', () => {
       jest.useFakeTimers().setSystemTime(new Date(2025, 11, 31));
       const {result} = renderHookWithProviders(
         () =>
@@ -202,8 +202,8 @@ describe('useMaxPickableDays', () => {
       );
 
       expect(result.current).toEqual({
-        maxPickableDays: 127,
-        maxUpgradableDays: 127,
+        maxPickableDays: 121,
+        maxUpgradableDays: 121,
         upsellFooter: expect.any(Object),
       });
     });
