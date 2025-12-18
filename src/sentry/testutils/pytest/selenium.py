@@ -528,7 +528,6 @@ def _browser_state_cleanup(request, browser):
                 pass
 
             # Clear cookies (except the acceptance_test_cookie we always need)
-            # Note: This works on any valid domain page, no navigation needed
             all_cookies = driver.get_cookies()
             for cookie in all_cookies:
                 if cookie["name"] != "acceptance_test_cookie":
@@ -536,6 +535,9 @@ def _browser_state_cleanup(request, browser):
                         driver.delete_cookie(cookie["name"])
                     except Exception:
                         pass
+
+            if hasattr(request.instance, "client"):
+                request.instance.client.cookies.clear()
         except Exception:
             pass
     else:
