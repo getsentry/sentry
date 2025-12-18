@@ -22,7 +22,7 @@ import {
 } from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 
-export type GamingPlatform = 'playstation' | 'xbox' | 'nintendo-switch';
+type GamingPlatform = 'playstation' | 'xbox' | 'nintendo-switch';
 
 interface ConsoleSdkInviteErrorResponse {
   detail: string;
