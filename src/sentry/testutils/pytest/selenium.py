@@ -396,8 +396,40 @@ def start_chrome(**chrome_args):
             )
 
 
-@pytest.fixture(scope="function")
-def browser(request, live_server):
+@pytest.fixture(scope="class")
+def live_server_class(request):
+    """
+    Class-scoped live server fixture for acceptance tests.
+    This reuses the live server across all tests in a class for better performance.
+
+    Note: Database access is handled by the test class's own fixtures/setup,
+    not by this live server fixture.
+    """
+    # Find an available port
+    import socket
+
+    from pytest_django.live_server_helper import LiveServer
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.bind(("127.0.0.1", 0))
+    port = sock.getsockname()[1]
+    sock.close()
+
+    addr = f"127.0.0.1:{port}"
+    server = LiveServer(addr)
+
+    yield server
+
+    # Cleanup
+    server.stop()
+
+
+@pytest.fixture(scope="class")
+def browser(request, live_server_class):
+    """
+    Class-scoped browser fixture that reuses the same browser instance
+    across all tests in a test class for better performance.
+    """
     window_size = request.config.getoption("window_size")
     window_width, window_height = map(int, window_size.split("x", 1))
 
@@ -434,11 +466,9 @@ def browser(request, live_server):
 
     driver.set_window_size(window_width, window_height)
 
-    request.node._driver = driver
+    browser_obj = Browser(driver, live_server_class)
 
-    browser = Browser(driver, live_server)
-
-    browser.set_emulated_media([{"name": "prefers-reduced-motion", "value": "reduce"}])
+    browser_obj.set_emulated_media([{"name": "prefers-reduced-motion", "value": "reduce"}])
 
     # XXX: We explicitly set an extra garbage cookie, just so like in
     # production, there are more than one cookies set.
@@ -448,11 +478,11 @@ def browser(request, live_server):
     # fail in the acceptance tests because the code worked fine when
     # document.cookie only had one cookie in it.
     with assume_test_silo_mode(SiloMode.CONTROL):
-        browser.save_cookie("acceptance_test_cookie", "1", path="/auth/login/")
+        browser_obj.save_cookie("acceptance_test_cookie", "1", path="/auth/login/")
 
-    if hasattr(request, "cls"):
-        request.cls.browser = browser
-    request.node.browser = browser
+    # Inject browser into test class
+    if request.cls is not None:
+        request.cls.browser = browser_obj
 
     yield driver
 
@@ -461,11 +491,58 @@ def browser(request, live_server):
         sys.stderr.write("[browser console] ")
         sys.stderr.write(repr(entry))
         sys.stderr.write("\n")
+
     # Teardown Selenium.
-    try:
-        driver.quit()
-    except Exception:
-        pass
+    driver.quit()
+
+
+@pytest.fixture(autouse=True)
+def _browser_state_cleanup(request, browser):
+    """
+    Autouse fixture that runs before each test to:
+    1. Store driver reference on test node for pytest hooks
+    2. Clear browser state between tests to prevent pollution
+
+    Note: We avoid navigation to maintain performance. State is cleared in-place.
+    """
+    # Only run for AcceptanceTestCase instances
+    if not (hasattr(request, "instance") and hasattr(request.instance, "browser")):
+        return
+
+    driver = browser
+    browser_obj = request.instance.browser
+
+    # Store driver reference for pytest hooks
+    request.node._driver = driver
+    request.node.browser = browser_obj
+
+    # Clear browser state before each test (except the first one in the class)
+    if hasattr(request.cls, "_browser_tests_run"):
+        try:
+            # Clear local and session storage first (fast, no navigation needed)
+            try:
+                driver.execute_script("window.localStorage.clear();")
+                driver.execute_script("window.sessionStorage.clear();")
+            except Exception:
+                # Might fail if not on a valid page, which is fine
+                pass
+
+            # Clear cookies (except the acceptance_test_cookie we always need)
+            # Note: This works on any valid domain page, no navigation needed
+            all_cookies = driver.get_cookies()
+            for cookie in all_cookies:
+                if cookie["name"] != "acceptance_test_cookie":
+                    try:
+                        driver.delete_cookie(cookie["name"])
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+    else:
+        # Mark that we've run at least one test in this class
+        request.cls._browser_tests_run = True
+
+    yield
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
