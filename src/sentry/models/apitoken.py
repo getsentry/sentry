@@ -262,7 +262,16 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         if "token" in kwargs:
             kwargs["token_last_characters"] = kwargs["token"][-4:]
 
-        return super().update(*args, **kwargs)
+        result = super().update(*args, **kwargs)
+
+        # Schedule async replication if using async mode
+        if not self._should_flush_outbox():
+            transaction.on_commit(
+                lambda: self._schedule_async_replication(),
+                using=router.db_for_write(type(self)),
+            )
+
+        return result
 
     def outbox_region_names(self) -> Collection[str]:
         return list(find_all_region_names())
@@ -321,7 +330,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
         drain_outbox_shards_control.delay(
             outbox_identifier_low=first_row.id,
-            outbox_identifier_hi=last_row.id,
+            outbox_identifier_hi=last_row.id + 1,
             outbox_name="sentry.ControlOutbox",
         )
 
