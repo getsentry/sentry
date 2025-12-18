@@ -24,7 +24,7 @@ export function buildTreeFromDiffItems(diffItems: DiffItem[]): TreemapDiffElemen
     name: 'root',
     path: '',
     size_diff: 0,
-    diff_type: 'increased',
+    diff_type: 'unchanged',
     is_dir: true,
     children: [],
   };
@@ -64,7 +64,7 @@ function insertDiffItem(root: TreemapDiffElement, diffItem: DiffItem): void {
         name: dirName,
         path: dirPath,
         size_diff: 0,
-        diff_type: 'increased',
+        diff_type: 'unchanged',
         is_dir: true,
         children: [],
       };
@@ -111,6 +111,8 @@ function calculateAggregatedValues(node: TreemapDiffElement): void {
       node.diff_type = 'increased';
     } else if (totalSizeDiff < 0) {
       node.diff_type = 'decreased';
+    } else {
+      node.diff_type = 'unchanged';
     }
   }
 }

@@ -138,6 +138,35 @@ describe('treemapDiffUtils', () => {
       expect(result!.size_diff).toBe(800);
     });
 
+    it('should mark zero-diff directories as unchanged', () => {
+      const diffItems: DiffItem[] = [
+        {
+          path: 'src/file1.js',
+          size_diff: 500,
+          type: 'added',
+          head_size: 1000,
+          base_size: null,
+          item_type: TreemapType.FILES,
+        },
+        {
+          path: 'src/file2.js',
+          size_diff: -500,
+          type: 'removed',
+          head_size: null,
+          base_size: 500,
+          item_type: TreemapType.FILES,
+        },
+      ];
+
+      const result = buildTreeFromDiffItems(diffItems);
+
+      expect(result).toBeDefined();
+
+      const srcDir = result!.children![0]!;
+      expect(srcDir.size_diff).toBe(0);
+      expect(srcDir.diff_type).toBe('unchanged');
+    });
+
     it('should handle removed files correctly', () => {
       const diffItems: DiffItem[] = [
         {

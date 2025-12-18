@@ -196,5 +196,10 @@ export function getAppSizeDiffCategoryInfo(
       translucentColor: createTranslucentColor(theme.colors.green400),
       displayName: t('Removed'),
     },
+    unchanged: {
+      color: theme.colors.gray300,
+      translucentColor: createTranslucentColor(theme.colors.gray300),
+      displayName: t('Unchanged'),
+    },
   };
 }

@@ -224,7 +224,7 @@ export interface InsightResults {
  * https://github.com/getsentry/sentry/blob/a85090d7b81832982b43a35c30db9970a0258e99/src/sentry/preprod/size_analysis/models.py#L40
  */
 
-export type DiffType = 'added' | 'removed' | 'increased' | 'decreased';
+export type DiffType = 'added' | 'removed' | 'increased' | 'decreased' | 'unchanged';
 
 export interface DiffItem {
   path: string;
