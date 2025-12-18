@@ -1439,4 +1439,5 @@ export const TraceDrawerComponents = {
   MultilineText,
   MultilineJSON,
   MultilineTextLabel,
+  MarkdownContainer,
 };
