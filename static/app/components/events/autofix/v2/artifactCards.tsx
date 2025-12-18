@@ -70,15 +70,15 @@ export function getArtifactIcon(
 ): React.ReactNode {
   switch (artifactType) {
     case 'root_cause':
-      return <IconFocus size={size} color="pink400" />;
+      return <IconFocus size={size} variant="promotion" />;
     case 'solution':
-      return <IconFix size={size} color="success" />;
+      return <IconFix size={size} variant="success" />;
     case 'impact_assessment':
-      return <IconFire size={size} color="error" />;
+      return <IconFire size={size} variant="danger" />;
     case 'triage':
-      return <IconGroup size={size} color="blue400" />;
+      return <IconGroup size={size} variant="accent" />;
     case 'code_changes':
-      return <IconCode size={size} color="blue400" />;
+      return <IconCode size={size} variant="accent" />;
     default:
       return null;
   }
@@ -241,13 +241,13 @@ function ImpactTreeRow({
 
   const getSeverityIcon = () => {
     if (impact.rating === 'high') {
-      return <IconFatal size="xs" color="error" />;
+      return <IconFatal size="xs" variant="danger" />;
     }
     if (impact.rating === 'medium') {
-      return <IconWarning size="xs" color="warning" />;
+      return <IconWarning size="xs" variant="warning" />;
     }
     if (impact.rating === 'low') {
-      return <IconCheckmark size="xs" color="success" />;
+      return <IconCheckmark size="xs" variant="success" />;
     }
     return null;
   };
@@ -641,7 +641,7 @@ export function TriageCard({data, group, organization}: TriageCardProps) {
                         {hasAssigneeMatch && userForAvatar ? (
                           <UserAvatar user={userForAvatar} size={24} gravatar />
                         ) : (
-                          <IconUser size="md" color="gray400" />
+                          <IconUser size="md" variant="muted" />
                         )}
                         <Flex direction="column" gap="xs">
                           <Text size="lg">{typedData.suggested_assignee?.name}</Text>

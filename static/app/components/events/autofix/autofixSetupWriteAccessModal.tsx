@@ -20,7 +20,7 @@ function GitRepoLink({repo}: {repo: {name: string; owner: string; ok?: boolean}}
       <ExternalLink href={`https://github.com/${repo.owner}/${repo.name}`}>
         {repo.owner}/{repo.name}
       </ExternalLink>
-      {repo.ok && <IconCheckmark color="success" size="sm" />}
+      {repo.ok && <IconCheckmark variant="success" size="sm" />}
     </RepoItem>
   );
 }

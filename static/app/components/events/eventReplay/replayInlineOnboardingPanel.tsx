@@ -76,7 +76,7 @@ export default function ReplayInlineOnboardingPanel({
           triggerProps={{
             showChevron: false,
             borderless: true,
-            icon: <IconClose color="subText" />,
+            icon: <IconClose variant="muted" />,
           }}
           size="xs"
           items={[

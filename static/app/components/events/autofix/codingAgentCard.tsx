@@ -91,7 +91,7 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                     {shouldShowSpinner(codingAgentState.status) ? (
                       <StyledLoadingIndicator size={16} />
                     ) : (
-                      <IconCode size="md" color="purple400" />
+                      <IconCode size="md" variant="accent" />
                     )}
                     {getProviderName(codingAgentState.provider)}
                   </HeaderText>

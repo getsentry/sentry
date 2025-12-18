@@ -297,7 +297,7 @@ function NativeFrame({
               >
                 <IconFileBroken
                   size="sm"
-                  color="errorText"
+                  variant="danger"
                   data-test-id="symbolication-error-icon"
                 />
               </Tooltip>
@@ -309,7 +309,7 @@ function NativeFrame({
               >
                 <IconWarning
                   size="sm"
-                  color="warningText"
+                  variant="warning"
                   data-test-id="symbolication-warning-icon"
                 />
               </Tooltip>

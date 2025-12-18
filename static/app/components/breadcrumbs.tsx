@@ -57,7 +57,7 @@ export function Breadcrumbs({crumbs, ...props}: BreadcrumbsProps) {
             />
             {index < crumbs.length - 1 ? (
               <Flex align="center" justify="center" flexShrink={0}>
-                <IconSlashForward size="xs" color="subText" />
+                <IconSlashForward size="xs" variant="muted" />
               </Flex>
             ) : null}
           </Fragment>

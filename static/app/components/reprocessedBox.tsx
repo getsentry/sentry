@@ -74,7 +74,7 @@ function ReprocessedBox({
   return (
     <BannerContainer priority="success" className={className}>
       <StyledBannerSummary>
-        <IconCheckmark color="successText" />
+        <IconCheckmark variant="success" />
         <span>{renderMessage()}</span>
         <StyledIconClose
           color="successText"

@@ -15,7 +15,7 @@ function GroupingIndicator({className}: Props) {
       containerDisplayMode="inline-flex"
       className={className}
     >
-      <IconRefresh size="xs" color="gray300" />
+      <IconRefresh size="xs" variant="muted" />
     </StyledTooltip>
   );
 }
