@@ -257,7 +257,7 @@ function ManualContent({sdkLanguage}: {sdkLanguage: SupportedSDKLanguage}) {
 
 // TODO(aknaus): Remove this once the Prose component adds styling for code elements
 const StyledCode = styled('code')`
-  color: ${p => p.theme.pink400};
+  color: ${p => p.theme.colors.pink500};
 `;
 
 const codeSnippetStyles = css`

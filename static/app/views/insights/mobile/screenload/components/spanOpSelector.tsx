@@ -25,11 +25,10 @@ export const TTID_CONTRIBUTING_SPAN_OPS = [
 
 type Props = {
   primaryRelease?: string;
-  secondaryRelease?: string;
   transaction?: string;
 };
 
-export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: Props) {
+export function SpanOpSelector({transaction, primaryRelease}: Props) {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
@@ -41,11 +40,7 @@ export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: 
     `span.op:[${TTID_CONTRIBUTING_SPAN_OPS.join(',')}]`,
     'has:span.description',
   ]);
-  const queryStringPrimary = appendReleaseFilters(
-    searchQuery,
-    primaryRelease,
-    secondaryRelease
-  );
+  const queryStringPrimary = appendReleaseFilters(searchQuery, primaryRelease);
 
   const {data} = useSpans(
     {

@@ -1220,7 +1220,7 @@ const CardContainer = styled('div')`
     box-shadow 0.2s ease;
 
   &:hover {
-    border-color: ${p => p.theme.purple200};
+    border-color: ${p => p.theme.colors.blue200};
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   }
 `;
@@ -1290,13 +1290,13 @@ const StatusTag = styled('div')<{color: 'purple' | 'yellow' | 'red'}>`
     switch (p.color) {
       case 'purple':
         return `
-          background: ${p.theme.purple100};
-          color: ${p.theme.purple400};
+          background: ${p.theme.colors.blue100};
+          color: ${p.theme.colors.blue500};
         `;
       case 'yellow':
         return `
-          background: ${p.theme.yellow100};
-          color: ${p.theme.yellow400};
+          background: ${p.theme.colors.yellow100};
+          color: ${p.theme.colors.yellow500};
         `;
       case 'red':
         return `
@@ -1340,7 +1340,7 @@ const Tab = styled('button')<{isActive: boolean}>`
       right: 0;
       bottom: 0;
       height: 2px;
-      background: ${p.theme.purple300};
+      background: ${p.theme.colors.blue400};
     }
   `}
 
@@ -1393,8 +1393,8 @@ const IssuePreviewLink = styled(Link)`
     background 0.15s ease;
 
   &:hover {
-    border-color: ${p => p.theme.purple300};
-    background: ${p => p.theme.backgroundElevated};
+    border-color: ${p => p.theme.colors.blue400};
+    background: ${p => p.theme.tokens.background.primary};
   }
 `;
 
@@ -1500,7 +1500,7 @@ const ShowMoreButton = styled('button')`
 
   &:hover {
     background: ${p => p.theme.backgroundTertiary};
-    border-color: ${p => p.theme.purple300};
+    border-color: ${p => p.theme.colors.blue400};
     color: ${p => p.theme.tokens.content.primary};
   }
 `;
@@ -1518,10 +1518,10 @@ const CustomDataBadge = styled('div')`
   align-items: center;
   gap: ${space(0.5)};
   padding: ${space(0.5)} ${space(1)};
-  background: ${p => p.theme.yellow100};
-  border: 1px solid ${p => p.theme.yellow300};
+  background: ${p => p.theme.colors.yellow100};
+  border: 1px solid ${p => p.theme.colors.yellow400};
   border-radius: ${p => p.theme.radius.md};
-  color: ${p => p.theme.yellow400};
+  color: ${p => p.theme.colors.yellow500};
 `;
 
 const LastUpdatedText = styled('span')`

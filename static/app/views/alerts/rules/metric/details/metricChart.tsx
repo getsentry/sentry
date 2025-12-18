@@ -608,8 +608,8 @@ function getMetricChartTooltipFormatter({
       changeStatus === AlertRuleTriggerType.CRITICAL
         ? theme.colors.red400
         : changeStatus === AlertRuleTriggerType.WARNING
-          ? theme.yellow300
-          : theme.green300;
+          ? theme.colors.yellow400
+          : theme.colors.green400;
 
     return [
       `<div class="tooltip-series">`,

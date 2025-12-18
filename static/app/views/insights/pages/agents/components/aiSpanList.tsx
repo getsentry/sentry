@@ -428,7 +428,7 @@ const ListItemContainer = styled('div')<{
     p.isSelected
       ? p.hasErrors
         ? `2px solid ${p.theme.colors.red200}`
-        : `2px solid ${p.theme.purple200}`
+        : `2px solid ${p.theme.colors.blue200}`
       : 'none'};
 
   &:hover {

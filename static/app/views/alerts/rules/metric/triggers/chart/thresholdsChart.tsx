@@ -55,9 +55,9 @@ const CHART_GRID = {
 
 // Colors to use for trigger thresholds
 const makeTriggerThresholdColors = (theme: Theme) => ({
-  RESOLUTION_FILL: color(theme.green200).alpha(0.1).rgb().string(),
+  RESOLUTION_FILL: color(theme.colors.green200).alpha(0.1).rgb().string(),
   CRITICAL_FILL: color(theme.colors.red400).alpha(0.25).rgb().string(),
-  WARNING_FILL: color(theme.yellow200).alpha(0.1).rgb().string(),
+  WARNING_FILL: color(theme.colors.yellow200).alpha(0.1).rgb().string(),
 });
 
 /**
@@ -135,10 +135,10 @@ export default class ThresholdsChart extends PureComponent<Props> {
 
     const isCritical = trigger.label === AlertRuleTriggerType.CRITICAL;
     const lineColor = isResolution
-      ? this.props.theme.green300
+      ? this.props.theme.colors.green400
       : isCritical
         ? this.props.theme.colors.red400
-        : this.props.theme.yellow300;
+        : this.props.theme.colors.yellow400;
 
     const COLOR = makeTriggerThresholdColors(this.props.theme);
     const areaColor = isResolution
@@ -288,8 +288,8 @@ export default class ThresholdsChart extends PureComponent<Props> {
             changeStatus === AlertRuleTriggerType.CRITICAL
               ? this.props.theme.colors.red400
               : changeStatus === AlertRuleTriggerType.WARNING
-                ? this.props.theme.yellow300
-                : this.props.theme.green300;
+                ? this.props.theme.colors.yellow400
+                : this.props.theme.colors.green400;
 
           return `<span>${date}<span style="color:${changeStatusColor};margin-left:10px;">
             ${Math.sign(changePercentage) === 1 ? '+' : '-'}${Math.abs(

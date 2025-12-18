@@ -111,14 +111,14 @@ const LineNumberWrapper = styled('div')<{
 
     if (p.isHighlighted) {
       return css`
-        ${generatePseudoElement({background: p.theme.blue100})}
-        border-right: ${space(0.25)} solid ${p.theme.blue300};
+        ${generatePseudoElement({background: p.theme.colors.blue100})}
+        border-right: ${space(0.25)} solid ${p.theme.colors.blue400};
       `;
     }
     if (p.coverage === 'H') {
       return css`
-        ${generatePseudoElement({background: p.theme.green100})}
-        border-right: ${space(0.25)} solid ${p.theme.green300};
+        ${generatePseudoElement({background: p.theme.colors.green100})}
+        border-right: ${space(0.25)} solid ${p.theme.colors.green400};
       `;
     }
     if (p.coverage === 'M') {
@@ -129,8 +129,8 @@ const LineNumberWrapper = styled('div')<{
     }
     if (p.coverage === 'P') {
       return css`
-        ${generatePseudoElement({background: p.theme.yellow100})}
-        border-right: ${space(0.25)} solid ${p.theme.yellow300};
+        ${generatePseudoElement({background: p.theme.colors.yellow100})}
+        border-right: ${space(0.25)} solid ${p.theme.colors.yellow400};
       `;
     }
 

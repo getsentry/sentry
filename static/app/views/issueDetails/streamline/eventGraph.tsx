@@ -379,7 +379,7 @@ export function EventGraph({
         itemStyle: {
           borderRadius: [2, 2, 0, 0],
           borderColor: theme.translucentGray200,
-          color: isUnfilteredStatsEnabled ? theme.purple300 : translucentGray300,
+          color: isUnfilteredStatsEnabled ? theme.colors.blue400 : translucentGray300,
         },
         data: userSeries,
         animation: false,
@@ -405,7 +405,7 @@ export function EventGraph({
         itemStyle: {
           borderRadius: [2, 2, 0, 0],
           borderColor: theme.translucentGray200,
-          color: isUnfilteredStatsEnabled ? theme.purple300 : translucentGray300,
+          color: isUnfilteredStatsEnabled ? theme.colors.blue400 : translucentGray300,
         },
         data: eventSeries,
         animation: false,
@@ -630,8 +630,8 @@ function SummaryContainer(props: FlexProps) {
 const CalloutButton = withChonk(
   styled(Button)<{isActive: boolean}>`
     cursor: ${p => (p.isActive ? 'initial' : 'pointer')};
-    border: 1px solid ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
-    background: ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
+    border: 1px solid ${p => (p.isActive ? p.theme.colors.blue100 : 'transparent')};
+    background: ${p => (p.isActive ? p.theme.colors.blue100 : 'transparent')};
     padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
     box-shadow: none;
     height: unset;
@@ -640,7 +640,7 @@ const CalloutButton = withChonk(
       opacity: 1;
     }
     &:hover {
-      border: 1px solid ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
+      border: 1px solid ${p => (p.isActive ? p.theme.colors.blue100 : 'transparent')};
     }
   `,
   styled(Button)<never>`

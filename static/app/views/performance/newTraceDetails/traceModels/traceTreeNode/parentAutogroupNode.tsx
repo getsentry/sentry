@@ -167,7 +167,7 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
       return theme.colors.red400;
     }
 
-    return theme.blue300;
+    return theme.colors.blue400;
   }
 
   resolveValueFromSearchKey(_key: string): any | null {
