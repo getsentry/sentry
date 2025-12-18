@@ -154,6 +154,45 @@ describe('Dashboards > WidgetQueries', () => {
     );
   });
 
+  it('applies dashboard filters when widget query has no base conditions', async () => {
+    const mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: [],
+    });
+
+    const widgetWithoutBaseConditions = {
+      ...singleQueryWidget,
+      queries: [
+        {
+          ...singleQueryWidget.queries[0],
+          conditions: undefined as unknown as string,
+        },
+      ],
+    };
+
+    renderWithProviders(
+      <WidgetQueries
+        api={new MockApiClient()}
+        widget={widgetWithoutBaseConditions}
+        organization={initialData.organization}
+        selection={selection}
+        dashboardFilters={{[DashboardFilterKeys.RELEASE]: ['abc@2.0.0']}}
+      >
+        {() => <div data-test-id="child" />}
+      </WidgetQueries>
+    );
+
+    await screen.findByTestId('child');
+    expect(mock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: 'release:"abc@2.0.0" ',
+        }),
+      })
+    );
+  });
+
   it('appends dashboard filters to events table request', async () => {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
