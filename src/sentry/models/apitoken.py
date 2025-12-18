@@ -369,12 +369,6 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
             InvalidGrantError: If validation fails for any reason
             ExpiredGrantError: If the grant has expired
         """
-        if grant.application.status != ApiApplicationStatus.active:
-            raise InvalidGrantError("application not active")
-
-        if grant.is_expired():
-            raise ExpiredGrantError("grant expired")
-
         lock = locks.get(
             ApiGrant.get_lock_key(grant.id),
             duration=10,
