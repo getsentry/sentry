@@ -310,6 +310,9 @@ def parse_team_value(projects: Sequence[Project], value: Sequence[str]) -> Team:
 
 
 def get_teams_for_users(projects: Sequence[Project], users: Sequence[User]) -> list[Team]:
+    if not projects:
+        return []
+    
     user_ids = [u.id for u in users if u is not None]
     teams = Team.objects.filter(
         id__in=OrganizationMemberTeam.objects.filter(
