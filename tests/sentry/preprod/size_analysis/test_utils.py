@@ -61,6 +61,7 @@ class CanCompareSizeMetricsTest(TestCase):
 
         assert result.can_compare is False
         assert result.error_type == ComparisonValidationResult.ErrorType.DIFFERENT_LENGTH
+        assert result.error_message is not None
         assert "Head has 2 metric(s), base has 1 metric(s)" in result.error_message
 
     def test_different_app_ids_error_type(self):
@@ -87,6 +88,7 @@ class CanCompareSizeMetricsTest(TestCase):
 
         assert result.can_compare is False
         assert result.error_type == ComparisonValidationResult.ErrorType.DIFFERENT_APP_IDS
+        assert result.error_message is not None
         assert "mismatched metrics" in result.error_message
         assert "com.example.app" in result.error_message
         assert "com.example.app.debug" in result.error_message
@@ -117,6 +119,7 @@ class CanCompareSizeMetricsTest(TestCase):
         assert (
             result.error_type == ComparisonValidationResult.ErrorType.DIFFERENT_BUILD_CONFIGURATIONS
         )
+        assert result.error_message is not None
         assert "mismatched metrics" in result.error_message
 
     def test_different_metrics_error_type(self):
@@ -143,4 +146,5 @@ class CanCompareSizeMetricsTest(TestCase):
 
         assert result.can_compare is False
         assert result.error_type == ComparisonValidationResult.ErrorType.DIFFERENT_METRICS
+        assert result.error_message is not None
         assert "mismatched metrics" in result.error_message
