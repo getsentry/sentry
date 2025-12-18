@@ -81,7 +81,7 @@ const NoReplaysWrapper = styled('div')`
 
 const NoReplaysMessage = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     font-size: ${p => p.theme.fontSize.xl};

@@ -355,7 +355,7 @@ const LegendDot = styled('span')<{color: string; focus: boolean}>`
     left: 0;
     width: 100%;
     height: 100%;
-    outline: ${p => p.theme.gray100} ${space(0.5)} solid;
+    outline: ${p => p.theme.colors.gray100} ${space(0.5)} solid;
     opacity: ${p => (p.focus ? '1' : '0')};
     transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }

@@ -15,7 +15,7 @@ export const PriorityDot = styled('div')<{priority: PriorityLevel | 'resolved'}>
       case 'resolved':
         return p.theme.colors.green400;
       default:
-        return p.theme.gray300;
+        return p.theme.colors.gray400;
     }
   }};
   flex-shrink: 0;

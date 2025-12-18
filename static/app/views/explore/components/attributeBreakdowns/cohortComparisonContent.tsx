@@ -193,7 +193,7 @@ const SelectionHint = styled(Text)<{color?: string}>`
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background-color: ${p => p.color || p.theme.gray400};
+    background-color: ${p => p.color || p.theme.colors.gray500};
     margin-right: ${space(0.5)};
     flex-shrink: 0;
   }

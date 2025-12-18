@@ -332,7 +332,7 @@ const MetaWrapper = styled('div')`
 const StyledExternalLink = styled(ExternalLink)`
   color: ${p => p.theme.tokens.content.primary};
   text-decoration: underline;
-  text-decoration-color: ${p => p.theme.translucentGray200};
+  text-decoration-color: ${p => p.theme.colors.gray200};
 
   :hover {
     color: ${p => p.theme.tokens.content.primary};

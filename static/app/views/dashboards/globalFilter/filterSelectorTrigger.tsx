@@ -95,6 +95,6 @@ export const FilterValueTruncated = styled('div')`
 `;
 
 const SubText = styled('span')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
   font-weight: ${p => p.theme.fontWeight.normal};
 `;

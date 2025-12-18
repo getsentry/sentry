@@ -107,6 +107,6 @@ const ToggleButton = styled(Button)`
   padding: 0;
   &,
   :hover {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.colors.gray800};
   }
 `;

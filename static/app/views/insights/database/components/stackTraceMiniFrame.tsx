@@ -97,7 +97,7 @@ const ProjectAvatarContainer = styled('div')`
 `;
 
 const Emphasize = styled('span')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.colors.gray800};
 `;
 
 const Deemphasize = styled('span')`

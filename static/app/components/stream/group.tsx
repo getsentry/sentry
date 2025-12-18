@@ -998,7 +998,7 @@ const AssigneeWrapper = styled('div')<{breakpoint: string}>`
 const StartedColumn = styled('div')`
   align-self: center;
   margin: 0 ${space(2)};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.colors.gray800};
   ${p => p.theme.overflowEllipsis};
   width: 85px;
 
@@ -1011,7 +1011,7 @@ const StartedColumn = styled('div')`
 const EventsReprocessedColumn = styled('div')`
   align-self: center;
   margin: 0 ${space(2)};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.colors.gray800};
   ${p => p.theme.overflowEllipsis};
   width: 75px;
 

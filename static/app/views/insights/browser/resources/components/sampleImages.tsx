@@ -268,7 +268,7 @@ export function MissingImage() {
   return (
     <div
       style={{
-        background: theme.gray100,
+        background: theme.colors.gray100,
         width: imageWidth,
         height: imageHeight,
         position: 'relative',

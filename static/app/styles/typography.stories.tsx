@@ -550,7 +550,7 @@ const FooterLink = styled(Link)`
 
   :hover {
     color: ${p => p.theme.subText};
-    text-decoration: underline ${p => p.theme.gray200};
+    text-decoration: underline ${p => p.theme.colors.gray200};
   }
 `;
 

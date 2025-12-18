@@ -28,8 +28,8 @@ function makeBadgeTheme(
     case 'experimental':
     case 'internal':
       return {
-        background: theme.gray100,
-        color: theme.gray500,
+        background: theme.colors.gray100,
+        color: theme.colors.gray800,
       };
     case 'new':
       return {
@@ -39,7 +39,7 @@ function makeBadgeTheme(
     case 'warning':
       return {
         background: theme.colors.yellow400,
-        color: theme.gray500,
+        color: theme.colors.gray800,
       };
     default:
       unreachable(props.type);

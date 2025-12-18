@@ -206,14 +206,14 @@ const LoadingBox = styled('div')`
   flex: 1;
   min-width: 140px;
   height: 90px;
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.colors.gray100};
   border-radius: ${p => p.theme.radius.md};
 `;
 
 const PagesTooltip = styled('span')`
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
-  text-decoration: underline dotted ${p => p.theme.gray300};
+  text-decoration: underline dotted ${p => p.theme.colors.gray400};
 `;
 
 const PagesTooltipContainer = styled('div')`
