@@ -366,18 +366,18 @@ class TestPartitionByMeasure(TestCase):
 @freeze_time(MOCK_DATETIME)
 class TestQueryProjectCountsByOrgEmptyOrgIds(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
     """
-    Test that verifies the bug where query_project_counts_by_org is called
-    even when org_ids is empty, causing unnecessary Snuba queries.
+    Test that query_project_counts_by_org correctly skips Snuba queries
+    when org_ids is empty, avoiding unnecessary queries.
     """
 
     @property
     def now(self) -> datetime:
         return MOCK_DATETIME
 
-    def test_query_runs_for_empty_org_ids(self) -> None:
+    def test_query_skips_for_empty_org_ids(self) -> None:
         """
-        This test confirms that query_project_counts_by_org makes a Snuba query
-        even when called with an empty org_ids list.
+        Confirms that query_project_counts_by_org does NOT make a Snuba query
+        when called with an empty org_ids list.
         """
         with patch(
             "sentry.dynamic_sampling.tasks.boost_low_volume_projects.raw_snql_query"
@@ -386,13 +386,13 @@ class TestQueryProjectCountsByOrgEmptyOrgIds(BaseMetricsLayerTestCase, TestCase,
 
             list(query_project_counts_by_org([], SamplingMeasure.TRANSACTIONS))
 
-            assert mock_query.call_count == 1
+            assert mock_query.call_count == 0
 
-    def test_fetch_projects_calls_query_for_both_measures_even_when_one_is_empty(self) -> None:
+    def test_fetch_projects_only_queries_measures_with_orgs(self) -> None:
         """
-        This test confirms that when partition_by_measure returns both measures
-        (one with orgs, one empty), fetch_projects_with_total_root_transaction_count_and_rates
-        is called for BOTH measures, resulting in unnecessary Snuba queries.
+        Confirms that when partition_by_measure returns both measures
+        (one with orgs, one empty), only the measure with orgs results
+        in a Snuba query.
         """
         org = self.create_organization("test-org")
         self.create_project(organization=org)
@@ -426,16 +426,13 @@ class TestQueryProjectCountsByOrgEmptyOrgIds(BaseMetricsLayerTestCase, TestCase,
                         org_ids=org_ids, measure=measure
                     )
 
-            assert mock_query.call_count == 2
+            assert mock_query.call_count == 1
 
-    def test_confirms_both_measures_queried_per_batch(self) -> None:
+    def test_only_measures_with_orgs_are_queried_per_batch(self) -> None:
         """
-        This test simulates the main task loop behavior and confirms that
-        for each batch of orgs, BOTH measures result in Snuba queries,
-        even when the TRANSACTIONS measure has an empty org list.
-
-        This is the root cause of seeing equal query counts for both measures
-        in the metrics, despite only having orgs in one measure.
+        Simulates the main task loop behavior and confirms that
+        for each batch of orgs, only measures with non-empty org lists
+        result in Snuba queries.
         """
         org1 = self.create_organization("test-org1")
         org2 = self.create_organization("test-org2")
@@ -464,4 +461,4 @@ class TestQueryProjectCountsByOrgEmptyOrgIds(BaseMetricsLayerTestCase, TestCase,
                             org_ids=org_ids, measure=measure
                         )
 
-            assert mock_query.call_count == 4
+            assert mock_query.call_count == 2
