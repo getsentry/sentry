@@ -145,8 +145,16 @@ The task MUST NOT call `handle_result()` because that would re-trigger the queue
 
 ```
 Main Consumer: handle_result()
-  ├─> Load detector/subscription
-  ├─> Queue check (should_queue_for_retry?)
+  ├─> Get subscription (return if not found)
+  ├─> Build metric tags
+  ├─> Load subscription regions
+  ├─> Check DISALLOWED_BY_ROBOTS (disable detector, return)
+  ├─> Check shadow region (drop result, return)
+  ├─> Run region checks (probabilistic, ~1/hour)
+  ├─> Get detector with prefetch
+  ├─> Check detector enabled (return if not)
+  ├─> Check org has uptime feature (return if not)
+  ├─> Queue check (should_queue_for_retry?)  ← After all validation!
   │   └─> YES: queue_result_for_retry(), RETURN
   │   └─> NO: continue
   └─> _process_result_internal()
@@ -157,10 +165,17 @@ Main Consumer: handle_result()
         ├─> EAP production
         └─> Update last_update_ms
 
-FEEDBACK: I think some checks still need to happen before the queue check. Detector enabled, disallowed by robots, shadow mode, region checks, etc. See what makes sense
 Task: process_uptime_backlog()
+  ├─> Load subscription & detector (return if not found)
   └─> _process_result_internal()  ← Same logic, can validate and backfill
 ```
+
+**Why validation happens before queue check:**
+
+- Don't queue results for disabled detectors or missing subscriptions
+- Don't queue shadow region results (they're dropped)
+- Don't queue DISALLOWED_BY_ROBOTS results (detector gets disabled)
+- Ensures only valid, processable results enter the queue
 
 ## Critical Files to Modify
 
@@ -178,8 +193,9 @@ Task: process_uptime_backlog()
 - `uptime.backlog.cleared` - Counter, incremented when queue fully drained
 - `uptime.backlog.timeout` - Counter, incremented when giving up after max backoff
 - `uptime.backlog.circuit_breaker` - Counter, incremented when buffer reaches 10 items
-- `uptime.backlog.gap_detected` - Counter, incremented when task finds gap FEEDBACK: I'm pretty sure we already have a stat for the backfill
 - `uptime.backlog.rescheduling` - Counter, incremented when task reschedules
+
+**Note**: We already have `uptime.result_processer.num_missing_check` (distribution) that tracks backfill counts. No need for a separate gap detection metric - use the existing backfill metric to monitor if retry mechanism is reducing backfills.
 
 **Calculated metric (in dashboard):**
 
@@ -220,8 +236,8 @@ current_backlog_size = sum(uptime.backlog.added) - sum(uptime.backlog.removed)
 
 ## Success Metrics
 
-- **Reduction in false misses**: Compare backfill rate before/after
-- **Improved ordering**: Monitor `uptime.backlog.cleared` (successful gap fills)
+- **Reduction in false misses**: Compare `uptime.result_processer.num_missing_check` (existing metric) before/after rollout
+- **Improved ordering**: Monitor `uptime.backlog.cleared` (successful gap fills without timeout)
 - **Low timeout rate**: `uptime.backlog.timeout` should be <5% of `uptime.backlog.added`
 - **Circuit breaker rare**: `uptime.backlog.circuit_breaker` should be rare (<0.1%)
 - **Fast processing**: Average queue size (via delta metrics) should be 1-2 items
@@ -462,8 +478,9 @@ Task: process_uptime_backlog() ───────────┘
 - `uptime.backlog.cleared` - Queue fully drained (success!)
 - `uptime.backlog.timeout` - Gave up after max backoff
 - `uptime.backlog.circuit_breaker` - Buffer hit 10 items
-- `uptime.backlog.gap_detected` - Task found gap on retry
 - `uptime.backlog.rescheduling` - Task rescheduled
+
+**Existing Metric to Monitor**: `uptime.result_processer.num_missing_check` (distribution) tracks backfill counts. Compare before/after to measure effectiveness.
 
 ### Calculated Metrics (Dashboard)
 
@@ -505,7 +522,7 @@ timeout_rate = backlog.timeout / backlog.added
 
 ### Success Criteria
 
-- **50%+ reduction in backfill rate** during backlog periods
+- **50%+ reduction in backfill rate** during backlog periods (measured via `uptime.result_processer.num_missing_check`)
 - **<5% timeout rate** (most gaps fill before giving up)
 - **Average queue size 1-2 items** (fast clearing)
 - **Circuit breaker rare** (<0.1% of queued results)
