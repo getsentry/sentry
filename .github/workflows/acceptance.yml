@@ -41,7 +41,7 @@ jobs:
     env:
       # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
       MATRIX_INSTANCE_TOTAL: 5
-      TEST_GROUP_STRATEGY: roundrobin
+      TEST_GROUP_STRATEGY: class
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
