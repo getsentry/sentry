@@ -425,7 +425,11 @@ class DatabaseBackedAppService(AppService):
     ) -> RpcSentryAppComponent | None:
         from sentry.sentry_apps.models.sentry_app_installation import prepare_sentry_app_components
 
-        installation = SentryAppInstallation.objects.get(id=installation_id)
+        try:
+            installation = SentryAppInstallation.objects.get(id=installation_id)
+        except SentryAppInstallation.DoesNotExist:
+            # Installations are cached, so there is a chance that is has been deleted
+            return None
         component = prepare_sentry_app_components(installation, component_type, project_slug)
         return serialize_sentry_app_component(component) if component else None
 
