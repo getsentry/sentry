@@ -318,8 +318,6 @@ export function useChartXRangeSelection({
     if (!chartInstance) return;
 
     const handleInsideSelectionClick = (event: MouseEvent) => {
-      event.preventDefault();
-
       const [selectedMin, selectedMax] = selectionState.selection.range;
 
       const xMinPixel = chartInstance.convertToPixel({xAxisIndex: 0}, selectedMin);
