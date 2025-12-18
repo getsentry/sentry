@@ -1,6 +1,4 @@
 import {Entries123Base, Entries123Target} from 'sentry-fixture/entries';
-import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -13,9 +11,6 @@ jest.mock('sentry/utils/analytics');
 describe('IssueDiff', () => {
   const entries123Target = Entries123Target();
   const entries123Base = Entries123Base();
-  const api = new MockApiClient();
-  const organization = OrganizationFixture();
-  const project = ProjectFixture();
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
@@ -31,14 +26,14 @@ describe('IssueDiff', () => {
       },
     });
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/${project.slug}/events/123target/`,
+      url: '/issues/target/events/123target/',
       body: {
         entries: entries123Target,
       },
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/${project.slug}/events/123base/`,
+      url: '/issues/base/events/123base/',
       body: {
         platform: 'javascript',
         entries: entries123Base,
@@ -51,24 +46,7 @@ describe('IssueDiff', () => {
   });
 
   it('is loading when initially rendering', async () => {
-    render(
-      <IssueDiff
-        api={api}
-        baseIssueId="base"
-        targetIssueId="target"
-        orgId="org-slug"
-        project={project}
-        location={{
-          pathname: '',
-          query: {cursor: '0:1:1', statsPeriod: '14d'},
-          search: '',
-          hash: '',
-          state: null,
-          action: 'PUSH',
-          key: 'default',
-        }}
-      />
-    );
+    render(<IssueDiff baseIssueId="base" targetIssueId="target" />);
     expect(screen.queryByTestId('split-diff')).not.toBeInTheDocument();
     expect(await screen.findByTestId('split-diff')).toBeInTheDocument();
   });
@@ -76,22 +54,9 @@ describe('IssueDiff', () => {
   it('can dynamically import SplitDiff', async () => {
     render(
       <IssueDiff
-        api={api}
         baseIssueId="base"
         targetIssueId="target"
-        orgId="org-slug"
-        project={project}
-        organization={organization}
         shouldBeGrouped="Yes"
-        location={{
-          pathname: '',
-          query: {cursor: '0:1:1', statsPeriod: '14d'},
-          search: '',
-          hash: '',
-          state: null,
-          action: 'PUSH',
-          key: 'default',
-        }}
         hasSimilarityEmbeddingsProjectFeature
       />
     );
@@ -102,37 +67,20 @@ describe('IssueDiff', () => {
 
   it('can diff message', async () => {
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/${project.slug}/events/123target/`,
+      url: '/issues/target/events/123target/',
       body: {
         entries: [{type: 'message', data: {formatted: 'Hello World'}}],
       },
     });
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/${project.slug}/events/123base/`,
+      url: '/issues/base/events/123base/',
       body: {
         platform: 'javascript',
         entries: [{type: 'message', data: {formatted: 'Foo World'}}],
       },
     });
 
-    render(
-      <IssueDiff
-        api={api}
-        baseIssueId="base"
-        targetIssueId="target"
-        orgId="org-slug"
-        project={project}
-        location={{
-          pathname: '',
-          query: {cursor: '0:1:1', statsPeriod: '14d'},
-          search: '',
-          hash: '',
-          state: null,
-          action: 'PUSH',
-          key: 'default',
-        }}
-      />
-    );
+    render(<IssueDiff baseIssueId="base" targetIssueId="target" />);
 
     expect(await screen.findByTestId('split-diff')).toBeInTheDocument();
   });

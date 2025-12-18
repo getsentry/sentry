@@ -1,4 +1,5 @@
 import {css} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {debossedBackground} from 'sentry/components/core/chonk';
@@ -8,7 +9,6 @@ import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {FormSize, Theme} from 'sentry/utils/theme';
-import {chonkStyled} from 'sentry/utils/theme/theme';
 
 // We don't care about any options for the styles config
 export type StylesConfig = ReactSelectStylesConfig<any, boolean>;
@@ -96,7 +96,7 @@ export const getChonkStylesConfig = ({
     menu: provided => ({
       ...provided,
       zIndex: theme.zIndex.dropdown,
-      background: theme.backgroundElevated,
+      background: theme.tokens.background.primary,
       borderRadius: theme.radius.md,
       border: `1px solid ${theme.border}`,
       boxShadow: 'none',
@@ -271,7 +271,7 @@ export function ChonkDropdownIndicator(
   );
 }
 
-export const ChonkCheckWrap = chonkStyled('div')<{
+export const ChonkCheckWrap = styled('div')<{
   isMultiple: boolean;
   isSelected: boolean;
   size: FormSize;
@@ -287,7 +287,7 @@ export const ChonkCheckWrap = chonkStyled('div')<{
       ? css`
           padding: 1px;
           border: solid 1px ${p.theme.border};
-          background: ${p.theme.backgroundElevated};
+          background: ${p.theme.tokens.background.primary};
           border-radius: 2px;
           height: 1em;
           margin-top: 2px;

@@ -1,4 +1,5 @@
 import type {ReactNode} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button/linkButton';
@@ -28,6 +29,7 @@ import type {ProcessedInsight} from 'sentry/views/preprod/utils/insightProcessin
 import {
   formattedPrimaryMetricDownloadSize,
   formattedPrimaryMetricInstallSize,
+  formattedSizeDiff,
   getLabels,
   getTrend,
 } from 'sentry/views/preprod/utils/labelUtils';
@@ -81,6 +83,7 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
   } = props;
 
   const organization = useOrganization();
+  const theme = useTheme();
 
   if (!isSizeInfoCompleted(sizeInfo)) {
     return null;
@@ -197,7 +200,7 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
           }
         >
           <Stack gap="xs">
-            <Flex align="end" gap="sm" wrap="wrap">
+            <Flex align="center" gap="sm" wrap="wrap">
               <Heading as="h3">
                 {card.watchBreakdown ? (
                   <Tooltip
@@ -225,12 +228,19 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
                   return (
                     <LinkButton
                       to={card.comparisonUrl}
-                      size="xs"
+                      size="zero"
                       priority="link"
                       aria-label={t('Compare builds')}
                     >
                       <Flex align="center" gap="xs">
-                        {icon}
+                        <Flex
+                          as="span"
+                          display="inline-flex"
+                          align="center"
+                          style={{color: theme.tokens.content.primary}}
+                        >
+                          {icon}
+                        </Flex>
                         <Text
                           as="span"
                           variant={variant}
@@ -243,8 +253,7 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
                             fontWeight: 'normal',
                           }}
                         >
-                          {card.delta.diff > 0 ? '+' : card.delta.diff < 0 ? '-' : ''}
-                          {formatBytesBase10(Math.abs(card.delta.diff))}
+                          {formattedSizeDiff(card.delta.diff)}
                           {card.delta.percentageChange !== 0 && (
                             <Text
                               as="span"

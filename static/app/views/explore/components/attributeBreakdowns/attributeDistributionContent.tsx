@@ -4,6 +4,7 @@ import {useTheme} from '@emotion/react';
 import {Alert} from '@sentry/scraps/alert/alert';
 import {Flex} from '@sentry/scraps/layout';
 
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
@@ -19,6 +20,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import useAttributeBreakdowns from 'sentry/views/explore/hooks/useAttributeBreakdowns';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 
@@ -80,6 +82,8 @@ export function AttributeDistribution() {
         query: {
           ...cohortCountEventView.getEventsAPIPayload(location),
           per_page: 1,
+          disableAggregateExtrapolation: '1',
+          sampling: SAMPLING_MODE.NORMAL,
         },
       },
     ],
@@ -162,7 +166,7 @@ export function AttributeDistribution() {
           <AttributeBreakdownsComponent.FeedbackButton />
         </AttributeBreakdownsComponent.ControlsContainer>
         {isAttributeBreakdownsLoading || isCohortCountLoading ? (
-          <AttributeBreakdownsComponent.LoadingCharts />
+          <LoadingIndicator />
         ) : error ? (
           <AttributeBreakdownsComponent.ErrorState error={error} />
         ) : uniqueAttributeDistribution.length > 0 ? (

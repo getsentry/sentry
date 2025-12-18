@@ -2,12 +2,12 @@ import moment from 'moment-timezone';
 
 import type {PromptData} from 'sentry/actionCreators/prompts';
 import {IconBuilding, IconGroup, IconSeer, IconUser} from 'sentry/icons';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import type {IconSize} from 'sentry/utils/theme';
 
 import {
   BILLION,
@@ -40,11 +40,7 @@ import type {
   ProductTrial,
   Subscription,
 } from 'getsentry/types';
-import {
-  getCategoryInfoFromPlural,
-  isByteCategory,
-  isContinuousProfiling,
-} from 'getsentry/utils/dataCategory';
+import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 import titleCase from 'getsentry/utils/titleCase';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
@@ -156,7 +152,11 @@ export function formatReservedWithUnits(
   if (isReservedBudget) {
     return displayPriceWithCents({cents: reservedQuantity ?? 0});
   }
-  if (!isByteCategory(dataCategory)) {
+
+  const categoryInfo = getCategoryInfoFromPlural(dataCategory);
+  const unitType = categoryInfo?.formatting.unitType ?? 'count';
+
+  if (unitType !== 'bytes') {
     return formatReservedNumberToString(reservedQuantity, options);
   }
 
@@ -193,7 +193,10 @@ export function formatUsageWithUnits(
   dataCategory: DataCategory,
   options: FormatOptions = {isAbbreviated: false, useUnitScaling: false}
 ) {
-  if (isByteCategory(dataCategory)) {
+  const categoryInfo = getCategoryInfoFromPlural(dataCategory);
+  const unitType = categoryInfo?.formatting.unitType ?? 'count';
+
+  if (unitType === 'bytes') {
     if (options.useUnitScaling) {
       return formatByteUnits(usageQuantity);
     }
@@ -203,7 +206,7 @@ export function formatUsageWithUnits(
       ? `${displayNumber(usageGb)} GB`
       : `${usageGb.toLocaleString(undefined, {maximumFractionDigits: 2})} GB`;
   }
-  if (isContinuousProfiling(dataCategory)) {
+  if (unitType === 'durationHours') {
     const usageProfileHours = usageQuantity / MILLISECONDS_IN_HOUR;
     if (usageProfileHours === 0) {
       return '0';
@@ -221,10 +224,13 @@ export function convertUsageToReservedUnit(
   usage: number,
   category: DataCategory | string
 ): number {
-  if (isByteCategory(category)) {
+  const categoryInfo = getCategoryInfoFromPlural(category as DataCategory);
+  const unitType = categoryInfo?.formatting.unitType ?? 'count';
+
+  if (unitType === 'bytes') {
     return usage / GIGABYTE;
   }
-  if (isContinuousProfiling(category)) {
+  if (unitType === 'durationHours') {
     return usage / MILLISECONDS_IN_HOUR;
   }
   return usage;
@@ -595,7 +601,7 @@ export function getPlanIcon(plan: Plan) {
   return <IconUser />;
 }
 
-export function getProductIcon(product: AddOnCategory, size?: IconSize) {
+export function getProductIcon(product: AddOnCategory, size?: SVGIconProps['size']) {
   if ([AddOnCategory.LEGACY_SEER, AddOnCategory.SEER].includes(product)) {
     return <IconSeer size={size} />;
   }
@@ -634,10 +640,10 @@ export function hasBillingAccess(organization: Organization) {
 }
 
 export function hasAccessToSubscriptionOverview(
-  subscription: Subscription,
+  subscription: Subscription | null,
   organization: Organization
-) {
-  return hasBillingAccess(organization) || subscription.canSelfServe;
+): boolean {
+  return hasBillingAccess(organization) || Boolean(subscription?.canSelfServe);
 }
 
 /**
@@ -1056,5 +1062,36 @@ export function productIsEnabled(
     metricHistory.onDemandBudget > 0 ||
     (subscription.onDemandBudgets?.budgetMode === OnDemandBudgetMode.SHARED &&
       subscription.onDemandBudgets.sharedMaxBudget > 0)
+  );
+}
+
+/**
+ * Given a data category and potential metric history, returns a normalized metric history object.
+ *
+ * If the metric history is null or undefined, we return a default metric history object with all
+ * fields set to 0, null, or false.
+ */
+export function normalizeMetricHistory(
+  category: DataCategory,
+  metricHistory: BillingMetricHistory | null | undefined
+): BillingMetricHistory {
+  return (
+    metricHistory ?? {
+      category,
+      reserved: 0,
+      usage: 0,
+      prepaid: 0,
+      free: 0,
+      onDemandSpendUsed: 0,
+      onDemandBudget: 0,
+      onDemandQuantity: 0,
+      customPrice: null,
+      order: 0,
+      paygCpe: null,
+      sentUsageWarning: false,
+      softCapType: null,
+      trueForward: false,
+      usageExceeded: false,
+    }
   );
 }

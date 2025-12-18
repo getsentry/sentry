@@ -37,6 +37,7 @@ type TraceItemAttributeConfig = {
   enabled: boolean;
   traceItemType: TraceItemDataset;
   projects?: Project[];
+  query?: string;
   search?: string;
 };
 
@@ -50,12 +51,14 @@ export function TraceItemAttributeProvider({
   enabled,
   projects,
   search,
+  query,
 }: TraceItemAttributeProviderProps) {
   const typedAttributesResult = useTraceItemAttributeConfig({
     traceItemType,
     enabled,
     projects,
     search,
+    query,
   });
 
   return (
@@ -70,6 +73,7 @@ function useTraceItemAttributeConfig({
   enabled,
   projects,
   search,
+  query,
 }: TraceItemAttributeConfig) {
   const {attributes: numberAttributes, isLoading: numberAttributesLoading} =
     useTraceItemAttributeKeys({
@@ -78,6 +82,7 @@ function useTraceItemAttributeConfig({
       traceItemType,
       projects,
       search,
+      query,
     });
 
   const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
@@ -87,6 +92,7 @@ function useTraceItemAttributeConfig({
       traceItemType,
       projects,
       search,
+      query,
     });
 
   const allNumberAttributes = useMemo(() => {
@@ -124,14 +130,24 @@ function useTraceItemAttributeConfig({
     };
   }, [stringAttributes, traceItemType]);
 
-  return {
-    number: allNumberAttributes.attributes,
-    string: allStringAttributes.attributes,
-    numberSecondaryAliases: allNumberAttributes.secondaryAliases,
-    stringSecondaryAliases: allStringAttributes.secondaryAliases,
-    numberAttributesLoading,
-    stringAttributesLoading,
-  };
+  return useMemo(
+    () => ({
+      number: allNumberAttributes.attributes,
+      string: allStringAttributes.attributes,
+      numberSecondaryAliases: allNumberAttributes.secondaryAliases,
+      stringSecondaryAliases: allStringAttributes.secondaryAliases,
+      numberAttributesLoading,
+      stringAttributesLoading,
+    }),
+    [
+      allNumberAttributes.attributes,
+      allNumberAttributes.secondaryAliases,
+      allStringAttributes.attributes,
+      allStringAttributes.secondaryAliases,
+      numberAttributesLoading,
+      stringAttributesLoading,
+    ]
+  );
 }
 
 function processTraceItemAttributes(

@@ -1,3 +1,5 @@
+import {useEffect} from 'react';
+
 import {Alert} from '@sentry/scraps/alert/alert';
 import {LinkButton} from '@sentry/scraps/button/linkButton';
 import {Stack} from '@sentry/scraps/layout/stack';
@@ -7,9 +9,13 @@ import Feature from 'sentry/components/acl/feature';
 import {NoAccess} from 'sentry/components/noAccess';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
+import showNewSeer from 'sentry/utils/seer/showNewSeer';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
+import SeerWizardSetupBanner from 'getsentry/views/seerAutomation/components/seerWizardSetupBanner';
 import SettingsPageTabs from 'getsentry/views/seerAutomation/components/settingsPageTabs';
 import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
@@ -18,12 +24,31 @@ interface Props {
 }
 
 export default function SeerSettingsPageWrapper({children}: Props) {
+  const navigate = useNavigate();
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
 
+  useEffect(() => {
+    // If the org is on the old-seer plan then they shouldn't be here on this new settings page
+    // Or if we havn't launched the new seer yet.
+    // Then they need to see old settings page, or get downgraded off old seer.
+    if (!showNewSeer(organization)) {
+      navigate(normalizeUrl(`/organizations/${organization.slug}/settings/seer/`));
+      return;
+    }
+
+    // If the org is not on the seat-based seer plan, then they should be redirected to the trial page
+    if (!organization.features.includes('seat-based-seer-enabled')) {
+      navigate(normalizeUrl(`/organizations/${organization.slug}/settings/seer/trial/`));
+      return;
+    }
+
+    // Else you do have the new seer plan, then stay here and edit some settings.
+  }, [navigate, organization.features, organization.slug, organization]);
+
   return (
     <Feature
-      features={['seer-settings-gtm']}
+      features={['seat-based-seer-enabled']}
       organization={organization}
       renderDisabled={NoAccess}
     >
@@ -52,6 +77,8 @@ export default function SeerSettingsPageWrapper({children}: Props) {
       />
 
       <Stack gap="lg">
+        <SeerWizardSetupBanner />
+
         <SettingsPageTabs />
 
         {canWrite ? null : (

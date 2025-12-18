@@ -73,6 +73,7 @@ export const PAGE_CHART_OPTIONS: Record<
   backend: [],
   'ai-agents': [],
   mcp: [],
+  conversations: [],
 };
 
 export const DEFAULT_LAYOUTS: Record<
@@ -100,4 +101,5 @@ export const DEFAULT_LAYOUTS: Record<
   backend: [],
   'ai-agents': [],
   mcp: [],
+  conversations: [],
 };

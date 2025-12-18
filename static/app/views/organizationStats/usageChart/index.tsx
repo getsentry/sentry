@@ -19,7 +19,6 @@ import type {DataCategory, IntervalPeriod, SelectValue} from 'sentry/types/core'
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import type {Theme} from 'sentry/utils/theme';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 import {formatUsageWithUnits} from 'sentry/views/organizationStats/utils';
 
 import {getTooltipFormatter, getXAxisDates, getXAxisLabelVisibility} from './utils';
@@ -267,16 +266,7 @@ function chartMetadata({
 }
 
 const outputChartColors = (theme: Theme) => {
-  return isChonkTheme(theme)
-    ? theme.chart.getColorPalette(5)
-    : ([
-        theme.chart.colors[5][0],
-        theme.chart.colors[5][2],
-        theme.chart.colors[5][3],
-        theme.chart.colors[5][4],
-        theme.chart.colors[5][5],
-        theme.chartOther, // Projected
-      ] as const);
+  return theme.chart.getColorPalette(5);
 };
 
 function UsageChartBody({
@@ -478,7 +468,7 @@ function UsageChartBody({
         minInterval: yAxisMinInterval,
         axisLabel: {
           formatter: yAxisLabelFormatter,
-          color: theme.chartLabel,
+          color: theme.tokens.content.muted,
         },
       }}
       series={series}
