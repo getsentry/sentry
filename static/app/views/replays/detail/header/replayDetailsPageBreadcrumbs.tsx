@@ -164,7 +164,7 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
                 size="zero"
                 borderless
                 style={isHovered ? {} : {visibility: 'hidden'}}
-                icon={<IconCopy size="xs" color="subText" />}
+                icon={<IconCopy size="xs" variant="muted" />}
               />
             </Tooltip>
           </Flex>

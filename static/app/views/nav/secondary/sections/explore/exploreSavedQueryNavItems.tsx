@@ -100,7 +100,7 @@ export function ExploreSavedQueryNavItems({queries}: Props) {
                   }}
                 >
                   <StyledInteractionStateLayer isPressed={isDragging === query.id} />
-                  <IconGrabbable color="gray300" />
+                  <IconGrabbable variant="muted" />
                 </GrabHandleWrapper>
                 <ProjectIcon
                   projectPlatforms={projects

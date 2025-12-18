@@ -186,7 +186,7 @@ function TeamIssuesBreakdown({
                   .map(action => action.replace('ignore', 'archive'))
                   .map(action => <AlignRight key={action}>{action}</AlignRight>),
                 <AlignRight key="total">
-                  {t('total')} <IconArrow direction="down" size="xs" color="gray300" />
+                  {t('total')} <IconArrow direction="down" size="xs" variant="muted" />
                 </AlignRight>,
               ]}
               isLoading={isPending}

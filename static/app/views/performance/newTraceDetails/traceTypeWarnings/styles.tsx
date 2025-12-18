@@ -70,7 +70,7 @@ function Banner(props: BannerProps) {
         triggerProps={{
           showChevron: false,
           borderless: true,
-          icon: <IconClose color="subText" />,
+          icon: <IconClose variant="muted" />,
         }}
         size="xs"
         items={[

@@ -108,7 +108,7 @@ function ProjectBaseSessionsChart({
                       if (errored) {
                         return (
                           <ErrorPanel>
-                            <IconWarning color="gray300" size="lg" />
+                            <IconWarning variant="muted" size="lg" />
                           </ErrorPanel>
                         );
                       }

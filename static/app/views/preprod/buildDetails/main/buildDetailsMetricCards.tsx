@@ -183,7 +183,7 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
           action={
             card.showInsightsButton
               ? {
-                  icon: <IconSettings size="sm" color="white" />,
+                  icon: <IconSettings size="sm" variant="primary" />,
                   tooltip: t('View insight details'),
                   ariaLabel: t('View insight details'),
                   onClick: () => {

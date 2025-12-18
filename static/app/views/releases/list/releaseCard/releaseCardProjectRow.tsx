@@ -52,14 +52,14 @@ function getCrashFreeIcon(
   iconSize: SVGIconProps['size'] = 'sm'
 ) {
   if (crashFreePercent < CRASH_FREE_DANGER_THRESHOLD) {
-    return <IconFire color="errorText" size={iconSize} />;
+    return <IconFire variant="danger" size={iconSize} />;
   }
 
   if (crashFreePercent < CRASH_FREE_WARNING_THRESHOLD) {
-    return <IconWarning color="warningText" size={iconSize} />;
+    return <IconWarning variant="warning" size={iconSize} />;
   }
 
-  return <IconCheckmark color="successText" size={iconSize} />;
+  return <IconCheckmark variant="success" size={iconSize} />;
 }
 
 type Props = {

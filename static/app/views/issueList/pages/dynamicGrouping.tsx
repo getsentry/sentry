@@ -481,7 +481,7 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
           {cluster.fixability_score !== null &&
             cluster.fixability_score !== undefined && (
               <StatItem>
-                <IconFix size="xs" color="gray300" />
+                <IconFix size="xs" variant="muted" />
                 <Text size="xs">
                   <Text size="xs" bold as="span">
                     {Math.round(cluster.fixability_score * 100)}%
@@ -491,7 +491,7 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
               </StatItem>
             )}
           <StatItem>
-            <IconFire size="xs" color="gray300" />
+            <IconFire size="xs" variant="muted" />
             {clusterStats.isPending ? (
               <Text size="xs" variant="muted">
                 –
@@ -506,7 +506,7 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
             )}
           </StatItem>
           <StatItem>
-            <IconUser size="xs" color="gray300" />
+            <IconUser size="xs" variant="muted" />
             {clusterStats.isPending ? (
               <Text size="xs" variant="muted">
                 –
@@ -522,7 +522,7 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
           </StatItem>
           {!clusterStats.isPending && clusterStats.lastSeen && (
             <StatItem>
-              <IconClock size="xs" color="gray300" />
+              <IconClock size="xs" variant="muted" />
               <TimeSince
                 tooltipPrefix={t('Last Seen')}
                 date={clusterStats.lastSeen}
@@ -533,7 +533,7 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
           )}
           {!clusterStats.isPending && clusterStats.firstSeen && (
             <StatItem>
-              <IconCalendar size="xs" color="gray300" />
+              <IconCalendar size="xs" variant="muted" />
               <TimeSince
                 tooltipPrefix={t('First Seen')}
                 date={clusterStats.firstSeen}

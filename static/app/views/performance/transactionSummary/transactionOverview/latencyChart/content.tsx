@@ -203,7 +203,7 @@ function Content({
             if (error) {
               return (
                 <ErrorPanel>
-                  <IconWarning color="gray300" size="lg" />
+                  <IconWarning variant="muted" size="lg" />
                 </ErrorPanel>
               );
             }

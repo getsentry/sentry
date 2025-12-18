@@ -150,13 +150,13 @@ function ChapterRow({
             isOpen || isHovered ? (
               <ChapterIconArrow direction="right" size="xs" color="red300" />
             ) : (
-              <IconFire size="xs" color="red300" />
+              <IconFire size="xs" variant="danger" />
             )
           ) : isFeedback ? (
             isOpen || isHovered ? (
               <ChapterIconArrow direction="right" size="xs" color="pink300" />
             ) : (
-              <IconMegaphone size="xs" color="pink300" />
+              <IconMegaphone size="xs" variant="promotion" />
             )
           ) : (
             <ChapterIconArrow direction="right" size="xs" />
