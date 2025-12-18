@@ -1,7 +1,12 @@
+import {useCallback} from 'react';
+
+import {Button} from 'sentry/components/core/button';
 import {getContextKeys} from 'sentry/components/events/contexts/utils';
+import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {KeyValueListData} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
 enum UserContextKeys {
   ID = 'id',
@@ -104,6 +109,9 @@ export function getUserContextData({
                     ? `mailto:${data.email}`
                     : undefined,
               },
+              actionButton: defined(data.email) ? (
+                <CopyEmailButton email={data.email} />
+              ) : undefined,
             };
           case UserContextKeys.GEO:
             return {
@@ -123,5 +131,29 @@ export function getUserContextData({
       // Since user context is generated separately from the rest, it has all known keys with those
       // unset appearing as `null`. We want to omit those unless they have annotations.
       .filter(item => defined(item.value) || defined(meta?.[item.key]))
+  );
+}
+
+function CopyEmailButton({email}: {email: string}) {
+  const {copy} = useCopyToClipboard();
+
+  const handleCopy = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      copy(email, {successMessage: t('Email copied to clipboard')});
+    },
+    [copy, email]
+  );
+
+  return (
+    <Button
+      aria-label={t('Copy email to clipboard')}
+      title={t('Copy email to clipboard')}
+      borderless
+      size="zero"
+      icon={<IconCopy size="xs" />}
+      onClick={handleCopy}
+    />
   );
 }

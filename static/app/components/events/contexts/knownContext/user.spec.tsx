@@ -1,6 +1,6 @@
 import {EventFixture} from 'sentry-fixture/event';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ContextCard from 'sentry/components/events/contexts/contextCard';
 import {
@@ -36,7 +36,19 @@ const MOCK_REDACTION = {
 
 describe('UserContext', () => {
   it('returns values and according to the parameters', () => {
-    expect(getUserContextData({data: MOCK_USER_CONTEXT})).toEqual([
+    const result = getUserContextData({data: MOCK_USER_CONTEXT});
+    
+    // Extract the actionButton from the email item for comparison
+    const emailItem = result.find(item => item.key === 'email');
+    const {actionButton, ...emailItemWithoutButton} = emailItem || {};
+    
+    expect(result.map(item => {
+      if (item.key === 'email') {
+        const {actionButton: _, ...rest} = item;
+        return rest;
+      }
+      return item;
+    })).toEqual([
       {
         key: 'email',
         subject: 'Email',
@@ -65,6 +77,9 @@ describe('UserContext', () => {
         meta: undefined,
       },
     ]);
+    
+    // Verify actionButton exists for email
+    expect(actionButton).toBeDefined();
   });
 
   it('renders with meta annotations correctly', () => {
@@ -89,5 +104,28 @@ describe('UserContext', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Name')).toBeInTheDocument();
     expect(screen.getByText(/redacted/)).toBeInTheDocument();
+  });
+
+  it('allows copying email to clipboard', async () => {
+    const mockCopy = jest.fn().mockResolvedValue('');
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: mockCopy,
+      },
+    });
+
+    const event = EventFixture();
+    render(
+      <ContextCard
+        event={event}
+        type="default"
+        alias="user"
+        value={MOCK_USER_CONTEXT}
+      />
+    );
+
+    const copyButton = screen.getByRole('button', {name: 'Copy email to clipboard'});
+    await userEvent.click(copyButton);
+    expect(mockCopy).toHaveBeenCalledWith('leander.rodrigues@sentry.io');
   });
 });
