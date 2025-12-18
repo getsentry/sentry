@@ -242,6 +242,15 @@ def detect_llm_issues_for_project(project_id: int) -> None:
         if processed_traces >= NUM_TRANSACTIONS_TO_PROCESS:
             break
 
+        logger.info(
+            "Sending Seer Request for Detection",
+            extra={
+                "trace_id": trace.trace_id,
+                "transaction_name": trace.transaction_name,
+                "organization_id": organization_id,
+                "project_id": project_id,
+            },
+        )
         seer_request = IssueDetectionRequest(
             traces=[trace],
             organization_id=organization_id,
