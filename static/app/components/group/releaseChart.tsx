@@ -85,7 +85,7 @@ export function getGroupReleaseChartMarkers(
       name: t('Last seen'),
       value: lastSeenX,
       displayValue: lastSeenX,
-      color: theme.green300,
+      color: theme.colors.green400,
     });
   }
 

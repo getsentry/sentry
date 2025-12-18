@@ -2038,7 +2038,7 @@ const ListItemTitle = styled('p')<{status: 'none' | 'checked' | 'alert' | 'quest
     ({
       none: p.theme.subText,
       question: p.theme.subText,
-      checked: p.theme.green300,
+      checked: p.theme.colors.green400,
       alert: p.theme.yellow400,
     })[p.status]};
 `;

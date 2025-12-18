@@ -190,9 +190,9 @@ export function initSessionsChart(theme: Theme) {
     [SessionStatus.HEALTHY]: {
       seriesName: sessionTerm.healthy,
       data: [],
-      color: theme.green300,
+      color: theme.colors.green400,
       areaStyle: {
-        color: theme.green300,
+        color: theme.colors.green400,
         opacity: 1,
       },
       lineStyle: {

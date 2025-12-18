@@ -150,7 +150,7 @@ const Before = styled('span')`
 `;
 
 const After = styled('span')`
-  color: ${p => p.theme.green300};
+  color: ${p => p.theme.colors.green400};
   font-weight: bold;
 `;
 

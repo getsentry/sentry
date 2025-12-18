@@ -611,7 +611,7 @@ const PositiveLabel = styled(
     </div>
   )
 )`
-  color: ${p => p.theme.green400};
+  color: ${p => p.theme.colors.green500};
   align-items: center;
   display: flex;
   font-weight: ${p => p.theme.fontWeight.bold};

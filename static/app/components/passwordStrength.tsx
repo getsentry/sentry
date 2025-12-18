@@ -37,8 +37,8 @@ export function PasswordStrength(props: Props) {
     theme.red300,
     theme.red300,
     theme.yellow300,
-    theme.green300,
-    theme.green300,
+    theme.colors.green400,
+    theme.colors.green400,
   ];
   const labels = props.labels ?? [
     'Very Weak',

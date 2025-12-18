@@ -693,7 +693,7 @@ const ResolvedWrapper = styled('div')`
   display: flex;
   gap: ${space(1.5)};
   align-items: center;
-  color: ${p => p.theme.green400};
+  color: ${p => p.theme.colors.green500};
   font-weight: bold;
   font-size: ${p => p.theme.fontSize.lg};
 `;
@@ -706,6 +706,6 @@ const ResolvedActionWapper = styled('div')`
 
 const ReasonBanner = styled('div')`
   font-weight: normal;
-  color: ${p => p.theme.green400};
+  color: ${p => p.theme.colors.green500};
   font-size: ${p => p.theme.fontSize.sm};
 `;

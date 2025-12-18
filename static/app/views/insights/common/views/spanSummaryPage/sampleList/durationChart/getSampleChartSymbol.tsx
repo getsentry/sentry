@@ -27,6 +27,6 @@ export function getSampleChartSymbol(
       }
     : {
         symbol: downwardPlayIconPath,
-        color: theme.green300,
+        color: theme.colors.green400,
       };
 }

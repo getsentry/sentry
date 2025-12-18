@@ -36,7 +36,7 @@ export function ThresholdsHoverWrapper({children, thresholds, type}: Props) {
         <BodyWrapper>
           <ContextTitle>{title}</ContextTitle>
           <Row>
-            <StyledIndicator color={theme.green300} size={10} />
+            <StyledIndicator color={theme.colors.green400} size={10} />
             <span>0 - {maxOneValue}</span>
           </Row>
           <Row>

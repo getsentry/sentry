@@ -188,7 +188,7 @@ function getIndicatorColor({
     investigating: theme.red200,
     identified: theme.blue200,
     monitoring: theme.yellow200,
-    resolved: theme.green200,
+    resolved: theme.colors.green200,
   };
   return indicatorColor[status];
 }
