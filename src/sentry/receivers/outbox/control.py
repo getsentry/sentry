@@ -26,6 +26,7 @@ from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.hook.service import hook_service
 from sentry.sentry_apps.tasks.sentry_apps import clear_region_cache
+from sentry.users.models.identity import Identity
 from sentry.workflow_engine.service.action.service import action_service
 
 logger = logging.getLogger(__name__)
@@ -40,6 +41,15 @@ def process_integration_updates(object_identifier: int, region_name: str, **kwds
     ) is None:
         return
     integration  # Currently we do not sync any other integration changes, but if we did, you can use this variable.
+
+
+@receiver(process_control_outbox, sender=OutboxCategory.IDENTITY_UPDATE)
+def process_identity_updates(object_identifier: int, region_name: str, **kwds: Any):
+    if (
+        identity := maybe_process_tombstone(Identity, object_identifier, region_name=region_name)
+    ) is None:
+        return
+    identity.delete()
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.SENTRY_APP_UPDATE)
