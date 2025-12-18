@@ -4,6 +4,7 @@ import {useTheme} from '@emotion/react';
 import {Alert} from '@sentry/scraps/alert/alert';
 import {Flex} from '@sentry/scraps/layout';
 
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
@@ -165,7 +166,7 @@ export function AttributeDistribution() {
           <AttributeBreakdownsComponent.FeedbackButton />
         </AttributeBreakdownsComponent.ControlsContainer>
         {isAttributeBreakdownsLoading || isCohortCountLoading ? (
-          <AttributeBreakdownsComponent.LoadingCharts />
+          <LoadingIndicator />
         ) : error ? (
           <AttributeBreakdownsComponent.ErrorState error={error} />
         ) : uniqueAttributeDistribution.length > 0 ? (

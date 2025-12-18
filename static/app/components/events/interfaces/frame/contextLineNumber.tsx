@@ -68,7 +68,7 @@ const Wrapper = styled('div')`
   }
 
   &.covered .line-number {
-    background: ${p => p.theme.green100};
+    background: ${p => p.theme.colors.green100};
     border-right: 3px solid ${p => p.theme.tokens.border.success};
   }
 
@@ -93,7 +93,7 @@ const Wrapper = styled('div')`
 
   &.active.covered .line-number {
     mix-blend-mode: screen;
-    background: ${p => p.theme.green200};
+    background: ${p => p.theme.colors.green200};
   }
 
   &.active.uncovered .line-number {

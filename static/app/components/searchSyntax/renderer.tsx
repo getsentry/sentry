@@ -381,7 +381,7 @@ const FreeText = styled('span')`
 
 const Unit = styled('span')`
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.green400};
+  color: ${p => p.theme.colors.green500};
 `;
 
 const LogicBoolean = styled('span')<{invalid: boolean}>`
@@ -395,7 +395,7 @@ const Boolean = styled('span')`
 `;
 
 const DateTime = styled('span')`
-  color: ${p => p.theme.green400};
+  color: ${p => p.theme.colors.green500};
 `;
 
 const ListComma = styled('span')`

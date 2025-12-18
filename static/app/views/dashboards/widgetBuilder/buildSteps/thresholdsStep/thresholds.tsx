@@ -110,7 +110,7 @@ export function Thresholds({
         'aria-label': 'First Maximum',
         error: errors?.max1,
       },
-      color: theme.green300,
+      color: theme.colors.green400,
       unitOptions,
       unitSelectProps: {
         name: 'First unit select',

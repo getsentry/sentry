@@ -1,3 +1,5 @@
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import TeamKeyTransaction from 'sentry/components/performance/teamKeyTransaction';
@@ -54,7 +56,7 @@ function TeamKeyTransactionField({
               : null
           }
         >
-          <Button
+          <SelectTrigger.IconButton
             {...triggerProps}
             disabled={disabled}
             borderless

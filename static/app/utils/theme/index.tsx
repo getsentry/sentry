@@ -2,7 +2,7 @@ export type {
   Color,
   ColorOrAlias,
   FormSize,
-  IconSize,
+  Size,
   StrictCSSObject,
   SentryTheme as Theme,
 } from './theme';
