@@ -1,6 +1,6 @@
 from django.db.models import Q
 from django.db.models.query import EmptyQuerySet
-from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.exceptions import AuthenticationFailed, ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -86,7 +86,13 @@ class ProjectIndexEndpoint(Endpoint):
                 elif key == "dsn":
                     queryset = queryset.filter(key_set__public_key__in=value)
                 elif key == "id":
-                    queryset = queryset.filter(id__in=value)
+                    valid_ids = []
+                    for v in value:
+                        try:
+                            valid_ids.append(int(v))
+                        except (ValueError, TypeError):
+                            raise ParseError(detail=f"Invalid project ID: {v}")
+                    queryset = queryset.filter(id__in=valid_ids)
                 else:
                     queryset = queryset.none()
 

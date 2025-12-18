@@ -19,6 +19,14 @@ class SentryAppInstallationExternalIssueDetailsEndpoint(ExternalIssueBaseEndpoin
 
     def delete(self, request: Request, installation, external_issue_id) -> Response:
         try:
+            external_issue_id = int(external_issue_id)
+        except (ValueError, TypeError):
+            raise SentryAppError(
+                message="Invalid external_issue_id format. Expected numeric value.",
+                status_code=400,
+            )
+
+        try:
             platform_external_issue = PlatformExternalIssue.objects.get(
                 id=external_issue_id,
                 project__organization_id=installation.organization_id,

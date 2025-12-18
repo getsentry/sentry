@@ -63,3 +63,16 @@ class UserListTest(APITestCase):
 
         response = self.get_success_response(qs_params={"query": "permission:foobar"})
         assert len(response.data) == 0
+
+    def test_id_query_with_invalid_values(self) -> None:
+        self.get_error_response(qs_params={"query": "id:"}, status_code=400)
+        self.get_error_response(qs_params={"query": "id:invalid-text"}, status_code=400)
+        self.get_error_response(
+            qs_params={"query": f"id:{self.superuser.id} id:invalid"}, status_code=400
+        )
+
+    def test_id_query_with_me(self) -> None:
+        """Test that 'me' special value still works"""
+        response = self.get_success_response(qs_params={"query": "id:me"})
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.superuser.id)
