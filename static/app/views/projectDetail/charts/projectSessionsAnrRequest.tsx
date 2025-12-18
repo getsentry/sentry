@@ -159,8 +159,8 @@ function ProjectSessionsAnrRequest({
                 data: filteredResponse.intervals
                   .slice(shouldFetchWithPrevious ? dataMiddleIndex : 0)
                   .map(interval => [interval, BAD_BEHAVIOUR_THRESHOLD]),
-                lineStyle: {color: theme.red200, width: 2, type: 'dotted'},
-                itemStyle: {color: theme.red200},
+                lineStyle: {color: theme.colors.red200, width: 2, type: 'dotted'},
+                itemStyle: {color: theme.colors.red200},
                 animation: false,
                 stack: 'bad_behaviour_threshold',
               }),
@@ -202,7 +202,7 @@ function ProjectSessionsAnrRequest({
     queryParams.end,
     queryParams.start,
     shouldFetchWithPrevious,
-    theme.red200,
+    theme.colors.red200,
     yAxis,
   ]);
 

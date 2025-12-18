@@ -23,8 +23,8 @@ enum ExampleStatus {
 
 const statusStyle: TickStyle<ExampleStatus> = theme => ({
   [ExampleStatus.ERROR]: {
-    labelColor: theme.red400,
-    tickColor: theme.red300,
+    labelColor: theme.colors.red500,
+    tickColor: theme.colors.red400,
   },
   [ExampleStatus.TIMEOUT]: {
     labelColor: theme.colors.yellow500,

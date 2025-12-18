@@ -88,7 +88,7 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
   }
 
   const plottables = failureRateSeriesData.timeSeries.map(
-    ts => new Line(ts, {color: theme.red300})
+    ts => new Line(ts, {color: theme.colors.red400})
   );
 
   return (

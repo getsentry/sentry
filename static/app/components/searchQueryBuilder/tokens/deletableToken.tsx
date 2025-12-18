@@ -131,7 +131,7 @@ const Wrapper = styled('div')`
   }
 
   &[aria-invalid='true'] {
-    color: ${p => p.theme.red400};
+    color: ${p => p.theme.colors.red500};
   }
 
   /* Need to hide visually but keep focusable */
@@ -139,7 +139,7 @@ const Wrapper = styled('div')`
     color: ${p => p.theme.subText};
 
     &[aria-invalid='true'] {
-      color: ${p => p.theme.red400};
+      color: ${p => p.theme.colors.red500};
     }
 
     ${FloatingCloseButton} {

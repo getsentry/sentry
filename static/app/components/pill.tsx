@@ -61,8 +61,8 @@ const getPillStyle = ({type, theme}: {theme: Theme; type?: PillType}) => {
   switch (type) {
     case 'error':
       return css`
-        background: ${theme.red100};
-        border: 1px solid ${theme.red300};
+        background: ${theme.colors.red100};
+        border: 1px solid ${theme.colors.red400};
       `;
     default:
       return css`
@@ -82,14 +82,14 @@ const getPillValueStyle = ({type, theme}: {theme: Theme; type?: PillType}) => {
       `;
     case 'error':
       return css`
-        background: ${theme.red100};
-        border: 1px solid ${theme.red300};
+        background: ${theme.colors.red100};
+        border: 1px solid ${theme.colors.red400};
         margin: -1px;
       `;
     case 'negative':
       return css`
-        background: ${theme.red100};
-        border: 1px solid ${theme.red300};
+        background: ${theme.colors.red100};
+        border: 1px solid ${theme.colors.red400};
         font-family: ${theme.text.familyMono};
         margin: -1px;
       `;

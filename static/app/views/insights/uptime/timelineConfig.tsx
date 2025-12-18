@@ -43,13 +43,13 @@ export const tickStyle: TickStyle<CheckStatus> = theme => ({
     tickColor: theme.colors.green400,
   },
   [CheckStatus.FAILURE]: {
-    labelColor: theme.red400,
-    tickColor: theme.red300,
-    hatchTick: theme.red200,
+    labelColor: theme.colors.red500,
+    tickColor: theme.colors.red400,
+    hatchTick: theme.colors.red200,
   },
   [CheckStatus.FAILURE_INCIDENT]: {
-    labelColor: theme.red400,
-    tickColor: theme.red300,
+    labelColor: theme.colors.red500,
+    tickColor: theme.colors.red400,
   },
   [CheckStatus.MISSED_WINDOW]: {
     labelColor: theme.gray400,

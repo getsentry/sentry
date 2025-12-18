@@ -62,13 +62,13 @@ export const statusToText: Record<CheckInStatus, string> = {
 
 export const tickStyle: TickStyle<CheckInStatus> = theme => ({
   [CheckInStatus.ERROR]: {
-    labelColor: theme.red400,
-    tickColor: theme.red300,
+    labelColor: theme.colors.red500,
+    tickColor: theme.colors.red400,
   },
   [CheckInStatus.TIMEOUT]: {
-    labelColor: theme.red400,
-    tickColor: theme.red300,
-    hatchTick: theme.red200,
+    labelColor: theme.colors.red500,
+    tickColor: theme.colors.red400,
+    hatchTick: theme.colors.red200,
   },
   [CheckInStatus.OK]: {
     labelColor: theme.colors.green500,

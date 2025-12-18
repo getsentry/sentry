@@ -457,7 +457,7 @@ const ResponseDot = styled('div')<{
       case 'success':
         return p.theme.colors.green500;
       case 'failure':
-        return p.theme.red400;
+        return p.theme.colors.red500;
       case 'mixed':
         return p.theme.colors.yellow500;
       default:

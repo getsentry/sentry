@@ -123,8 +123,8 @@ const LineNumberWrapper = styled('div')<{
     }
     if (p.coverage === 'M') {
       return css`
-        ${generatePseudoElement({background: p.theme.red100})}
-        border-right: ${space(0.25)} solid ${p.theme.red300};
+        ${generatePseudoElement({background: p.theme.colors.red100})}
+        border-right: ${space(0.25)} solid ${p.theme.colors.red400};
       `;
     }
     if (p.coverage === 'P') {

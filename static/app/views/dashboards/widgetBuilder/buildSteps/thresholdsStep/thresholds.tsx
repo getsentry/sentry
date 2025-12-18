@@ -150,7 +150,7 @@ export function Thresholds({
         placeholder: t('No max'),
         'aria-label': 'Third Maximum',
       },
-      color: theme.red300,
+      color: theme.colors.red400,
       unitOptions,
       unitSelectProps: {
         name: 'Third unit select',

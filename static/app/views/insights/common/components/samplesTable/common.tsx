@@ -44,6 +44,6 @@ const ComparisonLabel = styled('span')<{value: number}>`
       ? p.theme.subText
       : p.value < 0
         ? p.theme.colors.green500
-        : p.theme.red400};
+        : p.theme.colors.red500};
   text-align: right;
 `;

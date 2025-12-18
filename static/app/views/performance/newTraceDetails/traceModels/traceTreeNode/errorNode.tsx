@@ -94,12 +94,12 @@ export class ErrorNode extends BaseNode<TraceTree.TraceErrorIssue> {
   makeBarColor(theme: Theme): string {
     // Theme defines this as orange, yet everywhere in our product we show red for errors
     if (this.value.level === 'error' || this.value.level === 'fatal') {
-      return theme.red300;
+      return theme.colors.red400;
     }
     if (this.value.level) {
-      return theme.level[this.value.level] ?? theme.red300;
+      return theme.level[this.value.level] ?? theme.colors.red400;
     }
-    return theme.red300;
+    return theme.colors.red400;
   }
 
   resolveValueFromSearchKey(_key: string): any | null {

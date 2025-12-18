@@ -34,8 +34,8 @@ type Props = {
 export function PasswordStrength(props: Props) {
   const theme = useTheme();
   const colors = props.colors ?? [
-    theme.red300,
-    theme.red300,
+    theme.colors.red400,
+    theme.colors.red400,
     theme.colors.yellow400,
     theme.colors.green400,
     theme.colors.green400,
