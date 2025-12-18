@@ -302,23 +302,45 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         )
         assert response.status_code == 403
 
-        # Rejects other org's project in projectRepoMappings
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_set_project_preferences"
+    )
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
+    )
+    def test_post_ignores_repo_mappings_not_in_project_ids(
+        self, mock_bulk_get_preferences, mock_bulk_set_preferences
+    ):
+        project1 = self.create_project(organization=self.organization)
+        project2 = self.create_project(organization=self.organization)
+
+        mock_bulk_get_preferences.return_value = {}
+
         repo_data = {
             "provider": "github",
             "owner": "test-org",
             "name": "test-repo",
             "externalId": "12345",
         }
+
         response = self.client.post(
             self.url,
             {
-                "projectIds": [project.id],
+                "projectIds": [project1.id],
                 "projectRepoMappings": {
-                    str(other_project.id): [repo_data],
+                    str(project1.id): [repo_data],
+                    str(project2.id): [repo_data],
                 },
             },
         )
-        assert response.status_code == 403
+        assert response.status_code == 204
+
+        mock_bulk_set_preferences.assert_called_once()
+        call_args = mock_bulk_set_preferences.call_args
+        preferences = call_args[0][1]
+
+        assert len(preferences) == 1
+        assert preferences[0]["project_id"] == project1.id
 
     @patch(
         "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_set_project_preferences"

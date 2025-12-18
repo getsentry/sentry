@@ -161,36 +161,26 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
         automated_run_stopping_point = serializer.validated_data.get("automatedRunStoppingPoint")
         project_repo_mappings = serializer.validated_data.get("projectRepoMappings")
 
-        all_project_ids = set(project_ids)
-        if project_repo_mappings:
-            all_project_ids.update(project_repo_mappings.keys())
-
-        projects = self.get_projects(request, organization, project_ids=all_project_ids)
+        projects = self.get_projects(request, organization, project_ids=project_ids)
         projects_by_id = {project.id: project for project in projects}
 
-        validated_project_ids = set(projects_by_id.keys())
-        validated_project_ids_for_settings = project_ids & validated_project_ids
-        validated_project_ids_for_repos = (
-            set(project_repo_mappings.keys()) & validated_project_ids
-            if project_repo_mappings
-            else set()
-        )
+        # Filter projectRepoMappings to only include validated project IDs
+        filtered_repo_mappings: dict[int, list] = {}
+        if project_repo_mappings:
+            filtered_repo_mappings = {
+                proj_id: repos
+                for proj_id, repos in project_repo_mappings.items()
+                if proj_id in projects_by_id
+            }
 
         preferences_to_set: list[dict[str, Any]] = []
-        project_ids_needing_preferences: set[int] = set()
 
-        if automated_run_stopping_point:
-            project_ids_needing_preferences.update(validated_project_ids_for_settings)
-        if project_repo_mappings:
-            project_ids_needing_preferences.update(validated_project_ids_for_repos)
-
-        if project_ids_needing_preferences:
+        if automated_run_stopping_point or filtered_repo_mappings:
             existing_preferences = bulk_get_project_preferences(
-                organization.id, list(project_ids_needing_preferences)
+                organization.id, list(projects_by_id.keys())
             )
 
-            for proj_id in project_ids_needing_preferences:
-                project = projects_by_id[proj_id]
+            for proj_id, project in projects_by_id.items():
                 project_id_str = str(proj_id)
                 existing_pref = existing_preferences.get(project_id_str, {})
 
@@ -201,11 +191,11 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
                     "project_id": proj_id,
                 }
 
-                if automated_run_stopping_point and proj_id in validated_project_ids_for_settings:
+                if automated_run_stopping_point:
                     pref_update["automated_run_stopping_point"] = automated_run_stopping_point
 
-                if proj_id in validated_project_ids_for_repos:
-                    repos_data = project_repo_mappings[proj_id]
+                if proj_id in filtered_repo_mappings:
+                    repos_data = filtered_repo_mappings[proj_id]
                     pref_update["repositories"] = [
                         SeerRepoDefinition(**repo_data).dict() for repo_data in repos_data
                     ]
@@ -216,8 +206,7 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
         # If Seer API fails, DB changes are rolled back.
         with transaction.atomic(router.db_for_write(ProjectOption)):
             if autofix_automation_tuning:
-                for proj_id in validated_project_ids_for_settings:
-                    project = projects_by_id[proj_id]
+                for project in projects:
                     project.update_option(
                         "sentry:autofix_automation_tuning", autofix_automation_tuning
                     )
