@@ -47,8 +47,7 @@ class OrganizationDetailsTest(APITestCase):
 Notes:
 
 - Tests should ALWAYS be procedural with NO branching logic. It is very rare
-  that you will need an if statement as part of a Frontend Jest test or backend
-  pytest.
+  that you will need an if statement as part of a backend test.
 
 ## Use Factories Instead of Directly Calling `Model.objects.create`
 
@@ -62,16 +61,16 @@ NEVER directly call `Model.objects.create` - this violates our testing standards
 For example, a diff that uses a fixture instead of directly calling `Model.objects.create` would look like:
 
 ```diff
-    -        direct_project = Project.objects.create(
-    -            organization=self.organization,
-    -            name="Directly Created",
-    -            slug="directly-created"
-    -        )
-    +        direct_project = self.create_project(
-    +            organization=self.organization,
-    +            name="Directly Created",
-    +            slug="directly-created" # Note: Ensure factory args match
-    +        )
+-        direct_project = Project.objects.create(
+-            organization=self.organization,
+-            name="Directly Created",
+-            slug="directly-created"
+-        )
++        direct_project = self.create_project(
++            organization=self.organization,
++            name="Directly Created",
++            slug="directly-created" # Note: Ensure factory args match
++        )
 ```
 
 ## Use `pytest` Instead of `unittest`
@@ -81,9 +80,25 @@ In Sentry Python tests, always use `pytest` instead of `unittest`. This promotes
 For example, a diff that uses `pytest` instead of `unittest` would look like:
 
 ```diff
-    -        self.assertRaises(ValueError, EffectiveGrantStatus.from_cache, None)
-    +        with pytest.raises(ValueError):
-    +            EffectiveGrantStatus.from_cache(None)
+-        self.assertRaises(ValueError, EffectiveGrantStatus.from_cache, None)
++        with pytest.raises(ValueError):
++            EffectiveGrantStatus.from_cache(None)
+```
+
+## Testing with Time
+
+**CRITICAL**: All datetime objects in Sentry MUST be timezone-aware and use UTC.
+
+```python
+from sentry.testutils.helpers.datetime import before_now, freeze_time
+
+# Get a datetime relative to now
+past_time = before_now(days=7)  # 7 days ago in UTC
+
+# Freeze time for testing
+@freeze_time("2024-01-01 12:00:00")
+def test_something():
+    assert datetime.now(UTC).year == 2024
 ```
 
 ## File Location Map
