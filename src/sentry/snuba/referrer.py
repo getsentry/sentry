@@ -109,8 +109,9 @@ class Referrer(StrEnum):
     API_GROUP_HASHES = "api.group-hashes"
 
     # ** Explore **
-    API_EXPLORE_SPANS_STATS = "api.explore.spans-stats"
     API_EXPLORE_SPANS_TIMESERIES = "api.explore.spans-timeseries"
+    API_EXPLORE_OURLOGS_TIMESERIES = "api.explore.ourlogs-timeseries"
+    API_EXPLORE_TRACEMETRICS_TIMESERIES = "api.explore.tracemetrics-timeseries"
     API_EXPLORE_SPANS_AGGREGATES_TABLE = "api.explore.spans-aggregates-table"
     API_EXPLORE_SPANS_SAMPLES_TABLE = "api.explore.spans-samples-table"
     API_EXPLORE_SPANS_EXTRAPOLATION_META = "api.explore.spans-extrapolation-meta"
@@ -295,6 +296,9 @@ class Referrer(StrEnum):
     )
     API_INSIGHTS_TRANSACTION_EVENTS = "api.insights.transaction-events"
     API_INSIGHTS_LANDING_TABLE = "api.insights.landing-table"
+    API_INSIGHTS_LANDING_TABLE_METRICS_ENHANCED_PRIMARY = (
+        "api.insights.landing-table.metrics-enhanced.primary"
+    )
     API_INSIGHTS_STATUS_BREAKDOWN = "api.insights.status-breakdown"
     API_INSIGHTS_DURATIONPERCENTILECHART = "api.insights.durationpercentilechart"
 
@@ -416,6 +420,9 @@ class Referrer(StrEnum):
     API_ISSUES_RELATED_ISSUES = "api.issues.related_issues"
     API_METRICS_TOTALS = "api.metrics.totals"
     API_METRICS_TOTALS_INITIAL_QUERY = "api.metrics.totals.initial_query"
+    API_METRICS_TOTALS_SECOND_QUERY = "api.metrics.totals.second_query"
+    API_METRICS_SERIES_SECOND_QUERY = "api.metrics.series.second_query"
+
     API_ORGANIZATION_TRACE_ITEM_DETAILS = "api.organization-trace-item-details"
     API_ORGANIZATION_EVENT_STATS_FIND_TOPN = "api.organization-event-stats.find-topn"
     API_ORGANIZATION_EVENT_STATS_METRICS_ENHANCED = "api.organization-event-stats.metrics-enhanced"
@@ -446,6 +453,7 @@ class Referrer(StrEnum):
     API_ORGANIZATION_EVENTS_METRICS_COMPATIBILITY_SUM_METRICS_METRICS_ENHANCED_PRIMARY = (
         "api.organization-events-metrics-compatibility.sum_metrics.metrics-enhanced.primary"
     )
+    API_ORGANIZATION_EVENTS_METRICS_ENHANCED = "api.organization-events.metrics-enhanced"
     API_ORGANIZATION_EVENTS_METRICS_ENHANCED_PRIMARY = (
         "api.organization-events.metrics-enhanced.primary"
     )
@@ -480,6 +488,7 @@ class Referrer(StrEnum):
     API_AI_CONVERSATIONS = "api.ai-conversations"
     API_AI_CONVERSATIONS_COMPLETE = "api.ai-conversations.complete"
     API_AI_CONVERSATIONS_ENRICHMENT = "api.ai-conversations.enrichment"
+    API_AI_CONVERSATIONS_FIRST_LAST_IO = "api.ai-conversations.first-last-io"
     API_AI_PIPELINES_VIEW = "api.ai-pipelines.view"
     API_AI_PIPELINES_DETAILS_VIEW = "api.ai-pipelines.details.view"
     API_PROFILING_ONBOARDING = "profiling-onboarding"
@@ -670,6 +679,12 @@ class Referrer(StrEnum):
     IS_ESCALATING_GROUP = "sentry.issues.escalating.is_escalating"
     ISSUE_DETAILS_STREAMLINE_GRAPH = "issue_details.streamline_graph"
     ISSUE_DETAILS_STREAMLINE_LIST = "issue_details.streamline_list"
+    ISSUES_SUSPECT_FLAGS_QUERY_BASELINE_SET = "issues.suspect_flags.query_baseline_set"
+    ISSUES_SUSPECT_FLAGS_QUERY_SELECTION_SET = "issues.suspect_flags.query_selection_set"
+    ISSUES_SUSPECT_FLAGS_QUERY_ERROR_COUNTS = "issues.suspect_flags.query_error_counts"
+    ISSUES_SUSPECT_TAGS_QUERY_BASELINE_SET = "issues.suspect_tags.query_baseline_set"
+    ISSUES_SUSPECT_TAGS_QUERY_SELECTION_SET = "issues.suspect_tags.query_selection_set"
+    ISSUES_SUSPECT_TAGS_QUERY_ERROR_COUNTS = "issues.suspect_tags.query_error_counts"
 
     INSIGHTS_MOBILE_HAS_TTFDCONFIGURED = "insights.mobile.hasTTFDConfigured"
     INSIGHTS_TIME_SPENT_TOTAL_TIME = "insights.time_spent.total_time"
@@ -786,6 +801,8 @@ class Referrer(StrEnum):
     SEARCH_SNUBA_GROUP_ATTRIBUTES_SEARCH_QUERY = "search.snuba.group_attributes_search.query"
     SEARCH_SNUBA_GROUP_ATTRIBUTES_SEARCH_HITS = "search.snuba.group_attributes_search.hits"
     SEER_RPC = "seer.rpc"
+    SEER_EXPLORER_INDEX = "seer.explorer_index"
+    SEER_EXPLORER_TOOLS = "seer.explorer_tools"
     SERIALIZERS_GROUPSERIALIZERSNUBA__EXECUTE_ERROR_SEEN_STATS_QUERY = (
         "serializers.GroupSerializerSnuba._execute_error_seen_stats_query"
     )
@@ -834,6 +851,9 @@ class Referrer(StrEnum):
     SUBSCRIPTIONS_EXECUTOR = "subscriptions_executor"
     TAGSTORE__GET_TAG_KEY_AND_TOP_VALUES = "tagstore.__get_tag_key_and_top_values"
     TAGSTORE__GET_TAG_KEYS_AND_TOP_VALUES = "tagstore._get_tag_keys_and_top_values"
+    TAGSTORE__GET_TAG_KEYS_AND_TOP_VALUES_EMPTY_COUNTS = (
+        "tagstore._get_tag_keys_and_top_values_empty_counts"
+    )
     TAGSTORE__GET_TAG_KEYS = "tagstore.__get_tag_keys"
     TAGSTORE_GET_GROUP_LIST_TAG_VALUE = "tagstore.get_group_list_tag_value"
     TAGSTORE_GET_GROUP_TAG_VALUE_ITER = "tagstore.get_group_tag_value_iter"

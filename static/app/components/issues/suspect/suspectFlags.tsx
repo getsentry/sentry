@@ -121,12 +121,12 @@ const TagValueRow = styled('li')`
 
   align-items: center;
   padding: ${space(0.25)} ${space(0.75)};
-  border-radius: ${p => p.theme.borderRadius};
-  color: ${p => p.theme.textColor};
+  border-radius: ${p => p.theme.radius.md};
+  color: ${p => p.theme.tokens.content.primary};
   font-variant-numeric: tabular-nums;
 
   &:nth-child(2n) {
-    background-color: ${p => Color(p.theme.gray300).alpha(0.1).toString()};
+    background-color: ${p => Color(p.theme.colors.gray400).alpha(0.1).toString()};
   }
 `;
 

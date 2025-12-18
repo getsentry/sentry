@@ -42,7 +42,7 @@ export default function Ai() {
   const skipConsentFlow = organization.features.includes('gen-ai-consent-flow-removal');
 
   const replayTooLongMessage = t(
-    'While in beta phase, we only summarize a small portion of the replay.'
+    'If a replay is too long, we may only summarize a small portion of it.'
   );
 
   const {
@@ -309,7 +309,7 @@ const Wrapper = styled('div')`
   flex-wrap: nowrap;
   min-height: 0;
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const LoadingContainer = styled('div')`

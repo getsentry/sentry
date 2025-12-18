@@ -27,7 +27,6 @@ type Props = {
 };
 
 const PRIMARY_SPAN_QUERY_KEY = 'primarySpanSearchQuery';
-const SECONDARY_SPAN_QUERY_KEY = 'secondarySpanSearchQuery';
 
 export function SpanSamplesPanel({groupId, moduleName, transactionRoute}: Props) {
   const organization = useOrganization();
@@ -58,7 +57,7 @@ export function SpanSamplesPanel({groupId, moduleName, transactionRoute}: Props)
 
   transactionRoute ??= getTransactionSummaryBaseUrl(organization, view);
 
-  const {primaryRelease, secondaryRelease} = useReleaseSelection();
+  const {primaryRelease} = useReleaseSelection();
 
   const {query} = useLocation();
   const {project} = useCrossPlatformProject();
@@ -99,34 +98,19 @@ export function SpanSamplesPanel({groupId, moduleName, transactionRoute}: Props)
         </HeaderContainer>
         <PageAlert />
         <ChartsContainer>
-          <ChartsContainerItem key="release1">
+          <ChartsContainerItem>
             <SpanSamplesContainer
               groupId={groupId}
               moduleName={moduleName}
               transactionName={transactionName}
               transactionMethod={transactionMethod}
               release={primaryRelease}
-              sectionTitle={t('Release 1')}
+              sectionTitle={t('Release')}
               searchQueryKey={PRIMARY_SPAN_QUERY_KEY}
               spanOp={spanOp}
               additionalFilters={additionalFilters}
             />
           </ChartsContainerItem>
-          {secondaryRelease && (
-            <ChartsContainerItem key="release2">
-              <SpanSamplesContainer
-                groupId={groupId}
-                moduleName={moduleName}
-                transactionName={transactionName}
-                transactionMethod={transactionMethod}
-                release={secondaryRelease}
-                sectionTitle={t('Release 2')}
-                searchQueryKey={SECONDARY_SPAN_QUERY_KEY}
-                spanOp={spanOp}
-                additionalFilters={additionalFilters}
-              />
-            </ChartsContainerItem>
-          )}
         </ChartsContainer>
       </SampleDrawerBody>
     </PageAlertProvider>

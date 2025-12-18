@@ -34,13 +34,13 @@ export default function MessageSection({eventData, feedbackItem}: Props) {
 
 const Blockquote = styled('blockquote')`
   margin: 0;
-  background: ${p => p.theme.purple100};
+  background: ${p => p.theme.colors.blue100};
 
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
 
-  border-left: 2px solid ${p => p.theme.purple300};
+  border-left: 2px solid ${p => p.theme.colors.blue400};
   padding: ${space(2)};
 
   & > pre {
@@ -51,6 +51,6 @@ const Blockquote = styled('blockquote')`
     line-height: 1.6;
     padding: 0;
     word-break: break-word;
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;

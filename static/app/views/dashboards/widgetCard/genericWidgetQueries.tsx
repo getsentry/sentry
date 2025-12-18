@@ -16,7 +16,10 @@ import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onD
 import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DEFAULT_TABLE_LIMIT, DisplayType} from 'sentry/views/dashboards/types';
-import {dashboardFiltersToString} from 'sentry/views/dashboards/utils';
+import {
+  dashboardFiltersToString,
+  isChartDisplayType,
+} from 'sentry/views/dashboards/utils';
 import type {WidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
@@ -78,6 +81,7 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     nextProps: GenericWidgetQueriesProps<SeriesResponse, TableResponse>
   ) => boolean;
   dashboardFilters?: DashboardFilters;
+  disabled?: boolean;
   forceOnDemand?: boolean;
   limit?: number;
   loading?: boolean;
@@ -183,6 +187,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
           !isEqual(new Set(widgetQueries), new Set(prevWidgetQueries)) ||
           !isEqual(this.props.dashboardFilters, prevProps.dashboardFilters) ||
           !isEqual(this.props.forceOnDemand, prevProps.forceOnDemand) ||
+          !isEqual(this.props.disabled, prevProps.disabled) ||
           !isSelectionEqual(selection, prevProps.selection) ||
           cursor !== prevProps.cursor
     ) {
@@ -253,7 +258,11 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       onDemandControlContext,
       mepSetting,
       samplingMode,
+      disabled,
     } = this.props;
+    if (disabled) {
+      return;
+    }
     const widget = this.widgetForRequest(cloneDeep(originalWidget));
     const responses = await Promise.all(
       widget.queries.map(query => {
@@ -328,7 +337,12 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       mepSetting,
       onDemandControlContext,
       samplingMode,
+      disabled,
     } = this.props;
+    if (disabled) {
+      return;
+    }
+
     const widget = this.widgetForRequest(cloneDeep(originalWidget));
 
     const responses = await Promise.all(
@@ -419,10 +433,10 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     onDataFetchStart?.();
 
     try {
-      if ([DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(widget.displayType)) {
-        await this.fetchTableData(queryFetchID);
-      } else {
+      if (isChartDisplayType(widget.displayType)) {
         await this.fetchSeriesData(queryFetchID);
+      } else {
+        await this.fetchTableData(queryFetchID);
       }
     } catch (err: any) {
       if (this._isMounted) {

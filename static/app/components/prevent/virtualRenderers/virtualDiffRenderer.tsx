@@ -365,7 +365,7 @@ const TextArea = styled('textarea')`
   outline: 0px solid transparent;
   outline-offset: 0px;
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.codeFontSize};
+  font-size: ${p => p.theme.fontSize.sm};
   padding-top: 0;
   padding-bottom: 0;
   padding-right: 0;
@@ -386,13 +386,13 @@ const CodePreWrapper = styled('pre')<{isOverflowing: boolean}>`
   height: 100%;
   scrollbar-width: none;
 
-  border-left: ${space(0.25)} solid ${p => p.theme.gray200};
-  border-right: ${space(0.25)} solid ${p => p.theme.gray200};
+  border-left: ${space(0.25)} solid ${p => p.theme.colors.gray200};
+  border-right: ${space(0.25)} solid ${p => p.theme.colors.gray200};
 
   ${p => {
     if (!p.isOverflowing) {
       return css`
-        border-bottom: ${space(0.25)} solid ${p.theme.gray200};
+        border-bottom: ${space(0.25)} solid ${p.theme.colors.gray200};
       `;
     }
     return '';

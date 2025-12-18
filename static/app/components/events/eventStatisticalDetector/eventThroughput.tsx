@@ -113,7 +113,7 @@ function EventThroughputInner({event, group}: EventThroughputProps) {
       ],
       label: {show: false},
       lineStyle: {
-        color: theme.red300,
+        color: theme.colors.red400,
         type: 'solid',
         width: 2,
       },
@@ -143,7 +143,7 @@ function EventThroughputInner({event, group}: EventThroughputProps) {
       xAxis: {show: false, type: 'time'},
       yAxis: {
         axisLabel: {
-          color: theme.chartLabel,
+          color: theme.tokens.content.muted,
           formatter: (value: number) =>
             axisLabelFormatter(value, 'rate', true, undefined, RateUnit.PER_SECOND),
         },
@@ -379,8 +379,8 @@ const CurrentLabel = styled('div')`
 const CompareLabel = styled('div')<{change?: 'increase' | 'decrease'}>`
   color: ${p =>
     p.change === 'increase'
-      ? p.theme.red300
+      ? p.theme.colors.red400
       : p.change === 'decrease'
-        ? p.theme.green300
+        ? p.theme.colors.green400
         : p.theme.subText};
 `;

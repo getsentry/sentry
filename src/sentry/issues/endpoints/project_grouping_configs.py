@@ -15,9 +15,8 @@ class ProjectGroupingConfigsEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    """Retrieve available grouping configs with project-specific information
-
-    See GroupingConfigsEndpoint
+    """
+    Retrieve available grouping configs with project-specific information
     """
 
     def get(self, request: Request, project) -> Response:

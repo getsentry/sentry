@@ -1,11 +1,13 @@
+from datetime import timedelta
 from unittest.mock import patch
+from urllib.parse import urlencode
 
 from django.urls import reverse
+from django.utils import timezone
 
 from sentry import analytics
-from sentry.models.commitcomparison import CommitComparison
 from sentry.preprod.analytics import PreprodArtifactApiListBuildsEvent
-from sentry.preprod.models import PreprodArtifact, PreprodBuildConfiguration
+from sentry.preprod.models import PreprodArtifact
 from sentry.testutils.cases import APITestCase
 
 
@@ -22,8 +24,8 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
 
         self.file = self.create_file(name="test_artifact.apk", type="application/octet-stream")
 
-        commit_comparison = CommitComparison.objects.create(
-            organization_id=self.org.id,
+        commit_comparison = self.create_commit_comparison(
+            organization=self.org,
             head_sha="1234567890098765432112345678900987654321",
             base_sha="9876543210012345678998765432100123456789",
             provider="github",
@@ -35,7 +37,7 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         )
 
         # Create multiple artifacts for testing pagination
-        self.artifact1 = PreprodArtifact.objects.create(
+        self.artifact1 = self.create_preprod_artifact(
             project=self.project,
             file_id=self.file.id,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -49,7 +51,7 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
             commit_comparison=commit_comparison,
         )
 
-        self.artifact2 = PreprodArtifact.objects.create(
+        self.artifact2 = self.create_preprod_artifact(
             project=self.project,
             file_id=self.file.id,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -63,7 +65,7 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
             commit_comparison=commit_comparison,
         )
 
-        self.artifact3 = PreprodArtifact.objects.create(
+        self.artifact3 = self.create_preprod_artifact(
             project=self.project,
             file_id=self.file.id,
             state=PreprodArtifact.ArtifactState.UPLOADED,
@@ -200,6 +202,43 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         resp_data = response.json()
         assert len(resp_data["builds"]) == 0
         assert "Link" in response  # Pagination headers still present
+
+    def test_list_builds_with_date_filtering(self) -> None:
+        url = self._get_url()
+        now = timezone.now()
+
+        self.artifact1.date_added = now - timedelta(days=10)
+        self.artifact1.save()
+        self.artifact2.date_added = now - timedelta(days=5)
+        self.artifact2.save()
+        self.artifact3.date_added = now - timedelta(days=1)
+        self.artifact3.save()
+
+        response = self.client.get(
+            f"{url}?statsPeriod=7d",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        returned_ids = {build["id"] for build in resp_data["builds"]}
+        assert returned_ids == {str(self.artifact2.id), str(self.artifact3.id)}
+
+    def test_list_builds_with_invalid_date_range(self) -> None:
+        url = self._get_url()
+        now = timezone.now()
+
+        params = {"start": now.isoformat(), "end": (now - timedelta(days=1)).isoformat()}
+        response = self.client.get(
+            f"{url}?{urlencode(params)}",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+
+        assert response.status_code == 400
+        resp = response.json()
+        assert "Invalid date range" in str(resp)
 
     # Search functionality tests
     def test_list_builds_search_by_app_name(self) -> None:
@@ -392,12 +431,12 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
     # Build configuration filtering tests
     def test_list_builds_filter_by_build_configuration(self) -> None:
         # Create a build configuration and artifact with it
-        build_config = PreprodBuildConfiguration.objects.create(
+        build_config = self.create_preprod_build_configuration(
             name="Release",
             project=self.project,
         )
 
-        PreprodArtifact.objects.create(
+        self.create_preprod_artifact(
             project=self.project,
             file_id=self.file.id,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -590,7 +629,7 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
     # Test with artifacts without commit comparison
     def test_list_builds_without_commit_comparison(self) -> None:
         # Create an artifact without commit comparison
-        PreprodArtifact.objects.create(
+        self.create_preprod_artifact(
             project=self.project,
             file_id=self.file.id,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -624,3 +663,105 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         assert no_commit_build is not None
         assert no_commit_build["vcs_info"]["head_sha"] is None
         assert no_commit_build["vcs_info"]["pr_number"] is None
+
+    def test_list_builds_filter_app_id_exact_case_sensitive_match(self) -> None:
+        """App ID filter uses case-sensitive exact match (no partial matches, no case variants)."""
+        url = self._get_url()
+
+        response = self.client.get(
+            f"{url}?app_id=COM.EXAMPLE.APP",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+        assert response.status_code == 200
+        assert len(response.json()["builds"]) == 0
+
+        response = self.client.get(
+            f"{url}?app_id=com.example",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+        assert response.status_code == 200
+        assert len(response.json()["builds"]) == 0
+
+    def test_list_builds_filter_build_configuration_exact_case_sensitive_match(self) -> None:
+        """
+        Build configuration filter uses case-sensitive exact match.
+        This prevents selecting incomparable builds with different case variants.
+        """
+        config_release = self.create_preprod_build_configuration(
+            name="Release", project=self.project
+        )
+        config_release_upper = self.create_preprod_build_configuration(
+            name="RELEASE", project=self.project
+        )
+        config_release_prod = self.create_preprod_build_configuration(
+            name="ReleaseProduction", project=self.project
+        )
+
+        self.create_preprod_artifact(
+            project=self.project,
+            file_id=self.file.id,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            app_id="com.example.release",
+            app_name="ReleaseApp",
+            build_version="1.0.0",
+            build_number=200,
+            build_configuration=config_release,
+            installable_app_file_id=1250,
+        )
+        self.create_preprod_artifact(
+            project=self.project,
+            file_id=self.file.id,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            app_id="com.example.release.upper",
+            app_name="ReleaseUpperApp",
+            build_version="1.0.0",
+            build_number=201,
+            build_configuration=config_release_upper,
+            installable_app_file_id=1251,
+        )
+        self.create_preprod_artifact(
+            project=self.project,
+            file_id=self.file.id,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            app_id="com.example.releaseprod",
+            app_name="ReleaseProdApp",
+            build_version="1.0.0",
+            build_number=202,
+            build_configuration=config_release_prod,
+            installable_app_file_id=1252,
+        )
+
+        url = self._get_url()
+
+        response = self.client.get(
+            f"{url}?build_configuration=Release",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert len(resp_data["builds"]) == 1
+        assert resp_data["builds"][0]["app_info"]["build_configuration"] == "Release"
+
+        response = self.client.get(
+            f"{url}?build_configuration=RELEASE",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+        assert response.status_code == 200
+        assert len(response.json()["builds"]) == 1
+        assert response.json()["builds"][0]["app_info"]["build_configuration"] == "RELEASE"
+
+        response = self.client.get(
+            f"{url}?build_configuration=Release",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+        assert response.status_code == 200
+        matched_configs = {b["app_info"]["build_configuration"] for b in response.json()["builds"]}
+        assert matched_configs == {"Release"}

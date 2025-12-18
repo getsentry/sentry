@@ -21,6 +21,7 @@ import {detectorRoutes} from 'sentry/views/detectors/routes';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {AGENTS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/agents/settings';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
+import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/conversations/settings';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {MCP_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mcp/settings';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
@@ -135,18 +136,17 @@ function buildRoutes(): RouteObject[] {
     {
       index: true,
       component: make(() => import('sentry/views/auth/login')),
-      deprecatedRouteProps: true,
     },
     {
       path: ':orgId/',
       component: make(() => import('sentry/views/auth/login')),
-      deprecatedRouteProps: true,
     },
   ];
   const experimentalSpaRoutes: SentryRouteObject = EXPERIMENTAL_SPA
     ? {
         path: '/auth/login/',
         component: errorHandler(AuthLayout),
+        deprecatedRouteProps: true,
         children: experimentalSpaChildRoutes,
       }
     : {};
@@ -201,7 +201,6 @@ function buildRoutes(): RouteObject[] {
       path: '/user-feedback/',
       redirectTo: '/feedback/',
     },
-    // TODO: remove share/issue orgless url
     {
       path: '/share/issue/:shareId/',
       component: make(() => import('sentry/views/sharedGroupDetails')),
@@ -300,8 +299,7 @@ function buildRoutes(): RouteObject[] {
       children: [
         {
           index: true,
-          component: make(() => import('sentry/views/onboarding')),
-          deprecatedRouteProps: true,
+          component: make(() => import('sentry/views/onboarding/onboarding')),
         },
       ],
     },
@@ -316,15 +314,14 @@ function buildRoutes(): RouteObject[] {
       children: [
         {
           index: true,
-          component: make(() => import('sentry/views/onboarding')),
-          deprecatedRouteProps: true,
+          component: make(() => import('sentry/views/onboarding/onboarding')),
         },
       ],
     },
     {
-      path: '/stories/:storyType?/:storySlug?/',
-      component: make(() => import('sentry/stories/view/index')),
+      path: '/stories/*',
       withOrgPath: true,
+      component: make(() => import('sentry/stories/view/index')),
     },
     {
       path: '/debug/notifications/:notificationSource?/',
@@ -695,6 +692,11 @@ function buildRoutes(): RouteObject[] {
       path: 'playstation/',
       name: t('PlayStation'),
       component: make(() => import('sentry/views/settings/project/tempest')),
+    },
+    {
+      path: 'preprod/',
+      name: t('Preprod'),
+      component: make(() => import('sentry/views/settings/project/preprod')),
     },
     {
       path: 'keys/',
@@ -1164,7 +1166,6 @@ function buildRoutes(): RouteObject[] {
           component: make(
             () => import('sentry/views/settings/organizationAuthTokens/authTokenDetails')
           ),
-          deprecatedRouteProps: true,
         },
       ],
     },
@@ -1213,27 +1214,35 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'seer/',
-      name: t('Seer Automation'),
+      name: t('Seer'),
       component: make(() => import('getsentry/views/seerAutomation/index')),
       children: [
+        {
+          path: 'trial/',
+          component: make(() => import('getsentry/views/seerAutomation/trial')),
+        },
         {
           index: true,
           component: make(() => import('getsentry/views/seerAutomation/seerAutomation')),
         },
         {
           path: 'projects/',
-          name: t('Seer'),
           component: make(() => import('getsentry/views/seerAutomation/projects')),
         },
         {
-          path: 'repositories/',
-          name: t('Seer'),
-          component: make(() => import('getsentry/views/seerAutomation/repositories')),
+          path: 'repos/',
+          component: make(() => import('getsentry/views/seerAutomation/repos')),
+        },
+        {
+          path: 'repos/:repoId/',
+          component: make(() => import('getsentry/views/seerAutomation/repoDetails')),
         },
         {
           path: 'onboarding/',
-          name: t('Configure Seer for All Projects'),
-          component: make(() => import('getsentry/views/seerAutomation/onboarding')),
+          name: t('Setup Wizard'),
+          component: make(
+            () => import('getsentry/views/seerAutomation/onboarding/onboarding')
+          ),
         },
       ],
     },
@@ -1343,17 +1352,14 @@ function buildRoutes(): RouteObject[] {
     {
       path: ':projectId/',
       component: make(() => import('sentry/views/projectDetail')),
-      deprecatedRouteProps: true,
     },
     {
       path: ':projectId/events/:eventId/',
       component: errorHandler(ProjectEventRedirect),
-      deprecatedRouteProps: true,
     },
     {
       path: ':projectId/getting-started/',
       component: make(() => import('sentry/views/projectInstall/gettingStarted')),
-      deprecatedRouteProps: true,
     },
   ];
   const projectsRoutes: SentryRouteObject = {
@@ -1361,7 +1367,6 @@ function buildRoutes(): RouteObject[] {
     component: make(() => import('sentry/views/projects/')),
     withOrgPath: true,
     children: projectsChildren,
-    deprecatedRouteProps: true,
   };
 
   const traceView: SentryRouteObject = {
@@ -1403,12 +1408,12 @@ function buildRoutes(): RouteObject[] {
         // new widget builder routes
         {
           path: 'widget-builder/widget/:widgetIndex/edit/',
-          component: make(() => import('sentry/views/dashboards/view')),
+          component: make(() => import('sentry/views/dashboards/create')),
           deprecatedRouteProps: true,
         },
         {
           path: 'widget-builder/widget/new/',
-          component: make(() => import('sentry/views/dashboards/view')),
+          component: make(() => import('sentry/views/dashboards/create')),
           deprecatedRouteProps: true,
         },
       ],
@@ -1669,7 +1674,9 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: ':alertId/',
-      component: make(() => import('sentry/views/alerts/incidentRedirect')),
+      component: make(
+        () => import('sentry/views/alerts/workflowEngineRedirectWrappers/incident')
+      ),
     },
     {
       path: ':projectId/',
@@ -2189,6 +2196,21 @@ function buildRoutes(): RouteObject[] {
         },
       ],
     },
+    {
+      path: `${CONVERSATIONS_LANDING_SUB_PATH}/`,
+      component: make(() => import('sentry/views/insights/pages/conversations/layout')),
+      children: [
+        {
+          index: true,
+          handle: {module: undefined},
+          component: make(
+            () => import('sentry/views/insights/pages/conversations/overview')
+          ),
+        },
+        transactionSummaryRoute,
+        traceView,
+      ],
+    },
     // Redirect old links to the new agents landing page
     {
       path: `ai/*`,
@@ -2444,82 +2466,10 @@ function buildRoutes(): RouteObject[] {
     children: exploreChildren,
   };
 
-  // This is a layout route that will render a header for a commit
-  const codecovCommitRoutes: SentryRouteObject = {
-    path: 'commits/:sha/',
-    component: make(() => import('sentry/views/prevent/coverage/commits/commitWrapper')),
-    children: [
-      {
-        index: true,
-        component: make(
-          () => import('sentry/views/prevent/coverage/commits/commitDetail')
-        ),
-      },
-      {
-        path: 'history/',
-        component: make(
-          () => import('sentry/views/prevent/coverage/commits/commitHistory')
-        ),
-      },
-      {
-        path: 'yaml/',
-        component: make(() => import('sentry/views/prevent/coverage/commits/commitYaml')),
-      },
-    ],
-  };
-
-  // This is a layout route that will render a header for a pull request
-  const codecovPRRoutes: SentryRouteObject = {
-    path: 'pulls/:pullId/',
-    component: make(() => import('sentry/views/prevent/coverage/pulls/pullWrapper')),
-    children: [
-      {
-        index: true,
-        component: make(() => import('sentry/views/prevent/coverage/pulls/pullDetail')),
-      },
-    ],
-  };
-
   const codecovChildren: SentryRouteObject[] = [
     {
       index: true,
       redirectTo: 'ai-code-review/new/',
-    },
-    {
-      path: 'coverage/',
-      children: [
-        // This is a layout route that will render a header for coverage
-        {
-          component: make(() => import('sentry/views/prevent/coverage/coverageWrapper')),
-          children: [
-            {
-              path: 'file-explorer/',
-              component: make(() => import('sentry/views/prevent/coverage/coverage')),
-            },
-            {
-              path: 'commits/',
-              component: make(() => import('sentry/views/prevent/coverage/commits')),
-            },
-            {
-              path: 'pulls/',
-              component: make(() => import('sentry/views/prevent/coverage/pulls')),
-            },
-            {
-              path: 'coverage-trend/',
-              component: make(
-                () => import('sentry/views/prevent/coverage/coverageTrend')
-              ),
-            },
-          ],
-        },
-        // Render coverage onboarding without any layout wrapping
-        {
-          path: 'new/',
-          component: make(() => import('sentry/views/prevent/coverage/onboarding')),
-        },
-        codecovCommitRoutes,
-        codecovPRRoutes,
-      ],
     },
     {
       path: 'tests/',
@@ -2548,10 +2498,6 @@ function buildRoutes(): RouteObject[] {
             {
               path: 'new/',
               component: make(() => import('sentry/views/prevent/preventAI/onboarding')),
-            },
-            {
-              path: 'home/',
-              component: make(() => import('sentry/views/prevent/preventAI/index')),
             },
           ],
         },
@@ -2731,7 +2677,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'dynamic-groups/',
       component: make(() => import('sentry/views/issueList/pages/dynamicGrouping')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'views/:viewId/',

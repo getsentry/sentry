@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import random
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 from logging import Logger
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypedDict, TypeVar
 
+from django.db.models import Q
+from sentry_sdk import logger as sentry_logger
+
+from sentry import features, options
 from sentry.types.group import PriorityLevel
 
 if TYPE_CHECKING:
@@ -111,6 +116,7 @@ class WorkflowEvaluationSnapshot(TypedDict):
 @dataclass
 class WorkflowEvaluationData:
     event: GroupEvent | Activity
+    organization: Organization
     associated_detector: Detector | None = None
     action_groups: set[DataConditionGroup] | None = None
     workflows: set[Workflow] | None = None
@@ -185,14 +191,25 @@ class WorkflowEvaluation:
     data: WorkflowEvaluationData
     msg: str | None = None
 
-    def to_log(self, logger: Logger) -> None:
+    def log_to(self, logger: Logger) -> bool:
         """
-        Determines how far in the process the evaluation got to
-        and creates a structured log string to quickly find.
+        Logs workflow evaluation data.
+        Logging may be skipped if the organization isn't opted in and logs are being
+        sampled.
+        Returns True if logged, False otherwise.
+        """
+        # Check if we should log this evaluation
+        organization = self.data.organization
+        should_log = features.has("organizations:workflow-engine-log-evaluations", organization)
+        direct_to_sentry = options.get("workflow_engine.evaluation_logs_direct_to_sentry")
 
-        Then this will return the that log string, and the
-        relevant processing data to be logged.
-        """
+        if not should_log:
+            sample_rate = options.get("workflow_engine.evaluation_log_sample_rate")
+            should_log = random.random() < sample_rate
+
+        if not should_log:
+            return False
+
         log_str = "workflow_engine.process_workflows.evaluation"
 
         if self.tainted:
@@ -213,21 +230,23 @@ class WorkflowEvaluation:
         triggered_workflows = data_snapshot["triggered_workflows"] or []
         action_filter_conditions = data_snapshot["action_filter_conditions"] or []
         triggered_actions = data_snapshot["triggered_actions"] or []
+        extra = {
+            "event_id": data_snapshot["event_id"],
+            "group_id": group_id,
+            "detection_type": detection_type,
+            "workflow_ids": data_snapshot["workflow_ids"],
+            "triggered_workflow_ids": [w["id"] for w in triggered_workflows],
+            "delayed_conditions": data_snapshot["delayed_conditions"],
+            "action_filter_group_ids": [afg["id"] for afg in action_filter_conditions],
+            "triggered_action_ids": [a["id"] for a in triggered_actions],
+            "debug_msg": self.msg,
+        }
 
-        logger.info(
-            log_str,
-            extra={
-                "event_id": data_snapshot["event_id"],
-                "group_id": group_id,
-                "detection_type": detection_type,
-                "workflow_ids": data_snapshot["workflow_ids"],
-                "triggered_workflow_ids": [w["id"] for w in triggered_workflows],
-                "delayed_conditions": data_snapshot["delayed_conditions"],
-                "action_filter_group_ids": [afg["id"] for afg in action_filter_conditions],
-                "triggered_action_ids": [a["id"] for a in triggered_actions],
-                "debug_msg": self.msg,
-            },
-        )
+        if direct_to_sentry:
+            sentry_logger.info(log_str, attributes=extra)
+        else:
+            logger.info(log_str, extra=extra)
+        return True
 
 
 class ConfigTransformer(ABC):
@@ -365,3 +384,4 @@ class DetectorSettings:
     handler: type[DetectorHandler] | None = None
     validator: type[BaseDetectorTypeValidator] | None = None
     config_schema: dict[str, Any] = field(default_factory=dict)
+    filter: Q | None = None

@@ -13,9 +13,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {AISpanList} from 'sentry/views/insights/pages/agents/components/aiSpanList';
 import {useAITrace} from 'sentry/views/insights/pages/agents/hooks/useAITrace';
 import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/getDefaultSelectedNode';
-import {getNodeId} from 'sentry/views/insights/pages/agents/utils/getNodeId';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
-import {TraceTreeNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 import {getScrollToPath} from 'sentry/views/performance/newTraceDetails/useTraceScrollToPath';
@@ -39,14 +37,13 @@ function TraceAiSpans({traceSlug}: {traceSlug: string}) {
 
   const selectedNode = useMemo(() => {
     return (
-      nodes.find(node => getNodeId(node) === selectedNodeKey) ||
-      getDefaultSelectedNode(nodes)
+      nodes.find(node => node.id === selectedNodeKey) || getDefaultSelectedNode(nodes)
     );
   }, [nodes, selectedNodeKey]);
 
   const handleSelectNode = useCallback(
     (node: AITraceSpanNode) => {
-      const eventId = getNodeId(node);
+      const eventId = node.id;
       if (!eventId) {
         return;
       }
@@ -113,22 +110,20 @@ function TraceAiSpans({traceSlug}: {traceSlug: string}) {
         <AISpanList
           nodes={nodes}
           onSelectNode={handleSelectNode}
-          selectedNodeKey={getNodeId(selectedNode!)}
+          selectedNodeKey={selectedNode?.id ?? null}
         />
       </LeftPanel>
       <RightPanel>
-        {selectedNode && (
-          <TraceTreeNodeDetails
-            node={selectedNode}
-            manager={null}
-            onParentClick={() => {}}
-            onTabScrollToNode={() => {}}
-            organization={organization}
-            replay={null}
-            traceId={traceSlug}
-            hideNodeActions
-          />
-        )}
+        {selectedNode?.renderDetails({
+          node: selectedNode,
+          manager: null,
+          onParentClick: () => {},
+          onTabScrollToNode: () => {},
+          organization,
+          replay: null,
+          traceId: traceSlug,
+          hideNodeActions: true,
+        })}
       </RightPanel>
     </Wrapper>
   );
@@ -142,8 +137,8 @@ const Wrapper = styled('div')`
   grid-template-rows: 38px 1fr;
   flex: 1 1 100%;
   min-height: 0;
-  background-color: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
+  background-color: ${p => p.theme.tokens.background.primary};
+  border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.border};
 `;
 

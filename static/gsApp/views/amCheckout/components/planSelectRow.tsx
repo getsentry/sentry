@@ -129,7 +129,7 @@ function PlanSelectRow({
                       .map(([featureId, feature]) => (
                         <Feature key={featureId}>
                           {/* custom to match text size */}
-                          <IconBusiness legacySize="14px" gradient />
+                          <IconBusiness legacySize="14px" />
                           {
                             // Only shows hovercard when one feature was highlighted
                             highlightedFeatures.length === 1 ? (
@@ -155,7 +155,7 @@ function PlanSelectRow({
                         </Feature>
                       ))}
                     {/* custom to match text size */}
-                    {hasMoreLink && <MoreFeaturesLink iconSize="14px" />}
+                    {hasMoreLink && <MoreFeaturesLink legacySize="14px" />}
                   </FeatureList>
                 ) : (
                   <FeatureList>
@@ -167,7 +167,7 @@ function PlanSelectRow({
                       </Feature>
                     ))}
                     {/* custom to match text size */}
-                    {hasMoreLink && <MoreFeaturesLink iconSize="14px" />}
+                    {hasMoreLink && <MoreFeaturesLink legacySize="14px" />}
                   </FeatureList>
                 ))}
             </PlanDetails>
@@ -217,7 +217,7 @@ const PlanOption = styled(PanelItem)<{isSelected?: boolean}>`
     p.isSelected &&
     css`
       background: ${p.theme.backgroundSecondary};
-      color: ${p.theme.textColor};
+      color: ${p.theme.tokens.content.primary};
     `}
 `;
 
@@ -264,14 +264,14 @@ const PriceContainer = styled('div')<{hasFeatures?: boolean}>`
 `;
 
 const StyledRadio = styled(Radio)`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const PlanDetails = styled('div')`
   display: inline-grid;
   gap: ${space(0.75)};
   font-size: ${p => p.theme.fontSize.xl};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const PlanName = styled('div')`
@@ -294,7 +294,7 @@ const PriceHeader = styled('div')`
 const Price = styled('div')`
   display: inline-grid;
   grid-template-columns: repeat(3, auto);
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const Currency = styled('span')`

@@ -7,12 +7,14 @@ import {
   SubscriptionFixture,
   SubscriptionWithLegacySeerFixture,
 } from 'getsentry-test/fixtures/subscription';
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
-import {PlanTier} from 'getsentry/types';
+import {AddOnCategory, PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 
+// XXX(isabella): This tests with both legacy Seer and Seer
+// which wouldn't happen in production but is useful for testing
 describe('ProductSelect', () => {
   const api = new MockApiClient();
   const organization = OrganizationFixture({features: ['seer-billing']});
@@ -81,19 +83,24 @@ describe('ProductSelect', () => {
     );
 
     expect(await screen.findByTestId('product-option-legacySeer')).toBeInTheDocument();
-    expect(screen.getAllByTestId(/product-option-feature/)).toHaveLength(2);
-    expect(screen.getAllByTestId(/product-option/)).toHaveLength(3);
-    expect(screen.getByText('Add to plan')).toBeInTheDocument();
-    expect(screen.getByTestId('footer-choose-your-plan')).toBeInTheDocument();
+    expect(screen.getAllByTestId(/product-option-feature/)).toHaveLength(3); // each subcategory + included credits
+    expect(screen.getByTestId('product-option-seer')).toBeInTheDocument();
+    expect(screen.getByTestId('product-option-description')).toBeInTheDocument();
+    expect(screen.getAllByRole('checkbox', {name: /Add Seer to plan/})).toHaveLength(4); // role is on entire box + checkbox within box; both options are named Seer
   });
 
-  it('renders for checkout v3', async () => {
-    const freeSubscription = SubscriptionFixture({
+  it('does not render products if unavailable', async () => {
+    const unavailableSubscription = SubscriptionFixture({
       organization,
-      plan: 'am3_f',
-      isFree: true,
     });
-    SubscriptionStore.set(organization.slug, freeSubscription);
+    unavailableSubscription.addOns = {
+      ...unavailableSubscription.addOns,
+      [AddOnCategory.SEER]: {
+        ...unavailableSubscription.addOns?.[AddOnCategory.SEER]!,
+        isAvailable: false,
+      },
+    };
+    SubscriptionStore.set(organization.slug, unavailableSubscription);
 
     render(
       <AMCheckout
@@ -102,42 +109,12 @@ describe('ProductSelect', () => {
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
-        isNewCheckout
       />,
       {organization}
     );
 
     expect(await screen.findByTestId('product-option-legacySeer')).toBeInTheDocument();
-    expect(screen.getAllByTestId(/product-option-feature/)).toHaveLength(3); // +1 for credits included
-    expect(screen.getAllByTestId(/product-option/)).toHaveLength(4); // +1 for credits included
-    expect(screen.queryByText('Add to plan')).not.toBeInTheDocument();
-    expect(screen.getAllByRole('checkbox', {name: /Add Seer to plan/})).toHaveLength(2); // role is on entire box + checkbox within box
-  });
-
-  it('does not render products if flags are missing', async () => {
-    const mockBillingConfig = structuredClone(BillingConfigFixture(PlanTier.AM3));
-    mockBillingConfig.planList.forEach(plan => {
-      plan.features = plan.features.filter(feature => feature !== 'seer-billing');
-    });
-    MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-config/`,
-      method: 'GET',
-      body: mockBillingConfig,
-    });
-
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        onToggleLegacy={jest.fn()}
-        checkoutTier={PlanTier.AM3}
-      />,
-      {organization}
-    );
-
-    expect(await screen.findByTestId('body-choose-your-plan')).toBeInTheDocument();
-    expect(screen.queryAllByTestId(/product-option/)).toHaveLength(0);
+    expect(screen.queryByTestId('product-option-seer')).not.toBeInTheDocument();
   });
 
   it('renders with correct monthly price and credits for products', async () => {
@@ -154,7 +131,7 @@ describe('ProductSelect', () => {
 
     const seerProduct = await screen.findByTestId('product-option-legacySeer');
     expect(seerProduct).toHaveTextContent('$20/mo');
-    expect(seerProduct).toHaveTextContent('$25/mo in credits towards');
+    expect(seerProduct).toHaveTextContent('Includes $25/mo in credits');
   });
 
   it('renders with correct annual price and monthly credits for products', async () => {
@@ -177,7 +154,7 @@ describe('ProductSelect', () => {
 
     const seerProduct = await screen.findByTestId('product-option-legacySeer');
     expect(seerProduct).toHaveTextContent('$216/yr');
-    expect(seerProduct).toHaveTextContent('$25/mo in credits towards');
+    expect(seerProduct).toHaveTextContent('Includes $25/mo in credits');
   });
 
   it('renders with product selected based on current subscription', async () => {
@@ -195,9 +172,8 @@ describe('ProductSelect', () => {
       {organization}
     );
 
-    expect(await screen.findByTestId('product-option-legacySeer')).toHaveTextContent(
-      'Added to plan'
-    );
+    const legacySeerCheckbox = await screen.findByTestId('product-option-legacySeer');
+    expect(legacySeerCheckbox).toBeChecked();
   });
 
   it('does not render with product selected based on current subscription if plan is trial', async () => {
@@ -216,27 +192,7 @@ describe('ProductSelect', () => {
       {organization}
     );
 
-    expect(await screen.findByTestId('product-option-legacySeer')).toHaveTextContent(
-      'Add to plan'
-    );
-  });
-
-  it('can enable and disable products', async () => {
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        onToggleLegacy={jest.fn()}
-        checkoutTier={PlanTier.AM2}
-      />,
-      {organization}
-    );
-
-    const seerProduct = await screen.findByTestId('product-option-legacySeer');
-    const seerButton = within(seerProduct).getByRole('button');
-    expect(seerButton).toHaveTextContent('Add to plan');
-    await userEvent.click(seerButton);
-    expect(seerButton).toHaveTextContent('Added to plan');
+    const legacySeerCheckbox = await screen.findByTestId('product-option-legacySeer');
+    expect(legacySeerCheckbox).not.toBeChecked();
   });
 });

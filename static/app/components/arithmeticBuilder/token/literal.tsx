@@ -292,10 +292,10 @@ const Row = styled('div')`
   height: 24px;
   max-width: 100%;
   border: 1px solid ${p => p.theme.innerBorder};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 
   :focus {
-    background-color: ${p => p.theme.gray100};
+    background-color: ${p => p.theme.colors.gray100};
     outline: none;
   }
 
@@ -305,7 +305,7 @@ const Row = styled('div')`
 
   &[aria-invalid='true'] {
     input {
-      color: ${p => p.theme.red400};
+      color: ${p => p.theme.colors.red500};
     }
   }
 
@@ -317,7 +317,7 @@ const Row = styled('div')`
       right: ${space(0.5)};
       top: 0;
       bottom: 0;
-      background-color: ${p => p.theme.gray100};
+      background-color: ${p => p.theme.colors.gray100};
     }
   }
 `;
@@ -342,7 +342,7 @@ const DeleteButton = styled('button')`
   padding-right: ${space(0.5)};
 
   :focus {
-    background-color: ${p => p.theme.translucentGray100};
+    background-color: ${p => p.theme.colors.gray100};
     border-left: 1px solid ${p => p.theme.innerBorder};
     outline: none;
   }

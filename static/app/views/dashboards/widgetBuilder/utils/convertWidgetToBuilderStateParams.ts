@@ -1,15 +1,18 @@
-import {explodeField} from 'sentry/utils/discover/fields';
+import {explodeField, parseFunction} from 'sentry/utils/discover/fields';
 import {
   DisplayType,
   WidgetType,
   type Widget,
   type WidgetQuery,
 } from 'sentry/views/dashboards/types';
+import {isChartDisplayType} from 'sentry/views/dashboards/utils';
 import {
   serializeFields,
   serializeThresholds,
+  serializeTraceMetric,
   type WidgetBuilderStateQueryParams,
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
 function stringifyFields(
   query: WidgetQuery,
@@ -37,15 +40,24 @@ export function convertWidgetToBuilderStateParams(
   const firstWidgetQuery = widget.queries[0];
   let yAxis = firstWidgetQuery ? stringifyFields(firstWidgetQuery, 'aggregates') : [];
   let field: string[] = [];
-  if (
-    widget.displayType === DisplayType.TABLE ||
-    widget.displayType === DisplayType.BIG_NUMBER
-  ) {
+  if (isChartDisplayType(widget.displayType)) {
+    field = firstWidgetQuery ? stringifyFields(firstWidgetQuery, 'columns') : [];
+  } else {
     field = firstWidgetQuery ? stringifyFields(firstWidgetQuery, 'fields') : [];
     yAxis = [];
     legendAlias = [];
-  } else {
-    field = firstWidgetQuery ? stringifyFields(firstWidgetQuery, 'columns') : [];
+  }
+
+  let traceMetric: TraceMetric | undefined = undefined;
+  if (widget.widgetType === WidgetType.TRACEMETRICS) {
+    const traceMetricReferenceAggregate = firstWidgetQuery?.aggregates[0];
+    if (traceMetricReferenceAggregate) {
+      const func = parseFunction(traceMetricReferenceAggregate);
+      traceMetric = {
+        name: func?.arguments?.[1] ?? '',
+        type: func?.arguments?.[2] ?? '',
+      };
+    }
   }
 
   return {
@@ -61,5 +73,6 @@ export function convertWidgetToBuilderStateParams(
     legendAlias,
     selectedAggregate: firstWidgetQuery?.selectedAggregate,
     thresholds: widget.thresholds ? serializeThresholds(widget.thresholds) : undefined,
+    traceMetric: traceMetric ? serializeTraceMetric(traceMetric) : undefined,
   };
 }

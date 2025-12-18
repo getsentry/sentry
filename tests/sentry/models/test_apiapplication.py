@@ -90,44 +90,44 @@ class ApiApplicationTest(TestCase):
         assert not app.is_valid_redirect_uri("http://127.0.0.1/callback")
 
     def test_is_valid_redirect_uri_custom_scheme(self) -> None:
-        # Test custom scheme for mobile apps (sentry-mobile-agent://)
+        # Test custom scheme for Apple apps (sentry-apple://)
         app = ApiApplication.objects.create(
             owner=self.user,
-            redirect_uris="sentry-mobile-agent://sentry.io/auth",
+            redirect_uris="sentry-apple://sentry.io/auth",
             version=0,  # legacy behavior
         )
 
         # Exact match should work
-        assert app.is_valid_redirect_uri("sentry-mobile-agent://sentry.io/auth")
+        assert app.is_valid_redirect_uri("sentry-apple://sentry.io/auth")
 
         # With trailing slash - depends on normalization
-        assert app.is_valid_redirect_uri("sentry-mobile-agent://sentry.io/auth/")
+        assert app.is_valid_redirect_uri("sentry-apple://sentry.io/auth/")
 
         # Prefix match should work in legacy mode
-        assert app.is_valid_redirect_uri("sentry-mobile-agent://sentry.io/auth/callback")
+        assert app.is_valid_redirect_uri("sentry-apple://sentry.io/auth/callback")
 
         # Different scheme should fail
         assert not app.is_valid_redirect_uri("https://sentry.io/auth")
 
         # Different host should fail
-        assert not app.is_valid_redirect_uri("sentry-mobile-agent://other.io/auth")
+        assert not app.is_valid_redirect_uri("sentry-apple://other.io/auth")
 
         # Different path should fail (not a prefix)
-        assert not app.is_valid_redirect_uri("sentry-mobile-agent://sentry.io/other")
+        assert not app.is_valid_redirect_uri("sentry-apple://sentry.io/other")
 
     def test_is_valid_redirect_uri_custom_scheme_strict(self) -> None:
         # Test custom scheme with strict validation (version 1)
         app = ApiApplication.objects.create(
             owner=self.user,
-            redirect_uris="sentry-mobile-agent://sentry.io/auth",
+            redirect_uris="sentry-apple://sentry.io/auth",
             version=1,  # strict mode
         )
 
         # Exact match should work
-        assert app.is_valid_redirect_uri("sentry-mobile-agent://sentry.io/auth")
+        assert app.is_valid_redirect_uri("sentry-apple://sentry.io/auth")
 
         # Prefix match should NOT work in strict mode
-        assert not app.is_valid_redirect_uri("sentry-mobile-agent://sentry.io/auth/callback")
+        assert not app.is_valid_redirect_uri("sentry-apple://sentry.io/auth/callback")
 
     def test_get_default_redirect_uri(self) -> None:
         app = ApiApplication.objects.create(

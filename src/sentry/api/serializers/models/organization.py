@@ -30,10 +30,14 @@ from sentry.auth.access import Access
 from sentry.auth.services.auth import RpcOrganizationAuthConfig, auth_service
 from sentry.constants import (
     ALERTS_MEMBER_WRITE_DEFAULT,
+    ALLOW_BACKGROUND_AGENT_DELEGATION,
     ATTACHMENTS_ROLE_DEFAULT,
+    AUTO_ENABLE_CODE_REVIEW,
+    AUTO_OPEN_PRS_DEFAULT,
     DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+    DEFAULT_CODE_REVIEW_TRIGGERS,
     DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
     ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
     ENABLE_SEER_CODING_DEFAULT,
@@ -77,6 +81,7 @@ from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import RpcOrganizationSummary
+from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -555,13 +560,55 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     enablePrReviewTestGeneration: bool
     enableSeerEnhancedAlerts: bool
     enableSeerCoding: bool
+    allowBackgroundAgentDelegation: bool
+    autoEnableCodeReview: bool
+    autoOpenPrs: bool
+    defaultCodeReviewTriggers: list[str]
+    hasGranularReplayPermissions: bool
+    replayAccessMembers: list[int]
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
     def get_attrs(
         self, item_list: Sequence[Organization], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> MutableMapping[Organization, MutableMapping[str, Any]]:
-        return super().get_attrs(item_list, user)
+        attrs = super().get_attrs(item_list, user)
+
+        replay_permissions = {}
+        has_feature = features.batch_has_for_organizations(
+            "organizations:granular-replay-permissions", item_list
+        )
+        if has_feature and any(has_feature.values()):
+            replay_permissions = {
+                opt.organization_id: opt.value
+                for opt in OrganizationOption.objects.filter(
+                    organization__in=item_list, key="sentry:granular-replay-permissions"
+                )
+            }
+
+            # Only process replay access data if replay_permissions is enabled for at least one org
+            enabled_org_ids = [org_id for org_id, enabled in replay_permissions.items() if enabled]
+            replay_access_by_org: dict[int, list[int]] = {}
+            if enabled_org_ids:
+                for org_id, user_id in OrganizationMemberReplayAccess.objects.filter(
+                    organizationmember__organization__in=enabled_org_ids
+                ).values_list("organizationmember__organization_id", "organizationmember__user_id"):
+                    if user_id is not None:
+                        replay_access_by_org.setdefault(org_id, []).append(user_id)
+
+            for item in item_list:
+                attrs[item]["replay_permissions_enabled"] = replay_permissions.get(item.id, False)
+                attrs[item]["replay_access_members"] = (
+                    replay_access_by_org.get(item.id, [])
+                    if replay_permissions.get(item.id, False)
+                    else []
+                )
+        else:
+            for item in item_list:
+                attrs[item]["replay_permissions_enabled"] = False
+                attrs[item]["replay_access_members"] = []
+
+        return attrs
 
     def serialize(  # type: ignore[override]
         self,
@@ -705,6 +752,27 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                     ENABLE_SEER_CODING_DEFAULT,
                 )
             ),
+            "autoOpenPrs": bool(
+                obj.get_option(
+                    "sentry:auto_open_prs",
+                    AUTO_OPEN_PRS_DEFAULT,
+                )
+            ),
+            "autoEnableCodeReview": bool(
+                obj.get_option(
+                    "sentry:auto_enable_code_review",
+                    AUTO_ENABLE_CODE_REVIEW,
+                )
+            ),
+            "defaultCodeReviewTriggers": obj.get_option(
+                "sentry:default_code_review_triggers", DEFAULT_CODE_REVIEW_TRIGGERS
+            ),
+            "allowBackgroundAgentDelegation": bool(
+                obj.get_option(
+                    "sentry:allow_background_agent_delegation",
+                    ALLOW_BACKGROUND_AGENT_DELEGATION,
+                )
+            ),
             "streamlineOnly": obj.get_option("sentry:streamline_ui_only", None),
             "trustedRelays": [
                 # serialize trusted relays info into their external form
@@ -716,7 +784,13 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 team__organization=obj
             ).count(),
             "isDynamicallySampled": is_dynamically_sampled,
+            "hasGranularReplayPermissions": False,
+            "replayAccessMembers": [],
         }
+
+        if features.has("organizations:granular-replay-permissions", obj):
+            context["hasGranularReplayPermissions"] = bool(attrs.get("replay_permissions_enabled"))
+            context["replayAccessMembers"] = attrs.get("replay_access_members", [])
 
         if has_custom_dynamic_sampling(obj, actor=user):
             context["targetSampleRate"] = float(
@@ -767,6 +841,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         "streamlineOnly",
         "ingestThroughTrustedRelaysOnly",
         "enabledConsolePlatforms",
+        "hasGranularReplayPermissions",
+        "replayAccessMembers",
     ]
 )
 class DetailedOrganizationSerializerWithProjectsAndTeamsResponse(

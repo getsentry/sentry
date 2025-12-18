@@ -32,8 +32,8 @@ export const CodeBlockWrapper = styled('div')`
 export const InlineCode = styled('code')`
   background: ${p => p.theme.backgroundSecondary};
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.colors.blue400};
 `;

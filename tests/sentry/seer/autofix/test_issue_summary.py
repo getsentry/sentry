@@ -771,7 +771,7 @@ class TestGetStoppingPointFromFixability:
         assert _get_stopping_point_from_fixability(score) == expected
 
 
-@with_feature({"organizations:gen-ai-features": True, "projects:triage-signals-v0": True})
+@with_feature({"organizations:gen-ai-features": True, "organizations:triage-signals-v0-org": True})
 class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -785,7 +785,7 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
         return_value=False,
     )
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
-    @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     def test_high_fixability_code_changes(
         self, mock_gen, mock_budget, mock_state, mock_rate, mock_trigger
@@ -811,7 +811,7 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
         return_value=False,
     )
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
-    @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     def test_medium_fixability_solution(
         self, mock_gen, mock_budget, mock_state, mock_rate, mock_trigger
@@ -837,7 +837,7 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
         return_value=False,
     )
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
-    @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     def test_without_feature_flag(self, mock_gen, mock_budget, mock_state, mock_rate, mock_trigger):
         self.project.update_option("sentry:autofix_automation_tuning", "always")
@@ -851,7 +851,7 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
         )
 
         with self.feature(
-            {"organizations:gen-ai-features": True, "projects:triage-signals-v0": False}
+            {"organizations:gen-ai-features": True, "organizations:triage-signals-v0-org": False}
         ):
             run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
 
@@ -974,7 +974,7 @@ class TestApplyUserPreferenceUpperBound:
         assert result == expected
 
 
-@with_feature({"organizations:gen-ai-features": True, "projects:triage-signals-v0": True})
+@with_feature({"organizations:gen-ai-features": True, "organizations:triage-signals-v0-org": True})
 class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -989,7 +989,7 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
         return_value=False,
     )
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
-    @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     def test_user_preference_limits_high_fixability(
         self, mock_gen, mock_budget, mock_state, mock_rate, mock_fetch, mock_trigger
@@ -1021,7 +1021,7 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
         return_value=False,
     )
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
-    @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     def test_fixability_limits_permissive_user_preference(
         self, mock_gen, mock_budget, mock_state, mock_rate, mock_fetch, mock_trigger
@@ -1053,7 +1053,7 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
         return_value=False,
     )
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
-    @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     def test_no_user_preference_uses_fixability_only(
         self, mock_gen, mock_budget, mock_state, mock_rate, mock_fetch, mock_trigger
@@ -1080,7 +1080,7 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
 
 
 @with_feature("organizations:gen-ai-features")
-@with_feature("projects:triage-signals-v0")
+@with_feature("organizations:triage-signals-v0-org")
 class TestRunAutomationAlertEventCount(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -1092,11 +1092,11 @@ class TestRunAutomationAlertEventCount(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task")
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state")
-    @patch("sentry.seer.autofix.issue_summary.quotas.backend.has_available_reserved_budget")
+    @patch("sentry.seer.autofix.issue_summary.quotas.backend.check_seer_quota")
     def test_alert_skips_automation_below_threshold(
         self, mock_budget, mock_state, mock_fixability, mock_trigger
     ):
-        """Alert automation should skip when event count < 10 with triage-signals-v0"""
+        """Alert automation should skip when event count < 10 with triage-signals-v0-org"""
         self.project.update_option("sentry:autofix_automation_tuning", "always")
         mock_budget.return_value = True
         mock_state.return_value = None
@@ -1122,7 +1122,7 @@ class TestRunAutomationAlertEventCount(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task")
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state")
-    @patch("sentry.seer.autofix.issue_summary.quotas.backend.has_available_reserved_budget")
+    @patch("sentry.seer.autofix.issue_summary.quotas.backend.check_seer_quota")
     def test_alert_runs_automation_above_threshold(
         self, mock_budget, mock_state, mock_fixability, mock_trigger, mock_rate_limit
     ):

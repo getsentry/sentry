@@ -1,13 +1,23 @@
 import styled from '@emotion/styled';
 
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconSeer} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-function EmptyState() {
+interface EmptyStateProps {
+  isLoading?: boolean;
+}
+
+function EmptyState({isLoading}: EmptyStateProps) {
   return (
     <Container>
-      <IconSeer size="xl" variant="waiting" />
-      <Text>Ask Seer anything about your application.</Text>
+      {isLoading ? (
+        <LoadingIndicator size={32} />
+      ) : (
+        <IconSeer size="xl" animation="waiting" />
+      )}
+      <Text>{!isLoading && t('Ask Seer anything about your application.')}</Text>
     </Container>
   );
 }

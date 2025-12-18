@@ -360,7 +360,8 @@ const StyledCard = styled(Card)<{isEditing: boolean}>`
   align-items: center;
   justify-content: space-between;
   margin-bottom: ${space(1)};
-  background-color: ${props => (props.isEditing ? props.theme.surface200 : 'inherit')};
+  background-color: ${props =>
+    props.isEditing ? props.theme.colors.surface300 : 'inherit'};
 `;
 
 const IconContainer = styled('div')`
@@ -389,7 +390,7 @@ const NotificationActionFormContainer = styled('div')`
 `;
 
 const NotificationRecipientBadge = styled(Badge)`
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   font-weight: ${p => p.theme.fontWeight.normal};
 `;
 

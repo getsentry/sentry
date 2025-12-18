@@ -110,14 +110,14 @@ export default function ReplayInlineOnboardingPanel({
 }
 
 const PurpleText = styled('span')`
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.colors.blue400};
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const BannerWrapper = styled('div')`
   position: relative;
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${space(2)};
   margin: ${space(1)} 0;
   background: linear-gradient(

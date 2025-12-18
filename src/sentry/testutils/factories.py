@@ -9,7 +9,7 @@ import zipfile
 from base64 import b64encode
 from binascii import hexlify
 from collections.abc import Mapping, MutableMapping, Sequence
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from enum import Enum
 from hashlib import sha1
 from importlib import import_module
@@ -81,6 +81,7 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
+from sentry.models.commitcomparison import CommitComparison
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.dashboard import Dashboard
 from sentry.models.dashboard_widget import (
@@ -115,6 +116,7 @@ from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releasefile import ReleaseFile, update_artifact_index
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.repository import Repository
+from sentry.models.repositorysettings import RepositorySettings
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.savedsearch import SavedSearch
@@ -128,7 +130,13 @@ from sentry.notifications.models.notificationaction import (
 )
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
-from sentry.preprod.models import PreprodArtifactSizeMetrics
+from sentry.preprod.models import (
+    InstallablePreprodArtifact,
+    PreprodArtifact,
+    PreprodArtifactSizeComparison,
+    PreprodArtifactSizeMetrics,
+    PreprodBuildConfiguration,
+)
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
@@ -894,6 +902,19 @@ class Factories:
             external_id=external_id,
         )
         return repo
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_repository_settings(
+        repository: Repository,
+        enabled_code_review: bool = False,
+        code_review_triggers: list[str] | None = None,
+    ) -> RepositorySettings:
+        return RepositorySettings.objects.create(
+            repository=repository,
+            enabled_code_review=enabled_code_review,
+            code_review_triggers=code_review_triggers or [],
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -2472,6 +2493,9 @@ class Factories:
         max_download_size=1024 * 1024,  # 1 MB
         min_install_size=2 * 1024 * 1024,  # 2 MB
         max_install_size=2 * 1024 * 1024,  # 2 MB
+        error_code=None,
+        error_message=None,
+        analysis_file_id=None,
     ):
         if metrics_type is None:
             metrics_type = PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
@@ -2503,4 +2527,125 @@ class Factories:
                 if state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
                 else None
             ),
+            error_code=error_code,
+            error_message=error_message,
+            analysis_file_id=analysis_file_id,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_commit_comparison(
+        organization: Organization,
+        head_sha: str | None = None,
+        base_sha: str | None = None,
+        provider: str = "github",
+        head_repo_name: str = "owner/repo",
+        base_repo_name: str | None = None,
+        head_ref: str = "feature/test",
+        base_ref: str = "main",
+        pr_number: int | None = None,
+    ) -> CommitComparison:
+        if head_sha is None:
+            head_sha = uuid4().hex + "00000000"  # 40 chars
+        if base_sha is None:
+            base_sha = uuid4().hex + "11111111"  # 40 chars
+        if base_repo_name is None:
+            base_repo_name = head_repo_name
+
+        return CommitComparison.objects.create(
+            organization_id=organization.id,
+            head_sha=head_sha,
+            base_sha=base_sha,
+            provider=provider,
+            head_repo_name=head_repo_name,
+            base_repo_name=base_repo_name,
+            head_ref=head_ref,
+            base_ref=base_ref,
+            pr_number=pr_number,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_preprod_artifact(
+        project: Project,
+        state: int = PreprodArtifact.ArtifactState.PROCESSED,
+        artifact_type: int | None = PreprodArtifact.ArtifactType.APK,
+        app_id: str = "com.example.app",
+        app_name: str | None = None,
+        build_version: str | None = None,
+        build_number: int | None = None,
+        commit_comparison: CommitComparison | None = None,
+        file_id: int | None = None,
+        installable_app_file_id: int | None = None,
+        build_configuration: PreprodBuildConfiguration | None = None,
+        extras: dict | None = None,
+        **kwargs,
+    ) -> PreprodArtifact:
+        return PreprodArtifact.objects.create(
+            project=project,
+            state=state,
+            artifact_type=artifact_type,
+            app_id=app_id,
+            app_name=app_name,
+            build_version=build_version,
+            build_number=build_number,
+            commit_comparison=commit_comparison,
+            file_id=file_id,
+            installable_app_file_id=installable_app_file_id,
+            build_configuration=build_configuration,
+            extras=extras,
+            **kwargs,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_preprod_build_configuration(
+        project: Project,
+        name: str = "release",
+    ) -> PreprodBuildConfiguration:
+        return PreprodBuildConfiguration.objects.create(
+            project=project,
+            name=name,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_preprod_artifact_size_comparison(
+        organization: Organization,
+        head_size_analysis: PreprodArtifactSizeMetrics,
+        base_size_analysis: PreprodArtifactSizeMetrics,
+        state: int = PreprodArtifactSizeComparison.State.PENDING,
+        file_id: int | None = None,
+        error_code: int | None = None,
+        error_message: str | None = None,
+    ) -> PreprodArtifactSizeComparison:
+        return PreprodArtifactSizeComparison.objects.create(
+            organization_id=organization.id,
+            head_size_analysis=head_size_analysis,
+            base_size_analysis=base_size_analysis,
+            state=state,
+            file_id=file_id,
+            error_code=error_code,
+            error_message=error_message,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_installable_preprod_artifact(
+        preprod_artifact,
+        url_path: str | None = None,
+        expiration_date=None,
+        download_count: int = 0,
+    ):
+        if url_path is None:
+            url_path = str(uuid4())
+
+        if expiration_date is None:
+            expiration_date = timezone.now() + timedelta(hours=24)
+
+        return InstallablePreprodArtifact.objects.create(
+            preprod_artifact=preprod_artifact,
+            url_path=url_path,
+            expiration_date=expiration_date,
+            download_count=download_count,
         )

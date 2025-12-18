@@ -47,7 +47,7 @@ const Wrapper = styled('div')`
   height: 24px;
   width: 58px;
   display: inline-block;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.sm};
   margin-right: ${space(1)};
 
@@ -68,17 +68,17 @@ const Wrapper = styled('div')`
   }
 
   &.covered .line-number {
-    background: ${p => p.theme.green100};
+    background: ${p => p.theme.colors.green100};
     border-right: 3px solid ${p => p.theme.tokens.border.success};
   }
 
   &.uncovered .line-number {
-    background: ${p => p.theme.red100};
+    background: ${p => p.theme.colors.red100};
     border-right: 3px solid ${p => p.theme.tokens.border.danger};
   }
 
   &.partial .line-number {
-    background: ${p => p.theme.yellow100};
+    background: ${p => p.theme.colors.yellow100};
     border-right: 3px dashed ${p => p.theme.tokens.border.warning};
   }
 
@@ -88,17 +88,17 @@ const Wrapper = styled('div')`
 
   &.active.partial .line-number {
     mix-blend-mode: screen;
-    background: ${p => p.theme.yellow200};
+    background: ${p => p.theme.colors.yellow200};
   }
 
   &.active.covered .line-number {
     mix-blend-mode: screen;
-    background: ${p => p.theme.green200};
+    background: ${p => p.theme.colors.green200};
   }
 
   &.active.uncovered .line-number {
-    color: ${p => p.theme.stacktraceActiveText};
+    color: ${p => p.theme.white};
     mix-blend-mode: screen;
-    background: ${p => p.theme.red300};
+    background: ${p => p.theme.colors.red400};
   }
 `;

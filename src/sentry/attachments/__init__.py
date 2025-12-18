@@ -53,25 +53,20 @@ def store_attachments_for_event(
 def get_attachments_for_event(event: Any) -> Generator[CachedAttachment]:
     """
     Retrieves the attachments belonging to the given `event`.
-
-    These come either from the `attachment_cache`, or are embedded within the `event`, depending on feature flags.
     """
 
-    if "_attachments" in event:
-        return (
-            CachedAttachment(cache=attachment_cache, **attachment)
-            for attachment in event["_attachments"]
-        )
-    cache_key = cache_key_for_event(event)
-    return attachment_cache.get(cache_key)
+    return (
+        CachedAttachment(cache=attachment_cache, **attachment)
+        for attachment in event.get("_attachments", [])
+    )
 
 
 @sentry_sdk.trace
 def delete_cached_and_ratelimited_attachments(
-    project: Project, event: Any, attachments: list[CachedAttachment]
+    project: Project, attachments: list[CachedAttachment]
 ):
     """
-    This deletes all attachment payloads and metadata from the attachment cache
+    This deletes all attachment payloads from the attachment cache
     (if those are stored there), as well as delete all the `rate_limited`
     attachments from the `objectstore`.
     Non-ratelimited attachments which are already stored in `objectstore` will
@@ -86,9 +81,3 @@ def delete_cached_and_ratelimited_attachments(
 
         # unconditionally deletes any payloads from the attachment cache
         attachment.delete()
-
-    # this cleans up the metadata from the attachments cache:
-    # any payloads living in the attachments cache have been cleared by the
-    # `attachment.delete()` call above.
-    cache_key = cache_key_for_event(event)
-    attachment_cache.delete(cache_key)

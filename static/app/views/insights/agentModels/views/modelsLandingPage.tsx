@@ -5,12 +5,11 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {EAPSpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {DataCategory} from 'sentry/types/core';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
-import useOrganization from 'sentry/utils/useOrganization';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
@@ -25,6 +24,7 @@ import {ModelsTable} from 'sentry/views/insights/pages/agents/components/modelsT
 import {WidgetGrid} from 'sentry/views/insights/pages/agents/components/styles';
 import TokenTypesWidget from 'sentry/views/insights/pages/agents/components/tokenTypesWidget';
 import TokenUsageWidget from 'sentry/views/insights/pages/agents/components/tokenUsageWidget';
+import {useAgentMonitoringTrackPageView} from 'sentry/views/insights/pages/agents/hooks/useAgentMonitoringTrackPageView';
 import {useAgentSpanSearchProps} from 'sentry/views/insights/pages/agents/hooks/useAgentSpanSearchProps';
 import {useShowAgentOnboarding} from 'sentry/views/insights/pages/agents/hooks/useShowAgentOnboarding';
 import {Onboarding} from 'sentry/views/insights/pages/agents/onboarding';
@@ -40,6 +40,8 @@ function AgentModelsLandingPage({datePageFilterProps}: AgentModelsLandingPagePro
   useDefaultToAllProjects();
 
   const agentSpanSearchProps = useAgentSpanSearchProps();
+
+  useAgentMonitoringTrackPageView();
 
   return (
     <SearchQueryBuilderProvider {...agentSpanSearchProps.provider}>
@@ -63,7 +65,9 @@ function AgentModelsLandingPage({datePageFilterProps}: AgentModelsLandingPagePro
                   </PageFilterBar>
                   {!showOnboarding && (
                     <Flex flex={2}>
-                      <EAPSpanSearchQueryBuilder {...agentSpanSearchProps.queryBuilder} />
+                      <TraceItemSearchQueryBuilder
+                        {...agentSpanSearchProps.queryBuilder}
+                      />
                     </Flex>
                   )}
                 </ToolRibbon>
@@ -98,10 +102,8 @@ function AgentModelsLandingPage({datePageFilterProps}: AgentModelsLandingPagePro
 }
 
 function PageWithProviders() {
-  const organization = useOrganization();
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.SPANS],
-    organization,
   });
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 

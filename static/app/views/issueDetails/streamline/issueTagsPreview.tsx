@@ -21,7 +21,7 @@ import type {Project} from 'sentry/types/project';
 import {percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform} from 'sentry/utils/platform';
-import {useDetailedProject} from 'sentry/utils/useDetailedProject';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -131,7 +131,7 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
         ))}
         {hasOther && (
           <Fragment>
-            <LegendColor style={{backgroundColor: theme.gray200}} />
+            <LegendColor style={{backgroundColor: theme.colors.gray200}} />
             <LegendText>{t('Other')}</LegendText>
             <LegendPercentage>{otherPercentageString}</LegendPercentage>
           </Fragment>
@@ -357,7 +357,7 @@ const TagBarPlaceholder = styled('div')`
   width: 100%;
   border-radius: 3px;
   box-shadow: inset 0 0 0 1px ${p => p.theme.translucentBorder};
-  background: ${p => Color(p.theme.gray300).alpha(0.1).toString()};
+  background: ${p => Color(p.theme.colors.gray400).alpha(0.1).toString()};
   overflow: hidden;
 `;
 
@@ -404,13 +404,13 @@ const TagPreviewGrid = styled(Link)`
   align-items: center;
   padding: 0 ${p => p.theme.space.sm};
   margin: 0 -${p => p.theme.space.sm};
-  border-radius: ${p => p.theme.borderRadius};
-  color: ${p => p.theme.textColor};
+  border-radius: ${p => p.theme.radius.md};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.sm};
 
   &:hover {
     background: ${p => p.theme.backgroundTertiary};
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 
@@ -432,11 +432,11 @@ const LegendTitle = styled('div')`
 `;
 
 const DistributionsDrawerLink = styled(Link)`
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.colors.blue400};
   align-self: flex-start;
 
   &:hover {
-    color: ${p => p.theme.purple400};
+    color: ${p => p.theme.colors.blue500};
   }
 `;
 

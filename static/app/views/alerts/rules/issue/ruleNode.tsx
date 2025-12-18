@@ -649,9 +649,9 @@ const RuleRow = styled('div')`
 
 const RuleRowContainer = styled('div')<{incompatible?: boolean}>`
   background-color: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border: 1px ${p => p.theme.innerBorder} solid;
-  border-color: ${p => (p.incompatible ? p.theme.red200 : 'none')};
+  border-color: ${p => (p.incompatible ? p.theme.colors.red200 : 'none')};
 `;
 
 const Rule = styled('div')`
@@ -666,7 +666,7 @@ const DeleteButton = styled(Button)`
 `;
 
 const FooterAlert = styled(Alert)`
-  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+  border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   margin-top: -1px; /* remove double border on panel bottom */
   a {
     white-space: nowrap;

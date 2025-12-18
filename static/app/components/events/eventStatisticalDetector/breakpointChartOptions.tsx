@@ -87,7 +87,7 @@ function getBreakpointChartOptionsFromData(
         },
       ],
     },
-    colors: [theme.gray200, theme.gray500],
+    colors: [theme.colors.gray200, theme.colors.gray800],
     grid: {
       top: '40px',
       bottom: '0px',
@@ -103,7 +103,7 @@ function getBreakpointChartOptionsFromData(
     yAxis: {
       minInterval: durationUnit,
       axisLabel: {
-        color: theme.chartLabel,
+        color: theme.tokens.content.muted,
         formatter: (value: number) =>
           axisLabelFormatter(value, 'duration', undefined, durationUnit),
       },
@@ -118,11 +118,11 @@ function getBreakpointChartOptionsFromData(
           {
             gte: 0,
             lt: evidenceData?.breakpoint ? evidenceData.breakpoint * 1000 : 0,
-            color: theme.gray500,
+            color: theme.colors.gray800,
           },
           {
             gte: evidenceData?.breakpoint ? evidenceData.breakpoint * 1000 : 0,
-            color: theme.red300,
+            color: theme.colors.red400,
           },
         ],
       }),

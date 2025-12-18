@@ -1,13 +1,7 @@
 import {useCallback, useMemo, useSyncExternalStore} from 'react';
-import {
-  css,
-  useTheme,
-  type DO_NOT_USE_ChonkTheme,
-  type SerializedStyles,
-} from '@emotion/react';
+import {css, useTheme, type SerializedStyles} from '@emotion/react';
 
 import type {Theme} from 'sentry/utils/theme';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 // It is unfortunate, but Emotion seems to use the fn callback name in the classname, so lets keep it short.
 export function rc<T>(
@@ -70,7 +64,7 @@ const BREAKPOINT_ORDER: readonly Breakpoint[] = [
 ];
 
 // We alias None -> 0 to make it slighly more terse and easier to read.
-export type RadiusSize = keyof DO_NOT_USE_ChonkTheme['radius'];
+export type RadiusSize = keyof Theme['radius'];
 export type SpacingSize = keyof Theme['space'];
 export type Border = keyof Theme['tokens']['border'];
 export type Breakpoint = keyof Theme['breakpoints'];
@@ -107,7 +101,7 @@ function resolveRadius(sizeComponent: RadiusSize | undefined, theme: Theme) {
     return undefined;
   }
 
-  return isChonkTheme(theme) ? theme.radius[sizeComponent] : theme.borderRadius;
+  return theme.radius[sizeComponent];
 }
 
 function resolveSpacing(sizeComponent: SpacingSize, theme: Theme) {

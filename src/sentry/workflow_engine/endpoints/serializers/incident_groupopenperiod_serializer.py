@@ -7,7 +7,7 @@ from sentry.workflow_engine.models.incident_groupopenperiod import IncidentGroup
 
 class IncidentGroupOpenPeriodSerializerResponse(TypedDict):
     incidentId: str | None
-    incidentIdentifier: int | None
+    incidentIdentifier: str | None
     groupId: str
     openPeriodId: str
 
@@ -19,7 +19,7 @@ class IncidentGroupOpenPeriodSerializer(Serializer):
     ) -> IncidentGroupOpenPeriodSerializerResponse:
         return {
             "incidentId": str(obj.incident_id) if obj.incident_id else None,
-            "incidentIdentifier": obj.incident_identifier,
+            "incidentIdentifier": str(obj.incident_identifier) if obj.incident_identifier else None,
             "groupId": str(obj.group_open_period.group_id),
             "openPeriodId": str(obj.group_open_period.id),
         }

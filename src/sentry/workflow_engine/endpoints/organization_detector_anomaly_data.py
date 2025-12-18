@@ -38,11 +38,15 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
         """
         Return anomaly detection threshold data (yhat_lower, yhat_upper) for a detector.
         """
-        if not features.has("organizations:anomaly-detection-threshold-data", organization):
+        if not features.has(
+            "organizations:anomaly-detection-threshold-data", organization, actor=request.user
+        ):
             raise ResourceDoesNotExist
 
         try:
-            detector = Detector.objects.get(id=int(detector_id), project__organization=organization)
+            detector = Detector.objects.with_type_filters().get(
+                id=int(detector_id), project__organization=organization
+            )
         except (Detector.DoesNotExist, ValueError):
             raise ResourceDoesNotExist
 

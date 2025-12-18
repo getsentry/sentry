@@ -963,7 +963,6 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     symbolSources: str
     isDynamicallySampled: bool
     tempestFetchScreenshots: NotRequired[bool]
-    tempestFetchDumps: NotRequired[bool]
     autofixAutomationTuning: NotRequired[str]
     seerScannerAutomation: NotRequired[bool]
     debugFilesRole: NotRequired[str | None]
@@ -1122,7 +1121,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             data["tempestFetchScreenshots"] = attrs["options"].get(
                 "sentry:tempest_fetch_screenshots", False
             )
-            data["tempestFetchDumps"] = attrs["options"].get("sentry:tempest_fetch_dumps", False)
 
         return data
 

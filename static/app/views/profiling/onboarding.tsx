@@ -324,7 +324,7 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
   gap: ${space(1)};
   flex-grow: 1;
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.pink400};
+  color: ${p => p.theme.colors.pink500};
   padding-right: ${space(4)};
 `;
 
@@ -360,7 +360,7 @@ const HeaderWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   gap: ${space(3)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${space(4)};
 `;
 
@@ -432,7 +432,7 @@ const CONTENT_SPACING = space(1);
 
 const DescriptionWrapper = styled('div')`
   code:not([class*='language-']) {
-    color: ${p => p.theme.pink400};
+    color: ${p => p.theme.colors.pink500};
   }
 
   :not(:last-child) {

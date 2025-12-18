@@ -4,6 +4,7 @@ import logging
 from typing import Any
 
 from django.db.models import Q
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -13,6 +14,8 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import OffsetPaginator
+from sentry.api.utils import get_date_range_from_params
+from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiListBuildsEvent
 from sentry.preprod.api.models.project_preprod_build_details_models import (
@@ -72,6 +75,11 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
         validator.is_valid(raise_exception=True)
         params = validator.validated_data
 
+        try:
+            start, end = get_date_range_from_params(request.GET, optional=True)
+        except InvalidParams:
+            raise ParseError(detail="Invalid date range")
+
         queryset = PreprodArtifact.objects.filter(project=project)
 
         release_version_parsed = False
@@ -88,7 +96,7 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
         if not release_version_parsed:
             app_id = params.get("app_id")
             if app_id:
-                queryset = queryset.filter(app_id__icontains=app_id)
+                queryset = queryset.filter(app_id__exact=app_id)
 
             build_version = params.get("build_version")
             if build_version:
@@ -125,7 +133,7 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
 
         build_configuration = params.get("build_configuration")
         if build_configuration:
-            queryset = queryset.filter(build_configuration__name__icontains=build_configuration)
+            queryset = queryset.filter(build_configuration__name__exact=build_configuration)
 
         platform = params.get("platform")
         if platform:
@@ -141,6 +149,9 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
                 )
 
         queryset = queryset.order_by("-date_added")
+
+        if start and end:
+            queryset = queryset.filter(date_added__gte=start, date_added__lte=end)
 
         def transform_results(results: list[PreprodArtifact]) -> dict[str, Any]:
             build_details_list = []

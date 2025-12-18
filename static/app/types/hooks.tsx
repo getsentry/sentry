@@ -8,6 +8,14 @@ import type {ProductSelectionProps} from 'sentry/components/onboarding/productSe
 import type DateRange from 'sentry/components/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
 import type {SentryRouteObject} from 'sentry/router/types';
+import type {DataCategory} from 'sentry/types/core';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
+import type {
+  useDefaultMaxPickableDays,
+  useMaxPickableDays,
+} from 'sentry/utils/useMaxPickableDays';
 import type {WidgetType} from 'sentry/views/dashboards/types';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
 import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
@@ -16,7 +24,6 @@ import type {NavigationSection} from 'sentry/views/settings/types';
 import type {Integration, IntegrationProvider} from './integrations';
 import type {RouteContextInterface} from './legacyReactRouter';
 import type {Member, Organization, OrgRole} from './organization';
-import type {Project} from './project';
 import type {User} from './user';
 
 // XXX(epurkhiser): A Note about `_`.
@@ -58,13 +65,20 @@ type RouteHooks = {
   'routes:subscription-settings': RouteObjectHook;
 };
 
+type AiSetupConfigrationProps = {
+  event: Event;
+  group: Group;
+  project: Project;
+};
+
+type AiSetupDataConsentProps = {
+  groupId: string;
+};
+
 /**
  * Component specific hooks for DateRange and SelectorItems
  * These components have plan specific overrides in getsentry
  */
-type AiSetupDataConsentProps = {
-  groupId: string;
-};
 type DateRangeProps = React.ComponentProps<typeof DateRange>;
 
 type SelectorItemsProps = React.ComponentProps<typeof SelectorItems>;
@@ -177,6 +191,7 @@ type DashboardLimitProviderProps = {
  * Component wrapping hooks
  */
 type ComponentHooks = {
+  'component:ai-setup-configuration': () => React.ComponentType<AiSetupConfigrationProps>;
   'component:ai-setup-data-consent': () => React.ComponentType<AiSetupDataConsentProps> | null;
   'component:codecov-integration-settings-link': () => React.ComponentType<CodecovLinkProps>;
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
@@ -330,7 +345,9 @@ type ReactHooks = {
   'react-hook:use-dashboard-dataset-retention-limit': (props: {
     dataset: WidgetType;
   }) => number;
+  'react-hook:use-default-max-pickable-days': typeof useDefaultMaxPickableDays;
   'react-hook:use-get-max-retention-days': () => number | undefined;
+  'react-hook:use-max-pickable-days': typeof useMaxPickableDays;
   'react-hook:use-metric-detector-limit': () => {
     detectorCount: number;
     detectorLimit: number;
@@ -338,6 +355,7 @@ type ReactHooks = {
     isError: boolean;
     isLoading: boolean;
   };
+  'react-hook:use-product-billing-access': (product: DataCategory) => boolean;
 };
 
 /**

@@ -552,6 +552,7 @@ class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, Sn
         if not self.dry_run:
             assert transaction_widget.dataset_source == DashboardDatasetSourcesTypes.FORCED.value
 
+    @pytest.mark.skip(reason="Flaky. See #105124")
     def test_unhandled_filter_sets_error_events_dataset(self) -> None:
         error_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,

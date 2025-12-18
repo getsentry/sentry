@@ -31,6 +31,7 @@ import {AutomationFeedbackButton} from 'sentry/views/automations/components/auto
 import AutomationForm from 'sentry/views/automations/components/automationForm';
 import type {AutomationFormData} from 'sentry/views/automations/components/automationFormData';
 import {
+  assignSubfilterIds,
   getAutomationFormData,
   getNewAutomationData,
   validateAutomationBuilderState,
@@ -117,7 +118,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
             logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
             conditions: [],
           },
-      actionFilters: automation.actionFilters,
+      actionFilters: assignSubfilterIds(automation.actionFilters),
     };
   }, [automation]);
 
@@ -125,7 +126,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
   const {state, actions} = useAutomationBuilderReducer(initialState);
 
   const [automationBuilderErrors, setAutomationBuilderErrors] = useState<
-    Record<string, string>
+    Record<string, any>
   >({});
 
   const {mutateAsync: updateAutomation, error} = useUpdateAutomation();
@@ -220,7 +221,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
 }
 
 const StyledLayoutHeader = styled(Layout.Header)`
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 const HeaderInner = styled('div')<{maxWidth?: string}>`

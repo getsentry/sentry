@@ -421,6 +421,9 @@ export const withMetricsOnboarding: Set<PlatformKey> = new Set([
   'node-hono',
   'node-koa',
   'node-nestjs',
+  'php',
+  'php-laravel',
+  'php-symfony',
   'python',
   'python-aiohttp',
   'python-asgi',
@@ -451,6 +454,7 @@ export const limitedMetricsSupportPrefixes: Set<string> = new Set([
   'javascript',
   'node',
   'python',
+  'php',
 ]);
 
 export const profiling: PlatformKey[] = [
@@ -773,6 +777,12 @@ export const featureFlagDrawerPlatforms: readonly PlatformKey[] = platformKeys.f
 );
 
 export const agentMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
+  ...platformKeys.filter(id => id.startsWith('javascript')),
+  ...platformKeys.filter(id => id.startsWith('node')),
+  ...platformKeys.filter(id => id.startsWith('python')),
+]);
+
+export const mcpMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
   'javascript-astro',
   'javascript-nextjs',
   'javascript-nuxt',
@@ -781,11 +791,6 @@ export const agentMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
   'javascript-solidstart',
   'javascript-sveltekit',
   'javascript-tanstackstart-react',
-  ...platformKeys.filter(id => id.startsWith('node')),
-  ...platformKeys.filter(id => id.startsWith('python')),
-]);
-
-export const mcpMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
   ...platformKeys.filter(id => id.startsWith('node')),
   ...platformKeys.filter(id => id.startsWith('python')),
 ]);

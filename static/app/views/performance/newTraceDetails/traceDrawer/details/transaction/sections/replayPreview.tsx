@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import ReplayClipPreview from 'sentry/components/events/eventReplay/replayClipPreview';
+import {ReplayAccess} from 'sentry/components/replays/replayAccess';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
@@ -65,13 +66,15 @@ export default function ReplayPreview({
   }
 
   return (
-    <InterimSection
-      title={t('Session Replay')}
-      type="trace_session_replay"
-      disableCollapsePersistence
-    >
-      <ReplaySection event={event} organization={organization} />
-    </InterimSection>
+    <ReplayAccess>
+      <InterimSection
+        title={t('Session Replay')}
+        type="trace_session_replay"
+        disableCollapsePersistence
+      >
+        <ReplaySection event={event} organization={organization} />
+      </InterimSection>
+    </ReplayAccess>
   );
 }
 

@@ -1,3 +1,4 @@
+import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {unreachable} from 'sentry/utils/unreachable';
@@ -141,4 +142,34 @@ export function formattedPrimaryMetricDownloadSize(
     return formatBytesBase10(primarySizeMetric.download_size_bytes);
   }
   return '-';
+}
+
+export function formattedSizeDiff(diff: number): string {
+  if (diff === 0) {
+    return '';
+  }
+
+  const sign = diff > 0 ? '+' : '-';
+  return `${sign}${formatBytesBase10(Math.abs(diff))}`;
+}
+
+export function getTrend(diff: number): {
+  variant: 'danger' | 'success' | 'muted';
+  icon?: React.ReactNode;
+} {
+  if (diff > 0) {
+    return {
+      variant: 'danger',
+      icon: <IconArrow direction="up" size="xs" />,
+    };
+  }
+
+  if (diff < 0) {
+    return {
+      variant: 'success',
+      icon: <IconArrow direction="down" size="xs" />,
+    };
+  }
+
+  return {variant: 'muted'};
 }

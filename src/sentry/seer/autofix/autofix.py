@@ -20,15 +20,20 @@ from sentry.constants import DataCategory, ObjectStatus
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import WebVitalsGroup
+from sentry.models.commitauthor import CommitAuthor
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import EventsResponse, SnubaParams
+from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
+    bulk_set_project_preferences,
     get_autofix_repos_from_project_code_mappings,
 )
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
+from sentry.seer.models import SeerRepoDefinition
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.services import eventstore
@@ -341,7 +346,15 @@ def _respond_with_error(reason: str, status: int):
 
 
 def _get_github_username_for_user(user: User | RpcUser, organization_id: int) -> str | None:
-    """Get GitHub username for a user by checking ExternalActor mappings."""
+    """
+    Get GitHub username for a user by checking multiple sources.
+
+    This function attempts to resolve a Sentry user to their GitHub username by:
+    1. Checking ExternalActor for explicit user→GitHub mappings
+    2. Falling back to CommitAuthor records matched by email (like suspect commits)
+    3. Extracting the GitHub username from the CommitAuthor external_id
+    """
+    # Method 1: Check ExternalActor for direct user→GitHub mapping
     external_actor: ExternalActor | None = (
         ExternalActor.objects.filter(
             user_id=user.id,
@@ -358,6 +371,36 @@ def _get_github_username_for_user(user: User | RpcUser, organization_id: int) ->
     if external_actor and external_actor.external_name:
         username = external_actor.external_name
         return username[1:] if username.startswith("@") else username
+
+    # Method 2: Check CommitAuthor by email matching (like suspect commits does)
+    # Get all verified emails for this user
+    user_emails: list[str] = []
+    try:
+        # Both User and RpcUser models have a get_verified_emails method
+        if hasattr(user, "get_verified_emails"):
+            verified_emails = user.get_verified_emails()
+            user_emails.extend([e.email for e in verified_emails])
+    except Exception:
+        # If we can't get verified emails, don't use any
+        pass
+
+    if user_emails:
+        # Find CommitAuthors with matching emails that have GitHub external_id
+        commit_author = (
+            CommitAuthor.objects.filter(
+                organization_id=organization_id,
+                email__in=[email.lower() for email in user_emails],
+                external_id__isnull=False,
+            )
+            .exclude(external_id="")
+            .order_by("-id")
+            .first()
+        )
+
+        if commit_author:
+            commit_username = commit_author.get_username_from_external_id()
+            if commit_username:
+                return commit_username
 
     return None
 
@@ -537,6 +580,58 @@ def get_all_tags_overview(group: Group) -> dict[str, Any] | None:
     }
 
 
+def onboarding_seer_settings_update(
+    organization_id: int,
+    is_rca_enabled: bool,
+    is_auto_open_prs_enabled: bool,
+    project_repo_dict: dict[int, list[SeerRepoDefinition]],
+) -> None:
+    """
+    Update Seer settings for new orgs that are onboarding to the seat-based Seer tier.
+    """
+    # Get organization and list of projects
+    organization = Organization.objects.get(id=organization_id)
+
+    # Set the default automation tuning for the org
+    if is_rca_enabled:
+        rca_default_tuning = AutofixAutomationTuningSettings.MEDIUM
+    else:
+        rca_default_tuning = AutofixAutomationTuningSettings.OFF
+
+    # Set the default stopping point and auto open PRs for the org
+    if is_auto_open_prs_enabled:
+        stopping_point = AutofixStoppingPoint.OPEN_PR
+    else:
+        stopping_point = AutofixStoppingPoint.CODE_CHANGES
+
+    # Update preferences for each project with its repositories
+    preferences_to_set = []
+    for project_id, repositories in project_repo_dict.items():
+        preferences_to_set.append(
+            {
+                "organization_id": organization_id,
+                "project_id": project_id,
+                "repositories": [repo.dict() for repo in repositories],
+                "automated_run_stopping_point": stopping_point,
+            }
+        )
+
+    # Call Seer API to set preferences
+    if preferences_to_set:
+        bulk_set_project_preferences(organization_id, preferences_to_set)
+
+    logger.info(
+        "onboarding_seer_settings_update for new org completed",
+        extra={
+            "organization_id": organization_id,
+            "autofix_automation_tuning": rca_default_tuning,
+            "auto_open_prs": is_auto_open_prs_enabled,
+            "org_slug": organization.slug,
+            "num_projects": len(project_repo_dict),
+        },
+    )
+
+
 def trigger_autofix(
     *,
     group: Group,
@@ -560,7 +655,7 @@ def trigger_autofix(
         )
 
     # check billing quota for autofix
-    has_budget: bool = quotas.backend.has_available_reserved_budget(
+    has_budget: bool = quotas.backend.check_seer_quota(
         org_id=group.organization.id,
         data_category=DataCategory.SEER_AUTOFIX,
     )

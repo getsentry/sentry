@@ -7,6 +7,7 @@ import {profilingFullStack} from 'sentry/gettingStartedDocs/javascript/profiling
 import {agentMonitoring} from './agentMonitoring';
 import {crashReport} from './crashReport';
 import {feedback} from './feedback';
+import {mcp} from './mcp';
 import {onboarding} from './onboarding';
 import {replay} from './replay';
 
@@ -32,6 +33,7 @@ const docs: Docs = {
     docsPlatform: 'sveltekit',
     packageName: '@sentry/sveltekit',
   }),
+  mcpOnboarding: mcp,
 };
 
 export default docs;

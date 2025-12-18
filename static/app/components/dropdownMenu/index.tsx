@@ -35,11 +35,12 @@ function removeHiddenItemsAndSetHref(source: MenuItemProps[]): MenuItemProps[] {
  * Recursively finds and returns disabled items
  */
 function getDisabledKeys(source: MenuItemProps[]): Array<MenuItemProps['key']> {
-  return source.reduce<string[]>((acc, cur) => {
+  return source.reduce<Array<MenuItemProps['key']>>((acc, cur) => {
     if (cur.disabled) {
       // If an item is disabled, then its children will be inaccessible, so we
       // can skip them and just return the parent item
-      return acc.concat([cur.key]);
+      acc.push(cur.key);
+      return acc;
     }
 
     if (cur.children) {
@@ -124,7 +125,7 @@ export interface DropdownMenuProps
    * not been provided), then `triggerProps` will be passed on to the button
    * component.
    */
-  triggerProps?: DropdownButtonProps;
+  triggerProps?: Partial<DropdownButtonProps>;
   /**
    * Whether to render the menu inside a React portal (false by default). This should
    * only be enabled if necessary, e.g. when the dropdown menu is inside a small,

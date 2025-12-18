@@ -52,7 +52,7 @@ const GroupHeader = styled('h2')`
   position: sticky;
   top: 0;
   z-index: 1;
-  background: ${p => p.theme.surface200};
+  background: ${p => p.theme.colors.surface300};
   display: flex;
   align-items: center;
   padding: ${space(2)} ${space(1)};

@@ -336,7 +336,7 @@ const RepoProvider = styled('div')`
 
 const ExpandedContent = styled('div')`
   padding: 0 ${space(2)} ${space(1)} 40px;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
@@ -395,10 +395,10 @@ const StyledTextArea = styled(TextArea)`
 `;
 
 const ClearButton = styled(Button)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.colors.gray400};
 
   &:hover {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.colors.gray800};
   }
 `;
 

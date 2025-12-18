@@ -141,7 +141,7 @@ function useLogsQueryKey({
       per_page: limit ? limit : undefined,
       referrer,
       sampling: highFidelity ? SAMPLING_MODE.FLEX_TIME : SAMPLING_MODE.NORMAL,
-      caseInsensitive,
+      caseInsensitive: caseInsensitive ? '1' : undefined,
     },
     pageFiltersReady,
     eventView,
@@ -741,14 +741,11 @@ export function useInfiniteLogsQuery({
 export type UseInfiniteLogsQueryResult = ReturnType<typeof useInfiniteLogsQuery>;
 
 export function useLogsQueryHighFidelity() {
-  const organization = useOrganization();
   const sortBys = useQueryParamsSortBys();
-  const highFidelity = organization.features.includes('ourlogs-high-fidelity');
 
   // we can only turn on high accuracy flex time sampling when
   // the order by is exactly timestamp descending,
   return (
-    highFidelity &&
     sortBys.length === 1 &&
     sortBys[0]?.field === 'timestamp' &&
     sortBys[0]?.kind === 'desc'

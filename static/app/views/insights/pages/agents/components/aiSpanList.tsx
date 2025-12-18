@@ -8,14 +8,16 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import {IconChat, IconChevron, IconCode, IconFire, IconFix} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
+import {t} from 'sentry/locale';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
-import {getIsAiRunNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
-import {getNodeId} from 'sentry/views/insights/pages/agents/utils/getNodeId';
 import {
-  getIsAiCreateAgentSpan,
+  getGenAiOpType,
+  getIsAiAgentNode,
+} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {
+  getIsAiAgentSpan,
   getIsAiGenerationSpan,
-  getIsAiRunSpan,
   getIsExecuteToolSpan,
   getIsHandoffSpan,
 } from 'sentry/views/insights/pages/agents/utils/query';
@@ -23,12 +25,10 @@ import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/typ
 import {SpanFields} from 'sentry/views/insights/types';
 import {
   isEAPSpanNode,
-  isSpanNode,
   isTransactionNode,
-  isTransactionNodeEquivalent,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
+import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 
 function getNodeTimeBounds(node: AITraceSpanNode | AITraceSpanNode[]) {
   let startTime = 0;
@@ -48,14 +48,11 @@ function getNodeTimeBounds(node: AITraceSpanNode | AITraceSpanNode[]) {
     startTime = totalStartAndEndTime.startTime;
     endTime = totalStartAndEndTime.endTime;
   } else {
-    if (!node.value) return {startTime: 0, endTime: 0, duration: 0};
+    if (!node.startTimestamp || !node.endTimestamp)
+      return {startTime: 0, endTime: 0, duration: 0};
 
-    startTime = node.value.start_timestamp;
-    if (isTransactionNode(node) || isSpanNode(node)) {
-      endTime = node.value.timestamp;
-    } else if (isEAPSpanNode(node)) {
-      endTime = node.value.end_timestamp;
-    }
+    startTime = node.startTimestamp;
+    endTime = node.endTimestamp;
   }
 
   if (endTime === 0) return {startTime: 0, endTime: 0, duration: 0};
@@ -65,16 +62,6 @@ function getNodeTimeBounds(node: AITraceSpanNode | AITraceSpanNode[]) {
     endTime,
     duration: endTime - startTime,
   };
-}
-
-function getClosestNode<T extends AITraceSpanNode>(
-  node: AITraceSpanNode,
-  predicate: (node: TraceTreeNode) => node is T
-): T | null {
-  if (predicate(node)) {
-    return node;
-  }
-  return TraceTree.ParentNode(node, predicate) as T | null;
 }
 
 export function AISpanList({
@@ -87,12 +74,14 @@ export function AISpanList({
   selectedNodeKey: string | null;
 }) {
   const nodesByTransaction = useMemo(() => {
-    const result: Map<
-      TraceTreeNode<TraceTree.Transaction | TraceTree.EAPSpan>,
-      AITraceSpanNode[]
-    > = new Map();
+    const result: Map<TransactionNode | EapSpanNode, AITraceSpanNode[]> = new Map();
     for (const node of nodes) {
-      const transaction = getClosestNode(node, isTransactionNodeEquivalent);
+      // TODO: We should consider using BaseNode.expand to control toggle state,
+      // instead of grouping by transactions for toggling by transactions only.
+      // This would allow us to avoid using type guards/checks like below, outside of the BaseNode classes.
+      const isNodeTransaction =
+        isTransactionNode(node) || (isEAPSpanNode(node) && node.value.is_transaction);
+      const transaction = isNodeTransaction ? node : node.findClosestParentTransaction();
       if (!transaction) {
         continue;
       }
@@ -105,7 +94,7 @@ export function AISpanList({
   return (
     <TraceListContainer>
       {nodesByTransaction.entries().map(([transaction, transactionNodes]) => (
-        <Fragment key={getNodeId(transaction)}>
+        <Fragment key={transaction.id}>
           <TransactionWrapper
             canCollapse={nodesByTransaction.size > 1}
             transaction={transaction}
@@ -130,19 +119,21 @@ function TransactionWrapper({
   nodes: AITraceSpanNode[];
   onSelectNode: (node: AITraceSpanNode) => void;
   selectedNodeKey: string | null;
-  transaction: TraceTreeNode<TraceTree.Transaction | TraceTree.EAPSpan>;
+  transaction: TransactionNode | EapSpanNode;
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
   const theme = useTheme();
-  const colors = [...theme.chart.getColorPalette(5), theme.red300];
+  const colors = [...theme.chart.getColorPalette(5), theme.colors.red400];
   const timeBounds = getNodeTimeBounds(nodes);
 
   const nodeAiRunParentsMap = useMemo<Record<string, AITraceSpanNode>>(() => {
     const parents: Record<string, AITraceSpanNode> = {};
     for (const node of nodes) {
-      const parent = getClosestNode(node, getIsAiRunNode);
+      const parent = getIsAiAgentNode(node)
+        ? node
+        : (node as AITraceSpanNode).findParent<AITraceSpanNode>(p => getIsAiAgentNode(p));
       if (parent) {
-        parents[getNodeId(node)] = parent;
+        parents[node.id] = parent;
       }
     }
     return parents;
@@ -169,12 +160,12 @@ function TransactionWrapper({
       </TransactionButton>
       {isExpanded &&
         nodes.map(node => {
-          const aiRunNode = nodeAiRunParentsMap[getNodeId(node)];
+          const aiRunNode = nodeAiRunParentsMap[node.id];
 
           // Only indent if the node is not the ai run node
           const shouldIndent = aiRunNode && aiRunNode !== node;
 
-          const uniqueKey = getNodeId(node);
+          const uniqueKey = node.id;
           return (
             <TraceListItem
               indent={shouldIndent ? 1 : 0}
@@ -219,8 +210,23 @@ const TraceListItem = memo(function TraceListItem({
       onClick={onClick}
       indent={indent}
     >
-      <Flex align="center" style={{color: safeColor}}>
+      <Flex
+        align="center"
+        position="relative"
+        style={{color: safeColor, background: 'inherit'}}
+      >
         {icon}
+        {hasErrors && (
+          <Tooltip delay={300} title={t('This span encountered an error')} skipWrapper>
+            <Container
+              position="absolute"
+              radius="full"
+              style={{bottom: -6, right: -6, padding: 1, background: 'inherit'}}
+            >
+              <IconFire display="block" size="xs" color="red300" />
+            </Container>
+          </Tooltip>
+        )}
       </Flex>
       <Stack gap="xs" flex="1" minWidth="0">
         <Flex align="center" gap="xs">
@@ -262,22 +268,16 @@ interface TraceBounds {
 }
 
 function calculateRelativeTiming(
-  node: TraceTreeNode<TraceTree.NodeValue>,
+  node: AITraceSpanNode,
   traceBounds: TraceBounds
 ): {leftPercent: number; widthPercent: number} {
   if (!node.value) return {leftPercent: 0, widthPercent: 0};
 
   let startTime: number, endTime: number;
 
-  if (isTransactionNode(node)) {
-    startTime = node.value.start_timestamp;
-    endTime = node.value.timestamp;
-  } else if (isSpanNode(node)) {
-    startTime = node.value.start_timestamp;
-    endTime = node.value.timestamp;
-  } else if (isEAPSpanNode(node)) {
-    startTime = node.value.start_timestamp;
-    endTime = node.value.end_timestamp;
+  if (node.startTimestamp && node.endTimestamp) {
+    startTime = node.startTimestamp;
+    endTime = node.endTimestamp;
   } else {
     return {leftPercent: 0, widthPercent: 0};
   }
@@ -309,43 +309,23 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
   // Default return value
   const nodeInfo: NodeInfo = {
     icon: <IconCode size="md" />,
-    title: 'Unknown',
-    subtitle: '',
+    title: node.description,
+    subtitle: node.op,
     color: colors[1],
   };
 
-  if (isTransactionNode(node)) {
-    nodeInfo.title = node.value.transaction || 'Transaction';
-    nodeInfo.subtitle = node.value['transaction.op'] || '';
-    return nodeInfo;
-  }
-
-  if (!isEAPSpanNode(node) && !isSpanNode(node)) {
-    return nodeInfo;
-  }
-
-  const getNodeAttribute = (key: string) => {
-    if (isEAPSpanNode(node)) {
-      return node.value.additional_attributes?.[key];
-    }
-
-    return node.value?.data?.[key];
-  };
-
-  const op =
-    (isTransactionNode(node) ? node.value?.['transaction.op'] : node.value?.op) ??
-    'default';
+  const op = node.op ?? 'default';
   const truncatedOp = op.startsWith('gen_ai.') ? op.slice(7) : op;
   nodeInfo.title = truncatedOp;
-
-  if (getIsAiRunSpan({op}) || getIsAiCreateAgentSpan({op})) {
+  const genAiOpType = getGenAiOpType(node);
+  if (getIsAiAgentSpan(genAiOpType)) {
     const agentName =
-      getNodeAttribute(SpanFields.GEN_AI_AGENT_NAME) ||
-      getNodeAttribute(SpanFields.GEN_AI_FUNCTION_ID) ||
+      node.attributes?.[SpanFields.GEN_AI_AGENT_NAME] ||
+      node.attributes?.[SpanFields.GEN_AI_FUNCTION_ID] ||
       '';
     const model =
-      getNodeAttribute(SpanFields.GEN_AI_REQUEST_MODEL) ||
-      getNodeAttribute(SpanFields.GEN_AI_RESPONSE_MODEL) ||
+      node.attributes?.[SpanFields.GEN_AI_REQUEST_MODEL] ||
+      node.attributes?.[SpanFields.GEN_AI_RESPONSE_MODEL] ||
       '';
     nodeInfo.icon = <IconBot size="md" />;
     nodeInfo.title = agentName || truncatedOp;
@@ -358,10 +338,14 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
       );
     }
     nodeInfo.color = colors[0];
-  } else if (getIsAiGenerationSpan({op})) {
-    const tokens = getNodeAttribute(SpanFields.GEN_AI_USAGE_TOTAL_TOKENS);
-    const cost = getNodeAttribute(SpanFields.GEN_AI_USAGE_TOTAL_COST);
-    nodeInfo.title = node.value.description || nodeInfo.title;
+  } else if (getIsAiGenerationSpan(genAiOpType)) {
+    const tokens = node.attributes?.[SpanFields.GEN_AI_USAGE_TOTAL_TOKENS] as
+      | number
+      | undefined;
+    const cost = node.attributes?.[SpanFields.GEN_AI_COST_TOTAL_TOKENS] as
+      | number
+      | undefined;
+    nodeInfo.title = node.description || nodeInfo.title;
     nodeInfo.icon = <IconChat size="md" />;
     nodeInfo.subtitle = tokens ? (
       <Fragment>
@@ -379,23 +363,22 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
       );
     }
     nodeInfo.color = colors[2];
-  } else if (getIsExecuteToolSpan({op})) {
-    const toolName = getNodeAttribute(SpanFields.GEN_AI_TOOL_NAME);
+  } else if (getIsExecuteToolSpan(genAiOpType)) {
+    const toolName = node.attributes?.[SpanFields.GEN_AI_TOOL_NAME] as string | undefined;
     nodeInfo.icon = <IconFix size="md" />;
     nodeInfo.title = toolName || truncatedOp;
     nodeInfo.subtitle = toolName ? truncatedOp : '';
     nodeInfo.color = colors[5];
-  } else if (getIsHandoffSpan({op})) {
+  } else if (getIsHandoffSpan(genAiOpType)) {
     nodeInfo.icon = <IconChevron size="md" isDouble direction="right" />;
-    nodeInfo.subtitle = node.value.description || '';
+    nodeInfo.subtitle = node.description || '';
     nodeInfo.color = colors[4];
   } else {
-    nodeInfo.subtitle = node.value.description || '';
+    nodeInfo.subtitle = node.description || '';
   }
 
   // Override the color and icon if the node has errors
   if (hasError(node)) {
-    nodeInfo.icon = <IconFire size="md" color="red300" />;
     nodeInfo.color = colors[6];
   }
 
@@ -407,17 +390,13 @@ function hasError(node: AITraceSpanNode) {
     return true;
   }
 
-  if (isEAPSpanNode(node)) {
-    const spanStatus = node.value.additional_attributes?.[SpanFields.SPAN_STATUS];
-    if (!!spanStatus && typeof spanStatus === 'string') {
-      return spanStatus.includes('error');
-    }
-    const status = node.value.additional_attributes?.status;
-    if (!!status && typeof status === 'string') {
-      return status.includes('error');
-    }
-
-    return false;
+  const spanStatus = node.attributes?.[SpanFields.SPAN_STATUS] as string | undefined;
+  if (!!spanStatus && typeof spanStatus === 'string') {
+    return spanStatus.includes('error');
+  }
+  const status = node.attributes?.status;
+  if (!!status && typeof status === 'string') {
+    return status.includes('error');
   }
 
   return false;
@@ -441,15 +420,15 @@ const ListItemContainer = styled('div')<{
   gap: ${p => p.theme.space.md};
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xs};
   padding-left: ${p => (p.indent ? p.indent * 16 : 4)}px;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   cursor: pointer;
   background-color: ${p =>
-    p.isSelected ? p.theme.backgroundSecondary : p.theme.background};
+    p.isSelected ? p.theme.backgroundSecondary : p.theme.tokens.background.primary};
   outline: ${p =>
     p.isSelected
       ? p.hasErrors
-        ? `2px solid ${p.theme.red200}`
-        : `2px solid ${p.theme.purple200}`
+        ? `2px solid ${p.theme.colors.red200}`
+        : `2px solid ${p.theme.colors.blue200}`
       : 'none'};
 
   &:hover {
@@ -463,7 +442,7 @@ const DurationBar = styled('div')<{
 }>`
   width: 100%;
   height: 4px;
-  background-color: ${p => p.theme.gray200};
+  background-color: ${p => p.theme.colors.gray200};
   border-radius: 2px;
   position: relative;
 
@@ -487,7 +466,7 @@ const TransactionButton = styled('button')`
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
   margin-top: ${p => p.theme.space.md};
   gap: ${p => p.theme.space.xs};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   background: transparent;
   border: none;
   outline: none;

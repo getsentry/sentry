@@ -272,8 +272,8 @@ const Left = styled('div')<{hasRight?: boolean}>`
 
 const Right = styled('div')`
   width: 60%;
-  border: 1px solid ${p => p.theme.gray100};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.colors.gray100};
+  border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
 `;
 
@@ -281,16 +281,16 @@ const TreeContainer = styled('div')`
   position: relative;
   height: 70%;
   overflow: hidden;
-  background-color: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.gray100};
-  border-radius: ${p => p.theme.borderRadius};
+  background-color: ${p => p.theme.tokens.background.primary};
+  border: 1px solid ${p => p.theme.colors.gray100};
+  border-radius: ${p => p.theme.radius.md};
   border-top-left-radius: 0;
 `;
 
 const DetailsContainer = styled('div')`
   max-height: 30%;
-  border: 1px solid ${p => p.theme.gray100};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.colors.gray100};
+  border-radius: ${p => p.theme.radius.md};
   overflow: auto;
 `;
 
@@ -318,14 +318,14 @@ const DepthMarker = styled('div')<{depth: number}>`
 
   background-image: repeating-linear-gradient(
     90deg,
-    ${p => p.theme.gray200} 5px,
-    ${p => p.theme.gray200} 6px,
+    ${p => p.theme.colors.gray200} 5px,
+    ${p => p.theme.colors.gray200} 6px,
     transparent 6px,
     transparent 21px
   );
 `;
 
 const EmptyStateContainer = styled('div')`
-  border: 1px solid ${p => p.theme.gray100};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.colors.gray100};
+  border-radius: ${p => p.theme.radius.md};
 `;

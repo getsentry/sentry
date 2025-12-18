@@ -1,6 +1,8 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
+import {Badge} from '@sentry/scraps/badge/badge';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
@@ -98,6 +100,7 @@ export function ExploreTables(props: ExploreTablesProps) {
             {attributeBreakdownsEnabled ? (
               <TabList.Item key={Tab.ATTRIBUTE_BREAKDOWNS}>
                 {t('Attribute Breakdowns')}
+                <Badge type="beta">Beta</Badge>
               </TabList.Item>
             ) : null}
           </TabList>
@@ -106,8 +109,7 @@ export function ExploreTables(props: ExploreTablesProps) {
           <Button onClick={openColumnEditor} icon={<IconTable />} size="sm">
             {t('Edit Table')}
           </Button>
-        ) : props.tab === Mode.AGGREGATE &&
-          organization.features.includes('visibility-explore-aggregate-editor') ? (
+        ) : props.tab === Mode.AGGREGATE ? (
           <Button onClick={openAggregateColumnEditor} icon={<IconTable />} size="sm">
             {t('Edit Table')}
           </Button>

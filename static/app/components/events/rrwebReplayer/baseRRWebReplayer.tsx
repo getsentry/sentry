@@ -53,7 +53,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
     display: inline-block;
     width: 32px;
     height: 32px;
-    background: ${p => p.theme.purple300};
+    background: ${p => p.theme.colors.blue400};
     border-radius: 100%;
     transform: translate(-50%, -50%);
     opacity: 0.3;
@@ -75,7 +75,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
       border-color 0.2s ease-in-out;
   }
   .replayer-mouse.touch-device.touch-active {
-    border-color: ${p => p.theme.purple200};
+    border-color: ${p => p.theme.colors.blue200};
     transition:
       left 0.25s linear,
       top 0.25s linear,
@@ -159,12 +159,12 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
     width: 100%;
     display: block;
     padding: ${space(2)} 0;
-    background: ${p => p.theme.background};
+    background: ${p => p.theme.tokens.background.primary};
     border-radius: 0 0 3px 3px;
     border: 1px solid ${p => p.theme.border};
     border-top: none;
     position: relative;
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 
   .rr-timeline {
@@ -176,7 +176,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
 
   .rr-timeline__time {
     text-align: center;
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 
   .rr-progress {
@@ -208,7 +208,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
     left: 0;
     top: 3px;
     border-radius: 3px;
-    background: ${p => p.theme.purple200};
+    background: ${p => p.theme.colors.blue200};
   }
 
   .rr-progress__handler {
@@ -218,7 +218,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
     position: absolute;
     top: 6px;
     transform: translate(-50%, -50%);
-    background: ${p => p.theme.purple300};
+    background: ${p => p.theme.colors.blue400};
   }
 
   .rr-controller__btns {
@@ -232,7 +232,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
   }
 
   .rr-controller__btns button {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
     width: 28px;
     height: 28px;
     display: flex;
@@ -246,7 +246,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
     transition: background 200ms ease;
 
     > svg {
-      fill: ${p => p.theme.textColor};
+      fill: ${p => p.theme.tokens.content.primary};
     }
   }
 

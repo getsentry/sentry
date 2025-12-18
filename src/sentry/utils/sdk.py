@@ -9,7 +9,6 @@ from types import FrameType
 from typing import TYPE_CHECKING, Any, NamedTuple
 
 import sentry_sdk
-import sentry_sdk.serializer
 from django.conf import settings
 from django.db.utils import OperationalError
 from rest_framework.request import Request
@@ -476,9 +475,6 @@ def configure_sdk():
     from sentry_sdk.integrations.redis import RedisIntegration
     from sentry_sdk.integrations.threading import ThreadingIntegration
 
-    sentry_sdk.serializer.MAX_DATABAG_DEPTH = 100
-    sentry_sdk.serializer.MAX_DATABAG_BREADTH = 100
-
     sentry_sdk.init(
         # set back the sentry4sentry_dsn popped above since we need a default dsn on the client
         # for dynamic sampling context public_key population
@@ -486,7 +482,12 @@ def configure_sdk():
         transport=MultiplexingTransport(),
         integrations=[
             DjangoAtomicIntegration(),
-            DjangoIntegration(signals_spans=False, cache_spans=True, middleware_spans=False),
+            DjangoIntegration(
+                signals_spans=False,
+                cache_spans=True,
+                middleware_spans=False,
+                db_transaction_spans=True,
+            ),
             # This makes it so all levels of logging are recorded as breadcrumbs,
             # but none are captured as events (that's handled by the `internal`
             # logger defined in `server.py`, which ignores the levels set

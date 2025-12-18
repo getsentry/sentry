@@ -36,6 +36,7 @@ class GroupTagDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
             fingerprint="group1",
             contexts={"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
         )
+        assert event.group is not None
 
         self.login_as(user=self.user)
 

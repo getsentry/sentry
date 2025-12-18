@@ -58,20 +58,6 @@ describe('BuildYourPlan', () => {
     });
   });
 
-  function assertAllSubsteps(isNewCheckout: boolean) {
-    const substepTitles = ['Detect and fix issues faster with our AI agent'];
-
-    if (isNewCheckout) {
-      substepTitles.forEach(title => {
-        expect(screen.getByText(title)).toBeInTheDocument();
-      });
-    } else {
-      substepTitles.forEach(title => {
-        expect(screen.queryByText(title)).not.toBeInTheDocument();
-      });
-    }
-  }
-
   function renderCheckout(isNewCheckout: boolean, referrer?: string) {
     let location = LocationFixture();
     if (referrer) {
@@ -100,7 +86,6 @@ describe('BuildYourPlan', () => {
 
     expect(await screen.findByText('Select a plan')).toBeInTheDocument();
     expect(screen.queryByTestId('body-choose-your-plan')).not.toBeInTheDocument();
-    assertAllSubsteps(true);
   });
 
   it('does not render for old checkout', async () => {
@@ -108,7 +93,6 @@ describe('BuildYourPlan', () => {
 
     expect(await screen.findByTestId('body-choose-your-plan')).toBeInTheDocument();
     expect(screen.queryByText('Select a plan')).not.toBeInTheDocument();
-    assertAllSubsteps(false);
   });
 
   describe('PlanSubstep', () => {

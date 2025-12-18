@@ -157,7 +157,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
             {hasBillingAccess ? (
               <LinkButton
                 size="md"
-                to={`/settings/${organization.slug}/billing/checkout/?referrer=partner_plan_ending_modal`}
+                to={`/checkout/${organization.slug}/?referrer=partner_plan_ending_modal`}
                 aria-label="Upgrade Now"
                 priority="primary"
                 onClick={() =>
@@ -231,7 +231,7 @@ const StyledButtonBar = styled('div')`
 
 const ImageHeader = styled('div')`
   margin: -${space(4)} -${space(4)} 0 -${space(4)};
-  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+  border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
   background-image: url(${partnerMigrationHero});
   background-size: cover;
   background-repeat: no-repeat;

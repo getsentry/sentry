@@ -146,6 +146,9 @@ describe('ExplorerPanel', () => {
         interruptRequested: false,
         runId: null,
         setRunId: jest.fn(),
+        respondToUserInput: jest.fn(),
+        switchToRun: jest.fn(),
+        createPR: jest.fn(),
       });
 
       render(<ExplorerPanel isVisible />, {organization});

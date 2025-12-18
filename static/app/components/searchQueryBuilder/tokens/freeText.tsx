@@ -101,13 +101,12 @@ function replaceFocusedWordWithFilter(
   value: string,
   cursorPosition: number,
   key: string,
-  getFieldDefinition: FieldDefinitionGetter,
-  hasWildcardOperators: boolean
+  getFieldDefinition: FieldDefinitionGetter
 ) {
   return replaceFocusedWord(
     value,
     cursorPosition,
-    getInitialFilterText(key, getFieldDefinition(key), hasWildcardOperators)
+    getInitialFilterText(key, getFieldDefinition(key))
   );
 }
 
@@ -273,9 +272,6 @@ function SearchQueryBuilderInputInternal({
   const hasInputChangeFlows = organization.features.includes(
     'search-query-builder-input-flow-changes'
   );
-  const hasWildcardOperators =
-    organization.features.includes('search-query-builder-wildcard-operators') &&
-    organization.features.includes('search-query-builder-default-to-contains');
 
   const updateSelectionIndex = useCallback(() => {
     setSelectionIndex(inputRef.current?.selectionStart ?? 0);
@@ -516,8 +512,7 @@ function SearchQueryBuilderInputInternal({
               inputValue,
               selectionIndex,
               value,
-              getFieldDefinition,
-              hasWildcardOperators
+              getFieldDefinition
             ),
             focusOverride: calculateNextFocusForFilter(
               state,
@@ -620,8 +615,7 @@ function SearchQueryBuilderInputInternal({
                     inputValue,
                     selectionIndex,
                     filterValue,
-                    getFieldDefinition,
-                    hasWildcardOperators
+                    getFieldDefinition
                   ),
                   focusOverride: calculateNextFocusForFilter(
                     state,
@@ -664,8 +658,7 @@ function SearchQueryBuilderInputInternal({
                 inputValue,
                 selectionIndex,
                 filterKey,
-                getFieldDefinition,
-                hasWildcardOperators
+                getFieldDefinition
               ),
               focusOverride: calculateNextFocusForFilter(
                 state,
@@ -769,7 +762,7 @@ const Row = styled('div')`
 
   &[aria-invalid='true'] {
     input {
-      color: ${p => p.theme.red400};
+      color: ${p => p.theme.colors.red500};
     }
   }
 
@@ -781,7 +774,7 @@ const Row = styled('div')`
       right: ${p => p.theme.space.xs};
       top: 0;
       bottom: 0;
-      background-color: ${p => p.theme.gray100};
+      background-color: ${p => p.theme.colors.gray100};
     }
   }
 `;

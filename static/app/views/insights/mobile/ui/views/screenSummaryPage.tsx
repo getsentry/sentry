@@ -19,7 +19,6 @@ type Query = {
   'device.class': string;
   primaryRelease: string;
   project: string;
-  secondaryRelease: string;
   spanDescription: string;
   spanGroup: string;
   spanOp: string;
@@ -58,7 +57,7 @@ export function ScreenSummaryContent() {
             moduleName={ModuleName.SCREEN_RENDERING}
             disableProjectFilter
           />
-          <ReleaseComparisonSelector />
+          <ReleaseComparisonSelector moduleName={ModuleName.SCREEN_RENDERING} />
         </ToolRibbon>
       </HeaderContainer>
 

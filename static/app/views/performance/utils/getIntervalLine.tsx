@@ -36,12 +36,12 @@ export function getIntervalLine(
 
   const periodLine: LineChartSeries = {
     data: [],
-    color: theme.textColor,
+    color: theme.tokens.content.primary,
     markLine: {
       data: [],
       label: {},
       lineStyle: {
-        color: theme.textColor,
+        color: theme.tokens.content.primary,
         type: 'dashed',
         width: label ? 1 : 2,
       },
@@ -56,7 +56,7 @@ export function getIntervalLine(
   const periodLineLabel = {
     fontSize: 11,
     show: label,
-    color: theme.textColor,
+    color: theme.tokens.content.primary,
     silent: label,
   };
 
@@ -130,7 +130,7 @@ export function getIntervalLine(
     ],
     label: {show: false},
     lineStyle: {
-      color: theme.textColor,
+      color: theme.tokens.content.primary,
       type: 'solid',
       width: 2,
     },
@@ -166,12 +166,12 @@ export function getIntervalLine(
 
     periodDividingLine.markLine.lineStyle = {
       ...periodDividingLine.markLine.lineStyle,
-      color: theme.red300,
+      color: theme.colors.red400,
     };
 
     currentPeriod.markLine.lineStyle = {
       ...currentPeriod.markLine.lineStyle,
-      color: theme.red300,
+      color: theme.colors.red400,
     };
 
     currentPeriod.markLine.label = {
@@ -180,7 +180,7 @@ export function getIntervalLine(
         transformedTransaction.aggregate_range_2
       )}`,
       position: 'insideEndTop',
-      color: theme.gray400,
+      color: theme.colors.gray500,
     };
 
     additionalLineSeries.push({
@@ -189,7 +189,7 @@ export function getIntervalLine(
       markArea: MarkArea({
         silent: true,
         itemStyle: {
-          color: theme.red300,
+          color: theme.colors.red400,
           opacity: 0.2,
         },
         data: [
@@ -213,7 +213,7 @@ export function getIntervalLine(
           label: {
             show: false,
           },
-          lineStyle: {color: theme.green400, type: 'solid', width: 4},
+          lineStyle: {color: theme.colors.green500, type: 'solid', width: 4},
           data: [
             // The line needs to be hard-coded to a pixel coordinate because
             // the lowest y-value is dynamic and 'min' doesn't work here
@@ -235,7 +235,7 @@ export function getIntervalLine(
           label: {
             show: false,
           },
-          lineStyle: {color: theme.red300, type: 'solid', width: 4},
+          lineStyle: {color: theme.colors.red400, type: 'solid', width: 4},
           data: [
             // The line needs to be hard-coded to a pixel coordinate because
             // the lowest y-value is dynamic and 'min' doesn't work here
