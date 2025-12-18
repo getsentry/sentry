@@ -15,12 +15,19 @@ import {spring, type Transition} from 'framer-motion';
 import {color} from 'sentry/utils/theme/scraps/color';
 import {breakpoints, radius, size, space} from 'sentry/utils/theme/scraps/size';
 import {typography} from 'sentry/utils/theme/scraps/typography';
+import type {
+  AlertVariant,
+  ButtonVariant,
+  FormSize,
+  LevelVariant,
+  MotionDuration,
+  MotionEasing,
+  TagVariant,
+} from 'sentry/utils/theme/types';
 
-type SimpleMotionName = 'smooth' | 'snap' | 'enter' | 'exit';
+type SimpleMotionName = Exclude<MotionEasing, 'spring'>;
 
-type PhysicsMotionName = 'spring';
-
-type MotionDuration = 'fast' | 'moderate' | 'slow';
+type PhysicsMotionName = Extract<MotionEasing, 'spring'>;
 
 type MotionDefinition = Record<MotionDuration, string>;
 
@@ -143,9 +150,8 @@ function generateMotion() {
   };
 }
 
-type Alert = 'muted' | 'info' | 'warning' | 'success' | 'error';
 type AlertColors = Record<
-  Alert,
+  AlertVariant,
   {
     background: string;
     backgroundLight: string;
@@ -382,17 +388,8 @@ const generateTagTheme = (colors: Colors): TagColors => ({
 
 type Colors = typeof lightColors;
 
-type Tag =
-  | 'default'
-  | 'promotion'
-  | 'highlight'
-  | 'warning'
-  | 'success'
-  | 'error'
-  | 'info';
-
 type TagColors = Record<
-  Tag,
+  TagVariant,
   {
     background: string;
     border: string;
@@ -400,14 +397,10 @@ type TagColors = Record<
   }
 >;
 
-// @TODO: is this loose coupling enough?
-type Level = 'sample' | 'info' | 'warning' | 'error' | 'fatal' | 'default' | 'unknown';
-type LevelColors = Record<Level, string>;
+type LevelColors = Record<LevelVariant, string>;
 
-// @TODO(jonasbadalic): Disabled is not a button variant, it's a state
-type Button = 'default' | 'primary' | 'danger' | 'link' | 'disabled' | 'transparent';
 type ButtonColors = Record<
-  Button,
+  ButtonVariant,
   {
     background: string;
     backgroundActive: string;
@@ -420,15 +413,6 @@ type ButtonColors = Record<
     focusShadow: string;
   }
 >;
-
-export type Size = '2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
-/**
- * Unless you are implementing a new component in the `sentry/components/core`
- * directory, use `ComponentProps['size']` instead.
- * @internal
- */
-export type FormSize = 'xs' | 'sm' | 'md';
-export type Space = keyof typeof space;
 
 const legacyTypography = {
   fontSize: typography.font.size,

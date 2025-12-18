@@ -36,6 +36,10 @@ export type FontSize = SizeRange<'xs', '2xl'>;
 
 /**
  * Form element size constraint.
+ *
+ * Unless you are implementing a new component in the `sentry/components/core`
+ * directory, use `ComponentProps['size']` instead.
+ * @internal
  */
 export type FormSize = SizeRange<'xs', 'md'>;
 
@@ -105,6 +109,31 @@ export type TagVariant =
  * Alert/status color scheme.
  */
 export type AlertVariant = 'muted' | 'info' | 'warning' | 'success' | 'error';
+
+/**
+ * Error/event severity level.
+ */
+export type LevelVariant =
+  | 'sample'
+  | 'info'
+  | 'warning'
+  | 'error'
+  | 'fatal'
+  | 'default'
+  | 'unknown';
+
+/**
+ * Button style variant.
+ *
+ * Note: 'disabled' is a state, not a variant, but is included for backwards compatibility.
+ */
+export type ButtonVariant =
+  | 'default'
+  | 'primary'
+  | 'danger'
+  | 'link'
+  | 'disabled'
+  | 'transparent';
 
 // -----------------------------------------------------------------------------
 // Internal types
