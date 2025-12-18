@@ -785,7 +785,7 @@ class PullRequestEventWebhook(GitHubWebhook):
 
                 try:
                     pr_repo_private = pull_request["head"]["repo"]["private"]
-                except (KeyError, AttributeError):
+                except (KeyError, AttributeError, TypeError):
                     pr_repo_private = False
 
                 metrics.incr(
