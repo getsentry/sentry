@@ -522,15 +522,12 @@ export function TraceEventDataSection({
             />
             <CompactSelect
               trigger={triggerProps => (
-                <SelectTrigger.Button
+                <SelectTrigger.IconButton
                   {...triggerProps}
                   icon={<IconEllipsis />}
                   size="xs"
-                  showChevron={false}
                   aria-label={t('Options')}
-                >
-                  {''}
-                </SelectTrigger.Button>
+                />
               )}
               multiple
               position="bottom-end"
