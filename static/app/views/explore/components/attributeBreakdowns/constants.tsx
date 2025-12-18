@@ -5,3 +5,6 @@ export const CHART_MAX_SERIES_LENGTH = 40;
 
 export const CHARTS_COLUMN_COUNT = 3;
 export const CHARTS_PER_PAGE = CHARTS_COLUMN_COUNT * 4;
+
+export const CHART_SELECTION_ALERT_KEY =
+  'attribute-breakdowns-chart-selection-alert-dismissed';
