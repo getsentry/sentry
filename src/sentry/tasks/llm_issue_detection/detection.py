@@ -273,6 +273,7 @@ def detect_llm_issues_for_project(project_id: int) -> None:
                 extra={
                     "project_id": project_id,
                     "organization_id": organization_id,
+                    "trace_id": trace.trace_id,
                 },
             )
             continue
@@ -285,6 +286,7 @@ def detect_llm_issues_for_project(project_id: int) -> None:
                     "organization_id": organization_id,
                     "status": response.status,
                     "response_data": response.data.decode("utf-8"),
+                    "trace_id": trace.trace_id,
                 },
             )
             continue
@@ -300,6 +302,7 @@ def detect_llm_issues_for_project(project_id: int) -> None:
                     "organization_id": organization_id,
                     "status": response.status,
                     "response_data": response.data.decode("utf-8"),
+                    "trace_id": trace.trace_id,
                 },
             )
             continue
@@ -336,6 +339,7 @@ def detect_llm_issues_for_project(project_id: int) -> None:
                         "category": detected_issue.category,
                         "subcategory": detected_issue.subcategory,
                         "verification_reason": detected_issue.verification_reason,
+                        "trace_id": trace.trace_id,
                     },
                 )
             except Exception:
@@ -345,6 +349,7 @@ def detect_llm_issues_for_project(project_id: int) -> None:
                         "project_id": project_id,
                         "organization_id": organization_id,
                         "issue_title": detected_issue.title,
+                        "trace_id": trace.trace_id,
                     },
                 )
                 continue
