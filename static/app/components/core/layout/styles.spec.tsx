@@ -3,12 +3,11 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {
-  useActiveBreakpoint,
-  useResponsivePropValue,
-  type Breakpoint,
-  type Responsive,
-} from './styles';
+import type {BreakpointSize} from 'sentry/utils/theme/types';
+
+import {useActiveBreakpoint, useResponsivePropValue, type Responsive} from './styles';
+
+type Breakpoint = BreakpointSize;
 
 const theme = ThemeFixture();
 

@@ -1,8 +1,8 @@
 import isPropValid from '@emotion/is-prop-valid';
-import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {rc, type Responsive} from 'sentry/components/core/layout/styles';
+import type {ContentVariant} from 'sentry/utils/theme/types';
 
 import {getFontSize, getLineHeight, getTextDecoration} from './styles';
 
@@ -82,7 +82,7 @@ export interface BaseTextProps {
    * Variant determines the style of the text.
    * @default primary
    */
-  variant?: keyof Theme['tokens']['content'];
+  variant?: ContentVariant;
 
   /**
    * Determines where line breaks appear when wrapping the text.

@@ -1,7 +1,7 @@
-import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
+import type {AlertVariant} from 'sentry/utils/theme/types';
 
 export interface StatusIndicatorProps {
   status: 'muted' | 'info' | 'warning' | 'success' | 'resolved' | 'error';
@@ -14,7 +14,7 @@ export interface StatusIndicatorProps {
  *
  */
 export function StatusIndicator({status, tooltipTitle}: StatusIndicatorProps) {
-  let color: keyof Theme['alert'] = 'error';
+  let color: AlertVariant = 'error';
 
   if (status === 'muted') {
     color = 'muted';
@@ -33,7 +33,7 @@ export function StatusIndicator({status, tooltipTitle}: StatusIndicatorProps) {
   );
 }
 
-const StatusLevel = styled('div')<{color: keyof Theme['alert']}>`
+const StatusLevel = styled('div')<{color: AlertVariant}>`
   position: absolute;
   left: -1px;
   width: 9px;

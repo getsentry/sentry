@@ -2,8 +2,12 @@ import type React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import type {Theme} from 'sentry/utils/theme';
-import type {BorderVariant, RadiusSize, SpaceSize} from 'sentry/utils/theme/types';
+import type {
+  BorderVariant,
+  RadiusSize,
+  SpaceSize,
+  SurfaceVariant,
+} from 'sentry/utils/theme/types';
 
 import {
   getBorder,
@@ -18,7 +22,7 @@ import {
 
 /* eslint-disable typescript-sort-keys/interface */
 interface ContainerLayoutProps {
-  background?: Responsive<keyof Theme['tokens']['background']>;
+  background?: Responsive<SurfaceVariant>;
   display?: Responsive<
     | 'block'
     | 'inline'
