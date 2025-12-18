@@ -1,3 +1,5 @@
+import logging
+
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -15,6 +17,8 @@ from sentry.models.organization import Organization
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_threshold_data_from_seer
 from sentry.snuba.models import QuerySubscription
 from sentry.workflow_engine.models import DataSourceDetector, Detector
+
+logger = logging.getLogger(__name__)
 
 
 @extend_schema(tags=["Workflows"])
@@ -59,12 +63,39 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
         """Look up QuerySubscription from a legacy alert rule ID."""
         try:
             alert_rule = AlertRule.objects.get(id=int(alert_rule_id), organization=organization)
+            logger.info(
+                "anomaly_data.legacy_alert_found",
+                extra={
+                    "alert_rule_id": alert_rule_id,
+                    "snuba_query_id": alert_rule.snuba_query_id,
+                    "organization_id": organization.id,
+                },
+            )
         except (AlertRule.DoesNotExist, ValueError):
+            logger.warning(
+                "anomaly_data.legacy_alert_not_found",
+                extra={"alert_rule_id": alert_rule_id, "organization_id": organization.id},
+            )
             raise ResourceDoesNotExist
 
         try:
-            return QuerySubscription.objects.get(snuba_query_id=alert_rule.snuba_query_id)
+            subscription = QuerySubscription.objects.get(snuba_query_id=alert_rule.snuba_query_id)
+            logger.info(
+                "anomaly_data.subscription_found",
+                extra={
+                    "alert_rule_id": alert_rule_id,
+                    "subscription_id": subscription.id,
+                },
+            )
+            return subscription
         except QuerySubscription.DoesNotExist:
+            logger.warning(
+                "anomaly_data.subscription_not_found",
+                extra={
+                    "alert_rule_id": alert_rule_id,
+                    "snuba_query_id": alert_rule.snuba_query_id,
+                },
+            )
             return Response(
                 {"detail": "Could not find query subscription for alert rule"},
                 status=500,
@@ -106,6 +137,18 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
 
         # If legacy_alert=true, treat detector_id as an alert rule ID
         is_legacy_alert = request.GET.get("legacy_alert", "").lower() == "true"
+
+        logger.info(
+            "anomaly_data.request",
+            extra={
+                "detector_id": detector_id,
+                "is_legacy_alert": is_legacy_alert,
+                "start": start_float,
+                "end": end_float,
+                "organization_id": organization.id,
+            },
+        )
+
         if is_legacy_alert:
             result = self._get_subscription_from_alert_rule(detector_id, organization)
         else:
@@ -122,8 +165,24 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
         )
 
         if data is None:
+            logger.warning(
+                "anomaly_data.seer_returned_none",
+                extra={
+                    "subscription_id": query_subscription.id,
+                    "is_legacy_alert": is_legacy_alert,
+                },
+            )
             return Response(
                 {"detail": "Unable to fetch anomaly detection threshold data"}, status=400
             )
+
+        logger.info(
+            "anomaly_data.success",
+            extra={
+                "subscription_id": query_subscription.id,
+                "is_legacy_alert": is_legacy_alert,
+                "data_points_count": len(data),
+            },
+        )
 
         return Response({"data": data}, status=200)
