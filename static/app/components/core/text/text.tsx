@@ -2,7 +2,7 @@ import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
 import {rc, type Responsive} from 'sentry/components/core/layout/styles';
-import type {ContentVariant} from 'sentry/utils/theme/types';
+import type {ContentVariant, FontSize} from 'sentry/utils/theme/types';
 
 import {getFontSize, getLineHeight, getTextDecoration} from './styles';
 
@@ -48,7 +48,7 @@ export interface BaseTextProps {
    * The size of the text.
    * @default md
    */
-  size?: Responsive<'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl'>;
+  size?: Responsive<FontSize>;
 
   /**
    * Strikethrough the text.

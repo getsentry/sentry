@@ -1,6 +1,7 @@
 import type {Theme} from '@emotion/react';
 
 import type {Responsive} from 'sentry/components/core/layout/styles';
+import type {FontSize} from 'sentry/utils/theme';
 
 import type {HeadingProps} from './heading';
 import type {TextProps} from './text';
@@ -33,10 +34,7 @@ export function getLineHeight(density: ResponsiveValue<TextProps<any>['density']
   }
 }
 
-export function getFontSize(
-  size: NonNullable<ResponsiveValue<TextProps<any>['size']>>,
-  theme: Theme
-) {
+export function getFontSize(size: FontSize, theme: Theme) {
   return theme.font.size[size];
 }
 

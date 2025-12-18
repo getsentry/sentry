@@ -2,13 +2,10 @@ import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
 import {rc} from 'sentry/components/core/layout/styles';
+import type {FontSize} from 'sentry/utils/theme';
 
 import {getFontSize, getLineHeight, getTextDecoration} from './styles';
-import {
-  type BaseTextProps,
-  type ExclusiveTextEllipsisProps,
-  type TextProps,
-} from './text';
+import {type BaseTextProps, type ExclusiveTextEllipsisProps} from './text';
 
 type BaseHeadingProps = Omit<BaseTextProps, 'bold' | 'uppercase'>;
 
@@ -71,9 +68,7 @@ export const Heading = styled(
   padding: 0;
 `;
 
-function getDefaultHeadingFontSize(
-  as: HeadingProps['as']
-): NonNullable<TextProps<any>['size']> {
+function getDefaultHeadingFontSize(as: HeadingProps['as']): FontSize {
   switch (as) {
     case 'h1':
       return '2xl';
