@@ -75,8 +75,8 @@ export const tickStyle: TickStyle<CheckInStatus> = theme => ({
     tickColor: theme.colors.green400,
   },
   [CheckInStatus.MISSED]: {
-    labelColor: theme.yellow400,
-    tickColor: theme.yellow300,
+    labelColor: theme.colors.yellow500,
+    tickColor: theme.colors.yellow400,
   },
   [CheckInStatus.IN_PROGRESS]: {
     labelColor: theme.disabled,
