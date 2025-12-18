@@ -234,6 +234,15 @@ def detect_llm_issues_for_project(project_id: int) -> None:
     if not evidence_traces:
         return
 
+    logger.info(
+        "Getting traces for detection",
+        extra={
+            "organization_id": organization_id,
+            "project_id": project_id,
+            "num_traces": len(evidence_traces),
+            "num_unique_traces": len({trace.trace_id for trace in evidence_traces}),
+        },
+    )
     # Shuffle to randomize order
     random.shuffle(evidence_traces)
     processed_traces = 0
