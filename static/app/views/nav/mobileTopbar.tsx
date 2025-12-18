@@ -130,7 +130,7 @@ const Topbar = styled('header')<{showSuperuserWarning: boolean}>`
   width: 100vw;
   padding-left: ${space(1.5)};
   padding-right: ${space(1.5)};
-  border-bottom: 1px solid ${p => p.theme.translucentGray200};
+  border-bottom: 1px solid ${p => p.theme.colors.gray200};
   background: ${p => p.theme.colors.surface400};
   display: flex;
   flex-direction: row;

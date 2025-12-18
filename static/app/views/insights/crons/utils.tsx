@@ -83,9 +83,9 @@ export const tickStyle: TickStyle<CheckInStatus> = theme => ({
     tickColor: theme.disabled,
   },
   [CheckInStatus.UNKNOWN]: {
-    labelColor: theme.gray400,
-    tickColor: theme.gray300,
-    hatchTick: theme.gray200,
+    labelColor: theme.colors.gray500,
+    tickColor: theme.colors.gray400,
+    hatchTick: theme.colors.gray200,
   },
 });
 

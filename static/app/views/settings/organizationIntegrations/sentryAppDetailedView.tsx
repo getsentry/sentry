@@ -445,7 +445,7 @@ const StyledButton = styled(Button)`
   color: ${p => p.theme.subText};
   background: ${p => p.theme.tokens.background.primary};
 
-  border: ${p => `1px solid ${p.theme.gray300}`};
+  border: ${p => `1px solid ${p.theme.colors.gray400}`};
   box-sizing: border-box;
   box-shadow: 0px 2px 1px rgba(0, 0, 0, 0.08);
   border-radius: 4px;

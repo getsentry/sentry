@@ -235,7 +235,9 @@ export function getMetricDetectorChartOption(
 
     waitingForDataDuration = Math.abs(endTime - startTime);
 
-    series.push(createStatusAreaSeries(theme.gray200, startTime, endTime, minChartValue));
+    series.push(
+      createStatusAreaSeries(theme.colors.gray200, startTime, endTime, minChartValue)
+    );
   }
 
   if (openPeriods) {

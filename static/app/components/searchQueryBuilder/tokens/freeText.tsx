@@ -774,7 +774,7 @@ const Row = styled('div')`
       right: ${p => p.theme.space.xs};
       top: 0;
       bottom: 0;
-      background-color: ${p => p.theme.gray100};
+      background-color: ${p => p.theme.colors.gray100};
     }
   }
 `;

@@ -22,8 +22,8 @@ const NegativeSpaceContainer = styled('div')`
       -45deg,
       transparent,
       transparent 15px,
-      ${p => p.theme.gray100} 15px,
-      ${p => p.theme.gray100} 16px
+      ${p => p.theme.colors.gray100} 15px,
+      ${p => p.theme.colors.gray100} 16px
     );
 `;
 

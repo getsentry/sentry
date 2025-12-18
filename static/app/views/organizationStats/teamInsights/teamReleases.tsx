@@ -199,7 +199,7 @@ function TeamReleases({
               data: seriesData,
               markLine: MarkLine({
                 silent: true,
-                lineStyle: {color: theme.gray200, type: 'dashed', width: 1},
+                lineStyle: {color: theme.colors.gray200, type: 'dashed', width: 1},
                 data: [{yAxis: totalPeriodAverage}],
                 label: {
                   show: false,

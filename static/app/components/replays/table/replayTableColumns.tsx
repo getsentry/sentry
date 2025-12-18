@@ -655,7 +655,7 @@ const SpanOperationBreakdown = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.colors.gray800};
   font-size: ${p => p.theme.fontSize.md};
   text-align: right;
 `;
