@@ -77,7 +77,7 @@ function ChartError() {
   return (
     <Flex justify="center" align="center" height={CHART_HEIGHT}>
       <ErrorPanel>
-        <IconWarning color="gray300" size="lg" />
+        <IconWarning variant="muted" size="lg" />
         <div>{t('Error loading chart data')}</div>
       </ErrorPanel>
     </Flex>

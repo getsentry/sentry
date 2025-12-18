@@ -695,7 +695,7 @@ class _QueryField extends Component<Props> {
           />
           {error ? (
             <ArithmeticError title={error}>
-              <IconWarning color="errorText" data-test-id="arithmeticErrorWarning" />
+              <IconWarning variant="danger" data-test-id="arithmeticErrorWarning" />
             </ArithmeticError>
           ) : null}
         </Container>

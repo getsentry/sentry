@@ -117,7 +117,7 @@ export function GroupTagValues() {
 
   const title = tagKey === 'user' ? t('Affected Users') : tagKey;
   const sort = location.query.sort || DEFAULT_SORT;
-  const sortArrow = <IconArrow color="gray300" size="xs" direction="down" />;
+  const sortArrow = <IconArrow variant="muted" size="xs" direction="down" />;
 
   const {tagValueList, tag, isLoading, isError, pageLinks} = useTagQueries({
     groupId: params.groupId,
@@ -234,12 +234,12 @@ export function GroupTagValues() {
                 href={`mailto:${tagValue.email}`}
                 data-test-id="group-tag-mail"
               >
-                <IconMail size="xs" color="gray300" />
+                <IconMail size="xs" variant="muted" />
               </StyledExternalLink>
             )}
             {isUrl(tagValue.value) && (
               <StyledExternalLink href={tagValue.value} data-test-id="group-tag-url">
-                <IconOpen size="xs" color="gray300" />
+                <IconOpen size="xs" variant="muted" />
               </StyledExternalLink>
             )}
           </NameColumn>

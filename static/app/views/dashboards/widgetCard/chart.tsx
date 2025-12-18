@@ -174,7 +174,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
   if (errorMessage) {
     return (
       <StyledErrorPanel>
-        <IconWarning color="gray500" size="lg" />
+        <IconWarning variant="primary" size="lg" />
       </StyledErrorPanel>
     );
   }

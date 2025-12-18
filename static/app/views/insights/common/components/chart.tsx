@@ -393,7 +393,7 @@ function Chart({
     if (error) {
       return (
         <ErrorPanel height={`${height}px`} data-test-id="chart-error-panel">
-          <IconWarning color="gray300" size="lg" />
+          <IconWarning variant="muted" size="lg" />
         </ErrorPanel>
       );
     }
@@ -523,7 +523,7 @@ function Chart({
     if (error) {
       return (
         <ErrorPanel height={`${height}px`} data-test-id="chart-error-panel">
-          <IconWarning color="gray300" size="lg" />
+          <IconWarning variant="muted" size="lg" />
         </ErrorPanel>
       );
     }

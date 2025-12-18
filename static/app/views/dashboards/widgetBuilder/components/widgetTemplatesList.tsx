@@ -87,7 +87,7 @@ function WidgetTemplatesList({
               }}
             >
               <IconWrapper backgroundColor={iconColor}>
-                <Icon color="white" />
+                <Icon variant="primary" />
               </IconWrapper>
               <div>
                 <WidgetTitle>{widget.title}</WidgetTitle>

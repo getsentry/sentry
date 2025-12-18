@@ -118,7 +118,7 @@ function ReleaseContext(props: BaseContextProps) {
           </ContextHeader>
           <ContextBody>
             {data.commitCount === 0 ? (
-              <IconNot color="gray500" size="md" />
+              <IconNot variant="primary" size="md" />
             ) : (
               <StyledAvatarList users={authors} maxVisibleAvatars={10} />
             )}

@@ -24,20 +24,20 @@ interface Props {
 
 const statusIconColorMap: Record<MonitorStatus, StatusNotice> = {
   ok: {
-    icon: <IconCheckmark color="successText" />,
-    color: 'successText',
+    icon: <IconCheckmark variant="success" />,
+    color: 'success',
   },
   error: {
-    icon: <IconFire color="errorText" />,
-    color: 'errorText',
+    icon: <IconFire variant="danger" />,
+    color: 'danger',
   },
   active: {
-    icon: <IconTimer color="subText" />,
+    icon: <IconTimer variant="muted" />,
     color: 'subText',
     label: t('Waiting For Check-In'),
   },
   disabled: {
-    icon: <IconUnsubscribed color="subText" size="xs" />,
+    icon: <IconUnsubscribed variant="muted" size="xs" />,
     color: 'subText',
     label: t('Muted'),
   },
@@ -47,7 +47,7 @@ const userNotifiedDisplay: StatusNotice = {
   label: t(
     'This environment is likely broken due to being in an error state for multiple days.'
   ),
-  icon: <IconFix color="subText" />,
+  icon: <IconFix variant="muted" />,
   color: 'subText',
 };
 
@@ -55,7 +55,7 @@ const envMutedDisplay: StatusNotice = {
   label: t(
     'This environment is likely broken due to being in an error state for multiple days. It has been automatically muted.'
   ),
-  icon: <IconMute color="subText" />,
+  icon: <IconMute variant="muted" />,
   color: 'subText',
 };
 

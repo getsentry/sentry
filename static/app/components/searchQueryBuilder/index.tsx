@@ -214,7 +214,7 @@ function ActionButtons({
             aria-label={caseInsensitiveLabel}
             aria-pressed={isCaseInsensitive}
             size="zero"
-            icon={<IconCase color={isCaseInsensitive ? 'subText' : 'active'} />}
+            icon={<IconCase variant={isCaseInsensitive ? 'muted' : 'accent'} />}
             borderless
             active={!isCaseInsensitive}
             onClick={() => {

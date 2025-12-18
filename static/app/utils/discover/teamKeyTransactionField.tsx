@@ -64,7 +64,7 @@ function TeamKeyTransactionField({
             size="zero"
             icon={
               <IconStar
-                color={keyedTeamsCount ? 'yellow300' : 'gray200'}
+                variant={keyedTeamsCount ? 'warning' : 'muted'}
                 isSolid={keyedTeamsCount > 0}
                 data-test-id="team-key-transaction-column"
               />
@@ -102,7 +102,7 @@ export default function TeamKeyTransactionFieldWrapper({
         disabled
         borderless
         size="zero"
-        icon={<IconStar color="gray100" />}
+        icon={<IconStar variant="muted" />}
         aria-label={t('Toggle star for team')}
       />
     );

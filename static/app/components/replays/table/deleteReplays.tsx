@@ -223,7 +223,7 @@ function ReplayPreviewTable({
                   <Flex gap="xs">
                     {getShortEventId(replay.id)}
                     <Flex gap="xs">
-                      <IconCalendar color="gray300" size="xs" />
+                      <IconCalendar variant="muted" size="xs" />
                       <TimeSince date={replay.started_at} />
                     </Flex>
                   </Flex>

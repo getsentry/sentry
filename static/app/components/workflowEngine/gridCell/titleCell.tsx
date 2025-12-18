@@ -46,7 +46,7 @@ export function TitleCell({
             <Tooltip title={warning.message} skipWrapper>
               <Flex gap="sm" align="center">
                 {warning.color === 'danger' && <Text variant="danger">Invalid</Text>}
-                <IconWarning color={warning.color} />
+                <IconWarning variant={warning.color} />
               </Flex>
             </Tooltip>
           </Fragment>

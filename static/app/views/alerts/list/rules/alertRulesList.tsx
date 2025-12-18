@@ -192,7 +192,7 @@ function AlertRulesList() {
   const isAlertRuleSort =
     sort.field.includes('incident_status') || sort.field.includes('date_triggered');
   const sortArrow = (
-    <IconArrow color="gray300" size="xs" direction={sort.asc ? 'up' : 'down'} />
+    <IconArrow variant="muted" size="xs" direction={sort.asc ? 'up' : 'down'} />
   );
 
   return (

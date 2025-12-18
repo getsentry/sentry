@@ -222,7 +222,7 @@ export function FrontendOverviewTable({displayPerfScore, response, sort}: Props)
 
 function renderPrependColumns(isHeader: boolean, row?: Row | undefined) {
   if (isHeader) {
-    return [<IconStar key="star" color="yellow300" isSolid />];
+    return [<IconStar key="star" variant="warning" isSolid />];
   }
 
   if (!row) {

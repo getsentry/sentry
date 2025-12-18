@@ -222,7 +222,7 @@ function RuleListRow({
     />
   ) : (
     <Tooltip isHoverable skipWrapper title={t('Unassigned')}>
-      <IconUser size="md" color="gray400" />
+      <IconUser size="md" variant="primary" />
     </Tooltip>
   );
 
