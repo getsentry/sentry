@@ -3812,7 +3812,7 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Enabled organizations for API token async flush
+# Enables users for API token async flush
 register(
     "users:api-token-async-flush",
     default=[],
