@@ -19,7 +19,7 @@ import {IconCheckmark, IconClose} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
-export function createGrayPalette(theme: Theme) {
+export function createGrayPalette(theme) {
   return [
     [{name: 'gray500', value: theme.gray500}],
     [{name: 'gray400', value: theme.gray400}],
@@ -29,7 +29,7 @@ export function createGrayPalette(theme: Theme) {
   ];
 }
 
-export function createLevelsPalette(theme: Theme) {
+export function createLevelsPalette(theme) {
   return [
     [
       {name: 'purple400', value: theme.purple400},
@@ -94,7 +94,7 @@ export const PalettePanel = styled(Panel)`
   margin-bottom: 0;
 `;
 
-export const PalettePanelItem = styled(PanelItem)<{color: string, textColor: string}>`
+export const PalettePanelItem = styled(PanelItem)`
   flex-direction: column;
   gap: ${space(0.5)};
 
