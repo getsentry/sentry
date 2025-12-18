@@ -280,7 +280,7 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
                     repos_data = filtered_repo_mappings[proj_id]
                     new_repos = [SeerRepoDefinition(**repo_data).dict() for repo_data in repos_data]
                     if append_repositories:
-                        existing_repos = existing_pref.get("repositories", [])
+                        existing_repos = existing_pref.get("repositories") or []
                         pref_update["repositories"] = merge_repositories(existing_repos, new_repos)
                     else:
                         pref_update["repositories"] = new_repos
