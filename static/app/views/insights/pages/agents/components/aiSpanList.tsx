@@ -442,7 +442,7 @@ const DurationBar = styled('div')<{
 }>`
   width: 100%;
   height: 4px;
-  background-color: ${p => p.theme.gray200};
+  background-color: ${p => p.theme.colors.gray200};
   border-radius: 2px;
   position: relative;
 

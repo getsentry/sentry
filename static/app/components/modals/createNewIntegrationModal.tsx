@@ -133,7 +133,7 @@ const RadioChoiceHeader = styled('h6')`
 `;
 
 const RadioChoiceDescription = styled('div')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
   font-size: ${p => p.theme.fontSize.md};
   line-height: 1.6em;
 `;

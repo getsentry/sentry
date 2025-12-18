@@ -44,8 +44,22 @@ describe('SimilarIssuesDrawer', () => {
       body: {features: []},
     });
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/related-issues/`,
+      url: `/organizations/${organization.slug}/issues/${group.id}/related-issues/`,
+      match: [
+        MockApiClient.matchQuery({
+          type: 'same_root_cause',
+        }),
+      ],
       body: {data: [], type: 'same_root_cause'},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/related-issues/`,
+      match: [
+        MockApiClient.matchQuery({
+          type: 'trace_connected',
+        }),
+      ],
+      body: {data: [], type: 'trace_connected'},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,

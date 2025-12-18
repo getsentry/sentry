@@ -359,6 +359,10 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
           fullWidth
           showDetailsPane={showDetailsPane}
           hasAiFeatures={enableAISearch}
+          onMouseDown={e => {
+            // Prevent the input from losing focus when interacting with the menu
+            e.preventDefault();
+          }}
         >
           {isOpen ? (
             <FilterKeyMenuContent
@@ -385,6 +389,10 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
         ref={popoverRef}
         width={filterKeyMenuWidth}
         hasAiFeatures={enableAISearch}
+        onMouseDown={e => {
+          // Prevent the input from losing focus when interacting with the menu
+          e.preventDefault();
+        }}
       >
         {isOpen ? (
           <FilterKeyMenuContent
