@@ -151,6 +151,9 @@ class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
         successful_deletions = [result for result in deletion_results if result["success"]]
         failed_deletions = [result for result in deletion_results if not result["success"]]
 
+        successful_artifact_ids = [result["artifact_id"] for result in successful_deletions]
+        failed_artifact_ids = [result["artifact_id"] for result in failed_deletions]
+
         logger.info(
             "preprod_artifact.admin_batch_delete.completed",
             extra={
@@ -159,6 +162,8 @@ class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
                 "found_count": len(artifacts_to_delete),
                 "successful_count": len(successful_deletions),
                 "failed_count": len(failed_deletions),
+                "successful_artifact_ids": successful_artifact_ids,
+                "failed_artifact_ids": failed_artifact_ids,
                 "total_files_deleted": len(total_files_deleted),
                 "total_size_metrics_deleted": total_size_metrics_deleted,
                 "total_installable_artifacts_deleted": total_installable_artifacts_deleted,
@@ -169,6 +174,8 @@ class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
             {
                 "success": True,
                 "message": f"Batch deletion completed. {len(successful_deletions)} artifacts deleted successfully.",
+                "successful_artifact_ids": successful_artifact_ids,
+                "failed_artifact_ids": failed_artifact_ids,
                 "summary": {
                     "requested_count": len(preprod_artifact_ids),
                     "found_count": len(artifacts_to_delete),

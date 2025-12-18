@@ -45,19 +45,9 @@ class ArtifactDeletionResult:
 def delete_artifact_and_related_objects(
     preprod_artifact: PreprodArtifact, artifact_id: int
 ) -> ArtifactDeletionResult:
-    """Delete an artifact and all files and related objects with detailed logging.
-
+    """
+    Delete an artifact and all files and related objects with detailed logging.
     This operation is atomic - either all deletions succeed or none do.
-
-    Args:
-        preprod_artifact: The artifact to delete
-        artifact_id: Artifact ID for logging
-
-    Returns:
-        ArtifactDeletionResult containing deletion counts and file identifiers
-
-    Raises:
-        Exception: If any deletion operation fails, entire transaction is rolled back
     """
 
     with transaction.atomic(using=router.db_for_write(PreprodArtifact)):
@@ -65,55 +55,21 @@ def delete_artifact_and_related_objects(
 
         # Delete the main artifact file
         if preprod_artifact.file_id:
-            try:
-                main_file = File.objects.get(id=preprod_artifact.file_id)
-                main_file.delete()
-                files_deleted.append(f"main_file:{preprod_artifact.file_id}")
-                logger.info(
-                    "preprod_artifact.admin_batch_delete.file_deleted",
-                    extra={
-                        "artifact_id": artifact_id,
-                        "file_id": preprod_artifact.file_id,
-                        "file_type": "main_artifact",
-                    },
-                )
-            except Exception as e:
-                logger.warning(
-                    "preprod_artifact.admin_batch_delete.file_delete_failed",
-                    extra={
-                        "artifact_id": artifact_id,
-                        "file_id": preprod_artifact.file_id,
-                        "file_type": "main_artifact",
-                        "error": str(e),
-                    },
-                )
-                raise
+            _delete_file_if_exists(
+                file_id=preprod_artifact.file_id,
+                file_type="main_artifact",
+                artifact_id=artifact_id,
+                files_deleted=files_deleted,
+            )
 
         # Delete the installable app file (IPA/APK)
         if preprod_artifact.installable_app_file_id:
-            try:
-                installable_file = File.objects.get(id=preprod_artifact.installable_app_file_id)
-                installable_file.delete()
-                files_deleted.append(f"installable_file:{preprod_artifact.installable_app_file_id}")
-                logger.info(
-                    "preprod_artifact.admin_batch_delete.file_deleted",
-                    extra={
-                        "artifact_id": artifact_id,
-                        "file_id": preprod_artifact.installable_app_file_id,
-                        "file_type": "installable_app",
-                    },
-                )
-            except Exception as e:
-                logger.warning(
-                    "preprod_artifact.admin_batch_delete.file_delete_failed",
-                    extra={
-                        "artifact_id": artifact_id,
-                        "file_id": preprod_artifact.installable_app_file_id,
-                        "file_type": "installable_app",
-                        "error": str(e),
-                    },
-                )
-                raise
+            _delete_file_if_exists(
+                file_id=preprod_artifact.installable_app_file_id,
+                file_type="installable_app",
+                artifact_id=artifact_id,
+                files_deleted=files_deleted,
+            )
 
         # Delete size analysis metrics and their associated files
         size_metrics = list(
@@ -123,31 +79,13 @@ def delete_artifact_and_related_objects(
 
         for size_metric in size_metrics:
             if size_metric.analysis_file_id:
-                try:
-                    analysis_file = File.objects.get(id=size_metric.analysis_file_id)
-                    analysis_file.delete()
-                    files_deleted.append(f"size_analysis_file:{size_metric.analysis_file_id}")
-                    logger.info(
-                        "preprod_artifact.admin_batch_delete.file_deleted",
-                        extra={
-                            "artifact_id": artifact_id,
-                            "file_id": size_metric.analysis_file_id,
-                            "file_type": "size_analysis",
-                            "size_metric_id": size_metric.id,
-                        },
-                    )
-                except Exception as e:
-                    logger.warning(
-                        "preprod_artifact.admin_batch_delete.file_delete_failed",
-                        extra={
-                            "artifact_id": artifact_id,
-                            "file_id": size_metric.analysis_file_id,
-                            "file_type": "size_analysis",
-                            "size_metric_id": size_metric.id,
-                            "error": str(e),
-                        },
-                    )
-                    raise
+                _delete_file_if_exists(
+                    file_id=size_metric.analysis_file_id,
+                    file_type="size_analysis",
+                    artifact_id=artifact_id,
+                    files_deleted=files_deleted,
+                    extra_fields={"size_metric_id": size_metric.id},
+                )
 
             # Delete the size metric record itself
             try:
@@ -200,8 +138,8 @@ def delete_artifact_and_related_objects(
 
         # Delete from EAP (Snuba)
         _delete_preprod_artifact_from_eap(
-            organization_id=preprod_artifact.organization_id,
-            project_id=preprod_artifact.project_id,
+            organization_id=preprod_artifact.project.organization_id,
+            project_id=preprod_artifact.project.id,
             preprod_artifact_id=preprod_artifact.id,
             artifact_id=artifact_id,
         )
@@ -214,6 +152,37 @@ def delete_artifact_and_related_objects(
             installable_count=installable_count,
             size_metrics_count=size_metrics_count,
         )
+
+
+def _delete_file_if_exists(
+    file_id: int,
+    file_type: str,
+    artifact_id: int,
+    files_deleted: list[str],
+    extra_fields: dict | None = None,
+) -> None:
+    """Helper to delete a file with consistent error handling and logging."""
+    extra = {
+        "artifact_id": artifact_id,
+        "file_id": file_id,
+        "file_type": file_type,
+        **(extra_fields or {}),
+    }
+
+    try:
+        file = File.objects.get(id=file_id)
+        file.delete()
+        files_deleted.append(f"{file_type}_file:{file_id}")
+        logger.info("preprod_artifact.admin_batch_delete.file_deleted", extra=extra)
+    except File.DoesNotExist:
+        logger.warning("preprod_artifact.admin_batch_delete.file_not_found", extra=extra)
+        # Continue - orphaned file reference, artifact can still be deleted
+    except Exception as e:
+        logger.warning(
+            "preprod_artifact.admin_batch_delete.file_delete_failed",
+            extra={**extra, "error": str(e)},
+        )
+        raise
 
 
 def _delete_preprod_artifact_from_eap(
