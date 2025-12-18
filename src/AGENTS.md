@@ -58,12 +58,17 @@ make develop
 # Or use the newer devenv command
 devenv sync
 
+# Activate the Python virtual environment (required for running tests and Python commands)
+direnv allow
+
 # Start dev dependencies
 devservices up
 
 # Start the development server
 devservices serve
 ```
+
+**Note**: Always run `direnv allow` to activate the Python virtual environment before running tests or Python commands. This ensures you're using the correct Python interpreter and dependencies.
 
 ### Database Operations
 
@@ -256,6 +261,32 @@ logger.info(
     }
 )
 
+# IMPORTANT: LOG005 use exception() within an exception handler
+# WRONG: Calling logger.error() when capturing exception
+try:
+    risky_operation()
+except ValidationError as e:
+    logger.error("error.invalid_payload")
+
+# RIGHT: Use logger.exception() with a message when capturing an exception
+try:
+    risky_operation()
+except ValidationError:
+    logger.exception("error.invalid_payload")
+
+# IMPORTANT: Avoid LOG011 - Never pre-format log messages with f-strings or .format()
+# WRONG: Pre-formatting evaluates before logger call, even if logging is disabled
+logger.info(f"User {user.id} completed {action}")
+logger.info("User {} completed {}".format(user.id, action))
+
+# RIGHT: Use logger's %-formatting for lazy evaluation
+logger.info("%s.user.action.complete", PREFIX)
+
+# ALSO RIGHT: Use structured logging with extra parameters only
+logger.info(
+    "user.action.complete", extra={"user_id": user.id}
+)
+
 # Analytics event
 analytics.record(
     FeatureUsedEvent(
@@ -294,6 +325,41 @@ class MultiProducer:
     def _default_producer_factory(self, config) -> KafkaProducer:
         return KafkaProducer(build_kafka_configuration(default_config=config))
 ```
+
+## Code Comments
+
+Comments should not repeat what the code is saying. Instead, reserve comments for explaining **why** something is being done, or to provide context that is not obvious from the code itself.
+
+```python
+# Bad - obvious from the code itself
+result = self.create_project(organization=org)  # Create a project
+
+# Good - explains why
+# Some APIs occasionally return 500s on valid requests. We retry up to
+# 3 times before surfacing an error.
+retries += 1
+
+# Good - provides non-obvious context
+# Seer requires at least 10 events before it can analyze patterns
+if event_count < 10:
+    return None
+```
+
+**When to Comment:**
+
+- To explain why a particular approach or workaround was chosen
+- To clarify intent when the code could be misread or misunderstood
+- To provide context from external systems, specs, or requirements
+- To document assumptions, edge cases, or limitations
+- To explain non-obvious business logic or domain knowledge
+
+**When Not to Comment:**
+
+- Don't narrate what the code is doing — the code already says that
+- Don't duplicate function or variable names in plain English
+- Don't leave stale comments that contradict the code
+- Don't reference removed or obsolete code paths (e.g. "No longer uses X format")
+- Don't comment on obvious test setup steps (e.g. "Create organization", "Call the API")
 
 ## Architecture Rules
 
