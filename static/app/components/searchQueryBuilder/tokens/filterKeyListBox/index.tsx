@@ -548,9 +548,9 @@ const SectionButton = styled(Button)`
   border: 0;
 
   &[aria-selected='true'] {
-    background-color: ${p => p.theme.purple100};
-    box-shadow: inset 0 0 0 1px ${p => p.theme.purple100};
-    color: ${p => p.theme.purple300};
+    background-color: ${p => p.theme.colors.blue100};
+    box-shadow: inset 0 0 0 1px ${p => p.theme.colors.blue100};
+    color: ${p => p.theme.colors.blue400};
     font-weight: ${p => p.theme.fontWeight.bold};
   }
 `;

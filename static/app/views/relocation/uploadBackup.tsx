@@ -236,7 +236,7 @@ const UploadWell = styled('div')<{draggedOver: boolean}>`
   border-radius: 3px;
   border: 1px ${props => (props.draggedOver ? 'solid' : 'dashed')} ${p => p.theme.border};
   background: ${props =>
-    props.draggedOver ? p => p.theme.purple100 : p => p.theme.colors.surface500};
+    props.draggedOver ? p => p.theme.colors.blue100 : p => p.theme.colors.surface500};
 
   .upload-icon {
     color: ${p => p.theme.gray500};

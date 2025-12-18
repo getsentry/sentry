@@ -7,7 +7,7 @@ export const AskSeerPane = styled('div')`
   justify-content: flex-start;
   padding: 0;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
-  background-color: ${p => p.theme.purple100};
+  background-color: ${p => p.theme.colors.blue100};
   width: 100%;
 `;
 
@@ -24,7 +24,7 @@ export const AskSeerListItem = styled('div')<{
   border-radius: 0;
   background-color: none;
   box-shadow: none;
-  color: ${p => p.theme.purple400};
+  color: ${p => p.theme.colors.blue500};
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.bold};
   text-align: left;
@@ -39,8 +39,8 @@ export const AskSeerListItem = styled('div')<{
   }
 
   &[aria-selected='true'] {
-    background: ${p => p.theme.purple100};
-    color: ${p => p.theme.purple400};
+    background: ${p => p.theme.colors.blue100};
+    color: ${p => p.theme.colors.blue500};
   }
 `;
 
@@ -49,7 +49,7 @@ export const AskSeerLabel = styled('span')<{
   width?: 'auto';
 }>`
   ${p => p.theme.overflowEllipsis};
-  color: ${p => p.theme.purple400};
+  color: ${p => p.theme.colors.blue500};
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.fontWeight ?? p.theme.fontWeight.bold};
   display: flex;

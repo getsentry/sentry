@@ -193,7 +193,7 @@ function GroupReleaseChart(props: Props) {
           showTimeInTooltip
           showMarkLineLabel
           height={42}
-          colors={environment ? undefined : [theme.purple300, theme.purple300]}
+          colors={environment ? undefined : [theme.colors.blue400, theme.colors.blue400]}
           series={series}
           grid={{
             top: 6,
