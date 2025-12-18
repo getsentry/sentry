@@ -58,42 +58,43 @@ class DataAccessGrant(DefaultFieldsModel):
         db_table = "sentry_dataaccessgrant"
         unique_together = (("organization_id", "grant_type", "ticket_id"),)
 
+    @classmethod
+    def create_or_update_data_access_grant(
+        cls,
+        organization_id: int,
+        user_id: int | None,
+        grant_type: GrantType,
+        access_end: datetime,
+    ) -> None:
+        cls.objects.update_or_create(
+            organization_id=organization_id,
+            grant_type=grant_type,
+            defaults={
+                "grant_start": timezone.now(),
+                "grant_end": access_end,
+                "granted_by_user_id": user_id,
+            },
+        )
 
-def create_or_update_data_access_grant(
-    organization_id: int,
-    user_id: int | None,
-    grant_type: DataAccessGrant.GrantType,
-    access_end: datetime,
-) -> None:
-    DataAccessGrant.objects.update_or_create(
-        organization_id=organization_id,
-        grant_type=grant_type,
-        defaults={
-            "grant_start": timezone.now(),
-            "grant_end": access_end,
-            "granted_by_user_id": user_id,
-        },
-    )
+        # invalidate cache to force effective grant status recalculation
+        effective_grant_status_cache.delete(organization_id)
 
-    # invalidate cache to force effective grant status recalculation
-    effective_grant_status_cache.delete(organization_id)
+    @classmethod
+    def revoke_active_data_access_grants(
+        cls, organization_id: int, user_id: int | None, revocation_reason: RevocationReason
+    ) -> None:
+        now = timezone.now()
 
+        cls.objects.filter(
+            organization_id=organization_id,
+            grant_start__lte=now,
+            grant_end__gt=now,
+            revocation_date__isnull=True,  # Not revoked
+        ).update(
+            revocation_date=now,
+            revocation_reason=revocation_reason,
+            revoked_by_user_id=user_id,
+        )
 
-def revoke_active_data_access_grants(
-    organization_id: int, user_id: int | None, revocation_reason: DataAccessGrant.RevocationReason
-) -> None:
-    now = timezone.now()
-
-    DataAccessGrant.objects.filter(
-        organization_id=organization_id,
-        grant_start__lte=now,
-        grant_end__gt=now,
-        revocation_date__isnull=True,  # Not revoked
-    ).update(
-        revocation_date=now,
-        revocation_reason=revocation_reason,
-        revoked_by_user_id=user_id,
-    )
-
-    # invalidate cache to force effective grant status recalculation
-    effective_grant_status_cache.delete(organization_id)
+        # invalidate cache to force effective grant status recalculation
+        effective_grant_status_cache.delete(organization_id)
