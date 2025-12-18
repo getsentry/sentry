@@ -268,7 +268,11 @@ function getBreadcrumbColorConfig(
     case BreadcrumbType.ERROR:
       return {title: theme.red400, icon: theme.red400, iconBorder: theme.red200};
     case BreadcrumbType.WARNING:
-      return {title: theme.yellow400, icon: theme.yellow400, iconBorder: theme.yellow200};
+      return {
+        title: theme.colors.yellow500,
+        icon: theme.colors.yellow500,
+        iconBorder: theme.colors.yellow200,
+      };
     case BreadcrumbType.NAVIGATION:
     case BreadcrumbType.HTTP:
     case BreadcrumbType.QUERY:
@@ -387,7 +391,7 @@ const BreadcrumbLevel = styled('div')<{level: BreadcrumbLevelType}>`
       case BreadcrumbLevelType.FATAL:
         return p.theme.red400;
       case BreadcrumbLevelType.WARNING:
-        return p.theme.yellow400;
+        return p.theme.colors.yellow500;
       default:
       case BreadcrumbLevelType.DEBUG:
       case BreadcrumbLevelType.INFO:

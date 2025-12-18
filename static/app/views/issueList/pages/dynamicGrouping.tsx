@@ -1295,8 +1295,8 @@ const StatusTag = styled('div')<{color: 'purple' | 'yellow' | 'red'}>`
         `;
       case 'yellow':
         return `
-          background: ${p.theme.yellow100};
-          color: ${p.theme.yellow400};
+          background: ${p.theme.colors.yellow100};
+          color: ${p.theme.colors.yellow500};
         `;
       case 'red':
         return `
@@ -1518,10 +1518,10 @@ const CustomDataBadge = styled('div')`
   align-items: center;
   gap: ${space(0.5)};
   padding: ${space(0.5)} ${space(1)};
-  background: ${p => p.theme.yellow100};
-  border: 1px solid ${p => p.theme.yellow300};
+  background: ${p => p.theme.colors.yellow100};
+  border: 1px solid ${p => p.theme.colors.yellow400};
   border-radius: ${p => p.theme.radius.md};
-  color: ${p => p.theme.yellow400};
+  color: ${p => p.theme.colors.yellow500};
 `;
 
 const LastUpdatedText = styled('span')`

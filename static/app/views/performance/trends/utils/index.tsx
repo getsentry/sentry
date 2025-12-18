@@ -114,8 +114,8 @@ export function makeTrendToColorMapping(theme: Theme) {
       default: theme.red300,
     },
     neutral: {
-      lighter: theme.yellow200,
-      default: theme.yellow300,
+      lighter: theme.colors.yellow200,
+      default: theme.colors.yellow400,
     },
     // TODO remove this once backend starts sending
     // TrendChangeType.IMPROVED as change type

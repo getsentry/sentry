@@ -885,8 +885,8 @@ const TraceStylingWrapper = styled('div')`
     }
 
     &.Meh {
-      color: ${p => p.theme.yellow400};
-      border: 1px solid ${p => p.theme.yellow300};
+      color: ${p => p.theme.colors.yellow500};
+      border: 1px solid ${p => p.theme.colors.yellow400};
 
       &.light {
         background-color: rgb(249 244 224);
@@ -958,7 +958,7 @@ const TraceStylingWrapper = styled('div')`
         background: repeating-linear-gradient(
             to bottom,
             transparent 0 4px,
-            ${p => p.theme.yellow300} 4px 8px
+            ${p => p.theme.colors.yellow400} 4px 8px
           )
           80%/2px 100% no-repeat;
       }
@@ -1035,8 +1035,8 @@ const TraceStylingWrapper = styled('div')`
         --pattern-even: ${p => p.theme.blue300};
       }
       &.warning {
-        --pattern-odd: ${p => p.theme.yellow400};
-        --pattern-even: ${p => p.theme.yellow300};
+        --pattern-odd: ${p => p.theme.colors.yellow500};
+        --pattern-even: ${p => p.theme.colors.yellow400};
       }
       &.occurence {
         --pattern-odd: ${p => p.theme.blue400};
@@ -1077,8 +1077,8 @@ const TraceStylingWrapper = styled('div')`
         --pattern-even: ${p => p.theme.blue300};
       }
       &.warning {
-        --pattern-odd: ${p => p.theme.yellow400};
-        --pattern-even: ${p => p.theme.yellow300};
+        --pattern-odd: ${p => p.theme.colors.yellow500};
+        --pattern-even: ${p => p.theme.colors.yellow400};
       }
       &.occurence {
         --pattern-odd: ${p => p.theme.blue400};
@@ -1302,7 +1302,7 @@ const TraceStylingWrapper = styled('div')`
     }
 
     &.SearchResult {
-      background-color: ${p => p.theme.yellow100};
+      background-color: ${p => p.theme.colors.yellow100};
 
       .TraceRightColumn {
         background-color: transparent;

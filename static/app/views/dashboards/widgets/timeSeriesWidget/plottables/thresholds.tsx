@@ -67,7 +67,7 @@ export class Thresholds implements Plottable {
     if (max1) {
       markAreas.push(
         this.toMarkArea([max1, max2 ?? Infinity], {
-          color: theme.yellow300,
+          color: theme.colors.yellow400,
           opacity: 0.1,
         })
       );
@@ -118,7 +118,7 @@ export class Thresholds implements Plottable {
     if (max1) {
       markLines.push(
         this.toMarkLine(max2 ?? Infinity, t('Meh'), {
-          color: theme.yellow300,
+          color: theme.colors.yellow400,
         })
       );
     }

@@ -105,7 +105,7 @@ const getPriorityColor = ({
   priority: 'high' | 'medium';
   theme: Theme;
 }) => {
-  return priority === 'medium' ? theme.yellow300 : theme.red300;
+  return priority === 'medium' ? theme.colors.yellow400 : theme.red300;
 };
 
 /**

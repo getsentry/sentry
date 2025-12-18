@@ -57,7 +57,7 @@ const CHART_GRID = {
 const makeTriggerThresholdColors = (theme: Theme) => ({
   RESOLUTION_FILL: color(theme.colors.green200).alpha(0.1).rgb().string(),
   CRITICAL_FILL: color(theme.red300).alpha(0.25).rgb().string(),
-  WARNING_FILL: color(theme.yellow200).alpha(0.1).rgb().string(),
+  WARNING_FILL: color(theme.colors.yellow200).alpha(0.1).rgb().string(),
 });
 
 /**
@@ -138,7 +138,7 @@ export default class ThresholdsChart extends PureComponent<Props> {
       ? this.props.theme.colors.green400
       : isCritical
         ? this.props.theme.red300
-        : this.props.theme.yellow300;
+        : this.props.theme.colors.yellow400;
 
     const COLOR = makeTriggerThresholdColors(this.props.theme);
     const areaColor = isResolution
@@ -288,7 +288,7 @@ export default class ThresholdsChart extends PureComponent<Props> {
             changeStatus === AlertRuleTriggerType.CRITICAL
               ? this.props.theme.red300
               : changeStatus === AlertRuleTriggerType.WARNING
-                ? this.props.theme.yellow300
+                ? this.props.theme.colors.yellow400
                 : this.props.theme.colors.green400;
 
           return `<span>${date}<span style="color:${changeStatusColor};margin-left:10px;">

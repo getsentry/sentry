@@ -15,7 +15,7 @@ function makeBadgeTheme(
   switch (props.type) {
     case 'alpha':
       return {
-        background: `linear-gradient(90deg, ${theme.pink300}, ${theme.yellow300})`,
+        background: `linear-gradient(90deg, ${theme.pink300}, ${theme.colors.yellow400})`,
         color: theme.white,
       };
     case 'beta':
@@ -38,7 +38,7 @@ function makeBadgeTheme(
       };
     case 'warning':
       return {
-        background: theme.yellow300,
+        background: theme.colors.yellow400,
         color: theme.gray500,
       };
     default:

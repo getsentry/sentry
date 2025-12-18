@@ -40,7 +40,7 @@ export function ThresholdsHoverWrapper({children, thresholds, type}: Props) {
             <span>0 - {maxOneValue}</span>
           </Row>
           <Row>
-            <StyledIndicator color={theme.yellow300} size={10} />
+            <StyledIndicator color={theme.colors.yellow400} size={10} />
             <span>
               {maxOneValue} - {maxTwoValue}
             </span>

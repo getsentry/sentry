@@ -44,8 +44,8 @@ export const testStatusStyle: TickStyle<string> = theme => ({
     tickColor: theme.colors.green400,
   },
   missed: {
-    labelColor: theme.yellow400,
-    tickColor: theme.yellow300,
+    labelColor: theme.colors.yellow500,
+    tickColor: theme.colors.yellow400,
   },
   in_progress: {
     labelColor: theme.disabled,

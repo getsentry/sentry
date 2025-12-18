@@ -166,7 +166,7 @@ export function useMetricDetectorThresholdSeries({
         const lineColor =
           threshold.priority === DetectorPriorityLevel.HIGH
             ? theme.red300
-            : theme.yellow300;
+            : theme.colors.yellow400;
 
         const seriesName = `${threshold.value}% ${isAbove ? 'Higher' : 'Lower'} Threshold`;
 
@@ -224,7 +224,7 @@ export function useMetricDetectorThresholdSeries({
         const lineColor =
           threshold.priority === DetectorPriorityLevel.HIGH
             ? theme.red300
-            : theme.yellow300;
+            : theme.colors.yellow400;
         const areaColor = lineColor;
         // Scale threshold for percentage aggregates (e.g., 95 -> 0.95)
         const displayThreshold = isPercentageAggregate
