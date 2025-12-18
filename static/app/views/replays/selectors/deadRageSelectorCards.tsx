@@ -95,12 +95,12 @@ function AccordionWidget({
   });
   const location = useLocation();
   const filteredData = data.filter(d => (d[clickType] ?? 0) > 0);
-  const clickColor = deadOrRage === 'dead' ? 'yellow300' : 'red300';
+  const clickColor = deadOrRage === 'dead' ? 'warning' : 'danger';
 
   return (
     <StyledWidgetContainer data-test-id="selector-widget">
       <StyledHeaderContainer>
-        <IconCursorArrow color={clickColor} />
+        <IconCursorArrow variant={clickColor} />
         {header}
       </StyledHeaderContainer>
       {isLoading ? (

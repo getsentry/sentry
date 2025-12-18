@@ -44,7 +44,7 @@ function MemberListHeader({members, organization, subscription}: Props) {
     <PanelHeader hasButtons>
       {t('Members')}
       <Wrapper>
-        <IconClose color="red300" />
+        <IconClose variant="danger" />
         {tct('Multiple members requires [planName] Plan or above', {
           planName: displayPlanName(bestPlan),
         })}

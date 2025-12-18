@@ -81,7 +81,7 @@ function StepHeader({
       <Flex justify="between">
         <StepTitle>
           {isCompleted ? (
-            <IconCheckmark color="green300" />
+            <IconCheckmark variant="success" />
           ) : (
             <div>{`${stepNumber}.`}</div>
           )}

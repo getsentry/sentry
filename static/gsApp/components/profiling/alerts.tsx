@@ -118,7 +118,7 @@ function GraceAlert({children, action, dismiss, type, disableAction}: GraceAlert
       </Button>
       {dismiss ? (
         <StyledButton priority="link" size="sm" onClick={dismiss}>
-          <IconClose color="gray500" size="sm" />
+          <IconClose variant="primary" size="sm" />
         </StyledButton>
       ) : null}
     </Fragment>
