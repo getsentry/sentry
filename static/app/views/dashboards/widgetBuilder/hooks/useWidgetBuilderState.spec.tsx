@@ -1409,6 +1409,38 @@ describe('useWidgetBuilderState', () => {
       expect(result.current.state.sort).toEqual([{field: 'count()', kind: 'desc'}]);
     });
 
+    it('does not set a default sort when only equations are available', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.LINE,
+            field: [],
+            yAxis: ['equation|count()+1'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.sort).toEqual([]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_FIELDS,
+          payload: [
+            {
+              field: 'count()+2',
+              kind: FieldValueKind.EQUATION,
+            } as Column,
+          ],
+        });
+      });
+
+      expect(result.current.state.sort).toEqual([]);
+    });
+
     it('ensures the sort is not a disabled release sort option', () => {
       mockedUsedLocation.mockReturnValue(
         LocationFixture({

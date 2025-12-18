@@ -521,30 +521,38 @@ function useWidgetBuilderState(): {
             displayType !== DisplayType.BIG_NUMBER &&
             action.payload.length > 0
           ) {
-            const firstYAxisNotEquation = yAxis?.filter(
+            const firstYAxisNotEquation = yAxis?.find(
               field => field.kind !== FieldValueKind.EQUATION
-            )[0];
+            );
             const firstActionPayloadNotEquation = action.payload.find(
               field => field.kind !== FieldValueKind.EQUATION
             );
             // Adding a grouping, so default the sort to the first aggregate if possible
-            const sortField =
-              dataset === WidgetType.TRACEMETRICS
-                ? (generateMetricAggregate(
-                    traceMetric ?? {name: '', type: ''},
-                    firstYAxisNotEquation as QueryFieldValue
-                  ) ?? '')
-                : (generateFieldAsString(firstYAxisNotEquation as QueryFieldValue) ??
-                  generateFieldAsString(
-                    firstActionPayloadNotEquation as QueryFieldValue
-                  ));
+            let sortField: string | undefined;
+            if (dataset === WidgetType.TRACEMETRICS) {
+              if (firstYAxisNotEquation) {
+                sortField = generateMetricAggregate(
+                  traceMetric ?? {name: '', type: ''},
+                  firstYAxisNotEquation
+                );
+              } else if (firstActionPayloadNotEquation) {
+                sortField = generateFieldAsString(firstActionPayloadNotEquation);
+              }
+            } else {
+              const defaultField = firstYAxisNotEquation ?? firstActionPayloadNotEquation;
+              if (defaultField) {
+                sortField = generateFieldAsString(defaultField);
+              }
+            }
             setSort(
-              [
-                {
-                  kind: 'desc',
-                  field: sortField,
-                },
-              ],
+              sortField
+                ? [
+                    {
+                      kind: 'desc',
+                      field: sortField,
+                    },
+                  ]
+                : [],
               options
             );
           }
