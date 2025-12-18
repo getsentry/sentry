@@ -1,5 +1,6 @@
 import {Fragment, useMemo, useState, type PropsWithChildren} from 'react';
 import {css, useTheme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 import type {LocationDescriptor} from 'history';
@@ -54,7 +55,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import type {Color} from 'sentry/utils/theme';
-import type {Theme} from '@emotion/react';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -297,11 +297,7 @@ const getDurationComparison = (
   const colors = makeDurationComparisonStatusColors(theme);
 
   const formattedBaseDuration = (
-    <Tooltip
-      title={baseDescription}
-      showUnderline
-      underlineColor={colors[status].normal}
-    >
+    <Tooltip title={baseDescription} showUnderline underlineColor={colors[status].normal}>
       {getDuration(baseline, 2, true)}
     </Tooltip>
   );
