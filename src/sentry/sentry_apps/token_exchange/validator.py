@@ -23,6 +23,7 @@ class Validator:
     def run(self) -> bool:
         self._validate_is_sentry_app_making_request()
         self._validate_app_is_owned_by_user()
+        self._validate_application_is_active()
         self._validate_installation()
         return True
 
@@ -43,6 +44,17 @@ class Validator:
                     "user": self.user.name,
                     "integration": self.sentry_app.slug,
                     "installation_uuid": self.install.uuid,
+                },
+            )
+
+    def _validate_application_is_active(self) -> None:
+        if not self.application.is_active:
+            raise SentryAppIntegratorError(
+                "Application is not active",
+                status_code=401,
+                webhook_context={
+                    "application_id": self.application.id,
+                    "client_id": self.client_id[:SENSITIVE_CHARACTER_LIMIT],
                 },
             )
 
