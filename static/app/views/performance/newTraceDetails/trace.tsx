@@ -810,7 +810,7 @@ const TraceStylingWrapper = styled('div')`
 
     &:hover {
       &:before {
-        background-color: ${p => p.theme.purple300};
+        background-color: ${p => p.theme.colors.blue400};
       }
     }
   }
@@ -982,11 +982,11 @@ const TraceStylingWrapper = styled('div')`
       top: 26px;
 
       &.CurrentReplayTimestamp {
-        background: ${p => p.theme.purple300};
+        background: ${p => p.theme.colors.blue400};
       }
 
       &.HoverReplayTimestamp {
-        background: ${p => p.theme.purple200};
+        background: ${p => p.theme.colors.blue200};
       }
     }
 

@@ -19,12 +19,12 @@ export function ReleaseSeries(
     id: 'release-lines',
     name: t('Releases'),
     renderItem: () => null,
-    color: theme.purple200,
+    color: theme.colors.blue200,
     data: [],
     markLine: MarkLine({
       animation: false,
       lineStyle: {
-        color: theme.purple300,
+        color: theme.colors.blue400,
         opacity: 0.3,
         type: 'solid',
       },

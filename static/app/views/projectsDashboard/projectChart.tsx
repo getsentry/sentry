@@ -84,12 +84,12 @@ export function ProjectChart({
       xAxisIndex: 0,
       yAxisIndex: 0,
       itemStyle: {
-        color: theme.purple300,
+        color: theme.colors.blue400,
         opacity: 0.6,
       },
       emphasis: {
         itemStyle: {
-          color: theme.purple300,
+          color: theme.colors.blue400,
           opacity: 0.8,
         },
       },

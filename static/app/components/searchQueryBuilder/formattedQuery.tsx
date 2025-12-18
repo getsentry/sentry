@@ -216,7 +216,7 @@ export const FilterWrapper = styled('div')`
 const FilterValue = styled('div')`
   width: 100%;
   max-width: 300px;
-  color: ${p => p.theme.purple400};
+  color: ${p => p.theme.colors.blue500};
   ${p => p.theme.overflowEllipsis};
 `;
 

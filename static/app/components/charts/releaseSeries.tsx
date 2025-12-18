@@ -251,7 +251,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
     const markLine = MarkLine({
       animation: false,
       lineStyle: {
-        color: theme.purple300,
+        color: theme.colors.blue400,
         opacity: 0.3,
         type: 'solid',
         ...lineStyle,
@@ -314,7 +314,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
     return {
       id: 'release-lines',
       seriesName: 'Releases',
-      color: theme.purple200,
+      color: theme.colors.blue200,
       data: [],
       markLine,
     };

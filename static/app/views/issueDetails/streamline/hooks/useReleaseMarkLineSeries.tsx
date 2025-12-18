@@ -33,7 +33,7 @@ export function useReleaseMarkLineSeries({
   const markLine = MarkLine({
     animation: false,
     lineStyle: {
-      color: theme.purple300,
+      color: theme.colors.blue400,
       opacity: 0.3,
       type: 'solid',
     },
@@ -91,7 +91,7 @@ export function useReleaseMarkLineSeries({
     seriesName: t('Releases'),
     data: [],
     markLine,
-    color: theme.purple400,
+    color: theme.colors.blue500,
     type: 'line',
   };
 }

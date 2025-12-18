@@ -5,7 +5,7 @@ import {space} from 'sentry/styles/space';
 
 const cellBackground = (p: CellProps & {theme: Theme}) => {
   if (p.isSelected) {
-    return `background-color: ${p.theme.purple300};`;
+    return `background-color: ${p.theme.colors.blue400};`;
   }
   if (p.isStatusError) {
     return `background-color: ${p.theme.red100};`;

@@ -202,7 +202,7 @@ const ErrorTable = styled('div')`
   border-radius: ${p => p.theme.radius.md};
 
   .beforeHoverTime + .afterHoverTime:before {
-    border-top: 1px solid ${p => p.theme.purple200};
+    border-top: 1px solid ${p => p.theme.colors.blue200};
     content: '';
     left: 0;
     position: absolute;
@@ -211,7 +211,7 @@ const ErrorTable = styled('div')`
   }
 
   .beforeHoverTime:last-child:before {
-    border-bottom: 1px solid ${p => p.theme.purple200};
+    border-bottom: 1px solid ${p => p.theme.colors.blue200};
     content: '';
     right: 0;
     position: absolute;
@@ -220,7 +220,7 @@ const ErrorTable = styled('div')`
   }
 
   .beforeCurrentTime + .afterCurrentTime:before {
-    border-top: 1px solid ${p => p.theme.purple300};
+    border-top: 1px solid ${p => p.theme.colors.blue400};
     content: '';
     left: 0;
     position: absolute;
@@ -229,7 +229,7 @@ const ErrorTable = styled('div')`
   }
 
   .beforeCurrentTime:last-child:before {
-    border-bottom: 1px solid ${p => p.theme.purple300};
+    border-bottom: 1px solid ${p => p.theme.colors.blue400};
     content: '';
     right: 0;
     position: absolute;

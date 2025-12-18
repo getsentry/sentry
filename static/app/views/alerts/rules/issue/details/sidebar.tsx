@@ -215,7 +215,7 @@ const ChevronContainer = styled('div')`
 
 const Badge = styled('span')`
   display: inline-block;
-  background-color: ${p => p.theme.purple300};
+  background-color: ${p => p.theme.colors.blue400};
   padding: 0 ${space(0.75)};
   border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.white};

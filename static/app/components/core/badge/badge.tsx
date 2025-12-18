@@ -20,7 +20,7 @@ function makeBadgeTheme(
       };
     case 'beta':
       return {
-        background: `linear-gradient(90deg, ${theme.purple300}, ${theme.pink300})`,
+        background: `linear-gradient(90deg, ${theme.colors.blue400}, ${theme.pink300})`,
         color: theme.white,
       };
     // @TODO(jonasbadalic) default, experimental and internal all look the same and should be consolidated

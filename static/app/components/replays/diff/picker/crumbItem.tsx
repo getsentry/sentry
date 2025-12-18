@@ -60,12 +60,12 @@ const CenterRelative = styled('div')`
 `;
 
 const ErrorLine = styled('div')`
-  border: 1px solid ${p => p.theme.purple400};
+  border: 1px solid ${p => p.theme.colors.blue500};
   height: 100%;
 `;
 
 const ErrorLabel = styled('div')`
-  color: ${p => p.theme.purple400};
+  color: ${p => p.theme.colors.blue500};
   position: absolute;
   top: 0;
   transform: translate(-50%, -100%);

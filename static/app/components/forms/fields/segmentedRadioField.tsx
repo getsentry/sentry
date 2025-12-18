@@ -121,8 +121,8 @@ const RadioItem = styled('label', {shouldForwardProp})<{
   margin: 0;
 
   &[aria-checked='true'] {
-    border-color: ${p => p.theme.purple300} !important;
-    box-shadow: inset 0 0 0 1px ${p => p.theme.purple300};
+    border-color: ${p => p.theme.colors.blue400} !important;
+    box-shadow: inset 0 0 0 1px ${p => p.theme.colors.blue400};
     z-index: ${p => p.theme.zIndex.initial};
   }
 

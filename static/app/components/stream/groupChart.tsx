@@ -87,7 +87,7 @@ function GroupChart({
             : undefined,
       },
     ];
-    return {colors: [theme.gray300], emphasisColors: [theme.purple300], series};
+    return {colors: [theme.gray300], emphasisColors: [theme.colors.blue400], series};
   }, [showSecondaryPoints, secondaryStats, showMarkLine, stats, theme]);
 
   return (

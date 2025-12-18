@@ -466,7 +466,7 @@ const GridLayout = styled(WidthProvider(Responsive))`
   margin: -${space(2)};
 
   .react-grid-item.react-grid-placeholder {
-    background: ${p => p.theme.purple200};
+    background: ${p => p.theme.colors.blue200};
     border-radius: ${p => p.theme.radius.md};
   }
 `;
