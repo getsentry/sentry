@@ -28,6 +28,7 @@ from sentry.seer.autofix.utils import (
 from sentry.seer.endpoints.project_seer_preferences import BranchOverrideSerializer
 from sentry.seer.models import SeerRepoDefinition
 
+
 def merge_repositories(existing: list[dict], new: list[dict]) -> list[dict]:
     """
     Merge new repositories with existing ones, skipping duplicates by (org_id, provider, external_id).
@@ -41,6 +42,7 @@ def merge_repositories(existing: list[dict], new: list[dict]) -> list[dict]:
             merged.append(repo)
             existing_keys.add(_unique_repo_key(repo))
     return merged
+
 
 class RepositorySerializer(CamelSnakeSerializer):
     provider = serializers.CharField(required=True)
