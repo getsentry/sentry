@@ -53,7 +53,8 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import type {Color, ColorOrAlias} from 'sentry/utils/theme';
+import type {Color} from 'sentry/utils/theme';
+import type {Theme} from '@emotion/react';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -254,24 +255,22 @@ const HeaderContainer = styled(FlexBox)`
   margin-bottom: ${space(1)};
 `;
 
-const DURATION_COMPARISON_STATUS_COLORS: {
-  equal: {light: ColorOrAlias; normal: ColorOrAlias};
-  faster: {light: ColorOrAlias; normal: ColorOrAlias};
-  slower: {light: ColorOrAlias; normal: ColorOrAlias};
-} = {
-  faster: {
-    light: 'green100',
-    normal: 'green300',
-  },
-  slower: {
-    light: 'red100',
-    normal: 'red300',
-  },
-  equal: {
-    light: 'gray100',
-    normal: 'gray300',
-  },
-};
+function makeDurationComparisonStatusColors(theme: Theme) {
+  return {
+    faster: {
+      light: theme.colors.green100,
+      normal: theme.colors.green400,
+    },
+    slower: {
+      light: theme.colors.red100,
+      normal: theme.colors.red400,
+    },
+    equal: {
+      light: theme.colors.gray100,
+      normal: theme.colors.gray400,
+    },
+  };
+}
 
 const MIN_PCT_DURATION_DIFFERENCE = 10;
 
@@ -284,6 +283,7 @@ type DurationComparison = {
 const getDurationComparison = (
   baseline: number | undefined,
   duration: number,
+  theme: Theme,
   baseDescription?: string
 ): DurationComparison => {
   if (!baseline) {
@@ -294,11 +294,13 @@ const getDurationComparison = (
   const deltaPct = Math.round(Math.abs((delta / baseline) * 100));
   const status = delta > 0 ? 'slower' : delta < 0 ? 'faster' : 'equal';
 
+  const colors = makeDurationComparisonStatusColors(theme);
+
   const formattedBaseDuration = (
     <Tooltip
       title={baseDescription}
       showUnderline
-      underlineColor={DURATION_COMPARISON_STATUS_COLORS[status].normal}
+      underlineColor={colors[status].normal}
     >
       {getDuration(baseline, 2, true)}
     </Tooltip>
@@ -332,6 +334,8 @@ type DurationProps = {
 };
 
 function Duration(props: DurationProps) {
+  const theme = useTheme();
+
   if (typeof props.duration !== 'number' || Number.isNaN(props.duration)) {
     return <DurationContainer>{t('unknown')}</DurationContainer>;
   }
@@ -348,6 +352,7 @@ function Duration(props: DurationProps) {
   const comparison = getDurationComparison(
     props.baseline,
     props.duration,
+    theme,
     props.baseDescription
   );
 
@@ -429,6 +434,7 @@ function Highlights({
 }: HighlightProps) {
   const location = useLocation();
   const organization = useOrganization();
+  const theme = useTheme();
 
   const isAiNode = getIsAiNode(node);
   const isMCPNode = getIsMCPNode(node);
@@ -442,6 +448,7 @@ function Highlights({
   const comparison = getDurationComparison(
     avgDuration,
     durationInSeconds,
+    theme,
     comparisonDescription
   );
 
@@ -650,9 +657,9 @@ const HiglightsDurationComparison = styled('div')<
 >`
   white-space: nowrap;
   border-radius: 12px;
-  color: ${p => p.theme[DURATION_COMPARISON_STATUS_COLORS[p.status].normal]};
-  background-color: ${p => p.theme[DURATION_COMPARISON_STATUS_COLORS[p.status].light]};
-  border: solid 1px ${p => p.theme[DURATION_COMPARISON_STATUS_COLORS[p.status].light]};
+  color: ${p => makeDurationComparisonStatusColors(p.theme)[p.status].normal};
+  background-color: ${p => makeDurationComparisonStatusColors(p.theme)[p.status].light};
+  border: solid 1px ${p => makeDurationComparisonStatusColors(p.theme)[p.status].light};
   font-size: ${p => p.theme.fontSize.xs};
   padding: ${space(0.25)} ${space(1)};
   display: inline-block;
@@ -776,7 +783,7 @@ const DurationContainer = styled('span')`
 `;
 
 const Comparison = styled('span')<{status: 'faster' | 'slower' | 'equal'}>`
-  color: ${p => p.theme[DURATION_COMPARISON_STATUS_COLORS[p.status].normal]};
+  color: ${p => makeDurationComparisonStatusColors(p.theme)[p.status].normal};
 `;
 
 const TableValueRow = styled('div')`
