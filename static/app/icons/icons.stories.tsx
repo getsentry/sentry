@@ -1,4 +1,4 @@
-import React, {Fragment, isValidElement, useMemo} from 'react';
+import React, {Fragment, isValidElement} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import lowerFirst from 'lodash/lowerFirst';
@@ -1543,26 +1543,6 @@ export default function IconsStories() {
       .map((name): TIcon => ({id: name, name})),
   };
 
-  const randomIcons = useMemo(() => {
-    const variants = Object.keys(theme.tokens.content);
-    const allIcons: TIcon[] = SECTIONS.flatMap(section => section.icons);
-    const shuffled = [...allIcons].sort(() => Math.random() - 0.5);
-    return shuffled
-      .slice(0, variants.length)
-      .map((icon, idx) => {
-        const variant = variants[idx % variants.length]!;
-        const IconComponent = (Icons as any)[`Icon${icon.name}`];
-        if (!IconComponent) return null;
-        return (
-          <Stack key={icon.id ?? idx} align="center" gap="xs">
-            <IconComponent size="md" variant={variant} />
-            <Text>{icon.name}</Text>
-          </Stack>
-        );
-      })
-      .filter(Boolean) as React.ReactNode[];
-  }, [theme.tokens.content]);
-
   return (
     <Fragment>
       <Text as="p" density="comfortable" size="md" variant="primary">
@@ -1604,7 +1584,16 @@ export default function IconsStories() {
         .
       </Text>
       <Flex direction="row" gap="md" justify="between" width="100%">
-        {randomIcons}
+        {Object.keys(theme.tokens.content).map(v => (
+          <Stack key={v} align="center" gap="md">
+            <Icons.IconSentry size="md" variant={v as any} />
+            <InlineCode>
+              <Text size="xs" monospace>
+                {v}
+              </Text>
+            </InlineCode>
+          </Stack>
+        ))}
       </Flex>
       {SECTIONS.map(section => (
         <CoreSection searchTerm={searchTerm} key={section.id} section={section} />
