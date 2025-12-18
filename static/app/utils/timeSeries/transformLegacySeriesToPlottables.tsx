@@ -93,6 +93,8 @@ function mapAggregationTypeToValueTypeAndUnit(aggregationType: AggregationOutput
   valueUnit: TimeSeries['meta']['valueUnit'];
 } {
   switch (aggregationType) {
+    case 'size':
+      return {valueType: 'size', valueUnit: null};
     // note: we only have a per minute rate function epm(), right now
     case 'rate':
       return {valueType: 'rate', valueUnit: RateUnit.PER_MINUTE};
