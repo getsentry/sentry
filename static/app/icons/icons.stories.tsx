@@ -1544,9 +1544,12 @@ export default function IconsStories() {
   };
 
   const allIcons: TIcon[] = SECTIONS.flatMap(section => section.icons);
+  const iconNamesWithComponents = Array.from(new Set(allIcons.map(icon => icon.name))).filter(
+    name => Boolean((Icons as any)[`Icon${name}`])
+  );
 
   const variants = Object.keys(theme.tokens.content);
-  const shuffled = [...allIcons].sort(() => Math.random() - 0.5);
+  const shuffled = [...iconNamesWithComponents].sort(() => Math.random() - 0.5);
   const picked = shuffled.slice(0, variants.length);
 
   return (
@@ -1591,11 +1594,14 @@ export default function IconsStories() {
       </Text>
       <Flex direction="row" gap="md" justify="between" width="100%">
         {picked
-          .map((icon, idx) => {
+          .map((iconName, idx) => {
             const variant = variants[idx % variants.length]!;
-            const IconComponent = (Icons as any)[`Icon${icon.name}`];
+            const IconComponent = (Icons as any)[`Icon${iconName}`];
+            if (!IconComponent) {
+              return null;
+            }
             return (
-              <Stack key={idx} align="center" gap="xs">
+              <Stack key={`${iconName}-${variant}`} align="center" gap="xs">
                 <IconComponent size="md" variant={variant} />
                 <Text as="span" size="xs" align="center">
                   {variant}
