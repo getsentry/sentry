@@ -555,10 +555,8 @@ const ToolCallTextContainer = styled('div')`
 `;
 
 const ToolCallText = styled(Text)<{isHighlighted?: boolean}>`
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
+  white-space: normal;
+  overflow: visible;
   text-decoration: underline;
   text-decoration-color: transparent;
   ${p =>
