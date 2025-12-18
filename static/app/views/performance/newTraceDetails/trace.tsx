@@ -898,8 +898,8 @@ const TraceStylingWrapper = styled('div')`
     }
 
     &.Good {
-      color: ${p => p.theme.green300};
-      border: 1px solid ${p => p.theme.green300};
+      color: ${p => p.theme.colors.green400};
+      border: 1px solid ${p => p.theme.colors.green400};
 
       &.light {
         background-color: rgb(232 241 239);
@@ -967,7 +967,7 @@ const TraceStylingWrapper = styled('div')`
         background: repeating-linear-gradient(
             to bottom,
             transparent 0 4px,
-            ${p => p.theme.green300} 4px 8px
+            ${p => p.theme.colors.green400} 4px 8px
           )
           80%/2px 100% no-repeat;
       }
@@ -1092,8 +1092,8 @@ const TraceStylingWrapper = styled('div')`
 
       /* hardcoded until new color scales are added to theme */
       &.missing_instrumentation {
-        --pattern-odd: ${p => p.theme.surface100};
-        --pattern-even: ${p => p.theme.surface300};
+        --pattern-odd: ${p => p.theme.colors.surface200};
+        --pattern-even: ${p => p.theme.colors.surface400};
       }
 
       &.error,

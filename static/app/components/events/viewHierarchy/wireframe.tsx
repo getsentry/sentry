@@ -362,7 +362,7 @@ const InteractionOverlayCanvas = styled('canvas')`
 `;
 
 const WireframeCanvas = styled('canvas')`
-  background-color: ${p => p.theme.surface100};
+  background-color: ${p => p.theme.colors.surface200};
   width: 100%;
   height: 100%;
 `;

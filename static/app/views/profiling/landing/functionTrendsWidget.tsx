@@ -516,7 +516,7 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
 function getTrendLineColor(trend: TrendType, theme: Theme) {
   switch (trend) {
     case 'improvement':
-      return theme.green300;
+      return theme.colors.green400;
     case 'regression':
       return theme.red300;
     default:

@@ -143,7 +143,7 @@ const WaitingIndicator = styled(motion.div)`
 
 const ReceivedIndicator = styled(IconCheckmark)`
   color: #fff;
-  background: ${p => p.theme.green300};
+  background: ${p => p.theme.colors.green400};
   border-radius: 50%;
   padding: 3px;
   margin: 0 ${space(0.25)};

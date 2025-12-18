@@ -202,7 +202,7 @@ const DiffRow = styled('tr')`
     }
 
     .old-line-number {
-      background-color: ${p => p.theme.backgroundElevated};
+      background-color: ${p => p.theme.tokens.background.primary};
       color: ${p => p.theme.subText};
     }
     .new-line-number {
@@ -253,7 +253,7 @@ const LineNumber = styled('td')`
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   text-align: right;
   border-right: 1px solid ${p => p.theme.border};
-  background-color: ${p => p.theme.backgroundElevated};
+  background-color: ${p => p.theme.tokens.background.primary};
   color: ${p => p.theme.subText};
   font-size: 10px;
   user-select: none;

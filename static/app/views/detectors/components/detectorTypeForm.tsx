@@ -171,7 +171,7 @@ const OptionLabel = styled('label')<{disabled?: boolean}>`
   grid-template-columns: 1fr;
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.border};
-  background-color: ${p => p.theme.surface400};
+  background-color: ${p => p.theme.colors.surface500};
   font-weight: ${p => p.theme.fontWeight.normal};
   cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
   overflow: hidden;
@@ -243,7 +243,7 @@ function CronsVisualization() {
   const theme = useTheme();
   const danger = theme.red300;
   const warning = theme.yellow300;
-  const success = theme.green300;
+  const success = theme.colors.green400;
   return (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 480 56">
       <rect
@@ -470,7 +470,7 @@ function CronsVisualization() {
 function UptimeVisualization() {
   const theme = useTheme();
   const danger = theme.red300;
-  const success = theme.green300;
+  const success = theme.colors.green400;
   return (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 480 56">
       <rect

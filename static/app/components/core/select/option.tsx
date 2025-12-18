@@ -100,7 +100,7 @@ const CheckWrap = withChonk(
             height: 1em;
             padding: 1px;
             border: solid 1px ${p.theme.border};
-            background: ${p.theme.backgroundElevated};
+            background: ${p.theme.tokens.background.primary};
             border-radius: 2px;
             box-shadow: inset ${p.theme.dropShadowMedium};
             ${p.isSelected &&

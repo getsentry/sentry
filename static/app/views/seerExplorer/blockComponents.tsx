@@ -455,7 +455,7 @@ const ResponseDot = styled('div')<{
       case 'content':
         return p.theme.colors.blue500;
       case 'success':
-        return p.theme.green400;
+        return p.theme.colors.green500;
       case 'failure':
         return p.theme.red400;
       case 'mixed':
@@ -499,7 +499,8 @@ const BlockContent = styled(MarkedText)`
 
   p,
   li,
-  ul {
+  ul,
+  ol {
     margin: -${space(1)} 0;
   }
 
