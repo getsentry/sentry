@@ -4248,7 +4248,7 @@ describe('SearchQueryBuilder', () => {
       render(
         <SearchQueryBuilder
           {...defaultProps}
-          caseInsensitive={1}
+          caseInsensitive
           onCaseInsensitiveClick={() => Promise.resolve(new URLSearchParams())}
         />
       );

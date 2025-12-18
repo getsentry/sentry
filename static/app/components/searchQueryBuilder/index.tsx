@@ -50,7 +50,7 @@ export interface SearchQueryBuilderProps {
   autoFocus?: boolean;
   /**
    * Controls the state of the case sensitivity toggle.
-   * - `1` = case insensitive
+   * - `true` = case insensitive
    * - `null` = case sensitive
    */
   caseInsensitive?: CaseInsensitive;
@@ -202,7 +202,7 @@ function ActionButtons({
     return null;
   }
 
-  const isCaseInsensitive = caseInsensitive === 1;
+  const isCaseInsensitive = caseInsensitive === true;
   const caseInsensitiveLabel = isCaseInsensitive ? t('Match case') : t('Ignore case');
 
   return (
@@ -218,7 +218,7 @@ function ActionButtons({
             borderless
             active={!isCaseInsensitive}
             onClick={() => {
-              onCaseInsensitiveClick?.(isCaseInsensitive ? null : 1);
+              onCaseInsensitiveClick?.(isCaseInsensitive ? null : true);
             }}
           />
         </Tooltip>
