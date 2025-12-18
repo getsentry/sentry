@@ -360,7 +360,11 @@ const ProgressRingSubText = styled('text')`
 
 const ProgressRingDiffSubText = styled(ProgressRingSubText)<{value: number}>`
   fill: ${p =>
-    p.value < 0 ? p.theme.green300 : p.value > 0 ? p.theme.red300 : p.theme.subText};
+    p.value < 0
+      ? p.theme.colors.green400
+      : p.value > 0
+        ? p.theme.red300
+        : p.theme.subText};
 `;
 
 // Hover element on mouse

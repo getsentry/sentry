@@ -121,11 +121,11 @@ export function PageOverviewSidebar({
       if (reverse) {
         return theme.red300;
       }
-      return theme.green300;
+      return theme.colors.green400;
     }
     if (diff < 1) {
       if (reverse) {
-        return theme.green300;
+        return theme.colors.green400;
       }
       return theme.red300;
     }

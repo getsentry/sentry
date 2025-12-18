@@ -104,7 +104,7 @@ export default Storybook.story('KeyValueData', story => {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 4,
-                  color: theme.green400,
+                  color: theme.colors.green500,
                 }}
               >
                 <IconSettings /> Custom Title Node

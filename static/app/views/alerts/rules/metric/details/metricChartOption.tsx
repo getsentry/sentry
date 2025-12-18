@@ -223,7 +223,7 @@ export function getMetricAlertChartOption(
   let warningDuration = 0;
 
   series.push(
-    createStatusAreaSeries(theme.green300, firstPoint, lastPoint, minChartValue)
+    createStatusAreaSeries(theme.colors.green400, firstPoint, lastPoint, minChartValue)
   );
 
   if (showWaitingForData) {
@@ -374,7 +374,7 @@ export function getMetricAlertChartOption(
 
   if (!rule.comparisonDelta && rule.resolveThreshold) {
     const resolveThresholdLine = createThresholdSeries(
-      theme.green300,
+      theme.colors.green400,
       rule.resolveThreshold
     );
     series.push(resolveThresholdLine);

@@ -55,7 +55,7 @@ const Border = styled('span')`
   border-radius: ${space(0.5)};
   border-color: ${p => p.theme.red300};
   & + & {
-    border-color: ${p => p.theme.green300};
+    border-color: ${p => p.theme.colors.green400};
   }
   overflow: hidden;
 `;

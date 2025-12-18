@@ -59,7 +59,7 @@ export class Thresholds implements Plottable {
 
     const markAreas = [
       this.toMarkArea([0, max1 ?? Infinity], {
-        color: theme.green300,
+        color: theme.colors.green400,
         opacity: 0.1,
       }),
     ];
@@ -111,7 +111,7 @@ export class Thresholds implements Plottable {
 
     const markLines = [
       this.toMarkLine(max1 ?? Infinity, t('Good'), {
-        color: theme.green300,
+        color: theme.colors.green400,
       }),
     ];
 

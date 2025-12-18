@@ -213,7 +213,7 @@ export function getIntervalLine(
           label: {
             show: false,
           },
-          lineStyle: {color: theme.green400, type: 'solid', width: 4},
+          lineStyle: {color: theme.colors.green500, type: 'solid', width: 4},
           data: [
             // The line needs to be hard-coded to a pixel coordinate because
             // the lowest y-value is dynamic and 'min' doesn't work here

@@ -251,9 +251,9 @@ export function useMetricDetectorThresholdSeries({
           : resolution.value;
         const resolutionSeries: LineSeriesOption = {
           type: 'line',
-          markLine: createThresholdMarkLine(theme.green300, displayResolution),
+          markLine: createThresholdMarkLine(theme.colors.green400, displayResolution),
           markArea: createThresholdMarkArea(
-            theme.green300,
+            theme.colors.green400,
             displayResolution,
             [DataConditionType.GREATER, DataConditionType.GREATER_OR_EQUAL].includes(
               resolution.type

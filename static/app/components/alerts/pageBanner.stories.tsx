@@ -122,6 +122,6 @@ export default Storybook.story('PageBanner', story => {
 });
 
 const Green = styled('span')`
-  color: ${p => p.theme.green400};
+  color: ${p => p.theme.colors.green500};
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
