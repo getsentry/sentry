@@ -557,6 +557,52 @@ describe('groupEventDetails', () => {
       expect(screen.getByText('File IO on Main Thread')).toBeInTheDocument();
     });
 
+    it('shows ANR profile section for Android ANR events', async () => {
+      const project = ProjectFixture({platform: 'android'});
+      const props = makeDefaultMockData(undefined, project);
+      mockGroupApis(
+        props.organization,
+        props.project,
+        props.group,
+        props.event,
+        undefined,
+        mockedTrace(props.project)
+      );
+
+      render(<GroupEventDetails />, {
+        organization: props.organization,
+        initialRouterConfig: props.initialRouterConfig,
+      });
+
+      expect(
+        await screen.findByRole('region', {name: 'ANR Profile'})
+      ).toBeInTheDocument();
+    });
+
+    it('renders App Hang profile section for iOS ANR events', async () => {
+      const project = ProjectFixture({platform: 'apple-ios'});
+      const props = makeDefaultMockData(undefined, project);
+
+      mockGroupApis(
+        props.organization,
+        props.project,
+        props.group,
+        props.event,
+        undefined,
+        mockedTrace(props.project)
+      );
+
+      render(<GroupEventDetails />, {
+        organization: props.organization,
+        initialRouterConfig: props.initialRouterConfig,
+      });
+
+      expect(screen.queryByRole('region', {name: 'ANR Profile'})).not.toBeInTheDocument();
+      expect(
+        await screen.findByRole('region', {name: 'App Hang Profile'})
+      ).toBeInTheDocument();
+    });
+
     it('does not render root cause section if related perf issues do not exist', async () => {
       const props = makeDefaultMockData();
       const trace = mockedTrace(props.project);

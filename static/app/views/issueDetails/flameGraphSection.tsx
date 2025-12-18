@@ -1,9 +1,10 @@
-import {useMemo} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {ExternalLink} from 'sentry/components/core/link';
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {FlamegraphPreview} from 'sentry/components/profiling/flamegraph/flamegraphPreview';
@@ -34,6 +35,13 @@ export function FlameGraphSection({event, project}: {event: Event; project: Proj
   const organization = useOrganization();
   const profileMeta = useMemo(() => getProfileMetaForEvent(event), [event]);
 
+  const [viewMode, setViewMode] = useState<'aggregated' | 'timeline'>('aggregated');
+
+  const isApplePlatform =
+    project.platform === 'apple' ||
+    project.platform === 'apple-ios' ||
+    project.platform === 'apple-macos';
+
   if (!organization || !project?.slug) {
     return null;
   }
@@ -61,13 +69,13 @@ export function FlameGraphSection({event, project}: {event: Event; project: Proj
           type={SectionKey.FLAME_GRAPH}
           title={
             <span>
-              {t('Aggregated Flamegraph')}
+              {isApplePlatform ? t('App Hang Profile') : t('ANR Profile')}
               &nbsp;
               <QuestionTooltip
                 position="bottom"
                 size="sm"
                 title={t(
-                  'Aggregate flamegraphs are a visual representation of stacktraces that helps identify where a program spends its time. Look for the widest stacktraces as they indicate where your application is spending more time.'
+                  'This shows you a profile of the main thread around the time of this event.'
                 )}
               />
             </span>
@@ -88,12 +96,16 @@ export function FlameGraphSection({event, project}: {event: Event; project: Proj
           <ProfileContext.Consumer>
             {profiles => (
               <ProfileGroupProvider
-                type="flamegraph"
+                type={viewMode === 'timeline' ? 'flamechart' : 'flamegraph'}
                 input={profiles?.type === 'resolved' ? profiles.data : null}
                 traceID={profileMeta.profiler_id || ''}
               >
                 <FlamegraphThemeProvider>
-                  <InlineFlamegraphPreview platform={project.platform} />
+                  <InlineFlamegraphPreview
+                    platform={project.platform}
+                    viewMode={viewMode}
+                    onViewModeChange={setViewMode}
+                  />
                 </FlamegraphThemeProvider>
               </ProfileGroupProvider>
             )}
@@ -104,7 +116,15 @@ export function FlameGraphSection({event, project}: {event: Event; project: Proj
   );
 }
 
-function InlineFlamegraphPreview({platform}: {platform?: PlatformKey | null}) {
+function InlineFlamegraphPreview({
+  platform,
+  viewMode,
+  onViewModeChange,
+}: {
+  onViewModeChange: (mode: 'aggregated' | 'timeline') => void;
+  viewMode: 'aggregated' | 'timeline';
+  platform?: PlatformKey | null;
+}) {
   const profiles = useProfiles();
   const profileGroup = useProfileGroup();
 
@@ -112,9 +132,13 @@ function InlineFlamegraphPreview({platform}: {platform?: PlatformKey | null}) {
     profileGroup.profiles[profileGroup.activeProfileIndex] ??
     profileGroup.profiles[0] ??
     null;
+
+  const sort: 'left heavy' | 'call order' =
+    viewMode === 'timeline' ? 'call order' : 'left heavy';
+
   const flamegraph = useMemo(
-    () => (active ? new FlamegraphModel(active, {sort: 'left heavy'}) : null),
-    [active]
+    () => (active ? new FlamegraphModel(active, {sort}) : null),
+    [active, sort]
   );
 
   const currentPlatform = platform ? platforms.find(p => p.id === platform) : undefined;
@@ -166,6 +190,15 @@ function InlineFlamegraphPreview({platform}: {platform?: PlatformKey | null}) {
 
   return (
     <div>
+      <SegmentedControl
+        aria-label={t('Profile view')}
+        size="xs"
+        value={viewMode}
+        onChange={onViewModeChange}
+      >
+        <SegmentedControl.Item key="aggregated">{t('Left-heavy')}</SegmentedControl.Item>
+        <SegmentedControl.Item key="timeline">{t('Time-ordered')}</SegmentedControl.Item>
+      </SegmentedControl>
       <ProfilePreviewContainer>
         <FlamegraphPreview
           flamegraph={flamegraph}

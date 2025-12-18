@@ -4,6 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {Flamegraph as FlamegraphMock} from 'sentry/utils/profiling/flamegraph';
 import {FlameGraphSection} from 'sentry/views/issueDetails/flameGraphSection';
 
 let mockProfilesState: any;
@@ -64,10 +65,11 @@ jest.mock('sentry/views/profiling/profilesProvider', () => {
 
 describe('FlameGraphSection', () => {
   const organization = OrganizationFixture();
-  const project = ProjectFixture({platform: 'javascript'});
+  const project = ProjectFixture({platform: 'android'});
 
   beforeEach(() => {
     mockProfilesState = {type: 'initial'};
+    (FlamegraphMock as any).mockClear();
   });
 
   it('does not render when event has no profiler_id', () => {
@@ -149,12 +151,33 @@ describe('FlameGraphSection', () => {
 
     render(<FlameGraphSection event={event} project={project} />, {organization});
 
-    expect(screen.getByText('Aggregated Flamegraph')).toBeInTheDocument();
+    expect(screen.getByText('ANR Profile')).toBeInTheDocument();
     expect(screen.getByTestId('flamegraph-preview')).toBeInTheDocument();
     expect(
       screen.getByRole('button', {
         name: 'Open in Profiling',
       })
     ).toBeInTheDocument();
+  });
+
+  it('renders App Hang Profile title for Apple platforms', () => {
+    const appleProject = ProjectFixture({platform: 'apple-ios'});
+    mockProfilesState = {
+      type: 'resolved',
+      data: {chunk: {}},
+    };
+
+    const event = EventFixture({
+      contexts: {
+        profile: {
+          profiler_id: 'profiler-id',
+        },
+      },
+      dateCreated: '2024-01-24T09:09:01+00:00',
+    } as any);
+
+    render(<FlameGraphSection event={event} project={appleProject} />, {organization});
+
+    expect(screen.getByText('App Hang Profile')).toBeInTheDocument();
   });
 });

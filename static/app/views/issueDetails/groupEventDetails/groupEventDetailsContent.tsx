@@ -68,7 +68,7 @@ import {IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {isJavascriptPlatform} from 'sentry/utils/platform';
+import {isJavascriptPlatform, isMobilePlatform} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import useOrganization from 'sentry/utils/useOrganization';
 import {FlameGraphSection} from 'sentry/views/issueDetails/flameGraphSection';
@@ -149,7 +149,9 @@ export function EventDetailsContent({
       {issueTypeConfig.tags.enabled && (
         <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
       )}
-      <FlameGraphSection event={event} project={project} />
+      {isMobilePlatform(project.platform) && (
+        <FlameGraphSection event={event} project={project} />
+      )}
       <StyledDataSection>
         {!hasStreamlinedUI && <TraceDataSection event={event} />}
         {!hasStreamlinedUI && (
