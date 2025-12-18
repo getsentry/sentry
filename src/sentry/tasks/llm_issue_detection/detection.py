@@ -54,7 +54,7 @@ class DetectedIssue(BaseModel):
     title: str
     subcategory: str
     category: str
-    verification_reason: str | None = None
+    verification_reason: str
     # context fields, not LLM generated
     trace_id: str
     transaction_name: str
@@ -315,6 +315,8 @@ def detect_llm_issues_for_project(project_id: int) -> None:
                 "titles": (
                     [issue.title for issue in response_data.issues] if n_found_issues > 0 else None
                 ),
+                "trace_id": trace.trace_id,
+                "traces_analyzed": response_data.traces_analyzed,
             },
         )
         for detected_issue in response_data.issues:
