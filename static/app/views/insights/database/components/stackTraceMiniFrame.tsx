@@ -89,7 +89,7 @@ const FrameContainer = styled('div')`
 
   border-top: 1px solid ${p => p.theme.border};
 
-  background: ${p => p.theme.surface200};
+  background: ${p => p.theme.colors.surface300};
 `;
 
 const ProjectAvatarContainer = styled('div')`
@@ -97,7 +97,7 @@ const ProjectAvatarContainer = styled('div')`
 `;
 
 const Emphasize = styled('span')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.colors.gray800};
 `;
 
 const Deemphasize = styled('span')`

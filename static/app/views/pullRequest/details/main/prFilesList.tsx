@@ -176,7 +176,7 @@ function PRFilesList({files}: PRFilesListProps) {
 }
 
 const CollapseIcon = styled(IconChevron)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.colors.gray400};
   transition: transform 0.2s ease;
 `;
 
@@ -193,7 +193,7 @@ const DiffRow = styled('tr')`
     background-color: #e6ffec;
 
     td {
-      color: ${p => p.theme.gray500};
+      color: ${p => p.theme.colors.gray800};
 
       &:not(.old-line-number):not(.new-line-number) {
         background-color: #d1f4db;
@@ -202,7 +202,7 @@ const DiffRow = styled('tr')`
     }
 
     .old-line-number {
-      background-color: ${p => p.theme.backgroundElevated};
+      background-color: ${p => p.theme.tokens.background.primary};
       color: ${p => p.theme.subText};
     }
     .new-line-number {
@@ -215,7 +215,7 @@ const DiffRow = styled('tr')`
     background-color: #ffebe9;
 
     td {
-      color: ${p => p.theme.gray500};
+      color: ${p => p.theme.colors.gray800};
 
       &:not(.old-line-number):not(.new-line-number) {
         background-color: #ffd7d5;
@@ -234,7 +234,7 @@ const DiffRow = styled('tr')`
     background-color: ${p => p.theme.tokens.background.primary};
 
     td {
-      color: ${p => p.theme.gray400};
+      color: ${p => p.theme.colors.gray500};
     }
   }
 
@@ -242,7 +242,7 @@ const DiffRow = styled('tr')`
     background-color: ${p => p.theme.backgroundSecondary};
 
     td {
-      color: ${p => p.theme.purple300};
+      color: ${p => p.theme.colors.blue400};
       font-weight: ${p => p.theme.fontWeight.bold};
     }
   }
@@ -253,7 +253,7 @@ const LineNumber = styled('td')`
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   text-align: right;
   border-right: 1px solid ${p => p.theme.border};
-  background-color: ${p => p.theme.backgroundElevated};
+  background-color: ${p => p.theme.tokens.background.primary};
   color: ${p => p.theme.subText};
   font-size: 10px;
   user-select: none;

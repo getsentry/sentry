@@ -130,8 +130,8 @@ const Topbar = styled('header')<{showSuperuserWarning: boolean}>`
   width: 100vw;
   padding-left: ${space(1.5)};
   padding-right: ${space(1.5)};
-  border-bottom: 1px solid ${p => p.theme.translucentGray200};
-  background: ${p => p.theme.surface300};
+  border-bottom: 1px solid ${p => p.theme.colors.gray200};
+  background: ${p => p.theme.colors.surface400};
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -155,7 +155,7 @@ const NavigationOverlay = styled('nav')`
   left: 0;
   display: flex;
   flex-direction: column;
-  background: ${p => p.theme.surface200};
+  background: ${p => p.theme.colors.surface300};
   z-index: ${p => p.theme.zIndex.modal};
   --color: ${p => p.theme.tokens.content.primary};
   --color-hover: ${p => p.theme.activeText};

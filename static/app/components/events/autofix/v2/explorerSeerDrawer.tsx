@@ -13,7 +13,7 @@ import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {
   hasCodeChanges as checkHasCodeChanges,
   getArtifactsFromBlocks,
-  getFilePatchesFromBlocks,
+  getMergedFilePatchesFromBlocks,
   getOrderedArtifactKeys,
   useExplorerAutofix,
   type AutofixExplorerStep,
@@ -100,7 +100,8 @@ function DrawerNavigator({
 
         <Feature features={['organizations:autofix-seer-preferences']}>
           <LinkButton
-            to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
+            external
+            href={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
             size="xs"
             title={t('Configure Seer settings for this project')}
             aria-label={t('Configure Seer settings for this project')}
@@ -149,7 +150,7 @@ export function ExplorerSeerDrawer({
   // Extract data from run state
   const blocks = useMemo(() => runState?.blocks ?? [], [runState?.blocks]);
   const artifacts = useMemo(() => getArtifactsFromBlocks(blocks), [blocks]);
-  const filePatches = useMemo(() => getFilePatchesFromBlocks(blocks), [blocks]);
+  const mergedPatches = useMemo(() => getMergedFilePatchesFromBlocks(blocks), [blocks]);
   const loadingBlock = useMemo(() => blocks.find(block => block.loading), [blocks]);
   const hasChanges = checkHasCodeChanges(blocks);
   const prStates = runState?.repo_pr_states;
@@ -352,10 +353,10 @@ export function ExplorerSeerDrawer({
                   return null;
               }
             })}
-            {filePatches.length > 0 && (
+            {/* Code changes from merged file patches */}
+            {mergedPatches.length > 0 && (
               <CodeChangesCard
-                key="code_changes"
-                patches={filePatches}
+                patches={mergedPatches}
                 prStates={prStates}
                 onCreatePR={handleCreatePR}
               />

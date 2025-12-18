@@ -351,7 +351,7 @@ class ProjectCharts extends Component<Props, State> {
                   location={location}
                   organization={organization}
                   onTotalValuesChange={this.handleTotalValuesChange}
-                  colors={[theme.chart.getColorPalette(0)[0], theme.purple200]}
+                  colors={[theme.chart.getColorPalette(0)[0], theme.colors.blue200]}
                 />
               )}
               {displayMode === DisplayModes.FAILURE_RATE && (
@@ -368,7 +368,7 @@ class ProjectCharts extends Component<Props, State> {
                   location={location}
                   organization={organization}
                   onTotalValuesChange={this.handleTotalValuesChange}
-                  colors={[theme.red300, theme.purple200]}
+                  colors={[theme.colors.red400, theme.colors.blue200]}
                 />
               )}
               {displayMode === DisplayModes.TPM && (
@@ -385,7 +385,7 @@ class ProjectCharts extends Component<Props, State> {
                   location={location}
                   organization={organization}
                   onTotalValuesChange={this.handleTotalValuesChange}
-                  colors={[theme.yellow300, theme.purple200]}
+                  colors={[theme.colors.yellow400, theme.colors.blue200]}
                   disablePrevious
                 />
               )}
@@ -403,7 +403,7 @@ class ProjectCharts extends Component<Props, State> {
                     location={location}
                     organization={organization}
                     onTotalValuesChange={this.handleTotalValuesChange}
-                    colors={[theme.purple300, theme.purple200]}
+                    colors={[theme.colors.blue400, theme.colors.blue200]}
                     interval={this.barChartInterval}
                     chartComponent={BarChart}
                     disableReleases
@@ -428,7 +428,7 @@ class ProjectCharts extends Component<Props, State> {
                   location={location}
                   organization={organization}
                   onTotalValuesChange={this.handleTotalValuesChange}
-                  colors={[theme.gray200, theme.purple200]}
+                  colors={[theme.colors.gray200, theme.colors.blue200]}
                   interval={this.barChartInterval}
                   chartComponent={BarChart}
                   disableReleases

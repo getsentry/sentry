@@ -88,6 +88,7 @@ from sentry.seer.explorer.tools import (
     execute_table_query,
     execute_timeseries_query,
     execute_trace_table_query,
+    get_baseline_tag_distribution,
     get_issue_and_event_details_v2,
     get_log_attributes_for_trace,
     get_metric_attributes_for_trace,
@@ -1037,6 +1038,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "call_on_completion_hook": call_on_completion_hook,
     "get_log_attributes_for_trace": get_log_attributes_for_trace,
     "get_metric_attributes_for_trace": get_metric_attributes_for_trace,
+    "get_baseline_tag_distribution": get_baseline_tag_distribution,
     #
     # Replays
     "get_replay_summary_logs": rpc_get_replay_summary_logs,

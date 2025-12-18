@@ -7,6 +7,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import type {Selection} from 'sentry/components/charts/useChartXRangeSelection';
 import {Text} from 'sentry/components/core/text';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -103,7 +104,7 @@ export function CohortComparison({
   }, [selection]);
 
   return (
-    <Panel data-explore-chart-selection-region>
+    <Panel>
       <Flex direction="column" gap="2xl" padding="xl">
         <AttributeBreakdownsComponent.ControlsContainer>
           <AttributeBreakdownsComponent.StyledBaseSearchBar
@@ -117,7 +118,7 @@ export function CohortComparison({
           <AttributeBreakdownsComponent.FeedbackButton />
         </AttributeBreakdownsComponent.ControlsContainer>
         {isLoading ? (
-          <AttributeBreakdownsComponent.LoadingCharts />
+          <LoadingIndicator />
         ) : error ? (
           <AttributeBreakdownsComponent.ErrorState error={error} />
         ) : (
@@ -192,7 +193,7 @@ const SelectionHint = styled(Text)<{color?: string}>`
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background-color: ${p => p.color || p.theme.gray400};
+    background-color: ${p => p.color || p.theme.colors.gray500};
     margin-right: ${space(0.5)};
     flex-shrink: 0;
   }

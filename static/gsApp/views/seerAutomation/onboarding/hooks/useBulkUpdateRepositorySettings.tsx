@@ -2,11 +2,14 @@ import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import {
   fetchMutation,
   useMutation,
+  useQueryClient,
   type UseMutationOptions,
 } from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-type RepositorySettings =
+import {getRepositoryWithSettingsQueryKey} from 'getsentry/views/seerAutomation/onboarding/hooks/useRepositoryWithSettings';
+
+export type RepositorySettings =
   | {
       enabledCodeReview: boolean;
       repositoryIds: string[];
@@ -29,16 +32,28 @@ export function useBulkUpdateRepositorySettings(
     'mutationFn'
   >
 ) {
+  const queryClient = useQueryClient();
   const organization = useOrganization();
 
   return useMutation<RepositoryWithSettings[], Error, RepositorySettings, unknown>({
-    mutationFn: (data: RepositorySettings) => {
-      return fetchMutation<RepositoryWithSettings[]>({
+    mutationFn: data => {
+      return fetchMutation({
         method: 'PUT',
         url: `/organizations/${organization.slug}/repos/settings/`,
         data,
       });
     },
     ...options,
+    onSettled: (data, error, variables, context) => {
+      queryClient.invalidateQueries({
+        queryKey: [`/organizations/${organization.slug}/repos/`],
+      });
+      (data ?? []).forEach(repo => {
+        const queryKey = getRepositoryWithSettingsQueryKey(organization, repo.id);
+        queryClient.invalidateQueries({queryKey});
+        queryClient.setQueryData(queryKey, [repo, undefined, undefined]);
+      });
+      options?.onSettled?.(data, error, variables, context);
+    },
   });
 }
