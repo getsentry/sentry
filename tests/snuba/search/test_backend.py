@@ -27,7 +27,7 @@ from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupowner import GroupOwner
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend, SnubaSearchBackendBase
-from sentry.search.snuba.executors import TrendsSortWeights
+from sentry.search.snuba.executors import PostgresSnubaQueryExecutor, TrendsSortWeights
 from sentry.seer.autofix.constants import FixabilityScoreThresholds
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -1925,35 +1925,43 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
     def test_too_many_candidates_with_selective_postgres_filter(self) -> None:
         """
         Test that selective postgres-only filters (like assigned:) return results
-        even when there are too many candidates.
+        even when there are too many candidates and sampling returns 0 hits.
 
-        This tests the fallback-to-truncation behavior: when sampling returns 0 hits
-        for selective filters, we truncate group_ids instead of returning empty.
+        We mock calculate_hits to return 0 to simulate the production scenario where
+        sampling from millions of groups is unlikely to hit the few assigned ones.
         """
-        # Create additional groups assigned to the user to exceed max_candidates
-        group3 = self.store_event(
+        assigned_group = self.store_event(
             data={
-                "fingerprint": ["put-me-in-group3"],
-                "event_id": "c" * 32,
-                "timestamp": before_now(seconds=100).isoformat(),
+                "fingerprint": ["assigned-group"],
+                "event_id": "a" * 32,
+                "timestamp": before_now(seconds=50).isoformat(),
             },
             project_id=self.project.id,
         ).group
-        GroupAssignee.objects.create(user_id=self.user.id, group=group3, project=self.project)
+        GroupAssignee.objects.create(
+            user_id=self.user.id, group=assigned_group, project=self.project
+        )
 
-        # Set max_candidates to 1 so we trigger too_many_candidates with 2+ assigned groups
+        # Set max_candidates=1 to trigger too_many_candidates with 2 assigned groups
         with self.options({"snuba.search.max-pre-snuba-candidates": 1}):
-            # Search with assigned: filter (selective postgres-only filter)
-            # Before the fix, this would return empty results due to failed sampling
-            # After the fix, this should return results via fallback to truncation
-            results = self.make_query(
-                search_filter_query=f"assigned:{self.user.username}",
-                count_hits=True,
-            )
-            # Should return at least one result (truncated to max_candidates)
-            # Both self.group2 and group3 are assigned to the user
-            assert len(results.results) >= 1
-            assert all(g in {self.group2, group3} for g in results.results)
+            # Mock calculate_hits to return 0, simulating failed sampling
+            with mock.patch.object(
+                PostgresSnubaQueryExecutor, "calculate_hits", return_value=0
+            ) as mock_calculate_hits:
+                # Search with assigned: filter (selective postgres-only filter)
+                # calculate_hits returns 0 (mocked to simulate production)
+                # Before the fix: hits=0 causes early return with empty results
+                # After the fix: falls back to truncation, returns assigned groups
+                results = self.make_query(
+                    search_filter_query=f"assigned:{self.user.username}",
+                    sort_by="freq",
+                    count_hits=True,
+                )
+
+                assert mock_calculate_hits.called, "calculate_hits was not called"
+
+                assert len(results.results) == 1, f"Expected results but got {len(results.results)}"
+                assert all(g in {self.group2, assigned_group} for g in results.results)
 
     def test_optimizer_enabled(self) -> None:
         prev_optimizer_enabled = options.get("snuba.search.pre-snuba-candidates-optimizer")
