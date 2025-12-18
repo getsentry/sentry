@@ -296,7 +296,11 @@ function getBreadcrumbColorConfig(
     case BreadcrumbType.CONNECTIVITY:
       return {title: theme.pink400, icon: theme.pink400, iconBorder: theme.pink200};
     case BreadcrumbType.INFO:
-      return {title: theme.blue400, icon: theme.blue300, iconBorder: theme.blue200};
+      return {
+        title: theme.colors.blue500,
+        icon: theme.colors.blue400,
+        iconBorder: theme.colors.blue200,
+      };
     case BreadcrumbType.DEBUG:
     default:
       return {
