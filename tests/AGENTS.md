@@ -86,6 +86,58 @@ For example, a diff that uses `pytest` instead of `unittest` would look like:
     +            EffectiveGrantStatus.from_cache(None)
 ```
 
+## Testing with Time
+
+**CRITICAL**: All datetime objects in Sentry MUST be timezone-aware and use UTC.
+
+```python
+from sentry.testutils.helpers.datetime import before_now, freeze_time
+
+# Get a datetime relative to now
+past_time = before_now(days=7)  # 7 days ago in UTC
+
+# Freeze time for testing
+@freeze_time("2024-01-01 12:00:00")
+def test_something():
+    assert datetime.now(UTC).year == 2024
+```
+
+**Why Use Test Helpers:**
+
+- `before_now()` ensures all test datetimes are UTC-aware and relative to now
+- `freeze_time()` (from `time_machine` library) allows deterministic time-based testing
+- Both helpers prevent timezone-related test flakiness across different environments
+
+**Common Time-Based Test Patterns:**
+
+```python
+from datetime import UTC, datetime
+from sentry.testutils.helpers.datetime import before_now, freeze_time
+
+# Pattern 1: Testing time-sensitive features
+def test_expired_data():
+    expired_event = self.create_event(
+        data={"timestamp": before_now(days=30).timestamp()}
+    )
+    assert expired_event.is_expired()
+
+# Pattern 2: Testing time progression
+@freeze_time("2024-01-01 10:00:00")
+def test_scheduled_task():
+    task = self.create_task(scheduled_at=datetime.now(UTC))
+    assert task.should_run()
+
+# Pattern 3: Testing date ranges
+def test_date_filtering():
+    start = before_now(days=7)
+    end = before_now(days=1)
+    events = Event.objects.filter(
+        datetime__gte=start,
+        datetime__lte=end
+    )
+    assert events.count() > 0
+```
+
 ## File Location Map
 
 ### Tests

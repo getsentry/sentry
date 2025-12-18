@@ -240,3 +240,56 @@ def test(monkeypatch) -> None: pass
 """
     expected = ["t.py:1:9: S014 Use `unittest.mock` instead"]
     assert _run(src) == expected
+
+
+def test_S015() -> None:
+    # Test datetime.now() without arguments
+    src_bad = """\
+from datetime import datetime
+
+def get_time():
+    return datetime.now()  # bad: no UTC
+"""
+    expected = [
+        "t.py:4:11: S015 Use `datetime.now(UTC)` or `timezone.now()` for timezone-aware datetimes"
+    ]
+    assert _run(src_bad) == expected
+
+    # Test datetime.utcnow() - deprecated pattern
+    src_utcnow = """\
+from datetime import datetime
+
+def get_time():
+    return datetime.utcnow()  # bad: deprecated
+"""
+    expected = [
+        "t.py:4:11: S015 Use `datetime.now(UTC)` or `timezone.now()` for timezone-aware datetimes"
+    ]
+    assert _run(src_utcnow) == expected
+
+    # Test datetime.now(UTC) - should pass
+    src_good = """\
+from datetime import UTC, datetime
+
+def get_time():
+    return datetime.now(UTC)  # good: has UTC
+"""
+    assert _run(src_good) == []
+
+    # Test timezone.now() - should pass
+    src_timezone = """\
+from django.utils import timezone
+
+def get_time():
+    return timezone.now()  # good: timezone-aware
+"""
+    assert _run(src_timezone) == []
+
+    # Test datetime.now(tz=UTC) - should pass
+    src_kwarg = """\
+from datetime import UTC, datetime
+
+def get_time():
+    return datetime.now(tz=UTC)  # good: has UTC as kwarg
+"""
+    assert _run(src_kwarg) == []

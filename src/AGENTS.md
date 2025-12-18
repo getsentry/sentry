@@ -295,6 +295,76 @@ class MultiProducer:
         return KafkaProducer(build_kafka_configuration(default_config=config))
 ```
 
+### DateTime and Timezone Handling
+
+**CRITICAL**: All datetime objects in Sentry MUST be timezone-aware and use UTC.
+
+```python
+# CORRECT: Always use UTC explicitly
+from datetime import UTC, datetime
+
+now = datetime.now(UTC)
+specific_time = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
+
+# CORRECT: Use Django's timezone utilities
+from django.utils import timezone
+
+now = timezone.now()  # Returns aware datetime in UTC
+
+# WRONG: Never create naive datetimes
+now = datetime.now()  # NO! Creates timezone-naive datetime
+specific_time = datetime(2024, 1, 1, 12, 0, 0)  # NO! Missing tzinfo
+```
+
+**Why This Matters:**
+
+- Sentry is a distributed system serving users worldwide
+- Database is configured with `TIME_ZONE = "UTC"`
+- Naive datetimes cause subtle bugs in timezone conversions
+- Django's `USE_TZ = True` requires timezone-aware datetimes
+
+**Current Enforcement:**
+
+UTC datetime enforcement is implemented through multiple layers:
+
+1. **Django Runtime Warnings**: `USE_TZ = True` in Django settings provides runtime warnings for naive datetimes
+2. **Flake8 Rule (S015)**: Custom flake8 rule detects:
+   - `datetime.now()` without arguments → must use `datetime.now(UTC)`
+   - `datetime.utcnow()` (deprecated pattern) → must use `datetime.now(UTC)`
+3. **Pre-commit Hooks**: The flake8 hook runs automatically on commit
+4. **Helper Utilities**: `src/sentry/utils/dates.py` provides `ensure_aware()` to convert naive to aware datetimes
+
+**Handling Existing Code:**
+
+The codebase has many uses of `datetime.now()` and `datetime.utcnow()`. These will trigger S015 warnings when modified. To fix:
+
+```python
+# Before
+from datetime import datetime
+now = datetime.now()  # S015 error
+
+# After
+from datetime import UTC, datetime
+now = datetime.now(UTC)  # ✅ Correct
+
+# Or use Django's timezone utility
+from django.utils import timezone
+now = timezone.now()  # ✅ Also correct
+```
+
+**Exception Cases:**
+
+If you genuinely need local timezone (rare cases like user-facing scheduling), add:
+
+1. A detailed comment explaining the business requirement
+2. A `# noqa: S015` comment to bypass the check
+
+```python
+# Business requirement: Schedule report for user's local time (8am in their timezone)
+# User explicitly selected timezone in their preferences
+local_time = datetime.now()  # noqa: S015
+```
+
 ## Architecture Rules
 
 ### Silo Mode

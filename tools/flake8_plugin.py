@@ -40,6 +40,8 @@ S013_msg = "S013 Use `django.contrib.postgres.fields.array.ArrayField` instead"
 
 S014_msg = "S014 Use `unittest.mock` instead"
 
+S015_msg = "S015 Use `datetime.now(UTC)` or `timezone.now()` for timezone-aware datetimes"
+
 
 class SentryVisitor(ast.NodeVisitor):
     def __init__(self, filename: str) -> None:
@@ -157,6 +159,18 @@ class SentryVisitor(ast.NodeVisitor):
             for keyword in node.keywords:
                 if keyword.arg == "SENTRY_OPTIONS":
                     self.errors.append((keyword.lineno, keyword.col_offset, S011_msg))
+
+        # S015: Check for datetime.now() or datetime.utcnow() without UTC
+        if isinstance(node.func, ast.Attribute):
+            # Check if it's datetime.now() or datetime.utcnow()
+            if (
+                node.func.attr in ("now", "utcnow")
+                and isinstance(node.func.value, ast.Name)
+                and node.func.value.id == "datetime"
+            ):
+                # datetime.now() without arguments or datetime.utcnow()
+                if node.func.attr == "utcnow" or len(node.args) == 0 and len(node.keywords) == 0:
+                    self.errors.append((node.lineno, node.col_offset, S015_msg))
 
         self.generic_visit(node)
 
