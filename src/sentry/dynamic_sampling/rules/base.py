@@ -13,6 +13,7 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     get_boost_low_volume_projects_sample_rate,
 )
 from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, is_project_mode_sampling
+from sentry.metrics import metrics
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 
@@ -109,7 +110,15 @@ def _get_rules_of_enabled_biases(
             or (rule_type.value in enabled_biases and rule_type in ALWAYS_ALLOWED_RULE_TYPES)
         ):
             try:
-                rules += bias.generate_rules(project, base_sample_rate)
+                generated_rules = bias.generate_rules(project, base_sample_rate)
+                rules += generated_rules
+                if generated_rules and features.has(
+                    "organizations:dynamic-sampling-count-biases", project.organization
+                ):
+                    metrics.incr(
+                        "dynamic_sampling.rule_emitted",
+                        tags={"bias": bias.__class__.__name__},
+                    )
             except Exception:
                 logger.exception("Rule generator %s failed.", rule_type)
 
