@@ -76,7 +76,7 @@ export function getGroupReleaseChartMarkers(
       name: t('First seen'),
       value: bucketStart ?? firstSeenX,
       displayValue: firstSeenX,
-      color: theme.pink300,
+      color: theme.colors.pink400,
     });
   }
 

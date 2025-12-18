@@ -29,7 +29,7 @@ export function useFlagSeries({event, flags}: FlagSeriesProps) {
   const markLine = MarkLine({
     animation: false,
     lineStyle: {
-      color: theme.pink300,
+      color: theme.colors.pink400,
       opacity: 0.3,
       type: 'solid',
     },
@@ -76,7 +76,7 @@ export function useFlagSeries({event, flags}: FlagSeriesProps) {
     seriesName: t('Feature Flags'),
     id: 'flag-lines',
     data: [],
-    color: theme.pink300,
+    color: theme.colors.pink400,
     markLine,
     type: 'line', // use this type so the bar chart doesn't shrink/grow
   };
