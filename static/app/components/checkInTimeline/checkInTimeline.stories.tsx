@@ -27,9 +27,9 @@ const statusStyle: TickStyle<ExampleStatus> = theme => ({
     tickColor: theme.red300,
   },
   [ExampleStatus.TIMEOUT]: {
-    labelColor: theme.yellow400,
-    tickColor: theme.yellow300,
-    hatchTick: theme.yellow200,
+    labelColor: theme.colors.yellow500,
+    tickColor: theme.colors.yellow400,
+    hatchTick: theme.colors.yellow200,
   },
   [ExampleStatus.OK]: {
     labelColor: theme.colors.green500,

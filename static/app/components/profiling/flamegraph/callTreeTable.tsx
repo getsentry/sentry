@@ -55,8 +55,8 @@ export const CallTreeTable = styled('div')`
       }
 
       .${CallTreeTableClassNames.BACKGROUND_WEIGHT} {
-        background-color: ${props => props.theme.yellow100};
-        border-bottom: 1px solid ${props => props.theme.yellow200};
+        background-color: ${props => props.theme.colors.yellow100};
+        border-bottom: 1px solid ${props => props.theme.colors.yellow200};
       }
 
       .${CallTreeTableClassNames.FRAME_TYPE} {
@@ -106,8 +106,8 @@ export const CallTreeTable = styled('div')`
     position: absolute;
     right: 0;
     top: 0;
-    background-color: ${props => props.theme.yellow100};
-    border-bottom: 1px solid ${props => props.theme.yellow200};
+    background-color: ${props => props.theme.colors.yellow100};
+    border-bottom: 1px solid ${props => props.theme.colors.yellow200};
     transform-origin: center right;
     height: 100%;
     width: 100%;

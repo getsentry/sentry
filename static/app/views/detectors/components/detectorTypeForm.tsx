@@ -242,7 +242,7 @@ function MetricVisualization() {
 function CronsVisualization() {
   const theme = useTheme();
   const danger = theme.red300;
-  const warning = theme.yellow300;
+  const warning = theme.colors.yellow400;
   const success = theme.colors.green400;
   return (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 480 56">
