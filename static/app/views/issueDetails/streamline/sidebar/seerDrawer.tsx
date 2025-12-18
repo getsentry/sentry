@@ -425,7 +425,8 @@ function LegacySeerDrawer({group, project, event, aiConfig}: LegacySeerDrawerPro
           <ButtonBar>
             <Feature features={['organizations:autofix-seer-preferences']}>
               <LinkButton
-                to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
+                external
+                href={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
                 size="xs"
                 title={t('Project Settings for Seer')}
                 aria-label={t('Project Settings for Seer')}
