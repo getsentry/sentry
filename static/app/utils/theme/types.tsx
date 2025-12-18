@@ -1,47 +1,13 @@
 /**
- * Background surface level for layered UI elements.
- */
-export type SurfaceVariant = 'primary' | 'secondary' | 'tertiary';
-
-/**
- * Semantic color variant for conveying meaning through color.
- */
-export type SemanticVariant =
-  | 'accent'
-  | 'danger'
-  | 'neutral'
-  | 'promotion'
-  | 'success'
-  | 'warning';
-
-/**
- * Color intensity level for semantic color variants.
- */
-export type ColorIntensity = 'moderate' | 'muted' | 'vibrant';
-
-/**
  * Full t-shirt size scale.
+ * @internal
  */
-export type Size = SizeKeys[number];
-
-/**
- * Icon size constraint.
- */
-export type IconSize = SizeRange<'xs', '2xl'>;
+type Size = SizeKeys[number];
 
 /**
  * Font size constraint for typography.
  */
 export type FontSize = SizeRange<'xs', '2xl'>;
-
-/**
- * Form element size constraint.
- *
- * Unless you are implementing a new component in the `sentry/components/core`
- * directory, use `ComponentProps['size']` instead.
- * @internal
- */
-export type FormSize = SizeRange<'xs', 'md'>;
 
 /**
  * Responsive breakpoint size constraint.
@@ -78,20 +44,63 @@ export type MotionEasing = 'smooth' | 'snap' | 'enter' | 'exit' | 'spring';
  */
 export type MotionDuration = 'fast' | 'moderate' | 'slow';
 
+// -----------------------------------------------------------------------------
+// Theme Variants
+// -----------------------------------------------------------------------------
+
+/**
+ * Background surface level for layered UI elements.
+ */
+export type SurfaceVariant = 'primary' | 'secondary' | 'tertiary';
+
+/**
+ * Semantic color variant for conveying meaning through color.
+ */
+export type SemanticVariant =
+  | 'accent'
+  | 'danger'
+  | 'neutral'
+  | 'promotion'
+  | 'success'
+  | 'warning';
+
+/**
+ * Color intensity level for semantic color variants.
+ */
+export type ColorIntensity = 'moderate' | 'muted' | 'vibrant';
+
 /**
  * Content/text color variant.
  */
-export type ContentVariant = 'primary' | 'muted' | Exclude<SemanticVariant, 'neutral'>;
+export type ContentVariant = Exclude<SemanticVariant, 'neutral'> | 'primary' | 'muted';
 
 /**
  * Graphics/icon color variant.
  */
-export type GraphicsVariant = 'muted' | Exclude<SemanticVariant, 'neutral'>;
+export type GraphicsVariant = Exclude<SemanticVariant, 'neutral'> | 'muted';
 
 /**
  * Border color variant.
  */
-export type BorderVariant = 'primary' | 'muted' | Exclude<SemanticVariant, 'neutral'>;
+export type BorderVariant = Exclude<SemanticVariant, 'neutral'> | 'primary' | 'muted';
+
+// -----------------------------------------------------------------------------
+// Component Variants (should be moved locally, aligned to SemanticVariant)
+// -----------------------------------------------------------------------------
+
+/**
+ * Icon size constraint.
+ */
+export type IconSize = SizeRange<'xs', '2xl'>;
+
+/**
+ * Form element size constraint.
+ *
+ * Unless you are implementing a new component in the `sentry/components/core`
+ * directory, use `ComponentProps['size']` instead.
+ * @internal
+ */
+export type FormSize = SizeRange<'xs', 'md'>;
 
 /**
  * Tag color scheme.
