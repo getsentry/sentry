@@ -205,6 +205,11 @@ seer_tasks = app.taskregistry.create_namespace(
     app_feature="errors",
 )
 
+seer_code_review_tasks = app.taskregistry.create_namespace(
+    "seer.code_review",
+    app_feature="code-review",
+)
+
 selfhosted_tasks = app.taskregistry.create_namespace(
     "selfhosted",
     app_feature="shared",
