@@ -521,8 +521,17 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
 
 def _make_detector_filter(detector_ids: Sequence[int | str]) -> Q:
     assert not isinstance(detector_ids, str)
+    valid_detector_ids = []
+    for detector_id in detector_ids:
+        if detector_id == "*":
+            continue
+        try:
+            valid_detector_ids.append(int(detector_id))
+        except (ValueError, TypeError):
+            raise InvalidSearchQuery(f"Invalid detector ID: {detector_id}")
+
     return Q(
-        id__in=DetectorGroup.objects.filter(detector_id__in=detector_ids).values_list(
+        id__in=DetectorGroup.objects.filter(detector_id__in=valid_detector_ids).values_list(
             "group_id", flat=True
         )
     )
