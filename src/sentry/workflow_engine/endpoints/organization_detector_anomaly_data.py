@@ -73,7 +73,11 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
             )
             raise ResourceDoesNotExist
 
-        subscription = QuerySubscription.objects.get(snuba_query_id=alert_rule.snuba_query_id)
+        subscription = QuerySubscription.objects.filter(
+            snuba_query_id=alert_rule.snuba_query_id
+        ).first()
+        if not subscription:
+            raise SubscriptionNotFound
         logger.info(
             "anomaly_data.subscription_found",
             extra={
