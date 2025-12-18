@@ -59,21 +59,19 @@ class DataAccessGrant(DefaultFieldsModel):
         unique_together = (("organization_id", "grant_type", "ticket_id"),)
 
     @classmethod
-    def create_or_update_data_access_grant(
+    def create_data_access_grant(
         cls,
         organization_id: int,
         user_id: int | None,
         grant_type: GrantType,
         access_end: datetime,
     ) -> None:
-        cls.objects.update_or_create(
+        cls.objects.create(
             organization_id=organization_id,
             grant_type=grant_type,
-            defaults={
-                "grant_start": timezone.now(),
-                "grant_end": access_end,
-                "granted_by_user_id": user_id,
-            },
+            grant_start=timezone.now(),
+            grant_end=access_end,
+            granted_by_user_id=user_id,
         )
 
         # invalidate cache to force effective grant status recalculation
@@ -98,3 +96,21 @@ class DataAccessGrant(DefaultFieldsModel):
 
         # invalidate cache to force effective grant status recalculation
         effective_grant_status_cache.delete(organization_id)
+
+
+def get_active_tickets_for_organization(organization_id: int) -> list[str]:
+    """
+    Separate function to get ticket info for UI display.
+    Called only when needed (not on every access check).
+    Fast query since we can filter by time.
+    """
+    now = timezone.now()
+    active_zendesk_tickets = DataAccessGrant.objects.filter(
+        organization_id=organization_id,
+        grant_type=DataAccessGrant.GrantType.ZENDESK,
+        grant_start__lte=now,
+        grant_end__gt=now,
+        revocation_date__isnull=True,
+        ticket_id__isnull=False,
+    ).values_list("ticket_id", flat=True)
+    return [ticket_id for ticket_id in active_zendesk_tickets if ticket_id is not None]

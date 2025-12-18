@@ -14,7 +14,10 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrganizationPermission
 from sentry.data_secrecy.cache import effective_grant_status_cache
 from sentry.data_secrecy.logic import cache_effective_grant_status, data_access_grant_exists
-from sentry.data_secrecy.models.data_access_grant import DataAccessGrant
+from sentry.data_secrecy.models.data_access_grant import (
+    DataAccessGrant,
+    get_active_tickets_for_organization,
+)
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
     RpcUserOrganizationContext,
@@ -26,7 +29,7 @@ logger = logging.getLogger("sentry.data_secrecy")
 class WaiveDataSecrecyPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read", "org:write"],
-        "PUT": ["org:write"],
+        "POST": ["org:write"],
         "DELETE": ["org:write"],
     }
 
@@ -42,30 +45,12 @@ class DataSecrecyWaiverValidator(serializers.Serializer[dict[str, Any]]):
         return access_end
 
 
-def get_active_tickets_for_organization(organization_id: int) -> list[str]:
-    """
-    Separate function to get ticket info for UI display.
-    Called only when needed (not on every access check).
-    Fast query since we can filter by time.
-    """
-    now = timezone.now()
-    active_zendesk_tickets = DataAccessGrant.objects.filter(
-        organization_id=organization_id,
-        grant_type=DataAccessGrant.GrantType.ZENDESK,
-        grant_start__lte=now,
-        grant_end__gt=now,
-        revocation_date__isnull=True,
-        ticket_id__isnull=False,
-    ).values_list("ticket_id", flat=True)
-    return [ticket_id for ticket_id in active_zendesk_tickets if ticket_id is not None]
-
-
 @control_silo_endpoint
 class WaiveDataSecrecyEndpoint(ControlSiloOrganizationEndpoint):
     permission_classes: tuple[type[BasePermission], ...] = (WaiveDataSecrecyPermission,)
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
-        "PUT": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
         "DELETE": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ENTERPRISE
@@ -95,14 +80,14 @@ class WaiveDataSecrecyEndpoint(ControlSiloOrganizationEndpoint):
         }
         return Response(serialized_grant_status, status=status.HTTP_200_OK)
 
-    def put(
+    def post(
         self,
         request: Request,
         organization_context: RpcUserOrganizationContext,
         organization: RpcOrganization,
     ) -> Response:
         """
-        Manually update or create a data secrecy waiver. Caches and returns the new effective grant status.
+        Manually create a data secrecy waiver. Caches and returns the new effective grant status.
 
         :param access_end: the timestamp at which data secrecy is reinstated.
         """
@@ -112,7 +97,7 @@ class WaiveDataSecrecyEndpoint(ControlSiloOrganizationEndpoint):
 
         result = validator.validated_data
 
-        DataAccessGrant.create_or_update_data_access_grant(
+        DataAccessGrant.create_data_access_grant(
             organization.id, request.user.id, DataAccessGrant.GrantType.MANUAL, result["access_end"]
         )
 
@@ -135,7 +120,7 @@ class WaiveDataSecrecyEndpoint(ControlSiloOrganizationEndpoint):
         organization: RpcOrganization,
     ) -> Response:
         """
-        Revoke all active manual data secrecy waivers for an organization.
+        Revoke all active data secrecy waivers for an organization.
         """
         DataAccessGrant.revoke_active_data_access_grants(
             organization.id, request.user.id, DataAccessGrant.RevocationReason.MANUAL_REVOCATION

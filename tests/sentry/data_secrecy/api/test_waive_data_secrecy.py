@@ -79,9 +79,9 @@ class WaiveDataSecrecyTest(APITestCase):
         response = self.get_error_response(self.organization.slug, status_code=404)
         assert response.data["detail"] == "No data secrecy waiver in place."
 
-    def test_put_create(self) -> None:
+    def test_post(self) -> None:
         self.get_success_response(
-            self.organization.slug, method="put", access_end=self.access_end, status_code=201
+            self.organization.slug, method="post", access_end=self.access_end, status_code=201
         )
 
         created_grant = DataAccessGrant.objects.first()
@@ -90,35 +90,10 @@ class WaiveDataSecrecyTest(APITestCase):
         assert created_grant.grant_end == self.access_end
         assert created_grant.grant_type == DataAccessGrant.GrantType.MANUAL
 
-    def test_put_update(self) -> None:
-        # Create an active grant
-        grant = self.create_data_access_grant(
-            organization_id=self.organization.id,
-            grant_type=DataAccessGrant.GrantType.MANUAL,
-            grant_start=datetime(2025, 1, 1, 10, 0, 0, tzinfo=timezone.utc),
-            grant_end=datetime(2025, 1, 1, 13, 0, 0, tzinfo=timezone.utc),
-        )
-
-        # Hit the database and cache the result
-        result1 = data_access_grant_exists(self.organization.id)
-        assert result1 is True
-        assert cache.get(self.cache_key) is not None
-
-        # Make a request to update the grant
-        response = self.get_success_response(
-            self.organization.slug, method="put", access_end=self.access_end, status_code=201
-        )
-        grant.refresh_from_db()
-
-        assert grant.grant_start == self.current_time
-        assert grant.grant_end == self.access_end
-
-        self.assert_response(response, start=self.current_time, end=self.access_end)
-
-    def test_put_invalid_grant_end(self) -> None:
+    def test_post_invalid_grant_end(self) -> None:
         response = self.get_error_response(
             self.organization.slug,
-            method="put",
+            method="post",
             access_end=datetime(2025, 1, 1, 9, 0, 0, tzinfo=timezone.utc),
         )
         assert (
