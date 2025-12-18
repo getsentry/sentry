@@ -64,17 +64,17 @@ def format_status_check_messages(
     parts = []
     if analyzed_count > 0:
         parts.append(
-            ngettext("%(count)d app analyzed", "%(count)d apps analyzed", analyzed_count)
+            ngettext("%(count)d build analyzed", "%(count)d builds analyzed", analyzed_count)
             % {"count": analyzed_count}
         )
     if processing_count > 0:
         parts.append(
-            ngettext("%(count)d app processing", "%(count)d apps processing", processing_count)
+            ngettext("%(count)d build processing", "%(count)d builds processing", processing_count)
             % {"count": processing_count}
         )
     if errored_count > 0:
         parts.append(
-            ngettext("%(count)d app errored", "%(count)d apps errored", errored_count)
+            ngettext("%(count)d build errored", "%(count)d builds errored", errored_count)
             % {"count": errored_count}
         )
 
