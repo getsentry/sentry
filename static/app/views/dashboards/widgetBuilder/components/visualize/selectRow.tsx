@@ -405,9 +405,9 @@ export function SelectRow({
           });
           setError?.({...error, queries: []});
         }}
-        triggerProps={{
-          'aria-label': t('Aggregate Selection'),
-        }}
+        trigger={triggerProps => (
+          <SelectTrigger.Button {...triggerProps} aria-label={t('Aggregate Selection')} />
+        )}
       />
       {hasColumnParameter && (
         <SelectWrapper ref={columnSelectRef}>
