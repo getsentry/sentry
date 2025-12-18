@@ -26,10 +26,6 @@ import type {
   TagVariant,
 } from './types';
 
-type SimpleMotionName = Exclude<MotionEasing, 'spring'>;
-
-type PhysicsMotionName = Extract<MotionEasing, 'spring'>;
-
 type MotionDefinition = Record<MotionDuration, string>;
 
 const motionDurations: Record<MotionDuration, number> = {
@@ -38,7 +34,10 @@ const motionDurations: Record<MotionDuration, number> = {
   slow: 240,
 };
 
-const motionCurves: Record<SimpleMotionName, [number, number, number, number]> = {
+const motionCurves: Record<
+  Exclude<MotionEasing, keyof typeof motionTransitions>,
+  [number, number, number, number]
+> = {
   smooth: [0.72, 0, 0.16, 1],
   snap: [0.8, -0.4, 0.5, 1],
   enter: [0.24, 1, 0.32, 1],
@@ -73,7 +72,7 @@ const motionCurveWithDuration = (
   return [motion, framerMotion];
 };
 
-const motionTransitions: Record<PhysicsMotionName, Record<MotionDuration, Transition>> = {
+const motionTransitions: Record<'spring', Record<MotionDuration, Transition>> = {
   spring: {
     fast: {
       type: 'spring',
