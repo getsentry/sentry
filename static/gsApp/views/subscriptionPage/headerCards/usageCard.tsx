@@ -42,7 +42,7 @@ export function UsageCard({subscription, organization}: UsageCardProps) {
   if (
     !intervalPrice ||
     !shouldSeeSpendVisibility(subscription) ||
-    hasNewBillingUI(organization) // TODO(checkout v3): remove this, this is temporary until the real header cards for V3 are implemented
+    hasNewBillingUI(organization) // TODO(subscriptions-v3): remove this, this is temporary until the real header cards for V3 are implemented
   ) {
     return null;
   }

@@ -44,7 +44,7 @@ describe('SetSpendLimit', () => {
       method: 'GET',
     });
   });
-  it('renders for checkout v3 on AM3 tier', async () => {
+  it('renders for AM3 tier', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
       method: 'GET',
@@ -62,8 +62,6 @@ describe('SetSpendLimit', () => {
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM3}
-        onToggleLegacy={jest.fn()}
-        isNewCheckout
         navigate={jest.fn()}
       />
     );
@@ -84,7 +82,7 @@ describe('SetSpendLimit', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renders for checkout v3 on pre-AM3 tier', async () => {
+  it('renders for pre-AM3 tier', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${preAm3Organization.slug}/billing-config/`,
       method: 'GET',
@@ -102,8 +100,6 @@ describe('SetSpendLimit', () => {
         api={api}
         organization={preAm3Organization}
         checkoutTier={PlanTier.AM2}
-        onToggleLegacy={jest.fn()}
-        isNewCheckout
         navigate={jest.fn()}
       />
     );

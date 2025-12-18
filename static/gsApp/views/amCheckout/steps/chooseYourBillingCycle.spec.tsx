@@ -96,7 +96,7 @@ describe('ChooseYourBillingCycle', () => {
     ).toBeInTheDocument();
   }
 
-  function renderCheckout(isNewCheckout: boolean, referrer?: string) {
+  function renderCheckout(referrer?: string) {
     let location = LocationFixture();
     if (referrer) {
       location = LocationFixture({
@@ -109,9 +109,7 @@ describe('ChooseYourBillingCycle', () => {
       <AMCheckout
         {...RouteComponentPropsFixture()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
-        isNewCheckout={isNewCheckout}
         location={location}
         navigate={jest.fn()}
       />,
@@ -120,7 +118,7 @@ describe('ChooseYourBillingCycle', () => {
   }
 
   it('renders for upgrade from developer', async () => {
-    renderCheckout(true);
+    renderCheckout();
     await assertCycleText({
       // org is on monthly cycle, but is on developer plan, so upgrade should apply immediately and create a new period
       monthlyInfo: /Billed on the 13th of each month/,
@@ -135,7 +133,7 @@ describe('ChooseYourBillingCycle', () => {
       contractPeriodEnd: '2025-08-28',
     });
     SubscriptionStore.set(organization.slug, monthlySub);
-    renderCheckout(true);
+    renderCheckout();
     await assertCycleText({
       // org is on monthly cycle and is paid plan, so upgrade should apply immediately to the current period
       monthlyInfo: /Billed on the 29th of each month/,
@@ -151,7 +149,7 @@ describe('ChooseYourBillingCycle', () => {
       organization,
     });
     SubscriptionStore.set(organization.slug, annualSub);
-    renderCheckout(true);
+    renderCheckout();
     await assertCycleText({
       monthlyInfo: /Billed on the 16th of each month/,
       yearlyInfo: /Billed annually/,
@@ -175,7 +173,7 @@ describe('ChooseYourBillingCycle', () => {
       organization,
     });
     SubscriptionStore.set(organization.slug, partnerSub);
-    renderCheckout(true);
+    renderCheckout();
     await assertCycleText({
       monthlyInfo: /Billed monthly starting on your selected start date on submission/,
       yearlyInfo: /Billed annually from your selected start date on submission/,
@@ -183,7 +181,7 @@ describe('ChooseYourBillingCycle', () => {
   });
 
   it('can select billing cycle', async () => {
-    renderCheckout(true);
+    renderCheckout();
 
     const monthly = await screen.findByRole('radio', {name: 'Monthly billing cycle'});
     const annual = screen.getByRole('radio', {name: 'Yearly billing cycle'});

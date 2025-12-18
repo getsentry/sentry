@@ -283,11 +283,7 @@ export function SharedSpendLimitPriceTable({
           : 0;
         const tooltipText = getProductCheckoutDescription({
           product: apiName,
-          isNewCheckout: true,
           withPunctuation: true,
-          includedBudget: includedBudget
-            ? displayPrice({cents: includedBudget})
-            : undefined,
         });
 
         const dataCategories = addOnInfo.dataCategories;
@@ -524,11 +520,7 @@ function InnerSpendLimitSettings({
             const isLastInList = index === Object.keys(includedAddOns).length - 1;
             const tooltipText = getProductCheckoutDescription({
               product: apiName,
-              isNewCheckout: true,
               withPunctuation: true,
-              includedBudget: includedBudget
-                ? displayPrice({cents: includedBudget})
-                : undefined,
             });
 
             return (

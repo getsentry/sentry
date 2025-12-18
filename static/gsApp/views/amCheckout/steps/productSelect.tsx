@@ -29,32 +29,16 @@ import * as utils from 'getsentry/views/amCheckout/utils';
 
 export function getProductCheckoutDescription({
   product,
-  isNewCheckout,
   withPunctuation,
-  includedBudget,
 }: {
-  isNewCheckout: boolean;
   product: AddOnCategory;
   withPunctuation: boolean;
   includedBudget?: string;
 }) {
   if (product === AddOnCategory.LEGACY_SEER) {
-    if (isNewCheckout) {
-      return tct('Detect and fix issues faster with our AI agent[punctuation]', {
-        punctuation: withPunctuation ? '.' : '',
-      });
-    }
-    return tct(
-      'Detect and fix issues faster with [budgetText]our AI agent[punctuation]',
-      {
-        budgetText: includedBudget
-          ? tct('[includedBudget]/mo in credits towards ', {
-              includedBudget,
-            })
-          : '',
-        punctuation: withPunctuation ? '.' : '',
-      }
-    );
+    return tct('Detect and fix issues faster with our AI agent[punctuation]', {
+      punctuation: withPunctuation ? '.' : '',
+    });
   }
   return '';
 }

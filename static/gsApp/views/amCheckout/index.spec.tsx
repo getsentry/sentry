@@ -5,23 +5,15 @@ import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixt
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {
-  act,
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
-import type {Subscription as SubscriptionType} from 'getsentry/types';
 import {AddOnCategory, OnDemandBudgetMode, PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout';
 import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
 import {hasOnDemandBudgetsFeature} from 'getsentry/views/onDemandBudgets/utils';
 
-function assertCheckoutV3Steps(tier: PlanTier) {
+function assertCheckoutSteps(tier: PlanTier) {
   expect(screen.getByTestId('checkout-steps')).toBeInTheDocument();
   [
     'Select a plan',
@@ -34,649 +26,7 @@ function assertCheckoutV3Steps(tier: PlanTier) {
     expect(screen.getByText(step)).toBeInTheDocument();
   });
 }
-
-describe('AM1 Checkout', () => {
-  let mockResponse: any;
-  const api = new MockApiClient();
-  const organization = OrganizationFixture({features: []});
-  const subscription = SubscriptionFixture({organization});
-
-  beforeEach(() => {
-    SubscriptionStore.set(organization.slug, subscription);
-
-    MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: `/subscriptions/${organization.slug}/`,
-      method: 'GET',
-      body: {},
-    });
-    mockResponse = MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-config/`,
-      method: 'GET',
-      body: BillingConfigFixture(PlanTier.AM2),
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/promotions/trigger-check/`,
-      method: 'POST',
-      body: {},
-    });
-    MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/plan-migrations/?applied=0`,
-      method: 'GET',
-      body: {},
-    });
-  });
-
-  it('renders', async () => {
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        checkoutTier={PlanTier.AM1}
-        navigate={jest.fn()}
-        api={api}
-        onToggleLegacy={jest.fn()}
-      />,
-      {organization}
-    );
-
-    expect(
-      await screen.findByRole('heading', {name: 'Change Subscription'})
-    ).toBeInTheDocument();
-
-    expect(screen.getByTestId('checkout-steps')).toBeInTheDocument();
-    expect(screen.getByRole('radio', {name: 'Business'})).toBeInTheDocument();
-
-    await waitFor(() => {
-      expect(mockResponse).toHaveBeenCalledWith(
-        `/customers/${organization.slug}/billing-config/`,
-        expect.objectContaining({
-          method: 'GET',
-          data: {tier: 'am1'},
-        })
-      );
-    });
-  });
-
-  it('renders for checkout v3', async () => {
-    MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-details/`,
-      method: 'GET',
-    });
-    MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/subscription/preview/`,
-      method: 'GET',
-    });
-
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        checkoutTier={PlanTier.AM1}
-        navigate={jest.fn()}
-        api={api}
-        onToggleLegacy={jest.fn()}
-        isNewCheckout
-      />,
-      {organization}
-    );
-
-    await waitFor(() => {
-      expect(mockResponse).toHaveBeenCalledWith(
-        `/customers/${organization.slug}/billing-config/`,
-        expect.objectContaining({
-          method: 'GET',
-          data: {tier: 'am1'},
-        })
-      );
-    });
-
-    assertCheckoutV3Steps(PlanTier.AM1);
-  });
-
-  it('can skip to step and continue', async () => {
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        onToggleLegacy={jest.fn()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM1}
-      />,
-      {organization}
-    );
-
-    expect(
-      await screen.findByRole('heading', {name: 'Change Subscription'})
-    ).toBeInTheDocument();
-
-    await userEvent.click(screen.getByText('Reserved Volumes'));
-    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
-
-    // Both steps are complete
-    expect(
-      within(screen.getByTestId('header-choose-your-plan')).getByTestId('icon-check-mark')
-    ).toBeInTheDocument();
-
-    expect(
-      within(screen.getByTestId('header-reserved-volumes')).getByTestId('icon-check-mark')
-    ).toBeInTheDocument();
-  });
-
-  it('renders cancel subscription button', async () => {
-    const sub: SubscriptionType = {...subscription, canCancel: true};
-    SubscriptionStore.set(organization.slug, sub);
-
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        onToggleLegacy={jest.fn()}
-        checkoutTier={sub.planTier as PlanTier}
-      />,
-      {organization}
-    );
-
-    expect(
-      await screen.findByRole('heading', {name: 'Change Subscription'})
-    ).toBeInTheDocument();
-
-    expect(screen.getByRole('button', {name: 'Cancel Subscription'})).toBeInTheDocument();
-  });
-
-  it('renders pending cancellation button', async () => {
-    const sub: SubscriptionType = {
-      ...subscription,
-      canCancel: true,
-      cancelAtPeriodEnd: true,
-    };
-    SubscriptionStore.set(organization.slug, sub);
-
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        onToggleLegacy={jest.fn()}
-        checkoutTier={sub.planTier as PlanTier}
-      />,
-      {organization}
-    );
-
-    expect(
-      await screen.findByRole('heading', {name: 'Change Subscription'})
-    ).toBeInTheDocument();
-
-    expect(await screen.findByText('Pending Cancellation')).toBeInTheDocument();
-  });
-
-  it('does not renders cancel subscription button if cannot cancel', async () => {
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        onToggleLegacy={jest.fn()}
-        checkoutTier={subscription.planTier as PlanTier}
-      />,
-      {organization}
-    );
-
-    expect(
-      await screen.findByRole('heading', {name: 'Change Subscription'})
-    ).toBeInTheDocument();
-
-    expect(
-      screen.queryByRole('button', {name: 'Cancel Subscription'})
-    ).not.toBeInTheDocument();
-  });
-
-  it('renders annual terms for annual plan', async () => {
-    const sub: SubscriptionType = {
-      ...subscription,
-      plan: 'am1_team_auf',
-      contractInterval: 'annual',
-      billingInterval: 'annual',
-    };
-
-    SubscriptionStore.set(organization.slug, sub);
-
-    const {container} = render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        onToggleLegacy={jest.fn()}
-        checkoutTier={sub.planTier as PlanTier}
-      />,
-      {organization}
-    );
-
-    expect(
-      await screen.findByRole('heading', {name: 'Change Subscription'})
-    ).toBeInTheDocument();
-
-    expect(container).toHaveTextContent(
-      'Annual subscriptions require a one-year non-cancellable commitment'
-    );
-  });
-
-  it('does not render annual terms for monthly plan', async () => {
-    const sub = {...subscription};
-    SubscriptionStore.set(organization.slug, sub);
-
-    const {container} = render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        onToggleLegacy={jest.fn()}
-        checkoutTier={sub.planTier as PlanTier}
-      />,
-      {organization}
-    );
-
-    expect(
-      await screen.findByRole('heading', {name: 'Change Subscription'})
-    ).toBeInTheDocument();
-
-    expect(container).not.toHaveTextContent(
-      'Annual subscriptions require a one-year non-cancellable commitment'
-    );
-  });
-
-  it('renders default plan data', async () => {
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        onToggleLegacy={jest.fn()}
-        checkoutTier={subscription.planTier as PlanTier}
-      />,
-      {organization}
-    );
-
-    expect(
-      await screen.findByRole('heading', {name: 'Change Subscription'})
-    ).toBeInTheDocument();
-
-    expect(screen.getByRole('radio', {name: 'Business'})).toBeChecked();
-
-    await userEvent.click(screen.getByText('Reserved Volumes'));
-
-    // TODO: Can better write this once we have
-    // https://github.com/testing-library/jest-dom/issues/478
-    expect(screen.getByRole('slider', {name: 'Errors'})).toHaveAttribute(
-      'aria-valuetext',
-      '50000'
-    );
-    expect(screen.getByRole('slider', {name: 'Performance units'})).toHaveAttribute(
-      'aria-valuetext',
-      '100000'
-    );
-    expect(screen.getByRole('slider', {name: 'Replays'})).toHaveAttribute(
-      'aria-valuetext',
-      '500'
-    );
-    expect(screen.getByRole('slider', {name: 'Attachments'})).toHaveAttribute(
-      'aria-valuetext',
-      '1'
-    );
-
-    await userEvent.click(screen.getByText('On-Demand Max Spend'));
-    expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('');
-  });
-
-  it('prefills with am1 team subscription data', async () => {
-    const sub: SubscriptionType = SubscriptionFixture({
-      organization,
-      plan: 'am1_business',
-      planTier: 'am1',
-      categories: {
-        errors: MetricHistoryFixture({reserved: 200000}),
-        transactions: MetricHistoryFixture({reserved: 250000}),
-        replays: MetricHistoryFixture({reserved: 10_000}),
-        attachments: MetricHistoryFixture({reserved: 25}),
-        monitorSeats: MetricHistoryFixture({reserved: 1}),
-      },
-      onDemandMaxSpend: 10000,
-    });
-
-    SubscriptionStore.set(organization.slug, sub);
-
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        onToggleLegacy={jest.fn()}
-        checkoutTier={PlanTier.AM2}
-      />,
-      {
-        organization,
-      }
-    );
-
-    expect(
-      await screen.findByRole('heading', {name: 'Change Subscription'})
-    ).toBeInTheDocument();
-
-    expect(screen.getByRole('radio', {name: 'Business'})).toBeChecked();
-
-    await userEvent.click(screen.getByText('Reserved Volumes'));
-
-    // TODO: Can better write this once we have
-    // https://github.com/testing-library/jest-dom/issues/478
-    expect(screen.getByRole('slider', {name: 'Errors'})).toHaveAttribute(
-      'aria-valuetext',
-      '200000'
-    );
-    expect(screen.getByRole('slider', {name: 'Performance units'})).toHaveAttribute(
-      'aria-valuetext',
-      '250000'
-    );
-    expect(screen.getByRole('slider', {name: 'Replays'})).toHaveAttribute(
-      'aria-valuetext',
-      '10000'
-    );
-    expect(screen.getByRole('slider', {name: 'Attachments'})).toHaveAttribute(
-      'aria-valuetext',
-      '25'
-    );
-
-    await userEvent.click(screen.getByText('On-Demand Max Spend'));
-    expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('100');
-  });
-
-  it('prefills with am1 business subscription data', async () => {
-    const sub = SubscriptionFixture({
-      organization,
-      plan: 'am1_business',
-      planTier: 'am1',
-      categories: {
-        errors: MetricHistoryFixture({reserved: 50000}),
-        transactions: MetricHistoryFixture({reserved: 250000}),
-        replays: MetricHistoryFixture({reserved: 500}),
-        attachments: MetricHistoryFixture({reserved: 50}),
-        monitorSeats: MetricHistoryFixture({reserved: 1}),
-      },
-      onDemandMaxSpend: 10000,
-    });
-
-    SubscriptionStore.set(organization.slug, sub);
-
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        onToggleLegacy={jest.fn()}
-        checkoutTier={PlanTier.AM2}
-      />,
-      {
-        organization,
-      }
-    );
-
-    expect(
-      await screen.findByRole('heading', {name: 'Change Subscription'})
-    ).toBeInTheDocument();
-
-    expect(screen.getByRole('radio', {name: 'Business'})).toBeChecked();
-
-    await userEvent.click(screen.getByText('Reserved Volumes'));
-
-    // TODO: Can better write this once we have
-    // https://github.com/testing-library/jest-dom/issues/478
-    expect(screen.getByRole('slider', {name: 'Errors'})).toHaveAttribute(
-      'aria-valuetext',
-      '50000'
-    );
-    expect(screen.getByRole('slider', {name: 'Performance units'})).toHaveAttribute(
-      'aria-valuetext',
-      '250000'
-    );
-    expect(screen.getByRole('slider', {name: 'Replays'})).toHaveAttribute(
-      'aria-valuetext',
-      '500'
-    );
-    expect(screen.getByRole('slider', {name: 'Attachments'})).toHaveAttribute(
-      'aria-valuetext',
-      '50'
-    );
-
-    await userEvent.click(screen.getByText('On-Demand Max Spend'));
-    expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('100');
-  });
-
-  it('prefills with mm2 team subscription data', async () => {
-    const sub = SubscriptionFixture({
-      organization,
-      plan: 'mm2_b_100k',
-      planTier: 'mm2',
-      categories: {errors: MetricHistoryFixture({reserved: 100000})},
-      onDemandMaxSpend: 2000,
-    });
-
-    SubscriptionStore.set(organization.slug, sub);
-
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        onToggleLegacy={jest.fn()}
-        checkoutTier={sub.planTier as PlanTier}
-      />,
-      {
-        organization,
-      }
-    );
-
-    expect(
-      await screen.findByRole('heading', {name: 'Change Subscription'})
-    ).toBeInTheDocument();
-
-    expect(screen.getByRole('radio', {name: 'Business'})).toBeChecked();
-
-    await userEvent.click(screen.getByText('Reserved Volumes'));
-
-    // TODO: Can better write this once we have
-    // https://github.com/testing-library/jest-dom/issues/478
-    expect(screen.getByRole('slider', {name: 'Errors'})).toHaveAttribute(
-      'aria-valuetext',
-      '100000'
-    );
-    expect(screen.getByRole('slider', {name: 'Performance units'})).toHaveAttribute(
-      'aria-valuetext',
-      '100000'
-    );
-    expect(screen.getByRole('slider', {name: 'Attachments'})).toHaveAttribute(
-      'aria-valuetext',
-      '1'
-    );
-
-    await userEvent.click(screen.getByText('On-Demand Max Spend'));
-    expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('20');
-  });
-
-  it('prefills with mm2 biz subscription data', async () => {
-    const sub = SubscriptionFixture({
-      organization,
-      plan: 'mm2_a_100k',
-      planTier: 'mm2',
-      categories: {errors: MetricHistoryFixture({reserved: 100_000})},
-      onDemandMaxSpend: 2000,
-    });
-
-    SubscriptionStore.set(organization.slug, sub);
-
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        onToggleLegacy={jest.fn()}
-        checkoutTier={PlanTier.AM2}
-      />
-    );
-
-    expect(
-      await screen.findByRole('heading', {name: 'Change Subscription'})
-    ).toBeInTheDocument();
-
-    expect(screen.getByRole('radio', {name: 'Business'})).toBeChecked();
-
-    await userEvent.click(screen.getByText('Reserved Volumes'));
-
-    // TODO: Can better write this once we have
-    // https://github.com/testing-library/jest-dom/issues/478
-    expect(screen.getByRole('slider', {name: 'Errors'})).toHaveAttribute(
-      'aria-valuetext',
-      '100000'
-    );
-    expect(screen.getByRole('slider', {name: 'Performance units'})).toHaveAttribute(
-      'aria-valuetext',
-      '100000'
-    );
-    expect(screen.getByRole('slider', {name: 'Attachments'})).toHaveAttribute(
-      'aria-valuetext',
-      '1'
-    );
-
-    await userEvent.click(screen.getByText('On-Demand Max Spend'));
-    expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('20');
-  });
-
-  it('prefills with s1 subscription data', async () => {
-    const sub = SubscriptionFixture({
-      organization,
-      plan: 's1',
-      planTier: 'mm1',
-      categories: {errors: MetricHistoryFixture({reserved: 100000})},
-      onDemandMaxSpend: 2000,
-    });
-
-    SubscriptionStore.set(organization.slug, sub);
-
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        onToggleLegacy={jest.fn()}
-        checkoutTier={sub.planTier as PlanTier}
-      />,
-      {
-        organization,
-      }
-    );
-
-    expect(
-      await screen.findByRole('heading', {name: 'Change Subscription'})
-    ).toBeInTheDocument();
-
-    expect(screen.getByRole('radio', {name: 'Business'})).toBeChecked();
-
-    await userEvent.click(screen.getByText('Reserved Volumes'));
-
-    // TODO: Can better write this once we have
-    // https://github.com/testing-library/jest-dom/issues/478
-    expect(screen.getByRole('slider', {name: 'Errors'})).toHaveAttribute(
-      'aria-valuetext',
-      '100000'
-    );
-    expect(screen.getByRole('slider', {name: 'Performance units'})).toHaveAttribute(
-      'aria-valuetext',
-      '100000'
-    );
-    expect(screen.getByRole('slider', {name: 'Attachments'})).toHaveAttribute(
-      'aria-valuetext',
-      '1'
-    );
-
-    await userEvent.click(screen.getByText('On-Demand Max Spend'));
-    expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('20');
-  });
-
-  it('prefills with l1 subscription data', async () => {
-    const sub = SubscriptionFixture({
-      organization,
-      plan: 'l1',
-      planTier: 'mm1',
-      categories: {errors: MetricHistoryFixture({reserved: 100000})},
-      onDemandMaxSpend: 2000,
-    });
-
-    SubscriptionStore.set(organization.slug, sub);
-
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        onToggleLegacy={jest.fn()}
-        checkoutTier={sub.planTier as PlanTier}
-      />,
-      {
-        organization,
-      }
-    );
-
-    expect(
-      await screen.findByRole('heading', {name: 'Change Subscription'})
-    ).toBeInTheDocument();
-
-    expect(screen.getByRole('radio', {name: 'Business'})).toBeChecked();
-
-    await userEvent.click(screen.getByText('Reserved Volumes'));
-
-    // TODO: Can better write this once we have
-    // https://github.com/testing-library/jest-dom/issues/478
-    expect(screen.getByRole('slider', {name: 'Errors'})).toHaveAttribute(
-      'aria-valuetext',
-      '100000'
-    );
-    expect(screen.getByRole('slider', {name: 'Performance units'})).toHaveAttribute(
-      'aria-valuetext',
-      '100000'
-    );
-    expect(screen.getByRole('slider', {name: 'Attachments'})).toHaveAttribute(
-      'aria-valuetext',
-      '1'
-    );
-
-    await userEvent.click(screen.getByText('On-Demand Max Spend'));
-    expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('20');
-  });
-
-  it('handles subscription with unlimited ondemand', async () => {
-    const sub = {...subscription, onDemandMaxSpend: -1};
-    SubscriptionStore.set(organization.slug, sub);
-
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        onToggleLegacy={jest.fn()}
-        checkoutTier={PlanTier.AM2}
-      />,
-      {
-        organization,
-      }
-    );
-
-    expect(
-      await screen.findByRole('heading', {name: 'Change Subscription'})
-    ).toBeInTheDocument();
-
-    await userEvent.click(screen.getByText('On-Demand Max Spend'));
-    expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('');
-  });
-});
-
-describe('AM2 Checkout', () => {
+describe('Legacy Tier Checkout', () => {
   let mockResponse: any;
 
   const api = new MockApiClient();
@@ -717,15 +67,13 @@ describe('AM2 Checkout', () => {
     });
   });
 
-  it('renders for checkout v3', async () => {
+  it('renders', async () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
         checkoutTier={PlanTier.AM2}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
-        isNewCheckout
       />,
       {organization}
     );
@@ -740,7 +88,7 @@ describe('AM2 Checkout', () => {
       );
     });
 
-    assertCheckoutV3Steps(PlanTier.AM2);
+    assertCheckoutSteps(PlanTier.AM2);
   });
 
   it('renders for am1 team plan', async () => {
@@ -752,7 +100,6 @@ describe('AM2 Checkout', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
       />,
       {organization}
@@ -786,7 +133,6 @@ describe('AM2 Checkout', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
       />,
       {organization}
@@ -833,7 +179,6 @@ describe('AM2 Checkout', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
       />,
       {organization}
@@ -892,7 +237,6 @@ describe('AM2 Checkout', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
       />,
       {organization}
@@ -951,7 +295,6 @@ describe('AM2 Checkout', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
       />,
       {organization}
@@ -1025,7 +368,6 @@ describe('AM2 Checkout', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
       />,
       {organization}
@@ -1067,7 +409,6 @@ describe('AM2 Checkout', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
       />,
       {organization: launchOrg}
@@ -1092,7 +433,6 @@ describe('AM2 Checkout', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
       />,
       {organization: nonSeerOrg}
@@ -1124,9 +464,7 @@ describe('AM2 Checkout', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
-        isNewCheckout
       />,
       {organization}
     );
@@ -1141,7 +479,7 @@ describe('AM2 Checkout', () => {
       );
     });
 
-    assertCheckoutV3Steps(PlanTier.AM2);
+    assertCheckoutSteps(PlanTier.AM2);
 
     // Verify that Business is preselected
     expect(screen.getByRole('radio', {name: 'Business'})).toBeChecked();
@@ -1185,7 +523,6 @@ describe('AM2 Checkout', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
       />,
       {organization}
@@ -1257,7 +594,6 @@ describe('AM2 Checkout', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
       />,
       {organization}
@@ -1332,7 +668,6 @@ describe('AM2 Checkout', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
       />,
       {organization}
@@ -1406,7 +741,7 @@ describe('AM3 Checkout', () => {
     });
   });
 
-  it('renders for checkout v3', async () => {
+  it('renders', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
@@ -1427,8 +762,6 @@ describe('AM3 Checkout', () => {
         checkoutTier={PlanTier.AM3}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
-        isNewCheckout
       />,
       {organization}
     );
@@ -1443,7 +776,7 @@ describe('AM3 Checkout', () => {
       );
     });
 
-    assertCheckoutV3Steps(PlanTier.AM3);
+    assertCheckoutSteps(PlanTier.AM3);
   });
 
   it('renders for new customers (AM3 free plan)', async () => {
@@ -1464,7 +797,6 @@ describe('AM3 Checkout', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
       />,
       {organization}
@@ -1513,7 +845,6 @@ describe('AM3 Checkout', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
       />,
       {organization}
@@ -1570,7 +901,6 @@ describe('AM3 Checkout', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
       />,
       {organization}
@@ -1627,7 +957,6 @@ describe('AM3 Checkout', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
       />,
       {organization}
@@ -1671,7 +1000,6 @@ describe('AM3 Checkout', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
       />,
       {organization}
@@ -1711,7 +1039,6 @@ describe('AM3 Checkout', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
       />,
       {organization}
@@ -1748,7 +1075,6 @@ describe('AM3 Checkout', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM1}
       />,
       {organization}
@@ -1816,7 +1142,6 @@ describe('AM3 Checkout', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
       />,
       {organization}
@@ -1906,7 +1231,6 @@ describe('AM3 Checkout', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
       />,
       {organization}
@@ -1965,7 +1289,6 @@ describe('AM3 Checkout', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
       />,
       {organization}
@@ -2048,7 +1371,6 @@ describe('AM3 Checkout', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
       />,
       {organization}
@@ -2158,7 +1480,6 @@ describe('AM3 Checkout', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
       />,
       {organization}

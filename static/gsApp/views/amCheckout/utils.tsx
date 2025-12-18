@@ -864,12 +864,10 @@ export function getToggleTier(checkoutTier: PlanTier | undefined) {
   return SUPPORTED_TIERS[tierIndex + 1];
 }
 
-export function getContentForPlan(plan: Plan, isNewCheckout?: boolean): PlanContent {
+export function getContentForPlan(plan: Plan): PlanContent {
   if (isBizPlanFamily(plan)) {
     return {
-      description: isNewCheckout
-        ? t('For teams that need more powerful debugging')
-        : t('Everything in the Team plan + deeper insight into your application health.'),
+      description: t('For teams that need more powerful debugging'),
       features: {
         discover: t('Advanced analytics with Discover'),
         enhanced_priority_alerts: t('Enhanced issue priority and alerting'),
@@ -886,9 +884,7 @@ export function getContentForPlan(plan: Plan, isNewCheckout?: boolean): PlanCont
 
   if (isTeamPlanFamily(plan)) {
     return {
-      description: isNewCheckout
-        ? t('Everything to monitor your application as it scales')
-        : t('Resolve errors and track application performance as a team.'),
+      description: t('Everything to monitor your application as it scales'),
       features: {
         unlimited_members: t('Unlimited members'),
         integrations: t('Third-party integrations'),
@@ -897,7 +893,7 @@ export function getContentForPlan(plan: Plan, isNewCheckout?: boolean): PlanCont
     };
   }
 
-  // TODO(checkout v3): update copy
+  // TODO(billing): update copy when Developer is available in checkout
   return {
     description: t('For solo devs working on small projects'),
     features: {
@@ -934,11 +930,6 @@ export function reservedInvoiceItemTypeToAddOn(
     default:
       return null;
   }
-}
-
-// TODO(isabella): clean this up after GA
-export function hasNewCheckout(organization: Organization) {
-  return organization.features.includes('checkout-v3');
 }
 
 /**
