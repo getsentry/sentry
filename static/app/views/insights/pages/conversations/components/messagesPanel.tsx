@@ -2,8 +2,8 @@ import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ClippedBox from 'sentry/components/clippedBox';
-import {Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
+import {Container, Flex, Stack} from 'sentry/components/core/layout';
+import {Heading, Text} from 'sentry/components/core/text';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {IconUser} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
@@ -156,17 +156,23 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
 
   if (messages.length === 0) {
     return (
-      <MessagesPanelContainer>
-        <PanelHeader>{t('Messages')}</PanelHeader>
+      <PanelContainer direction="column">
+        <Container padding="md xl">
+          <Heading as="h6">{t('Messages')}</Heading>
+        </Container>
         <EmptyMessage>{t('No messages found')}</EmptyMessage>
-      </MessagesPanelContainer>
+      </PanelContainer>
     );
   }
 
   return (
-    <MessagesPanelContainer>
-      <PanelHeader>{t('Messages')}</PanelHeader>
-      <MessagesListContainer>
+    <PanelContainer direction="column">
+      <Container padding="md xl">
+        <Heading as="h6" size="xl">
+          {t('Messages')}
+        </Heading>
+      </Container>
+      <ScrollableContent direction="column" padding="md">
         <Stack gap="md">
           {messages.map((message, index) => {
             const isSelected = message.id === effectiveSelectedMessageId;
@@ -178,7 +184,12 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
                 isSelected={isSelected}
                 onClick={() => handleMessageClick(message)}
               >
-                <MessageHeader role={message.role}>
+                <MessageHeader
+                  align="center"
+                  gap="sm"
+                  padding="sm md"
+                  justify={message.role === 'assistant' ? 'end' : 'start'}
+                >
                   {message.role === 'user' ? (
                     <IconUser size="sm" />
                   ) : (
@@ -192,42 +203,42 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
                   clipHeight={200}
                   buttonProps={{priority: 'default', size: 'xs'}}
                 >
-                  <MessageContent>
-                    <MarkedText
-                      as={TraceDrawerComponents.MarkdownContainer}
-                      text={message.content}
-                    />
-                  </MessageContent>
+                  <Container padding="sm">
+                    <MessageText size="sm">
+                      <MarkedText
+                        as={TraceDrawerComponents.MarkdownContainer}
+                        text={message.content}
+                      />
+                    </MessageText>
+                  </Container>
                 </StyledClippedBox>
               </MessageBubble>
             );
           })}
         </Stack>
-      </MessagesListContainer>
-    </MessagesPanelContainer>
+      </ScrollableContent>
+    </PanelContainer>
   );
 }
 
-const MessagesPanelContainer = styled('div')`
+const PanelContainer = styled(Flex)`
   border-right: 1px solid ${p => p.theme.border};
-  display: flex;
-  flex-direction: column;
   overflow: hidden;
 `;
 
-const PanelHeader = styled('h6')`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: bold;
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  margin: 0;
-  flex-shrink: 0;
-`;
-
-const MessagesListContainer = styled('div')`
+const ScrollableContent = styled(Flex)`
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: ${p => p.theme.space.md};
+`;
+
+const MessageHeader = styled(Flex)`
+  background-color: ${p => p.theme.backgroundSecondary};
+  border-bottom: 1px solid ${p => p.theme.border};
+`;
+
+const MessageText = styled(Text)`
+  word-break: break-word;
 `;
 
 const MessageBubble = styled('div')<{
@@ -255,22 +266,6 @@ const MessageBubble = styled('div')<{
   `}
 `;
 
-const MessageHeader = styled('div')<{role: 'user' | 'assistant'}>`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.sm};
-  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
-  background-color: ${p => p.theme.backgroundSecondary};
-  border-bottom: 1px solid ${p => p.theme.border};
-  justify-content: ${p => (p.role === 'assistant' ? 'flex-end' : 'flex-start')};
-`;
-
 const StyledClippedBox = styled(ClippedBox)`
   padding: 0;
-`;
-
-const MessageContent = styled('div')`
-  padding: ${p => p.theme.space.sm};
-  font-size: ${p => p.theme.fontSize.sm};
-  word-break: break-word;
 `;
