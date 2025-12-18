@@ -7,6 +7,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
+import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
@@ -223,6 +224,66 @@ describe('FieldRenderer tests', () => {
         {organization: organizationWithOtelFlag}
       );
       expect(screen.getByTestId('platform-icon-javascript')).toBeInTheDocument();
+    });
+  });
+
+  describe('customer domain API links', () => {
+    const originalCustomerDomain = ConfigStore.get('customerDomain');
+
+    afterEach(() => {
+      ConfigStore.set('customerDomain', originalCustomerDomain ?? null);
+    });
+
+    it('rewrites organization domain API urls to sentry domain', () => {
+      ConfigStore.set('customerDomain', {
+        organizationUrl: 'https://test-org.sentry.io',
+        sentryUrl: 'https://us.sentry.io',
+        subdomain: 'test-org',
+      });
+
+      render(
+        <Wrapper>
+          <FieldRenderer
+            column={eventView.getColumns()[5]}
+            data={{
+              ...mockedEventData,
+              'span.description': 'https://test-org.sentry.io/api/v4/request',
+            }}
+            meta={{}}
+          />
+        </Wrapper>,
+        {organization}
+      );
+
+      expect(
+        screen.getByRole('link', {name: 'https://test-org.sentry.io/api/v4/request'})
+      ).toHaveAttribute('href', 'https://us.sentry.io/api/v4/request');
+    });
+
+    it('keeps non-api organization urls unchanged', () => {
+      ConfigStore.set('customerDomain', {
+        organizationUrl: 'https://test-org.sentry.io',
+        sentryUrl: 'https://us.sentry.io',
+        subdomain: 'test-org',
+      });
+
+      render(
+        <Wrapper>
+          <FieldRenderer
+            column={eventView.getColumns()[5]}
+            data={{
+              ...mockedEventData,
+              'span.description': 'https://test-org.sentry.io/issues/123/',
+            }}
+            meta={{}}
+          />
+        </Wrapper>,
+        {organization}
+      );
+
+      expect(
+        screen.getByRole('link', {name: 'https://test-org.sentry.io/issues/123/'})
+      ).toHaveAttribute('href', 'https://test-org.sentry.io/issues/123/');
     });
   });
 });

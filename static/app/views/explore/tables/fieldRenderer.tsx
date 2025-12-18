@@ -16,6 +16,7 @@ import {getFieldRenderer, nullableValue} from 'sentry/utils/discover/fieldRender
 import {Container} from 'sentry/utils/discover/styles';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
+import ConfigStore from 'sentry/stores/configStore';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -261,7 +262,7 @@ function spanDescriptionRenderFunc(field: string, projects: Record<string, Proje
             )}
             <WrappingText>
               {isValidUrl(value) ? (
-                <ExternalLink href={value}>{value}</ExternalLink>
+                <ExternalLink href={rewriteCustomerDomainApiUrl(value)}>{value}</ExternalLink>
               ) : (
                 nullableValue(value)
               )}
@@ -272,6 +273,31 @@ function spanDescriptionRenderFunc(field: string, projects: Record<string, Proje
     );
   }
   return renderer;
+}
+
+function rewriteCustomerDomainApiUrl(value: string): string {
+  const customerDomain = ConfigStore.get('customerDomain');
+  if (!customerDomain?.organizationUrl) {
+    return value;
+  }
+
+  try {
+    const url = new URL(value);
+    const organizationUrl = new URL(customerDomain.organizationUrl);
+
+    if (
+      url.host === organizationUrl.host &&
+      url.pathname.startsWith('/api/') &&
+      customerDomain.sentryUrl
+    ) {
+      const sentryOrigin = new URL(customerDomain.sentryUrl).origin;
+      return `${sentryOrigin}${url.pathname}${url.search}${url.hash}`;
+    }
+  } catch {
+    // If parsing fails, fall back to original value
+  }
+
+  return value;
 }
 
 const StyledTimeSince = styled(TimeSince)`
