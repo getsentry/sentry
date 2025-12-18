@@ -708,7 +708,6 @@ class PullRequestEventWebhook(GitHubWebhook):
         number = pull_request["number"]
         title = pull_request["title"]
         body = pull_request["body"]
-        author_association = pull_request["author_association"]
         user = pull_request["user"]
         user_type = user.get("type")
         action = event["action"]
@@ -783,12 +782,19 @@ class PullRequestEventWebhook(GitHubWebhook):
             )
 
             if created:
+
+                try:
+                    pr_repo_private = pull_request["head"]["repo"]["private"]
+                except (KeyError, AttributeError, TypeError):
+                    pr_repo_private = False
+
                 metrics.incr(
                     "github.webhook.pull_request.created",
                     sample_rate=1.0,
                     tags={
                         "organization_id": organization.id,
                         "repository_id": repo.id,
+                        "is_private": pr_repo_private,
                     },
                 )
 
@@ -800,7 +806,6 @@ class PullRequestEventWebhook(GitHubWebhook):
                         "pr_number": number,
                         "user_login": user["login"],
                         "user_type": user_type,
-                        "author_association": author_association,
                         "is_eligible": is_contributor_eligible_for_seat_assignment(user_type),
                     },
                 )
