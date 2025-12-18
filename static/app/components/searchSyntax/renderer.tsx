@@ -358,7 +358,7 @@ const Operator = styled('span')`
   border-left: none;
   border-right: none;
   margin: -1px 0;
-  color: ${p => p.theme.pink400};
+  color: ${p => p.theme.colors.pink500};
 `;
 
 const Value = styled('span')`
@@ -391,7 +391,7 @@ const LogicBoolean = styled('span')<{invalid: boolean}>`
 `;
 
 const Boolean = styled('span')`
-  color: ${p => p.theme.pink400};
+  color: ${p => p.theme.colors.pink500};
 `;
 
 const DateTime = styled('span')`
@@ -438,7 +438,7 @@ const LogicGroup = styled(({children, ...props}: any) => (
     &:before {
       position: absolute;
       top: -5px;
-      color: ${p => p.theme.pink400};
+      color: ${p => p.theme.colors.pink500};
       font-size: 16px;
       font-weight: ${p => p.theme.fontWeight.bold};
     }
