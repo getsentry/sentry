@@ -36,7 +36,7 @@ import {
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceItemAttributesWithConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
+import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
 import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -86,13 +86,13 @@ function TraceMetricsSearchBar({
     useTraceItemAttributesWithConfig(
       traceItemAttributeConfig,
       'string',
-      HiddenTraceMetricGroupByFields
+      HiddenTraceMetricSearchFields
     );
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceItemAttributesWithConfig(
       traceItemAttributeConfig,
       'number',
-      HiddenTraceMetricGroupByFields
+      HiddenTraceMetricSearchFields
     );
 
   return (
