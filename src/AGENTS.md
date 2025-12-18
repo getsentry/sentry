@@ -297,37 +297,6 @@ analytics.record(
 )
 ```
 
-### DateTime and Timezone Handling
-
-**CRITICAL**: All datetime objects in Sentry MUST be timezone-aware and use UTC.
-
-```python
-# CORRECT: Always use UTC explicitly
-from datetime import UTC, datetime
-
-now = datetime.now(UTC)
-specific_time = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
-
-# CORRECT: Use Django's timezone utilities
-from django.utils import timezone
-
-now = timezone.now()  # Returns aware datetime in UTC
-
-# WRONG: Never create naive datetimes
-now = datetime.now()  # NO! Creates timezone-naive datetime
-specific_time = datetime(2024, 1, 1, 12, 0, 0)  # NO! Missing tzinfo
-```
-
-**Why This Matters:**
-
-- Sentry is a distributed system serving users worldwide
-- Database is configured with `TIME_ZONE = "UTC"`
-- Naive datetimes cause subtle bugs in timezone conversions
-- Django's `USE_TZ = True` requires timezone-aware datetimes
-
-**Pre-commit Hook Enforcement:**
-The pre-commit hook checks for `datetime.now()` without UTC. If you need to use local timezone (rare), document why with a comment explaining the business requirement.
-
 ### Arroyo Stream Processing
 
 ```python

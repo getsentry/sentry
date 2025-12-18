@@ -85,22 +85,6 @@ For example, a diff that uses `pytest` instead of `unittest` would look like:
 +            EffectiveGrantStatus.from_cache(None)
 ```
 
-## Testing with Time
-
-**CRITICAL**: All datetime objects in Sentry MUST be timezone-aware and use UTC.
-
-```python
-from sentry.testutils.helpers.datetime import before_now, freeze_time
-
-# Get a datetime relative to now
-past_time = before_now(days=7)  # 7 days ago in UTC
-
-# Freeze time for testing
-@freeze_time("2024-01-01 12:00:00")
-def test_something():
-    assert datetime.now(UTC).year == 2024
-```
-
 ## File Location Map
 
 ### Tests
