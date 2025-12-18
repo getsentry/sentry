@@ -326,7 +326,7 @@ const PanelDragHandle = styled('div')`
 
   &:hover::after,
   &.is-held:after {
-    background: ${p => p.theme.purple300};
+    background: ${p => p.theme.colors.blue400};
   }
 `;
 
@@ -346,7 +346,8 @@ const StyledList = styled(List as any)<SharedListProps>`
 
 export const BreadcrumbRow = styled('div')<{error: boolean}>`
   :not(:last-child) {
-    border-bottom: 1px solid ${p => (p.error ? p.theme.red300 : p.theme.innerBorder)};
+    border-bottom: 1px solid
+      ${p => (p.error ? p.theme.colors.red400 : p.theme.innerBorder)};
   }
 
   :after {
@@ -356,6 +357,6 @@ export const BreadcrumbRow = styled('div')<{error: boolean}>`
     left: 0;
     height: 1px;
     width: 100%;
-    background-color: ${p => (p.error ? p.theme.red300 : 'transparent')};
+    background-color: ${p => (p.error ? p.theme.colors.red400 : 'transparent')};
   }
 `;

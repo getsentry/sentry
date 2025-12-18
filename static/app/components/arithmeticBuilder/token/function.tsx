@@ -731,8 +731,8 @@ const FunctionWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
   ${p =>
     p.state === 'invalid'
       ? css`
-          border-color: ${p.theme.red200};
-          background-color: ${p.theme.red100};
+          border-color: ${p.theme.colors.red200};
+          background-color: ${p.theme.colors.red100};
         `
       : p.state === 'warning'
         ? css`
@@ -779,7 +779,7 @@ const BaseGridCell = styled('div')`
 `;
 
 const FunctionGridCell = styled(BaseGridCell)`
-  color: ${p => p.theme.green400};
+  color: ${p => p.theme.colors.green500};
   padding-left: ${p => p.theme.space.xs};
 `;
 

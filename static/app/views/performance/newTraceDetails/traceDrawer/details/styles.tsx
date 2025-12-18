@@ -785,7 +785,7 @@ const TableValueRow = styled('div')`
   gap: ${space(1)};
 
   border-radius: 4px;
-  background-color: ${p => p.theme.surface200};
+  background-color: ${p => p.theme.colors.surface300};
   margin: 2px;
 `;
 
@@ -1439,4 +1439,5 @@ export const TraceDrawerComponents = {
   MultilineText,
   MultilineJSON,
   MultilineTextLabel,
+  MarkdownContainer,
 };

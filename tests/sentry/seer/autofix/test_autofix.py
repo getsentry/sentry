@@ -19,7 +19,6 @@ from sentry.seer.autofix.autofix import (
     onboarding_seer_settings_update,
     trigger_autofix,
 )
-from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree
 from sentry.seer.models import SeerRepoDefinition
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
@@ -1476,64 +1475,22 @@ class TestGetLogsForEvent(TestCase):
 
 @pytest.mark.django_db
 class TestOnboardingSeerSettingsUpdate(TestCase):
-    def test_rca_disabled_sets_automation_tuning_off(self) -> None:
-        """Tests that when RCA is disabled, automation tuning is set to OFF for org."""
+    def test_does_not_set_org_options_when_rca_enabled(self) -> None:
+        """Tests that org options are not set"""
         organization = self.create_organization()
+
+        assert organization.get_option("sentry:default_autofix_automation_tuning") is None
 
         onboarding_seer_settings_update(
             organization_id=organization.id,
-            is_rca_enabled=False,
+            is_rca_enabled=True,
             is_auto_open_prs_enabled=False,
             project_repo_dict={},
         )
 
         # Verify org-level option is set to OFF
         organization.refresh_from_db()
-        assert (
-            organization.get_option("sentry:default_autofix_automation_tuning")
-            == AutofixAutomationTuningSettings.OFF
-        )
-        # Verify auto_open_prs is set to False
-        assert organization.get_option("sentry:auto_open_prs") is False
-
-    def test_rca_enabled_sets_automation_tuning_medium(self) -> None:
-        """Tests that when RCA is enabled, automation tuning is set to MEDIUM for org."""
-        organization = self.create_organization()
-
-        onboarding_seer_settings_update(
-            organization_id=organization.id,
-            is_rca_enabled=True,
-            is_auto_open_prs_enabled=False,
-            project_repo_dict={},
-        )
-
-        # Verify org-level option is set to MEDIUM
-        organization.refresh_from_db()
-        assert (
-            organization.get_option("sentry:default_autofix_automation_tuning")
-            == AutofixAutomationTuningSettings.MEDIUM
-        )
-        # Verify auto_open_prs is set to False
-        assert organization.get_option("sentry:auto_open_prs") is False
-
-    def test_auto_open_prs_enabled_sets_org_option(self) -> None:
-        """Tests that when auto_open_prs is enabled, the org option is set to True."""
-        organization = self.create_organization()
-
-        onboarding_seer_settings_update(
-            organization_id=organization.id,
-            is_rca_enabled=True,
-            is_auto_open_prs_enabled=True,
-            project_repo_dict={},
-        )
-
-        # Verify org-level options
-        organization.refresh_from_db()
-        assert (
-            organization.get_option("sentry:default_autofix_automation_tuning")
-            == AutofixAutomationTuningSettings.MEDIUM
-        )
-        assert organization.get_option("sentry:auto_open_prs") is True
+        assert organization.get_option("sentry:default_autofix_automation_tuning") is None
 
     @patch("sentry.seer.autofix.autofix.bulk_set_project_preferences")
     def test_rca_disabled_with_auto_prs_and_project_sets_open_pr_stopping_point(
@@ -1559,11 +1516,6 @@ class TestOnboardingSeerSettingsUpdate(TestCase):
 
         # Verify org-level options
         organization.refresh_from_db()
-        assert (
-            organization.get_option("sentry:default_autofix_automation_tuning")
-            == AutofixAutomationTuningSettings.OFF
-        )
-        assert organization.get_option("sentry:auto_open_prs") is True
 
         # Verify bulk_set_project_preferences is called with OPEN_PR stopping point
         mock_bulk_set.assert_called_once()
