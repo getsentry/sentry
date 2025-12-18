@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import nextStepsImg from 'sentry-images/spot/seer-config-bug-2.svg';
@@ -11,10 +11,26 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 
+import {useSeerOnboardingContext} from './hooks/seerOnboardingContext';
 import {ActionSection, MaxWidthPanel, PanelDescription, StepContent} from './common';
 
-export function NextStepsStep() {
+export function WrapUpStep() {
   const organization = useOrganization();
+  const {selectedCodeReviewRepositories, repositoryProjectMapping, autoCreatePR} =
+    useSeerOnboardingContext();
+
+  const hasCodeReview = useMemo(
+    () => selectedCodeReviewRepositories.length > 0,
+    [selectedCodeReviewRepositories]
+  );
+  const hasRCA = useMemo(
+    () => Object.keys(repositoryProjectMapping).length > 0,
+    [repositoryProjectMapping]
+  );
+  const hasAutoCreatePR = useMemo(
+    () => (hasRCA && autoCreatePR?.current) ?? false,
+    [autoCreatePR, hasRCA]
+  );
 
   return (
     <Fragment>
@@ -29,9 +45,21 @@ export function NextStepsStep() {
                 )}
               </p>
               <NextStepsList>
-                <li>Review your PRs and catch bugs before you ship them to production</li>
-                <li>Perform root cause analysis on your issues and propose solutions</li>
-                <li>Create PRs to fix issues</li>
+                {hasCodeReview && (
+                  <li>
+                    {t(
+                      'Review your PRs and catch bugs before you ship them to production'
+                    )}
+                  </li>
+                )}
+                {hasRCA && (
+                  <li>
+                    {t(
+                      'Perform root cause analysis on your issues and propose solutions'
+                    )}
+                  </li>
+                )}
+                {hasAutoCreatePR && <li>{t('Create PRs to fix issues')}</li>}
               </NextStepsList>
               <Text>
                 {tct(
