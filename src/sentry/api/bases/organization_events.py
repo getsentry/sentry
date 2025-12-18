@@ -204,7 +204,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         duration = params["end"] - params["start"]
         # Only perform rounding on durations longer than an hour
         if duration > timedelta(hours=1):
-            minutes = 3 if duration > timedelta(days=30) else 1
+            minutes = 3 if duration >= timedelta(days=30) else 1
             round_to = int(timedelta(minutes=minutes).total_seconds())
 
             key = params.get("organization_id", 0)
