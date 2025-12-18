@@ -18,7 +18,7 @@ function createBackwardsCompatibleToken<
   });
 }
 
-interface LegacyTokens {
+export interface LegacyTokens {
   background: {
     primary: string;
     secondary: string;

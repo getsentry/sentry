@@ -12,7 +12,7 @@ import {css} from '@emotion/react';
 import modifyColor from 'color';
 import {spring, type Transition} from 'framer-motion';
 
-import {withLegacyTokens} from 'sentry/utils/theme/compat';
+import {withLegacyTokens, type LegacyTokens} from 'sentry/utils/theme/compat';
 // eslint-disable-next-line no-restricted-imports
 import {darkTheme as baseDarkTheme} from 'sentry/utils/theme/scraps/theme/dark';
 // eslint-disable-next-line no-restricted-imports
@@ -31,6 +31,7 @@ import type {
 } from './types';
 
 type Tokens = typeof baseLightTheme.tokens | typeof baseDarkTheme.tokens;
+type TokensWithLegacy = Tokens & LegacyTokens;
 
 type MotionDefinition = Record<MotionDuration, string>;
 
@@ -581,7 +582,7 @@ export interface SentryTheme
     getColorPalette: ReturnType<typeof makeChartColorPalette>;
     neutral: string;
   };
-  tokens: Tokens;
+  tokens: TokensWithLegacy;
 }
 
 const ccl = color.categorical.light;
