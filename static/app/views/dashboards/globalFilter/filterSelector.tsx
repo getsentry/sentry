@@ -387,9 +387,11 @@ function FilterSelector({
         </MenuTitleWrapper>
       }
       menuHeaderTrailingItems={renderMenuHeaderTrailingItems}
-      triggerProps={{
-        children: renderFilterSelectorTrigger(stagedFilterValues),
-      }}
+      trigger={triggerProps => (
+        <SelectTrigger.Button {...triggerProps}>
+          {renderFilterSelectorTrigger(stagedFilterValues)}
+        </SelectTrigger.Button>
+      )}
     />
   );
 }
