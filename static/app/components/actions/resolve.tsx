@@ -429,7 +429,7 @@ const SetupReleases = styled('div')`
   align-items: center;
   padding: ${space(2)} 0;
   text-align: center;
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
   width: 250px;
   white-space: normal;
   font-weight: ${p => p.theme.fontWeight.normal};

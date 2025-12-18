@@ -306,8 +306,8 @@ function useWrappedDiscoverQueryBase<T>({
     }
   }
 
-  if (typeof caseInsensitive === 'number') {
-    queryExtras.caseInsensitive = caseInsensitive.toString();
+  if (typeof caseInsensitive === 'boolean' && caseInsensitive) {
+    queryExtras.caseInsensitive = '1';
   }
 
   if (Array.isArray(logQuery) && logQuery.length > 0) {

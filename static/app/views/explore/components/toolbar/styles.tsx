@@ -16,7 +16,7 @@ export const ToolbarHeader = styled('div')`
 `;
 
 export const ToolbarLabel = styled('h6')<{disabled?: boolean}>`
-  color: ${p => (p.disabled ? p.theme.disabled : p.theme.gray500)};
+  color: ${p => (p.disabled ? p.theme.disabled : p.theme.colors.gray800)};
   font-size: ${p => p.theme.form.md.fontSize};
   margin: 0;
   text-decoration: underline;

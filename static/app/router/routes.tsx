@@ -1234,6 +1234,10 @@ function buildRoutes(): RouteObject[] {
           component: make(() => import('getsentry/views/seerAutomation/repos')),
         },
         {
+          path: 'repos/:repoId/',
+          component: make(() => import('getsentry/views/seerAutomation/repoDetails')),
+        },
+        {
           path: 'onboarding/',
           name: t('Setup Wizard'),
           component: make(
@@ -1404,12 +1408,12 @@ function buildRoutes(): RouteObject[] {
         // new widget builder routes
         {
           path: 'widget-builder/widget/:widgetIndex/edit/',
-          component: make(() => import('sentry/views/dashboards/view')),
+          component: make(() => import('sentry/views/dashboards/create')),
           deprecatedRouteProps: true,
         },
         {
           path: 'widget-builder/widget/new/',
-          component: make(() => import('sentry/views/dashboards/view')),
+          component: make(() => import('sentry/views/dashboards/create')),
           deprecatedRouteProps: true,
         },
       ],
@@ -1547,12 +1551,10 @@ function buildRoutes(): RouteObject[] {
         {
           path: 'crons/',
           component: make(() => import('sentry/views/alerts/rules/crons')),
-          deprecatedRouteProps: true,
           children: [
             {
               path: ':projectId/:monitorSlug/details/',
               component: make(() => import('sentry/views/alerts/rules/crons/details')),
-              deprecatedRouteProps: true,
             },
           ],
         },

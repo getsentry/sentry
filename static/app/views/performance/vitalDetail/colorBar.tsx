@@ -43,7 +43,7 @@ const VitalBar = styled('div')<VitalBarProps>`
   width: 100%;
   overflow: hidden;
   position: relative;
-  background: ${p => p.theme.gray100};
+  background: ${p => p.theme.colors.gray100};
   display: grid;
   grid-template-columns: ${p => p.fractions.map(f => `${f}fr`).join(' ')};
   margin-bottom: ${p => (p.barHeight ? '' : space(1))};

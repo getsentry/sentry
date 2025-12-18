@@ -45,11 +45,11 @@ class OAuthAuthorizeView(AuthLoginView):
             final_uri = urlunparse(parts)
 
         # Django's HttpResponseRedirect blocks custom URL schemes for security.
-        # For OAuth redirects to the Sentry mobile agent, we need to support the
-        # sentry-mobile-agent:// scheme, so we use HttpResponse with a Location
+        # For OAuth redirects to Sentry Apple apps, we need to support the
+        # sentry-apple:// scheme, so we use HttpResponse with a Location
         # header directly.
         parsed_uri = urlparse(final_uri)
-        if parsed_uri.scheme == "sentry-mobile-agent":
+        if parsed_uri.scheme == "sentry-apple":
             response = HttpResponse(status=302)
             response["Location"] = final_uri
             return response

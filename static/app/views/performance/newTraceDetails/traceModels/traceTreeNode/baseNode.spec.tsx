@@ -36,7 +36,7 @@ class TestNode extends BaseNode {
   }
 
   makeBarColor(theme: Theme): string {
-    return theme.blue300;
+    return theme.colors.blue400;
   }
 
   printNode(): string {

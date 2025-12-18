@@ -18,7 +18,7 @@ export function BaselineMarkLine({theme, value, label}: Props) {
       },
     ],
     lineStyle: {
-      color: theme.gray400,
+      color: theme.colors.gray500,
     },
     emphasis: {disabled: true},
     label: {
