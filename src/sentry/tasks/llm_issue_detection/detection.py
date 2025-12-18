@@ -234,6 +234,15 @@ def detect_llm_issues_for_project(project_id: int) -> None:
     if not evidence_traces:
         return
 
+    logger.info(
+        "Getting traces for detection",
+        extra={
+            "organization_id": organization_id,
+            "project_id": project_id,
+            "num_traces": len(evidence_traces),
+            "num_unique_traces": len({trace.trace_id for trace in evidence_traces}),
+        },
+    )
     # Shuffle to randomize order
     random.shuffle(evidence_traces)
     processed_traces = 0
@@ -242,6 +251,15 @@ def detect_llm_issues_for_project(project_id: int) -> None:
         if processed_traces >= NUM_TRANSACTIONS_TO_PROCESS:
             break
 
+        logger.info(
+            "Sending Seer Request for Detection",
+            extra={
+                "trace_id": trace.trace_id,
+                "transaction_name": trace.transaction_name,
+                "organization_id": organization_id,
+                "project_id": project_id,
+            },
+        )
         seer_request = IssueDetectionRequest(
             traces=[trace],
             organization_id=organization_id,
