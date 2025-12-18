@@ -17,6 +17,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
+from sentry.search.events.types import SAMPLING_MODES
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 
@@ -183,7 +184,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         limit: int,
         user_query: str,
         use_optimized: bool = False,
-        sampling_mode: str = "NORMAL",
+        sampling_mode: SAMPLING_MODES = "NORMAL",
     ) -> list[dict]:
         query_string = _build_conversation_query("has:gen_ai.conversation.id", user_query)
 
@@ -201,7 +202,12 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         return self._get_conversations_default(snuba_params, conversation_ids)
 
     def _fetch_conversation_ids(
-        self, snuba_params, query_string: str, offset: int, limit: int, sampling_mode: str
+        self,
+        snuba_params,
+        query_string: str,
+        offset: int,
+        limit: int,
+        sampling_mode: SAMPLING_MODES,
     ) -> EAPResponse:
         return Spans.run_table_query(
             params=snuba_params,
