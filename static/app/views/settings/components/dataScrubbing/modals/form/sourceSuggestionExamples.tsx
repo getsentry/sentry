@@ -43,7 +43,7 @@ const Content = styled('span')`
   grid-template-columns: repeat(2, max-content);
   align-items: center;
   gap: ${space(0.5)};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
   font-size: ${p => p.theme.fontSize.sm};
   text-decoration: underline;
   text-decoration-style: dotted;

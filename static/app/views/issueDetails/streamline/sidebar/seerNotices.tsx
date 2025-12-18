@@ -663,7 +663,7 @@ const CollapsedSummaryCard = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  background: ${p => p.theme.pink400}10;
+  background: ${p => p.theme.colors.pink500}10;
   border: 1px solid ${p => p.theme.border};
   border-radius: 6px;
   padding: ${space(1)};
@@ -675,6 +675,6 @@ const CollapsedSummaryCard = styled('div')`
   transition: box-shadow 0.2s;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
   &:hover {
-    background: ${p => p.theme.pink400}20;
+    background: ${p => p.theme.colors.pink500}20;
   }
 `;

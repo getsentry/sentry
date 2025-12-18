@@ -50,8 +50,8 @@ from sentry.plugins.providers.integration_repository import (
     RepoExistsError,
     get_integration_repository_provider,
 )
-from sentry.preprod.pull_request.comment_types import AuthorAssociation
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
+from sentry.seer.code_review.webhooks import handle_github_check_run_event
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.organization_contributors import assign_seat_to_organization_contributor
 from sentry.users.services.user.service import user_service
@@ -79,18 +79,11 @@ def get_file_language(filename: str) -> str | None:
     return language
 
 
-def is_contributor_eligible_for_seat_assignment(
-    user_type: str | None, author_association: str
-) -> bool:
+def is_contributor_eligible_for_seat_assignment(user_type: str | None) -> bool:
     """
-    Determine if a contributor is eligible for seat assignment based on their user type and author association.
-    - Contributor must be MEMBER or OWNER of the repo
-    - Contributor cannot be a bot
+    Determine if a contributor is eligible for seat assignment based on their user type.
     """
-    return user_type != "Bot" and author_association in (
-        AuthorAssociation.MEMBER,
-        AuthorAssociation.OWNER,
-    )
+    return user_type != "Bot"
 
 
 class GitHubWebhook(SCMWebhook, ABC):
@@ -106,7 +99,7 @@ class GitHubWebhook(SCMWebhook, ABC):
     def _handle(self, integration: RpcIntegration, event: Mapping[str, Any], **kwargs) -> None:
         pass
 
-    def __call__(self, event: Mapping[str, Any], **kwargs) -> None:
+    def __call__(self, event: Mapping[str, Any], **kwargs: Any) -> None:
         external_id = get_github_external_id(event=event, host=kwargs.get("host"))
 
         result = integration_service.organization_contexts(
@@ -715,7 +708,6 @@ class PullRequestEventWebhook(GitHubWebhook):
         number = pull_request["number"]
         title = pull_request["title"]
         body = pull_request["body"]
-        author_association = pull_request["author_association"]
         user = pull_request["user"]
         user_type = user.get("type")
         action = event["action"]
@@ -790,29 +782,35 @@ class PullRequestEventWebhook(GitHubWebhook):
             )
 
             if created:
+
+                try:
+                    pr_repo_private = pull_request["head"]["repo"]["private"]
+                except (KeyError, AttributeError, TypeError):
+                    pr_repo_private = False
+
                 metrics.incr(
                     "github.webhook.pull_request.created",
                     sample_rate=1.0,
                     tags={
                         "organization_id": organization.id,
                         "repository_id": repo.id,
+                        "is_private": pr_repo_private,
                     },
                 )
 
                 logger.info(
                     "github.webhook.organization_contributor.eligibility_check",
                     extra={
+                        "organization_id": organization.id,
+                        "repository_id": repo.id,
                         "pr_number": number,
                         "user_login": user["login"],
                         "user_type": user_type,
-                        "author_association": author_association,
-                        "is_eligible": is_contributor_eligible_for_seat_assignment(
-                            user_type, author_association
-                        ),
+                        "is_eligible": is_contributor_eligible_for_seat_assignment(user_type),
                     },
                 )
 
-                if is_contributor_eligible_for_seat_assignment(user_type, author_association):
+                if is_contributor_eligible_for_seat_assignment(user_type):
                     # Track AI contributor if eligible
                     contributor, _ = OrganizationContributors.objects.get_or_create(
                         organization_id=organization.id,
@@ -872,6 +870,32 @@ class PullRequestEventWebhook(GitHubWebhook):
         handle_github_pr_webhook_for_autofix(organization, action, pull_request, user)
 
 
+class CheckRunEventWebhook(GitHubWebhook):
+    """
+    Handles GitHub check_run webhook events.
+    https://docs.github.com/en/webhooks/webhook-events-and-payloads#check_run
+    """
+
+    @property
+    def event_type(self) -> IntegrationWebhookEventType:
+        return IntegrationWebhookEventType.CHECK_RUN
+
+    def _handle(
+        self,
+        integration: RpcIntegration,
+        event: Mapping[str, Any],
+        **kwargs,
+    ) -> None:
+        # Get organization from kwargs (populated by GitHubWebhook base class)
+        organization = kwargs.get("organization")
+        if organization is None:
+            logger.warning("github.webhook.check_run.missing-organization")
+            return
+
+        # XXX: Add support for registering functions to call
+        handle_github_check_run_event(organization=organization, event=event)
+
+
 @all_silo_endpoint
 class GitHubIntegrationsWebhookEndpoint(Endpoint):
     """
@@ -892,20 +916,24 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         GithubWebhookType.PULL_REQUEST: PullRequestEventWebhook,
         GithubWebhookType.INSTALLATION: InstallationEventWebhook,
         GithubWebhookType.ISSUE: IssuesEventWebhook,
+        GithubWebhookType.CHECK_RUN: CheckRunEventWebhook,
     }
 
     def get_handler(self, event_type: str) -> type[GitHubWebhook] | None:
         return self._handlers.get(event_type)
 
-    def is_valid_signature(self, method: str, body: bytes, secret: str, signature: str) -> bool:
+    @staticmethod
+    def compute_signature(method: str, body: bytes, secret: str) -> str:
         if method == "sha256":
             mod = hashlib.sha256
         elif method == "sha1":
             mod = hashlib.sha1
         else:
             raise NotImplementedError(f"signature method {method} is not supported")
-        expected = hmac.new(key=secret.encode("utf-8"), msg=body, digestmod=mod).hexdigest()
+        return hmac.new(key=secret.encode("utf-8"), msg=body, digestmod=mod).hexdigest()
 
+    def is_valid_signature(self, method: str, body: bytes, secret: str, signature: str) -> bool:
+        expected = GitHubIntegrationsWebhookEndpoint.compute_signature(method, body, secret)
         return constant_time_compare(expected, signature)
 
     @method_decorator(csrf_exempt)

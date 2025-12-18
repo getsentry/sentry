@@ -1648,7 +1648,7 @@ const StepConnector = styled('div')`
   height: 100%;
   top: 28px;
   left: 19px;
-  border-right: 1px ${p => p.theme.gray200} dashed;
+  border-right: 1px ${p => p.theme.colors.gray200} dashed;
 `;
 
 const StepLead = styled('div')`
@@ -1670,7 +1670,7 @@ const ChevronContainer = styled('div')`
 
 const Badge = styled('span')`
   min-width: 56px;
-  background-color: ${p => p.theme.purple300};
+  background-color: ${p => p.theme.colors.blue400};
   padding: 0 ${space(0.75)};
   border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.white};
