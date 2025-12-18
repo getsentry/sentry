@@ -26,7 +26,7 @@ function EmptyMessage({title, icon, children, action, size, ...props}: Props) {
         >
           {icon && (
             <IconDefaultsProvider size="xl">
-              <Container color={theme.gray400}>{icon}</Container>
+              <Container color={theme.colors.gray500}>{icon}</Container>
             </IconDefaultsProvider>
           )}
           {title && (

@@ -167,7 +167,7 @@ const StyledTimelineHeader = styled('div')<{isActive?: boolean}>`
   font-weight: ${p => p.theme.fontWeight.normal};
   gap: ${space(1)};
   text-decoration: ${p => (p.isActive ? 'underline dashed' : 'none')};
-  text-decoration-color: ${p => p.theme.pink300};
+  text-decoration-color: ${p => p.theme.colors.pink400};
   text-decoration-thickness: 1px;
   text-underline-offset: 4px;
 

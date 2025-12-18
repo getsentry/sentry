@@ -93,10 +93,10 @@ export class SiblingAutogroupNode extends BaseNode<TraceTree.SiblingAutogroup> {
 
   makeBarColor(theme: Theme): string {
     if (this.errors.size > 0) {
-      return theme.red300;
+      return theme.colors.red400;
     }
 
-    return theme.blue300;
+    return theme.colors.blue400;
   }
 
   resolveValueFromSearchKey(_key: string): any | null {

@@ -395,10 +395,10 @@ const StyledTextArea = styled(TextArea)`
 `;
 
 const ClearButton = styled(Button)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.colors.gray400};
 
   &:hover {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.colors.gray800};
   }
 `;
 
