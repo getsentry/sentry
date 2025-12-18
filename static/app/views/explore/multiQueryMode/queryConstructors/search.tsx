@@ -28,7 +28,7 @@ export function SearchBarSection({query, index}: Props) {
     searchSource: 'explore',
     caseInsensitive: query.caseInsensitive ? true : null,
     onCaseInsensitiveClick: (value: CaseInsensitive) => {
-      updateQuerySearch({caseInsensitive: value ? '1' : null});
+      updateQuerySearch({caseInsensitive: value ? '1' : undefined});
     },
   });
 
