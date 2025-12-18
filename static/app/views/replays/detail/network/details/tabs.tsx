@@ -48,7 +48,7 @@ const StyledNetworkDetailsTabs = styled(NetworkDetailsTabs)`
   & > li {
     margin-right: 0;
     padding-right: ${space(3)};
-    background: ${p => p.theme.surface400};
+    background: ${p => p.theme.colors.surface500};
     z-index: ${p => p.theme.zIndex.initial};
   }
   & > li:first-child {

@@ -526,7 +526,7 @@ const FrameBar = styled('div')<{withoutBorders?: boolean}>`
   overflow: auto;
   width: 100%;
   position: relative;
-  background-color: ${p => p.theme.surface200};
+  background-color: ${p => p.theme.colors.surface300};
   ${p => !p.withoutBorders && `border-top: 1px solid ${p.theme.border};`}
   flex: 1 1 100%;
 `;
