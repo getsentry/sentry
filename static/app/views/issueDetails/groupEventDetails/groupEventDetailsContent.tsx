@@ -71,8 +71,8 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {isJavascriptPlatform, isMobilePlatform} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import useOrganization from 'sentry/utils/useOrganization';
-import {FlameGraphSection} from 'sentry/views/issueDetails/flameGraphSection';
 import {MetricIssuesSection} from 'sentry/views/issueDetails/metricIssues/metricIssuesSection';
+import {ProfilePreviewSection} from 'sentry/views/issueDetails/profilePreviewSection';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
 import {useCopyIssueDetails} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
@@ -150,7 +150,7 @@ export function EventDetailsContent({
         <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
       )}
       {isMobilePlatform(project.platform) && (
-        <FlameGraphSection event={event} project={project} />
+        <ProfilePreviewSection event={event} project={project} />
       )}
       <StyledDataSection>
         {!hasStreamlinedUI && <TraceDataSection event={event} />}

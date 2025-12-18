@@ -31,7 +31,13 @@ import {
   useProfiles,
 } from 'sentry/views/profiling/profilesProvider';
 
-export function FlameGraphSection({event, project}: {event: Event; project: Project}) {
+export function ProfilePreviewSection({
+  event,
+  project,
+}: {
+  event: Event;
+  project: Project;
+}) {
   const organization = useOrganization();
   const profileMeta = useMemo(() => getProfileMetaForEvent(event), [event]);
 
@@ -66,7 +72,7 @@ export function FlameGraphSection({event, project}: {event: Event; project: Proj
         profileMeta={profileMeta}
       >
         <InterimSection
-          type={SectionKey.FLAME_GRAPH}
+          type={SectionKey.PROFILE_PREVIEW}
           title={
             <span>
               {isApplePlatform ? t('App Hang Profile') : t('ANR Profile')}

@@ -5,7 +5,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Flamegraph as FlamegraphMock} from 'sentry/utils/profiling/flamegraph';
-import {FlameGraphSection} from 'sentry/views/issueDetails/flameGraphSection';
+import {ProfilePreviewSection} from 'sentry/views/issueDetails/profilePreviewSection';
 
 let mockProfilesState: any;
 
@@ -63,7 +63,7 @@ jest.mock('sentry/views/profiling/profilesProvider', () => {
   };
 });
 
-describe('FlameGraphSection', () => {
+describe('ProfilePreviewSection', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture({platform: 'android'});
 
@@ -78,9 +78,12 @@ describe('FlameGraphSection', () => {
       dateCreated: '2024-01-24T09:09:01+00:00',
     } as any);
 
-    const {container} = render(<FlameGraphSection event={event} project={project} />, {
-      organization,
-    });
+    const {container} = render(
+      <ProfilePreviewSection event={event} project={project} />,
+      {
+        organization,
+      }
+    );
 
     expect(container).toBeEmptyDOMElement();
   });
@@ -97,7 +100,7 @@ describe('FlameGraphSection', () => {
       dateCreated: '2024-01-24T09:09:01+00:00',
     } as any);
 
-    render(<FlameGraphSection event={event} project={project} />, {organization});
+    render(<ProfilePreviewSection event={event} project={project} />, {organization});
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
   });
@@ -114,7 +117,7 @@ describe('FlameGraphSection', () => {
       dateCreated: '2024-01-24T09:09:01+00:00',
     } as any);
 
-    render(<FlameGraphSection event={event} project={project} />, {organization});
+    render(<ProfilePreviewSection event={event} project={project} />, {organization});
 
     expect(
       screen.getByText(
@@ -130,7 +133,7 @@ describe('FlameGraphSection', () => {
 
     expect(screen.getByRole('link', {name: 'in our documentation'})).toHaveAttribute(
       'href',
-      'https://docs.sentry.io/platforms/javascript/profiling/'
+      'https://docs.sentry.io/platforms/android/profiling/'
     );
   });
 
@@ -149,7 +152,7 @@ describe('FlameGraphSection', () => {
       dateCreated: '2024-01-24T09:09:01+00:00',
     } as any);
 
-    render(<FlameGraphSection event={event} project={project} />, {organization});
+    render(<ProfilePreviewSection event={event} project={project} />, {organization});
 
     expect(screen.getByText('ANR Profile')).toBeInTheDocument();
     expect(screen.getByTestId('flamegraph-preview')).toBeInTheDocument();
@@ -176,7 +179,9 @@ describe('FlameGraphSection', () => {
       dateCreated: '2024-01-24T09:09:01+00:00',
     } as any);
 
-    render(<FlameGraphSection event={event} project={appleProject} />, {organization});
+    render(<ProfilePreviewSection event={event} project={appleProject} />, {
+      organization,
+    });
 
     expect(screen.getByText('App Hang Profile')).toBeInTheDocument();
   });

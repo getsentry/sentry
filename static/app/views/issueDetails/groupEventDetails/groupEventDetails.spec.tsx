@@ -12,6 +12,7 @@ import {
   type RouterConfig,
 } from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -95,6 +96,9 @@ const makeDefaultMockData = (
           span_id: 'b0e6f15b45c36b12',
           op: 'ui.action.click',
           type: 'trace',
+        },
+        profile: {
+          profiler_id: 'a0f6f14c42c36b13',
         },
       },
     }),
@@ -347,6 +351,15 @@ const mockGroupApis = (
     method: 'GET',
     body: {},
   });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/profiling/chunks/`,
+    body: {
+      chunk: {
+        profiler_id: event.contexts?.profile?.profiler_id,
+      },
+    },
+  });
 };
 
 describe('groupEventDetails', () => {
@@ -560,6 +573,7 @@ describe('groupEventDetails', () => {
     it('shows ANR profile section for Android ANR events', async () => {
       const project = ProjectFixture({platform: 'android'});
       const props = makeDefaultMockData(undefined, project);
+      ProjectsStore.loadInitialData([props.project]);
       mockGroupApis(
         props.organization,
         props.project,
@@ -575,13 +589,15 @@ describe('groupEventDetails', () => {
       });
 
       expect(
-        await screen.findByRole('region', {name: 'ANR Profile'})
+        await screen.findByRole('region', {name: 'profile-preview'})
       ).toBeInTheDocument();
+      expect(screen.getByText('ANR Profile')).toBeInTheDocument();
     });
 
     it('renders App Hang profile section for iOS ANR events', async () => {
       const project = ProjectFixture({platform: 'apple-ios'});
       const props = makeDefaultMockData(undefined, project);
+      ProjectsStore.loadInitialData([props.project]);
 
       mockGroupApis(
         props.organization,
@@ -597,10 +613,10 @@ describe('groupEventDetails', () => {
         initialRouterConfig: props.initialRouterConfig,
       });
 
-      expect(screen.queryByRole('region', {name: 'ANR Profile'})).not.toBeInTheDocument();
       expect(
-        await screen.findByRole('region', {name: 'App Hang Profile'})
+        await screen.findByRole('region', {name: 'profile-preview'})
       ).toBeInTheDocument();
+      expect(screen.getByText('App Hang Profile')).toBeInTheDocument();
     });
 
     it('does not render root cause section if related perf issues do not exist', async () => {

@@ -95,7 +95,7 @@ export const enum SectionKey {
 
   SPAN_LINKS = 'span-links',
 
-  FLAME_GRAPH = 'flame-graph',
+  PROFILE_PREVIEW = 'profile-preview',
 }
 
 /**
