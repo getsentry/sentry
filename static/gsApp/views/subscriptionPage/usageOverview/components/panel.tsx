@@ -31,7 +31,10 @@ import {
   SetupCta,
   UpgradeCta,
 } from 'getsentry/views/subscriptionPage/usageOverview/components/cta';
-import {USAGE_OVERVIEW_PANEL_HEADER_HEIGHT} from 'getsentry/views/subscriptionPage/usageOverview/constants';
+import {
+  USAGE_OVERVIEW_PANEL_HEADER_HEIGHT,
+  USAGE_OVERVIEW_PANEL_REFERRER,
+} from 'getsentry/views/subscriptionPage/usageOverview/constants';
 import type {BreakdownPanelProps} from 'getsentry/views/subscriptionPage/usageOverview/types';
 
 function PanelHeader({
@@ -108,10 +111,15 @@ function PanelHeader({
       </Flex>
       {productLink && (
         <LinkButton
-          to={productLink}
+          to={`${productLink}?referrer=${USAGE_OVERVIEW_PANEL_REFERRER}`}
           icon={<IconSettings />}
           aria-label={t('Configure %s', displayName)}
           title={tct('Configure [productName]', {productName: displayName})}
+          analyticsEventName="Subscription Settings: Product Link Clicked"
+          analyticsEventKey="subscription_settings.product_link_clicked"
+          analyticsParams={{
+            product: selectedProduct,
+          }}
         />
       )}
     </Flex>
