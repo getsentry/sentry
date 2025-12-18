@@ -29,7 +29,8 @@ import type {
   MotionEasing,
   TagVariant,
 } from './types';
-type Tokens = typeof baseDarkTheme.tokens | typeof baseLightTheme.tokens;
+
+type Tokens = typeof baseLightTheme.tokens | typeof baseDarkTheme.tokens;
 
 type MotionDefinition = Record<MotionDuration, string>;
 
@@ -573,12 +574,14 @@ type Aliases = typeof lightAliases;
  * @deprecated
  */
 export type ColorOrAlias = keyof Aliases | Color;
-export interface SentryTheme extends Omit<typeof lightThemeDefinition, 'chart'> {
+export interface SentryTheme
+  extends Omit<typeof lightThemeDefinition, 'chart' | 'tokens'> {
   chart: {
     colors: typeof CHART_PALETTE_LIGHT | typeof CHART_PALETTE_DARK;
     getColorPalette: ReturnType<typeof makeChartColorPalette>;
     neutral: string;
   };
+  tokens: Tokens;
 }
 
 const ccl = color.categorical.light;
@@ -1508,7 +1511,7 @@ export const darkTheme = {
 
   chart: {
     neutral: baseDarkTheme.tokens.dataviz.semantic.neutral,
-    colors: baseDarkTheme.tokens.dataviz.categorical,
+    colors: CHART_PALETTE_DARK,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
   },
 
