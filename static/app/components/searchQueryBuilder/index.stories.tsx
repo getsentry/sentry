@@ -716,7 +716,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
   });
 
   story('Case sensitivity', () => {
-    const [caseInsensitive, setCaseInsensitive] = useState<1 | null>(null);
+    const [caseInsensitive, setCaseInsensitive] = useState<true | null>(null);
 
     return (
       <Fragment>

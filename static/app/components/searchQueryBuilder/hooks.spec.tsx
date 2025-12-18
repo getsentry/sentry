@@ -23,7 +23,7 @@ describe('useCaseSensitivity', () => {
       () => useCaseInsensitivity(),
       {initialRouterConfig: {location: {pathname: '/', query: {caseInsensitive: '1'}}}}
     );
-    expect(caseSensitivityTrue.current[0]).toBe(1);
+    expect(caseSensitivityTrue.current[0]).toBe(true);
   });
 
   it('should set the case sensitivity', async () => {
@@ -33,7 +33,7 @@ describe('useCaseSensitivity', () => {
 
     const [, setCaseSensitivity] = result.current;
 
-    await act(() => setCaseSensitivity(1));
+    await act(() => setCaseSensitivity(true));
     await waitFor(() => expect(router.location.query.caseInsensitive).toBe('1'));
 
     await act(() => setCaseSensitivity(null));

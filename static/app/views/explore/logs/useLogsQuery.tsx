@@ -141,7 +141,7 @@ function useLogsQueryKey({
       per_page: limit ? limit : undefined,
       referrer,
       sampling: highFidelity ? SAMPLING_MODE.FLEX_TIME : SAMPLING_MODE.NORMAL,
-      caseInsensitive,
+      caseInsensitive: caseInsensitive ? '1' : undefined,
     },
     pageFiltersReady,
     eventView,
