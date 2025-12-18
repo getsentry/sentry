@@ -8,7 +8,7 @@ const ChonkDivider = styled(IconChevron)`
 `;
 
 const Icon = styled(IconChevron)`
-  color: ${p => p.theme.gray200};
+  color: ${p => p.theme.colors.gray200};
 `;
 
 const DividerIcon = withChonk(Icon, ChonkDivider);

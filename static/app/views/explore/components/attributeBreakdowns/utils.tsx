@@ -89,7 +89,7 @@ export function tooltipActionsHtmlRenderer(
 
   const escapedAttributeName = escape(attributeName);
   const escapedValue = escape(value);
-  const actionBackground = theme.gray200;
+  const actionBackground = theme.colors.gray200;
 
   const actions = [
     {action: Actions.GROUP_BY, label: t('Group by attribute')},

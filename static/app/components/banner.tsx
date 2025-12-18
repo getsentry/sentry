@@ -90,7 +90,7 @@ const BannerWrapper = styled('div')<BannerWrapperProps>`
           background-position: center center;
         `
       : css`
-          background-color: ${p.theme.gray500};
+          background-color: ${p.theme.colors.gray800};
         `}
   display: flex;
   overflow: hidden;

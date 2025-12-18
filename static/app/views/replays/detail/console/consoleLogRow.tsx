@@ -108,7 +108,7 @@ const ConsoleLog = styled('div')<{
         p.theme.alert[String(p.level)].backgroundLight
       : 'inherit'};
 
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
 
   /*
   Show the timestamp button "Play" icon when we hover the row.

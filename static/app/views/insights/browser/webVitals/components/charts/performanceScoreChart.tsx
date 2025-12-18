@@ -45,10 +45,10 @@ export function PerformanceScoreChart({
   if (webVital) {
     const index = ORDER.indexOf(webVital);
     ringSegmentColors = ringSegmentColors.map((color, i) => {
-      return i === index ? color : theme.gray200;
+      return i === index ? color : theme.colors.gray200;
     });
     ringBackgroundColors = ringBackgroundColors.map((color, i) => {
-      return i === index ? color : `${theme.gray200}33`;
+      return i === index ? color : `${theme.colors.gray200}33`;
     });
   }
 

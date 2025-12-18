@@ -172,7 +172,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   const getFieldLabelStyle = (label?: string): CSSObject => ({
     ':before': {
       content: `"${label}"`,
-      color: theme.gray500,
+      color: theme.colors.gray800,
       fontWeight: 600,
       marginRight: selectSpacing[size ?? 'md'],
     },

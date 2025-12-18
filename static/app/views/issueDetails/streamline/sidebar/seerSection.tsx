@@ -294,7 +294,7 @@ const ExpandButton = styled(Button)`
   box-shadow: none;
 
   &:hover {
-    color: ${p => p.theme.gray400};
+    color: ${p => p.theme.colors.gray500};
   }
 `;
 

@@ -186,7 +186,7 @@ const CardBody = styled('div')`
   max-height: 250px;
   min-height: 250px;
   overflow: hidden;
-  border-bottom: 1px solid ${p => p.theme.gray100};
+  border-bottom: 1px solid ${p => p.theme.colors.gray100};
 `;
 
 const StyledPanelBody = styled(PanelBody)`

@@ -185,13 +185,13 @@ const SectionTitleWrapper = styled('div')`
 `;
 
 const StyledIcon = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.colors.gray400};
   display: flex;
   align-items: center;
 `;
 
 const SectionTitle = styled('h6')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
   font-size: ${p => p.theme.fontSize.md};
   font-weight: 600;
   text-transform: uppercase;

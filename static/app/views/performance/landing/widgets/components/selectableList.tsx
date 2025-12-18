@@ -245,7 +245,7 @@ const StyledTooltip = styled(Tooltip)`
 
 const StyledIconClose = styled(IconClose)`
   cursor: pointer;
-  color: ${p => p.theme.gray200};
+  color: ${p => p.theme.colors.gray200};
 `;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`

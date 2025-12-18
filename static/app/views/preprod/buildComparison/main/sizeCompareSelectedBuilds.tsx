@@ -253,7 +253,7 @@ export function SizeCompareSelectedBuilds({
 
 const BuildBranch = styled('span')`
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.colors.gray100};
   border-radius: ${p => p.theme.radius.md};
 `;
 

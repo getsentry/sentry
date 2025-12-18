@@ -27,7 +27,7 @@ const Panel = styled(
       p.hideBorder
         ? 'transparent'
         : p.dashedBorder
-          ? 'dashed' + p.theme.gray300
+          ? 'dashed' + p.theme.colors.gray400
           : 'solid ' + p.theme.border};
   margin-bottom: ${space(2)};
   position: relative;

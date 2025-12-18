@@ -303,7 +303,7 @@ const BuildItemContainer = styled(Flex)<{isSelected: boolean}>`
 
 const BuildItemBranchTag = styled('span')`
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.colors.gray100};
   border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.colors.blue500};
   font-size: ${p => p.theme.fontSize.sm};

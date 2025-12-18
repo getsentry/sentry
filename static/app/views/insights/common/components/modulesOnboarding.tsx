@@ -246,12 +246,12 @@ const SupportedSdkIconContainer = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.colors.gray100};
   width: 42px;
   height: 42px;
   border-radius: 3px;
   &:hover {
-    box-shadow: 0 0 0 1px ${p => p.theme.gray200};
+    box-shadow: 0 0 0 1px ${p => p.theme.colors.gray200};
   }
 `;
 

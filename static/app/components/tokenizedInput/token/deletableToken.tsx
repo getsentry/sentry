@@ -134,7 +134,7 @@ const Wrapper = styled('div')`
   }
 
   &[aria-selected='true'] {
-    background-color: ${p => p.theme.gray100};
+    background-color: ${p => p.theme.colors.gray100};
   }
 
   &[aria-invalid='true'] {

@@ -338,8 +338,12 @@ export default class ThresholdsChart extends PureComponent<Props> {
             LineSeries({
               name: comparisonSeriesName,
               data: _data.map(({name, value}) => [name, value]),
-              lineStyle: {color: this.props.theme.gray200, type: 'dashed', width: 1},
-              itemStyle: {color: this.props.theme.gray200},
+              lineStyle: {
+                color: this.props.theme.colors.gray200,
+                type: 'dashed',
+                width: 1,
+              },
+              itemStyle: {color: this.props.theme.colors.gray200},
               animation: false,
               animationThreshold: 1,
               animationDuration: 0,

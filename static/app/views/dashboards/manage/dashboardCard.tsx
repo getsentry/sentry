@@ -172,12 +172,12 @@ const Detail = styled('div')`
 `;
 
 const CardBody = styled('div')`
-  background: ${p => p.theme.gray100};
+  background: ${p => p.theme.colors.gray100};
   padding: ${space(1.5)} ${space(2)};
   max-height: 100px;
   min-height: 100px;
   overflow: hidden;
-  border-bottom: 1px solid ${p => p.theme.gray100};
+  border-bottom: 1px solid ${p => p.theme.colors.gray100};
 `;
 
 const CardFooter = styled('div')`

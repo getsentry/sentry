@@ -78,7 +78,7 @@ export function AppSizeCategories(props: AppSizeCategoriesProps) {
         itemStyle: {
           shadowBlur: 10,
           shadowOffsetX: 0,
-          shadowColor: theme.gray100,
+          shadowColor: theme.colors.gray100,
         },
       },
       data: pieData,

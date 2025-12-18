@@ -24,7 +24,7 @@ function formatData(rawData: UsageSeries | undefined, theme: Theme) {
     return [];
   }
 
-  const fallbackColor = theme.gray200;
+  const fallbackColor = theme.colors.gray200;
   const statOpsColors = theme.chart.getColorPalette(rawData.groups.length);
 
   const formattedData = rawData.groups.map((group, index) => {

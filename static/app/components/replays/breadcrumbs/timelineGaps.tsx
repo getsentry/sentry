@@ -78,7 +78,7 @@ const Range = styled('div')`
 `;
 
 const Gap = styled('div')`
-  background: ${p => p.theme.gray400};
+  background: ${p => p.theme.colors.gray500};
   opacity: 16%;
   height: 20px;
   width: 100%;

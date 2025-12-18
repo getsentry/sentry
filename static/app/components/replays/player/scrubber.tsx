@@ -56,7 +56,7 @@ const Meter = styled('div')`
   height: 100%;
   width: 100%;
   pointer-events: none;
-  background: ${p => p.theme.gray200};
+  background: ${p => p.theme.colors.gray200};
 `;
 
 const RangeWrapper = styled('div')`
@@ -191,7 +191,7 @@ export const PlayerScrubber = styled(Scrubber)`
      *      MouseTrackingValue @ 10s
      */
     :after {
-      background: ${p => p.theme.gray400};
+      background: ${p => p.theme.colors.gray500};
     }
   }
 

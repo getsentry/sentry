@@ -197,17 +197,17 @@ const Wrapper = styled('div')`
   mark {
     border-radius: 8px;
     padding: ${space(0.25)} ${space(0.5)} ${space(0.25)} ${space(0.5)};
-    background: ${p => p.theme.gray100};
+    background: ${p => p.theme.colors.gray100};
     margin-right: ${space(1)};
   }
   h2 {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.colors.gray800};
   }
   p {
     margin-bottom: ${space(1)};
   }
   .encrypt-help {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.colors.gray800};
   }
 `;
 
@@ -239,7 +239,7 @@ const UploadWell = styled('div')<{draggedOver: boolean}>`
     props.draggedOver ? p => p.theme.colors.blue100 : p => p.theme.colors.surface500};
 
   .upload-icon {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.colors.gray800};
   }
 `;
 

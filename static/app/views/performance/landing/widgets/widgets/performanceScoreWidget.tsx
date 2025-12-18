@@ -116,7 +116,7 @@ const Wrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  border-top: 1px solid ${p => p.theme.gray200};
+  border-top: 1px solid ${p => p.theme.colors.gray200};
   margin-top: ${space(1)};
 `;
 

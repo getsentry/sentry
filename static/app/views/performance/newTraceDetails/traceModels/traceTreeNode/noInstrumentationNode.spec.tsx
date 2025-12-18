@@ -1,5 +1,5 @@
-import type {Theme} from '@emotion/react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
@@ -369,11 +369,7 @@ describe('NoInstrumentationNode', () => {
         extra
       );
 
-      const mockTheme: Partial<Theme> = {
-        gray300: '#a0a0a0',
-      };
-
-      expect(node.makeBarColor(mockTheme as Theme)).toBe('#a0a0a0');
+      expect(node.makeBarColor(ThemeFixture())).toBe(ThemeFixture().colors.gray400);
     });
   });
 

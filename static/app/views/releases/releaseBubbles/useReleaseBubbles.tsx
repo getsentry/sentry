@@ -214,7 +214,7 @@ function ReleaseBubbleSeries({
         show: false,
       },
       lineStyle: {
-        color: theme.gray300,
+        color: theme.colors.gray400,
         opacity: 0.5,
         type: 'solid',
         width: 1,

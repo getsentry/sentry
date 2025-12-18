@@ -339,7 +339,7 @@ const OpButton = styled(UnstyledButton, {
   border-radius: ${p => (p.onlyOperator ? '3px 0 0 3px' : 0)};
 
   :focus {
-    background-color: ${p => p.theme.translucentGray100};
+    background-color: ${p => p.theme.colors.gray100};
     border-right: 1px solid ${p => p.theme.innerBorder};
     border-left: 1px solid ${p => p.theme.innerBorder};
   }

@@ -428,7 +428,7 @@ class ProjectCharts extends Component<Props, State> {
                   location={location}
                   organization={organization}
                   onTotalValuesChange={this.handleTotalValuesChange}
-                  colors={[theme.gray200, theme.colors.blue200]}
+                  colors={[theme.colors.gray200, theme.colors.blue200]}
                   interval={this.barChartInterval}
                   chartComponent={BarChart}
                   disableReleases

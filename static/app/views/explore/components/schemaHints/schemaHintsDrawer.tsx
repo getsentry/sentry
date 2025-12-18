@@ -279,7 +279,7 @@ const StyledMultipleCheckboxItem = styled(MultipleCheckbox.Item)`
   }
 
   &:active {
-    background-color: ${p => p.theme.gray100};
+    background-color: ${p => p.theme.colors.gray100};
   }
 
   & > label {

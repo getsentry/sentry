@@ -120,7 +120,7 @@ const QuickLink = styled((p: any) =>
   ${p =>
     p.disabled &&
     css`
-      color: ${p.theme.gray200};
+      color: ${p.theme.colors.gray200};
       cursor: not-allowed;
     `}
 `;

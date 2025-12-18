@@ -1022,7 +1022,7 @@ const TraceStylingWrapper = styled('div')`
       }
 
       .TraceIndicatorLine {
-        background: ${p => p.theme.translucentGray100};
+        background: ${p => p.theme.colors.gray100};
         top: 8px;
       }
     }

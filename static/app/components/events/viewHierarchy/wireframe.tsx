@@ -138,8 +138,8 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, platform}: WireframeP
       const canvas = canvasRef?.getContext('2d');
       if (canvas) {
         setupCanvasContext(canvas, modelToView);
-        canvas.fillStyle = theme.gray100;
-        canvas.strokeStyle = theme.gray300;
+        canvas.fillStyle = theme.colors.gray100;
+        canvas.strokeStyle = theme.colors.gray400;
 
         for (const node of hierarchyData.nodes) {
           canvas.strokeRect(node.rect.x, node.rect.y, node.rect.width, node.rect.height);
@@ -147,7 +147,13 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, platform}: WireframeP
         }
       }
     },
-    [canvasRef, setupCanvasContext, theme.gray100, theme.gray300, hierarchyData.nodes]
+    [
+      canvasRef,
+      setupCanvasContext,
+      theme.colors.gray100,
+      theme.colors.gray400,
+      hierarchyData.nodes,
+    ]
   );
 
   useEffect(() => {
