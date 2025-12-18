@@ -99,21 +99,6 @@ function getAISpanAttributes({
       name: t('Model'),
       value: <ModelName modelId={model.toString()} gap="xs" />,
     });
-  } else {
-    Sentry.captureMessage('Gen AI span missing model', {
-      level: 'warning',
-      tags: {
-        feature: 'agent-monitoring',
-        span_type: 'gen_ai',
-        has_model: 'false',
-        gen_ai_operation_type: genAiOpType || 'unknown',
-        gen_ai_system: attributes['gen_ai.system']?.toString() || 'unknown',
-        gen_ai_agent_name: agentName?.toString() || 'unknown',
-      },
-      extra: {
-        attributes,
-      },
-    });
   }
 
   const inputTokens = attributes['gen_ai.usage.input_tokens'];
