@@ -6,7 +6,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.models.commitcomparison import CommitComparison
-from sentry.preprod.eap.write import write_preprod_size_metric_to_eap
+from sentry.preprod.eap.write import produce_preprod_size_metric_to_eap
 from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactSizeMetrics,
@@ -16,7 +16,7 @@ from sentry.testutils.cases import TestCase
 
 
 class WritePreprodSizeMetricToEAPTest(TestCase):
-    @patch("sentry.preprod.eap.write.eap_producer.produce")
+    @patch("sentry.preprod.eap.write._eap_producer.produce")
     def test_write_preprod_size_metric_encodes_all_fields_correctly(self, mock_produce):
         commit_comparison = CommitComparison.objects.create(
             organization_id=self.organization.id,
@@ -61,7 +61,7 @@ class WritePreprodSizeMetricToEAPTest(TestCase):
             analysis_file_id=123,
         )
 
-        write_preprod_size_metric_to_eap(
+        produce_preprod_size_metric_to_eap(
             size_metric=size_metric,
             organization_id=self.organization.id,
             project_id=self.project.id,
@@ -117,7 +117,7 @@ class WritePreprodSizeMetricToEAPTest(TestCase):
         assert attrs["git_base_ref"].string_value == "main"
         assert attrs["git_pr_number"].int_value == 42
 
-    @patch("sentry.preprod.eap.write.eap_producer.produce")
+    @patch("sentry.preprod.eap.write._eap_producer.produce")
     def test_write_preprod_size_metric_handles_optional_fields(self, mock_produce):
         artifact = self.create_preprod_artifact(
             project=self.project,
@@ -130,7 +130,7 @@ class WritePreprodSizeMetricToEAPTest(TestCase):
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
         )
 
-        write_preprod_size_metric_to_eap(
+        produce_preprod_size_metric_to_eap(
             size_metric=size_metric,
             organization_id=self.organization.id,
             project_id=self.project.id,
