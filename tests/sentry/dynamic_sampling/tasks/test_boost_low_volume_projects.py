@@ -11,6 +11,7 @@ from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     boost_low_volume_projects_of_org_with_query,
     fetch_projects_with_total_root_transaction_count_and_rates,
     partition_by_measure,
+    query_project_counts_by_org,
 )
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     get_boost_low_volume_projects_sample_rate,
@@ -360,3 +361,107 @@ class TestPartitionByMeasure(TestCase):
 
             assert result[SamplingMeasure.TRANSACTIONS] == sorted(org_ids)
             assert SamplingMeasure.SPANS not in result
+
+
+@freeze_time(MOCK_DATETIME)
+class TestQueryProjectCountsByOrgEmptyOrgIds(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
+    """
+    Test that verifies the bug where query_project_counts_by_org is called
+    even when org_ids is empty, causing unnecessary Snuba queries.
+    """
+
+    @property
+    def now(self) -> datetime:
+        return MOCK_DATETIME
+
+    def test_query_runs_for_empty_org_ids(self) -> None:
+        """
+        This test confirms that query_project_counts_by_org makes a Snuba query
+        even when called with an empty org_ids list.
+        """
+        with patch(
+            "sentry.dynamic_sampling.tasks.boost_low_volume_projects.raw_snql_query"
+        ) as mock_query:
+            mock_query.return_value = {"data": []}
+
+            list(query_project_counts_by_org([], SamplingMeasure.TRANSACTIONS))
+
+            assert mock_query.call_count == 1
+
+    def test_fetch_projects_calls_query_for_both_measures_even_when_one_is_empty(self) -> None:
+        """
+        This test confirms that when partition_by_measure returns both measures
+        (one with orgs, one empty), fetch_projects_with_total_root_transaction_count_and_rates
+        is called for BOTH measures, resulting in unnecessary Snuba queries.
+        """
+        org = self.create_organization("test-org")
+        self.create_project(organization=org)
+
+        self.store_performance_metric(
+            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo", "decision": "keep"},
+            minutes_before_now=30,
+            value=1,
+            project_id=org.project_set.first().id,
+            org_id=org.id,
+        )
+
+        with patch(
+            "sentry.dynamic_sampling.tasks.boost_low_volume_projects.raw_snql_query"
+        ) as mock_query:
+            mock_query.return_value = {"data": []}
+
+            with self.options(
+                {
+                    "dynamic-sampling.check_span_feature_flag": True,
+                    "dynamic-sampling.measure.spans": [org.id],
+                }
+            ):
+                partitioned = partition_by_measure([org.id])
+                assert partitioned[SamplingMeasure.SPANS] == [org.id]
+                assert partitioned[SamplingMeasure.TRANSACTIONS] == []
+
+                for measure, org_ids in partitioned.items():
+                    fetch_projects_with_total_root_transaction_count_and_rates(
+                        org_ids=org_ids, measure=measure
+                    )
+
+            assert mock_query.call_count == 2
+
+    def test_confirms_both_measures_queried_per_batch(self) -> None:
+        """
+        This test simulates the main task loop behavior and confirms that
+        for each batch of orgs, BOTH measures result in Snuba queries,
+        even when the TRANSACTIONS measure has an empty org list.
+
+        This is the root cause of seeing equal query counts for both measures
+        in the metrics, despite only having orgs in one measure.
+        """
+        org1 = self.create_organization("test-org1")
+        org2 = self.create_organization("test-org2")
+        self.create_project(organization=org1)
+        self.create_project(organization=org2)
+
+        with patch(
+            "sentry.dynamic_sampling.tasks.boost_low_volume_projects.raw_snql_query"
+        ) as mock_query:
+            mock_query.return_value = {"data": []}
+
+            with self.options(
+                {
+                    "dynamic-sampling.check_span_feature_flag": True,
+                    "dynamic-sampling.measure.spans": [org1.id, org2.id],
+                }
+            ):
+                batches = [[org1.id], [org2.id]]
+
+                for batch in batches:
+                    partitioned = partition_by_measure(batch)
+                    assert partitioned[SamplingMeasure.TRANSACTIONS] == []
+
+                    for measure, org_ids in partitioned.items():
+                        fetch_projects_with_total_root_transaction_count_and_rates(
+                            org_ids=org_ids, measure=measure
+                        )
+
+            assert mock_query.call_count == 4

@@ -284,6 +284,9 @@ def query_project_counts_by_org(
 
     Yields chunks of result rows, to allow timeouts to be handled in the caller.
     """
+    if not org_ids:
+        return
+
     if query_interval is None:
         query_interval = timedelta(hours=1)
 
@@ -296,6 +299,10 @@ def query_project_counts_by_org(
         "dynamic_sampling.query_project_counts_by_org.count",
         amount=len(org_ids),
         tags={"measure": str(measure.value)},
+    )
+    metrics.incr(
+        "dynamic_sampling.query_project_counts_by_org.invocations",
+        tags={"measure": str(measure.value), "empty_org_ids": str(len(org_ids) == 0)},
     )
 
     org_ids = list(org_ids)
