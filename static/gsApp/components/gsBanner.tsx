@@ -1014,7 +1014,7 @@ class GSBanner extends Component<Props, State> {
     // if there are deactivated members, than anyone who doesn't have org:billing will be
     // prevented from accessing this view anyways cause they will be deactivated
     if (isOverMemberLimit && !deactivatedMemberDismissed && this.hasBillingPerms) {
-      const checkoutUrl = `/settings/${organization.slug}/billing/checkout/?referrer=deactivated_member_header`;
+      const checkoutUrl = `/checkout/${organization.slug}/?referrer=deactivated_member_header`;
       const wrappedNumber = <strong>{membersDeactivatedFromLimit}</strong>;
       // only disabling members if the plan allows exactly one member
       return (

@@ -21,7 +21,7 @@ export function CronsBannerUpgradeCTA({hasBillingAccess}: UpgradeCTAProps) {
   if (hasBillingAccess) {
     return (
       <LinkButton
-        href={normalizeUrl(`/settings/${organization.slug}/billing/checkout/`)}
+        href={normalizeUrl(`/checkout/${organization.slug}/`)}
         size="xs"
         analyticsEventName="Crons: Clicked Trial Banner CTA"
         analyticsEventKey="crons.clicked_trial_banner_cta"

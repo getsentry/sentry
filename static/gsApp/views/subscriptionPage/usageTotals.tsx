@@ -1081,7 +1081,7 @@ export function CombinedUsageTotals({
                 <LinkButton
                   data-test-id={`enable-${apiName}`}
                   size="sm"
-                  to={`/settings/${organization.slug}/billing/checkout/?referrer=${apiName}-usage-card#step1`}
+                  to={`/checkout/${organization.slug}/?referrer=${apiName}-usage-card#step1`}
                   icon={<IconLock />}
                 >
                   {tct('Enable [productName]', {

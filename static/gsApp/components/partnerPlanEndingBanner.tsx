@@ -81,7 +81,7 @@ function PartnerPlanEndingBanner({
             analyticsEventName="Partner Plan Ending Banner: Manage Subscription"
             size="md"
             onClick={() => handleAnalytics()}
-            to={`/settings/${organization.slug}/billing/checkout/?referrer=partner_plan_ending_banner`}
+            to={`/checkout/${organization.slug}/?referrer=partner_plan_ending_banner`}
           >
             {t('Upgrade to %s', planToUpgradeTo)}
           </LinkButton>
