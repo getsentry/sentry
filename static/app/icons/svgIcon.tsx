@@ -1,8 +1,7 @@
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 
-import type {ColorOrAlias} from 'sentry/utils/theme';
-import type {ContentVariant, IconSize} from 'sentry/utils/theme/types';
+import type {ColorOrAlias, ContentVariant, IconSize} from 'sentry/utils/theme';
 
 import {useIconDefaults} from './useIconDefaults';
 

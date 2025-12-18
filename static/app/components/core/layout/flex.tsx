@@ -2,7 +2,7 @@ import type {CSSProperties} from 'react';
 import styled from '@emotion/styled';
 import type {DistributedOmit} from 'type-fest';
 
-import type {SpaceSize} from 'sentry/utils/theme/types';
+import type {SpaceSize} from 'sentry/utils/theme';
 
 import {Container, type ContainerElement, type ContainerProps} from './container';
 import {getSpacing, rc, type Responsive} from './styles';

@@ -15,6 +15,7 @@ import {spring, type Transition} from 'framer-motion';
 import {color} from 'sentry/utils/theme/scraps/color';
 import {breakpoints, radius, size, space} from 'sentry/utils/theme/scraps/size';
 import {typography} from 'sentry/utils/theme/scraps/typography';
+
 import type {
   AlertVariant,
   ButtonVariant,
@@ -23,7 +24,7 @@ import type {
   MotionDuration,
   MotionEasing,
   TagVariant,
-} from 'sentry/utils/theme/types';
+} from './types';
 
 type SimpleMotionName = Exclude<MotionEasing, 'spring'>;
 

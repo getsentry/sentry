@@ -2,7 +2,7 @@ import type {FocusTrap} from 'focus-trap';
 
 import type {ApiResult} from 'sentry/api';
 import type {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
-import type {AlertVariant} from 'sentry/utils/theme/types';
+import type {AlertVariant} from 'sentry/utils/theme';
 
 import type {ParntershipAgreementType} from './hooks';
 import type {User} from './user';

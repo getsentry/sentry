@@ -5,7 +5,7 @@ import {IconClose} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {TagVariant} from 'sentry/utils/theme/types';
+import type {TagVariant} from 'sentry/utils/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 
 import * as ChonkTag from './tag.chonk';

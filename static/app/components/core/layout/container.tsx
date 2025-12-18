@@ -7,7 +7,7 @@ import type {
   RadiusSize,
   SpaceSize,
   SurfaceVariant,
-} from 'sentry/utils/theme/types';
+} from 'sentry/utils/theme';
 
 import {
   getBorder,

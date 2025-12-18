@@ -12,7 +12,7 @@ import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
-import type {GraphicsVariant} from 'sentry/utils/theme/types';
+import type {GraphicsVariant} from 'sentry/utils/theme';
 
 const NODE_SIZES = [8, 12, 16];
 

@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
-import type {BreakpointSize} from 'sentry/utils/theme/types';
+import type {BreakpointSize} from 'sentry/utils/theme';
 
 function useInstantRef<T>(value: T) {
   const ref = useRef(value);

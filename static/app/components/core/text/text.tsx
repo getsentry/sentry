@@ -2,7 +2,7 @@ import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
 import {rc, type Responsive} from 'sentry/components/core/layout/styles';
-import type {ContentVariant, FontSize} from 'sentry/utils/theme/types';
+import type {ContentVariant, FontSize} from 'sentry/utils/theme';
 
 import {getFontSize, getLineHeight, getTextDecoration} from './styles';
 

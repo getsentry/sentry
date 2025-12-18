@@ -1,13 +1,13 @@
 import {useCallback, useMemo, useSyncExternalStore} from 'react';
 import {css, useTheme, type SerializedStyles} from '@emotion/react';
 
-import type {Theme} from 'sentry/utils/theme';
 import type {
   BorderVariant,
   BreakpointSize,
   RadiusSize,
   SpaceSize,
-} from 'sentry/utils/theme/types';
+  Theme,
+} from 'sentry/utils/theme';
 
 // It is unfortunate, but Emotion seems to use the fn callback name in the classname, so lets keep it short.
 export function rc<T>(

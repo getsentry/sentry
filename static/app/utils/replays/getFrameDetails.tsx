@@ -60,7 +60,7 @@ import {
   isRageClick,
 } from 'sentry/utils/replays/types';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import type {GraphicsVariant} from 'sentry/utils/theme/types';
+import type {GraphicsVariant} from 'sentry/utils/theme';
 import stripURLOrigin from 'sentry/utils/url/stripURLOrigin';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 
