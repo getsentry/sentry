@@ -18,6 +18,7 @@ from sentry.models.group import GroupStatus
 from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
@@ -861,6 +862,7 @@ class TestGetDetectorsForEvent(TestCase):
         )
         self.group_event = GroupEvent.from_event(self.event, self.group)
 
+    @override_options({"workflow_engine.exclude_issue_stream_detector": False})
     def test_activity_update(self) -> None:
         activity = Activity.objects.create(
             project=self.project,
@@ -874,6 +876,7 @@ class TestGetDetectorsForEvent(TestCase):
         assert result.preferred_detector == self.detector
         assert result.detectors == {self.issue_stream_detector, self.detector}
 
+    @override_options({"workflow_engine.exclude_issue_stream_detector": False})
     def test_error_event(self) -> None:
         event_data = WorkflowEventData(event=self.group_event, group=self.group)
         result = get_detectors_for_event(event_data)
@@ -881,6 +884,7 @@ class TestGetDetectorsForEvent(TestCase):
         assert result.preferred_detector == self.error_detector
         assert result.detectors == {self.issue_stream_detector, self.error_detector}
 
+    @override_options({"workflow_engine.exclude_issue_stream_detector": False})
     def test_metric_issue(self) -> None:
         self.group_event.occurrence = self.occurrence
 
@@ -890,6 +894,7 @@ class TestGetDetectorsForEvent(TestCase):
         assert result.preferred_detector == self.detector
         assert result.detectors == {self.issue_stream_detector, self.detector}
 
+    @override_options({"workflow_engine.exclude_issue_stream_detector": False})
     def test_event_without_detector(self) -> None:
         occurrence = IssueOccurrence(
             id=uuid.uuid4().hex,
@@ -920,6 +925,26 @@ class TestGetDetectorsForEvent(TestCase):
         event_data = WorkflowEventData(event=self.group_event, group=self.group)
         result = get_detectors_for_event(event_data)
         assert result is None
+
+    def test_exclude_issue_stream_detector(self) -> None:
+        event_data = WorkflowEventData(event=self.group_event, group=self.group)
+
+        # Default behavior: issue stream detector is included
+        result = get_detectors_for_event(event_data)
+
+        assert result is not None
+        assert result.issue_stream_detector == self.issue_stream_detector
+        assert result.event_detector == self.error_detector
+        assert result.preferred_detector == self.error_detector
+
+        # With flag enabled: issue stream detector is excluded
+        with override_options({"workflow_engine.exclude_issue_stream_detector": True}):
+            result_excluded = get_detectors_for_event(event_data)
+
+            assert result_excluded is not None
+            assert result_excluded.issue_stream_detector is None
+            assert result_excluded.event_detector == self.error_detector
+            assert result_excluded.preferred_detector == self.error_detector
 
 
 class TestGetDetectorByEvent(TestCase):
