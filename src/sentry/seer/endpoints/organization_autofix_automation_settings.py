@@ -149,6 +149,8 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
         """
         Bulk create/update the autofix automation settings of projects in a single request.
 
+        NOTE: When ProjectRepoMappings are provided, it will overwrite the existing repositories for that project.
+
         :pparam string organization_id_or_slug: the id or slug of the organization.
         :auth: required
         """
