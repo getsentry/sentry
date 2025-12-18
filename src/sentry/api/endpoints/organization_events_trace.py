@@ -483,24 +483,21 @@ def is_root(item: SnubaTransaction) -> bool:
     return item.get("root", "0") == "1"
 
 
-def child_sort_key(item: TraceEvent) -> list[int | str]:
+def child_sort_key(item: TraceEvent) -> tuple[int, int, str, str]:
     if item.fetched_nodestore and item.nodestore_event is not None:
-        return [
+        return (
             item.nodestore_event.data["start_timestamp"],
             item.nodestore_event.data["timestamp"],
-        ]
-    elif item.span_serialized:
-        return [
+            item.event["transaction"],
+            item.event["id"],
+        )
+    else:
+        return (
             item.event["precise.start_ts"],
             item.event["precise.finish_ts"],
             item.event["transaction"],
             item.event["id"],
-        ]
-    else:
-        return [
-            item.event["transaction"],
-            item.event["id"],
-        ]
+        )
 
 
 def count_performance_issues(
@@ -1322,9 +1319,6 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 orphans.extend(result)
             elif len(roots) > 0:
                 trace_roots = result
-        sentry_sdk.set_context(
-            "trace_root_keys", {"keys": [child_sort_key(trace_root) for trace_root in trace_roots]}
-        )
         # We sort orphans and roots separately because we always want the root(s) as the first element(s)
         trace_roots.sort(key=child_sort_key)
         orphans.sort(key=child_sort_key)
