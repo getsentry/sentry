@@ -131,6 +131,11 @@ class QuerySerializer(serializers.Serializer):
         allow_null=True,
         help_text="The metric configuration (only used for metrics dataset).",
     )
+    caseInsensitive = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="Whether the query should be case insensitive.",
+    )
 
 
 class ExploreSavedQuerySerializer(serializers.Serializer):
@@ -200,6 +205,7 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
             "aggregateField",
             "aggregateOrderby",
             "metric",
+            "caseInsensitive",
         ]
 
         for key in query_keys:
