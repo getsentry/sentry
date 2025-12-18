@@ -279,11 +279,7 @@ function Chart({
                   });
                 },
                 onOutsideSelectionClick: params => {
-                  if (
-                    !params.selectionState ||
-                    !params.selectionState.isActionMenuVisible
-                  )
-                    return;
+                  if (!params.selectionState?.isActionMenuVisible) return;
 
                   params.setSelectionState({
                     ...params.selectionState,
