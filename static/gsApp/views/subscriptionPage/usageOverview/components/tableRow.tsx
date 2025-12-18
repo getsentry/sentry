@@ -284,7 +284,7 @@ function UsageOverviewTableRow({
                     value={percentUsed}
                     progressColor={
                       !usageExceeded && percentUsed === 100
-                        ? theme.warningFocus
+                        ? theme.tokens.border.danger
                         : undefined
                     }
                   />
