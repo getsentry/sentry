@@ -248,7 +248,7 @@ const ResizeHandle = styled('div')`
   &:hover,
   &:active {
     &::after {
-      background: ${p => p.theme.purple400};
+      background: ${p => p.theme.colors.blue500};
     }
   }
 
@@ -265,7 +265,7 @@ const ResizeHandle = styled('div')`
   }
 
   &[data-resizing]::after {
-    background: ${p => p.theme.purple400};
+    background: ${p => p.theme.colors.blue500};
   }
 `;
 

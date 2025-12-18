@@ -650,7 +650,7 @@ export function SourceMapsDebuggerModal({
               >
                 <StyledProgressRing
                   progressColor={
-                    activeTab === 'debug-ids' ? theme.purple300 : theme.gray300
+                    activeTab === 'debug-ids' ? theme.colors.blue400 : theme.gray300
                   }
                   backgroundColor={theme.gray200}
                   value={sourceResolutionResults.debugIdProgressPercent * 100}
@@ -672,7 +672,7 @@ export function SourceMapsDebuggerModal({
               >
                 <StyledProgressRing
                   progressColor={
-                    activeTab === 'release' ? theme.purple300 : theme.gray300
+                    activeTab === 'release' ? theme.colors.blue400 : theme.gray300
                   }
                   backgroundColor={theme.gray200}
                   value={sourceResolutionResults.releaseProgressPercent * 100}
@@ -690,7 +690,7 @@ export function SourceMapsDebuggerModal({
               >
                 <StyledProgressRing
                   progressColor={
-                    activeTab === 'fetching' ? theme.purple300 : theme.gray300
+                    activeTab === 'fetching' ? theme.colors.blue400 : theme.gray300
                   }
                   backgroundColor={theme.gray200}
                   value={sourceResolutionResults.scrapingProgressPercent * 100}

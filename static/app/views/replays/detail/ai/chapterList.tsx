@@ -284,7 +284,7 @@ const ChapterWrapper = styled('details')`
   }
 
   &.activeChapter .beforeCurrentTime:last-child {
-    border-bottom-color: ${p => p.theme.purple300};
+    border-bottom-color: ${p => p.theme.colors.blue400};
   }
 
   /* the border-top is used to eliminate some of the top gap */

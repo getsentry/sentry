@@ -67,7 +67,7 @@ export class VideoReplayerWithInteractions {
         duration: 0.75 * 1000,
         lineCap: 'round',
         lineWidth: 2,
-        strokeStyle: theme.purple200,
+        strokeStyle: theme.colors.blue200,
       },
       plugins: [],
       skipInactive: false,

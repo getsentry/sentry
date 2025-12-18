@@ -141,7 +141,7 @@ export const getChonkStylesConfig = ({
       ...(state.isMulti && {
         maxHeight: 'inherit',
         overflowY: 'auto',
-        scrollbarColor: `${theme.purple200} ${theme.tokens.background.primary}`,
+        scrollbarColor: `${theme.colors.blue200} ${theme.tokens.background.primary}`,
       }),
     }),
     input: provided => ({
@@ -293,8 +293,8 @@ export const ChonkCheckWrap = styled('div')<{
           margin-top: 2px;
           ${p.isSelected &&
           css`
-            background: ${p.theme.purple300};
-            border-color: ${p.theme.purple300};
+            background: ${p.theme.colors.blue400};
+            border-color: ${p.theme.colors.blue400};
           `}
         `
       : css`

@@ -59,7 +59,7 @@ export const sentryReplayerCss = (theme: Theme) => css`
     display: inline-block;
     width: 32px;
     height: 32px;
-    background: ${theme.purple300};
+    background: ${theme.colors.blue400};
     border-radius: 100%;
     transform: translate(-50%, -50%);
     opacity: 0.3;
@@ -81,7 +81,7 @@ export const sentryReplayerCss = (theme: Theme) => css`
       border-color 0.2s ease-in-out;
   }
   .replayer-mouse.touch-device.touch-active {
-    border-color: ${theme.purple200};
+    border-color: ${theme.colors.blue200};
     transition:
       left 0.25s linear,
       top 0.25s linear,

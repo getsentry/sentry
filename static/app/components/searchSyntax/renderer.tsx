@@ -410,16 +410,16 @@ const InList = styled('span')`
   &:before {
     content: '[';
     font-weight: ${p => p.theme.fontWeight.bold};
-    color: ${p => p.theme.purple400};
+    color: ${p => p.theme.colors.blue500};
   }
   &:after {
     content: ']';
     font-weight: ${p => p.theme.fontWeight.bold};
-    color: ${p => p.theme.purple400};
+    color: ${p => p.theme.colors.blue500};
   }
 
   ${Value} {
-    color: ${p => p.theme.purple400};
+    color: ${p => p.theme.colors.blue500};
   }
 `;
 

@@ -184,10 +184,10 @@ const LinkedFeedbackCard = styled(Link)`
     color: ${p => p.theme.tokens.content.primary};
   }
   &[data-selected='true'] {
-    background: ${p => p.theme.purple100};
-    border: 1px solid ${p => p.theme.purple200};
+    background: ${p => p.theme.colors.blue100};
+    border: 1px solid ${p => p.theme.colors.blue200};
     border-radius: ${space(0.75)};
-    color: ${p => p.theme.purple300};
+    color: ${p => p.theme.colors.blue400};
   }
 
   display: grid;
@@ -235,7 +235,7 @@ const DotRow = styled(Row)`
 const UnreadIndicator = styled('div')`
   width: 8px;
   height: 8px;
-  background-color: ${p => p.theme.purple400};
+  background-color: ${p => p.theme.colors.blue500};
   border-radius: 50%;
 `;
 

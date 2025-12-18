@@ -105,8 +105,8 @@ const CheckWrap = withChonk(
             box-shadow: inset ${p.theme.dropShadowMedium};
             ${p.isSelected &&
             css`
-              background: ${p.theme.purple300};
-              border-color: ${p.theme.purple300};
+              background: ${p.theme.colors.blue400};
+              border-color: ${p.theme.colors.blue400};
             `}
           `
         : css`

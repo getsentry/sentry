@@ -162,6 +162,6 @@ const Container = styled('div')`
   left: 0;
   right: 0;
   bottom: 0;
-  color: ${p => p.theme.purple200};
+  color: ${p => p.theme.colors.blue200};
   opacity: 0.4;
 `;

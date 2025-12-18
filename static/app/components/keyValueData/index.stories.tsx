@@ -261,7 +261,7 @@ function generateContentItems(theme: Theme): KeyValueDataContentProps[] {
         key: 'subject-node',
         subject: 'custom subject node',
         subjectNode: (
-          <span style={{color: theme.purple300}}>
+          <span style={{color: theme.colors.blue400}}>
             Custom Subject Node <IconSentry />
           </span>
         ),

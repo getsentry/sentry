@@ -758,7 +758,7 @@ const CheckboxLabel = styled('label')`
 const UnreadIndicator = styled('div')`
   width: 8px;
   height: 8px;
-  background-color: ${p => p.theme.purple400};
+  background-color: ${p => p.theme.colors.blue500};
   border-radius: 50%;
   margin-top: 1px;
   margin-left: ${space(2)};

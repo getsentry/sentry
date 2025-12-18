@@ -169,7 +169,7 @@ const KeyEditing = styled('div')`
 
   :focus-within {
     ${Parameters} {
-      background-color: ${p => p.theme.purple100};
+      background-color: ${p => p.theme.colors.blue100};
       height: 100%;
     }
   }

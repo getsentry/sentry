@@ -649,15 +649,15 @@ const ProductButton = withChonk(
   styled(Button)`
     :hover,
     :focus-visible {
-      border: 1px solid ${p => p.theme.purple300};
-      background: ${p => p.theme.purple100};
-      color: ${p => p.theme.purple300};
+      border: 1px solid ${p => p.theme.colors.blue400};
+      background: ${p => p.theme.colors.blue100};
+      color: ${p => p.theme.colors.blue400};
     }
 
     [aria-disabled='true'] {
       input {
-        background: ${p => p.theme.purple100};
-        color: ${p => p.theme.purple300};
+        background: ${p => p.theme.colors.blue100};
+        color: ${p => p.theme.colors.blue400};
       }
     }
   `,

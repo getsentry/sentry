@@ -453,7 +453,7 @@ const ResponseDot = styled('div')<{
       case 'pending':
         return p.theme.pink400;
       case 'content':
-        return p.theme.purple400;
+        return p.theme.colors.blue500;
       case 'success':
         return p.theme.colors.green500;
       case 'failure':
@@ -461,7 +461,7 @@ const ResponseDot = styled('div')<{
       case 'mixed':
         return p.theme.yellow400;
       default:
-        return p.theme.purple400;
+        return p.theme.colors.blue500;
     }
   }};
 
