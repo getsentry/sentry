@@ -851,7 +851,7 @@ def handle_seer_webhook(*, event_name: str, organization_id: int, payload: dict)
         if not run_id:
             logger.error("seer.webhook_run_id_not_found", extra={"payload": payload})
         else:
-            SeerOperator.handle_autofix_updates(
+            SeerOperator.process_autofix_updates(
                 run_id=run_id,
                 event_type=sentry_app_event_type,
                 event_payload=payload,

@@ -15,11 +15,19 @@ class AutofixStateResponse(TypedDict):
     autofix: dict[str, Any] | None
 
 
-class AutofixUpdateUserMessageRequestPayload(TypedDict):
-    type: Literal["user_message"]
-    text: str
+class AutofixSelectRootCausePayload(TypedDict):
+    type: Literal["select_root_cause"]
+    cause_id: int
+
+
+class AutofixSelectSolutionPayload(TypedDict):
+    type: Literal["select_solution"]
+
+
+class AutofixCreatePRPayload(TypedDict):
+    type: Literal["create_pr"]
 
 
 class AutofixUpdateRequest(TypedDict):
     run_id: int
-    payload: AutofixUpdateUserMessageRequestPayload
+    payload: AutofixSelectRootCausePayload | AutofixSelectSolutionPayload | AutofixCreatePRPayload

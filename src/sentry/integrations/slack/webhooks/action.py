@@ -588,6 +588,7 @@ class SlackActionEndpoint(Endpoint):
             )
             return
 
+        run_id = slack_request.callback_data.get("run_id")
         entrypoint = SlackEntrypoint(
             slack_request=slack_request,
             group=group,
@@ -595,10 +596,11 @@ class SlackActionEndpoint(Endpoint):
             autofix_stopping_point=stopping_point,
         )
         operator = SeerOperator(entrypoint=entrypoint)
-        operator.start_autofix(
+        operator.trigger_autofix(
             group=group,
             user=user,
             stopping_point=stopping_point,
+            run_id=run_id,
         )
 
     @classmethod

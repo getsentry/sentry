@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import TypedDict
 
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.types import (
@@ -15,7 +16,9 @@ from sentry.seer.autofix.utils import AutofixStoppingPoint
 @dataclass(frozen=True)
 class SeerAutofixTrigger(NotificationData):
     organization_id: int
-    project_id: int | None = None
+    project_id: int
+    group_id: int
+    run_id: int | None = None
     source: str = "seer-autofix-trigger"
     stopping_point: AutofixStoppingPoint = AutofixStoppingPoint.ROOT_CAUSE
 
@@ -29,6 +32,7 @@ class SeerAutofixTrigger(NotificationData):
             return "Write Code Changes"
         elif self.stopping_point == AutofixStoppingPoint.OPEN_PR:
             return "Draft a PR"
+        raise ValueError(f"Invalid stopping point, {self.stopping_point}")
 
 
 @template_registry.register(SeerAutofixTrigger.source)
@@ -36,7 +40,8 @@ class SeerAutofixTriggerTemplate(NotificationTemplate[SeerAutofixTrigger]):
     category = NotificationCategory.SEER
     example_data = SeerAutofixTrigger(
         source="seer-autofix-trigger",
-        project_id=1,
+        group_id=456,
+        project_id=123,
         organization_id=1,
         stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
     )
@@ -91,14 +96,24 @@ class SeerAutofixSuccessTemplate(NotificationTemplate[SeerAutofixSuccess]):
         return NotificationRenderedTemplate(subject="Seer Autofix Success", body=[])
 
 
+class SeerAutofixCodeChange(TypedDict):
+    repo_name: str
+    diff: str
+    description: str
+    title: str
+
+
 @dataclass(frozen=True)
 class SeerAutofixUpdate(NotificationData):
     run_id: int
     organization_id: int
+    project_id: int
+    group_id: int
     current_point: AutofixStoppingPoint
-    summary: str
-    steps: list[str]
     group_link: str
+    steps: list[str]
+    changes: list[SeerAutofixCodeChange]
+    summary: str | None = None
     source: str = "seer-autofix-update"
 
 
@@ -108,6 +123,8 @@ class SeerAutofixUpdateTemplate(NotificationTemplate[SeerAutofixUpdate]):
     example_data = SeerAutofixUpdate(
         source="seer-autofix-update",
         run_id=12152025,
+        project_id=123,
+        group_id=456,
         current_point=AutofixStoppingPoint.ROOT_CAUSE,
         organization_id=1,
         summary="Undefined variable `name06` in `error_function` causes an unhandled `NameError` during test transaction execution.",
@@ -116,6 +133,14 @@ class SeerAutofixUpdateTemplate(NotificationTemplate[SeerAutofixUpdate]):
             "User triggers the error route, starting the test transaction context.",
             "The application calls the error function, which contains the bug.",
             "Attempting to print an undefined variable raises an unhandled NameError.",
+        ],
+        changes=[
+            {
+                "repo_name": "getsentry/sentry",
+                "diff": "--- flask-error/src/runner.py\n+++ flask-error/src/runner.py\n@@ -1,2 +1,3 @@\n def error_function():\n+    name06 = 'demo variable'\n     print(name06)",
+                "description": "- Added definition for local variable `name06` in `error_function`.",
+                "title": "refactor: Define local variable name06 in runner.py",
+            }
         ],
         group_link="https://sentry.sentry.io/issues/123456/",
     )

@@ -36,22 +36,6 @@ class SeerEntrypoint[CachePayloadT](Protocol):
         """
         ...
 
-    def on_message_autofix_error(self, *, error: str) -> None:
-        """
-        Called when a user message fails to be sent to autofix.
-
-        Example Usage: Adding a :x: reaction to the user's message, or mention, etc.
-        """
-        ...
-
-    def on_message_autofix_success(self, *, run_id: int) -> None:
-        """
-        Called when a user message has been sent to autofix successfully.
-
-        Example Usage: Adding an :checkmark: reaction to the user's message, etc.
-        """
-        ...
-
     def create_autofix_cache_payload(self) -> CachePayloadT:
         """
         Creates a cached payload which will be provided to on_autofix_update.

@@ -23,12 +23,14 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from sentry.integrations.slack.integration import SlackIntegration
-    from sentry.integrations.slack.requests import SlackActionRequest
+    from sentry.integrations.slack.requests.action import SlackActionRequest
     from sentry.models.group import Group
 
 
 class SlackEntrypointCachePayload(TypedDict):
     organization_id: int
+    project_id: int
+    group_id: int
     integration_id: int
     thread_ts: str
     channel_id: str
@@ -78,29 +80,26 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             ),
         )
 
-    def on_message_autofix_error(self, *, error: str) -> None:
-        # TODO(Leander): Modify the original context input block?
-        pass
-
-    def on_message_autofix_success(self, *, run_id: int) -> None:
-        # TODO(Leander): Add a reaction and disable the context input block?
-        pass
-
     def create_autofix_cache_payload(self) -> SlackEntrypointCachePayload:
         return SlackEntrypointCachePayload(
             thread_ts=self.thread_ts,
             channel_id=self.channel_id,
             organization_id=self.organization_id,
             integration_id=self.install.model.id,
+            project_id=self.group.project.id,
+            group_id=self.group.id,
             group_link=self.group.get_absolute_url(),
         )
 
     @staticmethod
     def on_autofix_update(
         event_type: SentryAppEventType,
+        # TODO(leander): Type this out better
         event_payload: dict[str, Any],
         cache_payload: SlackEntrypointCachePayload,
     ) -> None:
+        from sentry.integrations.slack.integration import SlackIntegration
+
         logging_ctx = {
             "event_type": event_type,
             "cache_payload": cache_payload,
@@ -118,45 +117,74 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
         install = SlackIntegration(
             model=integration, organization_id=cache_payload["organization_id"]
         )
-        update_data = SeerAutofixUpdate(
-            run_id=event_payload["run_id"],
-            organization_id=cache_payload["organization_id"],
-            current_point=AutofixStoppingPoint.ROOT_CAUSE,
-            summary=event_payload["summary"],
-            steps=event_payload["steps"],
-            group_link=f'{cache_payload["group_link"]}?seerDrawer=true',
-        )
+        group_link = f'{cache_payload["group_link"]}?seerDrawer=true'
 
         match event_type:
             case SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED:
+                root_cause = event_payload.get("root_cause", {})
                 _send_thread_update(
                     install=install,
                     channel_id=cache_payload["channel_id"],
                     thread_ts=cache_payload["thread_ts"],
-                    data=update_data,
+                    data=SeerAutofixUpdate(
+                        run_id=event_payload["run_id"],
+                        organization_id=cache_payload["organization_id"],
+                        project_id=cache_payload["project_id"],
+                        group_id=cache_payload["group_id"],
+                        current_point=AutofixStoppingPoint.ROOT_CAUSE,
+                        summary=root_cause.get("description", ""),
+                        changes=[],
+                        steps=[step.get("title", "") for step in root_cause.get("steps", [])],
+                        group_link=group_link,
+                    ),
                 )
                 return
             case SentryAppEventType.SEER_SOLUTION_COMPLETED:
+                solution = event_payload.get("solution", {})
                 _send_thread_update(
                     install=install,
                     channel_id=cache_payload["channel_id"],
                     thread_ts=cache_payload["thread_ts"],
-                    data=update_data,
+                    data=SeerAutofixUpdate(
+                        run_id=event_payload["run_id"],
+                        organization_id=cache_payload["organization_id"],
+                        project_id=cache_payload["project_id"],
+                        group_id=cache_payload["group_id"],
+                        current_point=AutofixStoppingPoint.SOLUTION,
+                        summary=solution.get("description", ""),
+                        changes=[],
+                        steps=[step.get("title", "") for step in solution.get("steps", [])],
+                        group_link=group_link,
+                    ),
                 )
+                return
             case SentryAppEventType.SEER_CODING_COMPLETED:
+                changes = event_payload.get("changes", {})
                 _send_thread_update(
                     install=install,
                     channel_id=cache_payload["channel_id"],
                     thread_ts=cache_payload["thread_ts"],
-                    data=update_data,
+                    data=SeerAutofixUpdate(
+                        run_id=event_payload["run_id"],
+                        organization_id=cache_payload["organization_id"],
+                        project_id=cache_payload["project_id"],
+                        group_id=cache_payload["group_id"],
+                        current_point=AutofixStoppingPoint.CODE_CHANGES,
+                        steps=[],
+                        changes=[
+                            {
+                                "repo_name": change.get("repo_name", ""),
+                                "diff": change.get("diff", ""),
+                                "title": change.get("title", ""),
+                                "description": change.get("description", ""),
+                            }
+                            for change in changes
+                        ],
+                        group_link=group_link,
+                    ),
                 )
             case SentryAppEventType.SEER_PR_CREATED:
-                _send_thread_update(
-                    install=install,
-                    channel_id=cache_payload["channel_id"],
-                    thread_ts=cache_payload["thread_ts"],
-                    data=update_data,
-                )
+                pass
             case _:
                 return
 

@@ -769,6 +769,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             autofix_button: ButtonElement = SeerSlackRenderer.render_autofix_button(
                 data=SeerAutofixTrigger(
                     source="seer-autofix-trigger",
+                    group_id=self.group.id,
                     project_id=self.group.project_id,
                     organization_id=self.group.project.organization_id,
                 )

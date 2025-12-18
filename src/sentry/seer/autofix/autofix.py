@@ -27,6 +27,12 @@ from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import EventsResponse, SnubaParams
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
+from sentry.seer.autofix.types import (
+    AutofixCreatePRPayload,
+    AutofixSelectRootCausePayload,
+    AutofixSelectSolutionPayload,
+    AutofixUpdateRequest,
+)
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     bulk_set_project_preferences,
@@ -764,27 +770,27 @@ def trigger_autofix(
     )
 
 
-def update_autofix_with_user_message(
+def update_autofix(
     *,
     run_id: int,
-    unsafe_message: str,
+    payload: AutofixSelectRootCausePayload | AutofixSelectSolutionPayload | AutofixCreatePRPayload,
 ) -> Response:
-    from sentry.seer.autofix.types import (
-        AutofixUpdateRequest,
-        AutofixUpdateUserMessageRequestPayload,
-    )
+    """
+    Issue an update to an autofix run. Intentionally matching the output of trigger_autofix.
+    """
 
     path = "/v1/automation/autofix/update"
-    data = AutofixUpdateRequest(
-        run_id=run_id,
-        payload=AutofixUpdateUserMessageRequestPayload(
-            type="user_message",
-            text=unsafe_message,
-        ),
-    )
+    data = AutofixUpdateRequest(run_id=run_id, payload=payload)
     body = orjson.dumps(data)
-    return requests.post(
+    response = requests.post(
         f"{settings.SEER_AUTOFIX_URL}{path}",
         data=body,
         headers={"content-type": "application/json;charset=utf-8", **sign_with_seer_secret(body)},
     )
+
+    try:
+        response.raise_for_status()
+    except Exception:
+        return Response({"detail": "Failed to update autofix"}, status=500)
+
+    return Response(response.json(), status=200)
