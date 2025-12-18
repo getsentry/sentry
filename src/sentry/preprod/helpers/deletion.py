@@ -60,7 +60,7 @@ def delete_artifact_and_related_objects(
     """
 
     with transaction.atomic(using=router.db_for_write(PreprodArtifact)):
-        files_deleted = []
+        files_deleted: list[str] = []
 
         # Delete the main artifact file
         if preprod_artifact.file_id:
@@ -81,7 +81,7 @@ def delete_artifact_and_related_objects(
             )
 
         # Delete size analysis metrics and their associated files
-        size_metrics = list(
+        size_metrics: list[PreprodArtifactSizeMetrics] = list(
             PreprodArtifactSizeMetrics.objects.filter(preprod_artifact=preprod_artifact)
         )
         size_metrics_count = len(size_metrics)
@@ -168,7 +168,7 @@ def _delete_file_if_exists(
     file_type: PreprodFilestoreFileType,
     artifact_id: int,
     files_deleted: list[str],
-    extra_fields: dict | None = None,
+    extra_fields: dict[str, int | str] | None = None,
 ) -> None:
     """Helper to delete a file with consistent error handling and logging."""
     extra = {
