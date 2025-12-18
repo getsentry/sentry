@@ -7,7 +7,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, Trace
 
 from sentry.models.commitcomparison import CommitComparison
 from sentry.preprod.eap.read import query_preprod_size_metrics
-from sentry.preprod.eap.write import write_preprod_size_metric_to_eap
+from sentry.preprod.eap.write import produce_preprod_size_metric_to_eap
 from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactSizeMetrics,
@@ -58,7 +58,7 @@ class PreprodEAPIntegrationTest(SnubaTestCase):
             analysis_file_id=123,
         )
 
-        write_preprod_size_metric_to_eap(
+        produce_preprod_size_metric_to_eap(
             size_metric=size_metric,
             organization_id=self.organization.id,
             project_id=self.project.id,
@@ -153,13 +153,13 @@ class PreprodEAPIntegrationTest(SnubaTestCase):
             max_install_size=1000,
         )
 
-        write_preprod_size_metric_to_eap(
+        produce_preprod_size_metric_to_eap(
             size_metric=size_metric_main,
             organization_id=self.organization.id,
             project_id=self.project.id,
         )
 
-        write_preprod_size_metric_to_eap(
+        produce_preprod_size_metric_to_eap(
             size_metric=size_metric_watch,
             organization_id=self.organization.id,
             project_id=self.project.id,
