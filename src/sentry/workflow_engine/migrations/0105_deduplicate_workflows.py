@@ -80,6 +80,8 @@ class WorkflowData:
         workflow_data = {
             "organization_id": self.workflow.organization_id,
             "environment_id": self.workflow.environment_id,
+            "enabled": self.workflow.enabled,
+            "config": self.workflow.config,
             "trigger_conditions": trigger_conditions,
             "action_groups": action_groups,
         }

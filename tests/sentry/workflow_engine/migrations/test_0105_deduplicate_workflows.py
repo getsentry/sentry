@@ -20,6 +20,7 @@ from sentry.workflow_engine.models.data_condition import Condition
 class MockWorkflowConfig(TypedDict, total=False):
     actions: list[Action] | None
     action_filters: list[DataCondition] | None
+    enabled: bool | None
     triggers: list[DataCondition] | None
     mock_actions: bool
     mock_action_filters: bool
@@ -56,6 +57,9 @@ DEFAULT_WORKFLOW_CONFIGS: list[MockWorkflowConfig] = [
         "mock_triggers": False,
         "mock_action_filters": False,
         "mock_actions": False,
+    },
+    {
+        "enabled": False,
     },
 ]
 
@@ -253,6 +257,9 @@ DUPLICATE_WORKFLOW_CONFIGS: list[MockWorkflowConfig] = [
         "mock_action_filters": False,
         "mock_actions": False,
     },
+    {
+        "enabled": False,
+    },
 ]
 
 
@@ -271,6 +278,7 @@ class TestDeduplicateWorkflows(TestMigrations):
             "triggers": None,
             "action_filters": None,
             "actions": None,
+            "enabled": True,
             "mock_triggers": True,
             "mock_action_filters": True,
             "mock_actions": True,
@@ -278,7 +286,7 @@ class TestDeduplicateWorkflows(TestMigrations):
         }
 
         # create workflow
-        workflow = self.create_workflow(organization=org)
+        workflow = self.create_workflow(organization=org, enabled=config["enabled"])
 
         # connect the workflow new a new detector
         detector = self.create_detector()
@@ -416,4 +424,8 @@ class TestDeduplicateWorkflows(TestMigrations):
 
     def test_deduplication__empty(self) -> None:
         index = 10  # All workflows are duplicated in this org
+        self.validate_org_workflows_deduped(index)
+
+    def test_deduplication__disabled(self) -> None:
+        index = 11  # Disabled workflow
         self.validate_org_workflows_deduped(index)
