@@ -103,6 +103,15 @@ class OrganizationAIConversationsSerializer(serializers.Serializer):
     sort = serializers.CharField(required=False, default="-timestamp")
     query = serializers.CharField(required=False, allow_blank=True)
     useOptimizedQuery = serializers.BooleanField(required=False, default=False)
+    samplingMode = serializers.ChoiceField(
+        choices=[
+            "NORMAL",
+            "HIGHEST_ACCURACY",
+            "HIGHEST_ACCURACY_FLEX_TIME",
+        ],
+        required=False,
+        default="NORMAL",
+    )
 
     def validate_sort(self, value):
         allowed_sorts = {
@@ -155,6 +164,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 limit=limit,
                 user_query=validated_data.get("query", ""),
                 use_optimized=validated_data.get("useOptimizedQuery", False),
+                sampling_mode=validated_data.get("samplingMode", "NORMAL"),
             )
 
         with handle_query_errors():
@@ -173,11 +183,12 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         limit: int,
         user_query: str,
         use_optimized: bool = False,
+        sampling_mode: str = "NORMAL",
     ) -> list[dict]:
         query_string = _build_conversation_query("has:gen_ai.conversation.id", user_query)
 
         conversation_ids_results = self._fetch_conversation_ids(
-            snuba_params, query_string, offset, limit
+            snuba_params, query_string, offset, limit, sampling_mode
         )
         conversation_ids = _extract_conversation_ids(conversation_ids_results)
 
@@ -190,7 +201,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         return self._get_conversations_default(snuba_params, conversation_ids)
 
     def _fetch_conversation_ids(
-        self, snuba_params, query_string: str, offset: int, limit: int
+        self, snuba_params, query_string: str, offset: int, limit: int, sampling_mode: str
     ) -> EAPResponse:
         return Spans.run_table_query(
             params=snuba_params,
@@ -201,7 +212,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             limit=limit,
             referrer=Referrer.API_AI_CONVERSATIONS.value,
             config=SearchResolverConfig(auto_fields=True),
-            sampling_mode="NORMAL",
+            sampling_mode=sampling_mode,
         )
 
     def _get_conversations_default(self, snuba_params, conversation_ids: list[str]) -> list[dict]:
@@ -240,7 +251,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 "count_if(gen_ai.operation.type,equals,ai_client)",
                 "count_if(gen_ai.operation.type,equals,execute_tool)",
                 "sum(gen_ai.usage.total_tokens)",
-                "sum(gen_ai.usage.total_cost)",
+                "sum(gen_ai.cost.total_tokens)",
                 "min(precise.start_ts)",
                 "max(precise.finish_ts)",
             ],
@@ -308,7 +319,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 llm_calls=int(row.get("count_if(gen_ai.operation.type,equals,ai_client)") or 0),
                 tool_calls=int(row.get("count_if(gen_ai.operation.type,equals,execute_tool)") or 0),
                 total_tokens=int(row.get("sum(gen_ai.usage.total_tokens)") or 0),
-                total_cost=float(row.get("sum(gen_ai.usage.total_cost)") or 0),
+                total_cost=float(row.get("sum(gen_ai.cost.total_tokens)") or 0),
                 trace_ids=[],
                 flow=[],
                 first_input=None,
@@ -388,7 +399,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 "span.status",
                 "gen_ai.operation.type",
                 "gen_ai.usage.total_tokens",
-                "gen_ai.usage.total_cost",
+                "gen_ai.cost.total_tokens",
                 "trace",
                 "gen_ai.agent.name",
                 "gen_ai.request.messages",
@@ -472,7 +483,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         if tokens:
             acc["total_tokens"] += int(tokens)
 
-        cost = row.get("gen_ai.usage.total_cost")
+        cost = row.get("gen_ai.cost.total_tokens")
         if cost:
             acc["total_cost"] += float(cost)
 
