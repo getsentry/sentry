@@ -5,7 +5,10 @@ from django.urls import reverse
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
@@ -521,25 +524,29 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
 
         mock_bulk_get_preferences.return_value = {}
 
-        response = self.client.post(
-            self.url,
-            {
-                "projectIds": [project1.id, project2.id],
-                "autofixAutomationTuning": AutofixAutomationTuningSettings.MEDIUM.value,
-                "automatedRunStoppingPoint": AutofixStoppingPoint.OPEN_PR.value,
-            },
-        )
+        with outbox_runner():
+            response = self.client.post(
+                self.url,
+                {
+                    "projectIds": [project1.id, project2.id],
+                    "autofixAutomationTuning": AutofixAutomationTuningSettings.MEDIUM.value,
+                    "automatedRunStoppingPoint": AutofixStoppingPoint.OPEN_PR.value,
+                },
+            )
         assert response.status_code == 204
 
-        audit_log = AuditLogEntry.objects.filter(
-            organization_id=self.organization.id,
-        ).first()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            audit_log = AuditLogEntry.objects.filter(
+                organization_id=self.organization.id,
+            ).first()
 
-        assert audit_log is not None
-        assert audit_log.data["project_count"] == 2
-        assert set(audit_log.data["project_ids"]) == {project1.id, project2.id}
-        assert (
-            audit_log.data["autofix_automation_tuning"]
-            == AutofixAutomationTuningSettings.MEDIUM.value
-        )
-        assert audit_log.data["automated_run_stopping_point"] == AutofixStoppingPoint.OPEN_PR.value
+            assert audit_log is not None
+            assert audit_log.data["project_count"] == 2
+            assert set(audit_log.data["project_ids"]) == {project1.id, project2.id}
+            assert (
+                audit_log.data["autofix_automation_tuning"]
+                == AutofixAutomationTuningSettings.MEDIUM.value
+            )
+            assert (
+                audit_log.data["automated_run_stopping_point"] == AutofixStoppingPoint.OPEN_PR.value
+            )

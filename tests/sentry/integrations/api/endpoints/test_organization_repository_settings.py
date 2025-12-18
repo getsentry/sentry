@@ -3,7 +3,10 @@ from django.urls import reverse
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import CodeReviewTrigger, RepositorySettings
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class OrganizationRepositorySettingsTest(APITestCase):
@@ -284,24 +287,26 @@ class OrganizationRepositorySettingsTest(APITestCase):
         repo1 = Repository.objects.create(name="repo1", organization_id=self.org.id)
         repo2 = Repository.objects.create(name="repo2", organization_id=self.org.id)
 
-        response = self.client.put(
-            self.url,
-            data={
-                "repositoryIds": [repo1.id, repo2.id],
-                "enabledCodeReview": True,
-                "codeReviewTriggers": [CodeReviewTrigger.ON_NEW_COMMIT],
-            },
-            format="json",
-        )
+        with outbox_runner():
+            response = self.client.put(
+                self.url,
+                data={
+                    "repositoryIds": [repo1.id, repo2.id],
+                    "enabledCodeReview": True,
+                    "codeReviewTriggers": [CodeReviewTrigger.ON_NEW_COMMIT],
+                },
+                format="json",
+            )
 
         assert response.status_code == 200, response.content
 
-        audit_log = AuditLogEntry.objects.filter(
-            organization_id=self.org.id,
-        ).first()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            audit_log = AuditLogEntry.objects.filter(
+                organization_id=self.org.id,
+            ).first()
 
-        assert audit_log is not None
-        assert audit_log.data["repository_count"] == 2
-        assert set(audit_log.data["repository_ids"]) == {repo1.id, repo2.id}
-        assert audit_log.data["enabled_code_review"] is True
-        assert audit_log.data["code_review_triggers"] == [CodeReviewTrigger.ON_NEW_COMMIT]
+            assert audit_log is not None
+            assert audit_log.data["repository_count"] == 2
+            assert set(audit_log.data["repository_ids"]) == {repo1.id, repo2.id}
+            assert audit_log.data["enabled_code_review"] is True
+            assert audit_log.data["code_review_triggers"] == [CodeReviewTrigger.ON_NEW_COMMIT]
