@@ -104,7 +104,7 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
           <LinkButton
             href={mailToHref}
             external
-            icon={<IconMail color="gray300" />}
+            icon={<IconMail variant="muted" />}
             aria-label={t(`Email %s`, user)}
             borderless
             size="zero"

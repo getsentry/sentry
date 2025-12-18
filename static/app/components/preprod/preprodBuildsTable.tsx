@@ -110,7 +110,7 @@ export function PreprodBuildsTable({
                     ({build.app_info?.build_number})
                   </Text>
                 )}
-                {build.state === 3 && <IconCheckmark size="sm" color="green300" />}
+                {build.state === 3 && <IconCheckmark size="sm" variant="success" />}
               </Flex>
               <Flex align="center" gap="xs">
                 <IconCommit size="xs" />

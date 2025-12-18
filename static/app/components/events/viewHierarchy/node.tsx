@@ -33,9 +33,9 @@ function Node({
         collapsible={collapsible}
       >
         {isExpanded ? (
-          <IconSubtract legacySize="9px" color="white" />
+          <IconSubtract legacySize="9px" variant="primary" />
         ) : (
-          <IconAdd legacySize="9px" color="white" />
+          <IconAdd legacySize="9px" variant="primary" />
         )}
       </IconWrapper>
       <NodeTitle id={`${id}-title`} focused={isFocused}>

@@ -212,7 +212,7 @@ export class RenderField extends Component<RenderProps, State> {
           <Container area="manage-project">
             <Button
               onClick={() => handleDelete(index)}
-              icon={<IconDelete color="gray300" />}
+              icon={<IconDelete variant="muted" />}
               size="sm"
               aria-label={t('Delete')}
             />
