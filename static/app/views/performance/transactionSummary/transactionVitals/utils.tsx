@@ -1,5 +1,4 @@
 import type {Theme} from '@emotion/react';
-import type {ECharts} from 'echarts';
 import type {Location, Query} from 'history';
 
 import type {Organization} from 'sentry/types/organization';
@@ -9,7 +8,6 @@ import type {WebVital} from 'sentry/utils/fields';
 import type {HistogramData} from 'sentry/utils/performance/histogram/types';
 import {getBucketWidth} from 'sentry/utils/performance/histogram/utils';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
-import type {VitalsData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {
@@ -112,35 +110,6 @@ export function getRefRect(chartData: HistogramData): Rectangle | null {
 }
 
 /**
- * Given an ECharts instance and a rectangle defined in terms of the x and y axis,
- * compute the corresponding pixel coordinates. If it cannot be done, return null.
- */
-export function asPixelRect(chartRef: ECharts, dataRect: Rectangle): Rectangle | null {
-  const point1 = chartRef.convertToPixel({xAxisIndex: 0, yAxisIndex: 0}, [
-    dataRect.point1.x,
-    dataRect.point1.y,
-  ]);
-
-  if (isNaN(point1?.[0]!) || isNaN(point1?.[1]!)) {
-    return null;
-  }
-
-  const point2 = chartRef.convertToPixel({xAxisIndex: 0, yAxisIndex: 0}, [
-    dataRect.point2.x,
-    dataRect.point2.y,
-  ]);
-
-  if (isNaN(point2?.[0]!) || isNaN(point2?.[1]!)) {
-    return null;
-  }
-
-  return {
-    point1: {x: point1[0]!, y: point1[1]!},
-    point2: {x: point2[0]!, y: point2[1]!},
-  };
-}
-
-/**
  * Given a point on a source rectangle, map it to the corresponding point on the
  * destination rectangle. Assumes that the two rectangles are related by a simple
  * transformation containing only translations and scaling.
@@ -168,20 +137,6 @@ export function mapPoint(
     x: destRect.point1.x + (destRect.point2.x - destRect.point1.x) * xPercentage,
     y: destRect.point1.y + (destRect.point2.y - destRect.point1.y) * yPercentage,
   };
-}
-
-export function isMissingVitalsData(
-  vitalsData: VitalsData | null,
-  allVitals: WebVital[]
-): boolean {
-  if (!vitalsData || allVitals.some(vital => !vitalsData[vital])) {
-    return true;
-  }
-
-  const measurementsWithoutCounts = Object.values(vitalsData).filter(
-    vitalObj => vitalObj.total === 0
-  );
-  return measurementsWithoutCounts.length > 0;
 }
 
 export function generateTransactionVitalsEventView({
