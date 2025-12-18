@@ -2,7 +2,7 @@ import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
 import type {ContainerProps} from 'sentry/components/core/layout/container';
-import {getMargin, getSpacing, getBorder, rc} from 'sentry/components/core/layout/styles';
+import {getBorder, getMargin, getSpacing, rc} from 'sentry/components/core/layout/styles';
 
 export type SeparatorProps = Pick<ContainerProps, 'border' | 'margin' | 'padding'> & {
   orientation: 'horizontal' | 'vertical';
