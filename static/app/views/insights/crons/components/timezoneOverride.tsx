@@ -41,7 +41,7 @@ export function TimezoneOverride({
   );
 
   return (
-    <CompactSelect<Mode>
+    <CompactSelect
       size="xs"
       value={mode}
       position="bottom-end"
