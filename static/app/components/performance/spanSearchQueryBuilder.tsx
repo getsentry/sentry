@@ -82,13 +82,13 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
 
   const spanSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps = useMemo(
     () => ({
+      ...props,
       itemType: TraceItemDataset.SPANS,
       numberAttributes,
       stringAttributes: stringAttributesWithSemver,
       numberSecondaryAliases,
       stringSecondaryAliases,
-      caseInsensitive: props.caseInsensitive ?? null,
-      ...props,
+      caseInsensitive: props.caseInsensitive ? true : undefined,
     }),
     [
       numberAttributes,
@@ -100,14 +100,14 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
   );
 
   const spanSearchQueryBuilderProviderProps = useTraceItemSearchQueryBuilderProps({
+    ...props,
     itemType: TraceItemDataset.SPANS,
     numberAttributes,
     stringAttributes: stringAttributesWithSemver,
     numberSecondaryAliases,
     stringSecondaryAliases,
-    caseInsensitive: props.caseInsensitive,
+    caseInsensitive: props.caseInsensitive ? true : undefined,
     onCaseInsensitiveClick: props.onCaseInsensitiveClick,
-    ...props,
   });
 
   return useMemo(
