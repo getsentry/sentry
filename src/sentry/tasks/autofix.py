@@ -138,13 +138,8 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
     """
     organization = Organization.objects.get(id=organization_id)
 
-    sentry_sdk.set_context(
-        "configure_seer_task",
-        {
-            "organization_id": organization.id,
-            "organization_slug": organization.slug,
-        },
-    )
+    sentry_sdk.set_tag("organization_id", organization.id)
+    sentry_sdk.set_tag("organization_slug", organization.slug)
 
     # Set org-level options
     organization.update_option("sentry:enable_seer_coding", True)
