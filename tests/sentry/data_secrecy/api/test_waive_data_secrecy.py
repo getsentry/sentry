@@ -36,8 +36,10 @@ class WaiveDataSecrecyTest(APITestCase):
         tickets: list[str] | None = None,
     ) -> None:
         data = response.data
-        assert data["accessStart"] == start.isoformat() if start is not None else self.access_start
-        assert data["accessEnd"] == end.isoformat() if end is not None else self.access_end
+        assert (
+            data["accessStart"] == start.isoformat() if (start is not None) else self.access_start
+        )
+        assert data["accessEnd"] == end.isoformat() if (end is not None) else self.access_end
         if tickets is not None:
             assert data["zendeskTickets"] == tickets
         else:
