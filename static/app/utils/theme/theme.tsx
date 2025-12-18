@@ -1277,31 +1277,24 @@ const generateAliases = (
    */
   success: tokens.content.success,
   successText: tokens.content.success,
-  // @TODO(jonasbadalic): should this reference a chonk color?
-  successFocus: tokens.border.success, // Not being used
 
   /**
    * A color that denotes an error, or something that is wrong
    */
   error: tokens.content.danger,
   errorText: tokens.content.danger,
-  errorFocus: tokens.border.danger,
 
   /**
    * A color that denotes danger, for dangerous actions like deletion
    */
   danger: tokens.content.danger,
   dangerText: tokens.content.danger,
-  // @TODO(jonasbadalic): should this reference a chonk color?
-  dangerFocus: tokens.border.danger, // Not being used
 
   /**
    * A color that denotes a warning
    */
   warning: tokens.content.warning,
   warningText: tokens.content.warning,
-  // @TODO(jonasbadalic): should this reference a chonk color?
-  warningFocus: tokens.border.warning, // Not being used
 
   /**
    * A color that indicates something is disabled where user can not interact or use
