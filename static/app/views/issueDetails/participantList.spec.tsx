@@ -44,4 +44,24 @@ describe('ParticipantList', () => {
 
     expect(screen.queryByText('Individuals (2)')).not.toBeInTheDocument();
   });
+
+  it('copies email to clipboard when email is clicked', async () => {
+    const mockCopy = jest.fn().mockResolvedValue('');
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: mockCopy,
+      },
+    });
+
+    render(
+      <ParticipantList teams={[]} users={users} description="Participants">
+        Click Me
+      </ParticipantList>
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Click Me'}));
+    await waitFor(() => expect(screen.getByText('John Doe')).toBeVisible());
+    const email = screen.getByText('john.doe@example.com');
+    await userEvent.click(email);
+    expect(mockCopy).toHaveBeenCalledWith('john.doe@example.com');
+  });
 });

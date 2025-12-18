@@ -69,4 +69,19 @@ describe('ParticipantList', () => {
     expect(await screen.findByText('#team-1')).toBeInTheDocument();
     expect(await screen.findByText('#team-2')).toBeInTheDocument();
   });
+
+  it('copies email to clipboard when email is clicked', async () => {
+    const mockCopy = jest.fn().mockResolvedValue('');
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: mockCopy,
+      },
+    });
+
+    render(<ParticipantList users={users} />);
+    await userEvent.click(screen.getByText('JD'), {skipHover: true});
+    const email = await screen.findByText('john.doe@example.com');
+    await userEvent.click(email);
+    expect(mockCopy).toHaveBeenCalledWith('john.doe@example.com');
+  });
 });

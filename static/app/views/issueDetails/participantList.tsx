@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
@@ -10,6 +10,7 @@ import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
 interface ParticipantScrollboxProps {
   teams: Team[];
@@ -17,6 +18,16 @@ interface ParticipantScrollboxProps {
 }
 
 function ParticipantScrollbox({users, teams}: ParticipantScrollboxProps) {
+  const {copy} = useCopyToClipboard();
+
+  const handleCopyEmail = useCallback(
+    (email: string, event: React.MouseEvent) => {
+      event.stopPropagation();
+      copy(email, {successMessage: t('Email copied to clipboard')});
+    },
+    [copy]
+  );
+
   if (!users.length && !teams.length) {
     return null;
   }
@@ -41,7 +52,14 @@ function ParticipantScrollbox({users, teams}: ParticipantScrollboxProps) {
           <UserAvatar user={user} size={28} />
           <div>
             {user.name}
-            <SubText>{user.email}</SubText>
+            {user.email === user.name ? null : (
+              <ClickableEmail
+                onClick={e => handleCopyEmail(user.email, e)}
+                title={t('Click to copy email')}
+              >
+                {user.email}
+              </ClickableEmail>
+            )}
           </div>
         </UserRow>
       ))}
@@ -152,4 +170,11 @@ const UserRow = styled('div')`
 const SubText = styled('div')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSize.xs};
+`;
+
+const ClickableEmail = styled(SubText)`
+  cursor: pointer;
+  &:hover {
+    text-decoration: underline;
+  }
 `;

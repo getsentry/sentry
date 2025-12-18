@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -13,6 +13,7 @@ import {space} from 'sentry/styles/space';
 import type {Team} from 'sentry/types/organization';
 import type {AvatarUser, User} from 'sentry/types/user';
 import {userDisplayName} from 'sentry/utils/formatters';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOverlay from 'sentry/utils/useOverlay';
 
 interface DropdownListProps {
@@ -34,6 +35,15 @@ export default function ParticipantList({
 
   const theme = useTheme();
   const showHeaders = users.length > 0 && teams && teams.length > 0;
+  const {copy} = useCopyToClipboard();
+
+  const handleCopyEmail = useCallback(
+    (email: string, event: React.MouseEvent) => {
+      event.stopPropagation();
+      copy(email, {successMessage: t('Email copied to clipboard')});
+    },
+    [copy]
+  );
 
   return (
     <div>
@@ -83,7 +93,12 @@ export default function ParticipantList({
                   <NameWrapper>
                     <div>{user.name}</div>
                     {user.email === user.name ? null : (
-                      <SmallText>{user.email}</SmallText>
+                      <ClickableEmail
+                        onClick={e => handleCopyEmail(user.email, e)}
+                        title={t('Click to copy email')}
+                      >
+                        {user.email}
+                      </ClickableEmail>
                     )}
                     {!hideTimestamp && <LastSeen date={(user as AvatarUser).lastSeen} />}
                   </NameWrapper>
@@ -142,6 +157,13 @@ const NameWrapper = styled('div')`
 
 const SmallText = styled('div')`
   font-size: ${p => p.theme.fontSize.xs};
+`;
+
+const ClickableEmail = styled(SmallText)`
+  cursor: pointer;
+  &:hover {
+    text-decoration: underline;
+  }
 `;
 
 const StyledAvatarList = styled(AvatarList)`
