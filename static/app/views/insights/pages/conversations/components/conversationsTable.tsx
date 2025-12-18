@@ -21,13 +21,14 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
-import {
-  useConversations,
-  type Conversation,
-} from 'sentry/views/insights/pages/agents/hooks/useConversations';
 import {ErrorCell} from 'sentry/views/insights/pages/agents/utils/cells';
 import {hasGenAiConversationsFeature} from 'sentry/views/insights/pages/agents/utils/features';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
+import {useConversationViewDrawer} from 'sentry/views/insights/pages/conversations/components/conversationDrawer';
+import {
+  useConversations,
+  type Conversation,
+} from 'sentry/views/insights/pages/conversations/hooks/useConversations';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 
@@ -120,11 +121,15 @@ const BodyCell = memo(function BodyCell({
 }) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const {openConversationViewDrawer} = useConversationViewDrawer();
 
   switch (column.key) {
     case 'conversationId':
       return (
-        <ConversationIdButton priority="link" disabled>
+        <ConversationIdButton
+          priority="link"
+          onClick={() => openConversationViewDrawer(dataRow)}
+        >
           {dataRow.conversationId.slice(0, 8)}
         </ConversationIdButton>
       );
