@@ -449,4 +449,50 @@ describe('Gift', () => {
       expect(screen.getByTestId('confirm-button')).toBeDisabled();
     });
   });
+
+  describe('Active Contributors', () => {
+    const triggerGiftModal = () => {
+      openAdminConfirmModal({
+        renderModalSpecificContent: deps => (
+          <AddGiftEventsAction
+            subscription={mockSub}
+            dataCategory={DataCategory.SEER_USER}
+            billedCategoryInfo={BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SEER_USER]}
+            {...deps}
+          />
+        ),
+      });
+    };
+
+    function getActiveContributorsInput() {
+      return screen.getByTestId('num-free-seerUsers');
+    }
+
+    async function setNumActiveContributors(numContributors: string) {
+      await userEvent.clear(getActiveContributorsInput());
+      await userEvent.type(getActiveContributorsInput(), numContributors);
+    }
+
+    it('cannot exceed max gift limit of 100', async () => {
+      const maxValue =
+        BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SEER_USER].maxAdminGift;
+      triggerGiftModal();
+
+      renderGlobalModal();
+
+      const activeContributorsInput = getActiveContributorsInput();
+
+      await setNumActiveContributors('50');
+      expect(activeContributorsInput).toHaveValue('50');
+      expect(activeContributorsInput).toHaveAccessibleDescription('Total: 50');
+
+      await setNumActiveContributors('100');
+      expect(activeContributorsInput).toHaveValue('100');
+      expect(activeContributorsInput).toHaveAccessibleDescription('Total: 100');
+
+      await setNumActiveContributors(`${maxValue + 5}`);
+      expect(activeContributorsInput).toHaveValue('100');
+      expect(activeContributorsInput).toHaveAccessibleDescription('Total: 100');
+    });
+  });
 });

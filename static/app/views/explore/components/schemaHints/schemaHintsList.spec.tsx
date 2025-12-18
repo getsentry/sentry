@@ -115,10 +115,7 @@ describe('SchemaHintsList', () => {
         stringTags={mockStringTags}
         numberTags={mockNumberTags}
         supportedAggregates={[]}
-      />,
-      {
-        deprecatedRouterMocks: true,
-      }
+      />
     );
 
     const stringTag1Hint = screen.getByText('stringTag1');
@@ -137,10 +134,7 @@ describe('SchemaHintsList', () => {
 
   it('should render loading indicator when isLoading is true', () => {
     render(
-      <Subject stringTags={{}} numberTags={{}} supportedAggregates={[]} isLoading />,
-      {
-        deprecatedRouterMocks: true,
-      }
+      <Subject stringTags={{}} numberTags={{}} supportedAggregates={[]} isLoading />
     );
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();

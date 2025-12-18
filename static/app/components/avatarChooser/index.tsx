@@ -412,7 +412,7 @@ const BlankAvatar = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${p => p.theme.gray200};
+  color: ${p => p.theme.colors.gray200};
   background: ${p => p.theme.backgroundSecondary};
   height: 90px;
   width: 90px;
