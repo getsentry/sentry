@@ -355,7 +355,7 @@ export function Provider({
           duration: 0.75 * 1000,
           lineCap: 'round',
           lineWidth: 2,
-          strokeStyle: theme.purple200,
+          strokeStyle: theme.colors.blue200,
         },
         plugins: [CanvasReplayerPlugin(events)],
         skipInactive: initialPrefsRef.current.isSkippingInactive,
@@ -388,7 +388,7 @@ export function Provider({
       hasNewEvents,
       isFetching,
       setReplayFinished,
-      theme.purple200,
+      theme.colors.blue200,
     ]
   );
 
