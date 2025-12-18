@@ -28,38 +28,6 @@ export type MotionEasing = 'smooth' | 'snap' | 'enter' | 'exit' | 'spring';
  */
 export type MotionDuration = 'fast' | 'moderate' | 'slow';
 
-/**
- * Content/text color variant.
- */
-export type ContentVariant = 'primary' | 'muted' | Exclude<SemanticVariant, 'neutral'>;
-
-/**
- * Graphics/icon color variant.
- */
-export type GraphicsVariant = 'muted' | Exclude<SemanticVariant, 'neutral'>;
-
-/**
- * Border color variant.
- */
-export type BorderVariant = 'primary' | 'muted' | Exclude<SemanticVariant, 'neutral'>;
-
-/**
- * Tag color scheme.
- */
-export type TagVariant =
-  | 'default'
-  | 'promotion'
-  | 'highlight'
-  | 'warning'
-  | 'success'
-  | 'error'
-  | 'info';
-
-/**
- * Alert/status color scheme.
- */
-export type AlertVariant = 'muted' | 'info' | 'warning' | 'success' | 'error';
-
 // -----------------------------------------------------------------------------
 // Theme Variants
 // -----------------------------------------------------------------------------
