@@ -33,7 +33,10 @@ export function transformLegacySeriesToPlottables(
       const fieldType =
         timeseriesResultsTypes?.[unaliasedSeriesName] ??
         aggregateOutputType(unaliasedSeriesName);
-      const {valueType, valueUnit} = mapAggregationTypeToValueTypeAndUnit(fieldType);
+      const {valueType, valueUnit} = mapAggregationTypeToValueTypeAndUnit(
+        fieldType,
+        unaliasedSeriesName
+      );
       const timeSeries = convertEventsStatsToTimeSeriesData(
         series.seriesName,
         createEventsStatsFromSeries(series, valueType as AggregationOutputType, valueUnit)
@@ -88,16 +91,23 @@ function createPlottableFromTimeSeries(
   }
 }
 
-function mapAggregationTypeToValueTypeAndUnit(aggregationType: AggregationOutputType): {
+function mapAggregationTypeToValueTypeAndUnit(
+  aggregationType: AggregationOutputType,
+  fieldName: string
+): {
   valueType: TimeSeries['meta']['valueType'];
   valueUnit: TimeSeries['meta']['valueUnit'];
 } {
   switch (aggregationType) {
     case 'size':
       return {valueType: 'size', valueUnit: null};
-    // note: we only have a per minute rate function epm(), right now
     case 'rate':
-      return {valueType: 'rate', valueUnit: RateUnit.PER_MINUTE};
+      return {
+        valueType: 'rate',
+        valueUnit: fieldName.includes('eps()')
+          ? RateUnit.PER_SECOND
+          : RateUnit.PER_MINUTE,
+      };
     case 'duration':
       return {valueType: 'duration', valueUnit: null};
     case 'score':
