@@ -7,8 +7,6 @@ import type {BreakpointSize} from 'sentry/utils/theme';
 
 import {useActiveBreakpoint, useResponsivePropValue, type Responsive} from './styles';
 
-type Breakpoint = BreakpointSize;
-
 const theme = ThemeFixture();
 
 // Mock window.matchMedia
@@ -31,7 +29,9 @@ const createWrapper = () => {
 };
 
 // Helper to set up media query mocks for specific breakpoints
-const setupMediaQueries = (breakpointMatches: Partial<Record<Breakpoint, boolean>>) => {
+const setupMediaQueries = (
+  breakpointMatches: Partial<Record<BreakpointSize, boolean>>
+) => {
   const originalMatchMedia = window.matchMedia;
 
   window.matchMedia = jest.fn((query: string) => {
@@ -45,7 +45,7 @@ const setupMediaQueries = (breakpointMatches: Partial<Record<Breakpoint, boolean
     )?.[0];
 
     const matches = breakpointName
-      ? (breakpointMatches[breakpointName as Breakpoint] ?? false)
+      ? (breakpointMatches[breakpointName as BreakpointSize] ?? false)
       : false;
 
     return mockMatchMedia(matches);
