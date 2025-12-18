@@ -35,6 +35,13 @@ describe('FeatureFlagOverrides', () => {
         'enable-replay': true,
       });
     });
+
+    it('should handle an organization without features', () => {
+      organization.features = undefined;
+      const inst = new FeatureFlagOverrides();
+
+      expect(inst.getFlagMap(organization)).toEqual({});
+    });
   });
 
   describe('getOverrides', () => {
@@ -161,6 +168,16 @@ describe('FeatureFlagOverrides', () => {
         'enable-replay',
         'secret-new-feature',
       ]);
+    });
+
+    it('should fallback to overrides when the org lacks features', () => {
+      localStorageWrapper.setItem(LOCALSTORAGE_KEY, '{"secret-new-feature":true}');
+      organization.features = undefined;
+      const inst = new FeatureFlagOverrides();
+
+      inst.loadOrg(organization);
+
+      expect(organization.features).toEqual(['secret-new-feature']);
     });
   });
 });

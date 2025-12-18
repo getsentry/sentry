@@ -23,7 +23,9 @@ export default class FeatureFlagOverrides {
   }
 
   public getFlagMap(organization: Organization): FlagMap {
-    return Object.fromEntries(organization.features.map(name => [name, true]));
+    const features = organization.features ?? [];
+
+    return Object.fromEntries(features.map(name => [name, true]));
   }
 
   /**
