@@ -127,7 +127,7 @@ function getAlertColors(theme: Theme, type: NonNullable<AlertProps['type']>) {
   switch (type) {
     case 'muted':
       return {
-        background: theme.gray200,
+        background: theme.colors.gray200,
         backgroundLight: theme.backgroundSecondary,
         border: theme.border,
         borderHover: theme.border,

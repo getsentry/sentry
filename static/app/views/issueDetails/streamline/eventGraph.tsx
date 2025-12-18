@@ -356,8 +356,8 @@ export function EventGraph({
 
   const series = useMemo((): BarChartSeries[] => {
     const seriesData: BarChartSeries[] = [];
-    const translucentGray300 = Color(theme.gray300).alpha(0.5).string();
-    const lightGray300 = Color(theme.gray300).alpha(0.2).string();
+    const translucentGray300 = Color(theme.colors.gray400).alpha(0.5).string();
+    const lightGray300 = Color(theme.colors.gray400).alpha(0.2).string();
 
     if (visibleSeries === EventGraphSeries.USER) {
       if (isUnfilteredStatsEnabled) {
@@ -365,7 +365,7 @@ export function EventGraph({
           seriesName: t('Total users'),
           itemStyle: {
             borderRadius: [2, 2, 0, 0],
-            borderColor: theme.translucentGray200,
+            borderColor: theme.colors.gray200,
             color: lightGray300,
           },
           barGap: '-100%', // Makes bars overlap completely
@@ -378,7 +378,7 @@ export function EventGraph({
         seriesName: isUnfilteredStatsEnabled ? t('Matching users') : t('Users'),
         itemStyle: {
           borderRadius: [2, 2, 0, 0],
-          borderColor: theme.translucentGray200,
+          borderColor: theme.colors.gray200,
           color: isUnfilteredStatsEnabled ? theme.colors.blue400 : translucentGray300,
         },
         data: userSeries,
@@ -391,7 +391,7 @@ export function EventGraph({
           seriesName: t('Total events'),
           itemStyle: {
             borderRadius: [2, 2, 0, 0],
-            borderColor: theme.translucentGray200,
+            borderColor: theme.colors.gray200,
             color: lightGray300,
           },
           barGap: '-100%', // Makes bars overlap completely
@@ -404,7 +404,7 @@ export function EventGraph({
         seriesName: isUnfilteredStatsEnabled ? t('Matching events') : t('Events'),
         itemStyle: {
           borderRadius: [2, 2, 0, 0],
-          borderColor: theme.translucentGray200,
+          borderColor: theme.colors.gray200,
           color: isUnfilteredStatsEnabled ? theme.colors.blue400 : translucentGray300,
         },
         data: eventSeries,

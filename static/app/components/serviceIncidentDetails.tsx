@@ -158,7 +158,7 @@ const UpdatesList = styled(List)`
     height: 100%;
     width: 2px;
     margin: ${space(1)} 0 ${space(1)} -${space(1.5)};
-    background: ${p => p.theme.gray100};
+    background: ${p => p.theme.colors.gray100};
   }
 
   &::after {

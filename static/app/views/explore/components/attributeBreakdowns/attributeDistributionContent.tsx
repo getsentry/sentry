@@ -25,7 +25,7 @@ import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 
 import {Chart} from './attributeDistributionChart';
-import {CHARTS_PER_PAGE} from './constants';
+import {CHART_SELECTION_ALERT_KEY, CHARTS_PER_PAGE} from './constants';
 import {AttributeBreakdownsComponent} from './styles';
 
 export type AttributeDistribution = Array<{
@@ -217,7 +217,7 @@ export function AttributeDistribution() {
 
 function ChartSelectionAlert() {
   const {dismiss, isDismissed} = useDismissAlert({
-    key: 'attribute-breakdowns-chart-selection-alert-dismissed',
+    key: CHART_SELECTION_ALERT_KEY,
   });
 
   if (isDismissed) {

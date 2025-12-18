@@ -128,7 +128,7 @@ function getRuleChangeSeries(
       markLine: MarkLine({
         silent: true,
         animation: false,
-        lineStyle: {color: theme.gray200, type: 'solid', width: 1},
+        lineStyle: {color: theme.colors.gray200, type: 'solid', width: 1},
         data: [{xAxis: ruleChanged}],
         label: {
           show: false,
@@ -137,7 +137,7 @@ function getRuleChangeSeries(
       markArea: MarkArea({
         silent: true,
         itemStyle: {
-          color: color(theme.gray100).alpha(0.42).rgb().string(),
+          color: color(theme.colors.gray100).alpha(0.42).rgb().string(),
         },
         data: [[{xAxis: seriesStart}, {xAxis: ruleChanged}]],
       }),
@@ -393,8 +393,8 @@ export default function MetricChart({
           LineSeries({
             name: comparisonSeriesName,
             data: _data.map(({name, value}) => [name, value]),
-            lineStyle: {color: theme.gray200, type: 'dashed', width: 1},
-            itemStyle: {color: theme.gray200},
+            lineStyle: {color: theme.colors.gray200, type: 'dashed', width: 1},
+            itemStyle: {color: theme.colors.gray200},
             animation: false,
             animationThreshold: 1,
             animationDuration: 0,
