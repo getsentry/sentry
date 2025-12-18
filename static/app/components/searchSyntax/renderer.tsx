@@ -291,7 +291,7 @@ const TokenGroup = styled('span')<TokenGroupProps>`
   --token-border: ${p => p.theme.searchTokenBorder[colorType(p)]};
   --token-value-color: ${p =>
     p.invalid
-      ? p.theme.red400
+      ? p.theme.colors.red500
       : p.warning
         ? p.theme.colors.gray500
         : p.theme.colors.blue500};
@@ -323,7 +323,7 @@ const Negation = styled('span')`
   margin-left: -1px;
   font-weight: ${p => p.theme.fontWeight.bold};
   border-radius: 2px 0 0 2px;
-  color: ${p => p.theme.red400};
+  color: ${p => p.theme.colors.red500};
 `;
 
 const Key = styled('span')<{negated: boolean}>`
@@ -391,7 +391,7 @@ const Unit = styled('span')`
 const LogicBoolean = styled('span')<{invalid: boolean}>`
   font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.subText};
-  ${p => p.invalid && `color: ${p.theme.red400}`}
+  ${p => p.invalid && `color: ${p.theme.colors.red500}`}
 `;
 
 const Boolean = styled('span')`

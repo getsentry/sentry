@@ -301,7 +301,7 @@ const ChapterWrapper = styled('details')`
 
   [data-is-error='true'] {
     &:hover {
-      border-top: 1px solid ${p => p.theme.red100};
+      border-top: 1px solid ${p => p.theme.colors.red100};
     }
   }
 `;
@@ -349,10 +349,10 @@ const Chapter = styled('summary')`
   }
 
   [data-is-error='true'] & {
-    color: ${p => p.theme.red300};
+    color: ${p => p.theme.colors.red400};
 
     &:hover {
-      background-color: ${p => p.theme.red100};
+      background-color: ${p => p.theme.colors.red100};
     }
   }
 `;

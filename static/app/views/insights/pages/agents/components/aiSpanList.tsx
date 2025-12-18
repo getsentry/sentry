@@ -123,7 +123,7 @@ function TransactionWrapper({
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
   const theme = useTheme();
-  const colors = [...theme.chart.getColorPalette(5), theme.red300];
+  const colors = [...theme.chart.getColorPalette(5), theme.colors.red400];
   const timeBounds = getNodeTimeBounds(nodes);
 
   const nodeAiRunParentsMap = useMemo<Record<string, AITraceSpanNode>>(() => {
@@ -427,7 +427,7 @@ const ListItemContainer = styled('div')<{
   outline: ${p =>
     p.isSelected
       ? p.hasErrors
-        ? `2px solid ${p.theme.red200}`
+        ? `2px solid ${p.theme.colors.red200}`
         : `2px solid ${p.theme.colors.blue200}`
       : 'none'};
 

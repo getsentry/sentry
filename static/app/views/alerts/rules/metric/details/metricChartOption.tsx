@@ -263,7 +263,7 @@ export function getMetricAlertChartOption(
         const incidentColor =
           warningTrigger &&
           statusChanges.some(({value}) => Number(value) === IncidentStatus.CRITICAL)
-            ? theme.red300
+            ? theme.colors.red400
             : theme.colors.yellow400;
 
         const incidentStartDate = new Date(incident.dateStarted).getTime();
@@ -291,7 +291,8 @@ export function getMetricAlertChartOption(
             : new Date(incidentEnd).getTime(),
           lastPoint
         );
-        const areaColor = warningTrigger ? theme.colors.yellow400 : theme.red300;
+        const areaColor = warningTrigger ? theme.colors.yellow400 : theme.colors.red400;
+
         if (areaEnd > areaStart) {
           series.push(
             createStatusAreaSeries(areaColor, areaStart, areaEnd, minChartValue)
@@ -317,7 +318,7 @@ export function getMetricAlertChartOption(
           );
           const statusAreaColor =
             activity.value === `${IncidentStatus.CRITICAL}`
-              ? theme.red300
+              ? theme.colors.red400
               : theme.colors.yellow400;
           if (statusAreaEnd > statusAreaStart) {
             series.push(
@@ -340,7 +341,7 @@ export function getMetricAlertChartOption(
           const selectedIncidentColor =
             incidentColor === theme.colors.yellow400
               ? theme.colors.yellow100
-              : theme.red100;
+              : theme.colors.red100;
 
           // Is areaSeries used anywhere?
           areaSeries.push({
@@ -374,7 +375,10 @@ export function getMetricAlertChartOption(
 
   if (!rule.comparisonDelta && criticalTrigger?.alertThreshold) {
     const {alertThreshold} = criticalTrigger;
-    const criticalThresholdLine = createThresholdSeries(theme.red300, alertThreshold);
+    const criticalThresholdLine = createThresholdSeries(
+      theme.colors.red400,
+      alertThreshold
+    );
     series.push(criticalThresholdLine);
     maxThresholdValue = Math.max(maxThresholdValue, alertThreshold);
   }

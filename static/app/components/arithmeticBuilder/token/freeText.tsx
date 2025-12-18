@@ -597,7 +597,7 @@ const Row = styled('div')`
 
   &[aria-invalid='true'] {
     input {
-      color: ${p => p.theme.red400};
+      color: ${p => p.theme.colors.red500};
     }
   }
 
