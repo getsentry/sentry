@@ -50,10 +50,13 @@ function extractMessagesFromNodes(nodes: AITraceSpanNode[]): ConversationMessage
     const requestMessages = node.attributes?.[SpanFields.GEN_AI_REQUEST_MESSAGES] as
       | string
       | undefined;
+
     if (requestMessages) {
       try {
         const messagesArray: RequestMessage[] = JSON.parse(requestMessages);
-        const userMessage = messagesArray.findLast(msg => msg.role === 'user');
+        const userMessage = messagesArray.findLast(
+          msg => msg.role === 'user' && msg.content
+        );
         if (userMessage?.content) {
           const content =
             typeof userMessage.content === 'string'
