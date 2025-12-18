@@ -178,7 +178,7 @@ const RequiredLabel = styled('label')`
   &:after {
     content: '•';
     width: 6px;
-    color: ${p => p.theme.red300};
+    color: ${p => p.theme.colors.red400};
   }
 `;
 

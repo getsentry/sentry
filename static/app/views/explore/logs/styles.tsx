@@ -51,7 +51,7 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
 
   &[data-row-highlighted='true']:not(thead > &) {
     background-color: ${p => p.theme.colors.yellow100};
-    color: ${p => p.theme.red300};
+    color: ${p => p.theme.colors.red400};
 
     &:hover {
       background-color: ${p => p.theme.colors.yellow200};
@@ -355,11 +355,11 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
       };
     case SeverityLevel.FATAL:
       return {
-        background: theme.red300,
-        backgroundLight: theme.red100,
-        border: theme.red200,
-        borderHover: theme.red300,
-        color: theme.red400,
+        background: theme.colors.red400,
+        backgroundLight: theme.colors.red100,
+        border: theme.colors.red200,
+        borderHover: theme.colors.red400,
+        color: theme.colors.red500,
       };
     case SeverityLevel.DEBUG:
       return {
@@ -501,7 +501,7 @@ export const TraceIconStyleWrapper = styled(Flex)`
   height: 18px;
 
   .TraceIcon {
-    background-color: ${p => p.theme.red300};
+    background-color: ${p => p.theme.colors.red400};
     position: absolute;
     transform: translate(-50%, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
     width: 18px;

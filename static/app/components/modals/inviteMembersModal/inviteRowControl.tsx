@@ -190,9 +190,9 @@ function getStyles(theme: Theme, inviteStatus: InviteStatus): StylesConfig {
         ...provided,
         ...(status?.error
           ? {
-              color: theme.red400,
-              border: `1px solid ${theme.red300}`,
-              backgroundColor: theme.red100,
+              color: theme.colors.red500,
+              border: `1px solid ${theme.colors.red400}`,
+              backgroundColor: theme.colors.red100,
             }
           : {}),
       };
@@ -202,7 +202,7 @@ function getStyles(theme: Theme, inviteStatus: InviteStatus): StylesConfig {
       return {
         ...provided,
         pointerEvents: 'all',
-        ...(status?.error ? {color: theme.red400} : {}),
+        ...(status?.error ? {color: theme.colors.red500} : {}),
       };
     },
     multiValueRemove: (provided, {data}: MultiValueProps<SelectOption>) => {
@@ -211,8 +211,11 @@ function getStyles(theme: Theme, inviteStatus: InviteStatus): StylesConfig {
         ...provided,
         ...(status?.error
           ? {
-              borderLeft: `1px solid ${theme.red300}`,
-              ':hover': {backgroundColor: theme.red100, color: theme.red400},
+              borderLeft: `1px solid ${theme.colors.red400}`,
+              ':hover': {
+                backgroundColor: theme.colors.red100,
+                color: theme.colors.red500,
+              },
             }
           : {}),
       };

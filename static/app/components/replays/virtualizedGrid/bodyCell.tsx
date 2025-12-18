@@ -8,7 +8,7 @@ const cellBackground = (p: CellProps & {theme: Theme}) => {
     return `background-color: ${p.theme.colors.blue400};`;
   }
   if (p.isStatusError) {
-    return `background-color: ${p.theme.red100};`;
+    return `background-color: ${p.theme.colors.red100};`;
   }
   if (p.isStatusWarning) {
     return `background-color: var(--background-warning-default, rgba(245, 176, 0, 0.09));`;

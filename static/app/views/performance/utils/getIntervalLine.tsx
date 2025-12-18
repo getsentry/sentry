@@ -166,12 +166,12 @@ export function getIntervalLine(
 
     periodDividingLine.markLine.lineStyle = {
       ...periodDividingLine.markLine.lineStyle,
-      color: theme.red300,
+      color: theme.colors.red400,
     };
 
     currentPeriod.markLine.lineStyle = {
       ...currentPeriod.markLine.lineStyle,
-      color: theme.red300,
+      color: theme.colors.red400,
     };
 
     currentPeriod.markLine.label = {
@@ -189,7 +189,7 @@ export function getIntervalLine(
       markArea: MarkArea({
         silent: true,
         itemStyle: {
-          color: theme.red300,
+          color: theme.colors.red400,
           opacity: 0.2,
         },
         data: [
@@ -235,7 +235,7 @@ export function getIntervalLine(
           label: {
             show: false,
           },
-          lineStyle: {color: theme.red300, type: 'solid', width: 4},
+          lineStyle: {color: theme.colors.red400, type: 'solid', width: 4},
           data: [
             // The line needs to be hard-coded to a pixel coordinate because
             // the lowest y-value is dynamic and 'min' doesn't work here

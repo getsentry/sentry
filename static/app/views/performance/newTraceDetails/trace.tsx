@@ -859,8 +859,8 @@ const TraceStylingWrapper = styled('div')`
     }
 
     &.Poor {
-      color: ${p => p.theme.red300};
-      border: 1px solid ${p => p.theme.red300};
+      color: ${p => p.theme.colors.red400};
+      border: 1px solid ${p => p.theme.colors.red400};
 
       &.light {
         background-color: rgb(251 232 233);
@@ -940,7 +940,7 @@ const TraceStylingWrapper = styled('div')`
         background: repeating-linear-gradient(
             to bottom,
             transparent 0 4px,
-            ${p => p.theme.red300} 4px 8px
+            ${p => p.theme.colors.red400} 4px 8px
           )
           80%/2px 100% no-repeat;
       }
@@ -1056,8 +1056,8 @@ const TraceStylingWrapper = styled('div')`
 
       &.error,
       &.fatal {
-        --pattern-odd: ${p => p.theme.red400};
-        --pattern-even: ${p => p.theme.red300};
+        --pattern-odd: ${p => p.theme.colors.red500};
+        --pattern-even: ${p => p.theme.colors.red400};
       }
 
       /* false positive for grid layout */
@@ -1098,8 +1098,8 @@ const TraceStylingWrapper = styled('div')`
 
       &.error,
       &.fatal {
-        --pattern-odd: ${p => p.theme.red400};
-        --pattern-even: ${p => p.theme.red300};
+        --pattern-odd: ${p => p.theme.colors.red500};
+        --pattern-even: ${p => p.theme.colors.red400};
       }
       /* stylelint-disable */
       &.default {
@@ -1327,12 +1327,12 @@ const TraceStylingWrapper = styled('div')`
       }
 
       &.error {
-        color: ${p => p.theme.red300};
+        color: ${p => p.theme.colors.red400};
 
         .TraceChildrenCountWrapper {
           button {
             color: ${p => p.theme.white};
-            background-color: ${p => p.theme.red300};
+            background-color: ${p => p.theme.colors.red400};
           }
         }
       }

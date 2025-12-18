@@ -23,7 +23,7 @@ export function getSampleChartSymbol(
   return value > baseline
     ? {
         symbol: upwardPlayIconPath,
-        color: theme.red300,
+        color: theme.colors.red400,
       }
     : {
         symbol: downwardPlayIconPath,

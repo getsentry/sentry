@@ -626,7 +626,7 @@ const NegativeLabel = styled(
     </div>
   )
 )`
-  color: ${p => p.theme.red400};
+  color: ${p => p.theme.colors.red500};
   align-items: center;
   display: flex;
   font-weight: ${p => p.theme.fontWeight.bold};

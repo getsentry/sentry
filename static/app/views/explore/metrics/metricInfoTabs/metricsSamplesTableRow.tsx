@@ -215,7 +215,7 @@ export function SampleTableRow({
       <WrappingText
         style={{
           maxWidth: MAX_TELEMETRY_WIDTH,
-          color: theme.red300,
+          color: theme.colors.red400,
           alignItems: 'center',
           justifyContent: 'flex-end',
         }}

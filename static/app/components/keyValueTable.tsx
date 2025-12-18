@@ -33,7 +33,7 @@ const commonStyles = ({theme, type}: {type: Props['type']} & {theme: Theme}) => 
   ${theme.overflowEllipsis};
 
   background-color: ${type === 'error'
-    ? theme.red100 + ' !important'
+    ? theme.colors.red100 + ' !important'
     : type === 'warning'
       ? 'var(--background-warning-default, rgba(245, 176, 0, 0.09)) !important'
       : 'inherit'};

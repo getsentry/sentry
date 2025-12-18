@@ -233,11 +233,11 @@ const EventInfo = styled('div')`
 `;
 
 const ProcessingErrorButton = styled(Button)`
-  color: ${p => p.theme.red300};
+  color: ${p => p.theme.colors.red400};
   font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.sm};
   :hover {
-    color: ${p => p.theme.red300};
+    color: ${p => p.theme.colors.red400};
   }
 `;
 

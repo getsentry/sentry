@@ -159,11 +159,11 @@ function getAlertColors(theme: Theme, type: NonNullable<AlertProps['type']>) {
       };
     case 'error':
       return {
-        background: theme.red300,
-        backgroundLight: theme.red100,
-        border: theme.red200,
-        borderHover: theme.red300,
-        color: theme.red400,
+        background: theme.colors.red400,
+        backgroundLight: theme.colors.red100,
+        border: theme.colors.red200,
+        borderHover: theme.colors.red400,
+        color: theme.colors.red500,
       };
     default:
       unreachable(type);

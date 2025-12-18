@@ -1300,8 +1300,8 @@ const StatusTag = styled('div')<{color: 'purple' | 'yellow' | 'red'}>`
         `;
       case 'red':
         return `
-          background: ${p.theme.red100};
-          color: ${p.theme.red400};
+          background: ${p.theme.colors.red100};
+          color: ${p.theme.colors.red500};
         `;
       default:
         return '';

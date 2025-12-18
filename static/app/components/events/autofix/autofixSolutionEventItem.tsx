@@ -247,7 +247,7 @@ const SelectionButton = styled('button')<SelectionButtonProps>`
   &:hover {
     color: ${p =>
       p.actionType === 'delete' || p.actionType === 'close'
-        ? p.theme.red400
+        ? p.theme.colors.red500
         : p.theme.colors.green500};
   }
 `;

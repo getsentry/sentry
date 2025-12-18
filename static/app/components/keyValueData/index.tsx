@@ -252,7 +252,7 @@ const ContentWrapper = styled('div')<{
   box-shadow: inset 0 0 0 1px
     ${p =>
       p.hasErrors
-        ? p.theme.red100
+        ? p.theme.colors.red100
         : p.isSuspectFlag
           ? p.theme.colors.yellow100
           : 'transparent'};

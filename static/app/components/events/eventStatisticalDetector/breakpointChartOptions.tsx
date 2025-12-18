@@ -122,7 +122,7 @@ function getBreakpointChartOptionsFromData(
           },
           {
             gte: evidenceData?.breakpoint ? evidenceData.breakpoint * 1000 : 0,
-            color: theme.red300,
+            color: theme.colors.red400,
           },
         ],
       }),
