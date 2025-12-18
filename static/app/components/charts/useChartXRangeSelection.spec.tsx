@@ -833,7 +833,7 @@ describe('useChartXRangeSelection', () => {
       });
     });
 
-    it('should not call onOutsideSelectionClick when clicking on an action menu item', async () => {
+    it('should not call onOutsideSelectionClick when clicking on an action menu item', () => {
       const onOutsideSelectionClick = jest.fn();
 
       const mockEchartsInstance = {
