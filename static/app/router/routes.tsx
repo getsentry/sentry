@@ -1234,6 +1234,10 @@ function buildRoutes(): RouteObject[] {
           component: make(() => import('getsentry/views/seerAutomation/repos')),
         },
         {
+          path: 'repos/:repoId/',
+          component: make(() => import('getsentry/views/seerAutomation/repoDetails')),
+        },
+        {
           path: 'onboarding/',
           name: t('Setup Wizard'),
           component: make(
