@@ -160,8 +160,7 @@ const StyledTimelineHeader = styled('div')<{isActive?: boolean}>`
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: ${space(0.25)};
-  padding-right: 0;
+  padding: ${p => p.theme.space[0]} ${p => p.theme.space.xs};
   border-radius: ${p => p.theme.radius.md};
   cursor: pointer;
   font-weight: ${p => p.theme.fontWeight.normal};
