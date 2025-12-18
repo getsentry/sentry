@@ -672,7 +672,7 @@ const FolderLink = styled(Link, {
       p.active ? p.theme.tokens.content.accent : p.theme.tokens.content.primary};
 
     &:before {
-      background: ${p => (p.active ? p.theme.blue100 : p.theme.gray100)};
+      background: ${p => (p.active ? p.theme.colors.blue100 : p.theme.gray100)};
       opacity: 1;
     }
   }
@@ -682,7 +682,7 @@ const FolderLink = styled(Link, {
       p.active ? p.theme.tokens.content.accent : p.theme.tokens.content.primary};
 
     &:before {
-      background: ${p => (p.active ? p.theme.blue200 : p.theme.gray200)};
+      background: ${p => (p.active ? p.theme.colors.blue200 : p.theme.gray200)};
       opacity: 1;
     }
   }

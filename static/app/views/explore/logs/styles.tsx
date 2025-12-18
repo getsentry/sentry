@@ -50,16 +50,16 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
   }
 
   &[data-row-highlighted='true']:not(thead > &) {
-    background-color: ${p => p.theme.yellow100};
-    color: ${p => p.theme.red300};
+    background-color: ${p => p.theme.colors.yellow100};
+    color: ${p => p.theme.colors.red400};
 
     &:hover {
-      background-color: ${p => p.theme.yellow200};
+      background-color: ${p => p.theme.colors.yellow200};
     }
   }
 
   &.beforeHoverTime + &.afterHoverTime:before {
-    border-top: 1px solid ${p => p.theme.purple200};
+    border-top: 1px solid ${p => p.theme.colors.blue200};
     content: '';
     left: 0;
     position: absolute;
@@ -68,7 +68,7 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
   }
 
   &.beforeHoverTime:last-child:before {
-    border-bottom: 1px solid ${p => p.theme.purple200};
+    border-bottom: 1px solid ${p => p.theme.colors.blue200};
     content: '';
     right: 0;
     position: absolute;
@@ -77,7 +77,7 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
   }
 
   &.beforeCurrentTime + &.afterCurrentTime:before {
-    border-top: 1px solid ${p => p.theme.purple300};
+    border-top: 1px solid ${p => p.theme.colors.blue400};
     content: '';
     left: 0;
     position: absolute;
@@ -86,7 +86,7 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
   }
 
   &.beforeCurrentTime:last-child:before {
-    border-bottom: 1px solid ${p => p.theme.purple300};
+    border-bottom: 1px solid ${p => p.theme.colors.blue400};
     content: '';
     right: 0;
     position: absolute;
@@ -330,19 +330,19 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
       };
     case SeverityLevel.TRACE:
       return {
-        background: theme.blue300,
-        backgroundLight: theme.blue100,
-        border: theme.blue200,
-        borderHover: theme.blue300,
-        color: theme.blue400,
+        background: theme.colors.blue400,
+        backgroundLight: theme.colors.blue100,
+        border: theme.colors.blue200,
+        borderHover: theme.colors.blue400,
+        color: theme.colors.blue500,
       };
     case SeverityLevel.WARN:
       return {
-        background: theme.yellow300,
-        backgroundLight: theme.yellow100,
-        border: theme.yellow200,
-        borderHover: theme.yellow300,
-        color: theme.yellow400,
+        background: theme.colors.yellow400,
+        backgroundLight: theme.colors.yellow100,
+        border: theme.colors.yellow200,
+        borderHover: theme.colors.yellow400,
+        color: theme.colors.yellow500,
       };
     case SeverityLevel.ERROR:
       // All these colours are likely changing, so we'll hold off moving them into theme for now.
@@ -355,11 +355,11 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
       };
     case SeverityLevel.FATAL:
       return {
-        background: theme.red300,
-        backgroundLight: theme.red100,
-        border: theme.red200,
-        borderHover: theme.red300,
-        color: theme.red400,
+        background: theme.colors.red400,
+        backgroundLight: theme.colors.red100,
+        border: theme.colors.red200,
+        borderHover: theme.colors.red400,
+        color: theme.colors.red500,
       };
     case SeverityLevel.DEBUG:
       return {
@@ -371,11 +371,11 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
       };
     case SeverityLevel.INFO:
       return {
-        background: theme.blue300,
-        backgroundLight: theme.blue100,
-        border: theme.blue200,
-        borderHover: theme.blue300,
-        color: theme.blue400,
+        background: theme.colors.blue400,
+        backgroundLight: theme.colors.blue100,
+        border: theme.colors.blue200,
+        borderHover: theme.colors.blue400,
+        color: theme.colors.blue500,
       };
     case SeverityLevel.UNKNOWN:
       return {
@@ -501,7 +501,7 @@ export const TraceIconStyleWrapper = styled(Flex)`
   height: 18px;
 
   .TraceIcon {
-    background-color: ${p => p.theme.red300};
+    background-color: ${p => p.theme.colors.red400};
     position: absolute;
     transform: translate(-50%, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
     width: 18px;

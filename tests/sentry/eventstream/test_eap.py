@@ -8,6 +8,7 @@ from sentry.deletions.tasks.nodestore import delete_events_from_eap
 from sentry.eventstream.eap import delete_groups_from_eap_rpc
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
+from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 
 
 class TestEAPDeletion(TestCase):
@@ -91,3 +92,41 @@ class TestEAPDeletion(TestCase):
             )
         except Exception:
             pytest.fail("Exception should have been caught and not propagated")
+
+    @patch("sentry.deletions.tasks.nodestore.exponential_delay")
+    @patch("sentry.eventstream.eap.snuba_rpc.delete_trace_items_rpc")
+    def test_rate_limit_error_is_retried(self, mock_rpc: MagicMock, mock_delay: MagicMock) -> None:
+        mock_rpc.side_effect = SnubaRPCRateLimitExceeded("rate limited")
+        mock_delay.return_value = lambda _: 0
+
+        delete_events_from_eap(
+            self.organization_id, self.project_id, self.group_ids, Dataset.Events
+        )
+
+        assert mock_rpc.call_count == 5
+
+    @patch("sentry.deletions.tasks.nodestore.exponential_delay")
+    @patch("sentry.eventstream.eap.snuba_rpc.delete_trace_items_rpc")
+    def test_rate_limit_succeeds_on_retry(self, mock_rpc: MagicMock, mock_delay: MagicMock) -> None:
+        mock_rpc.side_effect = [
+            SnubaRPCRateLimitExceeded("rate limited"),
+            SnubaRPCRateLimitExceeded("rate limited"),
+            DeleteTraceItemsResponse(meta=ResponseMeta(), matching_items_count=10),
+        ]
+        mock_delay.return_value = lambda _: 0
+
+        delete_events_from_eap(
+            self.organization_id, self.project_id, self.group_ids, Dataset.Events
+        )
+
+        assert mock_rpc.call_count == 3
+
+    @patch("sentry.eventstream.eap.snuba_rpc.delete_trace_items_rpc")
+    def test_non_rate_limit_error_not_retried(self, mock_rpc: MagicMock) -> None:
+        mock_rpc.side_effect = Exception("Some other error")
+
+        delete_events_from_eap(
+            self.organization_id, self.project_id, self.group_ids, Dataset.Events
+        )
+
+        assert mock_rpc.call_count == 1
