@@ -9,7 +9,7 @@ describe('Business Landing Footer', () => {
   const organization = OrganizationFixture({access: ['org:billing']});
   const subscription = SubscriptionFixture({organization});
 
-  const checkoutPage = `/settings/${organization.slug}/billing/checkout/?referrer=upgrade-business-landing.unknown`;
+  const checkoutPage = `/checkout/${organization.slug}/?referrer=upgrade-business-landing.unknown`;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
