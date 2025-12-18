@@ -49,9 +49,9 @@ export function useBulkUpdateRepositorySettings(
         queryKey: [`/organizations/${organization.slug}/repos/`],
       });
       (data ?? []).forEach(repo => {
-        queryClient.invalidateQueries({
-          queryKey: getRepositoryWithSettingsQueryKey(organization, repo.id),
-        });
+        const queryKey = getRepositoryWithSettingsQueryKey(organization, repo.id);
+        queryClient.invalidateQueries({queryKey});
+        queryClient.setQueryData(queryKey, [repo, undefined, undefined]);
       });
       options?.onSettled?.(data, error, variables, context);
     },
