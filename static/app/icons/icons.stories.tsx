@@ -93,13 +93,6 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'archive',
-        groups: ['product'],
-        keywords: ['box', 'storage', 'old', 'save'],
-        name: 'Archive',
-        defaultProps: {},
-      },
-      {
         id: 'support',
         groups: ['product'],
         keywords: ['microphone', 'help'],
@@ -366,13 +359,6 @@ const SECTIONS: TSection[] = [
         groups: ['logo'],
         keywords: ['deploy', 'hosting', 'frontend'],
         name: 'Vercel',
-        defaultProps: {},
-      },
-      {
-        id: 'teamwork',
-        groups: ['logo'],
-        keywords: ['project', 'collaboration', 'management'],
-        name: 'Teamwork',
         defaultProps: {},
       },
       {
@@ -946,13 +932,6 @@ const SECTIONS: TSection[] = [
         },
       },
       {
-        id: 'archive',
-        groups: ['product'],
-        keywords: [],
-        name: 'Archive',
-        defaultProps: {},
-      },
-      {
         id: 'play',
         groups: ['action'],
         keywords: ['video', 'audio', 'unpause'],
@@ -1446,13 +1425,6 @@ const SECTIONS: TSection[] = [
         groups: ['device'],
         keywords: ['git', 'github', 'version', 'save', 'repository'],
         name: 'Commit',
-        defaultProps: {},
-      },
-      {
-        id: 'laptop',
-        groups: ['device'],
-        keywords: ['computer', 'macbook', 'notebook', 'portable'],
-        name: 'Laptop',
         defaultProps: {},
       },
       {
