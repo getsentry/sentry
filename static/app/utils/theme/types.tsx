@@ -20,19 +20,9 @@ export type BreakpointSize = SizeRange<'2xs', '2xl'>;
 export type SpaceSize = SizeRange<'0', '3xl'>;
 
 /**
- * Shadow elevation size constraint.
- */
-export type ShadowSize = SizeRange<'sm', 'xl'>;
-
-/**
  * Border radius size constraint.
  */
 export type RadiusSize = SizeRange<'0', '2xl'> | 'full';
-
-/**
- * Border width size constraint.
- */
-export type BorderSize = SizeRange<'0', '2xl'>;
 
 /**
  * Animation easing curve preset.
@@ -56,18 +46,13 @@ export type SurfaceVariant = 'primary' | 'secondary' | 'tertiary';
 /**
  * Semantic color variant for conveying meaning through color.
  */
-export type SemanticVariant =
+type SemanticVariant =
   | 'accent'
   | 'danger'
   | 'neutral'
   | 'promotion'
   | 'success'
   | 'warning';
-
-/**
- * Color intensity level for semantic color variants.
- */
-export type ColorIntensity = 'moderate' | 'muted' | 'vibrant';
 
 /**
  * Content/text color variant.
