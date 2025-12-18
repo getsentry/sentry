@@ -27,7 +27,7 @@ interface UseTraceViewDrawerProps {
   onClose?: () => void;
 }
 
-const TraceViewDrawer = memo(function TraceViewDrawer({
+export const TraceViewDrawer = memo(function TraceViewDrawer({
   traceSlug,
   closeDrawer,
   timestamp,
@@ -45,13 +45,15 @@ const TraceViewDrawer = memo(function TraceViewDrawer({
     (node: AITraceSpanNode) => {
       const id = node.id;
       setTraceDrawerQueryState({
+        traceId: traceSlug,
         spanId: id,
+        timestamp: timestamp ?? null,
       });
       trackAnalytics('agent-monitoring.drawer.span-select', {
         organization,
       });
     },
-    [setTraceDrawerQueryState, organization]
+    [setTraceDrawerQueryState, organization, traceSlug, timestamp]
   );
 
   const selectedNode =

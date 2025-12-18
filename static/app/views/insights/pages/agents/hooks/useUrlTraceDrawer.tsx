@@ -44,9 +44,9 @@ export function useUrlTraceDrawer() {
       } = options || {};
 
       setTraceDrawerQueryState({
-        traceId: optionsTraceSlug,
-        spanId: optionsSpanId,
-        timestamp: optionsTimestamp,
+        traceId: optionsTraceSlug ?? null,
+        spanId: optionsSpanId ?? null,
+        timestamp: optionsTimestamp ?? null,
       });
 
       return baseOpenDrawer(renderer, {
