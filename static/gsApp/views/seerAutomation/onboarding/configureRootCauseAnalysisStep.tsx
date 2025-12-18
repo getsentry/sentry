@@ -25,6 +25,8 @@ import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
+import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+
 import {useSeerOnboardingContext} from './hooks/seerOnboardingContext';
 import {useCodeMappings} from './hooks/useCodeMappings';
 import {
@@ -179,6 +181,11 @@ export function ConfigureRootCauseAnalysisStep() {
     Promise.all([doUpdateAutofix(), doSubmitOnboarding()])
       .then(() => {
         addSuccessMessage(t('Root Cause Analysis settings saved successfully'));
+        trackGetsentryAnalytics('seer.onboarding.root_cause_analysis_updated', {
+          organization,
+          auto_create_pr: autoCreatePREnabled,
+          projects_mapped: Object.keys(projectRepoMapping).length,
+        });
         setCurrentStep(currentStep + 1);
       })
       .catch(() => {
@@ -192,7 +199,7 @@ export function ConfigureRootCauseAnalysisStep() {
     repositoryProjectMapping,
     selectedRootCauseAnalysisRepositories,
     autoCreatePREnabled,
-    organization.id,
+    organization,
   ]);
 
   const handleRepositoryProjectMappingsChange = useCallback(
