@@ -290,7 +290,7 @@ const TokenGroup = styled('span')<TokenGroupProps>`
   --token-bg: ${p => p.theme.searchTokenBackground[colorType(p)]};
   --token-border: ${p => p.theme.searchTokenBorder[colorType(p)]};
   --token-value-color: ${p =>
-    p.invalid ? p.theme.red400 : p.warning ? p.theme.gray400 : p.theme.blue400};
+    p.invalid ? p.theme.red400 : p.warning ? p.theme.gray400 : p.theme.colors.blue500};
 
   position: relative;
   animation-name: ${shakeAnimation};

@@ -529,7 +529,7 @@ const CardContent = styled('div')`
 `;
 
 const StyledIconSeer = styled(IconSeer)`
-  color: ${p => p.theme.blue400};
+  color: ${p => p.theme.colors.blue500};
 `;
 
 const ViewIssueButtonContainer = styled('div')`
