@@ -7,7 +7,7 @@ import moment from 'moment-timezone';
 import {Alert} from 'sentry/components/core/alert';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
-import {Flex, Stack} from 'sentry/components/core/layout';
+import {Container, Flex, Stack} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Placeholder from 'sentry/components/placeholder';
@@ -946,7 +946,11 @@ function Cart({
           </Stack>
           {summaryIsOpen && (
             <Flex direction="column" gap="lg" data-test-id="plan-summary" width="100%">
-              {errorMessage && <Alert type="error">{errorMessage}</Alert>}
+              {errorMessage && (
+                <Container>
+                  <Alert type="error">{errorMessage}</Alert>
+                </Container>
+              )}
               <ItemsSummary activePlan={activePlan} formData={formData} />
             </Flex>
           )}
