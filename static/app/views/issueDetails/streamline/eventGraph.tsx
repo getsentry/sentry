@@ -404,6 +404,7 @@ export function EventGraph({
         seriesName: isUnfilteredStatsEnabled ? t('Matching events') : t('Events'),
         itemStyle: {
           borderRadius: [2, 2, 0, 0],
+          borderColor: theme.colors.gray200,
           color: isUnfilteredStatsEnabled ? theme.colors.blue400 : translucentGray300,
         },
         data: eventSeries,

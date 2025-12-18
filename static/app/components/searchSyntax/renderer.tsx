@@ -293,7 +293,7 @@ const TokenGroup = styled('span')<TokenGroupProps>`
     p.invalid
       ? p.theme.red400
       : p.warning
-        ? p.theme.colors.gray400
+        ? p.theme.colors.gray500
         : p.theme.colors.blue500};
 
   position: relative;
