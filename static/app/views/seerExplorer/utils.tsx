@@ -787,7 +787,7 @@ function formatSessionData(
   const formatBlock = (block: Block): string => {
     const {message, timestamp, tool_links, tool_results} = block;
 
-    const {content: messageContent, role, tool_calls} = message;
+    const {content: messageContent, role, tool_calls, thinking_content} = message;
 
     const {sortedToolLinks, toolCallToLinkIndexMap} = getValidToolLinks(
       tool_links || [],
@@ -819,6 +819,11 @@ function formatSessionData(
     lines.push(`# ${role.toUpperCase()} ${timestamp}`);
     if (messageContent) {
       lines.push(messageContent);
+    }
+    if (thinking_content) {
+      lines.push('');
+      lines.push('## THINKING CONTENT');
+      lines.push(thinking_content);
     }
 
     if (toolCallsWithLinks.length > 0) {

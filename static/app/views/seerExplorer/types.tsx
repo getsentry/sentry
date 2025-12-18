@@ -62,6 +62,7 @@ export interface ToolCall {
 interface Message {
   content: string;
   role: 'user' | 'assistant' | 'tool_use';
+  thinking_content?: string;
   tool_calls?: ToolCall[];
 }
 
