@@ -53,7 +53,7 @@ When a result arrives out of order (gap detected), instead of immediately backfi
 - Per-subscription sorted set: `uptime:backlog:{subscription_id}`
 - Score = scheduled_check_time_ms
 - Value = JSON serialized CheckResult
-- TTL = 60 minutes FEEDBACK: This should be increased whenever we add a value here.
+- TTL = 60 minutes (extended each time an item is added via `EXPIRE` command)
 
 **Task Scheduling Flag:**
 
@@ -116,15 +116,10 @@ After 5th: Stop retrying and process as normal, including backfilling misses
 - Integrate queue check into `handle_result()`
 - Add feature flag: `organizations:uptime-backlog-retry`
 - Add consumer tests
+- Add remaining metrics (circuit breaker, task scheduling)
 - **Goal**: Complete feature, ready for rollout
 
-**PR5: Monitoring & Observability (Optional)**
-
-# FEEDBACK: Is this just stuff for me to do? As in setting up the dashboards? You can drop this if so. If this is adding metrics in code, that should be done as we go along.
-
-- Add dashboards for backlog metrics
-- Add alerts for circuit breaker, timeout rates
-- Documentation
+**Note on Metrics**: Metrics are added in PRs 3-4 as we implement the task and queueing logic. Dashboard setup and alerts are handled separately.
 
 ### Key Insight: Avoiding Recursion
 
@@ -132,28 +127,40 @@ The task MUST NOT call `handle_result()` because that would re-trigger the queue
 
 **Solution**: Extract core processing logic into `_process_result_internal()`:
 
-- Takes result, detector, subscription, metric_tags
-- Contains: record_check_metrics, mode handling, EAP production, last_update_ms update
-- Does NOT contain: dedup check, backfill detection, queue check
-  FEEDBACK: I think it should still contain the de-dupe check (as in, result["scheduled_check_time_ms"] <= last_update_ms), just in case anything changed and the timestamp moved ahead.
-  FEEDBACK: I think it has backfill detection too? Although depends what you mean. It should perform a backfill if there are gaps
+- Takes result, detector, subscription, metric_tags, cluster
+- Contains: dedup check, backfill detection, record_check_metrics, mode handling, EAP production, last_update_ms update
+- Does NOT contain: queue check (the only branching logic in main consumer)
+
+**Why dedup check stays in `_process_result_internal()`:**
+
+- Task needs to validate queued items are still needed (timestamps may have moved forward)
+- Protects against processing stale results after long delays
+
+**Why backfill detection stays in `_process_result_internal()`:**
+
+- Task can still backfill persistent gaps after retries timeout
+- Ensures gaps are eventually filled even if out-of-order processing fails
 
 **Flow:**
 
 ```
 Main Consumer: handle_result()
-  ├─> Dedup check
-  ├─> Backfill detection (if gaps found, create backfills)
+  ├─> Load detector/subscription
   ├─> Queue check (should_queue_for_retry?)
   │   └─> YES: queue_result_for_retry(), RETURN
   │   └─> NO: continue
-  └─> _process_result_internal()  ← Core processing
+  └─> _process_result_internal()
+        ├─> Dedup check (result["scheduled_check_time_ms"] <= last_update_ms)
+        ├─> Backfill detection (if gaps found, create backfills)
+        ├─> Record metrics
+        ├─> Mode handling (onboarding/active)
+        ├─> EAP production
+        └─> Update last_update_ms
 
+FEEDBACK: I think some checks still need to happen before the queue check. Detector enabled, disallowed by robots, shadow mode, region checks, etc. See what makes sense
 Task: process_uptime_backlog()
-  └─> _process_result_internal()  ← Same core processing, skips queue logic
+  └─> _process_result_internal()  ← Same logic, can validate and backfill
 ```
-
-FEEDBACK: Isn't backfill detection meant to be after `_process_result_internal`? Actually, I think it should just remain where it is inside of `_process_result_internal`.
 
 ## Critical Files to Modify
 
@@ -170,8 +177,8 @@ FEEDBACK: Isn't backfill detection meant to be after `_process_result_internal`?
 - `uptime.backlog.task_scheduled` - Counter, incremented when task scheduled
 - `uptime.backlog.cleared` - Counter, incremented when queue fully drained
 - `uptime.backlog.timeout` - Counter, incremented when giving up after max backoff
-- `uptime.backlog.circuit_breaker` - Counter, incremented when buffer reaches 100
-- `uptime.backlog.gap_detected` - Counter, incremented when task finds gap
+- `uptime.backlog.circuit_breaker` - Counter, incremented when buffer reaches 10 items
+- `uptime.backlog.gap_detected` - Counter, incremented when task finds gap FEEDBACK: I'm pretty sure we already have a stat for the backfill
 - `uptime.backlog.rescheduling` - Counter, incremented when task reschedules
 
 **Calculated metric (in dashboard):**
@@ -445,12 +452,6 @@ Task: process_uptime_backlog() ───────────┘
 - Add feature flag
 - **Safe**: Feature flag OFF by default
 
-**PR5: Observability (Optional)**
-
-- Dashboards for backlog metrics
-- Alerts for anomalies
-- Documentation
-
 ## Metrics & Monitoring
 
 ### Counter Metrics
@@ -460,7 +461,7 @@ Task: process_uptime_backlog() ───────────┘
 - `uptime.backlog.task_scheduled` - Task scheduled
 - `uptime.backlog.cleared` - Queue fully drained (success!)
 - `uptime.backlog.timeout` - Gave up after max backoff
-- `uptime.backlog.circuit_breaker` - Buffer hit 100 items
+- `uptime.backlog.circuit_breaker` - Buffer hit 10 items
 - `uptime.backlog.gap_detected` - Task found gap on retry
 - `uptime.backlog.rescheduling` - Task rescheduled
 
