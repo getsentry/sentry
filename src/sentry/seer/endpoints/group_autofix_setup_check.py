@@ -19,6 +19,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
+from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import (
     get_autofix_repos_from_project_code_mappings,
     has_project_connected_repos,
@@ -155,15 +156,29 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
             org_id=org.id, data_category=DataCategory.SEER_AUTOFIX
         )
 
+        seer_seat_based_tier_enabled = is_seer_seat_based_tier_enabled(org)
+
         seer_repos_linked = False
         # Check if org has github integration and is on seat-based tier.
-        if integration_check is None and is_seer_seat_based_tier_enabled(org):
+        if integration_check is None and seer_seat_based_tier_enabled:
             try:
                 # Check if project has repos linked in Seer.
-                seer_repos_linked = has_project_connected_repos(org.id, group.project.id)
+                # Skip cache to ensure latest data from Seer API.
+                seer_repos_linked = has_project_connected_repos(
+                    org.id, group.project.id, skip_cache=True
+                )
             except Exception as e:
                 # Default to False if we can't check if the project has repos linked in Seer.
                 sentry_sdk.capture_exception(e)
+
+        autofix_enabled = False
+        autofix_automation_tuning = group.project.get_option("sentry:autofix_automation_tuning")
+        if seer_seat_based_tier_enabled:
+            if (
+                autofix_automation_tuning
+                and autofix_automation_tuning != AutofixAutomationTuningSettings.OFF
+            ):
+                autofix_enabled = True
 
         return Response(
             {
@@ -180,5 +195,6 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
                     "hasAutofixQuota": has_autofix_quota,
                 },
                 "seerReposLinked": seer_repos_linked,
+                "autofixEnabled": autofix_enabled,
             }
         )

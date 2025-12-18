@@ -9,6 +9,7 @@ from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.api import client
 from sentry.constants import ObjectStatus
+from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.repository import Repository
@@ -18,6 +19,8 @@ from sentry.seer.explorer.tools import (
     EVENT_TIMESERIES_RESOLUTIONS,
     execute_table_query,
     execute_timeseries_query,
+    execute_trace_table_query,
+    get_baseline_tag_distribution,
     get_issue_and_event_details_v2,
     get_issue_and_event_response,
     get_log_attributes_for_trace,
@@ -41,7 +44,7 @@ from sentry.testutils.cases import (
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.samples import load_data
-from tests.sentry.issues.test_utils import OccurrenceTestMixin
+from tests.sentry.issues.test_utils import OccurrenceTestMixin, SearchIssueTestMixin
 
 
 def _get_utc_iso_without_timezone(dt: datetime) -> str:
@@ -798,6 +801,141 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
         # Should not find the trace since it's beyond the 90-day limit
         result = get_trace_waterfall(trace_id[:8], self.organization.id)
         assert result is None
+
+
+class TestTraceTableQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization(owner=self.user)
+        self.project = self.create_project(organization=self.organization)
+        self.login_as(user=self.user)
+        self.features = {
+            "organizations:performance-trace-explorer": True,
+            "organizations:visibility-explore-view": True,
+        }
+
+    @patch("sentry.seer.explorer.tools.client")
+    def test_trace_table_basic(self, mock_client: Mock) -> None:
+        """Basic integration test for execute_trace_table_query RPC. This is a passthrough to the OrganizationTracesEndpoint, which is tested more extensively."""
+        mock_client.get.side_effect = client.get
+
+        with self.feature(self.features):
+            trace_id1 = uuid.uuid4().hex
+            trace_id2 = uuid.uuid4().hex
+            trace_id3 = uuid.uuid4().hex
+
+            other_project = self.create_project(organization=self.organization)
+
+            spans = [
+                self.create_span(
+                    {
+                        "description": "root span",
+                        "sentry_tags": {"transaction": "api/users", "op": "pageload"},
+                        "trace_id": trace_id1,
+                        "is_segment": True,
+                    },
+                    start_ts=before_now(minutes=5),
+                    duration=120,
+                ),
+                self.create_span(
+                    {
+                        "description": "db call",
+                        "sentry_tags": {"transaction": "api/users", "op": "db"},
+                        "trace_id": trace_id1,
+                        "parent_span_id": None,
+                    },
+                    start_ts=before_now(minutes=4),
+                    duration=80,
+                ),
+                self.create_span(
+                    {
+                        "description": "unrelated trace",
+                        "sentry_tags": {"transaction": "api/other", "op": "pageload"},
+                        "trace_id": trace_id2,
+                        "is_segment": True,
+                    },
+                    project=other_project,
+                    start_ts=before_now(minutes=3),
+                    duration=50,
+                ),
+                self.create_span(
+                    {
+                        "description": "db-only trace",
+                        "sentry_tags": {"transaction": "api/db", "op": "db"},
+                        "trace_id": trace_id3,
+                        "is_segment": True,
+                    },
+                    start_ts=before_now(minutes=2),
+                    duration=40,
+                ),
+            ]
+
+            self.store_spans(spans, is_eap=True)
+
+            # Cross-project query should return both traces with pageload spans.
+            result = execute_trace_table_query(
+                organization_id=self.organization.id,
+                per_page=5,
+                query="span.op:pageload",
+            )
+
+            assert result is not None
+            assert "data" in result
+            returned_ids = {row["trace"] for row in result["data"]}
+            assert returned_ids == {trace_id1, trace_id2}
+
+            assert (
+                mock_client.get.call_args.kwargs["path"]
+                == f"/organizations/{self.organization.slug}/traces/"
+            )
+
+    @patch("sentry.seer.explorer.tools.client.get")
+    def test_trace_table_query_error_handling(self, mock_client_get: Mock) -> None:
+        with self.feature(self.features):
+            # Test 400 error with dict body containing detail
+            error_detail_msg = "Invalid query: field 'invalid_field' does not exist"
+            mock_client_get.side_effect = client.ApiError(400, {"detail": error_detail_msg})
+
+            result = execute_trace_table_query(
+                organization_id=self.organization.id,
+                per_page=5,
+                query="invalid_field:value",
+                project_ids=[self.project.id],
+            )
+
+            assert result is not None
+            assert "error" in result
+            assert result["error"] == error_detail_msg
+            assert "data" not in result
+
+            # Test 400 error with string body
+            error_body = "Bad request: malformed query syntax"
+            mock_client_get.side_effect = client.ApiError(400, error_body)
+
+            result = execute_trace_table_query(
+                organization_id=self.organization.id,
+                per_page=5,
+                query="malformed query",
+                project_ids=[self.project.id],
+            )
+
+            assert result is not None
+            assert "error" in result
+            assert result["error"] == error_body
+            assert "data" not in result
+
+            # Test non-400 errors are re-raised
+            mock_client_get.side_effect = client.ApiError(500, {"detail": "Internal server error"})
+
+            with pytest.raises(client.ApiError) as exc_info:
+                execute_trace_table_query(
+                    organization_id=self.organization.id,
+                    per_page=5,
+                    query="op:db",
+                    project_ids=[self.project.id],
+                )
+
+            assert exc_info.value.status_code == 500
 
 
 class _Project(BaseModel):
@@ -2251,3 +2389,187 @@ class TestMetricsTraceQuery(APITransactionTestCase, SnubaTestCase, TraceMetricsT
         ids = [item["id"] for item in result["data"]]
         assert self.get_id_str(self.metrics[0]) in ids
         assert self.get_id_str(self.metrics[2]) in ids
+
+
+class TestGetBaselineTagDistribution(APITransactionTestCase, SnubaTestCase, SearchIssueTestMixin):
+    """Tests for get_baseline_tag_distribution RPC handler."""
+
+    def _insert_event(
+        self, ts: datetime, group_id: int, tags: dict[str, Any], project_id: int | None = None
+    ) -> None:
+        """Insert an event with tags into Snuba for testing."""
+        import time
+
+        self.snuba_insert(
+            (
+                2,
+                "insert",
+                {
+                    "event_id": uuid.uuid4().hex,
+                    "primary_hash": "a" * 32,
+                    "group_id": group_id,
+                    "project_id": project_id or self.project.id,
+                    "message": "test message",
+                    "platform": "python",
+                    "datetime": ts.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                    "data": {
+                        "received": time.mktime(ts.timetuple()),
+                        "tags": list(tags.items()),
+                    },
+                },
+                {},
+            )
+        )
+
+    def test_returns_empty_for_empty_tag_keys(self) -> None:
+        result = get_baseline_tag_distribution(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            group_id=1,
+            tag_keys=[],
+        )
+        assert result is not None
+        assert result["baseline_tag_distribution"] == []
+
+    def test_returns_baseline_excluding_target_group(self) -> None:
+        """Test that baseline excludes events from the target group_id."""
+        now = datetime.now(UTC)
+        before = now - timedelta(hours=1)
+        after = now + timedelta(hours=1)
+
+        target_group_id = 12345
+        other_group_id = 67890
+
+        # Events in target group (should be EXCLUDED from baseline)
+        self._insert_event(now, target_group_id, {"browser": "Chrome", "os": "Windows"})
+        self._insert_event(now, target_group_id, {"browser": "Chrome", "os": "Mac"})
+
+        # Events in other groups (should be INCLUDED in baseline)
+        self._insert_event(now, other_group_id, {"browser": "Firefox", "os": "Linux"})
+        self._insert_event(now, other_group_id, {"browser": "Firefox", "os": "Linux"})
+        self._insert_event(now, other_group_id, {"browser": "Chrome", "os": "Windows"})
+
+        result = get_baseline_tag_distribution(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            group_id=target_group_id,
+            tag_keys=["browser", "os"],
+            start=_get_utc_iso_without_timezone(before),
+            end=_get_utc_iso_without_timezone(after),
+        )
+
+        assert result is not None
+        distribution = result["baseline_tag_distribution"]
+
+        # Build a dict for easier assertions
+        dist_dict: dict[tuple[str, str], int] = {}
+        for item in distribution:
+            key = (item["tag_key"], item["tag_value"])
+            dist_dict[key] = item["count"]
+
+        # Only events from other_group_id should be counted
+        # Firefox appears 2 times in other group
+        assert dist_dict.get(("browser", "Firefox")) == 2
+        # Chrome appears 1 time in other group (2 times in target group, excluded)
+        assert dist_dict.get(("browser", "Chrome")) == 1
+        # Linux appears 2 times in other group
+        assert dist_dict.get(("os", "Linux")) == 2
+        # Windows appears 1 time in other group (1 time in target group, excluded)
+        assert dist_dict.get(("os", "Windows")) == 1
+
+    def test_filters_by_tag_keys(self) -> None:
+        """Test that only requested tag keys are returned."""
+        now = datetime.now(UTC)
+        before = now - timedelta(hours=1)
+        after = now + timedelta(hours=1)
+
+        # Insert events with multiple tags
+        self._insert_event(now, 1, {"browser": "Chrome", "os": "Windows", "device": "Desktop"})
+        self._insert_event(now, 1, {"browser": "Firefox", "os": "Mac", "device": "Mobile"})
+
+        # Only request browser tag
+        result = get_baseline_tag_distribution(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            group_id=99999,  # Non-existent group, so all events are baseline
+            tag_keys=["browser"],
+            start=_get_utc_iso_without_timezone(before),
+            end=_get_utc_iso_without_timezone(after),
+        )
+
+        assert result is not None
+        distribution = result["baseline_tag_distribution"]
+
+        # Only browser tags should be returned
+        tag_keys = {item["tag_key"] for item in distribution}
+        assert tag_keys == {"browser"}
+        assert len(distribution) == 2  # Chrome and Firefox
+
+    def test_combines_events_and_search_issues(self) -> None:
+        """Test that baseline includes both error events and issue platform occurrences.
+
+        Note: The store_search_issue test helper creates entries in BOTH the events dataset
+        (via store_event) AND the search_issues dataset (via save_issue_occurrence). This is
+        a test artifact - in production, performance issues only exist in search_issues.
+        As a result, tags from store_search_issue appear twice in the combined count.
+        """
+        now = datetime.now(UTC)
+        before = now - timedelta(hours=1)
+        after = now + timedelta(hours=1)
+
+        target_group_id = 12345
+
+        # Insert error events (goes to "events" dataset only)
+        self._insert_event(now, 67890, {"browser": "Chrome", "os": "Windows"})
+        self._insert_event(now, 67890, {"browser": "Firefox", "os": "Linux"})
+
+        # Insert search issues / performance issues
+        # Note: store_search_issue inserts to BOTH events AND search_issues datasets
+        fingerprint = f"{ProfileFileIOGroupType.type_id}-test-group"
+        self.store_search_issue(
+            project_id=self.project.id,
+            user_id=1,
+            fingerprints=[fingerprint],
+            environment=None,
+            insert_time=now,
+            tags=[("browser", "Safari"), ("os", "Mac")],
+        )
+        self.store_search_issue(
+            project_id=self.project.id,
+            user_id=2,
+            fingerprints=[fingerprint],
+            environment=None,
+            insert_time=now,
+            tags=[("browser", "Safari"), ("os", "Mac")],
+        )
+
+        result = get_baseline_tag_distribution(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            group_id=target_group_id,
+            tag_keys=["browser", "os"],
+            start=_get_utc_iso_without_timezone(before),
+            end=_get_utc_iso_without_timezone(after),
+        )
+
+        assert result is not None
+        distribution = result["baseline_tag_distribution"]
+
+        # Build a dict for easier assertions
+        dist_dict: dict[tuple[str, str], int] = {}
+        for item in distribution:
+            key = (item["tag_key"], item["tag_value"])
+            dist_dict[key] = item["count"]
+
+        # Error events (from _insert_event): Chrome=1, Firefox=1, Windows=1, Linux=1
+        # These only go to the events dataset
+        assert dist_dict.get(("browser", "Chrome")) == 1
+        assert dist_dict.get(("browser", "Firefox")) == 1
+        assert dist_dict.get(("os", "Windows")) == 1
+        assert dist_dict.get(("os", "Linux")) == 1
+
+        # Search issues (from store_search_issue): Safari and Mac tags
+        # Due to test helper behavior, these appear in both datasets (2 occurrences x 2 datasets = 4)
+        # This verifies that we ARE querying both datasets and combining results
+        assert dist_dict.get(("browser", "Safari")) == 4
+        assert dist_dict.get(("os", "Mac")) == 4

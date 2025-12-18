@@ -12,20 +12,17 @@ import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import usePrevious from 'sentry/utils/usePrevious';
-import type {
-  TraceItemDetailsMeta,
-  TraceItemResponseAttribute,
-} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   getIsAiNode,
   getTraceNodeAttribute,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
-import {getNodeId} from 'sentry/views/insights/pages/agents/utils/getNodeId';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
+import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
+import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 
 interface AIMessage {
   content: React.ReactNode;
@@ -137,7 +134,7 @@ function transformPrompt(prompt: string) {
 }
 
 export function hasAIInputAttribute(
-  node: TraceTreeNode<TraceTree.EAPSpan | TraceTree.Span | TraceTree.Transaction>,
+  node: EapSpanNode | SpanNode | TransactionNode,
   attributes?: TraceItemResponseAttribute[],
   event?: EventTransaction
 ) {
@@ -178,17 +175,19 @@ function useInvalidRoleDetection(roles: string[]) {
 export function AIInputSection({
   node,
   attributes,
-  attributesMeta,
   event,
 }: {
-  node: TraceTreeNode<TraceTree.EAPSpan | TraceTree.Span | TraceTree.Transaction>;
+  node: EapSpanNode | SpanNode | TransactionNode;
   attributes?: TraceItemResponseAttribute[];
-  attributesMeta?: TraceItemDetailsMeta;
   event?: EventTransaction;
 }) {
   const shouldRender = getIsAiNode(node) && hasAIInputAttribute(node, attributes, event);
-  const messagesMeta = attributesMeta?.['gen_ai.request.messages']?.meta as any;
-  const originalMessagesLength: number | undefined = messagesMeta?.['']?.len;
+  const originalMessagesLength = getTraceNodeAttribute(
+    'gen_ai.request.messages.original_length',
+    node,
+    event,
+    attributes
+  );
 
   let promptMessages = shouldRender
     ? getTraceNodeAttribute('gen_ai.request.messages', node, event, attributes)
@@ -236,26 +235,28 @@ export function AIInputSection({
       {/* If parsing fails, we'll just show the raw string */}
       {typeof messages === 'string' ? (
         // We set the key to the node id to ensure the internal collapse state is reset when the user switches between nodes
-        <TraceDrawerComponents.MultilineText key={getNodeId(node)}>
+        <TraceDrawerComponents.MultilineText key={node.id}>
           {messages}
         </TraceDrawerComponents.MultilineText>
       ) : null}
       {Array.isArray(messages) ? (
         <MessagesArrayRenderer
-          key={getNodeId(node)}
+          key={node.id}
           messages={messages}
-          originalLength={originalMessagesLength}
+          originalLength={
+            defined(originalMessagesLength) ? Number(originalMessagesLength) : undefined
+          }
         />
       ) : null}
       {toolArgs ? (
         <TraceDrawerComponents.MultilineJSON
-          key={getNodeId(node)}
+          key={node.id}
           value={toolArgs}
           maxDefaultDepth={1}
         />
       ) : null}
       {embeddingsInput ? (
-        <TraceDrawerComponents.MultilineText key={getNodeId(node)}>
+        <TraceDrawerComponents.MultilineText key={node.id}>
           {embeddingsInput.toString()}
         </TraceDrawerComponents.MultilineText>
       ) : null}

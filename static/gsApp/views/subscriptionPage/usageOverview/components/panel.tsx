@@ -10,15 +10,16 @@ import {IconClock, IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
+import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
 
 import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
 import {AddOnCategory, OnDemandBudgetMode} from 'getsentry/types';
 import {
   displayBudgetName,
   getReservedBudgetCategoryForAddOn,
+  normalizeMetricHistory,
   supportsPayg,
 } from 'getsentry/utils/billing';
-import useSeerOnboardingCheck from 'getsentry/views/seerAutomation/onboarding/hooks/useSeerOnboardingCheck';
 import BilledSeats from 'getsentry/views/subscriptionPage/usageOverview/components/billedSeats';
 import {
   DataCategoryUsageBreakdownInfo,
@@ -135,8 +136,10 @@ function ProductBreakdownPanel({
   // TODO(billing): if we ever show the setup state for other products, this will need refactoring
   // maybe a billing hook for setup checks
   const shouldCheckSetup = selectedProduct === AddOnCategory.SEER && isEnabled;
-  const {data: setupCheck, isLoading: setupCheckLoading} =
-    useSeerOnboardingCheck(shouldCheckSetup);
+  const {data: setupCheck, isLoading: setupCheckLoading} = useSeerOnboardingCheck({
+    enabled: shouldCheckSetup,
+    staleTime: 60_000,
+  });
   const setupRequired =
     shouldCheckSetup && !setupCheckLoading && !setupCheck?.isSeerConfigured;
 
@@ -166,29 +169,29 @@ function ProductBreakdownPanel({
       );
     } else {
       const metricHistory = subscription.categories[billedCategory];
-      if (metricHistory) {
-        breakdownInfo = (
-          <DataCategoryUsageBreakdownInfo
-            subscription={subscription}
-            category={billedCategory}
-            metricHistory={metricHistory}
-            activeProductTrial={activeProductTrial}
-          />
-        );
-      }
+      const normalizedMetricHistory = normalizeMetricHistory(
+        billedCategory,
+        metricHistory
+      );
+      breakdownInfo = (
+        <DataCategoryUsageBreakdownInfo
+          subscription={subscription}
+          category={billedCategory}
+          metricHistory={normalizedMetricHistory}
+          activeProductTrial={activeProductTrial}
+        />
+      );
     }
   } else {
     const category = selectedProduct as DataCategory;
     const metricHistory = subscription.categories[category];
-    if (!metricHistory) {
-      return null;
-    }
+    const normalizedMetricHistory = normalizeMetricHistory(category, metricHistory);
 
     breakdownInfo = (
       <DataCategoryUsageBreakdownInfo
         subscription={subscription}
         category={category}
-        metricHistory={metricHistory}
+        metricHistory={normalizedMetricHistory}
         activeProductTrial={activeProductTrial}
       />
     );

@@ -155,25 +155,6 @@ describe('ParentAutogroupNode', () => {
       expect(node.id).toBe('tail-span-id');
     });
 
-    it('should return undefined when both head and tail ids are undefined', () => {
-      const extra = createMockExtra();
-      const autogroupValue = makeParentAutogroup({});
-      const headSpanValue = makeEAPSpan({event_id: undefined});
-      const tailSpanValue = makeEAPSpan({event_id: undefined});
-
-      const headNode = new EapSpanNode(null, headSpanValue, extra);
-      const tailNode = new EapSpanNode(null, tailSpanValue, extra);
-      const node = new ParentAutogroupNode(
-        null,
-        autogroupValue,
-        extra,
-        headNode,
-        tailNode
-      );
-
-      expect(node.id).toBeUndefined();
-    });
-
     it('should return correct drawerTabsTitle', () => {
       const extra = createMockExtra();
       const autogroupValue = makeParentAutogroup({
@@ -283,7 +264,7 @@ describe('ParentAutogroupNode', () => {
 
       node.expanded = true;
 
-      expect(node.directChildren).toEqual([headNode]);
+      expect(node.directVisibleChildren).toEqual([headNode]);
     });
 
     it('should return tail children as directChildren when collapsed', () => {
@@ -308,7 +289,7 @@ describe('ParentAutogroupNode', () => {
 
       node.expanded = false;
 
-      expect(node.directChildren).toEqual([childNode]);
+      expect(node.directVisibleChildren).toEqual([childNode]);
     });
 
     it('should compute autogroupedSegments correctly with node chain', () => {
@@ -621,14 +602,7 @@ describe('ParentAutogroupNode', () => {
       const headSpanValue = makeSpan({span_id: 'head-span-id'});
       const tailSpanValue = makeSpan({span_id: 'tail-span-id'});
 
-      const mockFn = jest.fn();
-      const transactionNode = new TransactionNode(
-        null,
-        transactionValue,
-        extra,
-        mockFn,
-        mockFn
-      );
+      const transactionNode = new TransactionNode(null, transactionValue, extra);
       const headNode = new SpanNode(transactionNode, headSpanValue, extra);
       const tailNode = new SpanNode(transactionNode, tailSpanValue, extra);
       const node = new ParentAutogroupNode(
@@ -704,7 +678,6 @@ describe('ParentAutogroupNode', () => {
       );
 
       expect(node.matchByPath('ag-headSpanId')).toBe(true);
-      expect(node.matchByPath('ag-tailSpanId')).toBe(true);
       expect(node.matchByPath('ag-differentId')).toBe(false);
     });
 

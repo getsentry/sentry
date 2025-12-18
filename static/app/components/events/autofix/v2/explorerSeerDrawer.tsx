@@ -13,7 +13,7 @@ import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {
   hasCodeChanges as checkHasCodeChanges,
   getArtifactsFromBlocks,
-  getFilePatchesFromBlocks,
+  getMergedFilePatchesFromBlocks,
   getOrderedArtifactKeys,
   useExplorerAutofix,
   type AutofixExplorerStep,
@@ -70,7 +70,7 @@ const drawerBreadcrumbs = (group: Group, event: Event, project: Project) => [
 ];
 
 interface DrawerNavigatorProps {
-  iconVariant: 'loading' | 'waiting';
+  iconAnimation: 'loading' | 'waiting';
   organization: Organization;
   project: Project;
   copyButtonDisabled?: boolean;
@@ -82,7 +82,7 @@ interface DrawerNavigatorProps {
  * Common navigator section with header and buttons.
  */
 function DrawerNavigator({
-  iconVariant,
+  iconAnimation,
   organization,
   project,
   copyButtonDisabled = false,
@@ -93,7 +93,7 @@ function DrawerNavigator({
     <SeerDrawerNavigator>
       <HeaderContainer>
         <Header>{t('Seer')}</Header>
-        <IconSeer variant={iconVariant} size="md" />
+        <IconSeer animation={iconAnimation} size="md" />
       </HeaderContainer>
       <ButtonWrapper>
         <AutofixFeedback iconOnly />
@@ -149,7 +149,7 @@ export function ExplorerSeerDrawer({
   // Extract data from run state
   const blocks = useMemo(() => runState?.blocks ?? [], [runState?.blocks]);
   const artifacts = useMemo(() => getArtifactsFromBlocks(blocks), [blocks]);
-  const filePatches = useMemo(() => getFilePatchesFromBlocks(blocks), [blocks]);
+  const mergedPatches = useMemo(() => getMergedFilePatchesFromBlocks(blocks), [blocks]);
   const loadingBlock = useMemo(() => blocks.find(block => block.loading), [blocks]);
   const hasChanges = checkHasCodeChanges(blocks);
   const prStates = runState?.repo_pr_states;
@@ -220,7 +220,7 @@ export function ExplorerSeerDrawer({
           <NavigationCrumbs crumbs={breadcrumbs} />
         </SeerDrawerHeader>
         <DrawerNavigator
-          iconVariant="loading"
+          iconAnimation="loading"
           copyButtonDisabled={!hasArtifacts}
           onCopyMarkdown={handleCopyMarkdown}
           onReset={undefined}
@@ -243,7 +243,7 @@ export function ExplorerSeerDrawer({
           <NavigationCrumbs crumbs={breadcrumbs} />
         </SeerDrawerHeader>
         <DrawerNavigator
-          iconVariant="waiting"
+          iconAnimation="waiting"
           copyButtonDisabled={!hasArtifacts}
           onCopyMarkdown={handleCopyMarkdown}
           onReset={undefined}
@@ -270,7 +270,7 @@ export function ExplorerSeerDrawer({
           <NavigationCrumbs crumbs={breadcrumbs} />
         </SeerDrawerHeader>
         <DrawerNavigator
-          iconVariant="waiting"
+          iconAnimation="waiting"
           copyButtonDisabled={!hasArtifacts}
           onCopyMarkdown={handleCopyMarkdown}
           onReset={undefined}
@@ -295,7 +295,7 @@ export function ExplorerSeerDrawer({
         <NavigationCrumbs crumbs={breadcrumbs} />
       </SeerDrawerHeader>
       <DrawerNavigator
-        iconVariant={
+        iconAnimation={
           runState.status === 'processing' && isPolling ? 'loading' : 'waiting'
         }
         copyButtonDisabled={!hasArtifacts}
@@ -352,10 +352,10 @@ export function ExplorerSeerDrawer({
                   return null;
               }
             })}
-            {filePatches.length > 0 && (
+            {/* Code changes from merged file patches */}
+            {mergedPatches.length > 0 && (
               <CodeChangesCard
-                key="code_changes"
-                patches={filePatches}
+                patches={mergedPatches}
                 prStates={prStates}
                 onCreatePR={handleCreatePR}
               />

@@ -38,6 +38,8 @@ function UsageCharts({
   }
 
   const category = selectedProduct as DataCategory;
+  // we do not normalize metric history here because if it is isn't present
+  // there shouldn't be any usage to show in charts anyway
   const metricHistory = subscription.categories[category];
   const categoryInfo = getCategoryInfoFromPlural(category);
 

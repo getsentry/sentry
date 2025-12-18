@@ -36,6 +36,7 @@ import {
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceItemAttributesWithConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 // This is a placeholder that currently signals that no metric is selected
@@ -72,15 +73,12 @@ function TraceMetricsSearchBar({
   const hasTraceMetricsDashboards = useHasTraceMetricsDashboards();
   const {state: widgetBuilderState} = useWidgetBuilderContext();
 
-  // TODO: Make decision on how filtering works with multiple trace metrics
-  // We should probably limit it to only one metric for now because there's no way
-  // to filter by multiple metrics at the same time, unless the filter _ONLY_ includes
-  // tags for both metrics.
-  const traceMetric = widgetBuilderState.traceMetrics?.[0];
+  const traceMetric = widgetBuilderState.traceMetric ?? {name: '', type: ''};
 
   const traceItemAttributeConfig = {
     traceItemType: TraceItemDataset.TRACEMETRICS,
     enabled: hasTraceMetricsDashboards,
+    query: createTraceMetricFilter(traceMetric),
   };
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
@@ -113,10 +111,14 @@ function useTraceMetricsSearchBarDataProvider(
 ): SearchBarData {
   const {pageFilters, widgetQuery} = props;
   const hasTraceMetricsDashboards = useHasTraceMetricsDashboards();
+  const {state: widgetBuilderState} = useWidgetBuilderContext();
+
+  const traceMetric = widgetBuilderState.traceMetric ?? {name: '', type: ''};
 
   const traceItemAttributeConfig = {
     traceItemType: TraceItemDataset.TRACEMETRICS,
     enabled: hasTraceMetricsDashboards,
+    query: createTraceMetricFilter(traceMetric),
   };
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
@@ -180,7 +182,7 @@ export const TraceMetricsConfig: DatasetConfig<EventsTimeSeriesResponse, never> 
       }
       return {
         data: timeSeries.values.map(value => ({
-          name: value.timestamp / 1000, // Account for microseconds to milliseconds precision
+          name: value.timestamp,
           value: value.value ?? 0,
         })),
         seriesName: formatTimeSeriesLabel(timeSeries),
@@ -250,6 +252,9 @@ function getSeriesRequest(
       groupBy: widget.queries[0]!.columns,
     };
   }
+
+  // The events-timeseries response errors on duplicate yAxis values, so we need to remove them
+  requestData.yAxis = [...new Set(requestData.yAxis)];
 
   if (samplingMode) {
     requestData.sampling = samplingMode;

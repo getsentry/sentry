@@ -7,25 +7,25 @@ import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {getStylingSliceName} from 'sentry/views/explore/tables/tracesTable/utils';
+import {isBrowserRequestNode} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {TransactionNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {isTransactionNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 import {TraceTransactionRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceTransactionRow';
-import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 
 import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
+import {SpanNode} from './spanNode';
 import {traceChronologicalSort} from './utils';
 
 const {info, fmt} = Sentry.logger;
 
 export class TransactionNode extends BaseNode<TraceTree.Transaction> {
-  private _spanPromises: Map<string, Promise<EventTransaction>> = new Map();
-  private _fromSpans: typeof TraceTree.FromSpans;
-  private _applyPreferences: typeof TraceTree.ApplyPreferences;
+  id: string;
+  type: TraceTree.NodeType;
 
+  private _spanPromises: Map<string, Promise<EventTransaction>> = new Map();
   extra: TraceTreeNodeExtra;
 
   searchPriority = 1;
@@ -33,16 +33,14 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
   constructor(
     parent: BaseNode | null,
     value: TraceTree.Transaction,
-    extra: TraceTreeNodeExtra,
-    fromSpans: typeof TraceTree.FromSpans,
-    applyPreferences: typeof TraceTree.ApplyPreferences
+    extra: TraceTreeNodeExtra
   ) {
     super(parent, value, extra);
 
-    this.extra = extra;
-    this._fromSpans = fromSpans;
-    this._applyPreferences = applyPreferences;
+    this.id = this.value.event_id;
+    this.type = 'txn';
 
+    this.extra = extra;
     const spanChildrenCount = extra.meta?.transaction_child_count_map[this.id];
 
     // We check for >1 events, as the first one is the transaction node itself
@@ -50,10 +48,26 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
       spanChildrenCount === undefined ? true : spanChildrenCount > 1;
 
     if (value) {
-      this.space = [
-        value.start_timestamp * 1e3,
-        (value.timestamp - value.start_timestamp) * 1e3,
-      ];
+      if (
+        value &&
+        'timestamp' in value &&
+        typeof value.timestamp === 'number' &&
+        'start_timestamp' in value &&
+        typeof value.start_timestamp === 'number'
+      ) {
+        this.space = [
+          value.start_timestamp * 1e3,
+          (value.timestamp - value.start_timestamp) * 1e3,
+        ];
+      } else if (value && 'timestamp' in value && typeof value.timestamp === 'number') {
+        this.space = [value.timestamp * 1e3, 0];
+      } else if (
+        value &&
+        'start_timestamp' in value &&
+        typeof value.start_timestamp === 'number'
+      ) {
+        this.space = [value.start_timestamp * 1e3, 0];
+      }
 
       if ('performance_issues' in value && Array.isArray(value.performance_issues)) {
         value.performance_issues.forEach(issue => this.occurrences.add(issue));
@@ -61,15 +75,6 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
     }
 
     this.parent?.children.push(this);
-    this.parent?.children.sort(traceChronologicalSort);
-  }
-
-  get type(): TraceTree.NodeType {
-    return 'txn';
-  }
-
-  get id(): string {
-    return this.value.event_id;
   }
 
   get projectSlug(): string {
@@ -82,10 +87,6 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
 
   get description(): string {
     return this.value.transaction;
-  }
-
-  get startTimestamp(): number {
-    return this.value.start_timestamp;
   }
 
   get endTimestamp(): number {
@@ -101,6 +102,39 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
     subtitle?: string;
   } {
     return {title: this.op || t('Trace'), subtitle: this.value.transaction};
+  }
+
+  get transactionId(): string {
+    return this.value.event_id;
+  }
+
+  // Returns a list of errors related to the txn with ids matching the given node's id
+  private getRelatedSpanErrorsFromTransaction(node: BaseNode): TraceTree.TraceError[] {
+    const errors: TraceTree.TraceError[] = [];
+    for (const error of this.value.errors) {
+      if (error.span === node.id) {
+        errors.push(error);
+      }
+    }
+
+    return errors;
+  }
+
+  // Returns a list of performance issues related to the txn with ids matching the given node's id
+  private getRelatedPerformanceIssuesFromTransaction(
+    node: BaseNode
+  ): TraceTree.TraceOccurrence[] {
+    const occurrences: TraceTree.TraceOccurrence[] = [];
+
+    for (const perfIssue of this.value.performance_issues) {
+      for (const suspect of perfIssue.suspect_spans) {
+        if (suspect === node.id) {
+          occurrences.push(perfIssue);
+        }
+      }
+    }
+
+    return occurrences;
   }
 
   pathToNode(): TraceTree.NodePath[] {
@@ -123,7 +157,6 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
   }
 
   expand(expanding: boolean, tree: TraceTree): boolean {
-    // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
     const index = tree.list.indexOf(this);
 
     // Expanding is not allowed for zoomed in nodes
@@ -136,7 +169,6 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
       this.expanded = expanding;
 
       // Flip expanded so that we can collect visible children
-      // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
       tree.list.splice(index + 1, 0, ...this.visibleChildren);
     } else {
       tree.list.splice(index + 1, this.visibleChildren.length);
@@ -144,7 +176,6 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
       this.expanded = expanding;
 
       // When transaction nodes are collapsed, they still render child transactions
-      // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
       tree.list.splice(index + 1, 0, ...this.visibleChildren);
     }
 
@@ -161,18 +192,17 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
   }
 
   renderWaterfallRow<T extends TraceTree.Node>(props: TraceRowProps<T>): React.ReactNode {
-    // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
-    return <TraceTransactionRow {...props} node={props.node} />;
+    return <TraceTransactionRow {...props} node={this} />;
   }
 
-  renderDetails<T extends TraceTreeNode<TraceTree.NodeValue>>(
+  renderDetails<T extends BaseNode>(
     props: TraceTreeNodeDetailsProps<T>
   ): React.ReactNode {
     return (
       <TransactionNodeDetails
         {...props}
         // Won't need this cast once we use BaseNode type for props.node
-        node={props.node as TraceTreeNode<TraceTree.Transaction>}
+        node={this}
       />
     );
   }
@@ -195,20 +225,141 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
     );
   }
 
+  /**
+   * Creates and appends span children to the transaction node.
+   * Handles reparenting of transactions under children spans.
+   * Returns the bounds of the added subtree as [start, end] timestamps.
+   */
+  appendSpans(spans: TraceTree.Span[], event: EventTransaction | null): [number, number] {
+    const txnChildren = this.findAllChildren<TransactionNode>(c => isTransactionNode(c));
+
+    // Clear children of root node as we are recreating the sub tree
+    this.children = [];
+
+    // Create span nodes
+    const spanNodes: SpanNode[] = [];
+    const spanIdToNode = new Map<string, BaseNode>();
+
+    // Transactions have a span_id that needs to be used as the edge to child child span
+    if (this.value && 'span_id' in this.value) {
+      spanIdToNode.set(this.value.span_id, this);
+    }
+
+    for (const span of spans) {
+      const spanNode: SpanNode = new SpanNode(null, span, null);
+      spanNode.event = event;
+
+      if (spanIdToNode.has(span.span_id)) {
+        Sentry.withScope(scope => {
+          scope.setFingerprint(['trace-span-id-hash-collision']);
+          scope.captureMessage('Span ID hash collision detected');
+          info(fmt`Span ID hash collision detected: ${span.span_id}`);
+        });
+      }
+
+      spanIdToNode.set(span.span_id, spanNode);
+      spanNodes.push(spanNode);
+    }
+
+    // Construct the span tree
+    for (const span of spanNodes) {
+      // If the span has no parent span id, nest it under the root
+      const parent = span.value.parent_span_id
+        ? (spanIdToNode.get(span.value.parent_span_id) ?? this)
+        : this;
+
+      span.parent = parent;
+      parent.children.push(span);
+    }
+
+    const subTreeSpaceBounds: [number, number] = [this.space[0], this.space[1]];
+
+    if (!Number.isFinite(subTreeSpaceBounds[0])) {
+      subTreeSpaceBounds[0] = 0;
+    }
+    if (!Number.isFinite(subTreeSpaceBounds[1])) {
+      subTreeSpaceBounds[1] = 0;
+    }
+
+    // Reparent transactions under children spans
+    for (const transaction of txnChildren) {
+      const parent = spanIdToNode.get(transaction.value?.parent_span_id ?? '');
+      // If the parent span does not exist in the span tree, the transaction will remain under the current node
+      if (!parent) {
+        if (transaction.parent?.children.indexOf(transaction) === -1) {
+          transaction.parent.children.push(transaction);
+        }
+        continue;
+      }
+
+      if (transaction === this) {
+        Sentry.withScope(scope => {
+          scope.setFingerprint(['trace-tree-span-parent-cycle']);
+          scope.captureMessage(
+            'Span is a parent of its own transaction, this should not be possible'
+          );
+          info(fmt`Span is a parent of its own transaction, this should not be possible`);
+        });
+        continue;
+      }
+
+      parent.children.push(transaction);
+      transaction.parent = parent;
+    }
+
+    // Invalidating the node and its children to ensure the tree is rebuilt correctly,
+    // after we have potentially done some re-parenting.
+    this.invalidate();
+    this.children.sort(traceChronologicalSort);
+    this.forEachChild(c => {
+      c.invalidate();
+      // When reparenting transactions under spans, the children are not guaranteed to be in order
+      // so we need to sort them chronologically after the reparenting is complete
+      // Track the min and max space of the sub tree as spans have ms precision
+      subTreeSpaceBounds[0] = Math.min(subTreeSpaceBounds[0], c.space[0]);
+      subTreeSpaceBounds[1] = Math.max(subTreeSpaceBounds[1], c.space[1]);
+
+      if (isBrowserRequestNode(c)) {
+        const serverRequestHandler = c.parent?.children.find(n => n.op === 'http.server');
+
+        if (serverRequestHandler?.reparent_reason === 'pageload server handler') {
+          serverRequestHandler.parent!.children =
+            serverRequestHandler.parent!.children.filter(n => n !== serverRequestHandler);
+          c.children.push(serverRequestHandler);
+          serverRequestHandler.parent = c;
+        }
+      }
+
+      c.children.sort(traceChronologicalSort);
+    });
+
+    spanIdToNode.forEach(node => {
+      for (const performanceIssue of this.getRelatedPerformanceIssuesFromTransaction(
+        node
+      )) {
+        node.occurrences.add(performanceIssue);
+      }
+
+      for (const error of this.getRelatedSpanErrorsFromTransaction(node)) {
+        node.errors.add(error);
+      }
+    });
+
+    return subTreeSpaceBounds;
+  }
+
   fetchChildren(
     fetching: boolean,
     tree: TraceTree,
     options: {
       api: Client;
-      preferences: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
     }
-  ): Promise<EventTransaction | null> {
+  ): Promise<[number, number] | null> {
     if (fetching === this.hasFetchedChildren || !this.canFetchChildren) {
       return Promise.resolve(null);
     }
 
     if (!fetching) {
-      // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
       const index = tree.list.indexOf(this);
 
       // Remove currently visible children
@@ -221,12 +372,10 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
       // Find all transactions that are children of the current transaction
       // remove all non transaction events from current node and its children
       // point transactions back to their parents
-      // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
       const transactions = this.findAllChildren(c => isTransactionNode(c) && c !== this);
 
       for (const trace of transactions) {
         // point transactions back to their parents
-        // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
         const parent = trace.findParent(p => isTransactionNode(p));
 
         // If they already have the correct parent, then we can skip this
@@ -246,11 +395,9 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
         parent.children.push(trace);
       }
 
-      // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
       this.children = this.children.filter(c => isTransactionNode(c));
       this.children.sort(traceChronologicalSort);
 
-      // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
       tree.list.splice(index + 1, 0, ...this.visibleChildren);
 
       this.invalidate();
@@ -259,6 +406,7 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
     }
 
     const key = this.extra.organization.slug + ':' + this.projectSlug + ':' + this.id;
+    let newBounds: [number, number] | null = null;
 
     const promise =
       this._spanPromises.get(key) ??
@@ -277,7 +425,6 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
         // happens, dont update the tree with the resolved data. Alternatively, we could implement
         // a cancellable promise and avoid this cumbersome heuristic.
         // Remove existing entries from the list
-        // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
         const index = tree.list.indexOf(this);
         this.fetchStatus = 'resolved';
 
@@ -292,46 +439,17 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
         const spans = data.entries.find(s => s.type === 'spans') ?? {data: []};
         spans.data.sort((a: any, b: any) => a.start_timestamp - b.start_timestamp);
 
-        // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
-        const [root, spanTreeSpaceBounds] = this._fromSpans(this, spans.data, data);
+        newBounds = this.appendSpans(spans.data, data);
 
-        // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
-        root.hasFetchedChildren = true;
-        // Spans contain millisecond precision, which means that it is possible for the
-        // children spans of a transaction to extend beyond the start and end of the transaction
-        // through ns precision. To account for this, we need to adjust the space of the transaction node and the space
-        // of our trace so that all of the span children are visible and can be rendered inside the view
-        const previousStart = tree.root.space[0];
-        const previousDuration = tree.root.space[1];
-
-        const newStart = spanTreeSpaceBounds[0];
-        const newEnd = spanTreeSpaceBounds[0] + spanTreeSpaceBounds[1];
-
-        // Extend the start of the trace to include the new min start
-        if (newStart <= tree.root.space[0]) {
-          tree.root.space[0] = newStart;
-        }
-        // Extend the end of the trace to include the new max end
-        if (newEnd > tree.root.space[0] + tree.root.space[1]) {
-          tree.root.space[1] = newEnd - tree.root.space[0];
-        }
-
-        if (
-          previousStart !== tree.root.space[0] ||
-          previousDuration !== tree.root.space[1]
-        ) {
-          tree.dispatch('trace timeline change', tree.root.space);
-        }
-
-        this._applyPreferences(root, {
-          organization: this.extra.organization,
-          preferences: options.preferences,
-        });
+        this.hasFetchedChildren = true;
 
         if (index !== -1) {
-          // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
           tree.list.splice(index + 1, 0, ...this.visibleChildren);
         }
+
+        this.invalidate();
+        this.forEachChild(child => child.invalidate());
+
         return data;
       })
       .catch(_e => {
@@ -339,7 +457,32 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
       });
 
     this._spanPromises.set(key, promise);
-    return promise;
+
+    return promise.then(() => newBounds);
+  }
+
+  resolveValueFromSearchKey(key: string): any | null {
+    if (
+      [
+        'duration',
+        // 'transaction.duration', <-- this is an actual key
+        'transaction.total_time',
+      ].includes(key)
+    ) {
+      return this.space[1];
+    }
+
+    // @TODO perf optimization opportunity
+    // Entity check should be preprocessed per token, not once per token per node we are evaluating, however since
+    // we are searching <10k nodes in p99 percent of the time and the search is non blocking, we are likely fine
+    // and can be optimized later.
+    const [maybeEntity, ...rest] = key.split('.');
+    if (maybeEntity === 'transaction') {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      return this.value[rest.join('.')];
+    }
+
+    return null;
   }
 }
 

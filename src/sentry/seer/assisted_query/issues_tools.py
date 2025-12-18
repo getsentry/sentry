@@ -446,9 +446,7 @@ def get_issue_filter_keys(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
-    stats_period, start, end = validate_date_params(
-        stats_period, start, end, default_stats_period="7d"
-    )
+    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     api_key = ApiKey(organization_id=organization.id, scope_list=API_KEY_SCOPES)
 
@@ -562,9 +560,7 @@ def get_filter_key_values(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
-    stats_period, start, end = validate_date_params(
-        stats_period, start, end, default_stats_period="7d"
-    )
+    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     # Check if this is a built-in field first
     # For 'has' field, we need to get tag keys first
@@ -698,9 +694,7 @@ def execute_issues_query(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
-    stats_period, start, end = validate_date_params(
-        stats_period, start, end, default_stats_period="7d"
-    )
+    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     api_key = ApiKey(organization_id=organization.id, scope_list=API_KEY_SCOPES)
 
@@ -771,9 +765,7 @@ def get_issues_stats(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
-    stats_period, start, end = validate_date_params(
-        stats_period, start, end, default_stats_period="7d"
-    )
+    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     if not issue_ids:
         return []

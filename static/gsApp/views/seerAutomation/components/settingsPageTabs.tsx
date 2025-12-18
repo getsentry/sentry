@@ -15,9 +15,9 @@ export default function SettingsPageTabs() {
   const {pathname} = useLocation();
 
   const tabs: Array<[string, Path]> = [
-    [t('Settings'), `/settings/${organization.slug}/seer/`],
-    [t('Projects'), `/settings/${organization.slug}/seer/projects/`],
-    [t('Repos'), `/settings/${organization.slug}/seer/repos/`],
+    [t('Settings'), normalizeUrl(`/settings/${organization.slug}/seer/`)],
+    [t('Projects'), normalizeUrl(`/settings/${organization.slug}/seer/projects/`)],
+    [t('Repos'), normalizeUrl(`/settings/${organization.slug}/seer/repos/`)],
   ];
 
   return (
@@ -25,7 +25,7 @@ export default function SettingsPageTabs() {
       <Tabs onChange={key => navigate(key)} value={pathname}>
         <TabList>
           {tabs.map(([label, to]) => (
-            <TabList.Item key={normalizeUrl(to)} to={to}>
+            <TabList.Item key={to} to={to}>
               {label}
             </TabList.Item>
           ))}
