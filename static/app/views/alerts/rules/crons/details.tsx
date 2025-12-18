@@ -14,10 +14,11 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TimezoneProvider, useTimezone} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import {DetailsSidebar} from 'sentry/views/insights/crons/components/detailsSidebar';
 import {DetailsTimeline} from 'sentry/views/insights/crons/components/detailsTimeline';
 import {MonitorCheckIns} from 'sentry/views/insights/crons/components/monitorCheckIns';
@@ -33,17 +34,16 @@ import {makeMonitorDetailsQueryKey} from 'sentry/views/insights/crons/utils';
 
 import {getMonitorRefetchInterval, getNextCheckInEnv} from './utils';
 
-type Props = RouteComponentProps<{monitorSlug: string; projectId: string}>;
-
 function hasLastCheckIn(monitor: Monitor) {
   return monitor.environments.some(e => e.lastCheckIn);
 }
 
-function MonitorDetails({params, location}: Props) {
+export default function MonitorDetails() {
   const api = useApi();
-
   const organization = useOrganization();
   const queryClient = useQueryClient();
+  const params = useParams<{monitorSlug: string; projectId: string}>();
+  const location = useLocation();
 
   const queryKey = makeMonitorDetailsQueryKey(
     organization,
@@ -202,5 +202,3 @@ const MainActions = styled('div')`
 const StyledPageFilterBar = styled(PageFilterBar)`
   margin-bottom: ${space(2)};
 `;
-
-export default MonitorDetails;
