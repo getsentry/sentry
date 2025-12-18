@@ -8,7 +8,7 @@ import sentry_sdk
 from django.db import router, transaction
 from django.db.models import Q
 
-from sentry import features, options
+from sentry import features
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.services.eventstore.models import GroupEvent
@@ -500,14 +500,7 @@ def process_workflows(
     if features.has("organizations:workflow-engine-process-workflows-logs", organization):
         log_context.set_verbose(True)
 
-    # Use only preferred detector or all detectors based on option
-    use_only_preferred = options.get("workflow_engine.use_only_preferred_detector")
-    detectors_to_use: Collection[Detector] = (
-        [event_detectors.preferred_detector]
-        if use_only_preferred
-        else list(event_detectors.detectors)
-    )
-    workflows = _get_associated_workflows(detectors_to_use, environment, event_data)
+    workflows = _get_associated_workflows(event_detectors.detectors, environment, event_data)
     workflow_evaluation_data.workflows = workflows
 
     if not workflows:

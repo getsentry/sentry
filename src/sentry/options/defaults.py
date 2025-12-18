@@ -3305,9 +3305,9 @@ register(
 )
 
 register(
-    "workflow_engine.use_only_preferred_detector",
+    "workflow_engine.exclude_issue_stream_detector",
     type=Bool,
-    default=True,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
