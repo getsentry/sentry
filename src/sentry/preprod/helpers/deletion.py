@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from enum import Enum
 from typing import TYPE_CHECKING
 
 from django.db import router, transaction
@@ -26,6 +27,14 @@ if TYPE_CHECKING:
     pass
 
 logger = logging.getLogger(__name__)
+
+
+class PreprodFilestoreFileType(str, Enum):
+    """Types of files associated with preprod artifacts."""
+
+    MAIN_ARTIFACT = "main_artifact"
+    INSTALLABLE_APP = "installable_app"
+    SIZE_ANALYSIS = "size_analysis"
 
 
 @dataclass
@@ -57,7 +66,7 @@ def delete_artifact_and_related_objects(
         if preprod_artifact.file_id:
             _delete_file_if_exists(
                 file_id=preprod_artifact.file_id,
-                file_type="main_artifact",
+                file_type=PreprodFilestoreFileType.MAIN_ARTIFACT,
                 artifact_id=artifact_id,
                 files_deleted=files_deleted,
             )
@@ -66,7 +75,7 @@ def delete_artifact_and_related_objects(
         if preprod_artifact.installable_app_file_id:
             _delete_file_if_exists(
                 file_id=preprod_artifact.installable_app_file_id,
-                file_type="installable_app",
+                file_type=PreprodFilestoreFileType.INSTALLABLE_APP,
                 artifact_id=artifact_id,
                 files_deleted=files_deleted,
             )
@@ -81,7 +90,7 @@ def delete_artifact_and_related_objects(
             if size_metric.analysis_file_id:
                 _delete_file_if_exists(
                     file_id=size_metric.analysis_file_id,
-                    file_type="size_analysis",
+                    file_type=PreprodFilestoreFileType.SIZE_ANALYSIS,
                     artifact_id=artifact_id,
                     files_deleted=files_deleted,
                     extra_fields={"size_metric_id": size_metric.id},
@@ -156,7 +165,7 @@ def delete_artifact_and_related_objects(
 
 def _delete_file_if_exists(
     file_id: int,
-    file_type: str,
+    file_type: PreprodFilestoreFileType,
     artifact_id: int,
     files_deleted: list[str],
     extra_fields: dict | None = None,
