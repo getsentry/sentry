@@ -42,11 +42,8 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import {AddAutofixRepoModalContent} from 'sentry/views/settings/projectSeer/addAutofixRepoModal';
-import {
-  MAX_REPOS_LIMIT,
-  SEER_THRESHOLD_OPTIONS,
-} from 'sentry/views/settings/projectSeer/constants';
+import {AddAutofixRepoModal} from 'sentry/views/settings/projectSeer/addAutofixRepoModal';
+import {SEER_THRESHOLD_OPTIONS} from 'sentry/views/settings/projectSeer/constants';
 
 type ProjectState = {
   isPending: boolean;
@@ -102,7 +99,6 @@ function ProjectRow({onClick, project}: {onClick: () => void; project: Project})
 }
 
 function ProjectRowWithUpdate({
-  isFetchingRepositories,
   onSuccess,
   onUpdateProjectState,
   project,
@@ -132,9 +128,8 @@ function ProjectRowWithUpdate({
       currentPreference?.repositories?.map((r: any) => r.external_id) || [];
 
     openModal(deps => (
-      <AddAutofixRepoModalContent
+      <AddAutofixRepoModal
         {...deps}
-        repositories={repositories}
         selectedRepoIds={currentRepoIds}
         onSave={(repoIds: string[]) => {
           const reposData = transformRepositoriesToApiFormat(
@@ -156,15 +151,12 @@ function ProjectRowWithUpdate({
             });
           }
         }}
-        isFetchingRepositories={isFetchingRepositories}
-        maxReposLimit={MAX_REPOS_LIMIT}
       />
     ));
   }, [
     organization.id,
     repositories,
     projectStates,
-    isFetchingRepositories,
     updateProjectSeerPreferences,
     project.id,
     project.slug,

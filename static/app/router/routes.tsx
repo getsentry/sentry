@@ -583,7 +583,7 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'seer/',
       name: t('Seer'),
-      component: make(() => import('sentry/views/settings/projectSeer/index')),
+      component: make(() => import('getsentry/views/seerAutomation/projectDetails')),
     },
     {
       path: 'user-feedback/',

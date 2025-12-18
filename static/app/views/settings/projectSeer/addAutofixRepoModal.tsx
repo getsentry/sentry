@@ -7,49 +7,40 @@ import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {Link} from 'sentry/components/core/link';
+import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconSearch} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Repository} from 'sentry/types/integrations';
 import useOrganization from 'sentry/utils/useOrganization';
+import {MAX_REPOS_LIMIT} from 'sentry/views/settings/projectSeer/constants';
 
 import {SelectableRepoItem} from './selectableRepoItem';
 
 type Props = ModalRenderProps & {
   /**
-   * The maximum number of repositories allowed.
-   */
-  maxReposLimit: number;
-  /**
    * Callback function triggered when the modal is saved.
    */
   onSave: (repoIds: string[]) => void;
   /**
-   * All available repositories from the organization.
-   */
-  repositories: Repository[];
-  /**
    * Repositories currently selected for Autofix in the parent component.
    */
   selectedRepoIds: string[];
-  /**
-   * Loading state for fetching repositories.
-   */
-  isFetchingRepositories?: boolean;
 };
 
-export function AddAutofixRepoModalContent({
-  repositories,
+export function AddAutofixRepoModal({
+  // repositories,
   selectedRepoIds,
   onSave,
   Header,
   Body,
   Footer,
   closeModal,
-  isFetchingRepositories,
-  maxReposLimit,
+  // isFetchingRepositories,
 }: Props) {
+  const {data: repositories, isFetching: isFetchingRepositories} =
+    useOrganizationRepositories();
+
   const organization = useOrganization();
   const [modalSearchQuery, setModalSearchQuery] = useState('');
   const [showMaxLimitAlert, setShowMaxLimitAlert] = useState(false);
@@ -79,23 +70,20 @@ export function AddAutofixRepoModalContent({
     return filtered.filter(repo => repo.provider?.id && repo.provider.id !== 'unknown');
   }, [unselectedRepositories, modalSearchQuery]);
 
-  const handleToggleRepository = useCallback(
-    (repoId: string) => {
-      setModalSelectedRepoIds(prev => {
-        if (prev.includes(repoId)) {
-          setShowMaxLimitAlert(false);
-          return prev.filter(id => id !== repoId);
-        }
-        if (prev.length >= maxReposLimit) {
-          setShowMaxLimitAlert(true);
-          return prev;
-        }
+  const handleToggleRepository = useCallback((repoId: string) => {
+    setModalSelectedRepoIds(prev => {
+      if (prev.includes(repoId)) {
         setShowMaxLimitAlert(false);
-        return [...prev, repoId];
-      });
-    },
-    [maxReposLimit]
-  );
+        return prev.filter(id => id !== repoId);
+      }
+      if (prev.length >= MAX_REPOS_LIMIT) {
+        setShowMaxLimitAlert(true);
+        return prev;
+      }
+      setShowMaxLimitAlert(false);
+      return [...prev, repoId];
+    });
+  }, []);
 
   // Virtualizer setup (simplified based on docs)
   const parentRef = useRef<HTMLDivElement>(null);
@@ -117,7 +105,7 @@ export function AddAutofixRepoModalContent({
       <Body>
         {showMaxLimitAlert && (
           <Alert type="info">
-            {t('Seer is currently limited to %s repositories.', maxReposLimit)}
+            {t('Seer is currently limited to %s repositories.', MAX_REPOS_LIMIT)}
           </Alert>
         )}
         <SearchContainer hasAlert={showMaxLimitAlert}>
