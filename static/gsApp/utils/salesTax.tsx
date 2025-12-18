@@ -198,13 +198,6 @@ function countryHasRegionChoices(
   return !!countryCode && countryCode in REGION_BY_COUNTRY_CODE;
 }
 
-function getRegionChoices(countryCode?: BillingDetails['countryCode']) {
-  return countryHasRegionChoices(countryCode)
-    ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      Object.entries(REGION_BY_COUNTRY_CODE[countryCode])
-    : [];
-}
-
 function getRegionChoiceCode(
   countryCode?: BillingDetails['countryCode'],
   region?: BillingDetails['region']
@@ -233,7 +226,6 @@ function getRegionChoiceName(
 export {
   countryHasRegionChoices,
   countryHasSalesTax,
-  getRegionChoices,
   getRegionChoiceCode,
   getRegionChoiceName,
   getTaxFieldInfo,
