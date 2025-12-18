@@ -2,6 +2,7 @@ import logging
 from copy import deepcopy
 from datetime import UTC, datetime
 
+import sentry_sdk
 from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Subquery, Value, When
 from django.db.models.functions import Coalesce
 from django.http.response import HttpResponseBase
@@ -173,11 +174,16 @@ class AlertRuleIndexMixin(Endpoint):
         ):
             return
 
-        # team admins should be able to create alerts for the projects they have access to
         # Verify that get_projects is available (requires OrganizationEndpoint)
         if not hasattr(self, "get_projects"):
+            sentry_sdk.capture_message(
+                "get_projects not available in check_can_create_alert",
+                level="error",
+                extras={"organization_id": organization.id},
+            )
             raise PermissionDenied
 
+        # team admins should be able to create alerts for the projects they have access to
         projects = self.get_projects(request, organization)
         # team admins will have alerts:write scoped to their projects, members will not
         team_admin_has_access = all(
