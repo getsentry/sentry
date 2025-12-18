@@ -49,8 +49,8 @@ class IsContributorEligibleForSeatAssignmentTest(TestCase):
     def test_user_with_owner_association_is_eligible(self):
         assert is_contributor_eligible_for_seat_assignment("User", "OWNER")
 
-    def test_user_with_collaborator_association_is_not_eligible(self):
-        assert not is_contributor_eligible_for_seat_assignment("User", "COLLABORATOR")
+    def test_user_with_collaborator_association_is_eligible(self):
+        assert is_contributor_eligible_for_seat_assignment("User", "COLLABORATOR")
 
     def test_user_with_contributor_association_is_not_eligible(self):
         assert not is_contributor_eligible_for_seat_assignment("User", "CONTRIBUTOR")
@@ -1126,7 +1126,7 @@ class PullRequestEventWebhook(APITestCase):
         "sentry.integrations.github.webhook.should_create_or_increment_contributor_seat",
         return_value=True,
     )
-    def test_seat_assignment_not_triggered_for_bot_contributor(
+    def test_no_contributor_tracking_for_bot_contributor(
         self,
         mock_should_create_or_increment_contributor_seat: MagicMock,
         mock_assign_seat: MagicMock,
@@ -1147,13 +1147,6 @@ class PullRequestEventWebhook(APITestCase):
                 metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
             )
             integration.add_organization(self.project.organization.id, self.user)
-
-        contributor = OrganizationContributors.objects.create(
-            organization_id=self.organization.id,
-            integration_id=integration.id,
-            external_identifier="6752317",
-            num_actions=1,
-        )
 
         body = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
         body["pull_request"]["user"]["type"] = "Bot"
@@ -1169,8 +1162,11 @@ class PullRequestEventWebhook(APITestCase):
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
-        contributor.refresh_from_db()
-        assert contributor.num_actions == 2
+        assert not OrganizationContributors.objects.filter(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+            external_identifier="6752317",
+        ).exists()
         mock_assign_seat.delay.assert_not_called()
 
     @patch("sentry.integrations.github.webhook.assign_seat_to_organization_contributor")
@@ -1178,7 +1174,7 @@ class PullRequestEventWebhook(APITestCase):
         "sentry.integrations.github.webhook.should_create_or_increment_contributor_seat",
         return_value=True,
     )
-    def test_seat_assignment_not_triggered_for_non_member_contributor(
+    def test_no_contributor_tracking_for_non_collaborator_contributor(
         self,
         mock_should_create_or_increment_contributor_seat: MagicMock,
         mock_assign_seat: MagicMock,
@@ -1200,15 +1196,8 @@ class PullRequestEventWebhook(APITestCase):
             )
             integration.add_organization(self.project.organization.id, self.user)
 
-        contributor = OrganizationContributors.objects.create(
-            organization_id=self.organization.id,
-            integration_id=integration.id,
-            external_identifier="6752317",
-            num_actions=1,
-        )
-
         body = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
-        body["pull_request"]["author_association"] = "COLLABORATOR"
+        body["pull_request"]["author_association"] = "CONTRIBUTOR"
         modified_body = json.dumps(body).encode("utf-8")
 
         self.client.post(
@@ -1221,8 +1210,11 @@ class PullRequestEventWebhook(APITestCase):
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
-        contributor.refresh_from_db()
-        assert contributor.num_actions == 2
+        assert not OrganizationContributors.objects.filter(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+            external_identifier="6752317",
+        ).exists()
         mock_assign_seat.delay.assert_not_called()
 
 

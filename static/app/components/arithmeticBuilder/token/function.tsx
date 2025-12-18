@@ -779,7 +779,7 @@ const BaseGridCell = styled('div')`
 `;
 
 const FunctionGridCell = styled(BaseGridCell)`
-  color: ${p => p.theme.green400};
+  color: ${p => p.theme.colors.green500};
   padding-left: ${p => p.theme.space.xs};
 `;
 

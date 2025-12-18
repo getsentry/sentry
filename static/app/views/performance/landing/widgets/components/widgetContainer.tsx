@@ -5,10 +5,11 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {CompositeSelect} from 'sentry/components/core/compactSelect/composite';
-import DropdownButton from 'sentry/components/dropdownButton';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -349,12 +350,12 @@ function WidgetContainerActions({
   return (
     <CompositeSelect
       trigger={triggerProps => (
-        <DropdownButton
+        <SelectTrigger.IconButton
           {...triggerProps}
           size="xs"
           borderless
-          showChevron={false}
-          icon={<IconEllipsis aria-label={t('More')} />}
+          aria-label={t('More')}
+          icon={<IconEllipsis />}
         />
       )}
       position="bottom-end"

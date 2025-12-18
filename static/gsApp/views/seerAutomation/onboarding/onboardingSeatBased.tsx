@@ -1,23 +1,39 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert/alert';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
+import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
+import {useSeerOnboardingStep} from 'getsentry/views/seerAutomation/onboarding/hooks/useSeerOnboardingStep';
 
 import {SeerOnboardingProvider} from './hooks/seerOnboardingContext';
 import {StepsManager} from './stepsManager';
+import {Steps} from './types';
 
 export default function SeerOnboardingSeatBased() {
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
+  const {isPending, initialStep} = useSeerOnboardingStep();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // GuidedSteps only returns the step number
+    if (!isPending && initialStep === Steps.WRAP_UP) {
+      // users should not be linked to onboarding page after it's been completed, but just in case,
+      // redirect them to Seer settings page.
+      navigate(normalizeUrl(`/settings/${organization.slug}/seer/`), {replace: true});
+    }
+  }, [isPending, initialStep, organization.slug, navigate]);
 
   if (!canWrite) {
     return (
@@ -39,9 +55,13 @@ export default function SeerOnboardingSeatBased() {
 
       <NoProjectMessage organization={organization}>
         <SeerOnboardingProvider>
-          <StyledGuidedSteps>
-            <StepsManager />
-          </StyledGuidedSteps>
+          {isPending ? (
+            <Placeholder />
+          ) : (
+            <StyledGuidedSteps initialStep={initialStep}>
+              <StepsManager />
+            </StyledGuidedSteps>
+          )}
         </SeerOnboardingProvider>
       </NoProjectMessage>
     </Fragment>

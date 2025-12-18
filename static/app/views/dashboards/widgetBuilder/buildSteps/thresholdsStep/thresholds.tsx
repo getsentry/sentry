@@ -110,7 +110,7 @@ export function Thresholds({
         'aria-label': 'First Maximum',
         error: errors?.max1,
       },
-      color: theme.green300,
+      color: theme.colors.green400,
       unitOptions,
       unitSelectProps: {
         name: 'First unit select',
@@ -130,7 +130,7 @@ export function Thresholds({
         'aria-label': 'Second Maximum',
         error: errors?.max2,
       },
-      color: theme.yellow300,
+      color: theme.colors.yellow400,
       unitOptions,
       unitSelectProps: {
         name: 'Second unit select',

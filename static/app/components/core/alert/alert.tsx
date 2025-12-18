@@ -143,19 +143,19 @@ function getAlertColors(theme: Theme, type: NonNullable<AlertProps['type']>) {
       };
     case 'warning':
       return {
-        background: theme.yellow300,
-        backgroundLight: theme.yellow100,
-        border: theme.yellow200,
-        borderHover: theme.yellow300,
-        color: theme.yellow400,
+        background: theme.colors.yellow400,
+        backgroundLight: theme.colors.yellow100,
+        border: theme.colors.yellow200,
+        borderHover: theme.colors.yellow400,
+        color: theme.colors.yellow500,
       };
     case 'success':
       return {
-        background: theme.green300,
-        backgroundLight: theme.green100,
-        border: theme.green200,
-        borderHover: theme.green300,
-        color: theme.green400,
+        background: theme.colors.green400,
+        backgroundLight: theme.colors.green100,
+        border: theme.colors.green200,
+        borderHover: theme.colors.green400,
+        color: theme.colors.green500,
       };
     case 'error':
       return {

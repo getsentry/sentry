@@ -810,7 +810,7 @@ const TraceStylingWrapper = styled('div')`
 
     &:hover {
       &:before {
-        background-color: ${p => p.theme.purple300};
+        background-color: ${p => p.theme.colors.blue400};
       }
     }
   }
@@ -885,8 +885,8 @@ const TraceStylingWrapper = styled('div')`
     }
 
     &.Meh {
-      color: ${p => p.theme.yellow400};
-      border: 1px solid ${p => p.theme.yellow300};
+      color: ${p => p.theme.colors.yellow500};
+      border: 1px solid ${p => p.theme.colors.yellow400};
 
       &.light {
         background-color: rgb(249 244 224);
@@ -898,8 +898,8 @@ const TraceStylingWrapper = styled('div')`
     }
 
     &.Good {
-      color: ${p => p.theme.green300};
-      border: 1px solid ${p => p.theme.green300};
+      color: ${p => p.theme.colors.green400};
+      border: 1px solid ${p => p.theme.colors.green400};
 
       &.light {
         background-color: rgb(232 241 239);
@@ -958,7 +958,7 @@ const TraceStylingWrapper = styled('div')`
         background: repeating-linear-gradient(
             to bottom,
             transparent 0 4px,
-            ${p => p.theme.yellow300} 4px 8px
+            ${p => p.theme.colors.yellow400} 4px 8px
           )
           80%/2px 100% no-repeat;
       }
@@ -967,7 +967,7 @@ const TraceStylingWrapper = styled('div')`
         background: repeating-linear-gradient(
             to bottom,
             transparent 0 4px,
-            ${p => p.theme.green300} 4px 8px
+            ${p => p.theme.colors.green400} 4px 8px
           )
           80%/2px 100% no-repeat;
       }
@@ -982,11 +982,11 @@ const TraceStylingWrapper = styled('div')`
       top: 26px;
 
       &.CurrentReplayTimestamp {
-        background: ${p => p.theme.purple300};
+        background: ${p => p.theme.colors.blue400};
       }
 
       &.HoverReplayTimestamp {
-        background: ${p => p.theme.purple200};
+        background: ${p => p.theme.colors.blue200};
       }
     }
 
@@ -1035,8 +1035,8 @@ const TraceStylingWrapper = styled('div')`
         --pattern-even: ${p => p.theme.colors.blue400};
       }
       &.warning {
-        --pattern-odd: ${p => p.theme.yellow400};
-        --pattern-even: ${p => p.theme.yellow300};
+        --pattern-odd: ${p => p.theme.colors.yellow500};
+        --pattern-even: ${p => p.theme.colors.yellow400};
       }
       &.occurence {
         --pattern-odd: ${p => p.theme.colors.blue500};
@@ -1077,8 +1077,8 @@ const TraceStylingWrapper = styled('div')`
         --pattern-even: ${p => p.theme.colors.blue400};
       }
       &.warning {
-        --pattern-odd: ${p => p.theme.yellow400};
-        --pattern-even: ${p => p.theme.yellow300};
+        --pattern-odd: ${p => p.theme.colors.yellow500};
+        --pattern-even: ${p => p.theme.colors.yellow400};
       }
       &.occurence {
         --pattern-odd: ${p => p.theme.colors.blue500};
@@ -1092,8 +1092,8 @@ const TraceStylingWrapper = styled('div')`
 
       /* hardcoded until new color scales are added to theme */
       &.missing_instrumentation {
-        --pattern-odd: ${p => p.theme.surface100};
-        --pattern-even: ${p => p.theme.surface300};
+        --pattern-odd: ${p => p.theme.colors.surface200};
+        --pattern-even: ${p => p.theme.colors.surface400};
       }
 
       &.error,
@@ -1302,7 +1302,7 @@ const TraceStylingWrapper = styled('div')`
     }
 
     &.SearchResult {
-      background-color: ${p => p.theme.yellow100};
+      background-color: ${p => p.theme.colors.yellow100};
 
       .TraceRightColumn {
         background-color: transparent;
