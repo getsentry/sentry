@@ -1,9 +1,8 @@
 import {useState} from 'react';
 
-import {openPrivateGamingSdkAccessModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {RequestSdkAccessButton} from 'sentry/components/gameConsole/RequestSdkAccessButton';
 import {CONSOLE_PLATFORM_INSTRUCTIONS} from 'sentry/components/onboarding/consoleModal';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import type {
@@ -16,9 +15,7 @@ import {
   ConsolePlatform,
 } from 'sentry/constants/consolePlatforms';
 import platforms from 'sentry/data/platforms';
-import {IconLock} from 'sentry/icons/iconLock';
 import {t, tct} from 'sentry/locale';
-import {RequestSdkAccessButton} from 'sentry/views/settings/project/tempest/RequestSdkAccessButton';
 
 function getPlayStationRequestButtonAccessDescription(platform?: string) {
   switch (platform) {
@@ -98,7 +95,7 @@ function getEnabledPlayStationContent(params: DocsParams): ContentBlock[] {
       content: (
         <RequestSdkAccessButton
           organization={params.organization}
-          project={params.project}
+          projectId={params.project.id}
           origin={params.newOrg ? 'onboarding' : 'project-creation'}
         />
       ),
@@ -147,22 +144,11 @@ function getEnabledNintendoSwitchContent(params: DocsParams): ContentBlock[] {
     {
       type: 'custom',
       content: (
-        <Button
-          size="sm"
-          icon={<IconLock locked />}
-          onClick={() =>
-            openPrivateGamingSdkAccessModal({
-              organization: params.organization,
-              projectId: params.project.id,
-              projectSlug: params.project.slug,
-              sdkName: metadata.displayName,
-              gamingPlatform: 'nintendo-switch',
-              origin: params.newOrg ? 'onboarding' : 'project-creation',
-            })
-          }
-        >
-          {t('Request SDK Access')}
-        </Button>
+        <RequestSdkAccessButton
+          organization={params.organization}
+          projectId={params.project.id}
+          origin={params.newOrg ? 'onboarding' : 'project-creation'}
+        />
       ),
     },
     {
@@ -204,22 +190,11 @@ function getEnabledXboxContent(params: DocsParams): ContentBlock[] {
     {
       type: 'custom',
       content: (
-        <Button
-          size="sm"
-          icon={<IconLock locked />}
-          onClick={() =>
-            openPrivateGamingSdkAccessModal({
-              organization: params.organization,
-              projectId: params.project.id,
-              projectSlug: params.project.slug,
-              sdkName: metadata.displayName,
-              gamingPlatform: 'xbox',
-              origin: params.newOrg ? 'onboarding' : 'project-creation',
-            })
-          }
-        >
-          {t('Request SDK Access')}
-        </Button>
+        <RequestSdkAccessButton
+          organization={params.organization}
+          projectId={params.project.id}
+          origin={params.newOrg ? 'onboarding' : 'project-creation'}
+        />
       ),
     },
     {

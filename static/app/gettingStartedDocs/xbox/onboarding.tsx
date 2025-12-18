@@ -1,6 +1,5 @@
-import {openPrivateGamingSdkAccessModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
+import {RequestSdkAccessButton} from 'sentry/components/gameConsole/RequestSdkAccessButton';
 import {
   StepType,
   type OnboardingConfig,
@@ -43,22 +42,11 @@ export const onboarding: OnboardingConfig = {
           ),
           showIcon: true,
           trailingItems: (
-            <Button
-              size="sm"
-              priority="primary"
-              onClick={() => {
-                openPrivateGamingSdkAccessModal({
-                  organization: params.organization,
-                  projectSlug: params.project.slug,
-                  projectId: params.project.id,
-                  sdkName: 'Xbox',
-                  gamingPlatform: 'xbox',
-                  origin: params.newOrg ? 'onboarding' : 'project-creation',
-                });
-              }}
-            >
-              {t('Request Access')}
-            </Button>
+            <RequestSdkAccessButton
+              organization={params.organization}
+              projectId={params.project.id}
+              origin="onboarding"
+            />
           ),
         },
         {
