@@ -6,6 +6,7 @@ import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {getTooltipText as getAnnotatedTooltipText} from 'sentry/components/events/meta/annotatedText/utils';
+import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
@@ -68,9 +69,11 @@ export function getExploreUrl({
   table,
   title,
   referrer,
+  caseInsensitive,
 }: {
   organization: Organization;
   aggregateField?: Array<GroupBy | BaseVisualize>;
+  caseInsensitive?: CaseInsensitive;
   field?: string[];
   groupBy?: string[];
   id?: number;
@@ -105,6 +108,7 @@ export function getExploreUrl({
     table,
     title,
     referrer,
+    caseInsensitive: caseInsensitive ? '1' : undefined,
   };
 
   return (
@@ -143,6 +147,7 @@ function getExploreUrlFromSavedQueryUrl({
           yAxes: (visualize?.yAxes ?? []).slice(),
           groupBys: groupBys ?? [],
           sortBys: decodeSorts(q.orderby),
+          caseInsensitive: q.caseInsensitive ? '1' : null,
         };
       }),
       title: savedQuery.name,
@@ -158,6 +163,7 @@ function getExploreUrlFromSavedQueryUrl({
       },
     });
   }
+
   return getExploreUrl({
     organization,
     ...savedQuery,
@@ -210,15 +216,17 @@ export function getExploreMultiQueryUrl({
     start,
     end,
     interval,
-    queries: queries.map(({chartType, fields, groupBys, query, sortBys, yAxes}) =>
-      JSON.stringify({
-        chartType,
-        fields,
-        groupBys,
-        query,
-        sortBys: sortBys[0] ? encodeSort(sortBys[0]) : undefined, // Explore only handles a single sort by
-        yAxes,
-      })
+    queries: queries.map(
+      ({chartType, fields, groupBys, query, sortBys, yAxes, caseInsensitive}) =>
+        JSON.stringify({
+          chartType,
+          fields,
+          groupBys,
+          query,
+          sortBys: sortBys[0] ? encodeSort(sortBys[0]) : undefined, // Explore only handles a single sort by
+          yAxes,
+          caseInsensitive: caseInsensitive ? '1' : undefined,
+        })
     ),
     title,
     id,

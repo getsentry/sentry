@@ -240,7 +240,7 @@ describe('HTTPSamplesPanel', () => {
             statsPeriod: '10d',
             topEvents: 5,
             yAxis: ['count()'],
-            caseInsensitive: 0,
+            caseInsensitive: undefined,
           },
         })
       );
@@ -397,7 +397,7 @@ describe('HTTPSamplesPanel', () => {
             referrer: 'api.insights.http.samples-panel-duration-chart',
             statsPeriod: '10d',
             yAxis: ['avg(span.self_time)'],
-            caseInsensitive: 0,
+            caseInsensitive: undefined,
           }),
         })
       );

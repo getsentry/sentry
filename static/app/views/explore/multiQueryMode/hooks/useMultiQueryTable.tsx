@@ -100,7 +100,13 @@ function useMultiQueryTableAggregateModeImpl({
   return {eventView, fields, result};
 }
 
-export function useMultiQueryTableSampleMode({query, yAxes, sortBys, enabled}: Props) {
+export function useMultiQueryTableSampleMode({
+  query,
+  yAxes,
+  sortBys,
+  enabled,
+  queryExtras,
+}: Props) {
   const canTriggerHighAccuracy = useCallback(
     (results: ReturnType<typeof useSpansQuery<any[]>>) => {
       const canGoToHigherAccuracyTier = results.meta?.dataScanned === 'partial';
@@ -111,7 +117,7 @@ export function useMultiQueryTableSampleMode({query, yAxes, sortBys, enabled}: P
   );
   return useProgressiveQuery({
     queryHookImplementation: useMultiQueryTableSampleModeImpl,
-    queryHookArgs: {query, yAxes, sortBys, enabled},
+    queryHookArgs: {query, yAxes, sortBys, enabled, queryExtras},
     queryOptions: {
       canTriggerHighAccuracy,
     },

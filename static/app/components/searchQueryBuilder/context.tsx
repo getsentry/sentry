@@ -12,10 +12,7 @@ import * as Sentry from '@sentry/react';
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import type {SearchQueryBuilderProps} from 'sentry/components/searchQueryBuilder';
-import type {
-  CaseInsensitive,
-  SetCaseInsensitive,
-} from 'sentry/components/searchQueryBuilder/hooks';
+import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {useHandleSearch} from 'sentry/components/searchQueryBuilder/hooks/useHandleSearch';
 import {
   useQueryBuilderState,
@@ -73,7 +70,7 @@ interface SearchQueryBuilderContextData {
   filterKeyAliases?: TagCollection;
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
   namespace?: string;
-  onCaseInsensitiveClick?: SetCaseInsensitive;
+  onCaseInsensitiveClick?: (value: CaseInsensitive) => void;
   placeholder?: string;
   /**
    * The element to render the combobox popovers into.

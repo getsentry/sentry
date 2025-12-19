@@ -1,5 +1,6 @@
 import {useCallback, useMemo} from 'react';
 
+import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {DateString} from 'sentry/types/core';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
@@ -40,6 +41,7 @@ type ReadableQuery = {
   // - `aggregateField` which contains a list of group bys and visualizes merged together
   // - `groupby` and `visualize` which contains the group bys and visualizes separately
   aggregateField?: Array<RawGroupBy | RawVisualize>;
+  caseInsensitive?: CaseInsensitive;
 
   groupby?: string[];
   // Only used for metrics dataset.
@@ -53,7 +55,7 @@ export class SavedQueryQuery {
   mode: Mode;
   orderby: string;
   query: string;
-
+  caseInsensitive?: CaseInsensitive;
   aggregateField: Array<RawGroupBy | RawVisualize>;
   groupby: string[];
   visualize: RawVisualize[];
@@ -66,7 +68,7 @@ export class SavedQueryQuery {
     this.mode = query.mode;
     this.orderby = query.orderby;
     this.query = query.query;
-
+    this.caseInsensitive = query.caseInsensitive;
     // for compatibility, we ensure that aggregate fields, group bys and visualizes are all populated
     // we ensure that group bys + visualizes = aggregate fields
     this.groupby =
@@ -107,6 +109,7 @@ export type ReadableSavedQuery = {
   projects: number[];
   query: [ReadableQuery, ...ReadableQuery[]];
   starred: boolean;
+  caseInsensitive?: CaseInsensitive;
   changedReason?: ExploreQueryChangedReason | null;
   createdBy?: User;
   end?: string;
