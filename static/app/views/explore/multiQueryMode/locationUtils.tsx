@@ -28,6 +28,7 @@ export type ReadableExploreQueryParts = {
   query: string;
   sortBys: Sort[];
   yAxes: string[];
+  caseInsensitive?: '1' | null;
   chartType?: ChartType;
 };
 
@@ -104,6 +105,8 @@ function parseQuery(raw: string): ReadableExploreQueryParts {
     const parsedSortBys = decodeSorts(parsed.sortBys);
     const sortBys = validateSortBys(parsedSortBys, groupBys, fields, yAxes);
 
+    const caseInsensitive = parsed.caseInsensitive ?? undefined;
+
     return {
       yAxes,
       chartType,
@@ -111,6 +114,7 @@ function parseQuery(raw: string): ReadableExploreQueryParts {
       query: parsed.query ?? '',
       groupBys,
       fields,
+      caseInsensitive,
     };
   } catch (error) {
     return DEFAULT_QUERY;
@@ -136,6 +140,7 @@ export function useReadQueriesFromLocation(): ReadableExploreQueryParts[] {
 // Write utils begin
 
 type WritableExploreQueryParts = {
+  caseInsensitive?: '1' | null;
   chartType?: ChartType;
   fields?: string[];
   groupBys?: readonly string[];
@@ -148,6 +153,7 @@ function getQueriesAsUrlParam(queries: WritableExploreQueryParts[]): string[] {
   return queries.map(query =>
     JSON.stringify({
       chartType: query.chartType,
+      caseInsensitive: query.caseInsensitive,
       fields: query.fields,
       groupBys: query.groupBys,
       query: query.query,
