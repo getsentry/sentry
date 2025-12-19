@@ -732,6 +732,11 @@ def update_autofix(
     try:
         response.raise_for_status()
     except Exception:
-        return Response({"detail": "Failed to update autofix"}, status=500)
+        return Response({"detail": "Failed to update autofix run"}, status=500)
 
-    return Response(response.json(), status=200)
+    try:
+        response_data = response.json()
+    except Exception:
+        return Response({"detail": "Seer returned an invalid response"}, status=500)
+
+    return Response(response_data, status=200)
