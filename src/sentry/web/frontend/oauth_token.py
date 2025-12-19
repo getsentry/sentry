@@ -13,11 +13,14 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
 from rest_framework.request import Request
 
+from django.db import router
+
 from sentry import options
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apigrant import ApiGrant, ExpiredGrantError, InvalidGrantError
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.token_exchange.util import GrantTypes
+from sentry.silo.safety import unguarded_write
 from sentry.utils import json, metrics
 from sentry.web.frontend.base import control_silo_view
 from sentry.web.frontend.openidtoken import OpenIDToken
@@ -173,7 +176,10 @@ class OAuthTokenView(View):
             if grant_type == GrantTypes.AUTHORIZATION:
                 code = request.POST.get("code")
                 if code:
-                    ApiGrant.objects.filter(application=application, code=code).delete()
+                    # Use unguarded_write because deleting the grant triggers SET_NULL on
+                    # SentryAppInstallation.api_grant, which is a cross-model write
+                    with unguarded_write(using=router.db_for_write(ApiGrant)):
+                        ApiGrant.objects.filter(application=application, code=code).delete()
             # Use invalid_grant per RFC 6749 §5.2: grants/tokens are effectively "revoked"
             # when the application is deactivated. invalid_client would be incorrect here
             # since client authentication succeeded (we verified the credentials).
