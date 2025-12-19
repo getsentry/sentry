@@ -15,6 +15,7 @@ import {
   IconSettings,
   IconSiren,
 } from 'sentry/icons';
+import showNewSeer from 'sentry/utils/seer/showNewSeer';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {useNavContext} from 'sentry/views/nav/context';
@@ -73,6 +74,10 @@ export function PrimaryNavigationItems() {
   const ref = useRef<HTMLUListElement>(null);
 
   const makeNavItemProps = useActivateNavGroupOnHover({ref});
+
+  const showPreventNav = organization.features.includes('prevent-test-analytics')
+    ? true // If you've got test analytics, then you can see the nav
+    : !showNewSeer(organization); // Old seer plan members will see the button to access the AI Code Review landing page.
 
   return (
     <Fragment>
@@ -145,18 +150,20 @@ export function PrimaryNavigationItems() {
         </Feature>
 
         <Feature features={['prevent-ai']}>
-          <Container position="relative" height="100%">
-            <SidebarLink
-              to={`/${prefix}/${PREVENT_BASE_URL}/${PREVENT_AI_BASE_URL}/new/`}
-              activeTo={`/${prefix}/${PREVENT_BASE_URL}/`}
-              analyticsKey="prevent"
-              group={PrimaryNavGroup.PREVENT}
-              {...makeNavItemProps(PrimaryNavGroup.PREVENT)}
-            >
-              <IconPrevent />
-            </SidebarLink>
-            <BetaBadge type="beta" />
-          </Container>
+          {showPreventNav ? (
+            <Container position="relative" height="100%">
+              <SidebarLink
+                to={`/${prefix}/${PREVENT_BASE_URL}/${PREVENT_AI_BASE_URL}/new/`}
+                activeTo={`/${prefix}/${PREVENT_BASE_URL}/`}
+                analyticsKey="prevent"
+                group={PrimaryNavGroup.PREVENT}
+                {...makeNavItemProps(PrimaryNavGroup.PREVENT)}
+              >
+                <IconPrevent />
+              </SidebarLink>
+              <BetaBadge type="beta" />
+            </Container>
+          ) : null}
         </Feature>
 
         <SeparatorItem />

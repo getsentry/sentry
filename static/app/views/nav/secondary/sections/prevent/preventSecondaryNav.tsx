@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 
 import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
+import showNewSeer from 'sentry/utils/seer/showNewSeer';
 import useOrganization from 'sentry/utils/useOrganization';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
@@ -28,6 +29,8 @@ function PreventSecondaryNav() {
     path: `/${PREVENT_AI_BASE_URL}/`,
   });
 
+  const hasOriginalSeerPlan = !showNewSeer(organization);
+
   return (
     <Fragment>
       <SecondaryNav.Header>
@@ -40,12 +43,14 @@ function PreventSecondaryNav() {
               {t('Tests')}
             </SecondaryNav.Item>
           </Feature>
-          <SecondaryNav.Item
-            to={`${preventAIPathName}new/`}
-            activeTo={`${preventAIPathName}new/`}
-          >
-            {t('AI Code Review')}
-          </SecondaryNav.Item>
+          {hasOriginalSeerPlan ? (
+            <SecondaryNav.Item
+              to={`${preventAIPathName}new/`}
+              activeTo={`${preventAIPathName}new/`}
+            >
+              {t('AI Code Review')}
+            </SecondaryNav.Item>
+          ) : null}
         </SecondaryNav.Section>
         <Feature features={['prevent-test-analytics']}>
           <SecondaryNav.Section id="prevent-configure" title={t('Configure')}>
