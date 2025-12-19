@@ -51,7 +51,7 @@ from sentry.plugins.providers.integration_repository import (
     get_integration_repository_provider,
 )
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
-from sentry.seer.code_review.webhooks import preprocess_check_run_event
+from sentry.seer.code_review.webhooks import PREPROCESSORS
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.organization_contributors import assign_seat_to_organization_contributor
 from sentry.users.services.user.service import user_service
@@ -879,7 +879,7 @@ class CheckRunEventWebhook(GitHubWebhook):
     # XXX: We will streamline this approach to other webhook handlers in the future.
     # Add new webhook event processors here.
     WEBHOOK_EVENT_PROCESSORS = [
-        preprocess_check_run_event,
+        *PREPROCESSORS,
     ]
 
     @property
