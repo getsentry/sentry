@@ -66,6 +66,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             channel_id=self.channel_id,
             thread_ts=self.thread_ts,
             data=SeerAutofixError(error_message=error),
+            ephemeral_user_id=self.slack_request.user_id,
         )
 
     def on_trigger_autofix_success(self, *, run_id: int) -> None:
@@ -239,5 +240,7 @@ def _send_thread_update(
         )
     else:
         install.send_threaded_message(
-            channel_id=channel_id, thread_ts=thread_ts, renderable=renderable
+            channel_id=channel_id,
+            thread_ts=thread_ts,
+            renderable=renderable,
         )
