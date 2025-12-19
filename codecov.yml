@@ -93,9 +93,10 @@ flag_management:
       # Prevents the upload with this flag from being copied across commits
       carryforward: false
       # https://docs.codecov.com/docs/getting-started-with-ats#step-2-configure-the-codecovyml-for-automated-test-selection
-      # carryforward_mode: "labels"
+      carryforward_mode: 'labels'
       statuses:
         # https://github.com/codecov/shared/blob/main/shared/validation/user_schema.py#L310
+        - type: 'project'
         - type: 'patch'
           only_pulls: true
 
