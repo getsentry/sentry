@@ -824,14 +824,22 @@ def test_dropped_spans_emit_outcomes(
     assert outcome_call.kwargs["category"] == DataCategory.SPAN_INDEXED
     assert outcome_call.kwargs["quantity"] > 0, "Should have dropped at least some spans"
 
-    # Verify ingested byte count metric was emitted (tracks total bytes before trimming)
-    timing_calls = [
+    # Verify ingested span count and byte count metrics were emitted
+    ingested_spans_timing_calls = [
+        call
+        for call in mock_metrics.call_args_list
+        if call.args and call.args[0] == "spans.buffer.flush_segments.ingested_spans_per_segment"
+    ]
+    assert len(ingested_spans_timing_calls) == 1, "Should emit ingested_spans_per_segment metric"
+    assert ingested_spans_timing_calls[0].args[1] == 6, "Should have ingested 6 spans"
+
+    ingested_bytes_timing_calls = [
         call
         for call in mock_metrics.call_args_list
         if call.args and call.args[0] == "spans.buffer.flush_segments.ingested_bytes_per_segment"
     ]
-    assert len(timing_calls) == 1, "Should emit ingested_bytes_per_segment metric"
-    assert timing_calls[0].args[1] == expected_bytes
+    assert len(ingested_bytes_timing_calls) == 1, "Should emit ingested_bytes_per_segment metric"
+    assert ingested_bytes_timing_calls[0].args[1] == expected_bytes
 
 
 def test_kafka_slice_id(buffer: SpansBuffer) -> None:

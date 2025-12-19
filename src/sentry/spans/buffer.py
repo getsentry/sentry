@@ -60,7 +60,7 @@ Glossary for types of keys:
     * span-buf:hrs:* -- simple bool key to flag a segment as "has root span" (HRS)
     * span-buf:sr:* -- redirect mappings so that each incoming span ID can be mapped to the right span-buf:z: set.
     * span-buf:ic:* -- ingested count, tracks total number of spans originally ingested for a segment (used to calculate dropped spans for outcome tracking)
-    * span-buf:ibc:* -- ingested byte count, tracks total bytes originally ingested for a segment (used to calculate dropped bytes for outcome tracking)
+    * span-buf:ibc:* -- ingested byte count, tracks total bytes originally ingested for a segment
 """
 
 from __future__ import annotations
@@ -534,6 +534,9 @@ class SpansBuffer:
 
             if ingested_count:
                 total_ingested = int(ingested_count)
+                metrics.timing(
+                    "spans.buffer.flush_segments.ingested_spans_per_segment", total_ingested
+                )
                 successfully_loaded = len(payloads.get(key, []))
                 dropped = total_ingested - successfully_loaded
                 if dropped <= 0:
