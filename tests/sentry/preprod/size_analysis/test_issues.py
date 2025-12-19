@@ -13,18 +13,18 @@ class DiffToOccurrenceTest(TestCase):
         head_artifact = self.create_preprod_artifact(project=project, app_id="com.example.app")
         base_artifact = self.create_preprod_artifact(project=project, app_id="com.example.app")
 
-        head_metric = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=head_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        head_metric = self.create_preprod_artifact_size_metrics(
+            head_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             identifier="main",
             max_install_size=150,
             max_download_size=400,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
         )
 
-        base_metric = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=base_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        base_metric = self.create_preprod_artifact_size_metrics(
+            base_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             identifier="main",
             max_install_size=100,
             max_download_size=300,
@@ -53,10 +53,11 @@ class DiffToOccurrenceTest(TestCase):
         assert event["tags"]["regression_kind"] == "install"
         assert event["tags"]["head.app_id"] == "com.example.app"
         assert event["tags"]["base.app_id"] == "com.example.app"
-        assert len(occurrence.evidence_display) == 1
-        assert occurrence.evidence_display[0].name == "some_evidence_name"
-        assert occurrence.evidence_display[0].value == "some_evidence_data"
-        assert occurrence.evidence_display[0].important is False
+        assert len(occurrence.evidence_display) == 0
+        assert occurrence.evidence_data["head_artifact_id"] == head_artifact.id
+        assert occurrence.evidence_data["base_artifact_id"] == base_artifact.id
+        assert occurrence.evidence_data["head_size_metric_id"] == head_metric.id
+        assert occurrence.evidence_data["base_size_metric_id"] == base_metric.id
 
     def test_diff_to_occurrence_download(self):
 
@@ -65,18 +66,18 @@ class DiffToOccurrenceTest(TestCase):
         head_artifact = self.create_preprod_artifact(project=project, app_id="com.example.app")
         base_artifact = self.create_preprod_artifact(project=project, app_id="com.example.app")
 
-        head_metric = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=head_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        head_metric = self.create_preprod_artifact_size_metrics(
+            head_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             identifier="main",
             max_install_size=150,
             max_download_size=500,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
         )
 
-        base_metric = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=base_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        base_metric = self.create_preprod_artifact_size_metrics(
+            base_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             identifier="main",
             max_install_size=100,
             max_download_size=300,
@@ -105,10 +106,11 @@ class DiffToOccurrenceTest(TestCase):
         assert event["tags"]["regression_kind"] == "download"
         assert event["tags"]["head.app_id"] == "com.example.app"
         assert event["tags"]["base.app_id"] == "com.example.app"
-        assert len(occurrence.evidence_display) == 1
-        assert occurrence.evidence_display[0].name == "some_evidence_name"
-        assert occurrence.evidence_display[0].value == "some_evidence_data"
-        assert occurrence.evidence_display[0].important is False
+        assert len(occurrence.evidence_display) == 0
+        assert occurrence.evidence_data["head_artifact_id"] == head_artifact.id
+        assert occurrence.evidence_data["base_artifact_id"] == base_artifact.id
+        assert occurrence.evidence_data["head_size_metric_id"] == head_metric.id
+        assert occurrence.evidence_data["base_size_metric_id"] == base_metric.id
 
 
 class ArtifactToTagsTest(TestCase):
