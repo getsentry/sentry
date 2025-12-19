@@ -3,21 +3,14 @@ import type {PaymentIntentResult, Stripe} from '@stripe/stripe-js';
 import camelCase from 'lodash/camelCase';
 import moment from 'moment-timezone';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 
 import type {Reservations} from 'getsentry/components/upgradeNowModal/types';
@@ -749,99 +742,6 @@ export function useSubmitCheckout({
       }
     },
   });
-}
-
-/**
- * @deprecated use useSubmitCheckout instead
- */
-export async function submitCheckout(
-  organization: Organization,
-  subscription: Subscription,
-  previewData: PreviewData,
-  formData: CheckoutFormData,
-  api: Client,
-  onFetchPreviewData: () => void,
-  onHandleCardAction: (intentDetails: IntentDetails) => void,
-  onSubmitting?: (b: boolean) => void,
-  intentId?: string,
-  referrer = 'billing',
-  shouldUpdateOnDemand = true
-) {
-  const endpoint = `/customers/${organization.slug}/subscription/`;
-
-  // this is necessary for recording partner billing migration-specific analytics after
-  // the migration is successful (during which the flag is flipped off)
-  const isMigratingPartnerAccount = hasPartnerMigrationFeature(organization);
-
-  const data = normalizeAndGetCheckoutAPIData({
-    formData,
-    previewToken: previewData?.previewToken,
-    paymentIntent: intentId,
-    referrer,
-    shouldUpdateOnDemand,
-  });
-
-  addLoadingMessage(t('Saving changes\u{2026}'));
-  try {
-    onSubmitting?.(true);
-
-    await api.requestPromise(endpoint, {
-      method: 'PUT',
-      data,
-    });
-
-    addSuccessMessage(t('Success'));
-    recordAnalytics(organization, subscription, data, isMigratingPartnerAccount);
-
-    const alreadyHasSeer =
-      !isTrialPlan(subscription.plan) &&
-      (subscription.addOns?.seer?.enabled || subscription.addOns?.legacySeer?.enabled);
-    const justBoughtSeer = (data.addOnLegacySeer || data.addOnSeer) && !alreadyHasSeer;
-
-    // refresh org and subscription state
-    // useApi cancels open requests on unmount by default, so we create a new Client to ensure this
-    // request doesn't get cancelled
-    fetchOrganizationDetails(new Client(), organization.slug);
-    SubscriptionStore.loadData(organization.slug);
-    browserHistory.push(
-      normalizeUrl(
-        `/settings/${organization.slug}/billing/overview/?referrer=${referrer}${
-          justBoughtSeer ? '&showSeerAutomationAlert=true' : ''
-        }`
-      )
-    );
-  } catch (error: any) {
-    const body = error.responseJSON;
-
-    if (body?.previewToken) {
-      onSubmitting?.(false);
-      addErrorMessage(t('Your preview expired, please review changes and submit again'));
-      onFetchPreviewData?.();
-    } else if (body?.paymentIntent && body?.paymentSecret && body?.detail) {
-      // When an error response contains payment intent information
-      // we can retry the payment using the client-side confirmation flow
-      // in stripe.
-      // We don't re-enable the button here as we don't want users clicking it
-      // while there are UI transitions happening.
-      addErrorMessage(body.detail);
-      const intent: IntentDetails = {
-        paymentIntent: body.paymentIntent,
-        paymentSecret: body.paymentSecret,
-      };
-      onHandleCardAction?.(intent);
-    } else {
-      const msg =
-        body?.detail || t('An unknown error occurred while saving your subscription');
-      addErrorMessage(msg);
-      onSubmitting?.(false);
-
-      // TODO: add 402 ignoring once we've confirmed all valid error states
-      Sentry.withScope(scope => {
-        scope.setExtras({data});
-        Sentry.captureException(error);
-      });
-    }
-  }
 }
 
 export function getToggleTier(checkoutTier: PlanTier | undefined) {

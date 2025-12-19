@@ -11,14 +11,11 @@ import {
   openPromotionReminderModal,
 } from 'getsentry/actionCreators/modal';
 import type {
-  DiscountInfo,
-  Plan,
   Promotion,
   PromotionClaimed,
   PromotionData,
   Subscription,
 } from 'getsentry/types';
-import {isBizPlanFamily} from 'getsentry/utils/billing';
 import {createPromotionCheckQueryKey} from 'getsentry/utils/usePromotionTriggerCheck';
 
 import trackGetsentryAnalytics from './trackGetsentryAnalytics';
@@ -84,46 +81,6 @@ export async function claimAvailablePromotion({
       activePromotions,
     }
   );
-}
-
-export function showSubscriptionDiscount({
-  activePlan,
-  discountInfo,
-}: {
-  activePlan: Plan;
-  discountInfo?: DiscountInfo;
-}): boolean {
-  return !!(
-    discountInfo?.durationText &&
-    discountInfo.discountType === 'percentPoints' &&
-    activePlan.billingInterval === discountInfo.billingInterval &&
-    discountInfo.creditCategory === 'subscription'
-  );
-}
-
-export function showChurnDiscount({
-  activePlan,
-  discountInfo,
-}: {
-  activePlan: Plan;
-  discountInfo?: DiscountInfo;
-}) {
-  // for now, only show discouns for percentPoints that are for the same billing interval
-  if (
-    discountInfo?.discountType !== 'percentPoints' ||
-    activePlan.billingInterval !== discountInfo?.billingInterval
-  ) {
-    return false;
-  }
-  switch (discountInfo.planRequirement) {
-    case 'business':
-      return isBizPlanFamily(activePlan);
-    case 'paid':
-      // can't select a free plan on the checkout page
-      return true;
-    default:
-      return false;
-  }
 }
 
 export async function checkForPromptBasedPromotion({

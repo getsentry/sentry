@@ -473,13 +473,6 @@ export const isNewPayingCustomer = (
   isTrialPlan(subscription.plan) ||
   hasPartnerMigrationFeature(organization);
 
-/**
- * Promotion utility functions that are based off of formData which has the plan as a string
- * instead of a Plan
- */
-
-export const getBusinessPlanOfTier = (plan: string) => plan.slice(0, 4) + 'business';
-
 export const isTeamPlan = (plan: string) => plan.includes('team');
 
 /**
