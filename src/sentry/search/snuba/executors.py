@@ -886,6 +886,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             span.set_data("Result Size", len(group_ids))
         metrics.distribution("snuba.search.num_candidates", len(group_ids))
         too_many_candidates = False
+        original_group_ids: list[int] | None = None
         if not group_ids:
             # no matches could possibly be found from this point on
             metrics.incr("snuba.search.no_candidates", skip_internal=False)
@@ -899,6 +900,8 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 )
             return self.empty_result
         elif len(group_ids) > max_candidates:
+            original_group_ids = group_ids
+
             # If the pre-filter query didn't include anything to significantly
             # filter down the number of results (from 'first_release', 'status',
             # 'bookmarked_by', 'assigned_to', 'unassigned', or 'subscribed_by')
@@ -951,15 +954,41 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             referrer=referrer,
         )
         if count_hits and hits == 0:
-            if debug_enabled:
-                self.logger.info(
-                    "snuba.search.debug.early_return",
-                    extra={
-                        "project_ids": project_ids,
-                        "reason": "hits_zero",
-                    },
-                )
-            return self.empty_result
+            # Sampling estimated 0 hits. This could mean:
+            # 1. There are genuinely no results (return empty)
+            # 2. The filter is selective and sampling failed to find matches
+            #
+            # If we had too_many_candidates, fall back to truncation instead of
+            # returning empty. This handles selective filters (like assigned_to)
+            # where random sampling is unlikely to find matches.
+            truncation_allowlist = options.get(
+                "snuba.search.truncate-group-ids-for-selective-filters-project-allowlist"
+            )
+            is_truncation_enabled = any(pid in truncation_allowlist for pid in project_ids)
+
+            if too_many_candidates and original_group_ids and is_truncation_enabled:
+                metrics.incr("snuba.search.hits_zero_fallback_to_truncation", skip_internal=False)
+                group_ids = original_group_ids[:max_candidates]
+                too_many_candidates = False
+                hits = None
+                if debug_enabled:
+                    self.logger.info(
+                        "snuba.search.debug.fallback_to_truncation",
+                        extra={
+                            "project_ids": project_ids,
+                            "truncated_group_ids_count": len(group_ids),
+                        },
+                    )
+            else:
+                if debug_enabled:
+                    self.logger.info(
+                        "snuba.search.debug.early_return",
+                        extra={
+                            "project_ids": project_ids,
+                            "reason": "hits_zero",
+                        },
+                    )
+                return self.empty_result
 
         paginator_results = self.empty_result
         result_groups: list[tuple[int, Any]] = []
