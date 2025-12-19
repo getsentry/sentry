@@ -97,9 +97,9 @@ export default function SeerAutomationSettings() {
                 },
                 {
                   name: 'defaultCodeReviewTriggers',
-                  label: t('Auto Run on Opened Pull Requests'),
+                  label: t('Code Review Triggers'),
                   help: t(
-                    'Run when a new pull request is published, ignoring subsequent pushes.'
+                    'Reviews can run on demand, whenever a PR is opened, or after each commit is pushed to a PR.'
                   ),
                   type: 'choice',
                   multiple: true,
