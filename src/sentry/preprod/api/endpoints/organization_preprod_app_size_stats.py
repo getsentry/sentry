@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import uuid
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any
@@ -24,7 +23,6 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
 from sentry.models.organization import Organization
-from sentry.preprod.eap.constants import PREPROD_NAMESPACE
 from sentry.preprod.eap.read import query_preprod_size_metrics
 from sentry.utils.dates import get_rollup_from_request
 
@@ -49,7 +47,7 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
         - statsPeriod: Alternative to start/end (e.g., "14d", "24h")
         - interval: Time interval for buckets (e.g., "1h", "1d")
         - field: Aggregate field (e.g., "max(max_install_size)")
-        - query: Filter query string (e.g., "app_id:com.example.app artifact_type:0")
+        - query: Filter query string (e.g., "app_id:com.example.app artifact_type:0 git_head_ref:main")
         - includeFilters: If "true", includes available filter values in response
 
         Response Format:
@@ -64,22 +62,14 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
             }
         }
         """
-        try:
-            # Parse project IDs from request, then validate permissions
-            req_proj_ids = self.get_requested_project_ids_unchecked(request)
-            projects = self.get_projects(
-                request=request,
-                organization=organization,
-                project_ids=req_proj_ids,
-            )
-            project_ids = [p.id for p in projects]
+        projects = self.get_projects(request=request, organization=organization)
+        project_ids = [p.id for p in projects]
 
-            # Use shared utility for time range parsing
+        try:
             start, end = get_date_range_from_params(
                 request.GET, default_stats_period=timedelta(days=14)
             )
 
-            # Use shared utility for interval parsing
             interval_seconds = get_rollup_from_request(
                 request,
                 date_range=end - start,
@@ -92,50 +82,47 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
 
             filter_kwargs = self._parse_query(request.GET.get("query", ""))
             query_filter = self._build_filter(filter_kwargs) if filter_kwargs else None
-
-            response = query_preprod_size_metrics(
-                organization_id=organization.id,
-                project_ids=project_ids,
-                start=start,
-                end=end,
-                referrer="api.preprod.app-size-stats",
-                filter=query_filter,
-                limit=10000,
-            )
-
-            timeseries_data = self._transform_to_timeseries(
-                response, start, end, interval_seconds, aggregate_func, aggregate_field
-            )
-
-            result: dict[str, Any] = {
-                "data": timeseries_data,
-                "start": int(start.timestamp()),
-                "end": int(end.timestamp()),
-                "meta": {
-                    "fields": {
-                        field: "integer",
-                    }
-                },
-            }
-
-            include_filters = request.GET.get("includeFilters", "").lower() == "true"
-            if include_filters:
-                filter_values = self._fetch_filter_values(organization.id, project_ids, start, end)
-                result["filters"] = filter_values
-
-            return Response(result)
-
         except InvalidParams:
             logger.exception("Invalid parameters for app size stats request")
             raise ParseError("Invalid query parameters")
-        except (ValueError, KeyError):
+        except ValueError:
             logger.exception("Error while parsing app size stats request")
             raise ParseError("Invalid request parameters")
 
+        response = query_preprod_size_metrics(
+            organization_id=organization.id,
+            project_ids=project_ids,
+            start=start,
+            end=end,
+            referrer="api.preprod.app-size-stats",
+            filter=query_filter,
+            limit=10000,
+        )
+
+        timeseries_data = self._transform_to_timeseries(
+            response, start, end, interval_seconds, aggregate_func, aggregate_field
+        )
+
+        result: dict[str, Any] = {
+            "data": timeseries_data,
+            "start": int(start.timestamp()),
+            "end": int(end.timestamp()),
+            "meta": {
+                "fields": {
+                    field: "integer",
+                }
+            },
+        }
+
+        include_filters = request.GET.get("includeFilters", "").lower() == "true"
+        if include_filters:
+            filter_values = self._fetch_filter_values(organization.id, project_ids, start, end)
+            result["filters"] = filter_values
+
+        return Response(result)
+
     def _parse_field(self, field: str) -> tuple[str, str]:
-        """
-        Parse field like 'max(max_install_size)' into ('max', 'max_install_size').
-        """
+        """Parse field like 'max(max_install_size)' into ('max', 'max_install_size')."""
         if "(" not in field or ")" not in field:
             raise ParseError(f"Invalid field format: {field}")
 
@@ -162,22 +149,18 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
         return func_name, field_name
 
     def _parse_query(self, query: str) -> dict[str, Any]:
-        """
-        Parse query string like 'app_id:com.example.app artifact_type:0' into filter kwargs.
-        """
+        """Parse query string like 'app_id:com.example.app artifact_type:0' into filter kwargs."""
         filters: dict[str, str | int] = {}
 
         if not query:
             return filters
 
-        # Simple space-separated key:value parsing
         for token in query.split():
             if ":" not in token:
                 continue
 
             key, value = token.split(":", 1)
 
-            # Map query keys to function kwargs
             if key == "app_id":
                 filters["app_id"] = value
             elif key == "artifact_type":
@@ -186,8 +169,6 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
                 filters["build_configuration_name"] = value
             elif key == "git_head_ref":
                 filters["git_head_ref"] = value
-            elif key == "artifact_id":
-                filters["artifact_id"] = int(value)
 
         return filters
 
@@ -196,21 +177,7 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
         filters = []
 
         for key, value in filter_kwargs.items():
-            if key == "artifact_id":
-                # Special case: artifact_id maps to sentry.trace_id
-                trace_id = uuid.uuid5(PREPROD_NAMESPACE, str(value)).hex
-                filters.append(
-                    TraceItemFilter(
-                        comparison_filter=ComparisonFilter(
-                            key=AttributeKey(
-                                name="sentry.trace_id", type=AttributeKey.Type.TYPE_STRING
-                            ),
-                            op=ComparisonFilter.OP_EQUALS,
-                            value=AttributeValue(val_str=trace_id),
-                        )
-                    )
-                )
-            elif isinstance(value, str):
+            if isinstance(value, str):
                 filters.append(
                     TraceItemFilter(
                         comparison_filter=ComparisonFilter(
@@ -245,11 +212,7 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
         aggregate_field: str,
     ) -> list[tuple[int, list[dict[str, Any]]]]:
         """
-        Transform EAP protobuf response into dashboard time-series format.
-
-        Output format: [[timestamp, [{"count": value}]], ...]
-
-        Note: EAP response is column-oriented (column_values[col_idx].results[row_idx])
+        Transform EAP protobuf response into dashboard time-series format: [[timestamp, [{"count": value}]], ...]
         """
         buckets: dict[int, list[float]] = defaultdict(list)
 
