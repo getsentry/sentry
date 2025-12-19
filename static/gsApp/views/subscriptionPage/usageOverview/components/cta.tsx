@@ -371,7 +371,7 @@ function SetupCta({
       imageAlt=""
       title={t('Get started with Seer')}
       subtitle={t(
-        'Finish connecting to Github, configure your repositories and projects, and start getting the most out of Seer.'
+        'Finish connecting to GitHub, configure your repositories and projects, and start getting the most out of Seer.'
       )}
       heightOverride={`calc(100% - ${USAGE_OVERVIEW_PANEL_HEADER_HEIGHT})`}
       buttons={
