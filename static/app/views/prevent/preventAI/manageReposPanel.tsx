@@ -24,9 +24,9 @@ import {useUpdatePreventAIFeature} from 'sentry/views/prevent/preventAI/hooks/us
 import {getRepoNameWithoutOrg} from 'sentry/views/prevent/preventAI/utils';
 
 export type ManageReposPanelProps = {
-  collapsed: boolean;
   isEditingOrgDefaults: boolean;
   onClose: () => void;
+  open: boolean;
   org: OrganizationIntegration;
   allRepos?: Repository[];
   onFocusRepoSelector?: () => void;
@@ -63,8 +63,8 @@ const sensitivityOptions: SensitivityOption[] = [
 ];
 
 function ManageReposPanel({
-  collapsed,
   onClose,
+  open,
   org,
   repo,
   allRepos = [],
@@ -108,9 +108,8 @@ function ManageReposPanel({
     .filter(r => orgConfig.repo_overrides?.hasOwnProperty(r.externalId))
     .map(r => getRepoNameWithoutOrg(r.name));
 
-  return (
+  return open ? (
     <SlideOverPanel
-      open={!collapsed}
       position="right"
       ariaLabel="Settings Panel"
       data-test-id="manage-repos-panel"
@@ -458,7 +457,7 @@ function ManageReposPanel({
         </Flex>
       </Flex>
     </SlideOverPanel>
-  );
+  ) : null;
 }
 
 interface GetRepoConfigResult {

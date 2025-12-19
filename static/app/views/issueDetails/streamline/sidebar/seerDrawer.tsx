@@ -468,7 +468,7 @@ function LegacySeerDrawer({group, project, event, aiConfig}: LegacySeerDrawerPro
               group={group}
               event={event}
               project={project}
-              collapsed={!!autofixData}
+              defaultExpanded={!autofixData}
             />
           </StyledCard>
         )}

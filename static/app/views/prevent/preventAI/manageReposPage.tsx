@@ -131,7 +131,7 @@ function ManageReposPage({integratedOrgs}: {integratedOrgs: OrganizationIntegrat
       {selectedOrg && (
         <ManageReposPanel
           key={`${selectedOrgId || 'no-org'}-${selectedRepo?.externalId || 'all-repos'}`}
-          collapsed={!isPanelOpen}
+          open={isPanelOpen}
           onClose={() => setIsPanelOpen(false)}
           org={selectedOrg}
           repo={selectedRepo}

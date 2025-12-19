@@ -64,7 +64,7 @@ describe('ManageReposPanel', () => {
   ];
 
   const defaultProps: ManageReposPanelProps = {
-    collapsed: false,
+    open: true,
     onClose: jest.fn(),
     repo: mockRepo,
     org: mockOrg,

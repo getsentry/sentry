@@ -119,12 +119,12 @@ export function GroupSummary({
   event,
   project,
   preview = false,
-  collapsed = false,
+  defaultExpanded = true,
 }: {
   event: Event | null | undefined;
   group: Group;
   project: Project;
-  collapsed?: boolean;
+  defaultExpanded?: boolean;
   preview?: boolean;
 }) {
   const queryClient = useQueryClient();
@@ -180,7 +180,7 @@ export function GroupSummary({
       isPending={isPending}
       isError={isError}
       setForceEvent={setForceEvent}
-      defaultCollapsed={collapsed}
+      defaultExpanded={defaultExpanded}
     />
   );
 }
@@ -254,7 +254,7 @@ function GroupSummaryCollapsed({
   isPending,
   setForceEvent,
   isError,
-  defaultCollapsed = false,
+  defaultExpanded = true,
 }: {
   data: GroupSummaryData | undefined;
   event: Event | null | undefined;
@@ -263,17 +263,17 @@ function GroupSummaryCollapsed({
   isPending: boolean;
   project: Project;
   setForceEvent: (v: boolean) => void;
-  defaultCollapsed?: boolean;
+  defaultExpanded?: boolean;
 }) {
-  const [isExpanded, setIsExpanded] = useState(!defaultCollapsed);
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   const handleToggle = () => {
     setIsExpanded(!isExpanded);
   };
 
   useLayoutEffect(() => {
-    setIsExpanded(!defaultCollapsed);
-  }, [defaultCollapsed]);
+    setIsExpanded(defaultExpanded);
+  }, [defaultExpanded]);
 
   return (
     <div data-testid="group-summary-collapsed">
