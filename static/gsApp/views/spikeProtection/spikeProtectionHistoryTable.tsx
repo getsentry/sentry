@@ -153,7 +153,7 @@ class SpikeProtectionHistoryTable extends Component<Props> {
             )
           : '-'}
       </Flex>,
-      <Flex align="center" key="discover-button">
+      <Flex align="center" justify="end" key="discover-button">
         <DiscoverButton
           icon={<IconTelescope size="sm" />}
           data-test-id="spike-protection-discover-button"
