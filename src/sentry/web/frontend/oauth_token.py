@@ -5,6 +5,7 @@ import logging
 from datetime import datetime
 from typing import Literal, NotRequired, TypedDict
 
+from django.db import router
 from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -12,8 +13,6 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
 from rest_framework.request import Request
-
-from django.db import router
 
 from sentry import options
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
