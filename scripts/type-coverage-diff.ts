@@ -61,11 +61,45 @@ type TypeCoverageResult = {
 };
 
 type Options = {
+  commit?: string;
   daysAgo?: number;
   ignoreFiles?: string[];
   outputFile?: string;
   verbose?: boolean;
 };
+
+function showHelp() {
+  console.log(`
+${colors.bold('Type Coverage Diff')} - Compare TypeScript type coverage between commits
+
+${colors.bold('USAGE:')}
+  pnpm run type-coverage-diff [OPTIONS]
+
+${colors.bold('OPTIONS:')}
+  --days-ago <number>        Compare with commit from N days ago (default: 5)
+  --commit, -c <sha>         Compare with specific commit SHA
+  --output, -o <file>        Save detailed JSON report to file
+  --verbose, -v              Show verbose output with commit info
+  --ignore-files <pattern>   Additional glob patterns to ignore (can be used multiple times)
+  --help, -h                 Show this help message
+
+${colors.bold('EXAMPLES:')}
+  pnpm run type-coverage-diff
+  pnpm run type-coverage-diff --days-ago 7
+  pnpm run type-coverage-diff --commit abc1234
+  pnpm run type-coverage-diff --commit HEAD~5 --verbose
+  pnpm run type-coverage-diff --days-ago 7 --output weekly-report.json
+
+${colors.bold('DESCRIPTION:')}
+  This tool compares TypeScript type coverage between two commits and shows:
+  - NEW any-typed symbols on lines that were added
+  - REMOVED any-typed symbols on lines that were removed
+  - NEW/REMOVED non-null assertions and type assertions
+
+  Only shows changes on lines that were literally added or removed in the git diff,
+  eliminating false positives from code that just moved around.
+`);
+}
 
 function parseArgs(): Options {
   const args = process.argv.slice(2);
@@ -73,15 +107,24 @@ function parseArgs(): Options {
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
-    if (arg === '--days-ago') {
+    if (arg === '--help' || arg === '-h') {
+      showHelp();
+      process.exit(0);
+    } else if (arg === '--days-ago') {
       opts.daysAgo = Number(args[++i]);
+    } else if (arg === '--commit' || arg === '-c') {
+      opts.commit = args[++i];
     } else if (arg === '--output' || arg === '-o') {
       opts.outputFile = args[++i];
     } else if (arg === '--verbose' || arg === '-v') {
       opts.verbose = true;
     } else if (arg === '--ignore-files') {
       if (!opts.ignoreFiles) opts.ignoreFiles = [];
-      opts.ignoreFiles.push(args[++i]);
+      opts.ignoreFiles.push(args[++i]!);
+    } else {
+      console.error(colors.red(`Unknown option: ${arg}`));
+      console.error('Use --help for usage information');
+      process.exit(1);
     }
   }
 
@@ -180,8 +223,8 @@ async function parseGitDiff(
         // Parse hunk header: @@ -oldStart,oldCount +newStart,newCount @@
         const match = line.match(/@@ -(\d+),?(\d+)? \+(\d+),?(\d+)? @@/);
         if (match) {
-          const newStart = parseInt(match[3]);
-          const newCount = parseInt(match[4] || '1');
+          const newStart = parseInt(match[3] || '1', 10);
+          const newCount = parseInt(match[4] || '1', 10);
           currentLineNumber = newStart;
 
           const change = changes.get(currentFile)!;
@@ -318,17 +361,37 @@ function formatItems<
 
 async function main() {
   const opts = parseArgs();
-  const daysAgo = opts.daysAgo || 5;
+
+  // Validate that either --days-ago or --commit is provided, but not both
+  if (opts.commit && opts.daysAgo) {
+    console.error(
+      colors.red(
+        'Error: Cannot specify both --commit and --days-ago. Please use one or the other.'
+      )
+    );
+    process.exit(1);
+  }
+
+  if (!opts.commit && !opts.daysAgo) {
+    opts.daysAgo = 5; // Default to 5 days ago
+  }
+
   const ignoreFilesArgs = createIgnoreFilesArgs(opts.ignoreFiles);
 
-  console.log(
-    colors.bold(`Type Coverage Diff Report (${daysAgo} days ago vs current)\n`)
-  );
+  const reportTitle = opts.commit
+    ? `Type Coverage Diff Report (${opts.commit.substring(0, 8)} vs current)`
+    : `Type Coverage Diff Report (${opts.daysAgo} days ago vs current)`;
+
+  console.log(colors.bold(`${reportTitle}\n`));
 
   try {
     // Get current branch and commit info
     const currentBranch = await getCurrentBranch();
-    const oldCommit = await getCommitFromDaysAgo(daysAgo);
+
+    // Determine the old commit to compare against
+    const oldCommit = opts.commit
+      ? opts.commit
+      : await getCommitFromDaysAgo(opts.daysAgo!);
 
     // Get current commit SHA
     const {stdout: currentCommitOutput} = await execAsync('git rev-parse HEAD');
@@ -353,7 +416,10 @@ async function main() {
     const currentResult = await runTypeCoverage(ignoreFilesArgs);
 
     // Checkout old commit and run type-coverage
-    console.log(colors.dim(`Checking out commit from ${daysAgo} days ago...`));
+    const checkoutMessage = opts.commit
+      ? `Checking out commit ${oldCommit.substring(0, 8)}...`
+      : `Checking out commit from ${opts.daysAgo} days ago...`;
+    console.log(colors.dim(checkoutMessage));
 
     // Stash any local changes first
     try {
@@ -469,7 +535,7 @@ async function main() {
     if (opts.outputFile) {
       const report = {
         meta: {
-          daysAgo,
+          daysAgo: opts.daysAgo,
           currentBranch,
           oldCommit,
           timestamp: new Date().toISOString(),
