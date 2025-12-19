@@ -78,6 +78,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
                 organization_id=self.organization_id,
                 stopping_point=self.autofix_stopping_point,
             ),
+            ephemeral_user_id=self.slack_request.user_id,
         )
 
     def create_autofix_cache_payload(self) -> SlackEntrypointCachePayload:
@@ -133,7 +134,6 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
                         group_id=cache_payload["group_id"],
                         current_point=AutofixStoppingPoint.ROOT_CAUSE,
                         summary=root_cause.get("description", ""),
-                        changes=[],
                         steps=[step.get("title", "") for step in root_cause.get("steps", [])],
                         group_link=group_link,
                     ),
@@ -152,7 +152,6 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
                         group_id=cache_payload["group_id"],
                         current_point=AutofixStoppingPoint.SOLUTION,
                         summary=solution.get("description", ""),
-                        changes=[],
                         steps=[step.get("title", "") for step in solution.get("steps", [])],
                         group_link=group_link,
                     ),
@@ -170,7 +169,6 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
                         project_id=cache_payload["project_id"],
                         group_id=cache_payload["group_id"],
                         current_point=AutofixStoppingPoint.CODE_CHANGES,
-                        steps=[],
                         changes=[
                             {
                                 "repo_name": change.get("repo_name", ""),
@@ -184,7 +182,32 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
                     ),
                 )
             case SentryAppEventType.SEER_PR_CREATED:
-                pass
+                pull_requests = [
+                    pr_payload.get("pull_request", {})
+                    for pr_payload in event_payload.get("pull_requests", [])
+                ]
+                summary = pull_requests[0].get("pr_url", "") if pull_requests else None
+                _send_thread_update(
+                    install=install,
+                    channel_id=cache_payload["channel_id"],
+                    thread_ts=cache_payload["thread_ts"],
+                    data=SeerAutofixUpdate(
+                        run_id=event_payload["run_id"],
+                        organization_id=cache_payload["organization_id"],
+                        project_id=cache_payload["project_id"],
+                        group_id=cache_payload["group_id"],
+                        pull_requests=[
+                            {
+                                "pr_number": pr.get("pr_number", ""),
+                                "pr_url": pr.get("pr_url", ""),
+                            }
+                            for pr in pull_requests
+                        ],
+                        summary=summary,
+                        current_point=AutofixStoppingPoint.OPEN_PR,
+                        group_link=group_link,
+                    ),
+                )
             case _:
                 return
 
@@ -195,6 +218,7 @@ def _send_thread_update(
     channel_id: str,
     thread_ts: str,
     data: NotificationData,
+    ephemeral_user_id: str | None = None,
 ) -> None:
     """
     Send a message to a Slack thread. Needs to be external to the SlackEntrypoint since
@@ -206,4 +230,14 @@ def _send_thread_update(
         data=data, template=template_cls(), provider=provider
     )
     # Skip over the notification service for now since threading isn't yet formalized.
-    install.send_threaded_message(channel_id=channel_id, thread_ts=thread_ts, renderable=renderable)
+    if ephemeral_user_id:
+        install.send_threaded_ephemeral_message(
+            channel_id=channel_id,
+            thread_ts=thread_ts,
+            renderable=renderable,
+            slack_user_id=ephemeral_user_id,
+        )
+    else:
+        install.send_threaded_message(
+            channel_id=channel_id, thread_ts=thread_ts, renderable=renderable
+        )

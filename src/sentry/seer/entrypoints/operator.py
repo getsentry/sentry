@@ -59,15 +59,22 @@ class SeerOperator[CachePayloadT]:
     ) -> None:
         self.logging_ctx["group_id"] = str(group.id)
         self.logging_ctx["user_id"] = str(user.id)
+        raw_response: Response | None = None
 
         if not run_id:
-            raw_response: Response = _trigger_autofix(
+            raw_response = _trigger_autofix(
                 group=group,
                 user=user,
                 instruction=instruction,
                 stopping_point=stopping_point,
             )
         else:
+            payload: (
+                AutofixSelectRootCausePayload
+                | AutofixSelectSolutionPayload
+                | AutofixCreatePRPayload
+                | None
+            ) = None
             if stopping_point == AutofixStoppingPoint.SOLUTION:
                 # TODO(Leander): We need to figure out a way to get the real cause_id for this.
                 # Probably need to add it to the root cause webhook from seer's side.
@@ -77,8 +84,14 @@ class SeerOperator[CachePayloadT]:
             elif stopping_point == AutofixStoppingPoint.OPEN_PR:
                 payload = AutofixCreatePRPayload(type="create_pr")
             else:
-                raise ValueError(f"Cannot update autofix stopping point: {stopping_point}")
-            raw_response: Response = update_autofix(run_id=run_id, payload=payload)
+                logger.error("operator.invalid_stopping_point", extra=self.logging_ctx)
+                return
+
+            raw_response = update_autofix(run_id=run_id, payload=payload)
+
+        # Type-safety...
+        assert raw_response is not None
+
         error_message = raw_response.data.get("detail")
 
         # Let the entrypoint signal to the external service that no run was started :/

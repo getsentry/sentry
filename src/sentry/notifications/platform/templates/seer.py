@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TypedDict
 
 from sentry.notifications.platform.registry import template_registry
@@ -103,6 +103,11 @@ class SeerAutofixCodeChange(TypedDict):
     title: str
 
 
+class SeerAutofixPullRequest(TypedDict):
+    pr_number: int
+    pr_url: str
+
+
 @dataclass(frozen=True)
 class SeerAutofixUpdate(NotificationData):
     run_id: int
@@ -111,8 +116,9 @@ class SeerAutofixUpdate(NotificationData):
     group_id: int
     current_point: AutofixStoppingPoint
     group_link: str
-    steps: list[str]
-    changes: list[SeerAutofixCodeChange]
+    steps: list[str] = field(default_factory=list)
+    changes: list[SeerAutofixCodeChange] = field(default_factory=list)
+    pull_requests: list[SeerAutofixPullRequest] = field(default_factory=list)
     summary: str | None = None
     source: str = "seer-autofix-update"
 
@@ -140,6 +146,12 @@ class SeerAutofixUpdateTemplate(NotificationTemplate[SeerAutofixUpdate]):
                 "diff": "--- flask-error/src/runner.py\n+++ flask-error/src/runner.py\n@@ -1,2 +1,3 @@\n def error_function():\n+    name06 = 'demo variable'\n     print(name06)",
                 "description": "- Added definition for local variable `name06` in `error_function`.",
                 "title": "refactor: Define local variable name06 in runner.py",
+            }
+        ],
+        pull_requests=[
+            {
+                "pr_number": 123,
+                "pr_url": "https://github.com/getsentry/sentry/pull/123",
             }
         ],
         group_link="https://sentry.sentry.io/issues/123456/",
