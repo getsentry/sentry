@@ -705,7 +705,10 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         auth = self._auth_header_for_get(url, params2, "test-secret")
         resp2 = self.client.get(url, params2, HTTP_AUTHORIZATION=auth)
         assert resp2.status_code == 200
-        assert resp2.data == {"enabledCodeReview": False, "codeReviewTriggers": []}
+        assert resp2.data == {
+            "enabledCodeReview": False,
+            "codeReviewTriggers": ["on_command_phrase"],
+        }
 
 
 class TestPreventPrReviewEligibilityEndpoint(APITestCase):

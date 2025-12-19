@@ -68,10 +68,11 @@ class OrganizationRepositoryGetTest(APITestCase):
         assert response.data["id"] == str(repo.id)
         assert response.data["settings"] is not None
         assert response.data["settings"]["enabledCodeReview"] is True
-        assert response.data["settings"]["codeReviewTriggers"] == [
+        assert set(response.data["settings"]["codeReviewTriggers"]) == {
             "on_new_commit",
             "on_ready_for_review",
-        ]
+            "on_command_phrase",
+        }
 
     def test_get_repository_expand_settings_no_settings_exist(self) -> None:
         self.login_as(user=self.user)
