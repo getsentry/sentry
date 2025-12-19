@@ -1933,7 +1933,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         assigned_group = self.store_event(
             data={
                 "fingerprint": ["assigned-group"],
-                "event_id": "a" * 32,
+                "event_id": "d" * 32,
                 "timestamp": before_now(seconds=50).isoformat(),
             },
             project_id=self.project.id,
