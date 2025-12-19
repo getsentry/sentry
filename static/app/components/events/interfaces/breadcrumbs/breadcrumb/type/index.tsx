@@ -5,17 +5,17 @@ import type {SVGIconProps} from 'sentry/icons/svgIcon';
 
 import Icon from './icon';
 
-type Props = Required<Pick<SVGIconProps, 'variant'>> &
+type Props = Required<Pick<SVGIconProps, 'color'>> &
   React.ComponentProps<typeof Icon> & {
     description?: string;
     error?: boolean;
   };
 
-function Type({type, variant, description, error}: Props) {
+function Type({type, color, description, error}: Props) {
   return (
     <Wrapper error={error}>
       <Tooltip title={description} disabled={!description} skipWrapper>
-        <IconWrapper variant={variant}>
+        <IconWrapper color={color}>
           <Icon type={type} />
         </IconWrapper>
       </Tooltip>
@@ -42,7 +42,7 @@ const Wrapper = styled('div')<Pick<Props, 'error'>>`
   }
 `;
 
-const IconWrapper = styled('div')<Pick<Props, 'variant'>>`
+const IconWrapper = styled('div')<Pick<Props, 'color'>>`
   display: flex;
   align-items: center;
   justify-content: center;
