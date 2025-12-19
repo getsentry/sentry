@@ -83,7 +83,7 @@ flags:
     carryforward: true
     # Do not send any status checks until n coverage reports are uploaded.
     # NOTE: If you change this, make sure to change `comment.after_n_builds` below as well.
-    # this should match MATRIX_INSTANCE_TOTAL in accpetance.yml
+    # this should match MATRIX_INSTANCE_TOTAL in accpetance.yml when backend_all == true
     after_n_builds: 5
 
 # https://docs.codecov.com/docs/flags#two-approaches-to-flag-management
