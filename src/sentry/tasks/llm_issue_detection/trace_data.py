@@ -69,6 +69,7 @@ def get_project_top_transaction_traces_for_llm_detection(
 
     trace_metadata = []
     seen_names = set()
+    seen_trace_ids = set()
 
     for row in transactions_result.get("data", []):
         transaction_name = row.get("transaction")
@@ -101,6 +102,9 @@ def get_project_top_transaction_traces_for_llm_detection(
         if not trace_id:
             continue
 
+        if trace_id in seen_trace_ids:
+            continue
+
         trace_metadata.append(
             TraceMetadata(
                 trace_id=trace_id,
@@ -108,5 +112,6 @@ def get_project_top_transaction_traces_for_llm_detection(
             )
         )
         seen_names.add(normalized_name)
+        seen_trace_ids.add(trace_id)
 
     return trace_metadata

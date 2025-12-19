@@ -110,7 +110,7 @@ export function Thresholds({
         'aria-label': 'First Maximum',
         error: errors?.max1,
       },
-      color: theme.green300,
+      color: theme.colors.green400,
       unitOptions,
       unitSelectProps: {
         name: 'First unit select',
@@ -130,7 +130,7 @@ export function Thresholds({
         'aria-label': 'Second Maximum',
         error: errors?.max2,
       },
-      color: theme.yellow300,
+      color: theme.colors.yellow400,
       unitOptions,
       unitSelectProps: {
         name: 'Second unit select',
@@ -150,7 +150,7 @@ export function Thresholds({
         placeholder: t('No max'),
         'aria-label': 'Third Maximum',
       },
-      color: theme.red300,
+      color: theme.colors.red400,
       unitOptions,
       unitSelectProps: {
         name: 'Third unit select',
@@ -202,5 +202,5 @@ const StyledSelectField = styled(SelectField)`
 
 export const HighlightedText = styled('span')`
   font-family: ${p => p.theme.text.familyMono};
-  color: ${p => p.theme.pink300};
+  color: ${p => p.theme.colors.pink400};
 `;

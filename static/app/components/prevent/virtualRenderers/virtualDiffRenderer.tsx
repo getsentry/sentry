@@ -386,13 +386,13 @@ const CodePreWrapper = styled('pre')<{isOverflowing: boolean}>`
   height: 100%;
   scrollbar-width: none;
 
-  border-left: ${space(0.25)} solid ${p => p.theme.gray200};
-  border-right: ${space(0.25)} solid ${p => p.theme.gray200};
+  border-left: ${space(0.25)} solid ${p => p.theme.colors.gray200};
+  border-right: ${space(0.25)} solid ${p => p.theme.colors.gray200};
 
   ${p => {
     if (!p.isOverflowing) {
       return css`
-        border-bottom: ${space(0.25)} solid ${p.theme.gray200};
+        border-bottom: ${space(0.25)} solid ${p.theme.colors.gray200};
       `;
     }
     return '';

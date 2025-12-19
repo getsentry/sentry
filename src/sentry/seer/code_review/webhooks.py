@@ -19,6 +19,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from sentry import features
+from sentry.constants import ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT, HIDE_AI_FEATURES_DEFAULT
 from sentry.models.organization import Organization
 from sentry.utils import metrics
 
@@ -91,7 +92,23 @@ def _should_handle_github_check_run_event(organization: Organization, action: st
     """
     Determine if the GitHub check_run event should be handled.
     """
-    if not features.has("organizations:code-review-beta", organization=organization):
+    if action != GitHubCheckRunAction.REREQUESTED:
         return False
 
-    return action == GitHubCheckRunAction.REREQUESTED
+    if not features.has("organizations:gen-ai-features", organization):
+        return False
+
+    hide_ai_features = organization.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
+    if hide_ai_features:
+        return False
+
+    pr_review_test_generation_enabled = bool(
+        organization.get_option(
+            "sentry:enable_pr_review_test_generation",
+            ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
+        )
+    )
+    if not pr_review_test_generation_enabled:
+        return False
+
+    return features.has("organizations:code-review-beta", organization)
