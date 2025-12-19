@@ -37,7 +37,7 @@ const preprodDetectedConfig: IssueCategoryConfigMapping = {
     mergedIssues: {enabled: false},
     similarIssues: {enabled: false},
     stacktrace: {enabled: false},
-    spanEvidence: {enabled: true},
+    spanEvidence: {enabled: false},
     evidence: null,
     usesIssuePlatform: true,
     issueSummary: {enabled: true},
