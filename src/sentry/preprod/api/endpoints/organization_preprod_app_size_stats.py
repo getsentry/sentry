@@ -40,15 +40,22 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
         """
         Retrieve app size metrics over time based on the provided filters.
 
-        Query Parameters:
-        - project: Project ID(s) (can be repeated or comma-separated)
-        - start: Start timestamp (ISO format or Unix timestamp)
-        - end: End timestamp (ISO format or Unix timestamp)
-        - statsPeriod: Alternative to start/end (e.g., "14d", "24h")
-        - interval: Time interval for buckets (e.g., "1h", "1d")
-        - field: Aggregate field (e.g., "max(max_install_size)")
-        - query: Filter query string (e.g., "app_id:com.example.app artifact_type:0 git_head_ref:main")
-        - includeFilters: If "true", includes available filter values in response
+        Query Parameters (all optional):
+        - project: Project ID(s) (can be repeated or comma-separated). Default: all accessible projects
+        - start: Start timestamp (ISO format or Unix timestamp). Default: 14 days ago
+        - end: End timestamp (ISO format or Unix timestamp). Default: now
+        - statsPeriod: Alternative to start/end (e.g., "14d", "24h"). Default: "14d"
+        - interval: Time interval for buckets (e.g., "1h", "1d"). Default: "1d"
+        - field: Aggregate field (e.g., "max(max_install_size)"). Default: "max(max_install_size)"
+
+        Filters (all optional):
+        - app_id: Filter by app ID (e.g., "com.example.app")
+        - artifact_type: Filter by artifact type (e.g., "0" or "1")
+        - git_head_ref: Filter by git branch (e.g., "main")
+        - build_configuration_name: Filter by build configuration (e.g., "Release")
+
+        Other:
+        - includeFilters: If "true", includes available filter values in response. Default: false
 
         Response Format:
         {
@@ -80,7 +87,7 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
             field = request.GET.get("field", "max(max_install_size)")
             aggregate_func, aggregate_field = self._parse_field(field)
 
-            filter_kwargs = self._parse_query(request.GET.get("query", ""))
+            filter_kwargs = self._parse_filters(request.GET)
             query_filter = self._build_filter(filter_kwargs) if filter_kwargs else None
         except InvalidParams:
             logger.exception("Invalid parameters for app size stats request")
@@ -148,27 +155,21 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
 
         return func_name, field_name
 
-    def _parse_query(self, query: str) -> dict[str, Any]:
-        """Parse query string like 'app_id:com.example.app artifact_type:0' into filter kwargs."""
+    def _parse_filters(self, query_params) -> dict[str, Any]:
+        """Parse filter query parameters."""
         filters: dict[str, str | int] = {}
 
-        if not query:
-            return filters
+        if app_id := query_params.get("app_id"):
+            filters["app_id"] = app_id
 
-        for token in query.split():
-            if ":" not in token:
-                continue
+        if artifact_type := query_params.get("artifact_type"):
+            filters["artifact_type"] = int(artifact_type)
 
-            key, value = token.split(":", 1)
+        if git_head_ref := query_params.get("git_head_ref"):
+            filters["git_head_ref"] = git_head_ref
 
-            if key == "app_id":
-                filters["app_id"] = value
-            elif key == "artifact_type":
-                filters["artifact_type"] = int(value)
-            elif key == "build_configuration_name":
-                filters["build_configuration_name"] = value
-            elif key == "git_head_ref":
-                filters["git_head_ref"] = value
+        if build_configuration_name := query_params.get("build_configuration_name"):
+            filters["build_configuration_name"] = build_configuration_name
 
         return filters
 

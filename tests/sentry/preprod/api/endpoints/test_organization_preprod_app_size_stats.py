@@ -332,7 +332,7 @@ class OrganizationPreprodAppSizeStatsEndpointTest(APITestCase):
                 "project": [project.id],
                 "start": str(int(start.timestamp())),
                 "end": str(int(now.timestamp())),
-                "query": "app_id:com.example.app1",
+                "app_id": "com.example.app1",
                 "field": "max(max_install_size)",
             },
         )
@@ -341,6 +341,58 @@ class OrganizationPreprodAppSizeStatsEndpointTest(APITestCase):
             d[1][0]["count"] for d in response.data["data"] if d[1][0]["count"] is not None
         ]
         # Should only get app1's data
+        assert len(data_points) > 0
+        assert max(data_points) == 100000
+
+    def test_multiple_filters(self) -> None:
+        """Test combining multiple filter parameters."""
+        project = self.create_project(organization=self.organization)
+        now = before_now(minutes=5)
+        start = now - timedelta(hours=1)
+
+        self.store_preprod_size_metric(
+            project_id=project.id,
+            organization_id=self.organization.id,
+            timestamp=now - timedelta(minutes=30),
+            preprod_artifact_id=1,
+            size_metric_id=1,
+            app_id="com.example.app",
+            git_head_ref="main",
+            build_configuration_name="Release",
+            artifact_type=0,
+            max_install_size=100000,
+        )
+
+        self.store_preprod_size_metric(
+            project_id=project.id,
+            organization_id=self.organization.id,
+            timestamp=now - timedelta(minutes=30),
+            preprod_artifact_id=2,
+            size_metric_id=2,
+            app_id="com.example.app",
+            git_head_ref="develop",
+            build_configuration_name="Debug",
+            artifact_type=1,
+            max_install_size=200000,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={
+                "project": [project.id],
+                "start": str(int(start.timestamp())),
+                "end": str(int(now.timestamp())),
+                "app_id": "com.example.app",
+                "git_head_ref": "main",
+                "build_configuration_name": "Release",
+                "artifact_type": "0",
+                "field": "max(max_install_size)",
+            },
+        )
+
+        data_points = [
+            d[1][0]["count"] for d in response.data["data"] if d[1][0]["count"] is not None
+        ]
         assert len(data_points) > 0
         assert max(data_points) == 100000
 
