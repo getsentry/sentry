@@ -10,7 +10,10 @@ import {AppBodyContent} from 'sentry/views/app/appBodyContent';
 
 const BODY_CLASSES = ['narrow'];
 
-export default function Layout() {
+/**
+ * Shared auth layout structure - includes all wrapper elements.
+ */
+function AuthLayoutContent({children}: {children: React.ReactNode}) {
   useEffect(() => {
     document.body.classList.add(...BODY_CLASSES);
     return () => document.body.classList.remove(...BODY_CLASSES);
@@ -25,14 +28,31 @@ export default function Layout() {
             <AuthSidebar>
               <SentryButton />
             </AuthSidebar>
-            <div>
-              <Outlet />
-            </div>
+            <div>{children}</div>
           </AuthPanel>
         </AuthContainer>
       </AppBodyContent>
     </div>
   );
+}
+
+/**
+ * Route component for auth pages (used in routes.tsx).
+ * Uses <Outlet /> for child routes.
+ */
+export default function AuthLayout() {
+  return (
+    <AuthLayoutContent>
+      <Outlet />
+    </AuthLayoutContent>
+  );
+}
+
+/**
+ * Wrapper component for auth-style layout (used directly in components like dataDownload).
+ */
+export function AuthLayoutWrapper({children}: {children: React.ReactNode}) {
+  return <AuthLayoutContent>{children}</AuthLayoutContent>;
 }
 
 const AuthContainer = styled('div')`
