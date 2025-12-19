@@ -1479,7 +1479,6 @@ function buildRoutes(): RouteObject[] {
         {
           index: true,
           component: make(() => import('sentry/views/alerts/list/rules/alertRulesList')),
-          deprecatedRouteProps: true,
         },
         {
           path: 'details/:ruleId/',
