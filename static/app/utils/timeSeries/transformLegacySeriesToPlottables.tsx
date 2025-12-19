@@ -98,6 +98,7 @@ function mapAggregationTypeToValueTypeAndUnit(
   valueType: TimeSeries['meta']['valueType'];
   valueUnit: TimeSeries['meta']['valueUnit'];
 } {
+  // Special case, epm/eps come back as numbers but we want to show as reate
   // Checking eps/epm here is a hack until we migrate to new /timeseries endpoint
   if (fieldName.includes('eps()')) {
     return {valueType: 'rate', valueUnit: RateUnit.PER_SECOND};
@@ -107,7 +108,6 @@ function mapAggregationTypeToValueTypeAndUnit(
   }
 
   switch (aggregationType) {
-    // special case, epm/eps return back number, but we want to show them as rate
     case 'size':
       return {valueType: 'size', valueUnit: null};
     case 'duration':
