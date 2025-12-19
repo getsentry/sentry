@@ -93,7 +93,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
     }
     if (isPerCategoryOnDemand) {
       // Seer does not support per category on demand budgets, so we need to redirect to the checkout page to prompt the user to switch
-      navigate('/checkout/?referrer=ai_setup_data_consent#step3');
+      navigate('/checkout/?referrer=ai_setup_data_consent#step2');
       return;
     }
     openOnDemandBudgetEditModal({
