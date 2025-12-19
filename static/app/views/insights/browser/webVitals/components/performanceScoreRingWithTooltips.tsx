@@ -173,10 +173,10 @@ function PerformanceScoreRingWithTooltips({
   if (labelHovered && inPerformanceWidget) {
     const index = ringSegmentOrder.indexOf(labelHovered);
     ringSegmentColors = ringSegmentColors.map((color, i) => {
-      return i === index ? color : theme.gray200;
+      return i === index ? color : theme.colors.gray200;
     });
     ringBackgroundColors = ringBackgroundColors.map((color, i) => {
-      return i === index ? color : `${theme.gray200}33`;
+      return i === index ? color : `${theme.colors.gray200}33`;
     });
   }
 
@@ -346,7 +346,7 @@ const ProgressRingContainer = styled('div')``;
 
 const ProgressRingText = styled('text')<{isLink?: boolean}>`
   font-size: ${p => p.theme.fontSize.md};
-  fill: ${p => (p.isLink ? p.theme.blue300 : p.theme.tokens.content.primary)};
+  fill: ${p => (p.isLink ? p.theme.colors.blue400 : p.theme.tokens.content.primary)};
   font-weight: ${p => p.theme.fontWeight.bold};
   text-transform: uppercase;
   text-anchor: middle;
@@ -360,13 +360,17 @@ const ProgressRingSubText = styled('text')`
 
 const ProgressRingDiffSubText = styled(ProgressRingSubText)<{value: number}>`
   fill: ${p =>
-    p.value < 0 ? p.theme.green300 : p.value > 0 ? p.theme.red300 : p.theme.subText};
+    p.value < 0
+      ? p.theme.colors.green400
+      : p.value > 0
+        ? p.theme.colors.red400
+        : p.theme.subText};
 `;
 
 // Hover element on mouse
 const PerformanceScoreRingTooltip = styled('div')<{x: number; y: number}>`
   position: absolute;
-  background: ${p => p.theme.backgroundElevated};
+  background: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.border};
   transform: translate3d(${p => p.x - 100}px, ${p => p.y - 74}px, 0px);
@@ -385,7 +389,7 @@ const PerformanceScoreRingTooltipArrow = styled('div')`
   pointer-events: none;
   border-left: 8px solid transparent;
   border-right: 8px solid transparent;
-  border-top: 8px solid ${p => p.theme.backgroundElevated};
+  border-top: 8px solid ${p => p.theme.tokens.background.primary};
   margin-left: -8px;
   &:before {
     border-left: 8px solid transparent;

@@ -16,7 +16,7 @@ function NotAvailable({tooltip, className}: Props) {
 }
 
 const Wrapper = styled('div')`
-  color: ${p => p.theme.gray200};
+  color: ${p => p.theme.colors.gray200};
 `;
 
 export default NotAvailable;

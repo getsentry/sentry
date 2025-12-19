@@ -449,6 +449,13 @@ export const useSeerExplorer = () => {
     }
   }
 
+  // Reset interruptRequested when polling stops after an interrupt was requested
+  useEffect(() => {
+    if (interruptRequested && !isPolling(filteredSessionData, waitingForResponse)) {
+      setInterruptRequested(false);
+    }
+  }, [interruptRequested, filteredSessionData, waitingForResponse]);
+
   /** Resets the hook state. The session isn't actually created until the user sends a message. */
   const startNewSession = useCallback(() => {
     if (!interruptRequested && isPolling(filteredSessionData, waitingForResponse)) {

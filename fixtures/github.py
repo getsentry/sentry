@@ -3544,3 +3544,30 @@ ISSUES_REOPENED_EVENT_EXAMPLE = r"""{
     "site_admin": false
   }
 }"""
+
+# Simplified example of a check_run rerequested action event
+# Note: installation.id must match the external_id used in create_github_integration (default: "12345")
+# Note: repository.id must match a Repository created for the organization (use create_repo in tests)
+CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE = b"""{
+    "action": "rerequested",
+    "installation": {"id": 12345},
+    "repository": {
+        "id": 35129377,
+        "full_name": "getsentry/sentry",
+        "html_url": "https://github.com/getsentry/sentry"
+    },
+    "check_run": {
+        "external_id": "4663713",
+        "html_url": "https://github.com/test/repo/runs/4"
+    }
+}"""
+
+CHECK_RUN_COMPLETED_EVENT_EXAMPLE = b"""{
+    "action": "completed",
+    "installation": {"id": 12345},
+    "repository": {
+        "id": 35129377,
+        "full_name": "getsentry/sentry",
+        "html_url": "https://github.com/getsentry/sentry"
+    }
+}"""

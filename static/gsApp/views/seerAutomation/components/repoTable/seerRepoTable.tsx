@@ -6,11 +6,12 @@ import {InputGroup} from '@sentry/scraps/input/inputGroup';
 import {Stack} from '@sentry/scraps/layout/stack';
 
 import {useOrganizationRepositoriesWithSettings} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
+import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconSearch} from 'sentry/icons/iconSearch';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
@@ -22,12 +23,6 @@ import SeerRepoTableHeader from 'getsentry/views/seerAutomation/components/repoT
 import SeerRepoTableRow from 'getsentry/views/seerAutomation/components/repoTable/seerRepoTableRow';
 import {useBulkUpdateRepositorySettings} from 'getsentry/views/seerAutomation/onboarding/hooks/useBulkUpdateRepositorySettings';
 import {getRepositoryWithSettingsQueryKey} from 'getsentry/views/seerAutomation/onboarding/hooks/useRepositoryWithSettings';
-
-const SUPPORTED_PROVIDERS = [
-  'github',
-  'integrations:github',
-  'integrations:github_enterprise',
-];
 
 export default function SeerRepoTable() {
   const queryClient = useQueryClient();
@@ -41,7 +36,7 @@ export default function SeerRepoTable() {
   const supportedRepositories = useMemo(
     () =>
       repositoriesWithSettings.filter(repository =>
-        SUPPORTED_PROVIDERS.includes(repository.provider.id)
+        isSupportedAutofixProvider(repository.provider)
       ),
     [repositoriesWithSettings]
   );
@@ -161,14 +156,24 @@ export default function SeerRepoTable() {
         setSearchTerm={setSearchTerm}
         sort={sort}
       >
-        {filteredRepositories.map(repository => (
-          <SeerRepoTableRow
-            key={repository.id}
-            mutateRepositorySettings={mutateRepositorySettings}
-            mutationData={mutationData}
-            repository={repository}
-          />
-        ))}
+        {filteredRepositories.length === 0 ? (
+          <SimpleTable.Empty>
+            {searchTerm
+              ? tct('No repositories found matching [searchTerm]', {
+                  searchTerm: <code>{searchTerm}</code>,
+                })
+              : t('No repositories found')}
+          </SimpleTable.Empty>
+        ) : (
+          filteredRepositories.map(repository => (
+            <SeerRepoTableRow
+              key={repository.id}
+              mutateRepositorySettings={mutateRepositorySettings}
+              mutationData={mutationData}
+              repository={repository}
+            />
+          ))
+        )}
       </RepoTable>
     </ListItemCheckboxProvider>
   );

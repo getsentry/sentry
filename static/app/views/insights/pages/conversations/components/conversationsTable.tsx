@@ -6,6 +6,7 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Button} from 'sentry/components/core/button';
+import Count from 'sentry/components/count';
 import Pagination from 'sentry/components/pagination';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -17,17 +18,14 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import {getExploreUrl} from 'sentry/views/explore/utils';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
+import {hasGenAiConversationsFeature} from 'sentry/views/insights/pages/agents/utils/features';
+import {useConversationViewDrawer} from 'sentry/views/insights/pages/conversations/components/conversationDrawer';
 import {
   useConversations,
   type Conversation,
-} from 'sentry/views/insights/pages/agents/hooks/useConversations';
-import {ErrorCell} from 'sentry/views/insights/pages/agents/utils/cells';
-import {hasGenAiConversationsFeature} from 'sentry/views/insights/pages/agents/utils/features';
-import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
+} from 'sentry/views/insights/pages/conversations/hooks/useConversations';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 
@@ -45,22 +43,18 @@ const EMPTY_ARRAY: never[] = [];
 
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'conversationId', name: t('Conversation ID'), width: 140},
-  {key: 'inputOutput', name: t('Input / Output'), width: COL_WIDTH_UNDEFINED},
+  {key: 'inputOutput', name: t('First Input / Last Output'), width: COL_WIDTH_UNDEFINED},
   {key: 'duration', name: t('Duration'), width: 130},
-  {key: 'errors', name: t('Errors'), width: 100},
   {key: 'llmCalls', name: t('LLM Calls'), width: 110},
   {key: 'toolCalls', name: t('Tool Calls'), width: 110},
-  {key: 'totalTokens', name: t('Total Tokens'), width: 120},
-  {key: 'totalCost', name: t('Total Cost'), width: 120},
+  {key: 'tokensAndCost', name: t('Total Tokens / Cost'), width: 170},
   {key: 'timestamp', name: t('Last Message'), width: 120},
 ];
 
 const rightAlignColumns = new Set([
-  'errors',
   'llmCalls',
   'toolCalls',
-  'totalTokens',
-  'totalCost',
+  'tokensAndCost',
   'timestamp',
   'duration',
 ]);
@@ -118,19 +112,24 @@ const BodyCell = memo(function BodyCell({
   column: GridColumnHeader<string>;
   dataRow: Conversation;
 }) {
-  const organization = useOrganization();
-  const {selection} = usePageFilters();
+  const {openConversationViewDrawer} = useConversationViewDrawer();
 
   switch (column.key) {
     case 'conversationId':
       return (
-        <ConversationIdButton priority="link" disabled>
+        <ConversationIdButton
+          priority="link"
+          onClick={() => openConversationViewDrawer(dataRow)}
+        >
           {dataRow.conversationId.slice(0, 8)}
         </ConversationIdButton>
       );
     case 'inputOutput': {
       return (
-        <div>
+        <InputOutputButton
+          type="button"
+          onClick={() => openConversationViewDrawer(dataRow)}
+        >
           <Grid
             areas={`
               "inputLabel inputValue"
@@ -149,6 +148,7 @@ const BodyCell = memo(function BodyCell({
                 showOnlyOnOverflow
                 maxWidth={800}
                 isHoverable
+                delay={500}
               >
                 {dataRow.firstInput ? (
                   <Text ellipsis>{dataRow.firstInput}</Text>
@@ -167,6 +167,7 @@ const BodyCell = memo(function BodyCell({
                 showOnlyOnOverflow
                 maxWidth={800}
                 isHoverable
+                delay={500}
               >
                 {dataRow.lastOutput ? (
                   <Text ellipsis>{dataRow.lastOutput}</Text>
@@ -176,32 +177,18 @@ const BodyCell = memo(function BodyCell({
               </Tooltip>
             </Container>
           </Grid>
-        </div>
+        </InputOutputButton>
       );
     }
     case 'duration':
       return <DurationCell milliseconds={dataRow.duration} />;
-    case 'errors':
-      return (
-        <ErrorCell
-          value={dataRow.errors}
-          target={getExploreUrl({
-            query: `span.status:internal_error trace:[${dataRow.traceIds.join(',')}]`,
-            organization,
-            selection,
-            referrer: Referrer.TRACES_TABLE,
-          })}
-          isLoading={false}
-        />
-      );
     case 'llmCalls':
     case 'toolCalls':
-    case 'totalTokens':
       return <NumberCell value={dataRow[column.key]} />;
-    case 'totalCost':
+    case 'tokensAndCost':
       return (
         <TextAlignRight>
-          <LLMCosts cost={dataRow.totalCost} />
+          <Count value={dataRow.totalTokens} /> / <LLMCosts cost={dataRow.totalCost} />
         </TextAlignRight>
       );
     case 'timestamp':
@@ -239,4 +226,17 @@ const HeadCell = styled('div')<{align: 'left' | 'right'}>`
 const ConversationIdButton = styled(Button)`
   font-weight: normal;
   padding: 0;
+`;
+
+const InputOutputButton = styled('button')`
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+
+  &:hover {
+    background-color: ${p => p.theme.backgroundSecondary};
+  }
 `;

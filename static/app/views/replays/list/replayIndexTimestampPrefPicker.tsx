@@ -24,9 +24,8 @@ export default function ReplayIndexTimestampPrefPicker() {
         },
       ]}
       trigger={triggerProps => (
-        <SelectTrigger.Button
+        <SelectTrigger.IconButton
           {...triggerProps}
-          showChevron={false}
           icon={<IconSettings />}
           aria-label={t('Configure timestamp settings')}
         />

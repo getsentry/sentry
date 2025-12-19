@@ -152,8 +152,7 @@ export function BreadcrumbsDrawer({
       <CompactSelect
         size="xs"
         trigger={props => (
-          <SelectTrigger.Button
-            showChevron={false}
+          <SelectTrigger.IconButton
             borderless
             icon={<IconSort />}
             aria-label={t('Sort All Breadcrumbs')}
@@ -176,8 +175,7 @@ export function BreadcrumbsDrawer({
       <CompactSelect
         size="xs"
         trigger={props => (
-          <SelectTrigger.Button
-            showChevron={false}
+          <SelectTrigger.IconButton
             borderless
             icon={
               timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE ? (

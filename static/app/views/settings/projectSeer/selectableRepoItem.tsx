@@ -75,10 +75,10 @@ const RepoListItemContainer = styled('div')<{
   ${p =>
     p.selected &&
     css`
-      background-color: ${p.theme.surface100};
+      background-color: ${p.theme.colors.surface200};
 
       &:hover {
-        background-color: ${p.theme.surface100};
+        background-color: ${p.theme.colors.surface200};
       }
     `}
 `;

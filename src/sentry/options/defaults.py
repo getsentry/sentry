@@ -670,6 +670,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Coding Workflows
+register(
+    "coding_workflows.code_review.github.check_run.rerun.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Codecov Integration
 register("codecov.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("codecov.base-url", default="https://api.codecov.io")
@@ -3305,6 +3313,13 @@ register(
 )
 
 register(
+    "workflow_engine.exclude_issue_stream_detector",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "grouping.grouphash_metadata.ingestion_writes_enabled",
     type=Bool,
     default=True,
@@ -3699,28 +3714,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Controls whether occurrence data should be read from both Snuba and EAP.
-# Will not use or display the EAP data to the user; rather, will just (1) issue
-# the queries to ensure that reads are functional and (2) compare the data from
-# each source and log whether they match.
-# This option should be controlled on a region-by-region basis.
-register(
-    "eap.occurrences.should_double_read",
-    type=Bool,
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Controls whether a given callsite should use occurrence data from EAP instead
-# of Snuba. Callsites should only be added here after they're known to be safe.
-# This option should be controlled on a region-by-region basis.
-register(
-    "eap.occurrences.callsites_using_eap_data_allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Killswich for LLM issue detection
 register(
     "issue-detection.llm-detection.enabled",
@@ -3814,5 +3807,23 @@ register(
     "dashboards.prebuilt-dashboard-ids",
     default=[],
     type=Sequence,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Project ID allowlist to enable detailed search debug logging for diagnosing
+# bugs with issue feed search.
+register(
+    "snuba.search.debug-log-project-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Project ID allowlist to enable truncation of group IDs in Snuba query
+# when search filters are selective.
+register(
+    "snuba.search.truncate-group-ids-for-selective-filters-project-allowlist",
+    type=Sequence,
+    default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )

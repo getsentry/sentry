@@ -56,7 +56,7 @@ const Meter = styled('div')`
   height: 100%;
   width: 100%;
   pointer-events: none;
-  background: ${p => p.theme.gray200};
+  background: ${p => p.theme.colors.gray200};
 `;
 
 const RangeWrapper = styled('div')`
@@ -140,7 +140,7 @@ export const TimelineScrubber = styled(Scrubber)`
    */
   ${PlaybackTimeValue},
   ${MouseTrackingValue} {
-    border-right: ${space(0.25)} solid ${p => p.theme.purple300};
+    border-right: ${space(0.25)} solid ${p => p.theme.colors.blue400};
   }
 `;
 
@@ -165,7 +165,7 @@ export const PlayerScrubber = styled(Scrubber)`
   }
 
   ${PlaybackTimeValue} {
-    background: ${p => p.theme.purple200};
+    background: ${p => p.theme.colors.blue200};
     border-radius: ${p => p.theme.radius.md};
 
     /**
@@ -175,7 +175,7 @@ export const PlayerScrubber = styled(Scrubber)`
      *           PlaybackTimeValue @ 20s
      */
     :after {
-      background: ${p => p.theme.purple300};
+      background: ${p => p.theme.colors.blue400};
     }
   }
 
@@ -191,7 +191,7 @@ export const PlayerScrubber = styled(Scrubber)`
      *      MouseTrackingValue @ 10s
      */
     :after {
-      background: ${p => p.theme.gray400};
+      background: ${p => p.theme.colors.gray500};
     }
   }
 

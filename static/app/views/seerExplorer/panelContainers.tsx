@@ -113,7 +113,7 @@ const PanelContainer = styled(motion.div)<{
     `
       : `
       width: 50vw;
-      height: 55vh;
+      height: 60vh;
       margin-left: -25vw;
     `}
 
@@ -163,7 +163,7 @@ const MinimizedOverlay = styled(motion.div)`
     left: 0;
     right: 0;
     bottom: 0;
-    background: ${p => p.theme.purple200};
+    background: ${p => p.theme.colors.blue200};
     border-radius: inherit;
     z-index: -1;
     pointer-events: none;

@@ -118,7 +118,6 @@ function OverflowMenu({state, overflowMenuItems, disabled}: any) {
           <OverflowMenuTrigger
             {...triggerProps}
             borderless
-            showChevron={false}
             icon={<IconEllipsis />}
             aria-label={t('More tabs')}
           />
@@ -351,7 +350,7 @@ const TabListOverflowWrap = withChonk(
   ChonkStyledTabListOverflowWrap
 );
 
-const OverflowMenuTrigger = styled(SelectTrigger.Button)`
+const OverflowMenuTrigger = styled(SelectTrigger.IconButton)`
   padding-left: ${space(1)};
   padding-right: ${space(1)};
   color: ${p => p.theme.tokens.component.link.muted.default};
