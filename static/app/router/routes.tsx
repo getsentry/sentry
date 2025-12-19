@@ -186,7 +186,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: '/sentry-apps/:sentryAppSlug/external-install/',
       component: make(() => import('sentry/views/sentryAppExternalInstallation')),
-      deprecatedRouteProps: true,
     },
     {
       path: '/account/',
@@ -1526,7 +1525,6 @@ function buildRoutes(): RouteObject[] {
         {
           path: 'uptime/',
           component: make(() => import('sentry/views/alerts/rules/uptime')),
-          deprecatedRouteProps: true,
           children: [
             {
               path: ':projectId/:detectorId/details/',
