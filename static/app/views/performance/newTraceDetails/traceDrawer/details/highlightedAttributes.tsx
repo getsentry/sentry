@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import type {CaptureContext} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -132,7 +133,7 @@ function getAISpanAttributes({
 
   // Check for missing cost calculation and emit Sentry error
   if (model && (!totalCosts || Number(totalCosts) === 0)) {
-    Sentry.captureMessage('Gen AI span missing cost calculation', {
+    const contextData: CaptureContext = {
       level: 'warning',
       tags: {
         feature: 'agent-monitoring',
@@ -145,7 +146,16 @@ function getAISpanAttributes({
         total_costs: totalCosts,
         attributes,
       },
-    });
+    };
+
+    // General issue for tracking overall missing cost calculations
+    Sentry.captureMessage('Gen AI span missing cost calculation', contextData);
+
+    // Model-specific issue for tracking cost calculation failures per model
+    Sentry.captureMessage(
+      `Gen AI cost data missing for model: ${model.toString()}`,
+      contextData
+    );
   }
 
   const toolName = attributes['gen_ai.tool.name'];

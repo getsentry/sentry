@@ -63,7 +63,7 @@ export const StyledSpanPanelItem = styled(StyledPanelItem)`
 `;
 
 export const SpanTablePanelItem = styled(StyledPanelItem)`
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.colors.gray100};
 `;
 
 export const BreakdownPanelItem = styled(StyledPanelItem)<{highlightedSliceName: string}>`

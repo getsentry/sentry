@@ -10,9 +10,11 @@ export interface BuildDetailsApiResponse {
   vcs_info: BuildDetailsVcsInfo;
   size_info?: BuildDetailsSizeInfo;
   base_artifact_id?: string | null;
+  base_build_info?: BuildDetailsAppInfo | null;
 }
 
 export interface BuildDetailsAppInfo {
+  app_icon_id?: string | null;
   android_app_info?: AndroidAppInfo | null;
   app_id?: string | null;
   apple_app_info?: AppleAppInfo | null;

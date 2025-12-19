@@ -452,3 +452,55 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
         assert resp_data["posted_status_checks"] is not None
         assert resp_data["posted_status_checks"]["size"]["success"] is False
         assert resp_data["posted_status_checks"]["size"]["error_type"] is None
+
+    def test_base_build_info_when_base_artifact_exists(self) -> None:
+        """Test that base_build_info is included when a base artifact exists."""
+        assert self.preprod_artifact.commit_comparison is not None
+        base_commit_comparison = self.create_commit_comparison(
+            organization=self.org,
+            head_sha=self.preprod_artifact.commit_comparison.base_sha,
+            base_sha="0000000000000000000000000000000000000000",
+        )
+        base_file = self.create_file(name="base_artifact.apk", type="application/octet-stream")
+        base_artifact = self.create_preprod_artifact(
+            project=self.project,
+            file_id=base_file.id,
+            artifact_type=self.preprod_artifact.artifact_type,
+            app_id=self.preprod_artifact.app_id,
+            app_name=self.preprod_artifact.app_name,
+            build_version="0.9.0",
+            build_number=41,
+            commit_comparison=base_commit_comparison,
+        )
+
+        url = self._get_url()
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["base_artifact_id"] == str(base_artifact.id)
+        assert resp_data["base_build_info"] is not None
+        # base_build_info now returns full BuildDetailsAppInfo
+        assert resp_data["base_build_info"]["version"] == "0.9.0"
+        assert resp_data["base_build_info"]["build_number"] == 41
+        assert resp_data["base_build_info"]["app_id"] == base_artifact.app_id
+        assert resp_data["base_build_info"]["name"] == base_artifact.app_name
+        assert resp_data["base_build_info"]["artifact_type"] == base_artifact.artifact_type
+        assert "date_added" in resp_data["base_build_info"]
+        assert "date_built" in resp_data["base_build_info"]
+        assert "is_installable" in resp_data["base_build_info"]
+        assert "platform" in resp_data["base_build_info"]
+
+    def test_base_build_info_none_when_no_base_artifact(self) -> None:
+        """Test that base_build_info is None when no base artifact exists."""
+        url = self._get_url()
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["base_artifact_id"] is None
+        assert resp_data["base_build_info"] is None

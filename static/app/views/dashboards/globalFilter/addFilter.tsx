@@ -190,9 +190,8 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
       }
       menuFooter={isSelectingFilterKey && filterOptionsMenuFooter}
       trigger={triggerProps => (
-        <SelectTrigger.Button
+        <SelectTrigger.IconButton
           {...triggerProps}
-          showChevron={false}
           aria-label={t('Add Global Filter')}
           icon={<IconAdd size="sm" />}
         />

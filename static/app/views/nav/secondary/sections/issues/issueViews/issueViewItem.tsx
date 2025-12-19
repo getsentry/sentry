@@ -212,7 +212,7 @@ const StyledReorderItem = styled(Reorder.Item, {
   shouldForwardProp: prop => prop !== 'grabbing',
 })<{grabbing: boolean}>`
   position: relative;
-  background-color: ${p => (p.grabbing ? p.theme.translucentSurface200 : 'transparent')};
+  background-color: ${p => (p.grabbing ? p.theme.colors.surface200 : 'transparent')};
   border-radius: ${p => p.theme.radius.md};
 `;
 
@@ -256,8 +256,8 @@ const UnsavedChangesIndicator = styled('div')<{isActive: boolean}>`
   }
 
   border-radius: 50%;
-  background: ${p => p.theme.purple400};
-  border: solid 2px ${p => p.theme.surface200};
+  background: ${p => p.theme.colors.blue500};
+  border: solid 2px ${p => p.theme.colors.surface300};
   position: absolute;
   width: 10px;
   height: 10px;

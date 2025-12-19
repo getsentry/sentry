@@ -74,17 +74,17 @@ const IconWrapper = styled('button')<{collapsible: boolean; isExpanded: boolean}
   ${p =>
     p.isExpanded
       ? css`
-          background: ${p.theme.gray300};
-          border: 1px solid ${p.theme.gray300};
+          background: ${p.theme.colors.gray400};
+          border: 1px solid ${p.theme.colors.gray400};
           &:hover {
-            background: ${p.theme.gray400};
+            background: ${p.theme.colors.gray500};
           }
         `
       : css`
-          background: ${p.theme.blue300};
-          border: 1px solid ${p.theme.blue300};
+          background: ${p.theme.colors.blue400};
+          border: 1px solid ${p.theme.colors.blue400};
           &:hover {
-            background: ${p.theme.blue200};
+            background: ${p.theme.colors.blue200};
           }
         `}
 `;

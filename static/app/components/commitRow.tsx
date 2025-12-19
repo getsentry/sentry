@@ -281,7 +281,7 @@ const EmailWarningIcon = styled('span')`
   line-height: 12px;
   border-radius: 50%;
   border: 1px solid ${p => p.theme.tokens.background.primary};
-  background: ${p => p.theme.yellow200};
+  background: ${p => p.theme.colors.yellow200};
   padding: 1px 2px 3px 2px;
 `;
 
@@ -332,7 +332,7 @@ const MetaWrapper = styled('div')`
 const StyledExternalLink = styled(ExternalLink)`
   color: ${p => p.theme.tokens.content.primary};
   text-decoration: underline;
-  text-decoration-color: ${p => p.theme.translucentGray200};
+  text-decoration-color: ${p => p.theme.colors.gray200};
 
   :hover {
     color: ${p => p.theme.tokens.content.primary};

@@ -52,7 +52,8 @@ function incidentSeriesTooltip(ctx: IncidentTooltipContext) {
   const endTime = ctx.period.end
     ? defaultFormatAxisLabel(ctx.period.end, true, false, true, false)
     : '-';
-  const color = ctx.period.priority === 'high' ? ctx.theme.red300 : ctx.theme.yellow300;
+  const color =
+    ctx.period.priority === 'high' ? ctx.theme.colors.red400 : ctx.theme.colors.yellow400;
   const priorityLabel = ctx.period.priority === 'high' ? t('Critical') : t('Warning');
 
   const priorityDot = `<span style="display:inline-block;width:10px;height:8px;border-radius:100%;background:${color};margin-right:6px;vertical-align:middle;"></span>`;
@@ -69,7 +70,8 @@ function incidentSeriesTooltip(ctx: IncidentTooltipContext) {
 
 function incidentMarklineTooltip(ctx: IncidentTooltipContext) {
   const time = defaultFormatAxisLabel(ctx.period.start, true, false, true, false);
-  const color = ctx.period.priority === 'high' ? ctx.theme.red300 : ctx.theme.yellow300;
+  const color =
+    ctx.period.priority === 'high' ? ctx.theme.colors.red400 : ctx.theme.colors.yellow400;
   const priorityLabel = ctx.period.priority === 'high' ? t('Critical') : t('Warning');
   const priorityDot = `<span style="display:inline-block;width:10px;height:8px;border-radius:100%;background:${color};margin-right:6px;vertical-align:middle;"></span>`;
   return [

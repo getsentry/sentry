@@ -64,11 +64,6 @@ from sentry.organizations.absolute_url import customer_domain_path
             "/settings/projects/getting-started/abc123/",
         ),
         ("/settings/teams/peeps/", "/settings/teams/peeps/"),
-        ("/settings/billing/checkout/?_q=all#hash", "/settings/billing/checkout/?_q=all#hash"),
-        (
-            "/settings/billing/bundle-checkout/?_q=all#hash",
-            "/settings/billing/bundle-checkout/?_q=all#hash",
-        ),
         # Prevent routes should remain as-is
         ("/prevent/", "/prevent/"),
         ("/prevent/tokens/", "/prevent/tokens/"),

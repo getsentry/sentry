@@ -1234,6 +1234,10 @@ function buildRoutes(): RouteObject[] {
           component: make(() => import('getsentry/views/seerAutomation/repos')),
         },
         {
+          path: 'repos/:repoId/',
+          component: make(() => import('getsentry/views/seerAutomation/repoDetails')),
+        },
+        {
           path: 'onboarding/',
           name: t('Setup Wizard'),
           component: make(
@@ -1547,12 +1551,10 @@ function buildRoutes(): RouteObject[] {
         {
           path: 'crons/',
           component: make(() => import('sentry/views/alerts/rules/crons')),
-          deprecatedRouteProps: true,
           children: [
             {
               path: ':projectId/:monitorSlug/details/',
               component: make(() => import('sentry/views/alerts/rules/crons/details')),
-              deprecatedRouteProps: true,
             },
           ],
         },
@@ -1906,14 +1908,6 @@ function buildRoutes(): RouteObject[] {
             component: make(
               () =>
                 import('sentry/views/performance/transactionSummary/transactionReplays')
-            ),
-          },
-          {
-            path: 'vitals/',
-            handle: {tab: TransactionSummaryTab.WEB_VITALS},
-            component: make(
-              () =>
-                import('sentry/views/performance/transactionSummary/transactionVitals')
             ),
           },
           {

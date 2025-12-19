@@ -500,6 +500,75 @@ describe('SearchQueryBuilder', () => {
       expect(await screen.findByRole('row', {name: 'age:-24h'})).toBeInTheDocument();
     });
 
+    it('does not close menu when clicking inside menu overlay', async () => {
+      render(<SearchQueryBuilder {...defaultProps} />);
+
+      const input = getLastInput();
+      await userEvent.click(input);
+
+      // Menu should be open
+      const listbox = await screen.findByRole('listbox');
+      expect(listbox).toBeInTheDocument();
+      expect(input).toHaveAttribute('aria-expanded', 'true');
+
+      // Get the overlay element that wraps the menu
+      // This simulates clicking on the overlay (like near a scrollbar)
+      const overlay = listbox.parentElement;
+      expect(overlay).toBeInTheDocument();
+
+      // Create a mousedown event with cancelable: true so preventDefault works
+      const mouseDownEvent = new MouseEvent('mousedown', {
+        bubbles: true,
+        cancelable: true,
+      });
+
+      // Dispatch the mousedown event
+      // With our fix, preventDefault is called, preventing the blur
+      // Without our fix, the input would blur and the menu would close
+      overlay?.dispatchEvent(mouseDownEvent);
+
+      // The key part: the mousedown should have had preventDefault called on it
+      // This prevents the default behavior of shifting focus away from the input
+      expect(mouseDownEvent.defaultPrevented).toBe(true);
+
+      // Because preventDefault was called, the input should still be focused
+      // and the menu should still be open
+      expect(input).toHaveFocus();
+      expect(screen.getByRole('listbox')).toBeInTheDocument();
+      expect(input).toHaveAttribute('aria-expanded', 'true');
+    });
+
+    it('prevents blur when interacting with menu sections', async () => {
+      render(<SearchQueryBuilder {...defaultProps} />);
+
+      const input = getLastInput();
+      await userEvent.click(input);
+
+      // Wait for menu to be open with sections
+      const allButton = await screen.findByRole('button', {name: 'All'});
+      expect(allButton).toBeInTheDocument();
+      expect(input).toHaveAttribute('aria-expanded', 'true');
+
+      // Get the section button's parent (which is part of the overlay)
+      const sectionPane = allButton.parentElement;
+      expect(sectionPane).toBeInTheDocument();
+
+      // Simulate mousedown on the section pane
+      const mouseDownEvent = new MouseEvent('mousedown', {
+        bubbles: true,
+        cancelable: true,
+      });
+
+      sectionPane?.dispatchEvent(mouseDownEvent);
+
+      // The mousedown should have preventDefault called
+      expect(mouseDownEvent.defaultPrevented).toBe(true);
+
+      // Menu should still be open
+      expect(screen.getByRole('listbox')).toBeInTheDocument();
+      expect(input).toHaveAttribute('aria-expanded', 'true');
+    });
+
     describe('recent filter keys', () => {
       beforeEach(() => {
         MockApiClient.addMockResponse({
@@ -4248,7 +4317,7 @@ describe('SearchQueryBuilder', () => {
       render(
         <SearchQueryBuilder
           {...defaultProps}
-          caseInsensitive={1}
+          caseInsensitive
           onCaseInsensitiveClick={() => Promise.resolve(new URLSearchParams())}
         />
       );

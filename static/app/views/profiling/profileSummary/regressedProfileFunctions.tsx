@@ -233,7 +233,11 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
                 <ProfilingSparklineChart
                   name="p95(function.duration)"
                   points={trendToPoints(fn)}
-                  color={trendType === 'improvement' ? theme.green300 : theme.red300}
+                  color={
+                    trendType === 'improvement'
+                      ? theme.colors.green400
+                      : theme.colors.red400
+                  }
                   aggregate_range_1={fn.aggregate_range_1}
                   aggregate_range_2={fn.aggregate_range_2}
                   breakpoint={fn.breakpoint}
