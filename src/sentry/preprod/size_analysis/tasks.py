@@ -538,9 +538,7 @@ def _maybe_emit_issues(
     issue_count = 0
 
     if download_delta >= arbitrary_threshold:
-        occurrence, event_data = diff_to_occurrence(
-            project_id, "download", diff, head_metric.preprod_artifact.artifact_type
-        )
+        occurrence, event_data = diff_to_occurrence("download", diff, head_metric, base_metric)
         produce_occurrence_to_kafka(
             payload_type=PayloadType.OCCURRENCE,
             occurrence=occurrence,
@@ -549,9 +547,7 @@ def _maybe_emit_issues(
         issue_count += 1
 
     if install_delta >= arbitrary_threshold:
-        occurrence, event_data = diff_to_occurrence(
-            project_id, "install", diff, head_metric.preprod_artifact.artifact_type
-        )
+        occurrence, event_data = diff_to_occurrence("install", diff, head_metric, base_metric)
         produce_occurrence_to_kafka(
             payload_type=PayloadType.OCCURRENCE,
             occurrence=occurrence,

@@ -38,6 +38,7 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
         super().setUp()
         self._run_tasks = self.tasks()
         self._run_tasks.__enter__()
+        self.detector = self.metric_detector
 
     def tearDown(self) -> None:
         super().tearDown()
@@ -201,8 +202,7 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
             self.feature(["organizations:incidents", "organizations:performance-view"]),
             self.capture_on_commit_callbacks(execute=True),
         ):
-            processor.process_update(message)
-        return processor
+            return processor.process_update(message)
 
     def get_detector_state(self, detector: Detector) -> int:
         detector_state = DetectorState.objects.get(detector=detector)

@@ -36,7 +36,6 @@ import {
   IconCopy,
   IconEllipsis,
   IconFire,
-  IconFix,
   IconRefresh,
   IconSeer,
   IconStar,
@@ -477,72 +476,6 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
     <CardContainer>
       <CardHeader>
         {cluster.impact && <ClusterTitle>{cluster.impact}</ClusterTitle>}
-        <ClusterStats>
-          {cluster.fixability_score !== null &&
-            cluster.fixability_score !== undefined && (
-              <StatItem>
-                <IconFix size="xs" color="gray300" />
-                <Text size="xs">
-                  <Text size="xs" bold as="span">
-                    {Math.round(cluster.fixability_score * 100)}%
-                  </Text>{' '}
-                  {t('relevance')}
-                </Text>
-              </StatItem>
-            )}
-          <StatItem>
-            <IconFire size="xs" color="gray300" />
-            {clusterStats.isPending ? (
-              <Text size="xs" variant="muted">
-                –
-              </Text>
-            ) : (
-              <Text size="xs">
-                <Text size="xs" bold as="span">
-                  {clusterStats.totalEvents.toLocaleString()}
-                </Text>{' '}
-                {tn('event', 'events', clusterStats.totalEvents)}
-              </Text>
-            )}
-          </StatItem>
-          <StatItem>
-            <IconUser size="xs" color="gray300" />
-            {clusterStats.isPending ? (
-              <Text size="xs" variant="muted">
-                –
-              </Text>
-            ) : (
-              <Text size="xs">
-                <Text size="xs" bold as="span">
-                  {clusterStats.totalUsers.toLocaleString()}
-                </Text>{' '}
-                {tn('user', 'users', clusterStats.totalUsers)}
-              </Text>
-            )}
-          </StatItem>
-          {!clusterStats.isPending && clusterStats.lastSeen && (
-            <StatItem>
-              <IconClock size="xs" color="gray300" />
-              <TimeSince
-                tooltipPrefix={t('Last Seen')}
-                date={clusterStats.lastSeen}
-                suffix={t('ago')}
-                unitStyle="short"
-              />
-            </StatItem>
-          )}
-          {!clusterStats.isPending && clusterStats.firstSeen && (
-            <StatItem>
-              <IconCalendar size="xs" color="gray300" />
-              <TimeSince
-                tooltipPrefix={t('First Seen')}
-                date={clusterStats.firstSeen}
-                suffix={t('old')}
-                unitStyle="short"
-              />
-            </StatItem>
-          )}
-        </ClusterStats>
         {!clusterStats.isPending &&
           (clusterStats.newIssuesCount > 0 ||
             clusterStats.hasRegressedIssues ||
@@ -551,7 +484,7 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
               {clusterStats.newIssuesCount > 0 && (
                 <StatusTag color="purple">
                   <IconStar size="xs" />
-                  <Text size="xs" bold>
+                  <Text size="xs">
                     {tn(
                       '%s new issue this week',
                       '%s new issues this week',
@@ -563,21 +496,78 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
               {clusterStats.hasRegressedIssues && (
                 <StatusTag color="yellow">
                   <IconRefresh size="xs" />
-                  <Text size="xs" bold>
-                    {t('Has regressed issues')}
-                  </Text>
+                  <Text size="xs">{t('Has regressed issues')}</Text>
                 </StatusTag>
               )}
               {clusterStats.isEscalating && (
                 <StatusTag color="red">
                   <IconArrow direction="up" size="xs" />
-                  <Text size="xs" bold>
-                    {t('Escalating')}
-                  </Text>
+                  <Text size="xs">{t('Escalating')}</Text>
                 </StatusTag>
               )}
             </ClusterStatusTags>
           )}
+        <StatsRow>
+          <ClusterStats>
+            <StatItem>
+              <IconFire size="xs" color="gray300" />
+              {clusterStats.isPending ? (
+                <Text size="xs" variant="muted">
+                  –
+                </Text>
+              ) : (
+                <Text size="xs">
+                  <Text size="xs" bold as="span">
+                    {clusterStats.totalEvents.toLocaleString()}
+                  </Text>{' '}
+                  {tn('event', 'events', clusterStats.totalEvents)}
+                </Text>
+              )}
+            </StatItem>
+            <StatItem>
+              <IconUser size="xs" color="gray300" />
+              {clusterStats.isPending ? (
+                <Text size="xs" variant="muted">
+                  –
+                </Text>
+              ) : (
+                <Text size="xs">
+                  <Text size="xs" bold as="span">
+                    {clusterStats.totalUsers.toLocaleString()}
+                  </Text>{' '}
+                  {tn('user', 'users', clusterStats.totalUsers)}
+                </Text>
+              )}
+            </StatItem>
+          </ClusterStats>
+          {!clusterStats.isPending &&
+            (clusterStats.firstSeen || clusterStats.lastSeen) && (
+              <TimeStats>
+                {clusterStats.lastSeen && (
+                  <StatItem>
+                    <IconClock size="xs" color="gray300" />
+                    <TimeSince
+                      tooltipPrefix={t('Last Seen')}
+                      date={clusterStats.lastSeen}
+                      suffix={t('ago')}
+                      unitStyle="short"
+                    />
+                  </StatItem>
+                )}
+                {clusterStats.firstSeen && (
+                  <StatItem>
+                    <IconCalendar size="xs" color="gray300" />
+                    <TimeSince
+                      tooltipPrefix={t('First Seen')}
+                      date={clusterStats.firstSeen}
+                      suffix={t('old')}
+                      unitStyle="short"
+                    />
+                  </StatItem>
+                )}
+              </TimeStats>
+            )}
+        </StatsRow>
       </CardHeader>
 
       <TabSection>
@@ -832,9 +822,7 @@ function DynamicGrouping() {
     const clusterData = customClusterData ?? topIssuesResponse?.data ?? [];
 
     if (isUsingCustomData && disableFilters) {
-      return clusterData.filter(
-        cluster => cluster.error_type && cluster.impact && cluster.location
-      );
+      return clusterData;
     }
 
     // Apply project filter and require structured fields
@@ -919,7 +907,7 @@ function DynamicGrouping() {
         <HeaderSection>
           <Flex align="center" gap="md" style={{marginBottom: space(2)}}>
             <ClickableHeading as="h1" onClick={() => setShowDevTools(prev => !prev)}>
-              {t('Top Issues')}
+              {t('Top Issues (Experimental)')}
             </ClickableHeading>
             {isUsingCustomData && (
               <CustomDataBadge>
@@ -1220,7 +1208,7 @@ const CardContainer = styled('div')`
     box-shadow 0.2s ease;
 
   &:hover {
-    border-color: ${p => p.theme.purple200};
+    border-color: ${p => p.theme.colors.blue200};
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   }
 `;
@@ -1242,10 +1230,27 @@ const ClusterTitle = styled('h3')`
   word-break: break-word;
 `;
 
-// Stats row within header
+// Stats container with left/right separation
+const StatsRow = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: ${space(2)};
+`;
+
+// Stats row within header (left side)
 const ClusterStats = styled('div')`
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
+  gap: ${space(2)};
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+`;
+
+// Time stats (right side) - first seen, last seen
+const TimeStats = styled('div')`
+  display: flex;
   align-items: center;
   gap: ${space(2)};
   font-size: ${p => p.theme.fontSize.sm};
@@ -1275,14 +1280,13 @@ const ClusterStatusTags = styled('div')`
   display: flex;
   flex-wrap: wrap;
   gap: ${space(1)};
-  margin-top: ${space(1)};
 `;
 
 const StatusTag = styled('div')<{color: 'purple' | 'yellow' | 'red'}>`
   display: inline-flex;
   align-items: center;
   gap: ${space(0.5)};
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${space(0.25)} ${space(0.75)};
   border-radius: ${p => p.theme.radius.md};
   font-size: ${p => p.theme.fontSize.xs};
 
@@ -1290,18 +1294,18 @@ const StatusTag = styled('div')<{color: 'purple' | 'yellow' | 'red'}>`
     switch (p.color) {
       case 'purple':
         return `
-          background: ${p.theme.purple100};
-          color: ${p.theme.purple400};
+          background: ${p.theme.colors.blue100};
+          color: ${p.theme.colors.blue400};
         `;
       case 'yellow':
         return `
-          background: ${p.theme.yellow100};
-          color: ${p.theme.yellow400};
+          background: ${p.theme.colors.yellow100};
+          color: ${p.theme.colors.yellow400};
         `;
       case 'red':
         return `
-          background: ${p.theme.red100};
-          color: ${p.theme.red400};
+          background: ${p.theme.colors.red100};
+          color: ${p.theme.colors.red400};
         `;
       default:
         return '';
@@ -1340,7 +1344,7 @@ const Tab = styled('button')<{isActive: boolean}>`
       right: 0;
       bottom: 0;
       height: 2px;
-      background: ${p.theme.purple300};
+      background: ${p.theme.colors.blue400};
     }
   `}
 
@@ -1393,8 +1397,8 @@ const IssuePreviewLink = styled(Link)`
     background 0.15s ease;
 
   &:hover {
-    border-color: ${p => p.theme.purple300};
-    background: ${p => p.theme.backgroundElevated};
+    border-color: ${p => p.theme.colors.blue400};
+    background: ${p => p.theme.tokens.background.primary};
   }
 `;
 
@@ -1500,7 +1504,7 @@ const ShowMoreButton = styled('button')`
 
   &:hover {
     background: ${p => p.theme.backgroundTertiary};
-    border-color: ${p => p.theme.purple300};
+    border-color: ${p => p.theme.colors.blue400};
     color: ${p => p.theme.tokens.content.primary};
   }
 `;
@@ -1518,10 +1522,10 @@ const CustomDataBadge = styled('div')`
   align-items: center;
   gap: ${space(0.5)};
   padding: ${space(0.5)} ${space(1)};
-  background: ${p => p.theme.yellow100};
-  border: 1px solid ${p => p.theme.yellow300};
+  background: ${p => p.theme.colors.yellow100};
+  border: 1px solid ${p => p.theme.colors.yellow400};
   border-radius: ${p => p.theme.radius.md};
-  color: ${p => p.theme.yellow400};
+  color: ${p => p.theme.colors.yellow500};
 `;
 
 const LastUpdatedText = styled('span')`

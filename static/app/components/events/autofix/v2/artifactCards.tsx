@@ -610,7 +610,7 @@ export function TriageCard({data, group, organization}: TriageCardProps) {
                 <CommitRow commit={commit} />
                 {typedData.suspect_commit?.description && (
                   <Container padding="lg" paddingTop="0">
-                    <Text size="sm" as="div" variant="muted">
+                    <Text size="sm" variant="muted">
                       <StyledMarkedText
                         text={typedData.suspect_commit.description}
                         inline
@@ -656,7 +656,7 @@ export function TriageCard({data, group, organization}: TriageCardProps) {
                         paddingBottom="lg"
                         paddingLeft="xs"
                       >
-                        <Text size="sm" as="div" variant="muted">
+                        <Text size="sm" variant="muted">
                           <StyledMarkedText
                             text={typedData.suggested_assignee.why}
                             inline
@@ -668,7 +668,7 @@ export function TriageCard({data, group, organization}: TriageCardProps) {
 
                     <Flex justify="end">
                       {hasAssigneeMatch ? (
-                        <Button size="xs" onClick={handleAssign} disabled={isAssigning}>
+                        <Button size="sm" onClick={handleAssign} disabled={isAssigning}>
                           {isAssigning
                             ? t('Assigning...')
                             : t(
@@ -732,12 +732,12 @@ export function CodeChangesCard({patches, prStates, onCreatePR}: CodeChangesCard
             <RepoHeader>
               <RepoName>{repoName}</RepoName>
               {hasPR ? (
-                <PRLink href={prState.pr_url} target="_blank" rel="noopener noreferrer">
+                <a href={prState.pr_url} target="_blank" rel="noopener noreferrer">
                   {t('View PR #%s', prState.pr_number)}
-                </PRLink>
+                </a>
               ) : onCreatePR ? (
                 <Button
-                  size="xs"
+                  size="sm"
                   onClick={() => onCreatePR(repoName)}
                   disabled={isCreatingPR}
                 >
@@ -746,11 +746,17 @@ export function CodeChangesCard({patches, prStates, onCreatePR}: CodeChangesCard
               ) : null}
             </RepoHeader>
 
-            {repoPatches.map((patch, index) => (
-              <DiffViewContainer key={`${patch.patch.path}-${index}`}>
-                <FileDiffViewer patch={patch.patch} showBorder />
-              </DiffViewContainer>
-            ))}
+            <Flex direction="column" gap="sm">
+              {repoPatches.map((patch, index) => (
+                <FileDiffViewer
+                  patch={patch.patch}
+                  showBorder
+                  collapsible
+                  defaultExpanded={repoPatches.length > 1 ? false : true}
+                  key={`${patch.patch.path}-${index}`}
+                />
+              ))}
+            </Flex>
           </RepoSection>
         );
       })}
@@ -865,18 +871,6 @@ const RepoHeader = styled('div')`
   align-items: center;
   justify-content: space-between;
   margin-bottom: ${p => p.theme.space.xl};
-`;
-
-const PRLink = styled('a')`
-  font-size: ${p => p.theme.fontSize.sm};
-`;
-
-const DiffViewContainer = styled('div')`
-  margin-top: ${p => p.theme.space.md};
-
-  &:not(:last-child) {
-    margin-bottom: ${p => p.theme.space.xl};
-  }
 `;
 
 const AnimatedCard = styled(motion.div)`

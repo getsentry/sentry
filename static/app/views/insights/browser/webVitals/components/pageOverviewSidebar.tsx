@@ -119,15 +119,15 @@ export function PageOverviewSidebar({
     }
     if (diff > 1) {
       if (reverse) {
-        return theme.red300;
+        return theme.colors.red400;
       }
-      return theme.green300;
+      return theme.colors.green400;
     }
     if (diff < 1) {
       if (reverse) {
-        return theme.green300;
+        return theme.colors.green400;
       }
-      return theme.red300;
+      return theme.colors.red400;
     }
     return undefined;
   };
@@ -529,7 +529,7 @@ const CardContent = styled('div')`
 `;
 
 const StyledIconSeer = styled(IconSeer)`
-  color: ${p => p.theme.blue400};
+  color: ${p => p.theme.colors.blue500};
 `;
 
 const ViewIssueButtonContainer = styled('div')`

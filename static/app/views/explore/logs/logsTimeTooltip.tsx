@@ -175,7 +175,7 @@ const TimestampLabelLink = styled(Link)`
 `;
 
 const TimestampLabel = styled('span')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
 `;
 
 const TimestampLabelLinkContainer = styled('dd')`

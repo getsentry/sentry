@@ -138,7 +138,7 @@ export default function OverviewJobsChartWidget(props: LoadableChartWidgetProps)
         <div>
           <SeriesColorIndicator
             style={{
-              backgroundColor: theme.gray200,
+              backgroundColor: theme.colors.gray200,
             }}
           />
         </div>

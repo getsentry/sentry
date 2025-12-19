@@ -195,7 +195,7 @@ describe('LogsTabContent', () => {
       `/organizations/${organization.slug}/events-timeseries/`,
       expect.objectContaining({
         query: expect.objectContaining({
-          caseInsensitive: 0,
+          caseInsensitive: undefined,
           dataset: 'ourlogs',
           disableAggregateExtrapolation: '0',
           environment: [],
@@ -290,7 +290,7 @@ describe('LogsTabContent', () => {
           field: [...AlwaysPresentLogFields, 'message', 'sentry.message.parameters.0'],
           sort: 'sentry.message.parameters.0',
           query: 'severity:error',
-          caseInsensitive: 1,
+          caseInsensitive: '1',
         }),
       })
     );

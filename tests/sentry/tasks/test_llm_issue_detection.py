@@ -88,6 +88,7 @@ class LLMIssueDetectionTest(TestCase):
             transaction_name="test_transaction",
             subcategory="Connection Pool Exhaustion",
             category="Database",
+            verification_reason="Problem is correctly identified",
         )
 
         create_issue_occurrence_from_detection(
@@ -195,6 +196,7 @@ class LLMIssueDetectionTest(TestCase):
                     "transaction_name": "POST /some/thing",
                     "category": "Database",
                     "subcategory": "N+1 Query",
+                    "verification_reason": "Problem is correctly identified",
                 },
                 {
                     "title": "Memory Leak Risk",
@@ -207,6 +209,7 @@ class LLMIssueDetectionTest(TestCase):
                     "transaction_name": "GET /another/",
                     "category": "Memory",
                     "subcategory": "Memory Leak",
+                    "verification_reason": "Problem is correctly identified",
                 },
             ],
             "traces_analyzed": 1,
@@ -261,10 +264,10 @@ class LLMIssueDetectionTest(TestCase):
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
     @patch("sentry.tasks.llm_issue_detection.trace_data.Spans.run_table_query")
     @patch("sentry.tasks.llm_issue_detection.detection.random.shuffle")
-    @patch("sentry.tasks.llm_issue_detection.detection.sentry_sdk.capture_exception")
+    @patch("sentry.tasks.llm_issue_detection.detection.logger.error")
     def test_detect_llm_issues_continues_on_seer_error(
         self,
-        mock_capture_exception,
+        mock_logger_error,
         mock_shuffle,
         mock_spans_query,
         mock_seer_request,
@@ -303,6 +306,7 @@ class LLMIssueDetectionTest(TestCase):
                     "transaction_name": "GET /another/",
                     "category": "General",
                     "subcategory": "Success",
+                    "verification_reason": "Problem is correctly identified",
                 }
             ],
             "traces_analyzed": 1,
@@ -313,7 +317,7 @@ class LLMIssueDetectionTest(TestCase):
         detect_llm_issues_for_project(self.project.id)
 
         assert mock_seer_request.call_count == 2
-        assert mock_capture_exception.call_count == 1
+        assert mock_logger_error.call_count == 1
         assert mock_produce_occurrence.call_count == 1
 
         occurrence = mock_produce_occurrence.call_args.kwargs["occurrence"]

@@ -30,9 +30,10 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
-import {ConversationsTable} from 'sentry/views/insights/pages/agents/components/conversationsTable';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
+import {AgentSelector} from 'sentry/views/insights/pages/conversations/components/agentSelector';
+import {ConversationsTable} from 'sentry/views/insights/pages/conversations/components/conversationsTable';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 
 const DISABLE_AGGREGATES: never[] = [];
@@ -112,6 +113,7 @@ function ConversationsOverviewPage({
                           resetParamsOnChange={[TableUrlParams.CURSOR]}
                         />
                       </PageFilterBar>
+                      <AgentSelector />
                       <Flex flex={2}>
                         <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
                       </Flex>

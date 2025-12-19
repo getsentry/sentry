@@ -451,11 +451,11 @@ const StyledNavItem = styled(Link)<ItemProps>`
   }
 
   &[aria-selected='true'] {
-    color: ${p => p.theme.purple400};
+    color: ${p => p.theme.colors.blue500};
     font-weight: ${p => p.theme.fontWeight.bold};
 
     &:hover {
-      color: ${p => p.theme.purple400};
+      color: ${p => p.theme.colors.blue500};
     }
   }
 
