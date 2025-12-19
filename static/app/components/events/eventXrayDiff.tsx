@@ -1,5 +1,6 @@
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -33,10 +34,19 @@ function EventXrayDiffContent({baseMetricId, headMetricId, project}: ContentProp
     return <LoadingIndicator />;
   }
 
+  if (query.isError) {
+    return (
+      <LoadingError
+        message={t('Failed to load X-Ray diff data.')}
+        onRetry={query.refetch}
+      />
+    );
+  }
+
   const diffItems = query.data?.diff_items;
 
   if (!diffItems || diffItems.length === 0) {
-    return <EmptyStateWarning small>No diff found.</EmptyStateWarning>;
+    return <EmptyStateWarning small>{t('No diff found.')}</EmptyStateWarning>;
   }
 
   return <TreemapDiffSection diffItems={diffItems} />;
