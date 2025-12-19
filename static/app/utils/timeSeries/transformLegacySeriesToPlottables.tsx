@@ -98,6 +98,7 @@ function mapAggregationTypeToValueTypeAndUnit(
   valueType: TimeSeries['meta']['valueType'];
   valueUnit: TimeSeries['meta']['valueUnit'];
 } {
+  // Checking eps/epm here is a hack until we migrate to new /timeseries endpoint
   if (fieldName.includes('eps()')) {
     return {valueType: 'rate', valueUnit: RateUnit.PER_SECOND};
   }
