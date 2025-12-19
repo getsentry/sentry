@@ -121,8 +121,8 @@ const RadioItem = styled('label', {shouldForwardProp})<{
   margin: 0;
 
   &[aria-checked='true'] {
-    border-color: ${p => p.theme.purple300} !important;
-    box-shadow: inset 0 0 0 1px ${p => p.theme.purple300};
+    border-color: ${p => p.theme.colors.blue400} !important;
+    box-shadow: inset 0 0 0 1px ${p => p.theme.colors.blue400};
     z-index: ${p => p.theme.zIndex.initial};
   }
 
@@ -141,7 +141,7 @@ const RadioItem = styled('label', {shouldForwardProp})<{
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     &:nth-child(n + 2) {
-      border-top-color: ${p => p.theme.gray200};
+      border-top-color: ${p => p.theme.colors.gray200};
       border-left-color: transparent;
     }
     &:first-child {
@@ -170,7 +170,7 @@ const RadioLineText = styled('div', {shouldForwardProp})<{disabled?: boolean}>`
   opacity: ${p => (p.disabled ? 0.4 : null)};
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.colors.gray800};
 `;
 
 const Description = styled('div')`

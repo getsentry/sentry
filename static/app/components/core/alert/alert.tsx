@@ -127,7 +127,7 @@ function getAlertColors(theme: Theme, type: NonNullable<AlertProps['type']>) {
   switch (type) {
     case 'muted':
       return {
-        background: theme.gray200,
+        background: theme.colors.gray200,
         backgroundLight: theme.backgroundSecondary,
         border: theme.border,
         borderHover: theme.border,
@@ -135,35 +135,35 @@ function getAlertColors(theme: Theme, type: NonNullable<AlertProps['type']>) {
       };
     case 'info':
       return {
-        background: theme.blue300,
-        backgroundLight: theme.blue100,
-        border: theme.blue200,
-        borderHover: theme.blue300,
-        color: theme.blue400,
+        background: theme.colors.blue400,
+        backgroundLight: theme.colors.blue100,
+        border: theme.colors.blue200,
+        borderHover: theme.colors.blue400,
+        color: theme.colors.blue500,
       };
     case 'warning':
       return {
-        background: theme.yellow300,
-        backgroundLight: theme.yellow100,
-        border: theme.yellow200,
-        borderHover: theme.yellow300,
-        color: theme.yellow400,
+        background: theme.colors.yellow400,
+        backgroundLight: theme.colors.yellow100,
+        border: theme.colors.yellow200,
+        borderHover: theme.colors.yellow400,
+        color: theme.colors.yellow500,
       };
     case 'success':
       return {
-        background: theme.green300,
-        backgroundLight: theme.green100,
-        border: theme.green200,
-        borderHover: theme.green300,
-        color: theme.green400,
+        background: theme.colors.green400,
+        backgroundLight: theme.colors.green100,
+        border: theme.colors.green200,
+        borderHover: theme.colors.green400,
+        color: theme.colors.green500,
       };
     case 'error':
       return {
-        background: theme.red300,
-        backgroundLight: theme.red100,
-        border: theme.red200,
-        borderHover: theme.red300,
-        color: theme.red400,
+        background: theme.colors.red400,
+        backgroundLight: theme.colors.red100,
+        border: theme.colors.red200,
+        borderHover: theme.colors.red400,
+        color: theme.colors.red500,
       };
     default:
       unreachable(type);

@@ -105,7 +105,7 @@ const getPriorityColor = ({
   priority: 'high' | 'medium';
   theme: Theme;
 }) => {
-  return priority === 'medium' ? theme.yellow300 : theme.red300;
+  return priority === 'medium' ? theme.colors.yellow400 : theme.colors.red400;
 };
 
 /**
@@ -255,7 +255,7 @@ function IncidentMarkerSeries({
     yAxisIndex,
     renderItem: renderIncidentHighlight,
     data: incidentPeriods,
-    color: theme.red300,
+    color: theme.colors.red400,
     animation: false,
     markLine: MarkLine({
       silent: false,

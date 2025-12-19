@@ -302,6 +302,6 @@ const StyledButton = styled(Button)`
 
 const WarningStreamWrapper = styled(EmptyStreamWrapper)`
   > svg {
-    fill: ${p => p.theme.gray300};
+    fill: ${p => p.theme.colors.gray400};
   }
 `;

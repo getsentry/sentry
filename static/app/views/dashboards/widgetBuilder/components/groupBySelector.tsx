@@ -15,6 +15,7 @@ import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/con
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
 
 interface WidgetBuilderGroupBySelectorProps {
   validatedWidgetResponse: UseApiQueryResult<ValidateWidgetResponse, RequestError>;
@@ -29,8 +30,13 @@ function WidgetBuilderGroupBySelector({
   const organization = useOrganization();
 
   const tags: TagCollection = useTags();
-  const {tags: numericSpanTags} = useTraceItemTags('number');
-  const {tags: stringSpanTags} = useTraceItemTags('string');
+
+  let hiddenKeys: string[] = [];
+  if (state.dataset === WidgetType.TRACEMETRICS) {
+    hiddenKeys = HiddenTraceMetricGroupByFields;
+  }
+  const {tags: numericSpanTags} = useTraceItemTags('number', hiddenKeys);
+  const {tags: stringSpanTags} = useTraceItemTags('string', hiddenKeys);
 
   const groupByOptions = useMemo(() => {
     const datasetConfig = getDatasetConfig(state.dataset);

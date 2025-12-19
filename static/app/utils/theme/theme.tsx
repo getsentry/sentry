@@ -587,6 +587,11 @@ const commonTheme = {
 
 export type Color = keyof ReturnType<typeof deprecatedColorMappings>;
 type Aliases = typeof lightAliases;
+/**
+ * Do not use this type. Use direct colors access via theme.colors or encapsulate
+ * colors into human readable variants that signify the color's purpose.
+ * @deprecated
+ */
 export type ColorOrAlias = keyof Aliases | Color;
 export interface SentryTheme extends Omit<typeof lightThemeDefinition, 'chart'> {
   chart: {
@@ -1277,31 +1282,24 @@ const generateAliases = (
    */
   success: tokens.content.success,
   successText: tokens.content.success,
-  // @TODO(jonasbadalic): should this reference a chonk color?
-  successFocus: tokens.border.success, // Not being used
 
   /**
    * A color that denotes an error, or something that is wrong
    */
   error: tokens.content.danger,
   errorText: tokens.content.danger,
-  errorFocus: tokens.border.danger,
 
   /**
    * A color that denotes danger, for dangerous actions like deletion
    */
   danger: tokens.content.danger,
   dangerText: tokens.content.danger,
-  // @TODO(jonasbadalic): should this reference a chonk color?
-  dangerFocus: tokens.border.danger, // Not being used
 
   /**
    * A color that denotes a warning
    */
   warning: tokens.content.warning,
   warningText: tokens.content.warning,
-  // @TODO(jonasbadalic): should this reference a chonk color?
-  warningFocus: tokens.border.warning, // Not being used
 
   /**
    * A color that indicates something is disabled where user can not interact or use
@@ -1391,45 +1389,6 @@ const deprecatedColorMappings = (colors: Colors) => ({
   },
 
   /** @deprecated */
-  get lightModeBlack() {
-    return colors.black;
-  },
-  /** @deprecated */
-  get lightModeWhite() {
-    return colors.white;
-  },
-
-  /** @deprecated */
-  get surface100() {
-    return colors.surface200;
-  },
-  /** @deprecated */
-  get surface200() {
-    return colors.surface300;
-  },
-  /** @deprecated */
-  get surface300() {
-    return colors.surface400;
-  },
-  /** @deprecated */
-  get surface400() {
-    return colors.surface500;
-  },
-  /** @deprecated */
-  get surface500() {
-    return colors.surface500;
-  },
-
-  /** @deprecated */
-  get translucentSurface100() {
-    return colors.surface100;
-  },
-  /** @deprecated */
-  get translucentSurface200() {
-    return colors.surface200;
-  },
-
-  /** @deprecated */
   get gray500() {
     return colors.gray800;
   },
@@ -1447,15 +1406,6 @@ const deprecatedColorMappings = (colors: Colors) => ({
   },
   /** @deprecated */
   get gray100() {
-    return colors.gray100;
-  },
-
-  /** @deprecated */
-  get translucentGray200() {
-    return colors.gray200;
-  },
-  /** @deprecated */
-  get translucentGray100() {
     return colors.gray100;
   },
 

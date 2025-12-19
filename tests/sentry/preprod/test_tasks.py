@@ -755,7 +755,7 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
     def test_assemble_preprod_artifact_size_analysis_writes_to_eap_when_flag_enabled(self) -> None:
         """Test that size metrics are written to EAP when feature flag is enabled"""
         with self.feature("organizations:preprod-size-metrics-eap-write"):
-            with patch("sentry.preprod.tasks.write_preprod_size_metric_to_eap") as mock_eap_write:
+            with patch("sentry.preprod.tasks.produce_preprod_size_metric_to_eap") as mock_eap_write:
                 status, details = self._run_task_and_verify_status(
                     b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": null, "app_components": [{"component_type": 0, "name": "Main App", "app_id": "com.example.app", "path": "/", "download_size": 1000, "install_size": 2000}]}'
                 )
@@ -763,7 +763,7 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
                 assert status == ChunkFileState.OK
                 assert details is None
 
-                # Verify write_preprod_size_metric_to_eap was called exactly once
+                # Verify produce_preprod_size_metric_to_eap was called exactly once
                 # We have other integration tests that verify the EAP write itself works
                 assert mock_eap_write.call_count == 1
 
@@ -776,7 +776,7 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
 
     def test_assemble_preprod_artifact_size_analysis_skips_eap_when_flag_disabled(self) -> None:
         """Test that size metrics are NOT written to EAP when feature flag is disabled"""
-        with patch("sentry.preprod.tasks.write_preprod_size_metric_to_eap") as mock_eap_write:
+        with patch("sentry.preprod.tasks.produce_preprod_size_metric_to_eap") as mock_eap_write:
             status, details = self._run_task_and_verify_status(
                 b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": null, "app_components": [{"component_type": 0, "name": "Main App", "app_id": "com.example.app", "path": "/", "download_size": 1000, "install_size": 2000}]}'
             )
@@ -784,7 +784,7 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
             assert status == ChunkFileState.OK
             assert details is None
 
-            # Verify write_preprod_size_metric_to_eap was NOT called
+            # Verify produce_preprod_size_metric_to_eap was NOT called
             mock_eap_write.assert_not_called()
 
     def test_assemble_preprod_artifact_size_analysis_eap_write_failure_does_not_fail_task(
@@ -793,7 +793,7 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
         """Test that EAP write failures don't cause the main task to fail"""
         with self.feature("organizations:preprod-size-metrics-eap-write"):
             with patch(
-                "sentry.preprod.tasks.write_preprod_size_metric_to_eap",
+                "sentry.preprod.tasks.produce_preprod_size_metric_to_eap",
                 side_effect=Exception("EAP write failed"),
             ):
                 status, details = self._run_task_and_verify_status(
@@ -814,7 +814,7 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
     def test_assemble_preprod_artifact_size_analysis_writes_multiple_metrics_to_eap(self) -> None:
         """Test that all size metrics (main + components) are written to EAP when flag is enabled"""
         with self.feature("organizations:preprod-size-metrics-eap-write"):
-            with patch("sentry.preprod.tasks.write_preprod_size_metric_to_eap") as mock_eap_write:
+            with patch("sentry.preprod.tasks.produce_preprod_size_metric_to_eap") as mock_eap_write:
                 status, details = self._run_task_and_verify_status(
                     b'{"analysis_duration": 2.5, "download_size": 5000, "install_size": 10000, "treemap": null, "analysis_version": "1.0", "app_components": [{"component_type": 0, "name": "Main App", "app_id": "com.example.app", "path": "/", "download_size": 3000, "install_size": 6000}, {"component_type": 1, "name": "Watch App", "app_id": "com.example.app.watchkitapp", "path": "/Watch", "download_size": 2000, "install_size": 4000}]}'
                 )
