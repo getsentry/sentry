@@ -32,6 +32,12 @@ SEER_OPERATOR_AUTOFIX_UPDATE_EVENTS = {
 logger = logging.getLogger(__name__)
 
 
+# The cache here will not stop entrypoints from triggering autofixupdates, it only affects the
+# entrypoint's ability to receive updates from those triggers. So 12 is plenty, even accounting for
+# incidents, since a run should not take nearly that long to complete.
+AUTOFIX_CACHE_TIMEOUT = 60 * 60 * 12  # 12 hours
+
+
 class SeerOperator[CachePayloadT]:
     """
     A class that connects to entrypoint implementations and runs operations for Seer with them.
@@ -118,10 +124,7 @@ class SeerOperator[CachePayloadT]:
                 entrypoint_key=str(self.entrypoint.key), run_id=run_id
             )
             self.logging_ctx["cache_key"] = cache_key
-            # The cache here will not stop entrypoints from triggering updates, it only affects
-            # the entrypoint's ability to receive updates from those triggers. So 12 is plenty, even
-            # accounting for incidents, since a run should not take longer than that to complete.
-            cache.set(cache_key, cache_payload, timeout=60 * 60 * 12)  # 12 hours
+            cache.set(cache_key, cache_payload, timeout=AUTOFIX_CACHE_TIMEOUT)
         logger.info("operator.trigger_autofix_success", extra=self.logging_ctx)
 
     @classmethod

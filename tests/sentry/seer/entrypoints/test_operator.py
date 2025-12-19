@@ -5,7 +5,7 @@ from unittest.mock import ANY, Mock, patch
 from rest_framework.response import Response
 
 from sentry.seer.autofix.utils import AutofixStoppingPoint
-from sentry.seer.entrypoints.operator import SeerOperator
+from sentry.seer.entrypoints.operator import AUTOFIX_CACHE_TIMEOUT, SeerOperator
 from sentry.seer.entrypoints.types import SeerEntrypoint, SeerEntrypointKey
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.testutils.cases import TestCase
@@ -142,6 +142,7 @@ class SeerOperatorTest(TestCase):
         mock_cache_set.assert_called_with(
             self.operator.get_autofix_cache_key(entrypoint_key=self.entrypoint.key, run_id=RUN_ID),
             self.entrypoint.create_autofix_cache_payload(),
+            timeout=AUTOFIX_CACHE_TIMEOUT,
         )
 
     @patch("sentry.seer.entrypoints.operator.logger.info")
