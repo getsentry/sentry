@@ -261,6 +261,9 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
 
     def _extract_numeric_value(self, result: AttributeValue) -> float | None:
         """Extract numeric value from protobuf result, supporting int/float/double."""
+        if result.is_null:
+            return None
+
         if result.HasField("val_int"):
             return float(result.val_int)
         elif result.HasField("val_double"):
@@ -361,7 +364,7 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
             unique_values[attr_name] = set()
 
             for result in column.results:
-                if result.HasField("val_str") and result.val_str:
+                if not result.is_null and result.HasField("val_str") and result.val_str:
                     unique_values[attr_name].add(result.val_str)
 
         return unique_values
