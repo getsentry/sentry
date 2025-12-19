@@ -664,7 +664,7 @@ const ReceiptSlot = styled('div')`
   border-radius: ${p => p.theme.radius.md};
   background: ${p => p.theme.gray200};
   box-shadow: 0px 2px 4px 0px
-    ${p => Color(p.theme.black).lighten(0.08).alpha(0.15).toString()} inset;
+    ${p => Color(p.theme.colors.black).lighten(0.08).alpha(0.15).toString()} inset;
 `;
 
 const ReceiptPaperContainer = styled('div')`
@@ -682,7 +682,7 @@ const ReceiptPaperShadow = styled('div')`
   width: 320px;
   height: 7px;
   box-shadow: inset 0 10px 6px -6px
-    ${p => Color(p.theme.black).lighten(0.05).alpha(0.15).toString()};
+    ${p => Color(p.theme.colors.black).lighten(0.05).alpha(0.15).toString()};
 `;
 
 const ReceiptPaper = styled(Container)`
