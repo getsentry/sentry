@@ -30,7 +30,7 @@ from sentry.seer.autofix.utils import (
     is_seer_autotriggered_autofix_rate_limited,
     is_seer_seat_based_tier_enabled,
 )
-from sentry.seer.models import SummarizeIssueResponse
+from sentry.seer.models import FixabilitySummaryPayload, SummarizeIssueResponse
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
 from sentry.services import eventstore
@@ -266,13 +266,18 @@ fixability_connection_pool_gpu = connection_from_url(
 )
 
 
-def _generate_fixability_score(group: Group) -> SummarizeIssueResponse:
-    payload = {
+def _generate_fixability_score(
+    group: Group,
+    summary: FixabilitySummaryPayload | None = None,
+) -> SummarizeIssueResponse:
+    payload: dict[str, Any] = {
         "group_id": group.id,
         "organization_slug": group.organization.slug,
         "organization_id": group.organization.id,
         "project_id": group.project.id,
     }
+    if summary is not None:
+        payload["summary"] = summary.dict()
     response = make_signed_seer_api_request(
         fixability_connection_pool_gpu,
         "/v1/automation/summarize/fixability",
@@ -285,7 +290,11 @@ def _generate_fixability_score(group: Group) -> SummarizeIssueResponse:
     return SummarizeIssueResponse.validate(response_data)
 
 
-def get_and_update_group_fixability_score(group: Group, force_generate: bool = False) -> float:
+def get_and_update_group_fixability_score(
+    group: Group,
+    force_generate: bool = False,
+    summary: FixabilitySummaryPayload | None = None,
+) -> float:
     """
     Get the fixability score for a group and update the group with the score.
     If the fixability score is already set, return it without generating a new one.
@@ -294,7 +303,7 @@ def get_and_update_group_fixability_score(group: Group, force_generate: bool = F
         return group.seer_fixability_score
 
     with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
-        issue_summary = _generate_fixability_score(group)
+        issue_summary = _generate_fixability_score(group, summary=summary)
 
     if not issue_summary.scores:
         raise ValueError("Issue summary scores is None or empty.")

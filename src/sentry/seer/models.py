@@ -18,6 +18,20 @@ class SummarizeIssueScores(BaseModel):
     fixability_score_version: int | None = None
 
 
+class FixabilitySummaryPayload(BaseModel):
+    """
+    Payload for passing issue summary to Seer's fixability endpoint.
+    Matches Seer's expected SummarizeIssueResponse format exactly.
+    """
+
+    group_id: int
+    headline: str
+    whats_wrong: str
+    trace: str
+    possible_cause: str
+    scores: SummarizeIssueScores | None = None
+
+
 class SummarizeIssueResponse(BaseModel):
     group_id: str
     headline: str

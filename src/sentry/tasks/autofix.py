@@ -70,10 +70,15 @@ def generate_issue_summary_only(group_id: int) -> None:
     Generate issue summary WITHOUT triggering automation.
     Used for triage signals flow when event count < 10 or when summary doesn't exist yet.
     """
+    from sentry.api.serializers.rest_framework.base import (
+        camel_to_snake_case,
+        convert_dict_key_case,
+    )
     from sentry.seer.autofix.issue_summary import (
         get_and_update_group_fixability_score,
         get_issue_summary,
     )
+    from sentry.seer.models import FixabilitySummaryPayload
 
     group = Group.objects.get(id=group_id)
     organization = group.project.organization
@@ -81,11 +86,19 @@ def generate_issue_summary_only(group_id: int) -> None:
         "Task: generate_issue_summary_only",
         extra={"org_id": organization.id, "org_slug": organization.slug},
     )
-    get_issue_summary(
+    summary_data, status_code = get_issue_summary(
         group=group, source=SeerAutomationSource.POST_PROCESS, should_run_automation=False
     )
 
-    _ = get_and_update_group_fixability_score(group, force_generate=True)
+    summary_payload = None
+    if status_code == 200:
+        summary_snake = convert_dict_key_case(summary_data, camel_to_snake_case)
+        summary_payload = FixabilitySummaryPayload(
+            group_id=group.id,
+            **{k: summary_snake[k] for k in ["headline", "whats_wrong", "trace", "possible_cause"]},
+        )
+
+    get_and_update_group_fixability_score(group, force_generate=True, summary=summary_payload)
 
 
 @instrumented_task(
