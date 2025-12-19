@@ -1,8 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
-
 import {INTERNAL_SOURCE} from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/utils';
 import type {ImageCandidate} from 'sentry/types/debugImage';
 import type {Organization} from 'sentry/types/organization';
@@ -38,9 +36,9 @@ function Candidate({
 
   return (
     <Fragment>
-      <Flex align="center">
+      <Column>
         <StatusTooltip candidate={candidate} hasReprocessWarning={hasReprocessWarning} />
-      </Flex>
+      </Column>
 
       <InformationColumn>
         <Information
@@ -68,6 +66,11 @@ function Candidate({
 }
 
 export default Candidate;
+
+const Column = styled('div')`
+  display: flex;
+  align-items: center;
+`;
 
 const InformationColumn = styled(Column)`
   flex-direction: column;
