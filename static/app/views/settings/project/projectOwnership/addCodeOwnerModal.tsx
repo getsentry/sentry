@@ -1,6 +1,8 @@
 import {Fragment, useState, type Dispatch, type SetStateAction} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/core/alert';
@@ -246,11 +248,11 @@ function LinkCodeOwners({
   return (
     <Fragment>
       <div>{t('Install a GitHub or GitLab integration to use this feature.')}</div>
-      <Container style={{paddingTop: space(2)}}>
+      <Flex justify="center" style={{paddingTop: space(2)}}>
         <LinkButton priority="primary" size="sm" to={baseUrl}>
           Setup Integration
         </LinkButton>
-      </Container>
+      </Flex>
     </Fragment>
   );
 }
@@ -354,9 +356,4 @@ const IntegrationsList = styled('div')`
 
 const IntegrationName = styled('p')`
   padding-left: 10px;
-`;
-
-const Container = styled('div')`
-  display: flex;
-  justify-content: center;
 `;
