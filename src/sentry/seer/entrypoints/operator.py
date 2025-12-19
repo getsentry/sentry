@@ -100,7 +100,7 @@ class SeerOperator[CachePayloadT]:
             self.entrypoint.on_trigger_autofix_error(error=error_message)
             return
 
-        run_id = raw_response.data.get("run_id")
+        run_id = raw_response.data.get("run_id") if not run_id else run_id
         # Shouldn't ever happen, but if it we have no run_id, we can't listen for updates
         if not run_id:
             logger.info("operator.trigger_autofix_no_run_id", extra=self.logging_ctx)
@@ -118,7 +118,10 @@ class SeerOperator[CachePayloadT]:
                 entrypoint_key=str(self.entrypoint.key), run_id=run_id
             )
             self.logging_ctx["cache_key"] = cache_key
-            cache.set(cache_key, cache_payload)
+            # The cache here will not stop entrypoints from triggering updates, it only affects
+            # the entrypoint's ability to receive updates from those triggers. So 12 is plenty, even
+            # accounting for incidents, since a run should not take longer than that to complete.
+            cache.set(cache_key, cache_payload, timeout=60 * 60 * 12)  # 12 hours
         logger.info("operator.trigger_autofix_success", extra=self.logging_ctx)
 
     @classmethod
