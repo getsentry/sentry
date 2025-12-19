@@ -125,10 +125,10 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
 
         except InvalidParams as e:
             logger.exception("Invalid parameters for app size stats request")
-            raise ParseError(str(e))
+            raise ParseError("Invalid query parameters")
         except (ValueError, KeyError) as e:
             logger.exception("Error while parsing app size stats request")
-            raise ParseError(str(e))
+            raise ParseError("Invalid request parameters")
 
     def _parse_field(self, field: str) -> tuple[str, str]:
         """
@@ -150,7 +150,11 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
             "min_install_size",
             "min_download_size",
         ]
-        if field_name and field_name not in valid_fields:
+
+        if not field_name:
+            raise ParseError(f"Field name is required for {func_name}() function")
+
+        if field_name not in valid_fields:
             raise ParseError(f"Invalid field: {field_name}")
 
         return func_name, field_name

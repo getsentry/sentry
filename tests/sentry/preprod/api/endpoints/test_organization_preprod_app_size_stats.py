@@ -193,13 +193,21 @@ class OrganizationPreprodAppSizeStatsEndpointTest(APITestCase):
         )
         assert "Invalid field" in str(response.data)
 
+    def test_get_empty_field_name(self) -> None:
+        """Test that empty field names are rejected."""
+        response = self.get_error_response(
+            self.organization.slug,
+            qs_params={"field": "count()"},
+        )
+        assert "Field name is required" in str(response.data)
+
     def test_get_invalid_stats_period(self) -> None:
         """Test validation of statsPeriod parameter."""
         response = self.get_error_response(
             self.organization.slug,
             qs_params={"statsPeriod": "invalid"},
         )
-        assert "Invalid statsPeriod" in str(response.data)
+        assert response.status_code == 400
 
     def test_get_invalid_datetime(self) -> None:
         """Test validation of datetime format."""
@@ -207,7 +215,7 @@ class OrganizationPreprodAppSizeStatsEndpointTest(APITestCase):
             self.organization.slug,
             qs_params={"start": "not-a-date", "end": "also-not-a-date"},
         )
-        assert "not a valid ISO8601 date query" in str(response.data)
+        assert response.status_code == 400
 
     def test_get_requires_authentication(self) -> None:
         """Test that endpoint requires authentication."""
