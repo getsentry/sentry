@@ -5,6 +5,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any
 
+from django.http import QueryDict
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -155,7 +156,7 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
 
         return func_name, field_name
 
-    def _parse_filters(self, query_params) -> dict[str, Any]:
+    def _parse_filters(self, query_params: QueryDict) -> dict[str, Any]:
         """Parse filter query parameters."""
         filters: dict[str, str | int] = {}
 
