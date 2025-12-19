@@ -1,0 +1,42 @@
+name: Codecov - per test coverage
+on: [workflow_dispatch, workflow_call]
+
+jobs:
+  backend-test-with-cov-context:
+    name: backend test with coverage ats
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          mode: backend-ci
+
+      - name: test
+        run: |
+          python3 -b -m pytest --cov . --cov-context=test tests/sentry/utils
+
+      # Separate from the testing step above so that we always create the report
+      # Even if some tests fail
+      - name: Create coverage report in JSON format
+        if: ${{ always() }}
+        run: |
+          coverage json --show-contexts -o .artifacts/python.coverage.json
+
+      # Upload coverage data even if running the tests step fails since
+      # it reduces large coverage fluctuations
+      - name: Upload coverage - special case to test Codecov ATS
+        if: ${{ always() }}
+        uses: codecov/codecov-action@015f24e6818733317a2da2edd6290ab26238649a # v5.0.7
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        with:
+          files: .artifacts/python.coverage.codecov.json
+          flags: smart-tests
+          override_commit: ${{ github.event.pull_request.head.sha }}
+          plugins: compress-pycoverage
+        continue-on-error: true
