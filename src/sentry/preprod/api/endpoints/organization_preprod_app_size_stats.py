@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 from collections import defaultdict
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 from rest_framework.exceptions import ParseError
@@ -21,44 +21,18 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.utils import get_date_range_from_params
+from sentry.exceptions import InvalidParams
 from sentry.models.organization import Organization
 from sentry.preprod.eap.constants import PREPROD_NAMESPACE
 from sentry.preprod.eap.read import query_preprod_size_metrics
-from sentry.utils.dates import parse_stats_period
+from sentry.utils.dates import get_rollup_from_request
 
 logger = logging.getLogger(__name__)
 
 
-def extract_unique_values_from_response(
-    response: TraceItemTableResponse,
-) -> dict[str, set[str]]:
-    """Extract unique string values from each column in the response."""
-    unique_values: dict[str, set[str]] = {}
-
-    if not response.column_values:
-        return unique_values
-
-    # Iterate through each column
-    for column in response.column_values:
-        attr_name = column.attribute_name
-        unique_values[attr_name] = set()
-
-        # Iterate through all results in this column
-        for result in column.results:
-            if result.HasField("val_str") and result.val_str:
-                unique_values[attr_name].add(result.val_str)
-
-    return unique_values
-
-
 @region_silo_endpoint
 class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
-    """
-    Returns time-series data for app size metrics stored in EAP.
-    Compatible with Sentry dashboard widgets.
-    """
-
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -66,7 +40,7 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization: Organization) -> Response:
         """
-        Retrieve app size metrics over time.
+        Retrieve app size metrics over time based on the provided filters.
 
         Query Parameters:
         - project: Project ID(s) (can be repeated or comma-separated)
@@ -98,10 +72,18 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
             else:
                 project_ids = list(project_ids_set)
 
-            start, end = self._parse_time_range(request)
+            # Use shared utility for time range parsing
+            start, end = get_date_range_from_params(
+                request.GET, default_stats_period=timedelta(days=14)
+            )
 
-            interval = request.GET.get("interval", "1d")
-            interval_seconds = self._parse_interval(interval)
+            # Use shared utility for interval parsing
+            interval_seconds = get_rollup_from_request(
+                request,
+                date_range=end - start,
+                default_interval="1d",
+                error=ParseError("Invalid interval"),
+            )
 
             field = request.GET.get("field", "max(max_install_size)")
             aggregate_func, aggregate_field = self._parse_field(field)
@@ -116,10 +98,9 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
                 end=end,
                 referrer="api.preprod.app-size-stats",
                 filter=query_filter,
-                limit=10000,  # Get all data points
+                limit=10000,
             )
 
-            # Transform to time-series format
             timeseries_data = self._transform_to_timeseries(
                 response, start, end, interval_seconds, aggregate_func, aggregate_field
             )
@@ -135,7 +116,6 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
                 },
             }
 
-            # Include available filter values if requested
             include_filters = request.GET.get("includeFilters", "").lower() == "true"
             if include_filters:
                 filter_values = self._fetch_filter_values(organization.id, project_ids, start, end)
@@ -143,65 +123,12 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
 
             return Response(result)
 
-        except (ValueError, KeyError) as e:
-            logger.exception("[AppSize] Parse error: %s", e)
+        except InvalidParams as e:
+            logger.exception("Invalid parameters for app size stats request")
             raise ParseError(str(e))
-        except Exception as e:
-            logger.exception("[AppSize] Unexpected error: %s", e)
-            raise ResourceDoesNotExist(f"Failed to fetch app size metrics: {e}")
-
-    def _parse_time_range(self, request: Request) -> tuple[datetime, datetime]:
-        """Parse start/end or statsPeriod from request."""
-        stats_period = request.GET.get("statsPeriod")
-        start_param = request.GET.get("start")
-        end_param = request.GET.get("end")
-
-        if stats_period:
-            # Parse relative period like "14d" or "24h"
-            delta = parse_stats_period(stats_period)
-            if delta is None:
-                raise ParseError(f"Invalid statsPeriod: {stats_period}")
-            end = datetime.now(UTC)
-            start = end - delta
-        elif start_param and end_param:
-            # Parse absolute timestamps
-            start = self._parse_datetime(start_param)
-            end = self._parse_datetime(end_param)
-        else:
-            # Default to last 14 days
-            end = datetime.now(UTC)
-            start = end - timedelta(days=14)
-
-        return start, end
-
-    def _parse_datetime(self, value: str) -> datetime:
-        """Parse datetime from ISO format or Unix timestamp."""
-        try:
-            # Try Unix timestamp first
-            return datetime.fromtimestamp(float(value), UTC)
-        except (ValueError, TypeError):
-            # Try ISO format
-            try:
-                return datetime.fromisoformat(value.replace("Z", "+00:00"))
-            except ValueError:
-                raise ParseError(f"Invalid datetime format: {value}")
-
-    def _parse_interval(self, interval: str) -> int:
-        """Parse interval string like '1h', '1d' to seconds."""
-        interval_map = {
-            "1m": 60,
-            "5m": 300,
-            "10m": 600,
-            "15m": 900,
-            "30m": 1800,
-            "1h": 3600,
-            "4h": 14400,
-            "1d": 86400,
-            "7d": 604800,
-        }
-        if interval not in interval_map:
-            raise ParseError(f"Invalid interval: {interval}")
-        return interval_map[interval]
+        except (ValueError, KeyError) as e:
+            logger.exception("Error while parsing app size stats request")
+            raise ParseError(str(e))
 
     def _parse_field(self, field: str) -> tuple[str, str]:
         """
@@ -318,15 +245,12 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
 
         Note: EAP response is column-oriented (column_values[col_idx].results[row_idx])
         """
-        # Create time buckets
         buckets: dict[int, list[float]] = defaultdict(list)
 
-        # Extract column names and find indices
         column_map: dict[str, int] = {}
         column_values = response.column_values
 
         if not column_values:
-            # No data, return empty buckets with None
             result: list[tuple[int, list[dict[str, Any]]]] = []
             start_ts = int(start.timestamp())
             current = int(start_ts // interval_seconds * interval_seconds)
@@ -339,9 +263,7 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
         for idx, column_value in enumerate(column_values):
             column_map[column_value.attribute_name] = idx
 
-        # Get the target field index
         if aggregate_field not in column_map:
-            # If field doesn't exist, return None values
             result = []
             start_ts = int(start.timestamp())
             current = int(start_ts // interval_seconds * interval_seconds)
@@ -365,11 +287,9 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
                 current += interval_seconds
             return result
 
-        # Process each row (iterate through results in column-oriented format)
         num_rows = len(column_values[0].results)
 
         for row_idx in range(num_rows):
-            # Get timestamp for this row
             timestamp_result = column_values[timestamp_idx].results[row_idx]
 
             if timestamp_result.HasField("val_double"):
@@ -381,7 +301,6 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
 
             bucket_ts = int(timestamp // interval_seconds * interval_seconds)
 
-            # Get the value for this row
             value_result = column_values[field_idx].results[row_idx]
             value = None
 
@@ -432,12 +351,6 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
         start: datetime,
         end: datetime,
     ) -> dict[str, list[str]]:
-        """
-        Fetch available filter values (app_ids, branches, and build configs) from EAP data.
-
-        Returns a dict with sorted lists of unique values.
-        """
-        # Query for app_id, git_head_ref, and build_configuration_name columns over the time range
         response = query_preprod_size_metrics(
             organization_id=organization_id,
             project_ids=project_ids,
@@ -446,14 +359,45 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
             referrer="api.preprod.app-size-filters",
             filter=None,
             columns=["app_id", "git_head_ref", "build_configuration_name"],
-            limit=10000,  # Get many rows to extract unique values
+            limit=10000,
         )
 
-        # Extract unique values using the helper function
-        unique_values = extract_unique_values_from_response(response)
+        unique_values = _extract_unique_values_from_response(response)
+
+        branches = list(unique_values.get("git_head_ref", set()))
+        branches.sort(key=_branch_sort_key)
 
         return {
             "app_ids": sorted(list(unique_values.get("app_id", set()))),
-            "branches": sorted(list(unique_values.get("git_head_ref", set()))),
+            "branches": branches,
             "build_configs": sorted(list(unique_values.get("build_configuration_name", set()))),
         }
+
+
+def _extract_unique_values_from_response(
+    response: TraceItemTableResponse,
+) -> dict[str, set[str]]:
+    unique_values: dict[str, set[str]] = {}
+
+    if not response.column_values:
+        return unique_values
+
+    for column in response.column_values:
+        attr_name = column.attribute_name
+        unique_values[attr_name] = set()
+
+        for result in column.results:
+            if result.HasField("val_str") and result.val_str:
+                unique_values[attr_name].add(result.val_str)
+
+    return unique_values
+
+
+def _branch_sort_key(branch: str) -> tuple[int, str]:
+    """Sort key that prioritizes main and master branches."""
+    if branch == "main":
+        return (0, branch)
+    elif branch == "master":
+        return (1, branch)
+    else:
+        return (2, branch.lower())

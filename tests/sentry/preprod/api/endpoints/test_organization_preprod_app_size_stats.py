@@ -169,14 +169,6 @@ class OrganizationPreprodAppSizeStatsEndpointTest(APITestCase):
         assert isinstance(response.data["filters"]["branches"], list)
         assert isinstance(response.data["filters"]["build_configs"], list)
 
-    def test_get_invalid_interval(self) -> None:
-        """Test validation of interval parameter."""
-        response = self.get_error_response(
-            self.organization.slug,
-            qs_params={"interval": "99h"},
-        )
-        assert "Invalid interval" in str(response.data)
-
     def test_get_invalid_field(self) -> None:
         """Test validation of field format."""
         response = self.get_error_response(
@@ -215,7 +207,7 @@ class OrganizationPreprodAppSizeStatsEndpointTest(APITestCase):
             self.organization.slug,
             qs_params={"start": "not-a-date", "end": "also-not-a-date"},
         )
-        assert "Invalid datetime format" in str(response.data)
+        assert "not a valid ISO8601 date query" in str(response.data)
 
     def test_get_requires_authentication(self) -> None:
         """Test that endpoint requires authentication."""
@@ -295,8 +287,9 @@ class OrganizationPreprodAppSizeStatsEndpointTest(APITestCase):
             assert f"{func}(max_install_size)" in response.data["meta"]["fields"]
 
     def test_all_valid_intervals(self) -> None:
-        """Test that all supported intervals work."""
-        for interval in ["1m", "5m", "10m", "15m", "30m", "1h", "4h", "1d", "7d"]:
+        """Test that common intervals work with default 14-day range."""
+        # For 14-day range, these intervals don't exceed MAX_ROLLUP_POINTS
+        for interval in ["5m", "15m", "30m", "1h", "4h", "1d"]:
             response = self.get_success_response(
                 self.organization.slug,
                 qs_params={"interval": interval},
@@ -484,8 +477,46 @@ class OrganizationPreprodAppSizeStatsEndpointTest(APITestCase):
         assert "com.test.filters.app2" in app_ids
         assert "main" in branches
         assert "develop" in branches
+        # Verify main comes before develop
+        assert branches.index("main") < branches.index("develop")
         assert "Release" in configs
         assert "Debug" in configs
+
+    def test_branch_sorting_priority(self) -> None:
+        """Test that main and master branches are prioritized in the list."""
+        now = before_now(minutes=5)
+        start = now - timedelta(minutes=10)
+
+        # Create metrics with various branch names using different artifact IDs
+        # so they're stored as separate records
+        for idx, branch in enumerate(["feature/test", "main", "develop", "master", "release/1.0"]):
+            self.store_preprod_size_metric(
+                project_id=self.project.id,
+                organization_id=self.organization.id,
+                timestamp=now,
+                preprod_artifact_id=100 + idx,
+                size_metric_id=100 + idx,
+                app_id="com.test.branches",
+                git_head_ref=branch,
+            )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={
+                "includeFilters": "true",
+                "start": str(int(start.timestamp())),
+                "end": str(int((now + timedelta(minutes=1)).timestamp())),
+            },
+        )
+
+        branches = response.data["filters"]["branches"]
+
+        # Verify main is first, master is second
+        assert branches[0] == "main"
+        assert branches[1] == "master"
+        # Others should be alphabetically sorted
+        remaining = branches[2:]
+        assert remaining == sorted(remaining, key=str.lower)
 
     def test_timezone_consistency(self) -> None:
         """Test that Unix timestamps are parsed consistently with UTC."""
