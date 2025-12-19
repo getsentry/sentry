@@ -219,7 +219,7 @@ const IconBorder = styled('div')<{backgroundColor: string; errored?: boolean}>`
   min-width: 30px;
 
   svg {
-    fill: ${p => p.theme.white};
+    fill: ${p => p.theme.colors.white};
     width: 14px;
     height: 14px;
   }

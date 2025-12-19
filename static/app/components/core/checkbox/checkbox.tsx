@@ -110,7 +110,7 @@ const NativeHiddenCheckbox = withChonk(
       border: 1px solid ${p => p.theme.border};
 
       svg {
-        stroke: ${p => p.theme.white};
+        stroke: ${p => p.theme.colors.white};
       }
     }
 
@@ -131,7 +131,7 @@ const NativeHiddenCheckbox = withChonk(
     &:checked + *,
     &:indeterminate + * {
       background-color: ${p => p.theme.active};
-      color: ${p => p.theme.white};
+      color: ${p => p.theme.colors.white};
     }
 
     &:disabled:checked + *,

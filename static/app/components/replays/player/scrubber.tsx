@@ -206,7 +206,7 @@ export const PlayerScrubber = styled(Scrubber)`
     pointer-events: none;
     box-sizing: content-box;
     border-radius: var(--size);
-    border: solid ${p => p.theme.white};
+    border: solid ${p => p.theme.colors.white};
     border-width: var(--borderWidth);
     position: absolute;
     top: 0;

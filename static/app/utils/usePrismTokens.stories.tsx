@@ -125,6 +125,6 @@ const Line = styled('div')`
 
 const LineNumber = styled('div')`
   background: ${p => p.theme.colors.blue500};
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
   padding: 0 ${space(1)};
 `;

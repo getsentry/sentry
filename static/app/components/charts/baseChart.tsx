@@ -814,7 +814,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
 
   /* Tooltip description styling */
   .tooltip-description {
-    color: ${p.theme.white};
+    color: ${p.theme.colors.white};
     border-radius: ${p.theme.radius.md};
     background: #000;
     opacity: 0.9;

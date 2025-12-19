@@ -69,7 +69,7 @@ const unassignedSelectStyles: StylesConfig = {
     // as the emotion theme object in react-select
     const theme = state.theme as unknown as Theme;
 
-    return {...provided, svg: {color: state.isSelected ? theme.white : undefined}};
+    return {...provided, svg: {color: state.isSelected ? theme.colors.white : undefined}};
   },
 };
 

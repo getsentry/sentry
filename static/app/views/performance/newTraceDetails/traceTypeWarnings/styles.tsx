@@ -129,7 +129,7 @@ const CloseDropdownMenu = styled(DropdownMenu)`
   display: block;
   top: ${space(1)};
   right: ${space(1)};
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
   cursor: pointer;
   z-index: 1;
 `;

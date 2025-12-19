@@ -1203,7 +1203,7 @@ const TraceStylingWrapper = styled('div')`
       svg {
         width: 12px;
         height: 12px;
-        fill: ${p => p.theme.white};
+        fill: ${p => p.theme.colors.white};
       }
 
       &.profile svg {
@@ -1318,11 +1318,11 @@ const TraceStylingWrapper = styled('div')`
 
       .TraceChildrenCountWrapper {
         button {
-          color: ${p => p.theme.white};
+          color: ${p => p.theme.colors.white};
           background-color: ${p => p.theme.colors.blue400};
         }
         svg {
-          fill: ${p => p.theme.white};
+          fill: ${p => p.theme.colors.white};
         }
       }
 
@@ -1331,7 +1331,7 @@ const TraceStylingWrapper = styled('div')`
 
         .TraceChildrenCountWrapper {
           button {
-            color: ${p => p.theme.white};
+            color: ${p => p.theme.colors.white};
             background-color: ${p => p.theme.colors.red400};
           }
         }

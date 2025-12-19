@@ -58,7 +58,7 @@ const NodeTitle = styled('span')<{focused?: boolean}>`
   ${({focused, theme}) =>
     focused &&
     css`
-      color: ${theme.white};
+      color: ${theme.colors.white};
     `}
 `;
 

@@ -833,7 +833,7 @@ const CircularSeerIcon = styled('div')`
   > svg {
     width: 18px;
     height: 18px;
-    color: ${p => p.theme.white};
+    color: ${p => p.theme.colors.white};
   }
 `;
 

@@ -316,7 +316,7 @@ function getTextColor({
     return priority === 'primary'
       ? isSelected
         ? css`
-            color: ${theme.white};
+            color: ${theme.colors.white};
           `
         : css`
             color: ${theme.subText};
@@ -329,7 +329,7 @@ function getTextColor({
   if (isSelected) {
     return priority === 'primary'
       ? css`
-          color: ${theme.white};
+          color: ${theme.colors.white};
         `
       : css`
           color: ${theme.tokens.content.primary};

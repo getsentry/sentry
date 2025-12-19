@@ -255,7 +255,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
   }
 
   .rr-controller__btns button.active {
-    color: ${p => p.theme.white};
+    color: ${p => p.theme.colors.white};
     background: ${p => p.theme.active};
   }
 

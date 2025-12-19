@@ -49,7 +49,7 @@ const AppIconPlaceholder = styled('div')`
   justify-content: center;
   flex-shrink: 0;
   background: ${p => p.theme.purple400};
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
   font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.sm};
 `;

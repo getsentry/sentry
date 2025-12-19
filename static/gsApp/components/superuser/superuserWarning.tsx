@@ -103,7 +103,7 @@ function SuperuserWarning({organization, className}: Props) {
 }
 
 const StyledBadge = styled(Badge)`
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
   background: ${p => p.theme.colors.chonk.red400};
 `;
 

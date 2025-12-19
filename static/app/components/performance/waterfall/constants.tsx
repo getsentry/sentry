@@ -29,7 +29,11 @@ export function getSpanBarColors(
         insetTextColor: theme.colors.gray400,
       };
     case SpanBarType.AFFECTED:
-      return {primary: '#f55459', alternate: '#faa9ac', insetTextColor: theme.white};
+      return {
+        primary: '#f55459',
+        alternate: '#faa9ac',
+        insetTextColor: theme.colors.white,
+      };
     case SpanBarType.AUTOGROUPED:
       return {
         primary: theme.colors.blue400,
@@ -40,9 +44,9 @@ export function getSpanBarColors(
       return {
         primary: '#f55459',
         alternate: '#faa9ac',
-        insetTextColor: theme.white,
+        insetTextColor: theme.colors.white,
       };
     default:
-      return {primary: '', alternate: '', insetTextColor: theme.white};
+      return {primary: '', alternate: '', insetTextColor: theme.colors.white};
   }
 }

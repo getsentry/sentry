@@ -50,7 +50,7 @@ export const CallTreeTable = styled('div')`
       color: #fff;
 
       .${CallTreeTableClassNames.WEIGHT} {
-        color: ${p => p.theme.white};
+        color: ${p => p.theme.colors.white};
         opacity: 0.7;
       }
 
@@ -60,7 +60,7 @@ export const CallTreeTable = styled('div')`
       }
 
       .${CallTreeTableClassNames.FRAME_TYPE} {
-        color: ${p => p.theme.white};
+        color: ${p => p.theme.colors.white};
         opacity: 0.7;
       }
     }

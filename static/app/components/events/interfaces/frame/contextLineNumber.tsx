@@ -97,7 +97,7 @@ const Wrapper = styled('div')`
   }
 
   &.active.uncovered .line-number {
-    color: ${p => p.theme.white};
+    color: ${p => p.theme.colors.white};
     mix-blend-mode: screen;
     background: ${p => p.theme.colors.red400};
   }

@@ -242,7 +242,7 @@ const SliderLabel = styled('span')`
   text-align: center;
   background: ${p => p.theme.colors.chonk.blue400};
   border: 1px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
   border-radius: ${p => p.theme.radius['2xs']};
   z-index: ${p => p.theme.zIndex.tooltip};
 `;

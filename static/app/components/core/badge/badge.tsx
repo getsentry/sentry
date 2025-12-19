@@ -16,12 +16,12 @@ function makeBadgeTheme(
     case 'alpha':
       return {
         background: `linear-gradient(90deg, ${theme.colors.pink400}, ${theme.colors.yellow400})`,
-        color: theme.white,
+        color: theme.colors.white,
       };
     case 'beta':
       return {
         background: `linear-gradient(90deg, ${theme.colors.blue400}, ${theme.colors.pink400})`,
-        color: theme.white,
+        color: theme.colors.white,
       };
     // @TODO(jonasbadalic) default, experimental and internal all look the same and should be consolidated
     case 'default':
@@ -34,7 +34,7 @@ function makeBadgeTheme(
     case 'new':
       return {
         background: `linear-gradient(90deg, ${theme.colors.blue400}, ${theme.colors.green400})`,
-        color: theme.white,
+        color: theme.colors.white,
       };
     case 'warning':
       return {

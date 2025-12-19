@@ -70,7 +70,7 @@ const SentryStyleAnsi = styled(Ansi)`
   }
   .ansi-white-fg,
   .ansi-bright-white-fg {
-    color: ${p => p.theme.white};
+    color: ${p => p.theme.colors.white};
   }
 `;
 
