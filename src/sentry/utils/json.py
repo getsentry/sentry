@@ -30,7 +30,7 @@ def datetime_to_str(o: datetime.datetime) -> str:
 
 
 def better_default_encoder(o: object) -> object:
-
+    print('hi')
     if isinstance(o, uuid.UUID):
         return o.hex
     elif isinstance(o, datetime.datetime):
