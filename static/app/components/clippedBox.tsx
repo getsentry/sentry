@@ -144,7 +144,6 @@ interface ClippedBoxProps {
 
 function ClippedBox(props: ClippedBoxProps) {
   const revealRef = useRef(false);
-  const wasClippedRef = useRef(false);
   const mountedRef = useRef(false);
 
   const observerRef = useRef<ResizeObserver | null>(null);
@@ -269,19 +268,15 @@ function ClippedBox(props: ClippedBoxProps) {
           height,
         });
 
-        if (_clipped) {
-          wasClippedRef.current = true;
-        }
-
-        if (!_clipped && contentRef.current) {
-          revealAndDisconnectObserver({
-            contentRef,
-            wrapperRef,
-            revealRef,
-            observerRef,
-            clipHeight,
-            prefersReducedMotion: prefersReducedMotion ?? true,
-          });
+        // If content fits without clipping, just clear max-height and disconnect observer.
+        // Don't set revealRef.current since user didn't manually reveal - this ensures
+        // the collapse button won't appear for content that was never clipped.
+        if (!_clipped && wrapperRef.current) {
+          clearMaxHeight(wrapperRef.current);
+          if (observerRef.current) {
+            observerRef.current.disconnect();
+            observerRef.current = null;
+          }
         }
 
         setClipped(_clipped);
@@ -305,7 +300,7 @@ function ClippedBox(props: ClippedBoxProps) {
       };
       onResize([entry]);
     },
-    [clipFlex, clipHeight, onSetRenderHeight, prefersReducedMotion]
+    [clipFlex, clipHeight, onSetRenderHeight]
   );
 
   const showMoreButton = (
@@ -332,7 +327,7 @@ function ClippedBox(props: ClippedBoxProps) {
     </Button>
   );
 
-  const showCollapseButton = props.collapsible && wasClippedRef.current && !clipped;
+  const showCollapseButton = props.collapsible && revealRef.current && !clipped;
 
   return (
     <Wrapper ref={onWrapperRef} className={props.className}>
