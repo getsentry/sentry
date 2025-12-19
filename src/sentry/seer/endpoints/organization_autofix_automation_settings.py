@@ -8,6 +8,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -273,5 +274,18 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
 
             if preferences_to_set:
                 bulk_set_project_preferences(organization.id, preferences_to_set)
+
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=organization.id,
+            event=audit_log.get_event_id("AUTOFIX_SETTINGS_EDIT"),
+            data={
+                "project_count": len(projects),
+                "project_ids": list(project_ids),
+                "autofix_automation_tuning": autofix_automation_tuning,
+                "automated_run_stopping_point": automated_run_stopping_point,
+            },
+        )
 
         return Response(status=204)
