@@ -40,9 +40,7 @@ class SeerOperator[CachePayloadT]:
 
     def __init__(self, entrypoint: SeerEntrypoint[CachePayloadT]):
         self.entrypoint = entrypoint
-        self.logging_ctx: dict[str, str] = {
-            "entrypoint_key": str(entrypoint.key),
-        }
+        self.logging_ctx: dict[str, str] = {"entrypoint_key": str(entrypoint.key)}
 
     @classmethod
     def get_autofix_cache_key(cls, *, entrypoint_key: str, run_id: int) -> str:
@@ -85,6 +83,7 @@ class SeerOperator[CachePayloadT]:
                 payload = AutofixCreatePRPayload(type="create_pr")
             else:
                 logger.error("operator.invalid_stopping_point", extra=self.logging_ctx)
+                self.entrypoint.on_trigger_autofix_error(error="Invalid stopping point provided")
                 return
 
             raw_response = update_autofix(run_id=run_id, payload=payload)
