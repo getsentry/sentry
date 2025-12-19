@@ -1312,6 +1312,219 @@ class OAuthAuthorizeCustomSchemeStrictTest(TestCase):
 
 
 @control_silo_test
+class OAuthAuthorizePKCETest(TestCase):
+    """Tests for PKCE (Proof Key for Code Exchange) support per RFC 7636."""
+
+    @cached_property
+    def path(self) -> str:
+        return "/oauth/authorize/"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.application = ApiApplication.objects.create(
+            owner=self.user, redirect_uris="https://example.com"
+        )
+
+    def test_pkce_s256_challenge_stored(self) -> None:
+        """Test that S256 PKCE challenge is accepted and stored in the grant."""
+        self.login_as(self.user)
+
+        # Valid S256 code_challenge (base64url encoded SHA256 hash, 43+ chars)
+        code_challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+            f"&code_challenge={code_challenge}&code_challenge_method=S256"
+        )
+
+        assert resp.status_code == 200
+        self.assertTemplateUsed("sentry/oauth-authorize.html")
+
+        resp = self.client.post(self.path, {"op": "approve"})
+
+        grant = ApiGrant.objects.get(user=self.user)
+        assert grant.code_challenge == code_challenge
+        assert grant.code_challenge_method == "S256"
+        assert resp.status_code == 302
+
+    def test_pkce_invalid_challenge_format_too_short(self) -> None:
+        """Test that code_challenge shorter than 43 chars is rejected."""
+        self.login_as(self.user)
+
+        # Too short (RFC 7636 requires 43-128 chars)
+        code_challenge = "too_short"
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+            f"&code_challenge={code_challenge}&code_challenge_method=S256"
+        )
+
+        assert resp.status_code == 302
+        assert "error=invalid_request" in resp["Location"]
+        assert not ApiGrant.objects.filter(user=self.user).exists()
+
+    def test_pkce_invalid_challenge_format_invalid_chars(self) -> None:
+        """Test that code_challenge with invalid characters is rejected."""
+        self.login_as(self.user)
+
+        # Contains invalid characters (! and spaces)
+        code_challenge = "invalid!challenge with spaces and special chars!"
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+            f"&code_challenge={code_challenge}&code_challenge_method=S256"
+        )
+
+        assert resp.status_code == 302
+        assert "error=invalid_request" in resp["Location"]
+        assert not ApiGrant.objects.filter(user=self.user).exists()
+
+    def test_pkce_invalid_challenge_method(self) -> None:
+        """Test that unsupported code_challenge_method is rejected."""
+        self.login_as(self.user)
+
+        code_challenge = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+            f"&code_challenge={code_challenge}&code_challenge_method=invalid"
+        )
+
+        assert resp.status_code == 302
+        assert "error=invalid_request" in resp["Location"]
+        assert not ApiGrant.objects.filter(user=self.user).exists()
+
+    def test_pkce_plain_method_rejected(self) -> None:
+        """Test that 'plain' PKCE method is rejected per OAuth 2.1."""
+        self.login_as(self.user)
+
+        code_challenge = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+            f"&code_challenge={code_challenge}&code_challenge_method=plain"
+        )
+
+        assert resp.status_code == 302
+        assert "error=invalid_request" in resp["Location"]
+        assert not ApiGrant.objects.filter(user=self.user).exists()
+
+    def test_pkce_no_challenge_allowed(self) -> None:
+        """Test that PKCE is optional - grants without PKCE should work."""
+        self.login_as(self.user)
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+        )
+
+        assert resp.status_code == 200
+
+        resp = self.client.post(self.path, {"op": "approve"})
+
+        grant = ApiGrant.objects.get(user=self.user)
+        assert grant.code_challenge is None
+        assert grant.code_challenge_method is None
+        assert resp.status_code == 302
+
+    def test_pkce_bypass_without_challenge_clears_method(self) -> None:
+        """Test that bypass flow correctly handles missing code_challenge by clearing method."""
+        self.login_as(self.user)
+
+        # Pre-approve the application
+        ApiAuthorization.objects.create(user=self.user, application=self.application)
+
+        # Request without PKCE (no code_challenge parameter)
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+        )
+
+        # Should bypass prompt and create grant
+        grant = ApiGrant.objects.get(user=self.user)
+        assert grant.code_challenge is None
+        # Bug fix: code_challenge_method should also be None when no challenge provided
+        assert grant.code_challenge_method is None
+        assert resp.status_code == 302
+
+    def test_pkce_challenge_without_method(self) -> None:
+        """Test that code_challenge without code_challenge_method is rejected.
+
+        Per RFC 7636 §4.3, code_challenge_method is OPTIONAL and defaults to 'plain'.
+        However, this implementation requires explicit S256 method for security.
+        """
+        self.login_as(self.user)
+
+        code_challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+            f"&code_challenge={code_challenge}"
+            # Note: No code_challenge_method parameter
+        )
+
+        # Should return error because method is required (not defaulting to 'plain')
+        assert resp.status_code == 302
+        assert "error=invalid_request" in resp["Location"]
+        assert not ApiGrant.objects.filter(user=self.user).exists()
+
+    def test_pkce_method_without_challenge(self) -> None:
+        """Test that code_challenge_method without code_challenge is silently ignored.
+
+        Sending a method without a challenge is a malformed request, but OAuth
+        implementations typically ignore extra/meaningless parameters.
+        """
+        self.login_as(self.user)
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+            f"&code_challenge_method=S256"
+            # Note: No code_challenge parameter
+        )
+
+        assert resp.status_code == 200
+        self.assertTemplateUsed("sentry/oauth-authorize.html")
+
+        resp = self.client.post(self.path, {"op": "approve"})
+
+        grant = ApiGrant.objects.get(user=self.user)
+        # Method without challenge should be ignored (set to None)
+        assert grant.code_challenge is None
+        assert grant.code_challenge_method is None
+        assert resp.status_code == 302
+
+    def test_pkce_challenge_too_long(self) -> None:
+        """Test that code_challenge longer than 128 chars is rejected.
+
+        Per RFC 7636 §4.1, code_challenge must be 43-128 characters.
+        """
+        self.login_as(self.user)
+
+        # Generate a 129-character challenge (exceeds max of 128)
+        code_challenge = "a" * 129
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+            f"&code_challenge={code_challenge}&code_challenge_method=S256"
+        )
+
+        assert resp.status_code == 302
+        assert "error=invalid_request" in resp["Location"]
+        assert not ApiGrant.objects.filter(user=self.user).exists()
+
+    def test_pkce_empty_challenge_rejected(self) -> None:
+        """Test that empty code_challenge string is rejected."""
+        self.login_as(self.user)
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+            f"&code_challenge=&code_challenge_method=S256"
+        )
+
+        assert resp.status_code == 302
+        assert "error=invalid_request" in resp["Location"]
+        assert not ApiGrant.objects.filter(user=self.user).exists()
+
+
+@control_silo_test
 class OAuthAuthorizeSecurityTest(TestCase):
     """Tests for security features: CSRF protection and privilege escalation prevention."""
 
