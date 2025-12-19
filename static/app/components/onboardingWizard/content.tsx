@@ -468,7 +468,7 @@ function TaskGroup({
           ) : (
             <ProgressRing
               value={(doneTasks.length / tasks.length) * 100}
-              backgroundColor={theme.gray200}
+              backgroundColor={theme.colors.gray200}
               progressEndcaps="round"
               progressColor={theme.tokens.content.accent}
               size={22}

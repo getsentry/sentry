@@ -242,9 +242,9 @@ export function initSessionsChart(theme: Theme) {
     [SessionStatus.CRASHED]: {
       seriesName: sessionTerm.crashed,
       data: [],
-      color: theme.red300,
+      color: theme.colors.red400,
       areaStyle: {
-        color: theme.red300,
+        color: theme.colors.red400,
         opacity: 1,
       },
       lineStyle: {

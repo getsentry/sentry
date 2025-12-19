@@ -51,7 +51,7 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
 
   &[data-row-highlighted='true']:not(thead > &) {
     background-color: ${p => p.theme.colors.yellow100};
-    color: ${p => p.theme.red300};
+    color: ${p => p.theme.colors.red400};
 
     &:hover {
       background-color: ${p => p.theme.colors.yellow200};
@@ -163,7 +163,7 @@ export const LogDetailTableActionsButtonBar = styled('div')`
 
 export const DetailsWrapper = styled('tr')`
   align-items: center;
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.colors.gray100};
   padding: ${space(1)} ${space(1)};
   flex-direction: column;
   white-space: nowrap;
@@ -241,7 +241,7 @@ export const LogDate = styled('span')<{align?: 'left' | 'center' | 'right'}>`
 
 export const LogsHighlight = styled(HighlightComponent)`
   font-weight: ${p => p.theme.fontWeight.bold};
-  background-color: ${p => p.theme.gray200};
+  background-color: ${p => p.theme.colors.gray200};
   margin-right: 2px;
   margin-left: 2px;
 `;
@@ -250,7 +250,7 @@ export const LogsFilteredHelperText = styled('span')`
   margin-left: 4px;
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
-  background-color: ${p => p.theme.gray200};
+  background-color: ${p => p.theme.colors.gray200};
 `;
 
 export const WrappingText = styled('div')<{wrapText?: boolean}>`
@@ -322,11 +322,11 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
   switch (level) {
     case SeverityLevel.DEFAULT:
       return {
-        background: theme.gray200,
+        background: theme.colors.gray200,
         backgroundLight: theme.backgroundSecondary,
         border: theme.border,
         borderHover: theme.border,
-        color: theme.gray200,
+        color: theme.colors.gray200,
       };
     case SeverityLevel.TRACE:
       return {
@@ -355,19 +355,19 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
       };
     case SeverityLevel.FATAL:
       return {
-        background: theme.red300,
-        backgroundLight: theme.red100,
-        border: theme.red200,
-        borderHover: theme.red300,
-        color: theme.red400,
+        background: theme.colors.red400,
+        backgroundLight: theme.colors.red100,
+        border: theme.colors.red200,
+        borderHover: theme.colors.red400,
+        color: theme.colors.red500,
       };
     case SeverityLevel.DEBUG:
       return {
-        background: theme.gray300,
-        backgroundLight: theme.gray100,
-        border: theme.gray200,
-        borderHover: theme.gray300,
-        color: theme.gray300,
+        background: theme.colors.gray400,
+        backgroundLight: theme.colors.gray100,
+        border: theme.colors.gray200,
+        borderHover: theme.colors.gray400,
+        color: theme.colors.gray400,
       };
     case SeverityLevel.INFO:
       return {
@@ -379,11 +379,11 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
       };
     case SeverityLevel.UNKNOWN:
       return {
-        background: theme.gray300,
-        backgroundLight: theme.gray100,
-        border: theme.gray200,
-        borderHover: theme.gray300,
-        color: theme.gray200,
+        background: theme.colors.gray400,
+        backgroundLight: theme.colors.gray100,
+        border: theme.colors.gray200,
+        borderHover: theme.colors.gray400,
+        color: theme.colors.gray200,
       };
     default:
       unreachable(level);
@@ -501,7 +501,7 @@ export const TraceIconStyleWrapper = styled(Flex)`
   height: 18px;
 
   .TraceIcon {
-    background-color: ${p => p.theme.red300};
+    background-color: ${p => p.theme.colors.red400};
     position: absolute;
     transform: translate(-50%, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
     width: 18px;

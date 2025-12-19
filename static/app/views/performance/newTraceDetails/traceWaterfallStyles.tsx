@@ -6,8 +6,8 @@ export const traceGridCssVariables = ({theme}: {theme: Theme}) => `
   --debug: ${theme.colors.blue400};
   --error: ${theme.tokens.graphics.danger};
   --fatal: ${theme.tokens.graphics.danger};
-  --default: ${theme.gray300};
-  --unknown: ${theme.gray300};
+  --default: ${theme.colors.gray400};
+  --unknown: ${theme.colors.gray400};
   --profile: ${theme.colors.blue400};
   --autogrouped: ${theme.colors.blue400};
   --occurence: ${theme.colors.blue400};

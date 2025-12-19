@@ -155,7 +155,7 @@ const Wrapper = styled('div')`
   max-height: 525px;
   color: ${p => p.theme.subText};
   h2 {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.colors.gray800};
   }
 `;
 
@@ -166,19 +166,19 @@ const Form = styled('form')`
 const Label = styled('label')`
   display: block;
   text-transform: uppercase;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.colors.gray800};
   margin-top: ${space(2)};
 `;
 
 const RequiredLabel = styled('label')`
   display: block;
   text-transform: uppercase;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.colors.gray800};
   margin-top: ${space(2)};
   &:after {
     content: '•';
     width: 6px;
-    color: ${p => p.theme.red300};
+    color: ${p => p.theme.colors.red400};
   }
 `;
 

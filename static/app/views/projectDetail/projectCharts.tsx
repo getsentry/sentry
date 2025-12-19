@@ -368,7 +368,7 @@ class ProjectCharts extends Component<Props, State> {
                   location={location}
                   organization={organization}
                   onTotalValuesChange={this.handleTotalValuesChange}
-                  colors={[theme.red300, theme.colors.blue200]}
+                  colors={[theme.colors.red400, theme.colors.blue200]}
                 />
               )}
               {displayMode === DisplayModes.TPM && (
@@ -428,7 +428,7 @@ class ProjectCharts extends Component<Props, State> {
                   location={location}
                   organization={organization}
                   onTotalValuesChange={this.handleTotalValuesChange}
-                  colors={[theme.gray200, theme.colors.blue200]}
+                  colors={[theme.colors.gray200, theme.colors.blue200]}
                   interval={this.barChartInterval}
                   chartComponent={BarChart}
                   disableReleases

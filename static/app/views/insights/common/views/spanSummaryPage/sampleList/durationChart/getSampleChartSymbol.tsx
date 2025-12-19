@@ -16,14 +16,14 @@ export function getSampleChartSymbol(
   if (areNumbersAlmostEqual(value, baseline, NEAR_AVERAGE_THRESHOLD_PERCENTAGE)) {
     return {
       symbol: crossIconPath,
-      color: theme.gray500,
+      color: theme.colors.gray800,
     };
   }
 
   return value > baseline
     ? {
         symbol: upwardPlayIconPath,
-        color: theme.red300,
+        color: theme.colors.red400,
       }
     : {
         symbol: downwardPlayIconPath,

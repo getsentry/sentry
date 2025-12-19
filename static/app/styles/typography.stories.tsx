@@ -550,7 +550,7 @@ const FooterLink = styled(Link)`
 
   :hover {
     color: ${p => p.theme.subText};
-    text-decoration: underline ${p => p.theme.gray200};
+    text-decoration: underline ${p => p.theme.colors.gray200};
   }
 `;
 
@@ -626,7 +626,7 @@ const NegativeLabel = styled(
     </div>
   )
 )`
-  color: ${p => p.theme.red400};
+  color: ${p => p.theme.colors.red500};
   align-items: center;
   display: flex;
   font-weight: ${p => p.theme.fontWeight.bold};

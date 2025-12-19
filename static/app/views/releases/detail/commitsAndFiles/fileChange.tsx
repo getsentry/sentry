@@ -55,7 +55,7 @@ const Filename = styled('div')`
 const FileIconWrapper = styled('div')`
   display: flex;
   align-items: center;
-  color: ${p => p.theme.gray200};
+  color: ${p => p.theme.colors.gray200};
   border-radius: 3px;
 `;
 

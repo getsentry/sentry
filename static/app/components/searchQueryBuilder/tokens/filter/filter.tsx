@@ -327,7 +327,7 @@ const DeleteButton = styled(UnstyledButton)`
   border-left: 1px solid transparent;
 
   :focus {
-    background-color: ${p => p.theme.translucentGray100};
+    background-color: ${p => p.theme.colors.gray100};
     border-left: 1px solid ${p => p.theme.innerBorder};
   }
 `;
