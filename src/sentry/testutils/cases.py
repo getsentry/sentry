@@ -3659,7 +3659,7 @@ class TraceAttachmentTestCase(BaseTestCase, TraceItemTestCase):
             project_id=project.id,
             item_type=TraceItemType.TRACE_ITEM_TYPE_ATTACHMENT,
             timestamp=timestamp_proto,
-            trace_id=trace_id or self.trace_uuid,
+            trace_id=trace_id or uuid4().hex,
             item_id=item_id.bytes,
             received=timestamp_proto,
             retention_days=90,

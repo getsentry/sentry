@@ -520,7 +520,7 @@ class ProjectTraceItemDetailsEndpointTest(
         assert "__sentry_internal_test" in attribute_names
 
     def test_attachment(self) -> None:
-        attachment = self.create_trace_attachment(attributes={"foo": 2})
+        attachment = self.create_trace_attachment(trace_id=self.trace_uuid, attributes={"foo": 2})
         self.store_eap_items([attachment])
 
         item_id = uuid.UUID(bytes=bytes(reversed(attachment.item_id))).hex
