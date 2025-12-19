@@ -4,6 +4,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -59,7 +60,8 @@ class OrganizationUptimeAlertValidateCheckEndpoint(OrganizationEndpoint):
         request: Request,
         organization: Organization,
     ) -> Response:
-        validator = UptimeTestValidator(data=request.data)
+        validation_enabled = features.has("organizations:uptime-runtime-assertions", organization)
+        validator = UptimeTestValidator(validation_enabled, data=request.data)
         validator.is_valid(raise_exception=True)
 
         return self.respond({})
