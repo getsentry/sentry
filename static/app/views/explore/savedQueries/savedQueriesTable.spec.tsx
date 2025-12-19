@@ -160,6 +160,7 @@ describe('SavedQueriesTable', () => {
             {
               visualize: [],
               groupby: [],
+              caseInsensitive: true,
             },
             {
               visualize: [],
@@ -174,7 +175,7 @@ describe('SavedQueriesTable', () => {
     });
     expect(await screen.findByText('Query Name')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/traces/compare/?environment=production&id=1&project=1&queries=%7B%22groupBys%22%3A%5B%5D%2C%22yAxes%22%3A%5B%5D%7D&queries=%7B%22groupBys%22%3A%5B%5D%2C%22yAxes%22%3A%5B%5D%7D&title=Query%20Name'
+      '/organizations/org-slug/explore/traces/compare/?environment=production&id=1&project=1&queries=%7B%22groupBys%22%3A%5B%5D%2C%22yAxes%22%3A%5B%5D%2C%22caseInsensitive%22%3A%221%22%7D&queries=%7B%22groupBys%22%3A%5B%5D%2C%22yAxes%22%3A%5B%5D%7D&title=Query%20Name'
     );
   });
 
@@ -198,6 +199,7 @@ describe('SavedQueriesTable', () => {
               query:
                 'message:"System time zone does not match user preferences time zone"',
               orderby: 'user.email',
+              caseInsensitive: true,
             },
           ],
           range: '1h',
@@ -211,7 +213,7 @@ describe('SavedQueriesTable', () => {
     });
     expect(await screen.findByText('Logs Query Name')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/logs/?aggregateField=%7B%22groupBy%22%3A%22message%22%7D&environment=production&id=1&interval=5m&logsFields=timestamp&logsFields=message&logsFields=user.email&logsQuery=message%3A%22System%20time%20zone%20does%20not%20match%20user%20preferences%20time%20zone%22&logsSortBys=user.email&mode=samples&project=1&statsPeriod=1h&title=Logs%20Query%20Name'
+      '/organizations/org-slug/explore/logs/?aggregateField=%7B%22groupBy%22%3A%22message%22%7D&caseInsensitive=1&environment=production&id=1&interval=5m&logsFields=timestamp&logsFields=message&logsFields=user.email&logsQuery=message%3A%22System%20time%20zone%20does%20not%20match%20user%20preferences%20time%20zone%22&logsSortBys=user.email&mode=samples&project=1&statsPeriod=1h&title=Logs%20Query%20Name'
     );
   });
 

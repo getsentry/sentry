@@ -30,7 +30,7 @@ type Props = {
 };
 
 export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
-  const {groupBys, query, yAxes, sortBys} = queryParts;
+  const {groupBys, query, yAxes, sortBys, caseInsensitive} = queryParts;
   const mode = getQueryMode(groupBys);
 
   const aggregatesTableResult = useMultiQueryTableAggregateMode({
@@ -39,6 +39,9 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
     yAxes,
     sortBys,
     enabled: mode === Mode.AGGREGATE,
+    queryExtras: {
+      caseInsensitive: caseInsensitive ? true : undefined,
+    },
   });
 
   const spansTableResult = useMultiQueryTableSampleMode({
@@ -47,11 +50,17 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
     yAxes,
     sortBys,
     enabled: mode === Mode.SAMPLES,
+    queryExtras: {
+      caseInsensitive: caseInsensitive ? true : undefined,
+    },
   });
 
   const {result: timeseriesResult} = useMultiQueryTimeseries({
     index,
     enabled: true,
+    queryExtras: {
+      caseInsensitive: caseInsensitive ? true : undefined,
+    },
   });
 
   const [interval] = useChartInterval();

@@ -335,6 +335,7 @@ type BaseGetLogsUrlParams = {
   aggregateFields?: Array<GroupBy | BaseVisualize>;
   aggregateFn?: string;
   aggregateParam?: string;
+  caseInsensitive?: '1' | null;
   field?: string[];
   groupBy?: string[];
   id?: number;
@@ -366,6 +367,7 @@ export function getLogsUrl({
   aggregateFields,
   aggregateFn,
   aggregateParam,
+  caseInsensitive,
 }: BaseGetLogsUrlParams & {organization: Organization | string}) {
   const {start, end, period: statsPeriod, utc} = selection?.datetime ?? {};
   const {environments, projects} = selection ?? {};
@@ -390,6 +392,7 @@ export function getLogsUrl({
     [LOGS_AGGREGATE_FN_KEY]: aggregateFn,
     [LOGS_AGGREGATE_PARAM_KEY]: aggregateParam,
     title,
+    caseInsensitive,
   };
 
   const orgSlug = typeof organization === 'string' ? organization : organization.slug;
@@ -444,6 +447,7 @@ export function getLogsUrlFromSavedQueryUrl({
       environments: savedQuery.environment ? [...savedQuery.environment] : [],
       projects: savedQuery.projects ? [...savedQuery.projects] : [],
     },
+    caseInsensitive: firstQuery.caseInsensitive ? '1' : null,
   });
 }
 

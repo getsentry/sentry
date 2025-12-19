@@ -207,7 +207,7 @@ describe('HTTPDomainSummaryPage', () => {
             referrer: 'api.insights.http.domain-summary-throughput-chart',
             statsPeriod: '10d',
             yAxis: ['epm()'],
-            caseInsensitive: 0,
+            caseInsensitive: undefined,
           },
         })
       );
@@ -231,7 +231,7 @@ describe('HTTPDomainSummaryPage', () => {
           referrer: 'api.insights.http.domain-summary-duration-chart',
           statsPeriod: '10d',
           yAxis: ['avg(span.self_time)'],
-          caseInsensitive: 0,
+          caseInsensitive: undefined,
         },
       })
     );
@@ -258,7 +258,7 @@ describe('HTTPDomainSummaryPage', () => {
             'http_response_rate(4)',
             'http_response_rate(5)',
           ],
-          caseInsensitive: 0,
+          caseInsensitive: undefined,
         },
       })
     );

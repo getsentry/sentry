@@ -12,5 +12,3 @@ export function useCaseInsensitivity() {
 }
 
 export type CaseInsensitive = ReturnType<typeof useCaseInsensitivity>[0];
-
-export type SetCaseInsensitive = ReturnType<typeof useCaseInsensitivity>[1];
