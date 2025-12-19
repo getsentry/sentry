@@ -135,7 +135,7 @@ export function DomainSelector({
     });
   }
 
-  const projectIds = pageFilters.selection.projects.sort();
+  const projectIds = [...pageFilters.selection.projects].sort();
   const cacheKey = [...additionalQuery, ...projectIds].join(' ');
 
   const {options: domainOptions} = useCompactSelectOptionsCache(

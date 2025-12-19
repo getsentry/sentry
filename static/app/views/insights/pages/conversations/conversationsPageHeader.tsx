@@ -16,14 +16,12 @@ type Props = {
   headerActions?: HeaderProps['additonalHeaderActions'];
   hideDefaultTabs?: HeaderProps['hideDefaultTabs'];
   module?: HeaderProps['selectedModule'];
-  tabs?: HeaderProps['tabs'];
 };
 
 export function ConversationsPageHeader({
   module,
   headerActions,
   breadcrumbs,
-  tabs,
   hideDefaultTabs,
 }: Props) {
   const organization = useOrganization();
@@ -40,8 +38,9 @@ export function ConversationsPageHeader({
       selectedModule={module}
       additonalHeaderActions={headerActions}
       additionalBreadCrumbs={breadcrumbs}
-      tabs={tabs}
       hideDefaultTabs={hideDefaultTabs}
+      hasOverviewPage={false}
+      unified
     />
   );
 }
