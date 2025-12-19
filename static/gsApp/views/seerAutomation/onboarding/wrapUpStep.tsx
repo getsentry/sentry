@@ -31,49 +31,67 @@ export function WrapUpStep() {
     () => (hasRCA && autoCreatePR?.current) ?? false,
     [autoCreatePR, hasRCA]
   );
+  const hasCompletedAnySteps = hasCodeReview || hasRCA || hasAutoCreatePR;
 
   return (
     <Fragment>
       <StepContentWithBackground>
         <MaxWidthPanel>
           <PanelBody>
-            <PanelDescription>
-              <Text bold>{t('Congratulations, you’ve finished setting up Seer!')}</Text>
-              <p>
-                {t(
-                  'For connected projects and repos, you will now be able to have Seer:'
-                )}
-              </p>
-              <NextStepsList>
-                {hasCodeReview && (
-                  <li>
-                    {t(
-                      'Review your PRs and catch bugs before you ship them to production'
-                    )}
-                  </li>
-                )}
-                {hasRCA && (
-                  <li>
-                    {t(
-                      'Perform root cause analysis on your issues and propose solutions'
-                    )}
-                  </li>
-                )}
-                {hasAutoCreatePR && <li>{t('Create PRs to fix issues')}</li>}
-              </NextStepsList>
-              <Text>
-                {tct(
-                  'If you want to adjust your configurations, you can modify them on the [settings:Seer Settings Page], or configure [projects:projects] and [repos:repos] individually. ',
-                  {
-                    settings: <Link to={`/settings/${organization.slug}/seer/`} />,
-                    projects: (
-                      <Link to={`/settings/${organization.slug}/seer/projects/`} />
-                    ),
-                    repos: <Link to={`/settings/${organization.slug}/seer/repos/`} />,
-                  }
-                )}
-              </Text>
-            </PanelDescription>
+            {hasCompletedAnySteps ? (
+              <PanelDescription>
+                <Text bold>{t('Congratulations, you’ve finished setting up Seer!')}</Text>
+                <p>
+                  {t(
+                    'For connected projects and repos, you will now be able to have Seer:'
+                  )}
+                </p>
+                <NextStepsList>
+                  {hasCodeReview && (
+                    <li>
+                      {t(
+                        'Review your PRs and catch bugs before you ship them to production'
+                      )}
+                    </li>
+                  )}
+                  {hasRCA && (
+                    <li>
+                      {t(
+                        'Perform root cause analysis on your issues and propose solutions'
+                      )}
+                    </li>
+                  )}
+                  {hasAutoCreatePR && <li>{t('Create PRs to fix issues')}</li>}
+                </NextStepsList>
+                <Text>
+                  {tct(
+                    'If you want to adjust your configurations, you can modify them on the [settings:Seer Settings Page], or configure [projects:projects] and [repos:repos] individually. ',
+                    {
+                      settings: <Link to={`/settings/${organization.slug}/seer/`} />,
+                      projects: (
+                        <Link to={`/settings/${organization.slug}/seer/projects/`} />
+                      ),
+                      repos: <Link to={`/settings/${organization.slug}/seer/repos/`} />,
+                    }
+                  )}
+                </Text>
+              </PanelDescription>
+            ) : (
+              <PanelDescription>
+                <Text>
+                  {tct(
+                    'You can restart the wizard and continue setting up Seer, or if you prefer, you can set-up Seer on the [settings:Seer Settings Page], or configure [projects:projects] and [repos:repos] individually. ',
+                    {
+                      settings: <Link to={`/settings/${organization.slug}/seer/`} />,
+                      projects: (
+                        <Link to={`/settings/${organization.slug}/seer/projects/`} />
+                      ),
+                      repos: <Link to={`/settings/${organization.slug}/seer/repos/`} />,
+                    }
+                  )}
+                </Text>
+              </PanelDescription>
+            )}
           </PanelBody>
         </MaxWidthPanel>
 
