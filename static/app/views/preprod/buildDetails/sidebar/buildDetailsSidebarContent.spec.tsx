@@ -92,8 +92,8 @@ describe('BuildDetailsSidebarContent', () => {
       expect(screen.getByText('Test App')).toBeInTheDocument();
     });
 
-    // Git details should show VCS data
-    expect(screen.getByText('Git details')).toBeInTheDocument();
+    // Build Metadata should show VCS data
+    expect(screen.getByText('Build Metadata')).toBeInTheDocument();
     expect(screen.getByText('abc123')).toBeInTheDocument(); // head_sha
     expect(screen.getByText('def456')).toBeInTheDocument(); // base_sha
     expect(screen.getByText('main')).toBeInTheDocument(); // head_ref
@@ -112,9 +112,9 @@ describe('BuildDetailsSidebarContent', () => {
       organization,
     });
 
-    // Git details should still show VCS data
+    // Build Metadata should still show VCS data
     await waitFor(() => {
-      expect(screen.getByText('Git details')).toBeInTheDocument();
+      expect(screen.getByText('Build Metadata')).toBeInTheDocument();
     });
     expect(screen.getByText('abc123')).toBeInTheDocument(); // head_sha
     expect(screen.getByText('def456')).toBeInTheDocument(); // base_sha
@@ -137,9 +137,9 @@ describe('BuildDetailsSidebarContent', () => {
       organization,
     });
 
-    // Git details should still show VCS data
+    // Build Metadata should still show VCS data
     await waitFor(() => {
-      expect(screen.getByText('Git details')).toBeInTheDocument();
+      expect(screen.getByText('Build Metadata')).toBeInTheDocument();
     });
     expect(screen.getByText('abc123')).toBeInTheDocument(); // head_sha
     expect(screen.getByText('def456')).toBeInTheDocument(); // base_sha
@@ -162,9 +162,9 @@ describe('BuildDetailsSidebarContent', () => {
       organization,
     });
 
-    // Git details should still show VCS data
+    // Build Metadata should still show VCS data
     await waitFor(() => {
-      expect(screen.getByText('Git details')).toBeInTheDocument();
+      expect(screen.getByText('Build Metadata')).toBeInTheDocument();
     });
     expect(screen.getByText('abc123')).toBeInTheDocument(); // head_sha
     expect(screen.getByText('def456')).toBeInTheDocument(); // base_sha
@@ -175,5 +175,142 @@ describe('BuildDetailsSidebarContent', () => {
 
     // App info should be hidden
     expect(screen.queryByText('Test App')).not.toBeInTheDocument();
+  });
+
+  describe('Base Build row', () => {
+    it('does not render Base Build row when base_sha is null', async () => {
+      const buildDetailsData: BuildDetailsApiResponse = {
+        ...mockBuildDetailsData,
+        vcs_info: {
+          ...mockBuildDetailsData.vcs_info,
+          base_sha: null,
+        },
+      };
+
+      render(<TestComponent {...defaultProps} buildDetailsData={buildDetailsData} />, {
+        organization,
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Build Metadata')).toBeInTheDocument();
+      });
+
+      // Base Build row should not be present
+      expect(screen.queryByText('Base Build')).not.toBeInTheDocument();
+    });
+
+    it('renders Base Build row with dash when base_sha exists but no base_build_info', async () => {
+      const buildDetailsData = {
+        ...mockBuildDetailsData,
+        vcs_info: {
+          ...mockBuildDetailsData.vcs_info,
+          base_sha: 'def456',
+        },
+        base_build_info: null,
+      };
+
+      render(<TestComponent {...defaultProps} buildDetailsData={buildDetailsData} />, {
+        organization,
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Build Metadata')).toBeInTheDocument();
+      });
+
+      // Base Build row should be present with label
+      const baseBuildLabel = screen.getByText('Base Build');
+      expect(baseBuildLabel).toBeInTheDocument();
+
+      // Get the parent ContentWrapper and find the dash within it
+      const contentWrapper = baseBuildLabel.parentElement!;
+      expect(contentWrapper).toBeInTheDocument();
+
+      // Verify the dash is in the same row (ContentWrapper) as "Base Build"
+      expect(contentWrapper).toHaveTextContent('-');
+    });
+
+    it('renders Base Build row with link when base_sha and base_build_info exist', async () => {
+      const buildDetailsData: BuildDetailsApiResponse = {
+        ...mockBuildDetailsData,
+        vcs_info: {
+          ...mockBuildDetailsData.vcs_info,
+          base_sha: 'def456',
+        },
+        base_artifact_id: 'base-artifact-id',
+        base_build_info: {
+          version: '1.0',
+          build_number: '2',
+        },
+      };
+
+      render(<TestComponent {...defaultProps} buildDetailsData={buildDetailsData} />, {
+        organization,
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Build Metadata')).toBeInTheDocument();
+      });
+
+      // Base Build row should be present with label
+      const baseBuildLabel = screen.getByText('Base Build');
+      expect(baseBuildLabel).toBeInTheDocument();
+
+      // Get the parent ContentWrapper and verify the build name is within it
+      const contentWrapper = baseBuildLabel.parentElement!;
+      expect(contentWrapper).toBeInTheDocument();
+      expect(contentWrapper).toHaveTextContent('v1.0 (2)');
+
+      // Should have a link to the base build page
+      const baseBuildLink = screen.getByRole('link', {name: 'v1.0 (2)'});
+      expect(baseBuildLink).toHaveAttribute(
+        'href',
+        `/organizations/${organization.slug}/preprod/${defaultProps.projectId}/base-artifact-id/`
+      );
+
+      // Should be an internal link (not opening in a new tab)
+      expect(baseBuildLink).not.toHaveAttribute('target', '_blank');
+    });
+
+    it('renders Base Build row with dash when projectId is null', async () => {
+      const buildDetailsData: BuildDetailsApiResponse = {
+        ...mockBuildDetailsData,
+        vcs_info: {
+          ...mockBuildDetailsData.vcs_info,
+          base_sha: 'def456',
+        },
+        base_artifact_id: 'base-artifact-id',
+        base_build_info: {
+          version: '1.0',
+          build_number: '2',
+        },
+      };
+
+      render(
+        <TestComponent
+          {...defaultProps}
+          projectId={null as unknown as string}
+          buildDetailsData={buildDetailsData}
+        />,
+        {
+          organization,
+        }
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Build Metadata')).toBeInTheDocument();
+      });
+
+      // Base Build row should be present with label
+      const baseBuildLabel = screen.getByText('Base Build');
+      expect(baseBuildLabel).toBeInTheDocument();
+
+      // Get the parent ContentWrapper and verify the build name is within it
+      const contentWrapper = baseBuildLabel.parentElement!;
+      expect(contentWrapper).toBeInTheDocument();
+      expect(contentWrapper).toHaveTextContent('-');
+
+      // Should NOT have a link (no projectId to build URL)
+      expect(screen.queryByRole('link', {name: 'v1.0 (2)'})).not.toBeInTheDocument();
+    });
   });
 });
