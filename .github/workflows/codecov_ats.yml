@@ -1,6 +1,7 @@
 name: codecov-ats
 
-on: [workflow_dispatch, workflow_call]
+on:
+  pull_request:
 
 env:
   CLI_VERSION: v0.1.5
@@ -22,12 +23,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-        with:
-          # fetch-depth: 0 - Use if the BASE_COMMIT on codecov_automated_test_selection is at unknown depth
-          #                   (i.e. git merge-base ${{ github.sha }}^ origin/main)
-          # fetch-depth: 2 - Use if the BASE_COMMIT on codecov_automated_test_selection is at known depth
-          #                   (i.e. git rev-parse ${{ github.sha }}^)
-          fetch-depth: 0
       - name: Set up Python 3.10.10
         uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236 # v4
         with:
@@ -72,10 +67,8 @@ jobs:
         run: |
           # Directory for the artifacts from this step
           mkdir .artifacts/codecov_ats
-          # This is the base for the git diff BASE..HEAD
-          BASE_COMMIT=$(git merge-base ${{ github.sha }}^ origin/master)
           # Get list of tests to run from Codecov
-          output=$(codecovcli --codecov-yml-path=codecov.yml label-analysis --dry-run --token=${CODECOV_STATIC_TOKEN} --base-sha=${BASE_COMMIT}) || true
+          output=$(codecovcli --codecov-yml-path=codecov.yml label-analysis --dry-run --token=${CODECOV_STATIC_TOKEN} --base-sha=0b901dafc6dfd4190db4b8a041ed9737d760c4fd) || true
           # Post processing and validation
           if [ -n "${output}" ];
           then

@@ -1,6 +1,5 @@
 name: Codecov - per test coverage
-on:
-  pull_request:
+on: [workflow_dispatch, workflow_call]
 
 jobs:
   backend-test-with-cov-context:
