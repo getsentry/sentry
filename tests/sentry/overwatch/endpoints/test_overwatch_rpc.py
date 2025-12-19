@@ -693,7 +693,7 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         assert resp1.status_code == 200
         assert resp1.data == {
             "enabledCodeReview": True,
-            "codeReviewTriggers": ["on_new_commit"],
+            "codeReviewTriggers": ["on_new_commit", "on_command_phrase"],
         }
 
         # Request for org2 should return defaults (no settings created)
