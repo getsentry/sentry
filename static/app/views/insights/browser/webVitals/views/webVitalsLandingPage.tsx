@@ -1,6 +1,8 @@
 import React, {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -104,7 +106,7 @@ function WebVitalsLandingPage() {
                   />
                 </WebVitalMetersContainer>
                 <PagePerformanceTable />
-                <PagesTooltipContainer>
+                <Flex>
                   <Tooltip
                     isHoverable
                     title={
@@ -130,7 +132,7 @@ function WebVitalsLandingPage() {
                   >
                     <PagesTooltip>{t('Why are my pages not showing up?')}</PagesTooltip>
                   </Tooltip>
-                </PagesTooltipContainer>
+                </Flex>
               </ModulesOnboarding>
             </MainContentContainer>
           </Layout.Main>
@@ -214,8 +216,4 @@ const PagesTooltip = styled('span')`
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   text-decoration: underline dotted ${p => p.theme.colors.gray400};
-`;
-
-const PagesTooltipContainer = styled('div')`
-  display: flex;
 `;

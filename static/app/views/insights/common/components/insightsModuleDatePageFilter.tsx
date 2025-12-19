@@ -1,6 +1,8 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {
   DatePageFilter,
@@ -66,17 +68,12 @@ export function InsightsModuleDatePageFilter() {
 
 function DisabledDateOption({value}: {value: string}) {
   return (
-    <DisabledDateOptionContainer>
+    <Flex align="center">
       {value}
       <StyledIconBuisness />
-    </DisabledDateOptionContainer>
+    </Flex>
   );
 }
-
-const DisabledDateOptionContainer = styled('div')`
-  display: flex;
-  align-items: center;
-`;
 
 const StyledIconBuisness = styled(IconBusiness)`
   margin-left: auto;
