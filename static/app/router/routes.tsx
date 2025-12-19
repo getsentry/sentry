@@ -186,7 +186,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: '/sentry-apps/:sentryAppSlug/external-install/',
       component: make(() => import('sentry/views/sentryAppExternalInstallation')),
-      deprecatedRouteProps: true,
     },
     {
       path: '/account/',
@@ -1480,7 +1479,6 @@ function buildRoutes(): RouteObject[] {
         {
           index: true,
           component: make(() => import('sentry/views/alerts/list/rules/alertRulesList')),
-          deprecatedRouteProps: true,
         },
         {
           path: 'details/:ruleId/',
@@ -1526,7 +1524,6 @@ function buildRoutes(): RouteObject[] {
         {
           path: 'uptime/',
           component: make(() => import('sentry/views/alerts/rules/uptime')),
-          deprecatedRouteProps: true,
           children: [
             {
               path: ':projectId/:detectorId/details/',
@@ -1551,12 +1548,10 @@ function buildRoutes(): RouteObject[] {
         {
           path: 'crons/',
           component: make(() => import('sentry/views/alerts/rules/crons')),
-          deprecatedRouteProps: true,
           children: [
             {
               path: ':projectId/:monitorSlug/details/',
               component: make(() => import('sentry/views/alerts/rules/crons/details')),
-              deprecatedRouteProps: true,
             },
           ],
         },
@@ -1913,14 +1908,6 @@ function buildRoutes(): RouteObject[] {
             ),
           },
           {
-            path: 'vitals/',
-            handle: {tab: TransactionSummaryTab.WEB_VITALS},
-            component: make(
-              () =>
-                import('sentry/views/performance/transactionSummary/transactionVitals')
-            ),
-          },
-          {
             path: 'tags/',
             handle: {tab: TransactionSummaryTab.TAGS},
             component: make(
@@ -2269,7 +2256,6 @@ function buildRoutes(): RouteObject[] {
       path: 'projects/',
       component: make(() => import('sentry/views/projects/')),
       children: projectsChildren,
-      deprecatedRouteProps: true,
     },
     {
       path: `${FRONTEND_LANDING_SUB_PATH}/uptime/`,
