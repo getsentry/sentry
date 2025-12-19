@@ -529,7 +529,7 @@ function AutofixRootCauseDisplay({
           <HeaderWrapper>
             <HeaderText>
               <IconWrapper ref={iconFocusRef}>
-                <IconFocus size="md" color="pink400" />
+                <IconFocus size="md" variant="promotion" />
               </IconWrapper>
               {t('Custom Root Cause')}
             </HeaderText>
