@@ -9,8 +9,12 @@ from sentry.constants import ObjectStatus
 from sentry.incidents.subscription_processor import SubscriptionProcessor
 from sentry.snuba.dataset import Dataset
 from uuid import uuid4
+from sentry.incidents.utils.types import QuerySubscriptionUpdate
+from sentry.snuba.dataset import EntityKey
+from sentry.snuba.models import QuerySubscription
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
+from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.incidents.subscription_processor.test_subscription_processor_base import (
     ProcessUpdateBaseClass,
@@ -422,7 +426,7 @@ class ProcessUpdateUpsampledCountTest(ProcessUpdateBaseClass):
     """Test that upsampled_count() aggregate works correctly with sample weight data"""
 
     @cached_property
-    def upsampled_detector(self):
+    def upsampled_detector(self) -> Detector:
         """Create a detector that uses upsampled_count() aggregate function"""
         detector = self.metric_detector
         snuba_query = self.get_snuba_query(detector)
@@ -447,8 +451,11 @@ class ProcessUpdateUpsampledCountTest(ProcessUpdateBaseClass):
         self.detector = self.upsampled_detector
 
     def build_upsampled_subscription_update(
-        self, subscription, upsampled_count=1.0, time_delta=None
-    ):
+        self,
+        subscription: QuerySubscription,
+        upsampled_count: float = 1.0,
+        time_delta: timedelta | None = None,
+    ) -> QuerySubscriptionUpdate:
         """Build a subscription update that simulates upsampled_count() query results"""
         if time_delta is not None:
             timestamp = timezone.now() + time_delta
@@ -457,18 +464,19 @@ class ProcessUpdateUpsampledCountTest(ProcessUpdateBaseClass):
         timestamp = timestamp.replace(microsecond=0)
 
         # Create subscription update with the aggregation value
-        data = {"upsampled_count": upsampled_count}
-        values = {"data": [data]}
-        return {
-            "subscription_id": subscription.subscription_id if subscription else uuid4().hex,
-            "values": values,
+        subscription_update: QuerySubscriptionUpdate = {
+            "subscription_id": (
+                str(subscription.subscription_id) if subscription else str(uuid4().hex)
+            ),
+            "values": {"data": [{"upsampled_count": upsampled_count}]},
             "timestamp": timestamp,
-            "interval": 1,
-            "partition": 1,
-            "offset": 1,
+            "entity": EntityKey.Events.value,
         }
+        return subscription_update
 
-    def send_upsampled_update(self, upsampled_count, time_delta=None):
+    def send_upsampled_update(
+        self, upsampled_count: float, time_delta: timedelta | None = None
+    ) -> None:
         """Send a subscription update simulating upsampled_count() query results"""
         if time_delta is None:
             time_delta = timedelta()
@@ -482,7 +490,6 @@ class ProcessUpdateUpsampledCountTest(ProcessUpdateBaseClass):
             self.feature("organizations:performance-view"),
         ):
             processor.process_update(message)
-        return processor
 
     def test_upsampled_count_no_detector_below_threshold(self) -> None:
         """Test that the detector is not triggered when upsampled count is below threshold"""
