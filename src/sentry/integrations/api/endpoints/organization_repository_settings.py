@@ -2,6 +2,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -106,6 +107,19 @@ class OrganizationRepositorySettingsEndpoint(OrganizationEndpoint):
             update_conflicts=True,
             unique_fields=["repository"],
             update_fields=update_fields,
+        )
+
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=organization.id,
+            event=audit_log.get_event_id("REPO_SETTINGS_EDIT"),
+            data={
+                "repository_count": len(repositories),
+                "repository_ids": repository_ids,
+                "enabled_code_review": updated_enabled_code_review,
+                "code_review_triggers": updated_code_review_triggers,
+            },
         )
 
         return Response(
