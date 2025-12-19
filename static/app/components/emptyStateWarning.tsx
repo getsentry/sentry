@@ -15,7 +15,7 @@ function EmptyStateWarning({small = false, withIcon = true, children, className}
   return small ? (
     <EmptyMessage className={className}>
       <SmallMessage>
-        {withIcon && <StyledIconSearch color="gray300" size="lg" />}
+        {withIcon && <StyledIconSearch variant="muted" size="lg" />}
         {children}
       </SmallMessage>
     </EmptyMessage>
