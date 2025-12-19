@@ -47,6 +47,7 @@ export const AI_CONVERSATION_ATTRIBUTES = [
   SpanFields.GEN_AI_REQUEST_MESSAGES,
   SpanFields.GEN_AI_RESPONSE_TEXT,
   SpanFields.GEN_AI_RESPONSE_OBJECT,
+  SpanFields.USER_EMAIL,
 ];
 
 /**
