@@ -76,4 +76,19 @@ describe('RouteSource', () => {
       expect(mock).toHaveBeenCalledWith(expect.objectContaining({results: []}))
     );
   });
+
+  it('returns empty results when no organization context is available', async () => {
+    const mock = jest.fn().mockReturnValue(null);
+    // Render without organization context (like in /settings/account/)
+    render(
+      <RouteSource query="password">{mock}</RouteSource>,
+      {organization: undefined}
+    );
+
+    await waitFor(() => {
+      const calls = mock.mock.calls;
+      // Should return empty results without throwing an error
+      expect(calls[calls.length - 1][0].results).toEqual([]);
+    });
+  });
 });

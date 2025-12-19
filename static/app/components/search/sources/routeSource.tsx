@@ -57,7 +57,7 @@ interface Props {
 
 function RouteSource({searchOptions, query, children}: Props) {
   const params = useParams();
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
   const project = useProjectFromSlug({organization, projectSlug: params.projectId});
 
   const resolvedTs = useMemo(() => makeResolvedTs(), []);
@@ -95,11 +95,15 @@ function RouteSource({searchOptions, query, children}: Props) {
   useEffect(() => void createSearch(), [createSearch]);
 
   const replaceParams = useMemo(
-    () => ({...params, orgId: organization.slug}),
-    [organization.slug, params]
+    () => ({...params, orgId: organization?.slug}),
+    [organization?.slug, params]
   );
 
   const results = useMemo(() => {
+    if (!organization) {
+      return [];
+    }
+
     return (
       fuzzy?.search(query).map(({item, ...rest}) => ({
         item: {
@@ -112,7 +116,7 @@ function RouteSource({searchOptions, query, children}: Props) {
         ...rest,
       })) ?? []
     );
-  }, [fuzzy, query, replaceParams, resolvedTs]);
+  }, [fuzzy, organization, query, replaceParams, resolvedTs]);
 
   return children({isLoading: fuzzy === undefined, results});
 }
