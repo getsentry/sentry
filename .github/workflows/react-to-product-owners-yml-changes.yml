@@ -11,6 +11,12 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
+      - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
+        with:
+          version: '0.8.2'
+          # we just cache the venv-dir directly in action-setup-venv
+          enable-cache: false
+
       - uses: getsentry/action-setup-venv@5a80476d175edf56cb205b08bc58986fa99d1725 # v3.2.0
         with:
           cache-dependency-path: uv.lock
