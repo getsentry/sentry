@@ -191,9 +191,10 @@ class SnubaTagStorage(TagStorage):
             # EAP imposes a limit of 100 buckets max
             limit = 100
 
+        default_start, default_end = default_start_end_dates()
         params = SnubaParams(
-            start=kwargs.get("start"),
-            end=kwargs.get("end"),
+            start=kwargs.get("start", default_start),
+            end=kwargs.get("end", default_end),
             projects=[group.project],
             organization=group.project.organization,
         )
