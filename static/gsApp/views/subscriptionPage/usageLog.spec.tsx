@@ -7,7 +7,7 @@ import {UsageLogFixture} from 'getsentry-test/fixtures/usageLog';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {PlanTier} from 'getsentry/types';
-import {UsageLog} from 'getsentry/views/subscriptionPage/usageLog';
+import UsageLog from 'getsentry/views/subscriptionPage/usageLog';
 
 describe('Subscription Usage Log', () => {
   const organization = OrganizationFixture({
@@ -78,7 +78,7 @@ describe('Subscription Usage Log', () => {
       body: {rows: [UsageLogFixture()], eventNames},
     });
 
-    render(<UsageLog location={mockLocation} subscription={sub} />, {organization});
+    render(<UsageLog location={mockLocation} />, {organization});
 
     await screen.findByText(/Select Action/i);
     expect(
@@ -100,7 +100,7 @@ describe('Subscription Usage Log', () => {
       body: {rows: [UsageLogFixture()], eventNames},
     });
 
-    render(<UsageLog location={mockLocation} subscription={sub} />, {organization});
+    render(<UsageLog location={mockLocation} />, {organization});
 
     await screen.findByText(/Select Action/i);
     expect(screen.getByRole('heading', {name: /Activity Logs/i})).toBeInTheDocument();
@@ -118,7 +118,7 @@ describe('Subscription Usage Log', () => {
       body: {rows: [], eventNames},
     });
 
-    render(<UsageLog location={mockLocation} subscription={sub} />, {organization});
+    render(<UsageLog location={mockLocation} />, {organization});
 
     await screen.findByText(/Select Action/i);
     expect(screen.getByText(/No entries available/i)).toBeInTheDocument();
@@ -137,7 +137,7 @@ describe('Subscription Usage Log', () => {
       },
     });
 
-    render(<UsageLog location={mockLocation} subscription={sub} />, {organization});
+    render(<UsageLog location={mockLocation} />, {organization});
 
     await screen.findByText(/Select Action/i);
     expect(screen.getByText('On-demand Edit')).toBeInTheDocument();

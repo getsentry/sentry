@@ -14,12 +14,8 @@ import BillingDetailsPanel from 'getsentry/components/billingDetails/panel';
 import CreditCardPanel from 'getsentry/components/creditCardEdit/panel';
 import withSubscription from 'getsentry/components/withSubscription';
 import {FTCConsentLocation, type Subscription} from 'getsentry/types';
-import {hasNewBillingUI} from 'getsentry/utils/billing';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
-import RecurringCredits from 'getsentry/views/subscriptionPage/recurringCredits';
-
-import SubscriptionHeader from './subscriptionHeader';
 
 type Props = {
   location: Location;
@@ -31,53 +27,12 @@ type Props = {
  * Update Billing Information view.
  */
 function BillingInformation({organization, subscription, location}: Props) {
-  const isNewBillingUI = hasNewBillingUI(organization);
   const hasBillingPerms = organization.access?.includes('org:billing');
   const theme = useTheme();
   const maxPanelWidth = theme.breakpoints.lg;
 
   if (subscription?.isSelfServePartner) {
     return <Redirect to={`/settings/${organization.slug}/billing/overview/`} />;
-  }
-
-  if (!isNewBillingUI) {
-    if (!hasBillingPerms) {
-      return (
-        <SubscriptionPageContainer background="primary" organization={organization}>
-          <ContactBillingMembers />
-        </SubscriptionPageContainer>
-      );
-    }
-
-    if (!subscription) {
-      return (
-        <SubscriptionPageContainer background="primary" organization={organization}>
-          <LoadingIndicator />
-        </SubscriptionPageContainer>
-      );
-    }
-
-    return (
-      <SubscriptionPageContainer background="primary" organization={organization}>
-        <SubscriptionHeader organization={organization} subscription={subscription} />
-        <RecurringCredits displayType="discount" planDetails={subscription.planDetails} />
-        <CreditCardPanel
-          organization={organization}
-          subscription={subscription}
-          location={location}
-          isNewBillingUI={isNewBillingUI}
-          ftcLocation={FTCConsentLocation.BILLING_DETAILS}
-          budgetTerm={subscription.planDetails.budgetTerm}
-          maxPanelWidth={maxPanelWidth}
-        />
-        <BillingDetailsPanel
-          organization={organization}
-          subscription={subscription}
-          isNewBillingUI={isNewBillingUI}
-          maxPanelWidth={maxPanelWidth}
-        />
-      </SubscriptionPageContainer>
-    );
   }
 
   return (
@@ -91,7 +46,6 @@ function BillingInformation({organization, subscription, location}: Props) {
               organization={organization}
               subscription={subscription}
               location={location}
-              isNewBillingUI={isNewBillingUI}
               ftcLocation={FTCConsentLocation.BILLING_DETAILS}
               budgetTerm={subscription.planDetails.budgetTerm}
               shouldExpandInitially
@@ -100,7 +54,6 @@ function BillingInformation({organization, subscription, location}: Props) {
             <BillingDetailsPanel
               organization={organization}
               subscription={subscription}
-              isNewBillingUI={isNewBillingUI}
               shouldExpandInitially
               maxPanelWidth={maxPanelWidth}
             />

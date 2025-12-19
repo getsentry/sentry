@@ -30,7 +30,7 @@ import * as utils from 'getsentry/views/amCheckout/utils';
 import {
   getTotalBudget,
   hasOnDemandBudgetsFeature,
-} from 'getsentry/views/onDemandBudgets/utils';
+} from 'getsentry/views/spendLimits/utils';
 
 type Props = {
   activePlan: Plan;

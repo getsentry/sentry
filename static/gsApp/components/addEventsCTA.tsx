@@ -17,7 +17,7 @@ import {
   type UsageAction,
 } from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
-import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
+import {openOnDemandBudgetEditModal} from 'getsentry/views/spendLimits/utils';
 
 /**
  * Event types for quota CTAs and notifications.

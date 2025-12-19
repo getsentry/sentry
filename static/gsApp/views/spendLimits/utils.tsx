@@ -1,8 +1,13 @@
+import {css} from '@emotion/react';
 import isEqual from 'lodash/isEqual';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {openModal} from 'sentry/actionCreators/modal';
+import {tct} from 'sentry/locale';
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
+import type {Theme} from 'sentry/utils/theme';
 
 import type {
   OnDemandBudgets,
@@ -13,13 +18,25 @@ import type {
   SubscriptionOnDemandBudgets,
 } from 'getsentry/types';
 import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
-import {displayBudgetName, getOnDemandCategories} from 'getsentry/utils/billing';
+import {
+  displayBudgetName,
+  getOnDemandCategories,
+  hasBillingAccess,
+  supportsPayg,
+} from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
   getPlanCategoryName,
 } from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import OnDemandBudgetEditModal from 'getsentry/views/spendLimits/modal';
+
+interface Props {
+  organization: Organization;
+  subscription: Subscription;
+  theme?: Theme;
+}
 
 export function parseOnDemandBudgetsFromSubscription(
   subscription: Subscription
@@ -299,3 +316,37 @@ export function convertOnDemandBudget(
     sharedMaxBudget,
   };
 }
+
+export function openOnDemandBudgetEditModal({organization, subscription, theme}: Props) {
+  const hasBillingPerms = hasBillingAccess(organization);
+  const canUsePayg = supportsPayg(subscription);
+
+  if (hasBillingPerms && canUsePayg) {
+    openModal(
+      modalProps => (
+        <OnDemandBudgetEditModal
+          {...modalProps}
+          subscription={subscription}
+          organization={organization}
+        />
+      ),
+      {
+        closeEvents: 'escape-key',
+        modalCss: theme ? modalCss(theme) : undefined,
+      }
+    );
+    return;
+  }
+
+  addErrorMessage(
+    tct("You don't have permission to edit [budgetTerm] budgets.", {
+      budgetTerm: displayBudgetName(subscription.planDetails),
+    })
+  );
+}
+
+const modalCss = (theme: Theme) => css`
+  @media (min-width: ${theme.breakpoints.md}) {
+    width: 1000px;
+  }
+`;

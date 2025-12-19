@@ -43,7 +43,7 @@ import {
   displayPriceWithCents,
   getBucket,
 } from 'getsentry/views/amCheckout/utils';
-import {convertOnDemandBudget} from 'getsentry/views/onDemandBudgets/utils';
+import {convertOnDemandBudget} from 'getsentry/views/spendLimits/utils';
 
 const LARGE_INPUT_WIDTH = '300px';
 

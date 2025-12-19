@@ -10,3 +10,13 @@ export const SIDE_PANEL_MIN_SCREEN_BREAKPOINT = 'lg';
 export const USAGE_OVERVIEW_PANEL_HEADER_HEIGHT = '60px';
 
 export const USAGE_OVERVIEW_PANEL_REFERRER = 'product-breakdown-panel';
+
+export const EMPTY_STAT_TOTAL = {
+  accepted: 0,
+  dropped: 0,
+  droppedOther: 0,
+  droppedOverQuota: 0,
+  droppedSpikeProtection: 0,
+  filtered: 0,
+  projected: 0,
+};

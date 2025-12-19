@@ -8,7 +8,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import {sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
 import type {Subscription} from 'getsentry/types';
-import OnDemandBudgetEditModal from 'getsentry/views/onDemandBudgets/onDemandBudgetEditModal';
+import OnDemandBudgetEditModal from 'getsentry/views/spendLimits/modal';
 
 interface UpgradeCTAProps {
   hasBillingAccess: boolean;

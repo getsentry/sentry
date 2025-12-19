@@ -1,6 +1,5 @@
 import type {ComponentType} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {promptsUpdate} from 'sentry/actionCreators/prompts';
@@ -116,19 +115,6 @@ export async function openPartnerPlanEndingModal(options: PartnerPlanModalProps)
   };
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss, onClose});
-}
-
-type EditCreditCardOptions = {
-  onSuccess: (data: Subscription) => void;
-  organization: Organization;
-  subscription: Subscription;
-  location?: Location;
-};
-
-export async function openEditCreditCard(options: EditCreditCardOptions) {
-  const {default: Modal} = await import('getsentry/components/creditCardEdit/modal');
-
-  openModal(deps => <Modal {...deps} {...options} />);
 }
 
 type EditBillingDetailsOptions = {

@@ -20,8 +20,8 @@ import {
   ProductUsageChart,
   selectedTransform,
 } from 'getsentry/views/subscriptionPage/reservedUsageChart';
+import {EMPTY_STAT_TOTAL} from 'getsentry/views/subscriptionPage/usageOverview/constants';
 import type {BreakdownPanelProps} from 'getsentry/views/subscriptionPage/usageOverview/types';
-import {EMPTY_STAT_TOTAL} from 'getsentry/views/subscriptionPage/usageTotals';
 import UsageTotalsTable from 'getsentry/views/subscriptionPage/usageTotalsTable';
 
 function UsageCharts({

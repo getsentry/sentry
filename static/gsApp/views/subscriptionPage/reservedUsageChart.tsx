@@ -33,6 +33,7 @@ import {
   getTooltipFormatter,
 } from 'sentry/views/organizationStats/usageChart/utils';
 
+import {GIGABYTE} from 'getsentry/constants';
 import {
   ReservedBudgetCategoryType,
   type BillingMetricHistory,
@@ -46,19 +47,28 @@ import {
 import {
   displayBudgetName,
   formatReservedWithUnits,
+  getPercentage,
   isUnlimitedReserved,
+  MILLISECONDS_IN_HOUR,
 } from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
   getPlanCategoryName,
   hasCategoryFeature,
+  isByteCategory,
+  isContinuousProfiling,
   isPartOfReservedBudget,
 } from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
+import {getBucket} from 'getsentry/views/amCheckout/utils';
 import {
-  calculateCategoryOnDemandUsage,
-  calculateCategoryPrepaidUsage,
-} from 'getsentry/views/subscriptionPage/usageTotals';
+  getOnDemandBudget,
+  parseOnDemandBudgetsFromSubscription,
+} from 'getsentry/views/spendLimits/utils';
+import {
+  calculateCategorySpend,
+  calculateTotalSpend,
+} from 'getsentry/views/subscriptionPage/utils';
 
 const USAGE_CHART_OPTIONS_DATACATEGORY = [
   ...CHART_OPTIONS_DATACATEGORY,
@@ -68,6 +78,189 @@ const USAGE_CHART_OPTIONS_DATACATEGORY = [
     yAxisMinInterval: 100,
   },
 ];
+
+/**
+ * Calculates usage metrics for a subscription category's prepaid (reserved) events.
+ *
+ * @param category - The data category to calculate usage for (e.g. 'errors', 'transactions')
+ * @param subscription - The subscription object containing plan and usage details
+ * @param accepted - The accepted event count for this category
+ * @param prepaid - The prepaid/reserved event limit (volume-based reserved) or commited spend (budget-based reserved) for this category
+ * @param reservedCpe - The reserved cost-per-event for this category (for reserved budget categories), in cents
+ * @param reservedSpend - The reserved spend for this category (for reserved budget categories). If provided, calculations with `totals` and `reservedCpe` are overriden to use the number provided for `prepaidSpend`
+ *
+ * @returns Object containing:
+ *   - onDemandUsage: Number of events that exceeded the prepaid limit and went to on-demand
+ *   - prepaidPercentUsed: Percentage of prepaid limit used (0-100)
+ *   - prepaidPrice: Monthly cost of the prepaid events (reserved budget if it is a reserved budget category)
+ *   - prepaidSpend: Cost of prepaid events used so far this period
+ *   - prepaidUsage: Number of events used within prepaid limit
+ */
+export function calculateCategoryPrepaidUsage(
+  category: DataCategory,
+  subscription: Subscription,
+  prepaid: number,
+  accepted?: number | null,
+  reservedCpe?: number | null,
+  reservedSpend?: number | null
+): {
+  onDemandUsage: number;
+  prepaidPercentUsed: number;
+  prepaidPrice: number;
+  /**
+   * Total category spend this period
+   */
+  prepaidSpend: number;
+  prepaidUsage: number;
+} {
+  const categoryInfo: BillingMetricHistory | undefined =
+    subscription.categories[category];
+  const usage = accepted ?? categoryInfo?.usage ?? 0;
+
+  // If reservedCpe or reservedSpend aren't provided but category is part of a reserved budget,
+  // try to extract them from subscription.reservedBudgets
+  let effectiveReservedCpe = reservedCpe ?? undefined;
+  let effectiveReservedSpend = reservedSpend ?? undefined;
+
+  if (
+    (effectiveReservedCpe === undefined || effectiveReservedSpend === undefined) &&
+    isPartOfReservedBudget(category, subscription.reservedBudgets ?? [])
+  ) {
+    // Look for the category in reservedBudgets
+    for (const budget of subscription.reservedBudgets || []) {
+      if (category in budget.categories) {
+        const categoryBudget = budget.categories[category];
+        if (categoryBudget) {
+          if (effectiveReservedCpe === undefined) {
+            effectiveReservedCpe = categoryBudget.reservedCpe;
+          }
+          if (effectiveReservedSpend === undefined) {
+            effectiveReservedSpend = categoryBudget.reservedSpend;
+          }
+          break;
+        }
+      }
+    }
+  }
+
+  // Calculate the prepaid total
+  let prepaidTotal: any;
+  if (isUnlimitedReserved(prepaid)) {
+    prepaidTotal = prepaid;
+  } else {
+    // Convert prepaid limits to the appropriate unit based on category
+    prepaidTotal =
+      prepaid *
+      (isByteCategory(category)
+        ? GIGABYTE
+        : isContinuousProfiling(category)
+          ? MILLISECONDS_IN_HOUR
+          : 1);
+  }
+
+  const hasReservedBudget = Boolean(
+    reservedCpe || typeof effectiveReservedSpend === 'number'
+  ); // reservedSpend can be 0
+
+  const prepaidUsed = hasReservedBudget
+    ? (effectiveReservedSpend ?? usage * (effectiveReservedCpe ?? 0))
+    : usage;
+  const prepaidPercentUsed = getPercentage(prepaidUsed, prepaidTotal);
+
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  const slots: EventBucket[] = subscription.planDetails.planCategories[category];
+
+  // If the category billing info is not in the subscription, return 0 for all values
+  // This seems to happen sometimes on partner accounts
+  if (!categoryInfo || !slots) {
+    return {
+      prepaidPrice: 0,
+      prepaidSpend: 0,
+      prepaidPercentUsed: 0,
+      onDemandUsage: 0,
+      prepaidUsage: 0,
+    };
+  }
+
+  // Get the price bucket for the reserved event amount
+  const prepaidPriceBucket = getBucket({events: categoryInfo.reserved!, buckets: slots});
+
+  // Convert annual prices to monthly if needed
+  const isMonthly = subscription.planDetails.billingInterval === 'monthly';
+  // This will be 0 when they are using the included amount
+  const prepaidPrice = hasReservedBudget
+    ? prepaid
+    : (prepaidPriceBucket.price ?? 0) / (isMonthly ? 1 : 12);
+
+  // Calculate spend based on percentage used
+  const prepaidSpend = (prepaidPercentUsed / 100) * prepaidPrice;
+
+  // Round the usage width to avoid half pixel artifacts
+  const prepaidPercentUsedRounded = Math.round(prepaidPercentUsed);
+
+  // Calculate on-demand usage if we've exceeded prepaid limit
+  // No on-demand usage for unlimited reserved
+  const onDemandUsage =
+    (prepaidUsed > prepaidTotal && !isUnlimitedReserved(prepaidTotal)) ||
+    (hasReservedBudget && prepaidUsed >= prepaidTotal)
+      ? categoryInfo.onDemandQuantity
+      : 0;
+  const prepaidUsage = usage - onDemandUsage;
+
+  return {
+    prepaidPrice,
+    prepaidSpend,
+    prepaidPercentUsed: prepaidPercentUsedRounded,
+    onDemandUsage,
+    prepaidUsage,
+  };
+}
+
+export function calculateCategoryOnDemandUsage(
+  category: DataCategory,
+  subscription: Subscription
+): {
+  /**
+   * The maximum amount of on demand spend allowed for this category
+   * This can be shared across all categories or specific to this category.
+   * Other categories may have spent some of this budget making less avilable for this category.
+   */
+  onDemandCategoryMax: number;
+  onDemandCategorySpend: number;
+  /**
+   * Will be the total on demand spend available for all categories if shared
+   * or the total available for this category if not shared.
+   */
+  onDemandTotalAvailable: number;
+  ondemandPercentUsed: number;
+} {
+  const onDemandBudgets = parseOnDemandBudgetsFromSubscription(subscription);
+  const isSharedOnDemand = 'sharedMaxBudget' in onDemandBudgets;
+  const onDemandTotalAvailable = isSharedOnDemand
+    ? onDemandBudgets.sharedMaxBudget
+    : getOnDemandBudget(onDemandBudgets, category);
+  const {onDemandTotalSpent} = calculateTotalSpend(subscription);
+  const {onDemandSpent: onDemandCategorySpend} = calculateCategorySpend(
+    subscription,
+    category
+  );
+  const onDemandCategoryMax = isSharedOnDemand
+    ? // Subtract other category spend from shared on demand budget
+      onDemandTotalAvailable - onDemandTotalSpent + onDemandCategorySpend
+    : onDemandTotalAvailable;
+
+  // Round the usage width to avoid half pixel artifacts
+  const ondemandPercentUsed = Math.round(
+    getPercentage(onDemandCategorySpend, onDemandCategoryMax)
+  );
+
+  return {
+    onDemandTotalAvailable,
+    onDemandCategorySpend,
+    onDemandCategoryMax,
+    ondemandPercentUsed,
+  };
+}
 
 export function getCategoryOptions({
   plan,

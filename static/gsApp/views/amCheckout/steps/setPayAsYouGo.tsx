@@ -23,7 +23,7 @@ import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import StepHeader from 'getsentry/views/amCheckout/components/stepHeader';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
-import {getTotalBudget} from 'getsentry/views/onDemandBudgets/utils';
+import {getTotalBudget} from 'getsentry/views/spendLimits/utils';
 
 const INCREMENT_STEP = 25_00;
 

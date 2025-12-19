@@ -27,13 +27,8 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
-import withSubscription from 'getsentry/components/withSubscription';
-import type {Subscription} from 'getsentry/types';
-import {hasNewBillingUI} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
-
-import SubscriptionHeader from './subscriptionHeader';
 
 function LogUsername({logEntryUser}: {logEntryUser: User | undefined}) {
   if (logEntryUser?.isSuperuser) {
@@ -78,11 +73,6 @@ interface UsageLogs {
   rows: AuditLog[];
 }
 
-type Props = {
-  location: Location;
-  subscription: Subscription;
-};
-
 function SkeletonEntry() {
   return (
     <Timeline.Item
@@ -94,7 +84,7 @@ function SkeletonEntry() {
   );
 }
 
-function UsageLog({location, subscription}: Props) {
+function UsageLog({location}: {location: Location}) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const theme = useTheme();
@@ -155,7 +145,6 @@ function UsageLog({location, subscription}: Props) {
       value: type,
     })) ?? [];
   const selectedEventName = decodeScalar(location.query.event);
-  const isNewBillingUI = hasNewBillingUI(organization);
 
   const usageLogContent = (
     <Fragment>
@@ -229,17 +218,8 @@ function UsageLog({location, subscription}: Props) {
     </Fragment>
   );
 
-  if (!isNewBillingUI) {
-    return (
-      <SubscriptionPageContainer background="primary" organization={organization}>
-        <SubscriptionHeader subscription={subscription} organization={organization} />
-        {usageLogContent}
-      </SubscriptionPageContainer>
-    );
-  }
-
   return (
-    <SubscriptionPageContainer background="primary" organization={organization}>
+    <SubscriptionPageContainer background="primary">
       <SentryDocumentTitle title={t('Activity Logs')} orgSlug={organization.slug} />
       <SettingsPageHeader title={t('Activity Logs')} />
       {usageLogContent}
@@ -247,5 +227,4 @@ function UsageLog({location, subscription}: Props) {
   );
 }
 
-export default withSubscription(UsageLog);
-export {UsageLog};
+export default UsageLog;

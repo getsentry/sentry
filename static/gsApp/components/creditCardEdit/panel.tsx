@@ -4,16 +4,11 @@ import type {Location} from 'history';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-import {openEditCreditCard} from 'getsentry/actionCreators/modal';
 import CreditCardSetup from 'getsentry/components/creditCardEdit/setup';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {FTCConsentLocation, Subscription} from 'getsentry/types';
@@ -28,17 +23,8 @@ interface CreditCardPanelProps {
   organization: Organization;
   subscription: Subscription;
   analyticsEvent?: GetsentryEventKey;
-  isNewBillingUI?: boolean;
   maxPanelWidth?: string;
   shouldExpandInitially?: boolean;
-}
-
-function TextForField({children}: {children: React.ReactNode}) {
-  return (
-    <Flex minHeight="37px" align="center">
-      <Text as="span">{children}</Text>
-    </Flex>
-  );
 }
 
 /**
@@ -48,15 +34,12 @@ function CreditCardPanel({
   organization,
   subscription,
   location,
-  isNewBillingUI,
   budgetTerm,
   ftcLocation,
   analyticsEvent,
   shouldExpandInitially,
   maxPanelWidth,
 }: CreditCardPanelProps) {
-  const [cardLastFourDigits, setCardLastFourDigits] = useState<string | null>(null);
-  const [cardZipCode, setCardZipCode] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [fromBillingFailure, setFromBillingFailure] = useState(false);
   const [referrer, setReferrer] = useState<string | undefined>(undefined);
@@ -68,16 +51,11 @@ function CreditCardPanel({
     setFromBillingFailure(false);
     setReferrer(undefined);
 
-    setCardLastFourDigits(data.paymentSource?.last4 || null);
-    setCardZipCode(data.paymentSource?.zipCode || null);
     SubscriptionStore.set(data.slug, data);
   }, []);
 
   useEffect(() => {
-    if (subscription.paymentSource) {
-      setCardLastFourDigits(prev => prev ?? (subscription.paymentSource?.last4 || null));
-      setCardZipCode(prev => prev ?? (subscription.paymentSource?.zipCode || null));
-    } else if (expandInitially) {
+    if (expandInitially) {
       setIsEditing(true);
       setExpandInitially(false);
     }
@@ -93,65 +71,14 @@ function CreditCardPanel({
     if (referrer?.includes('billing-failure')) {
       setFromBillingFailure(true);
 
-      if (isNewBillingUI) {
-        setIsEditing(true);
-      } else {
-        openEditCreditCard({
-          organization,
-          subscription,
-          onSuccess: handleCardUpdated,
-          location,
-        });
-      }
+      setIsEditing(true);
 
       trackGetsentryAnalytics('billing_failure.button_clicked', {
         organization,
         referrer,
       });
     }
-  }, [location, isNewBillingUI, organization, subscription, handleCardUpdated, referrer]);
-
-  if (!isNewBillingUI) {
-    return (
-      <Panel className="ref-credit-card-details">
-        <PanelHeader hasButtons>
-          {t('Credit Card On File')}
-          <Button
-            data-test-id="update-card"
-            priority="primary"
-            size="sm"
-            onClick={() =>
-              openEditCreditCard({
-                organization,
-                subscription,
-                onSuccess: handleCardUpdated,
-              })
-            }
-          >
-            {t('Update card')}
-          </Button>
-        </PanelHeader>
-        <PanelBody>
-          <FieldGroup label={t('Credit Card Number')}>
-            <TextForField>
-              {cardLastFourDigits ? (
-                `xxxx xxxx xxxx ${cardLastFourDigits}`
-              ) : (
-                <em>{t('No card on file')}</em>
-              )}
-            </TextForField>
-          </FieldGroup>
-
-          <FieldGroup
-            label={t('Postal Code')}
-            help={t('Postal code associated with the card on file')}
-          >
-            <TextForField>{cardZipCode}</TextForField>
-          </FieldGroup>
-        </PanelBody>
-      </Panel>
-    );
-  }
+  }, [location, organization, subscription, referrer]);
 
   const countryName = getCountryByCode(subscription.paymentSource?.countryCode)?.name;
 

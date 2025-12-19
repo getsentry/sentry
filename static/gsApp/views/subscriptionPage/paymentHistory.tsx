@@ -30,12 +30,9 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 
 import withSubscription from 'getsentry/components/withSubscription';
 import type {InvoiceBase, Subscription} from 'getsentry/types';
-import {hasNewBillingUI} from 'getsentry/utils/billing';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
-
-import SubscriptionHeader from './subscriptionHeader';
 
 type Props = {
   organization: Organization;
@@ -52,8 +49,7 @@ enum ReceiptStatus {
 /**
  * Invoice/Payment list view.
  */
-function PaymentHistory({organization, subscription}: Props) {
-  const isNewBillingUI = hasNewBillingUI(organization);
+function PaymentHistory({organization}: Props) {
   const location = useLocation();
 
   const {
@@ -76,46 +72,8 @@ function PaymentHistory({organization, subscription}: Props) {
   const hasBillingPerms = organization.access?.includes('org:billing');
   const paymentsPageLinks = getResponseHeader?.('Link');
 
-  if (!isNewBillingUI) {
-    if (isPending) {
-      return (
-        <SubscriptionPageContainer background="primary" organization={organization}>
-          <SubscriptionHeader subscription={subscription} organization={organization} />
-          <LoadingIndicator />
-        </SubscriptionPageContainer>
-      );
-    }
-
-    if (isError) {
-      return (
-        <SubscriptionPageContainer background="primary" organization={organization}>
-          <LoadingError />
-        </SubscriptionPageContainer>
-      );
-    }
-
-    if (!hasBillingPerms) {
-      return (
-        <SubscriptionPageContainer background="primary" organization={organization}>
-          <ContactBillingMembers />
-        </SubscriptionPageContainer>
-      );
-    }
-
-    return (
-      <SubscriptionPageContainer background="primary" organization={organization}>
-        <SubscriptionHeader organization={organization} subscription={subscription} />
-        <ReceiptGrid
-          payments={payments}
-          organization={organization}
-          paymentsPageLinks={paymentsPageLinks}
-        />
-      </SubscriptionPageContainer>
-    );
-  }
-
   return (
-    <SubscriptionPageContainer background="primary" organization={organization}>
+    <SubscriptionPageContainer background="primary">
       <SentryDocumentTitle title={t('Receipts')} orgSlug={organization.slug} />
       <SettingsPageHeader title={t('Receipts')} />
       {isPending ? (
@@ -147,7 +105,6 @@ function ReceiptGrid({
   const theme = useTheme();
   const isXSmallScreen = useMedia(`(max-width: ${theme.breakpoints.xs})`);
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
-  const isNewBillingUI = hasNewBillingUI(organization);
 
   const getTag = (payment: InvoiceBase) => {
     const status = payment.amountRefunded
@@ -239,7 +196,7 @@ function ReceiptGrid({
               )}
               <Flex justify="end">
                 <LinkButton
-                  analyticsParams={{isNewBillingUI}}
+                  analyticsParams={{isNewBillingUI: true}}
                   icon={<IconDownload />}
                   href={payment.receipt.url}
                 >

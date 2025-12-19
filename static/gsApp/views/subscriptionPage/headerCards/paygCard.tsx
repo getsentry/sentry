@@ -23,14 +23,14 @@ import {
 } from 'getsentry/types';
 import {displayBudgetName, hasBillingAccess} from 'getsentry/utils/billing';
 import {displayPrice} from 'getsentry/views/amCheckout/utils';
-import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
 import {
   getTotalBudget,
   getTotalSpend,
+  openOnDemandBudgetEditModal,
+  openSpendLimitsPricingModal,
   parseOnDemandBudgetsFromSubscription,
   trackOnDemandBudgetAnalytics,
-} from 'getsentry/views/onDemandBudgets/utils';
-import {openSpendLimitsPricingModal} from 'getsentry/views/spendLimits/modal';
+} from 'getsentry/views/spendLimits/utils';
 import SubscriptionHeaderCard from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
 
 function PaygCard({

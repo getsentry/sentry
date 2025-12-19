@@ -87,7 +87,7 @@ import {
   getTotalBudget,
   hasOnDemandBudgetsFeature,
   parseOnDemandBudgetsFromSubscription,
-} from 'getsentry/views/onDemandBudgets/utils';
+} from 'getsentry/views/spendLimits/utils';
 
 type Props = {
   api: Client;
