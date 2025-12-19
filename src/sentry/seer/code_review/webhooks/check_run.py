@@ -80,7 +80,7 @@ class GitHubCheckRunEvent(BaseModel):
         extra = "allow"  # Allow additional fields from GitHub (Pydantic v1 syntax)
 
 
-def preprocess_check_run_event(event: Mapping[str, Any], **kwargs: Any) -> bool:
+def preprocess_check_run_event(event: Mapping[str, Any], **kwargs: Any) -> None:
     """
     This is called when a check_run event is received from GitHub.
     When a user clicks "Re-run" on a check run in GitHub UI, we enqueue
@@ -89,9 +89,6 @@ def preprocess_check_run_event(event: Mapping[str, Any], **kwargs: Any) -> bool:
     Args:
         event: The webhook event payload
         **kwargs: Additional keyword arguments
-
-    Returns:
-        True if the event was preprocessed successfully (task scheduled), False otherwise
     """
     action = event.get("action")
     # We can use html_url to search through the logs for this event.
@@ -106,7 +103,7 @@ def preprocess_check_run_event(event: Mapping[str, Any], **kwargs: Any) -> bool:
             f"{Metrics.ERROR.value}",
             tags={**tags, "error_status": ErrorStatus.MISSING_ORGANIZATION.value},
         )
-        return False
+        return
 
     if action is None:
         logger.error(Log.MISSING_ACTION.value, extra=extra)
@@ -114,17 +111,17 @@ def preprocess_check_run_event(event: Mapping[str, Any], **kwargs: Any) -> bool:
             f"{Metrics.ERROR.value}",
             tags={**tags, "error_status": ErrorStatus.MISSING_ACTION.value},
         )
-        return False
+        return
 
     if action != GitHubCheckRunAction.REREQUESTED:
-        return False
+        return
 
     if not has_code_review_enabled(organization):
         metrics.incr(
             f"{Metrics.ERROR.value}",
             tags={**tags, "error_status": ErrorStatus.CODE_REVIEW_NOT_ENABLED.value},
         )
-        return False
+        return
 
     try:
         validated_event = _validate_github_check_run_event(event)
@@ -135,7 +132,7 @@ def preprocess_check_run_event(event: Mapping[str, Any], **kwargs: Any) -> bool:
             f"{Metrics.ERROR.value}",
             tags={**tags, "error_status": ErrorStatus.INVALID_PAYLOAD.value},
         )
-        return False
+        return
 
     # Import here to avoid circular dependency with webhook_task
     from ..webhook_task import process_github_webhook_event
@@ -147,9 +144,6 @@ def preprocess_check_run_event(event: Mapping[str, Any], **kwargs: Any) -> bool:
         html_url=validated_event.check_run.html_url,
         enqueued_at_str=datetime.now(timezone.utc).isoformat(),
     )
-
-    # Let's see if anything checks on this
-    return False
 
 
 def _validate_github_check_run_event(event: Mapping[str, Any]) -> GitHubCheckRunEvent:
