@@ -25,6 +25,7 @@ from sentry.seer.endpoints.seer_rpc import (
     get_sentry_organization_ids,
 )
 from sentry.seer.explorer.tools import get_trace_item_attributes
+from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode_of
 
@@ -916,7 +917,7 @@ class TestSeerRpcMethods(APITestCase):
             "success": False,
             "error": "Seer webhooks are not enabled for this organization",
         }
-        mock_features_has.assert_called_once_with("organizations:seer-webhooks", self.organization)
+        mock_features_has.assert_called_with("organizations:seer-webhooks", self.organization)
 
     @patch("sentry.features.has")
     @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
@@ -933,7 +934,7 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         assert result == {"success": True}
-        mock_features_has.assert_called_once_with("organizations:seer-webhooks", self.organization)
+        mock_features_has.assert_called_with("organizations:seer-webhooks", self.organization)
         mock_delay.assert_called_once_with(
             resource_name="seer",
             event_name="root_cause_started",
@@ -967,6 +968,52 @@ class TestSeerRpcMethods(APITestCase):
 
         # Verify that the task was called for each valid event
         assert mock_delay.call_count == len(seer_events)
+
+    @patch("sentry.seer.endpoints.seer_rpc.SeerOperator")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
+    def test_send_seer_webhook_operator_no_feature_flag(
+        self, mock_broadcast, mock_operator
+    ) -> None:
+        """Slack workflows flag should not affect broadcasting the webhooks."""
+        from sentry.seer.endpoints.seer_rpc import send_seer_webhook
+
+        with self.feature("organizations:seer-webhooks"):
+            result = send_seer_webhook(
+                event_name="root_cause_completed",
+                organization_id=self.organization.id,
+                payload={"run_id": 123},
+            )
+
+        assert result["success"]
+        mock_operator.process_autofix_updates.assert_not_called()
+        mock_broadcast.assert_called_once()
+
+    @patch("sentry.seer.endpoints.seer_rpc.SeerOperator")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
+    def test_send_seer_webhook_operator(self, mock_broadcast, mock_operator) -> None:
+        """Slack workflows flag should not affect broadcasting the webhooks."""
+        from sentry.seer.endpoints.seer_rpc import send_seer_webhook
+
+        event_payload = {"run_id": 123}
+        event_name = "root_cause_completed"
+
+        with (
+            self.feature("organizations:seer-webhooks"),
+            self.feature("organizations:seer-slack-workflows"),
+        ):
+            result = send_seer_webhook(
+                event_name=event_name,
+                organization_id=self.organization.id,
+                payload=event_payload,
+            )
+
+        assert result["success"]
+        mock_operator.process_autofix_updates.assert_called_once_with(
+            run_id=event_payload["run_id"],
+            event_type=SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED,
+            event_payload=event_payload,
+        )
+        mock_broadcast.assert_called_once()
 
     def test_check_repository_integrations_status_empty_list(self) -> None:
         """Test with empty input list"""

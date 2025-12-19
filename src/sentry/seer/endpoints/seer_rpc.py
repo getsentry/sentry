@@ -807,7 +807,7 @@ def get_github_enterprise_integration_config(
     }
 
 
-def handle_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -> dict:
+def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -> dict:
     """
     Handles receipt (in Sentry, from Seer) of a seer webhook event for an organization.
 
@@ -1013,7 +1013,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_organization_autofix_consent": get_organization_autofix_consent,
     "get_error_event_details": get_error_event_details,
     "get_profile_details": get_profile_details,
-    "send_seer_webhook": handle_seer_webhook,
+    "send_seer_webhook": send_seer_webhook,
     "get_attributes_for_span": get_attributes_for_span,
     "trigger_coding_agent_launch": trigger_coding_agent_launch,
     #
