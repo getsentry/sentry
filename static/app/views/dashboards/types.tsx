@@ -5,6 +5,7 @@ import type {Tag} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {SavedQueryDatasets, type DatasetSource} from 'sentry/utils/discover/types';
 import type {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {SlideoutId} from 'sentry/views/dashboards/utils/useWidgetSlideout';
 
 import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholds';
 
@@ -105,6 +106,10 @@ export type WidgetQuery = {
   onDemand?: WidgetQueryOnDemand[];
   // Aggregate selected for the Big Number widget builder
   selectedAggregate?: number;
+  // Links the widget query to a slide out panel if exists.
+  // TODO: currently not stored in the backend, only used
+  // by prebuilt dashboards in the frontend.
+  slideOutId?: SlideoutId;
 };
 
 type WidgetChangedReason = {

@@ -1,6 +1,7 @@
 import {t} from 'sentry/locale';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {type PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {SlideoutId} from 'sentry/views/dashboards/utils/useWidgetSlideout';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 
 export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
@@ -111,6 +112,7 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           aggregates: ['p75(measurements.lcp)', 'avg(measurements.score.ratio.lcp)'],
           columns: [],
           orderby: '',
+          slideOutId: SlideoutId.LCP_SUMMARY,
         },
       ],
       layout: {
@@ -135,6 +137,7 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           aggregates: ['p75(measurements.fcp)', 'avg(measurements.score.ratio.fcp)'],
           columns: [],
           orderby: '',
+          slideOutId: SlideoutId.FCP_SUMMARY,
         },
       ],
       layout: {
@@ -159,6 +162,7 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           aggregates: ['p75(measurements.inp)', 'avg(measurements.score.ratio.inp)'],
           columns: [],
           orderby: '',
+          slideOutId: SlideoutId.INP_SUMMARY,
         },
       ],
       layout: {
@@ -183,6 +187,7 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           aggregates: ['p75(measurements.cls)', 'avg(measurements.score.ratio.cls)'],
           columns: [],
           orderby: '',
+          slideOutId: SlideoutId.CLS_SUMMARY,
         },
       ],
       layout: {
@@ -207,6 +212,7 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           aggregates: ['p75(measurements.ttfb)', 'avg(measurements.score.ratio.ttfb)'],
           columns: [],
           orderby: '',
+          slideOutId: SlideoutId.TTFB_SUMMARY,
         },
       ],
       layout: {
