@@ -133,23 +133,7 @@ export type ButtonVariant =
 // Internal types
 // -----------------------------------------------------------------------------
 
-type SizeKeys = readonly [
-  '0',
-  '2xs',
-  'xs',
-  'sm',
-  'md',
-  'lg',
-  'xl',
-  '2xl',
-  '3xl',
-  '4xl',
-  '5xl',
-  '6xl',
-  '7xl',
-  '8xl',
-  '9xl',
-];
+type SizeKeys = readonly ['0', '2xs', 'xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'];
 
 // Extracts a contiguous range of keys from the size scale
 type ExtractRange<
