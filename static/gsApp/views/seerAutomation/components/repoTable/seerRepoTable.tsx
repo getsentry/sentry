@@ -142,27 +142,6 @@ export default function SeerRepoTable() {
     );
   }
 
-  if (filteredRepositories.length === 0) {
-    return (
-      <RepoTable
-        mutateRepositorySettings={mutateRepositorySettings}
-        onSortClick={setSort}
-        repositories={filteredRepositories}
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        sort={sort}
-      >
-        <SimpleTable.Empty>
-          {searchTerm
-            ? tct('No repositories found matching [searchTerm]', {
-                searchTerm: <code>{searchTerm}</code>,
-              })
-            : t('No repositories found')}
-        </SimpleTable.Empty>
-      </RepoTable>
-    );
-  }
-
   return (
     <ListItemCheckboxProvider
       hits={filteredRepositories.length}
@@ -177,14 +156,24 @@ export default function SeerRepoTable() {
         setSearchTerm={setSearchTerm}
         sort={sort}
       >
-        {filteredRepositories.map(repository => (
-          <SeerRepoTableRow
-            key={repository.id}
-            mutateRepositorySettings={mutateRepositorySettings}
-            mutationData={mutationData}
-            repository={repository}
-          />
-        ))}
+        {filteredRepositories.length === 0 ? (
+          <SimpleTable.Empty>
+            {searchTerm
+              ? tct('No repositories found matching [searchTerm]', {
+                  searchTerm: <code>{searchTerm}</code>,
+                })
+              : t('No repositories found')}
+          </SimpleTable.Empty>
+        ) : (
+          filteredRepositories.map(repository => (
+            <SeerRepoTableRow
+              key={repository.id}
+              mutateRepositorySettings={mutateRepositorySettings}
+              mutationData={mutationData}
+              repository={repository}
+            />
+          ))
+        )}
       </RepoTable>
     </ListItemCheckboxProvider>
   );

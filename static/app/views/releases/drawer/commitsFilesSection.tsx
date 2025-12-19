@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Badge} from 'sentry/components/core/badge';
 import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import LoadingError from 'sentry/components/loadingError';
@@ -58,7 +60,7 @@ export function CommitsFilesSection({
     <Tabs disabled={isError}>
       <TabListWithSpace>
         <TabList.Item key="commits" textValue={t('Commits')}>
-          <TitleWithBadge>
+          <Flex>
             <span>{t('Commits')}</span>
             <Badge type="default">
               {isLoadingMeta
@@ -67,10 +69,10 @@ export function CommitsFilesSection({
                   ? 'x'
                   : (releaseMeta?.commitCount ?? '0')}
             </Badge>
-          </TitleWithBadge>
+          </Flex>
         </TabList.Item>
         <TabList.Item key="files" textValue={t('File Changes')}>
-          <TitleWithBadge>
+          <Flex>
             <span>{t('File Changes')}</span>
             <Badge type="default">
               {isLoadingMeta
@@ -79,7 +81,7 @@ export function CommitsFilesSection({
                   ? 'x'
                   : (releaseMeta?.commitFilesChanged ?? '0')}
             </Badge>
-          </TitleWithBadge>
+          </Flex>
         </TabList.Item>
       </TabListWithSpace>
       {isLoading ? (
@@ -116,10 +118,6 @@ export function CommitsFilesSection({
     </Tabs>
   );
 }
-
-const TitleWithBadge = styled('div')`
-  display: flex;
-`;
 
 const TabListWithSpace = styled(TabList)`
   margin-bottom: ${space(1)};
