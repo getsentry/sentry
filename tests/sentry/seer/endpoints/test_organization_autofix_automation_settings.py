@@ -518,7 +518,6 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
     @patch(
         "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
     )
-
     def test_post_appends_repos_when_append_flag_true(
         self, mock_bulk_get_preferences, mock_bulk_set_preferences
     ):
@@ -661,4 +660,3 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
             assert (
                 audit_log.data["automated_run_stopping_point"] == AutofixStoppingPoint.OPEN_PR.value
             )
-
