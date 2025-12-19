@@ -214,77 +214,84 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
         """
         Transform EAP protobuf response into dashboard time-series format: [[timestamp, [{"count": value}]], ...]
         """
-        buckets: dict[int, list[float]] = defaultdict(list)
+        column_values = response.column_values
+        if not column_values:
+            return self._generate_empty_buckets(start, end, interval_seconds)
 
         column_map: dict[str, int] = {}
-        column_values = response.column_values
-
-        if not column_values:
-            result: list[tuple[int, list[dict[str, Any]]]] = []
-            start_ts = int(start.timestamp())
-            current = int(start_ts // interval_seconds * interval_seconds)
-            end_ts = int(end.timestamp())
-            while current < end_ts:
-                result.append((current, [{"count": None}]))
-                current += interval_seconds
-            return result
-
         for idx, column_value in enumerate(column_values):
             column_map[column_value.attribute_name] = idx
 
         if aggregate_field not in column_map:
-            result = []
-            start_ts = int(start.timestamp())
-            current = int(start_ts // interval_seconds * interval_seconds)
-            end_ts = int(end.timestamp())
-            while current < end_ts:
-                result.append((current, [{"count": None}]))
-                current += interval_seconds
-            return result
+            raise ValueError(f"Required field '{aggregate_field}' not found in EAP response")
+
+        timestamp_idx = column_map.get("timestamp")
+        if timestamp_idx is None:
+            raise ValueError("Required 'timestamp' column not found in EAP response")
 
         field_idx = column_map[aggregate_field]
-        timestamp_idx = column_map.get("timestamp")
-
-        if timestamp_idx is None:
-            # No timestamp column, return None values
-            result = []
-            start_ts = int(start.timestamp())
-            current = int(start_ts // interval_seconds * interval_seconds)
-            end_ts = int(end.timestamp())
-            while current < end_ts:
-                result.append((current, [{"count": None}]))
-                current += interval_seconds
-            return result
-
         num_rows = len(column_values[0].results)
+
+        for column in column_values:
+            if len(column.results) != num_rows:
+                raise ValueError(
+                    f"EAP response has inconsistent column lengths: expected {num_rows}, "
+                    f"got {len(column.results)} for column '{column.attribute_name}'"
+                )
+
+        buckets: dict[int, list[float]] = defaultdict(list)
 
         for row_idx in range(num_rows):
             timestamp_result = column_values[timestamp_idx].results[row_idx]
-
-            if timestamp_result.HasField("val_double"):
-                timestamp = timestamp_result.val_double
-            elif timestamp_result.HasField("val_float"):
-                timestamp = timestamp_result.val_float
-            else:
+            timestamp = self._extract_numeric_value(timestamp_result)
+            if timestamp is None:
                 continue
 
             bucket_ts = int(timestamp // interval_seconds * interval_seconds)
 
             value_result = column_values[field_idx].results[row_idx]
-            value = None
-
-            if value_result.HasField("val_int"):
-                value = float(value_result.val_int)
-            elif value_result.HasField("val_double"):
-                value = value_result.val_double
-            elif value_result.HasField("val_float"):
-                value = value_result.val_float
+            value = self._extract_numeric_value(value_result)
 
             if value is not None:
                 buckets[bucket_ts].append(value)
 
-        result = []
-        # Align start time to interval boundary
+        return self._aggregate_buckets(buckets, start, end, interval_seconds, aggregate_func)
+
+    def _extract_numeric_value(self, result: AttributeValue) -> float | None:
+        """Extract numeric value from protobuf result, supporting int/float/double."""
+        if result.HasField("val_int"):
+            return float(result.val_int)
+        elif result.HasField("val_double"):
+            return result.val_double
+        elif result.HasField("val_float"):
+            return result.val_float
+        return None
+
+    def _generate_empty_buckets(
+        self, start: datetime, end: datetime, interval_seconds: int
+    ) -> list[tuple[int, list[dict[str, Any]]]]:
+        """Generate time buckets with None values when no data is available."""
+        result: list[tuple[int, list[dict[str, Any]]]] = []
+        start_ts = int(start.timestamp())
+        current = int(start_ts // interval_seconds * interval_seconds)
+        end_ts = int(end.timestamp())
+
+        while current < end_ts:
+            result.append((current, [{"count": None}]))
+            current += interval_seconds
+
+        return result
+
+    def _aggregate_buckets(
+        self,
+        buckets: dict[int, list[float]],
+        start: datetime,
+        end: datetime,
+        interval_seconds: int,
+        aggregate_func: str,
+    ) -> list[tuple[int, list[dict[str, Any]]]]:
+        """Aggregate bucketed values and generate final time series."""
+        result: list[tuple[int, list[dict[str, Any]]]] = []
         start_ts = int(start.timestamp())
         current = int(start_ts // interval_seconds * interval_seconds)
         end_ts = int(end.timestamp())
@@ -293,7 +300,6 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
             values = buckets.get(current, [])
 
             if not values:
-                # Use None for missing data so chart interpolates instead of showing 0
                 aggregated = None
             elif aggregate_func == "max":
                 aggregated = max(values)
@@ -306,9 +312,7 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
             else:
                 aggregated = None
 
-            result.append(
-                (current, [{"count": int(aggregated) if aggregated is not None else None}])
-            )
+            result.append((current, [{"count": aggregated}]))
             current += interval_seconds
 
         return result
