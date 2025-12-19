@@ -2,23 +2,10 @@ import {useCallback} from 'react';
 
 import useDrawer from 'sentry/components/globalDrawer';
 import {t} from 'sentry/locale';
-import type {Widget} from 'sentry/views/dashboards/types';
+import {SlideoutId, type Widget} from 'sentry/views/dashboards/types';
 import {PageOverviewWebVitalsDetailPanel} from 'sentry/views/insights/browser/webVitals/components/pageOverviewWebVitalsDetailPanel';
 import {WebVitalsDetailPanel} from 'sentry/views/insights/browser/webVitals/components/webVitalsDetailPanel';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
-
-export enum SlideoutId {
-  LCP = 'lcp',
-  FCP = 'fcp',
-  INP = 'inp',
-  CLS = 'cls',
-  TTFB = 'ttfb',
-  LCP_SUMMARY = 'lcp-summary',
-  FCP_SUMMARY = 'fcp-summary',
-  INP_SUMMARY = 'inp-summary',
-  CLS_SUMMARY = 'cls-summary',
-  TTFB_SUMMARY = 'ttfb-summary',
-}
 
 function getSlideoutComponent(widget: Widget): React.ReactNode | null {
   // We assume the slideout id (if it exists) is always on the first query

@@ -1,8 +1,7 @@
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType, SlideoutId, WidgetType} from 'sentry/views/dashboards/types';
 import {type PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {SlideoutId} from 'sentry/views/dashboards/utils/useWidgetSlideout';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import {SpanFields} from 'sentry/views/insights/types';
 

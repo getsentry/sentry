@@ -1,7 +1,6 @@
 import {t} from 'sentry/locale';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType, SlideoutId, WidgetType} from 'sentry/views/dashboards/types';
 import {type PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {SlideoutId} from 'sentry/views/dashboards/utils/useWidgetSlideout';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 
 export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {

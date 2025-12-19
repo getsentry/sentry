@@ -5,7 +5,6 @@ import type {Tag} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {SavedQueryDatasets, type DatasetSource} from 'sentry/utils/discover/types';
 import type {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {SlideoutId} from 'sentry/views/dashboards/utils/useWidgetSlideout';
 
 import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholds';
 
@@ -239,4 +238,17 @@ export enum DashboardWidgetSource {
   TRACE_EXPLORER = 'traceExplorer',
   LOGS = 'logs',
   INSIGHTS = 'insights',
+}
+
+export enum SlideoutId {
+  LCP = 'lcp',
+  FCP = 'fcp',
+  INP = 'inp',
+  CLS = 'cls',
+  TTFB = 'ttfb',
+  LCP_SUMMARY = 'lcp-summary',
+  FCP_SUMMARY = 'fcp-summary',
+  INP_SUMMARY = 'inp-summary',
+  CLS_SUMMARY = 'cls-summary',
+  TTFB_SUMMARY = 'ttfb-summary',
 }
