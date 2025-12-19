@@ -1551,12 +1551,10 @@ function buildRoutes(): RouteObject[] {
         {
           path: 'crons/',
           component: make(() => import('sentry/views/alerts/rules/crons')),
-          deprecatedRouteProps: true,
           children: [
             {
               path: ':projectId/:monitorSlug/details/',
               component: make(() => import('sentry/views/alerts/rules/crons/details')),
-              deprecatedRouteProps: true,
             },
           ],
         },
@@ -1910,14 +1908,6 @@ function buildRoutes(): RouteObject[] {
             component: make(
               () =>
                 import('sentry/views/performance/transactionSummary/transactionReplays')
-            ),
-          },
-          {
-            path: 'vitals/',
-            handle: {tab: TransactionSummaryTab.WEB_VITALS},
-            component: make(
-              () =>
-                import('sentry/views/performance/transactionSummary/transactionVitals')
             ),
           },
           {
@@ -2498,6 +2488,10 @@ function buildRoutes(): RouteObject[] {
             {
               path: 'new/',
               component: make(() => import('sentry/views/prevent/preventAI/onboarding')),
+            },
+            {
+              path: 'home/',
+              component: make(() => import('sentry/views/prevent/preventAI/index')),
             },
           ],
         },

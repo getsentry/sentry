@@ -60,6 +60,7 @@ class SupportedTraceItemType(str, Enum):
     TRACEMETRICS = "tracemetrics"
     PROFILE_FUNCTIONS = "profile_functions"
     PREPROD = "preprod"
+    ATTACHMENTS = "attachments"
 
 
 class AttributeSourceType(str, Enum):

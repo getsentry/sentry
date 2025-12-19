@@ -143,12 +143,15 @@ def execute_table_query(
         sort_field = sort.lstrip("-")
         if sort_field not in fields:
             fields.append(sort_field)
+    elif "timestamp" in fields:
+        # Default to -timestamp only if timestamp was selected.
+        sort = "-timestamp"
 
     params: dict[str, Any] = {
         "dataset": dataset,
         "field": fields,
         "query": query or None,
-        "sort": sort if sort else ("-timestamp" if "timestamp" in fields else None),
+        "sort": sort,
         "per_page": per_page,
         "statsPeriod": stats_period,
         "start": start,
@@ -291,7 +294,7 @@ def execute_trace_table_query(
     *,
     organization_id: int,
     query: str | None = None,
-    sort: str = "-timestamp",
+    sort: str | None = None,
     per_page: int,
     project_ids: list[int] | None = None,
     project_slugs: list[str] | None = None,
