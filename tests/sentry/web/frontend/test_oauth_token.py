@@ -326,7 +326,9 @@ class OAuthTokenCodeTest(TestCase):
             },
         )
 
-        # Should fail because application is not active
+        # Should fail because application is not active.
+        # Per RFC 6749 §5.2, this is invalid_grant (grant is "revoked") not invalid_client
+        # (client authentication succeeded - we verified the credentials).
         assert resp.status_code == 400
         assert resp.json() == {"error": "invalid_grant"}
 
@@ -655,9 +657,11 @@ class OAuthTokenRefreshTokenTest(TestCase):
             },
         )
 
-        # Should fail because application is not active
+        # Should fail because application is not active.
+        # Per RFC 6749 §5.2, this is invalid_grant (token is "revoked") not invalid_client
+        # (client authentication succeeded - we verified the credentials).
         assert resp.status_code == 400
-        assert resp.json() == {"error": "invalid_client"}
+        assert resp.json() == {"error": "invalid_grant"}
 
         # Verify the token was not refreshed (still has old values)
         token_after = ApiToken.objects.get(id=self.token.id)

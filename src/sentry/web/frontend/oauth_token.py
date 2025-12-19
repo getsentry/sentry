@@ -138,10 +138,12 @@ class OAuthTokenView(View):
             return self.error(request=request, name="unsupported_grant_type")
 
         try:
+            # Note: We don't filter by status here to distinguish between invalid
+            # credentials (unknown client) and inactive applications. This allows
+            # proper grant cleanup per RFC 6749 §10.5 and clearer metrics.
             application = ApiApplication.objects.get(
                 client_id=client_id,
                 client_secret=client_secret,
-                status=ApiApplicationStatus.active,
             )
         except ApiApplication.DoesNotExist:
             metrics.incr(
@@ -154,6 +156,31 @@ class OAuthTokenView(View):
                 name="invalid_client",
                 reason="invalid client_id or client_secret",
                 status=401,
+            )
+
+        # Check application status separately from credential validation.
+        # This preserves metric clarity and provides consistent error handling.
+        if application.status != ApiApplicationStatus.active:
+            metrics.incr(
+                "oauth_token.post.inactive_application",
+                sample_rate=1.0,
+            )
+            logger.warning(
+                "Token request for inactive application",
+                extra={"client_id": client_id, "application_id": application.id},
+            )
+            # For authorization_code, invalidate the grant per RFC 6749 §10.5
+            if grant_type == GrantTypes.AUTHORIZATION:
+                code = request.POST.get("code")
+                if code:
+                    ApiGrant.objects.filter(application=application, code=code).delete()
+            # Use invalid_grant per RFC 6749 §5.2: grants/tokens are effectively "revoked"
+            # when the application is deactivated. invalid_client would be incorrect here
+            # since client authentication succeeded (we verified the credentials).
+            return self.error(
+                request=request,
+                name="invalid_grant",
+                reason="application not active",
             )
 
         # Defense-in-depth: verify the application's client_id matches the request.
@@ -327,11 +354,6 @@ class OAuthTokenView(View):
         # TODO(dcramer): support scope
         if scope:
             return {"error": "invalid_request"}
-
-        # Check application status to prevent inactive applications from refreshing tokens.
-        # This prevents deactivated applications from generating new access tokens.
-        if application.status != ApiApplicationStatus.active:
-            return {"error": "invalid_client", "reason": "application not active"}
 
         try:
             refresh_token = ApiToken.objects.get(
