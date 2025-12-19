@@ -34,7 +34,7 @@ describe('ScoreBar', () => {
         size={60}
         thickness={2}
         score={7}
-        palette={['white', 'red', 'red', 'pink', 'pink', 'purple', 'purple', 'black']}
+        palette={['red', 'red', 'pink', 'pink', 'purple', 'purple']}
       />
     );
   });

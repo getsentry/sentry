@@ -44,7 +44,7 @@ const SentryAppAvatarWrapper = styled('span')<{
   isDisabled?: boolean;
 }>`
   color: ${({isDark, isDisabled, theme}) =>
-    isDisabled ? theme.disabled : isDark ? 'white' : 'black'};
+    isDisabled ? theme.disabled : isDark ? theme.colors.white : theme.colors.black};
   filter: ${p => (p.isDark && !p.isDefault ? 'invert(1)' : 'invert(0)')};
   line-height: 0;
   flex-shrink: 0;

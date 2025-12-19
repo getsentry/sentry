@@ -516,7 +516,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   }
 
   makeBarTextColor(inside: boolean, theme: Theme): string {
-    return inside ? 'white' : theme.subText;
+    return inside ? theme.colors.white : theme.subText;
   }
 
   /**

@@ -72,10 +72,10 @@ SecondaryNav.Header = function SecondaryNavHeader({children}: {children?: ReactN
           borderless={isCollapsed ? false : true}
           size="xs"
           icon={
-            <IconChevron
+            <StyledIconChevron
+              collapsed={isCollapsed}
               direction={isCollapsed ? 'right' : 'left'}
               isDouble
-              color={isCollapsed ? 'white' : undefined}
             />
           }
           aria-label={isCollapsed ? t('Expand') : t('Collapse')}
@@ -91,6 +91,10 @@ SecondaryNav.Header = function SecondaryNavHeader({children}: {children?: ReactN
     </Header>
   );
 };
+
+const StyledIconChevron = styled(IconChevron)<{collapsed: boolean}>`
+  color: ${p => (p.collapsed ? p.theme.colors.white : undefined)};
+`;
 
 SecondaryNav.Body = function SecondaryNavBody({children}: {children: ReactNode}) {
   const {layout} = useNavContext();

@@ -18,10 +18,6 @@ function ProductTrialRibbon({
   potentialProductTrial: ProductTrial | null;
 }) {
   const theme = useTheme();
-  const iconProps = {
-    size: 'xs' as const,
-    color: 'white' as const,
-  };
   const ribbonColor = activeProductTrial
     ? theme.tokens.graphics.promotion
     : theme.tokens.graphics.accent;
@@ -40,9 +36,9 @@ function ProductTrialRibbon({
       <RibbonBase ribbonColor={ribbonColor}>
         <Tooltip title={tooltipContent}>
           {activeProductTrial ? (
-            <IconClock {...iconProps} />
+            <StyledIconClock size="xs" />
           ) : (
-            <IconLightning {...iconProps} />
+            <StyledIconLightning size="xs" />
           )}
         </Tooltip>
       </RibbonBase>
@@ -55,6 +51,14 @@ function ProductTrialRibbon({
 }
 
 export default ProductTrialRibbon;
+
+const StyledIconClock = styled(IconClock)`
+  color: ${p => p.theme.colors.white};
+`;
+
+const StyledIconLightning = styled(IconLightning)`
+  color: ${p => p.theme.colors.white};
+`;
 
 const RibbonContainer = styled('td')`
   display: flex;

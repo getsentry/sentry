@@ -67,9 +67,9 @@ export function SelectOption(props: Props) {
               <Fragment>
                 <CheckWrap isMultiple={isMultiple} isSelected={isSelected} size={size}>
                   {isSelected && (
-                    <IconCheckmark
+                    <StyledIconCheckmark
                       size={isMultiple ? 'xs' : 'sm'}
-                      color={isMultiple ? 'white' : undefined}
+                      isMultiple={isMultiple}
                     />
                   )}
                 </CheckWrap>
@@ -82,6 +82,10 @@ export function SelectOption(props: Props) {
     </ClassNames>
   );
 }
+
+const StyledIconCheckmark = styled(IconCheckmark)<{isMultiple: boolean}>`
+  color: ${p => (p.isMultiple ? p.theme.colors.white : undefined)};
+`;
 
 const CheckWrap = withChonk(
   styled('div')<{

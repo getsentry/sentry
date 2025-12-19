@@ -1662,7 +1662,7 @@ export class VirtualizedViewManager {
           return;
         }
 
-        text.ref.style.color = inside ? 'white' : '';
+        text.ref.style.color = inside ? this.theme.colors.white : '';
         text.ref.style.transform = `translateX(${text_transform}px)`;
       }
     }
