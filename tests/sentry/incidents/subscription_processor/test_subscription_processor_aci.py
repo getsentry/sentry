@@ -2,15 +2,14 @@ import copy
 from datetime import timedelta
 from functools import cached_property
 from unittest.mock import MagicMock, call, patch
+from uuid import uuid4
 
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
 from sentry.incidents.subscription_processor import SubscriptionProcessor
-from sentry.snuba.dataset import Dataset
-from uuid import uuid4
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
-from sentry.snuba.dataset import EntityKey
+from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.models import QuerySubscription
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
@@ -23,7 +22,7 @@ from tests.sentry.incidents.subscription_processor.test_subscription_processor_b
 
 class ProcessUpdateTest(ProcessUpdateBaseClass):
     """
-    Test early return scenarios + simple cases.
+    Test early return scenarios and simple cases.
     """
 
     def test_simple(self) -> None:
