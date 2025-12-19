@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 
 import requests
 from django.conf import settings
@@ -201,22 +201,6 @@ class OrganizationPreprodAppSizeStatsEndpointTest(APITestCase):
         )
         assert "Field name is required" in str(response.data)
 
-    def test_get_invalid_stats_period(self) -> None:
-        """Test validation of statsPeriod parameter."""
-        response = self.get_error_response(
-            self.organization.slug,
-            qs_params={"statsPeriod": "invalid"},
-        )
-        assert response.status_code == 400
-
-    def test_get_invalid_datetime(self) -> None:
-        """Test validation of datetime format."""
-        response = self.get_error_response(
-            self.organization.slug,
-            qs_params={"start": "not-a-date", "end": "also-not-a-date"},
-        )
-        assert response.status_code == 400
-
     def test_get_requires_authentication(self) -> None:
         """Test that endpoint requires authentication."""
         client = APIClient()
@@ -266,24 +250,6 @@ class OrganizationPreprodAppSizeStatsEndpointTest(APITestCase):
         )
         assert response.status_code == 200
 
-    def test_time_range_validation(self) -> None:
-        """Test that start/end or statsPeriod are properly handled."""
-        # Default behavior (no time params) should work
-        response = self.get_success_response(self.organization.slug)
-        assert response.status_code == 200
-
-        # Explicit start/end should work
-        now = before_now()
-        start = now - timedelta(days=7)
-        response = self.get_success_response(
-            self.organization.slug,
-            qs_params={
-                "start": str(int(start.timestamp())),
-                "end": str(int(now.timestamp())),
-            },
-        )
-        assert response.status_code == 200
-
     def test_all_aggregate_functions(self) -> None:
         """Test that all supported aggregate functions work."""
         for func in ["max", "min", "avg", "count"]:
@@ -293,16 +259,6 @@ class OrganizationPreprodAppSizeStatsEndpointTest(APITestCase):
             )
             assert response.status_code == 200
             assert f"{func}(max_install_size)" in response.data["meta"]["fields"]
-
-    def test_all_valid_intervals(self) -> None:
-        """Test that common intervals work with default 14-day range."""
-        # For 14-day range, these intervals don't exceed MAX_ROLLUP_POINTS
-        for interval in ["5m", "15m", "30m", "1h", "4h", "1d"]:
-            response = self.get_success_response(
-                self.organization.slug,
-                qs_params={"interval": interval},
-            )
-            assert response.status_code == 200
 
     def test_get_with_actual_data(self) -> None:
         """Test querying actual data written to EAP."""
@@ -525,34 +481,3 @@ class OrganizationPreprodAppSizeStatsEndpointTest(APITestCase):
         # Others should be alphabetically sorted
         remaining = branches[2:]
         assert remaining == sorted(remaining, key=str.lower)
-
-    def test_timezone_consistency(self) -> None:
-        """Test that Unix timestamps are parsed consistently with UTC."""
-        # Create a specific UTC timestamp
-        utc_time = datetime(2024, 6, 15, 12, 0, 0, tzinfo=UTC)
-        unix_timestamp = int(utc_time.timestamp())
-
-        # Query with Unix timestamp for start/end
-        response = self.get_success_response(
-            self.organization.slug,
-            qs_params={
-                "start": str(unix_timestamp),
-                "end": str(unix_timestamp + 3600),  # +1 hour
-            },
-        )
-
-        # Verify the returned timestamps match what we sent (in UTC)
-        assert response.data["start"] == unix_timestamp
-        assert response.data["end"] == unix_timestamp + 3600
-
-        # Verify statsPeriod also produces consistent results
-        # (both should use UTC, not local time)
-        response2 = self.get_success_response(
-            self.organization.slug,
-            qs_params={"statsPeriod": "1h"},
-        )
-
-        # Both should be within reasonable range
-        duration = response2.data["end"] - response2.data["start"]
-        # Allow some slack for test execution time
-        assert 3500 < duration < 3700

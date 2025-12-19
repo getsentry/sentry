@@ -123,10 +123,10 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
 
             return Response(result)
 
-        except InvalidParams as e:
+        except InvalidParams:
             logger.exception("Invalid parameters for app size stats request")
             raise ParseError("Invalid query parameters")
-        except (ValueError, KeyError) as e:
+        except (ValueError, KeyError):
             logger.exception("Error while parsing app size stats request")
             raise ParseError("Invalid request parameters")
 
