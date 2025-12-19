@@ -9,6 +9,7 @@ from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.environment import Environment
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages
+from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
@@ -1217,8 +1218,24 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             # Total should be 10 + 5 = 15 (weighted sum, not 2 raw events)
             assert total_count == 15
 
+    def test_eap_read_path(self) -> None:
+        with self.options({EAPOccurrencesComparator._should_eval_option_name(): True}):
+            gk = self.ts.get_group_tag_key(
+                self.proj1group1,
+                None,
+                "foo",
+                tenant_ids={"referrer": "r", "organization_id": 1234},
+                start=self.now - timedelta(days=5),
+                end=self.now + timedelta(days=5),
+            )
+
+            assert gk.key == "foo"
+            assert gk.values_seen == 1
+            assert gk.top_values[0].value == "bar"
+
 
 class ProfilingTagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
+
     def setUp(self) -> None:
         super().setUp()
         self.ts = SnubaTagStorage()

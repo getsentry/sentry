@@ -496,10 +496,10 @@ const StyledNavLink = styled(Link, {
       }
 
       &[aria-current='page'] {
-        color: ${p.theme.purple400};
+        color: ${p.theme.colors.blue500};
 
         ${NavLinkIconContainer} {
-          box-shadow: inset 0 0 0 1px ${p.theme.purple100};
+          box-shadow: inset 0 0 0 1px ${p.theme.colors.blue100};
 
           &::before {
             opacity: 0.09;
@@ -556,7 +556,7 @@ export const SidebarItemUnreadIndicator = styled('span')<{isMobile: boolean}>`
   text-align: center;
   color: ${p => p.theme.white};
   font-size: ${p => p.theme.fontSize.xs};
-  background: ${p => p.theme.purple400};
+  background: ${p => p.theme.colors.blue500};
   width: 10px;
   height: 10px;
   border-radius: 50%;
@@ -584,6 +584,7 @@ export const SidebarList = styled('ul')<{isMobile: boolean; compact?: boolean}>`
 
   /* TriggerWrap div is getting in the way here */
   > div,
+  > div > li,
   > li {
     width: 100%;
   }

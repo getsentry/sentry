@@ -155,9 +155,9 @@ const StyledTimelineItem = styled(Timeline.Item)`
   padding: ${space(0.5)} ${space(0.75)};
   margin: 0;
   &:hover {
-    background: ${p => p.theme.translucentSurface200};
+    background: ${p => p.theme.colors.surface200};
     .timeline-icon-wrapper {
-      background: ${p => p.theme.translucentSurface200};
+      background: ${p => p.theme.colors.surface200};
     }
   }
   cursor: pointer;

@@ -136,6 +136,7 @@ function BuildButton({
 const StyledLinkButton = styled(LinkButton)`
   height: auto;
   min-height: auto;
+  align-self: stretch;
 
   /* Override ButtonLabel overflow to allow close button to extend beyond */
   > span:last-child {
@@ -162,15 +163,13 @@ const CloseButtonWrapper = styled('div')`
 
 const ComparisonContainer = styled(Flex)`
   flex-wrap: wrap;
-  align-items: stretch;
+  align-items: center;
   justify-content: center;
   gap: ${p => p.theme.space.lg};
   width: 100%;
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     flex-direction: column;
-    gap: ${p => p.theme.space.md};
-    padding-bottom: ${p => p.theme.space.lg};
 
     > * {
       min-width: 0;
@@ -210,9 +209,7 @@ export function SizeCompareSelectedBuilds({
         projectType={projectType}
       />
 
-      <Flex align="center">
-        <Text>{t('vs')}</Text>
-      </Flex>
+      <Text>{t('vs')}</Text>
 
       {baseBuildDetails ? (
         <BuildButton
@@ -224,11 +221,9 @@ export function SizeCompareSelectedBuilds({
           projectType={projectType}
         />
       ) : (
-        <Flex align="center">
-          <SelectBuild>
-            <Text size="sm">{t('Select a build')}</Text>
-          </SelectBuild>
-        </Flex>
+        <SelectBuild>
+          <Text size="sm">{t('Select a build')}</Text>
+        </SelectBuild>
       )}
 
       {onTriggerComparison && (
@@ -258,7 +253,7 @@ export function SizeCompareSelectedBuilds({
 
 const BuildBranch = styled('span')`
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.colors.gray100};
   border-radius: ${p => p.theme.radius.md};
 `;
 

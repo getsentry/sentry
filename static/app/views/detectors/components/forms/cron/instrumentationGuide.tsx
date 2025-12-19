@@ -174,7 +174,7 @@ export function InstrumentationGuide() {
             title={t('Auto-Instrument with %s', platform.label)}
             trailingItems={
               platform.guides.length > 1 ? (
-                <CompactSelect<GuideKey>
+                <CompactSelect
                   size="xs"
                   triggerProps={{borderless: true, size: 'zero'}}
                   value={guideKey ?? 'upsert'}

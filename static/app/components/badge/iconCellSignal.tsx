@@ -7,9 +7,9 @@ interface Props extends SVGIconProps {
 }
 function IconCellSignal({ref, bars = 3, ...props}: Props) {
   const theme = useTheme();
-  const firstBarColor = bars > 0 ? theme.subText : theme.gray200;
-  const secondBarColor = bars > 1 ? theme.subText : theme.gray200;
-  const thirdBarColor = bars > 2 ? theme.subText : theme.gray200;
+  const firstBarColor = bars > 0 ? theme.subText : theme.colors.gray200;
+  const secondBarColor = bars > 1 ? theme.subText : theme.colors.gray200;
+  const thirdBarColor = bars > 2 ? theme.subText : theme.colors.gray200;
 
   return (
     <SvgIcon {...props} ref={ref}>
