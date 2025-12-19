@@ -190,19 +190,24 @@ function ClippedBox(props: ClippedBoxProps) {
       event.stopPropagation();
 
       if (wrapperRef.current && contentRef.current) {
-        // First set maxHeight to current height so we have a starting point for the transition
-        const currentHeight =
-          contentRef.current.clientHeight + calculateAddedHeight({wrapperRef});
-        wrapperRef.current.style.maxHeight = `${currentHeight}px`;
+        if (prefersReducedMotion) {
+          // Skip animation for users who prefer reduced motion
+          wrapperRef.current.style.maxHeight = `${clipHeight}px`;
+        } else {
+          // First set maxHeight to current height so we have a starting point for the transition
+          const currentHeight =
+            contentRef.current.clientHeight + calculateAddedHeight({wrapperRef});
+          wrapperRef.current.style.maxHeight = `${currentHeight}px`;
 
-        // Force a reflow, then set to clip height to trigger the transition
-        void wrapperRef.current.offsetHeight;
-        wrapperRef.current.style.maxHeight = `${clipHeight}px`;
+          // Force a reflow, then set to clip height to trigger the transition
+          void wrapperRef.current.offsetHeight;
+          wrapperRef.current.style.maxHeight = `${clipHeight}px`;
+        }
       }
       revealRef.current = false;
       setClipped(true);
     },
-    [clipHeight]
+    [clipHeight, prefersReducedMotion]
   );
 
   const onWrapperRef = useCallback(
