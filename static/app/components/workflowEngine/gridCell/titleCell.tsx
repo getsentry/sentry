@@ -37,7 +37,7 @@ export function TitleCell({
         <NameText>{name}</NameText>
         {systemCreated && (
           <Tooltip title={systemCreated} skipWrapper>
-            <CreatedBySentryIcon size="xs" color="subText" />
+            <CreatedBySentryIcon size="xs" variant="muted" />
           </Tooltip>
         )}
         {warning && (
