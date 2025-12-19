@@ -1,5 +1,6 @@
 import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {parseAsBoolean, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input/inputGroup';
@@ -48,7 +49,10 @@ export function SizeCompareMainContent() {
   const navigate = useNavigate();
   const theme = useTheme();
   const [isFilesExpanded, setIsFilesExpanded] = useState(true);
-  const [hideSmallChanges, setHideSmallChanges] = useState(true);
+  const [hideSmallChanges, setHideSmallChanges] = useQueryState(
+    'hideSmallChanges',
+    parseAsBoolean.withDefault(true)
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const {baseArtifactId, headArtifactId, projectId} = useParams<{
     baseArtifactId: string;
@@ -314,7 +318,7 @@ export function SizeCompareMainContent() {
               <SizeCompareItemDiffTable
                 diffItems={filteredDiffItems}
                 originalItemCount={comparisonDataQuery.data?.diff_items.length ?? 0}
-                disableHideSmallChanges={() => setHideSmallChanges(!hideSmallChanges)}
+                disableHideSmallChanges={() => setHideSmallChanges(false)}
               />
             </Stack>
           )}
