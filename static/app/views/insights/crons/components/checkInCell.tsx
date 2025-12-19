@@ -120,13 +120,13 @@ export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
   const statusText = statusToText[status];
 
   const statusColumn = (
-    <Status>
+    <Flex align="center">
       <StatusIndicator
         status={checkStatusToIndicatorStatus[status]}
         tooltipTitle={tct('Check-in Status: [statusText]', {statusText})}
       />
       {statusText}
-    </Status>
+    </Flex>
   );
 
   const environmentColumn = <div>{environment}</div>;
@@ -203,11 +203,11 @@ export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
   );
 
   const durationColumn = defined(duration) ? (
-    <DurationContainer>
+    <Flex align="center">
       <Tooltip skipWrapper title={<Duration exact seconds={duration / 1000} />}>
         <Duration seconds={duration / 1000} />
       </Tooltip>
-    </DurationContainer>
+    </Flex>
   ) : (
     emptyCell
   );
@@ -487,21 +487,11 @@ function ProcessingLatencyIndicator({checkIn}: ProcessingLatencyProps) {
   return <QuestionTooltip icon="info" size="sm" title={tooltipMessage} />;
 }
 
-const Status = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
 const TimestampContainer = styled('div')`
   display: flex;
   gap: ${space(0.5)};
   align-items: center;
   font-variant-numeric: tabular-nums;
-`;
-
-const DurationContainer = styled('div')`
-  display: flex;
-  align-items: center;
 `;
 
 const IssuesContainer = styled('div')`
