@@ -189,7 +189,7 @@ const OpButton = styled(UnstyledButton, {shouldForwardProp: isPropValid})`
   border-radius: 3px 0 0 3px;
 
   :focus {
-    background-color: ${p => p.theme.translucentGray100};
+    background-color: ${p => p.theme.colors.gray100};
     border-right: 1px solid ${p => p.theme.innerBorder};
     border-left: 1px solid ${p => p.theme.innerBorder};
   }
@@ -202,7 +202,7 @@ const DeleteButton = styled(UnstyledButton)`
   border-left: 1px solid transparent;
 
   :focus {
-    background-color: ${p => p.theme.translucentGray100};
+    background-color: ${p => p.theme.colors.gray100};
     border-left: 1px solid ${p => p.theme.innerBorder};
   }
 `;

@@ -185,6 +185,26 @@ class ProjectsListTest(APITestCase):
         response = self.get_success_response(qs_params={"query": "id:-1"})
         assert len(response.data) == 0
 
+    def test_id_query_with_invalid_values(self) -> None:
+        """Test that non-numeric ID values are gracefully handled"""
+        with unguarded_write(using=router.db_for_write(Project)):
+            Project.objects.all().delete()
+
+        user = self.create_user()
+        org = self.create_organization()
+        team = self.create_team(organization=org, members=[user])
+        self.create_project(teams=[team])
+
+        self.login_as(user=user)
+
+        self.get_error_response(qs_params={"query": "id:"}, status_code=400)
+        self.get_error_response(qs_params={"query": "id:metric_issue"}, status_code=400)
+        self.get_error_response(
+            qs_params={"query": "id:https://redash.getsentry.net/queries/9850"}, status_code=400
+        )
+        self.get_error_response(qs_params={"query": "id:**"}, status_code=400)
+        self.get_error_response(qs_params={"query": f"id:{123} id:invalid"}, status_code=400)
+
     def test_valid_with_internal_integration(self) -> None:
         project = self.create_project(organization=self.organization, teams=[self.team])
         internal_integration = self.create_internal_integration(

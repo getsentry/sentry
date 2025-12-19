@@ -195,6 +195,6 @@ const IssuesTraceOverlayContainer = styled(Link)`
   pointer-events: auto;
 
   &:hover {
-    background: ${p => Color(p.theme.gray300).alpha(0.1).toString()};
+    background: ${p => Color(p.theme.colors.gray400).alpha(0.1).toString()};
   }
 `;

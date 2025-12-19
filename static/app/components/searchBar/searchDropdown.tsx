@@ -598,7 +598,7 @@ const RestOfWordsContainer = styled('span')<{
   hasSplit?: boolean;
   isFirstWordHidden?: boolean;
 }>`
-  color: ${p => (p.hasSplit ? p.theme.blue400 : p.theme.tokens.content.primary)};
+  color: ${p => (p.hasSplit ? p.theme.colors.blue500 : p.theme.tokens.content.primary)};
   margin-left: ${p => (p.isFirstWordHidden ? space(1) : '0px')};
 `;
 
