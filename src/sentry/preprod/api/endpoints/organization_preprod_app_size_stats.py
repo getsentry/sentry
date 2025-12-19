@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any
@@ -16,11 +17,13 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models.organization import Organization
+from sentry.preprod.eap.constants import PREPROD_NAMESPACE
 from sentry.preprod.eap.read import query_preprod_size_metrics
 from sentry.utils.dates import parse_stats_period
 
@@ -56,6 +59,7 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
     Compatible with Sentry dashboard widgets.
     """
 
+    owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -261,10 +265,6 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
         for key, value in filter_kwargs.items():
             if key == "artifact_id":
                 # Special case: artifact_id maps to sentry.trace_id
-                import uuid
-
-                from sentry.preprod.eap.constants import PREPROD_NAMESPACE
-
                 trace_id = uuid.uuid5(PREPROD_NAMESPACE, str(value)).hex
                 filters.append(
                     TraceItemFilter(
