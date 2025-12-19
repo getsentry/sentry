@@ -473,7 +473,7 @@ function FeatureItem({
       <Container padding="0">
         {isIncluded ? (
           isOnlyOnBusiness ? (
-            <IconAdd size="sm" variant="access" />
+            <IconAdd size="sm" variant="success" />
           ) : (
             <IconCheckmark size="sm" variant="success" />
           )
