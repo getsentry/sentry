@@ -235,7 +235,7 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
         autofix_automation_tuning = serializer.validated_data.get("autofixAutomationTuning")
         automated_run_stopping_point = serializer.validated_data.get("automatedRunStoppingPoint")
         project_repo_mappings = serializer.validated_data.get("projectRepoMappings")
-        append_repositories = serializer.validated_data.get("appendRepositories", False)
+        append_repositories = serializer.validated_data.get("appendRepositories")
 
         projects = self.get_projects(request, organization, project_ids=project_ids)
         projects_by_id = {project.id: project for project in projects}
