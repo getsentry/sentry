@@ -775,7 +775,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                           isOnDemandQueryString(value) &&
                           (isOnDemandLimitReached ? (
                             <OnDemandWarningIcon
-                              color="red400"
+                              variant="danger"
                               msg={tct(
                                 'We don’t routinely collect metrics from [fields] and you’ve already reached the limit of [docLink:alerts with advanced filters] for your organization.',
                                 {
@@ -795,7 +795,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                             />
                           ) : (
                             <OnDemandWarningIcon
-                              color="gray500"
+                              variant="primary"
                               msg={tct(
                                 'We don’t routinely collect metrics from [fields]. However, we’ll do so [strong:once this alert has been saved.]',
                                 {

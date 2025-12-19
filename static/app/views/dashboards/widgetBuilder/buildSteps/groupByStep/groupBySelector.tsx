@@ -278,7 +278,7 @@ function FieldValidationErrors(props: {
     props.validatedWidgetResponse.data?.warnings?.columns[props.column.field ?? ''] ===
       OnDemandExtractionState.DISABLED_HIGH_CARDINALITY ? (
     <OnDemandWarningIcon
-      color="yellow300"
+      variant="warning"
       msg={t('This group has too many unique values to collect metrics for it.')}
     />
   ) : null;
