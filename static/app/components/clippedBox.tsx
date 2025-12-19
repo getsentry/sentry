@@ -191,15 +191,11 @@ function ClippedBox(props: ClippedBoxProps) {
 
       if (wrapperRef.current && contentRef.current) {
         if (prefersReducedMotion) {
-          // Skip animation for users who prefer reduced motion
           wrapperRef.current.style.maxHeight = `${clipHeight}px`;
         } else {
-          // First set maxHeight to current height so we have a starting point for the transition
           const currentHeight =
             contentRef.current.clientHeight + calculateAddedHeight({wrapperRef});
           wrapperRef.current.style.maxHeight = `${currentHeight}px`;
-
-          // Force a reflow, then set to clip height to trigger the transition
           void wrapperRef.current.offsetHeight;
           wrapperRef.current.style.maxHeight = `${clipHeight}px`;
         }
@@ -268,9 +264,6 @@ function ClippedBox(props: ClippedBoxProps) {
           height,
         });
 
-        // If content fits without clipping, just clear max-height and disconnect observer.
-        // Don't set revealRef.current since user didn't manually reveal - this ensures
-        // the collapse button won't appear for content that was never clipped.
         if (!_clipped && wrapperRef.current) {
           clearMaxHeight(wrapperRef.current);
           if (observerRef.current) {
