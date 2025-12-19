@@ -111,7 +111,7 @@ function CronServiceIncidents({timeWindowConfig}: CronServiceIncidentsProps) {
           }
         >
           <IncidentIndicator css={position}>
-            <IconExclamation color="white" />
+            <IconExclamation variant="primary" />
           </IncidentIndicator>
         </IncidentHovercard>
         <IncidentOverlay css={position} />
