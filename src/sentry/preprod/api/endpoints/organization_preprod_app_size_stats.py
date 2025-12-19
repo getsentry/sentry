@@ -331,10 +331,10 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
             limit=10000,
         )
 
-        unique_values = _extract_unique_values_from_response(response)
+        unique_values = self._extract_unique_values_from_response(response)
 
         branches = list(unique_values.get("git_head_ref", set()))
-        branches.sort(key=_branch_sort_key)
+        branches.sort(key=self._branch_sort_key)
 
         return {
             "app_ids": sorted(list(unique_values.get("app_id", set()))),
@@ -342,31 +342,29 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
             "build_configs": sorted(list(unique_values.get("build_configuration_name", set()))),
         }
 
+    def _extract_unique_values_from_response(
+        self, response: TraceItemTableResponse
+    ) -> dict[str, set[str]]:
+        unique_values: dict[str, set[str]] = {}
 
-def _extract_unique_values_from_response(
-    response: TraceItemTableResponse,
-) -> dict[str, set[str]]:
-    unique_values: dict[str, set[str]] = {}
+        if not response.column_values:
+            return unique_values
 
-    if not response.column_values:
+        for column in response.column_values:
+            attr_name = column.attribute_name
+            unique_values[attr_name] = set()
+
+            for result in column.results:
+                if result.HasField("val_str") and result.val_str:
+                    unique_values[attr_name].add(result.val_str)
+
         return unique_values
 
-    for column in response.column_values:
-        attr_name = column.attribute_name
-        unique_values[attr_name] = set()
-
-        for result in column.results:
-            if result.HasField("val_str") and result.val_str:
-                unique_values[attr_name].add(result.val_str)
-
-    return unique_values
-
-
-def _branch_sort_key(branch: str) -> tuple[int, str]:
-    """Sort key that prioritizes main and master branches."""
-    if branch == "main":
-        return (0, branch)
-    elif branch == "master":
-        return (1, branch)
-    else:
-        return (2, branch.lower())
+    def _branch_sort_key(self, branch: str) -> tuple[int, str]:
+        """Sort key that prioritizes main and master branches."""
+        if branch == "main":
+            return (0, branch)
+        elif branch == "master":
+            return (1, branch)
+        else:
+            return (2, branch.lower())
