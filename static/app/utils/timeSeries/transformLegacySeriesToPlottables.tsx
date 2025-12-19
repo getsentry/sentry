@@ -29,7 +29,7 @@ export function transformLegacySeriesToPlottables(
   const plottables = timeseriesResults
     .map(series => {
       const unaliasedSeriesName =
-        series.seriesName.split(' : ')[1]?.trim() ?? series.seriesName;
+        series.seriesName?.split(' : ')[1]?.trim() ?? series.seriesName;
       const fieldType =
         timeseriesResultsTypes?.[unaliasedSeriesName] ??
         aggregateOutputType(unaliasedSeriesName);
@@ -98,16 +98,17 @@ function mapAggregationTypeToValueTypeAndUnit(
   valueType: TimeSeries['meta']['valueType'];
   valueUnit: TimeSeries['meta']['valueUnit'];
 } {
+  if (fieldName.includes('eps()')) {
+    return {valueType: 'rate', valueUnit: RateUnit.PER_SECOND};
+  }
+  if (fieldName.includes('epm()')) {
+    return {valueType: 'rate', valueUnit: RateUnit.PER_MINUTE};
+  }
+
   switch (aggregationType) {
+    // special case, epm/eps return back number, but we want to show them as rate
     case 'size':
       return {valueType: 'size', valueUnit: null};
-    case 'rate':
-      return {
-        valueType: 'rate',
-        valueUnit: fieldName.includes('eps()')
-          ? RateUnit.PER_SECOND
-          : RateUnit.PER_MINUTE,
-      };
     case 'duration':
       return {valueType: 'duration', valueUnit: null};
     case 'score':
