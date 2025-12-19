@@ -108,9 +108,12 @@ function ManageReposPanel({
     .filter(r => orgConfig.repo_overrides?.hasOwnProperty(r.externalId))
     .map(r => getRepoNameWithoutOrg(r.name));
 
+  if (collapsed) {
+    return null;
+  }
+
   return (
     <SlideOverPanel
-      open={!collapsed}
       position="right"
       ariaLabel="Settings Panel"
       data-test-id="manage-repos-panel"
