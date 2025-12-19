@@ -9,6 +9,7 @@ import type {ReplayTableColumn} from 'sentry/components/replays/table/replayTabl
 import ReplayTableHeader from 'sentry/components/replays/table/replayTableHeader';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
+import type {ReplayEventParameters} from 'sentry/utils/analytics/replayAnalyticsEvents';
 import type {Sort} from 'sentry/utils/discover/fields';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {ERROR_MAP} from 'sentry/utils/requestError/requestError';
@@ -27,6 +28,7 @@ type Props = SortProps & {
   columns: readonly ReplayTableColumn[];
   error: RequestError | null | undefined;
   isPending: boolean;
+  referrer: ReplayEventParameters['replay.list-navigate-to-details']['referrer_table'];
   replays: ReplayListRecord[];
   showDropdownFilters: boolean;
   highlightedRowIndex?: number;
@@ -46,6 +48,7 @@ export default function ReplayTable({
   showDropdownFilters,
   highlightedRowIndex = -1,
   sort,
+  referrer,
   // stickyHeader only works if the table is inside a scrollable container
   stickyHeader = false,
 }: Props) {
@@ -129,6 +132,7 @@ export default function ReplayTable({
           {columns.map((column, columnIndex) => (
             <RowCell key={`${replay.id}-${columnIndex}-${column.sortKey}`}>
               <column.Component
+                referrerTable={referrer}
                 to={{
                   pathname: makeReplaysPathname({path: `/${replay.id}/`, organization}),
                   query,

@@ -101,6 +101,7 @@ export default function ReplayPreviewPlayer({
       )}
       <HeaderWrapper>
         <ReplaySessionColumn.Component
+          referrerTable="preview"
           to={{
             pathname: makeReplaysPathname({path: `/${replayId}/`, organization}),
             query,
