@@ -132,7 +132,7 @@ function getAISpanAttributes({
   }
 
   // Check for missing cost calculation and emit Sentry error
-  if (model && (!totalCosts || Number(totalCosts) === 0)) {
+  if (model && inputTokens && outputTokens && (!totalCosts || Number(totalCosts) === 0)) {
     const contextData: CaptureContext = {
       level: 'warning',
       tags: {
@@ -140,8 +140,6 @@ function getAISpanAttributes({
         span_type: 'gen_ai',
         has_model: 'true',
         has_cost: 'false',
-        has_input_tokens: inputTokens ? 'true' : 'false',
-        has_output_tokens: outputTokens ? 'true' : 'false',
         model: model.toString(),
       },
       extra: {
