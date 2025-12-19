@@ -20,12 +20,13 @@ logger = logging.getLogger(__name__)
 PREFIX = "seer.code_review.task"
 MAX_RETRIES = 3
 DELAY_BETWEEN_RETRIES = 60  # 1 minute
+RETRYABLE_ERRORS = (HTTPError,)
 
 
 @instrumented_task(
     name="sentry.seer.code_review.tasks.process_github_webhook_event",
     namespace=seer_code_review_tasks,
-    retry=Retry(times=MAX_RETRIES, delay=DELAY_BETWEEN_RETRIES, on=(HTTPError,)),
+    retry=Retry(times=MAX_RETRIES, delay=DELAY_BETWEEN_RETRIES, on=RETRYABLE_ERRORS),
     silo_mode=SiloMode.REGION,
 )
 def process_github_webhook_event(
@@ -45,19 +46,14 @@ def process_github_webhook_event(
         # XXX: We may be able to add mapping from webhook event to the right processor.
         for processor in PROCESSORS:
             processor(kwargs=kwargs)
-    except HTTPError as e:
-        # Catches all urllib3 errors: TimeoutError, MaxRetryError, NewConnectionError,
-        # SSLError, ProxyError, ProtocolError, ResponseError, DecodeError, etc.
-        status = e.__class__.__name__
-        task = current_task()
-        if task and task.retries_remaining:
-            should_record_latency = False
-        # Exception automatically captured to Sentry by taskworker on final retry
-        raise  # Trigger task retry (error listed in on= parameter)
     except Exception as e:
-        # Unexpected errors are not retryable and indicate a programming or configuration error
-        status = f"unexpected_error_{e.__class__.__name__}"
-        raise  # Task will fail, no retry for unexpected errors not listed in on= parameter
+        status = e.__class__.__name__
+        # Retryable errors are automatically retried by taskworker.
+        if isinstance(e, RETRYABLE_ERRORS):
+            task = current_task()
+            if task and task.retries_remaining:
+                should_record_latency = False
+        raise
     finally:
         if status != "success":
             metrics.incr(f"{PREFIX}.error", tags={"error_status": status})

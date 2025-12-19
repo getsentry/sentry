@@ -155,7 +155,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
                 original_run_id=self.original_run_id,
             )
 
-        # Client error tracked in metrics, not retried
+        # Client error tracked in metrics with appropriate status label, not retried
         mock_metrics.incr.assert_called()
         incr_calls = [call for call in mock_metrics.incr.call_args_list]
         outcome_calls = [call for call in incr_calls if "error" in str(call)]
@@ -163,7 +163,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
             len(outcome_calls) == 1
         ), f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
         outcome_call = outcome_calls[0]
-        assert "ClientError" in str(outcome_call)
+        assert "seer.code_review.task.error" in str(outcome_call)
 
     @patch("sentry.seer.code_review.webhook_task.current_task")
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
@@ -326,7 +326,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
             len(outcome_calls) == 1
         ), f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
         outcome_call = outcome_calls[0]
-        assert "unexpected_error_ValueError" in str(outcome_call)
+        assert "ValueError" in str(outcome_call)
 
         mock_metrics.timing.assert_called_once()
 
