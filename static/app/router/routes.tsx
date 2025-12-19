@@ -2749,7 +2749,6 @@ function buildRoutes(): RouteObject[] {
         {
           index: true,
           component: make(() => import('sentry/views/admin/adminUsers')),
-          deprecatedRouteProps: true,
         },
         {
           path: ':id',
