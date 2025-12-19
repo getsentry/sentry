@@ -822,9 +822,7 @@ function DynamicGrouping() {
     const clusterData = customClusterData ?? topIssuesResponse?.data ?? [];
 
     if (isUsingCustomData && disableFilters) {
-      return clusterData.filter(
-        cluster => cluster.error_type && cluster.impact && cluster.location
-      );
+      return clusterData;
     }
 
     // Apply project filter and require structured fields
