@@ -207,6 +207,23 @@ class OrganizationPreprodAppSizeStatsEndpointTest(APITestCase):
         response = client.get(self.url)
         assert response.status_code == 401
 
+    def test_cannot_access_other_organization_projects(self) -> None:
+        """Test that users cannot access projects from other organizations (IDOR protection)."""
+        # Create a second organization with a project that user doesn't have access to
+        other_org = self.create_organization(name="Other Org")
+        other_project = self.create_project(organization=other_org, name="Other Project")
+
+        # Try to query our organization's endpoint with the other org's project ID
+        response = self.get_error_response(
+            self.organization.slug,
+            qs_params={"project": [other_project.id]},
+        )
+
+        # Should return 403 Forbidden since user doesn't have permission to access other_project
+        # This validates that get_projects() properly validates project ownership
+        assert response.status_code == 403
+        assert "permission" in str(response.data).lower()
+
     def test_get_with_project_filter(self) -> None:
         """Test filtering by project ID."""
         project = self.create_project(organization=self.organization)

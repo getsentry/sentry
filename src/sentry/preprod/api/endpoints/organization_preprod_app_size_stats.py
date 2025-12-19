@@ -65,12 +65,14 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
         }
         """
         try:
-            project_ids_set = self.get_requested_project_ids_unchecked(request)
-            if not project_ids_set:
-                projects = self.get_projects(request, organization)
-                project_ids = [p.id for p in projects]
-            else:
-                project_ids = list(project_ids_set)
+            # Parse project IDs from request, then validate permissions
+            req_proj_ids = self.get_requested_project_ids_unchecked(request)
+            projects = self.get_projects(
+                request=request,
+                organization=organization,
+                project_ids=req_proj_ids,
+            )
+            project_ids = [p.id for p in projects]
 
             # Use shared utility for time range parsing
             start, end = get_date_range_from_params(
