@@ -37,7 +37,7 @@ export function OrganizationFeatureFlagsProviderRow({
 
       <Flex align="center">{isUserPending ? <LoadingIndicator mini /> : user?.name}</Flex>
 
-      <Actions>
+      <Flex justify="end">
         <Tooltip
           title={t(
             'You must be an organization owner, manager or admin to remove a secret.'
@@ -62,15 +62,10 @@ export function OrganizationFeatureFlagsProviderRow({
             </Button>
           </Confirm>
         </Tooltip>
-      </Actions>
+      </Flex>
     </Fragment>
   );
 }
-
-const Actions = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-`;
 
 const DateTime = styled('div')`
   display: flex;
