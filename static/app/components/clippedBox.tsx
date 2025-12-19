@@ -144,6 +144,7 @@ interface ClippedBoxProps {
 
 function ClippedBox(props: ClippedBoxProps) {
   const revealRef = useRef(false);
+  const wasClippedRef = useRef(false);
   const mountedRef = useRef(false);
 
   const observerRef = useRef<ResizeObserver | null>(null);
@@ -268,6 +269,10 @@ function ClippedBox(props: ClippedBoxProps) {
           height,
         });
 
+        if (_clipped) {
+          wasClippedRef.current = true;
+        }
+
         if (!_clipped && contentRef.current) {
           revealAndDisconnectObserver({
             contentRef,
@@ -327,7 +332,7 @@ function ClippedBox(props: ClippedBoxProps) {
     </Button>
   );
 
-  const showCollapseButton = props.collapsible && revealRef.current && !clipped;
+  const showCollapseButton = props.collapsible && wasClippedRef.current && !clipped;
 
   return (
     <Wrapper ref={onWrapperRef} className={props.className}>
