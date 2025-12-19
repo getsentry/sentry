@@ -27,6 +27,13 @@ describe('OrganizationContext', () => {
   const project = ProjectFixture();
   const team = TeamFixture();
 
+  const initialRouterConfig = {
+    route: '/organizations/:orgId/',
+    location: {
+      pathname: `/organizations/${organization.slug}/`,
+    },
+  };
+
   function setupOrgMocks(org: Organization) {
     const orgMock = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/`,
@@ -79,9 +86,7 @@ describe('OrganizationContext', () => {
       <OrganizationContextProvider>
         <OrganizationName />
       </OrganizationContextProvider>,
-      {
-        deprecatedRouterMocks: true,
-      }
+      {initialRouterConfig}
     );
 
     expect(await screen.findByText(organization.slug)).toBeInTheDocument();
@@ -96,14 +101,7 @@ describe('OrganizationContext', () => {
       <OrganizationContextProvider>
         <OrganizationName />
       </OrganizationContextProvider>,
-      {
-        initialRouterConfig: {
-          route: '/organizations/:orgId/',
-          location: {
-            pathname: `/organizations/${organization.slug}/`,
-          },
-        },
-      }
+      {initialRouterConfig}
     );
 
     expect(await screen.findByText(organization.slug)).toBeInTheDocument();
@@ -143,9 +141,7 @@ describe('OrganizationContext', () => {
       <OrganizationContextProvider>
         <OrganizationName />
       </OrganizationContextProvider>,
-      {
-        deprecatedRouterMocks: true,
-      }
+      {initialRouterConfig}
     );
 
     await waitFor(() => !OrganizationStore.getState().loading);
@@ -165,9 +161,7 @@ describe('OrganizationContext', () => {
       <OrganizationContextProvider>
         <OrganizationName />
       </OrganizationContextProvider>,
-      {
-        deprecatedRouterMocks: true,
-      }
+      {initialRouterConfig}
     );
 
     await waitFor(() => !OrganizationStore.getState().loading);
