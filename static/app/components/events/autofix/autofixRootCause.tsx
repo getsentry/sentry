@@ -526,9 +526,9 @@ function AutofixRootCauseDisplay({
         <CustomRootCausePadding>
           <HeaderWrapper>
             <HeaderText>
-              <IconWrapper ref={iconFocusRef}>
+              <Flex justify="center" align="center" ref={iconFocusRef}>
                 <IconFocus size="md" color="pink400" />
-              </IconWrapper>
+              </Flex>
               {t('Custom Root Cause')}
             </HeaderText>
           </HeaderWrapper>
@@ -558,9 +558,9 @@ function AutofixRootCauseDisplay({
     <CausesContainer>
       <HeaderWrapper>
         <HeaderText>
-          <IconWrapper ref={iconFocusRef}>
+          <Flex justify="center" align="center" ref={iconFocusRef}>
             <IconFocus size="md" color="pink400" />
-          </IconWrapper>
+          </Flex>
           {t('Root Cause')}
           <Button
             size="zero"
@@ -698,12 +698,6 @@ const HeaderWrapper = styled('div')`
   align-items: center;
   gap: ${space(1)};
   flex-wrap: wrap;
-`;
-
-const IconWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
 `;
 
 const HeaderText = styled('div')`

@@ -2,6 +2,8 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -516,9 +518,9 @@ function AutofixSolutionDisplay({
         <CustomSolutionPadding>
           <HeaderWrapper>
             <HeaderText>
-              <HeaderIconWrapper ref={iconFixRef}>
+              <Flex justify="center" align="center" ref={iconFixRef}>
                 <IconFix size="sm" color="green400" />
-              </HeaderIconWrapper>
+              </Flex>
               {t('Custom Solution')}
             </HeaderText>
           </HeaderWrapper>
@@ -544,9 +546,9 @@ function AutofixSolutionDisplay({
     <SolutionContainer ref={containerRef}>
       <HeaderWrapper>
         <HeaderText>
-          <HeaderIconWrapper ref={iconFixRef}>
+          <Flex justify="center" align="center" ref={iconFixRef}>
             <IconFix size="md" color="green400" />
-          </HeaderIconWrapper>
+          </Flex>
           {t('Solution')}
           <Button
             size="zero"
@@ -738,12 +740,6 @@ const AnimationWrapper = styled(motion.div)`
 
 const CustomSolutionPadding = styled('div')`
   padding: ${space(1)} ${space(0.25)} ${space(2)} ${space(0.25)};
-`;
-
-const HeaderIconWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
 `;
 
 const InstructionsInputWrapper = styled('form')`
