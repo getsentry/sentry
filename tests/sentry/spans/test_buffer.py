@@ -71,7 +71,9 @@ def buffer(request):
                 buf.client.flushall()
                 yield buf
         else:
-            yield SpansBuffer(assigned_shards=list(range(32)))
+            buf = SpansBuffer(assigned_shards=list(range(32)))
+            buf.client.flushdb()
+            yield buf
 
 
 def assert_ttls(client: StrictRedis[bytes]):
@@ -710,8 +712,9 @@ def test_max_segment_spans_limit(mock_project_model, buffer: SpansBuffer) -> Non
 
 @mock.patch("sentry.spans.buffer.Project")
 @mock.patch("sentry.spans.buffer.track_outcome")
+@mock.patch("sentry.spans.buffer.metrics.timing")
 def test_dropped_spans_emit_outcomes(
-    mock_track_outcome, mock_project_model, buffer: SpansBuffer
+    mock_metrics, mock_track_outcome, mock_project_model, buffer: SpansBuffer
 ) -> None:
     """Test that outcomes are emitted when Redis drops spans due to size limit."""
     from sentry.constants import DataCategory
@@ -723,10 +726,17 @@ def test_dropped_spans_emit_outcomes(
     mock_project.organization_id = 100
     mock_project_model.objects.get_from_cache.return_value = mock_project
 
+    payload_a = _payload("a" * 16)
+    payload_b = _payload("b" * 16)
+    payload_c = _payload("c" * 16)
+    payload_d = _payload("d" * 16)
+    payload_e = _payload("e" * 16)
+    payload_f = _payload("f" * 16)
+
     # Create a segment with many spans that will exceed the Redis memory limit
     batch1 = [
         Span(
-            payload=_payload("b" * 16),
+            payload=payload_b,
             trace_id="a" * 32,
             span_id="b" * 16,
             parent_span_id="a" * 16,
@@ -735,7 +745,7 @@ def test_dropped_spans_emit_outcomes(
             end_timestamp=1700000000.0,
         ),
         Span(
-            payload=_payload("c" * 16),
+            payload=payload_c,
             trace_id="a" * 32,
             span_id="c" * 16,
             parent_span_id="a" * 16,
@@ -744,7 +754,7 @@ def test_dropped_spans_emit_outcomes(
             end_timestamp=1700000001.0,
         ),
         Span(
-            payload=_payload("d" * 16),
+            payload=payload_d,
             trace_id="a" * 32,
             span_id="d" * 16,
             parent_span_id="a" * 16,
@@ -755,7 +765,7 @@ def test_dropped_spans_emit_outcomes(
     ]
     batch2 = [
         Span(
-            payload=_payload("e" * 16),
+            payload=payload_e,
             trace_id="a" * 32,
             span_id="e" * 16,
             parent_span_id="a" * 16,
@@ -764,7 +774,7 @@ def test_dropped_spans_emit_outcomes(
             end_timestamp=1700000003.0,
         ),
         Span(
-            payload=_payload("f" * 16),
+            payload=payload_f,
             trace_id="a" * 32,
             span_id="f" * 16,
             parent_span_id="a" * 16,
@@ -773,7 +783,7 @@ def test_dropped_spans_emit_outcomes(
             end_timestamp=1700000004.0,
         ),
         Span(
-            payload=_payload("a" * 16),
+            payload=payload_a,
             trace_id="a" * 32,
             span_id="a" * 16,
             parent_span_id=None,
@@ -783,6 +793,10 @@ def test_dropped_spans_emit_outcomes(
             end_timestamp=1700000005.0,
         ),
     ]
+
+    expected_bytes = sum(
+        len(p) for p in [payload_a, payload_b, payload_c, payload_d, payload_e, payload_f]
+    )
 
     # Set a very small max-segment-bytes to force Redis to drop spans
     with override_options({"spans.buffer.max-segment-bytes": 200}):
@@ -809,6 +823,23 @@ def test_dropped_spans_emit_outcomes(
     assert outcome_call.kwargs["reason"] == "segment_too_large"
     assert outcome_call.kwargs["category"] == DataCategory.SPAN_INDEXED
     assert outcome_call.kwargs["quantity"] > 0, "Should have dropped at least some spans"
+
+    # Verify ingested span count and byte count metrics were emitted
+    ingested_spans_timing_calls = [
+        call
+        for call in mock_metrics.call_args_list
+        if call.args and call.args[0] == "spans.buffer.flush_segments.ingested_spans_per_segment"
+    ]
+    assert len(ingested_spans_timing_calls) == 1, "Should emit ingested_spans_per_segment metric"
+    assert ingested_spans_timing_calls[0].args[1] == 6, "Should have ingested 6 spans"
+
+    ingested_bytes_timing_calls = [
+        call
+        for call in mock_metrics.call_args_list
+        if call.args and call.args[0] == "spans.buffer.flush_segments.ingested_bytes_per_segment"
+    ]
+    assert len(ingested_bytes_timing_calls) == 1, "Should emit ingested_bytes_per_segment metric"
+    assert ingested_bytes_timing_calls[0].args[1] == expected_bytes
 
 
 def test_kafka_slice_id(buffer: SpansBuffer) -> None:
