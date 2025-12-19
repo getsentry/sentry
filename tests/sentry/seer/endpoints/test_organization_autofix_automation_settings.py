@@ -628,6 +628,12 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         assert preferences[0]["repositories"][0]["owner"] == "existing-owner"
         assert preferences[0]["repositories"][1]["external_id"] == "222"
 
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_set_project_preferences"
+    )
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
+    )
     def test_post_creates_audit_log(self, mock_bulk_get_preferences, mock_bulk_set_preferences):
         project1 = self.create_project(organization=self.organization)
         project2 = self.create_project(organization=self.organization)
