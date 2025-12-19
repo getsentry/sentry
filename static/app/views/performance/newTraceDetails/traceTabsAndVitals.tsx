@@ -114,5 +114,5 @@ export function TraceTabsAndVitals({
 }
 
 const StyledPlaceholder = styled(TraceHeaderComponents.StyledPlaceholder)`
-  background-color: ${p => p.theme.purple100};
+  background-color: ${p => p.theme.colors.blue100};
 `;

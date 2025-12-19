@@ -160,14 +160,13 @@ const StyledTimelineHeader = styled('div')<{isActive?: boolean}>`
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: ${space(0.25)};
-  padding-right: 0;
+  padding: ${p => p.theme.space[0]} ${p => p.theme.space.xs};
   border-radius: ${p => p.theme.radius.md};
   cursor: pointer;
   font-weight: ${p => p.theme.fontWeight.normal};
   gap: ${space(1)};
   text-decoration: ${p => (p.isActive ? 'underline dashed' : 'none')};
-  text-decoration-color: ${p => p.theme.pink300};
+  text-decoration-color: ${p => p.theme.colors.pink400};
   text-decoration-thickness: 1px;
   text-underline-offset: 4px;
 

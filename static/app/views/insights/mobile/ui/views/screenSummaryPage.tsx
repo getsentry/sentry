@@ -19,7 +19,6 @@ type Query = {
   'device.class': string;
   primaryRelease: string;
   project: string;
-  secondaryRelease: string;
   spanDescription: string;
   spanGroup: string;
   spanOp: string;

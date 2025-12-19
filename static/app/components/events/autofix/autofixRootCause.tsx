@@ -515,9 +515,7 @@ function AutofixRootCauseDisplay({
   if (!cause) {
     return (
       <Alert.Container>
-        <Alert type="error" showIcon={false}>
-          {t('No root cause available.')}
-        </Alert>
+        <Alert type="error">{t('No root cause available.')}</Alert>
       </Alert.Container>
     );
   }
@@ -528,9 +526,9 @@ function AutofixRootCauseDisplay({
         <CustomRootCausePadding>
           <HeaderWrapper>
             <HeaderText>
-              <IconWrapper ref={iconFocusRef}>
+              <Flex justify="center" align="center" ref={iconFocusRef}>
                 <IconFocus size="md" color="pink400" />
-              </IconWrapper>
+              </Flex>
               {t('Custom Root Cause')}
             </HeaderText>
           </HeaderWrapper>
@@ -560,9 +558,9 @@ function AutofixRootCauseDisplay({
     <CausesContainer>
       <HeaderWrapper>
         <HeaderText>
-          <IconWrapper ref={iconFocusRef}>
+          <Flex justify="center" align="center" ref={iconFocusRef}>
             <IconFocus size="md" color="pink400" />
-          </IconWrapper>
+          </Flex>
           {t('Root Cause')}
           <Button
             size="zero"
@@ -652,7 +650,7 @@ export function AutofixRootCause(props: AutofixRootCauseProps) {
         <AnimationWrapper key="card" {...cardAnimationProps}>
           <NoCausesPadding>
             <Alert.Container>
-              <Alert type="warning" showIcon={false}>
+              <Alert type="warning">
                 {t('No root cause found.\n\n%s', props.terminationReason ?? '')}
               </Alert>
             </Alert.Container>
@@ -700,12 +698,6 @@ const HeaderWrapper = styled('div')`
   align-items: center;
   gap: ${space(1)};
   flex-wrap: wrap;
-`;
-
-const IconWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
 `;
 
 const HeaderText = styled('div')`

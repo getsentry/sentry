@@ -6,17 +6,19 @@ from typing import Any, cast
 from django.core.exceptions import BadRequest
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from snuba_sdk import Column, Condition, Op
+from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
 
 from sentry import eventstore, features
 from sentry.api import client
 from sentry.api.endpoints.organization_events_timeseries import TOP_EVENTS_DATASETS
 from sentry.api.serializers.base import serialize
+from sentry.api.serializers.models.activity import ActivitySerializer
 from sentry.api.serializers.models.event import EventSerializer
 from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.utils import default_start_end_dates
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ObjectStatus
 from sentry.issues.grouptype import GroupCategory
+from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
 from sentry.models.group import EventOrdering, Group
 from sentry.models.organization import Organization
@@ -42,7 +44,9 @@ from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import query_trace_data
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import get_dataset
+from sentry.types.activity import ActivityType
 from sentry.utils.dates import outside_retention_with_modified_start, parse_stats_period
+from sentry.utils.snuba import raw_snql_query
 from sentry.utils.snuba_rpc import get_trace_rpc
 
 logger = logging.getLogger(__name__)
@@ -139,12 +143,15 @@ def execute_table_query(
         sort_field = sort.lstrip("-")
         if sort_field not in fields:
             fields.append(sort_field)
+    elif "timestamp" in fields:
+        # Default to -timestamp only if timestamp was selected.
+        sort = "-timestamp"
 
     params: dict[str, Any] = {
         "dataset": dataset,
         "field": fields,
         "query": query or None,
-        "sort": sort if sort else ("-timestamp" if "timestamp" in fields else None),
+        "sort": sort,
         "per_page": per_page,
         "statsPeriod": stats_period,
         "start": start,
@@ -287,7 +294,7 @@ def execute_trace_table_query(
     *,
     organization_id: int,
     query: str | None = None,
-    sort: str = "-timestamp",
+    sort: str | None = None,
     per_page: int,
     project_ids: list[int] | None = None,
     project_slugs: list[str] | None = None,
@@ -825,6 +832,18 @@ def _get_recommended_event(
     return events[0].for_group(group)
 
 
+# Activity types to include in issue details for Seer Explorer (manual actions only)
+_SEER_EXPLORER_ACTIVITY_TYPES = [
+    ActivityType.NOTE.value,
+    ActivityType.SET_RESOLVED.value,
+    ActivityType.SET_RESOLVED_IN_RELEASE.value,
+    ActivityType.SET_RESOLVED_IN_COMMIT.value,
+    ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
+    ActivityType.SET_UNRESOLVED.value,
+    ActivityType.ASSIGNED.value,
+]
+
+
 def get_issue_and_event_response(
     event: Event | GroupEvent, group: Group | None, organization: Organization
 ) -> dict[str, Any]:
@@ -865,6 +884,22 @@ def get_issue_and_event_response(
         else:
             timeseries, timeseries_stats_period, timeseries_interval = None, None, None
 
+        # Fetch user activity (comments, status changes, etc.)
+        try:
+            activities = Activity.objects.filter(
+                group=group,
+                type__in=_SEER_EXPLORER_ACTIVITY_TYPES,
+            ).order_by("-datetime")[:50]
+            serialized_activities = serialize(
+                list(activities), user=None, serializer=ActivitySerializer()
+            )
+        except Exception:
+            logger.exception(
+                "Failed to get user activity for issue",
+                extra={"organization_id": organization.id, "issue_id": group.id},
+            )
+            serialized_activities = []
+
         result = {
             **result,
             "issue": serialized_group,
@@ -872,6 +907,7 @@ def get_issue_and_event_response(
             "timeseries_stats_period": timeseries_stats_period,
             "timeseries_interval": timeseries_interval,
             "tags_overview": tags_overview,
+            "user_activity": serialized_activities,
         }
 
     return result
@@ -1405,3 +1441,125 @@ def get_metric_attributes_for_trace(
             filtered_items.append(item)
 
     return {"data": filtered_items}
+
+
+def get_baseline_tag_distribution(
+    *,
+    organization_id: int,
+    project_id: int,
+    group_id: int,
+    tag_keys: list[str],
+    stats_period: str | None = None,
+    start: str | None = None,
+    end: str | None = None,
+) -> dict[str, Any] | None:
+    """
+    Get baseline tag distribution for suspect attributes analysis.
+
+    Returns tag value counts for all events/occurrences except those in the specified issue,
+    filtered to only include the specified tag keys. Queries both error events and
+    issue platform occurrences (performance issues, etc.) to build a comprehensive baseline.
+
+    Args:
+        organization_id: The organization ID
+        project_id: The project ID
+        group_id: The issue group ID to exclude from baseline
+        tag_keys: List of tag keys to fetch (from the issue's tags_overview)
+        stats_period: Stats period for the time range (e.g. "7d"). Defaults to "7d" if no time params provided.
+        start: ISO timestamp for start of time range (optional)
+        end: ISO timestamp for end of time range (optional)
+
+    Returns:
+        Dict with "baseline_tag_distribution" containing list of
+        {"tag_key": str, "tag_value": str, "count": int} entries.
+    """
+
+    if not tag_keys:
+        return {"baseline_tag_distribution": []}
+
+    stats_period, start, end = validate_date_params(
+        stats_period, start, end, default_stats_period="7d"
+    )
+
+    if stats_period:
+        period_delta = parse_stats_period(stats_period)
+        assert period_delta is not None  # Already validated
+        end_dt = datetime.now(timezone.utc)
+        start_dt = end_dt - period_delta
+    else:
+        assert start and end
+        start_dt = datetime.fromisoformat(start)
+        end_dt = datetime.fromisoformat(end)
+
+    # Query both error events and issue platform occurrences for a comprehensive baseline.
+    # "events" contains error issues, "search_issues" contains performance and other issue types.
+    combined_counts: dict[tuple[str, str], int] = {}
+
+    for dataset in ["events", "search_issues"]:
+        query = Query(
+            match=Entity(dataset),
+            select=[
+                Function(
+                    "arrayJoin",
+                    parameters=[
+                        Function(
+                            "arrayZip",
+                            parameters=[
+                                Column("tags.key"),
+                                Column("tags.value"),
+                            ],
+                        ),
+                    ],
+                    alias="variants",
+                ),
+                Function("count", parameters=[], alias="count"),
+            ],
+            where=[
+                Condition(Column("project_id"), Op.EQ, project_id),
+                Condition(Column("timestamp"), Op.GTE, start_dt),
+                Condition(Column("timestamp"), Op.LT, end_dt),
+                # Exclude the current issue from baseline
+                Condition(Column("group_id"), Op.NEQ, group_id),
+                # Only include specified tag keys
+                Condition(
+                    Function(
+                        "has",
+                        parameters=[
+                            tag_keys,
+                            Function("tupleElement", parameters=[Column("variants"), 1]),
+                        ],
+                    ),
+                    Op.EQ,
+                    1,
+                ),
+            ],
+            groupby=[Column("variants")],
+            limit=Limit(5000),
+        )
+
+        snuba_request = Request(
+            dataset=dataset,
+            app_id="seer-explorer",
+            query=query,
+            tenant_ids={"organization_id": organization_id},
+        )
+        response = raw_snql_query(
+            snuba_request,
+            referrer="seer.explorer.get_baseline_tag_distribution",
+            use_cache=True,
+        )
+
+        for result in response.get("data", []):
+            key = (result["variants"][0], result["variants"][1])
+            combined_counts[key] = combined_counts.get(key, 0) + result["count"]
+
+    baseline_distribution = [
+        {
+            "tag_key": tag_key,
+            "tag_value": tag_value,
+            "count": count,
+        }
+        for (tag_key, tag_value), count in combined_counts.items()
+    ]
+
+    return {"baseline_tag_distribution": baseline_distribution}

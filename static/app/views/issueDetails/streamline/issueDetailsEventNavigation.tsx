@@ -202,5 +202,5 @@ export function IssueDetailsEventNavigation({
 const Navigation = styled('div')`
   display: flex;
   padding-right: ${space(0.25)};
-  border-right: 1px solid ${p => p.theme.gray100};
+  border-right: 1px solid ${p => p.theme.colors.gray100};
 `;

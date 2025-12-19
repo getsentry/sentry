@@ -150,6 +150,8 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
       noAutofixQuota ||
       // needs to configure repos
       !aiConfig.seerReposLinked ||
+      // needs to have autofix enabled for this group's project
+      !aiConfig.autofixEnabled ||
       // needs to enable autofix
       !seerOnboardingCheck.data?.isAutofixEnabled ||
       // catch all, ensure seer is configured
@@ -423,7 +425,8 @@ function LegacySeerDrawer({group, project, event, aiConfig}: LegacySeerDrawerPro
           <ButtonBar>
             <Feature features={['organizations:autofix-seer-preferences']}>
               <LinkButton
-                to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
+                external
+                href={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
                 size="xs"
                 title={t('Project Settings for Seer')}
                 aria-label={t('Project Settings for Seer')}
@@ -553,7 +556,7 @@ const PlaceholderStack = styled('div')`
 `;
 
 const StyledCard = styled('div')`
-  background: ${p => p.theme.backgroundElevated};
+  background: ${p => p.theme.tokens.background.primary};
   overflow: visible;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.radius.md};

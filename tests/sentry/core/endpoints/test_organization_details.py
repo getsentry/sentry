@@ -1732,6 +1732,153 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         ).count()
         assert access_count == 0
 
+    @with_feature("organizations:granular-replay-permissions")
+    def test_granular_replay_permissions_owner_can_edit(self) -> None:
+        owner = self.create_user()
+        org = self.create_organization(owner=owner)
+        member = self.create_member(organization=org, user=self.create_user(), role="member")
+        self.login_as(owner)
+
+        response = self.get_success_response(
+            org.slug, hasGranularReplayPermissions=True, replayAccessMembers=[member.user_id]
+        )
+
+        assert response.data["hasGranularReplayPermissions"] is True
+        assert member.user_id in response.data["replayAccessMembers"]
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_granular_replay_permissions_manager_can_edit(self) -> None:
+        owner = self.create_user()
+        org = self.create_organization(owner=owner)
+        manager = self.create_user()
+        self.create_member(organization=org, user=manager, role="manager")
+        member = self.create_member(organization=org, user=self.create_user(), role="member")
+        self.login_as(manager)
+
+        response = self.get_success_response(
+            org.slug, hasGranularReplayPermissions=True, replayAccessMembers=[member.user_id]
+        )
+
+        assert response.data["hasGranularReplayPermissions"] is True
+        assert member.user_id in response.data["replayAccessMembers"]
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_granular_replay_permissions_admin_cannot_edit(self) -> None:
+        owner = self.create_user()
+        org = self.create_organization(owner=owner)
+        admin = self.create_user()
+        self.create_member(organization=org, user=admin, role="admin")
+        member = self.create_member(organization=org, user=self.create_user(), role="member")
+        self.login_as(admin)
+
+        self.get_error_response(
+            org.slug, hasGranularReplayPermissions=True, replayAccessMembers=[member.user_id]
+        )
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_granular_replay_permissions_member_cannot_edit_boolean(self) -> None:
+        owner = self.create_user()
+        org = self.create_organization(owner=owner)
+        member_user = self.create_user()
+        self.create_member(organization=org, user=member_user, role="member")
+        self.login_as(member_user)
+
+        self.get_error_response(org.slug, hasGranularReplayPermissions=True, status_code=403)
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_granular_replay_permissions_member_cannot_edit_list(self) -> None:
+        owner = self.create_user()
+        org = self.create_organization(owner=owner)
+        member_user = self.create_user()
+        self.create_member(organization=org, user=member_user, role="member")
+        other_member = self.create_member(organization=org, user=self.create_user(), role="member")
+        self.login_as(member_user)
+
+        self.get_error_response(
+            org.slug, replayAccessMembers=[other_member.user_id], status_code=403
+        )
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_granular_replay_permissions_retrieve_as_owner(self) -> None:
+        owner = self.create_user()
+        org = self.create_organization(owner=owner)
+        member = self.create_member(organization=org, user=self.create_user(), role="member")
+        org.update_option("sentry:granular-replay-permissions", True)
+        OrganizationMemberReplayAccess.objects.create(organizationmember=member)
+        self.login_as(owner)
+
+        response = self.get_success_response(org.slug, method="get")
+
+        assert "hasGranularReplayPermissions" in response.data
+        assert response.data["hasGranularReplayPermissions"] is True
+        assert "replayAccessMembers" in response.data
+        assert member.user_id in response.data["replayAccessMembers"]
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_granular_replay_permissions_retrieve_as_manager(self) -> None:
+        owner = self.create_user()
+        org = self.create_organization(owner=owner)
+        manager = self.create_user()
+        self.create_member(organization=org, user=manager, role="manager")
+        member = self.create_member(organization=org, user=self.create_user(), role="member")
+        org.update_option("sentry:granular-replay-permissions", True)
+        OrganizationMemberReplayAccess.objects.create(organizationmember=member)
+        self.login_as(manager)
+
+        response = self.get_success_response(org.slug, method="get")
+
+        assert "hasGranularReplayPermissions" in response.data
+        assert response.data["hasGranularReplayPermissions"] is True
+        assert "replayAccessMembers" in response.data
+        assert member.user_id in response.data["replayAccessMembers"]
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_granular_replay_permissions_retrieve_as_admin(self) -> None:
+        owner = self.create_user()
+        org = self.create_organization(owner=owner)
+        admin = self.create_user()
+        self.create_member(organization=org, user=admin, role="admin")
+        member = self.create_member(organization=org, user=self.create_user(), role="member")
+        org.update_option("sentry:granular-replay-permissions", True)
+        OrganizationMemberReplayAccess.objects.create(organizationmember=member)
+        self.login_as(admin)
+
+        response = self.get_success_response(org.slug, method="get")
+
+        assert "hasGranularReplayPermissions" in response.data
+        assert response.data["hasGranularReplayPermissions"] is True
+        assert "replayAccessMembers" in response.data
+        assert member.user_id in response.data["replayAccessMembers"]
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_granular_replay_permissions_retrieve_as_member(self) -> None:
+        owner = self.create_user()
+        org = self.create_organization(owner=owner)
+        member_user = self.create_user()
+        self.create_member(organization=org, user=member_user, role="member")
+        other_member = self.create_member(organization=org, user=self.create_user(), role="member")
+        org.update_option("sentry:granular-replay-permissions", True)
+        OrganizationMemberReplayAccess.objects.create(organizationmember=other_member)
+        self.login_as(member_user)
+
+        response = self.get_success_response(org.slug, method="get")
+
+        assert "hasGranularReplayPermissions" in response.data
+        assert response.data["hasGranularReplayPermissions"] is True
+        assert "replayAccessMembers" in response.data
+        assert other_member.user_id in response.data["replayAccessMembers"]
+
+    def test_granular_replay_permissions_retrieve_hidden_without_feature(self) -> None:
+        owner = self.create_user()
+        org = self.create_organization(owner=owner)
+        org.update_option("sentry:granular-replay-permissions", True)
+        self.login_as(owner)
+
+        response = self.get_success_response(org.slug, method="get")
+
+        assert response.data["hasGranularReplayPermissions"] is False
+        assert response.data["replayAccessMembers"] == []
+
 
 class OrganizationDeleteTest(OrganizationDetailsTestBase):
     method = "delete"

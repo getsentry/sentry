@@ -1927,7 +1927,7 @@ describe('Customer Details', () => {
       await userEvent.type(screen.getByRole('textbox', {name: 'Reason'}), 'test');
 
       const apiMock = MockApiClient.addMockResponse({
-        url: `/_admin/${organization.slug}/refund-vercel/`,
+        url: `/customers/${organization.slug}/refund-vercel/`,
         method: 'POST',
         body: {},
       });
@@ -1936,7 +1936,7 @@ describe('Customer Details', () => {
 
       await waitFor(() =>
         expect(apiMock).toHaveBeenCalledWith(
-          `/_admin/${organization.slug}/refund-vercel/`,
+          `/customers/${organization.slug}/refund-vercel/`,
           expect.objectContaining({
             method: 'POST',
             data: {

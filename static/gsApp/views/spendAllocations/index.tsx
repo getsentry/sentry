@@ -370,7 +370,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
                   aria-label={t('Manage Subscription')}
                   size="sm"
                   style={{marginRight: space(1)}}
-                  to={`/settings/${organization.slug}/billing/checkout/?referrer=spend_allocations`}
+                  to={`/checkout/${organization.slug}/?referrer=spend_allocations`}
                 >
                   {t('Manage Subscription')}
                 </LinkButton>

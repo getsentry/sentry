@@ -1192,3 +1192,26 @@ class TestEventKeyAndInstance:
         # With continue_on_error=False, should raise on first error
         with pytest.raises(ValueError):
             EventRedisData.from_redis_data(redis_data, continue_on_error=False)
+
+    def test_dcg_to_timestamp(self) -> None:
+        timestamp1 = timezone.now()
+        timestamp2 = timestamp1 + timedelta(hours=1)
+        timestamp3 = timestamp2 + timedelta(hours=1)
+
+        redis_data = {
+            # DCG 1 -> ts1
+            "123:456:1::": json.dumps({"event_id": "event-1", "timestamp": timestamp1.isoformat()}),
+            # DCG 1 -> ts2 (now latest)
+            "123:457::1:": json.dumps({"event_id": "event-2", "timestamp": timestamp2.isoformat()}),
+            # DCG 2 -> ts3
+            "123:458::2:": json.dumps({"event_id": "event-3", "timestamp": timestamp3.isoformat()}),
+            # DCG 3 -> no timestamp
+            "123:459:::3": json.dumps({"event_id": "event-4"}),
+        }
+
+        event_data = EventRedisData.from_redis_data(redis_data, continue_on_error=True)
+        dcg_to_timestamp = event_data.dcg_to_timestamp
+
+        assert dcg_to_timestamp[1] == timestamp2
+        assert dcg_to_timestamp[2] == timestamp3
+        assert 3 not in dcg_to_timestamp

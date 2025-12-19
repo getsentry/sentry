@@ -70,7 +70,7 @@ function Content({
         .map(values => {
           return {
             ...values,
-            color: theme.purple300,
+            color: theme.colors.blue400,
             lineStyle: {
               opacity: 0.75,
               width: 1,
@@ -123,7 +123,7 @@ function Content({
     ? smoothedResults.map(values => {
         return {
           ...values,
-          color: theme.purple300,
+          color: theme.colors.blue400,
           lineStyle: {
             opacity: 1,
           },

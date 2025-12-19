@@ -22,6 +22,7 @@ import {
   type BillingSeatAssignment,
   type Subscription,
 } from 'getsentry/types';
+import {normalizeMetricHistory} from 'getsentry/utils/billing';
 
 function BilledSeats({
   selectedProduct,
@@ -58,9 +59,7 @@ function BilledSeats({
   }
 
   const metricHistory = subscription.categories[billedCategory];
-  if (!metricHistory) {
-    return null;
-  }
+  const normalizedMetricHistory = normalizeMetricHistory(billedCategory, metricHistory);
 
   return (
     <Fragment>
@@ -73,8 +72,9 @@ function BilledSeats({
           // and gifted volumes)
           (billedSeats?.length ?? 0) > 0 ||
           !!activeProductTrial ||
-          (defined(metricHistory.prepaid) &&
-            (metricHistory.prepaid > 0 || metricHistory.prepaid === UNLIMITED_RESERVED))
+          (defined(normalizedMetricHistory.prepaid) &&
+            (normalizedMetricHistory.prepaid > 0 ||
+              normalizedMetricHistory.prepaid === UNLIMITED_RESERVED))
         }
       >
         <SimpleTable.Header>

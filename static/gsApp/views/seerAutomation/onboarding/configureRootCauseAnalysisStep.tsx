@@ -7,10 +7,12 @@ import configureRootCauseAnalysisImg from 'sentry-images/spot/seer-config-connec
 import {Button} from '@sentry/scraps/button';
 import {Text} from '@sentry/scraps/text';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Switch} from 'sentry/components/core/switch';
+import {useUpdateBulkAutofixAutomationSettings} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
+import type {BackendRepository} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import {
   GuidedSteps,
   useGuidedStepsContext,
@@ -24,12 +26,10 @@ import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
+import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+
 import {useSeerOnboardingContext} from './hooks/seerOnboardingContext';
 import {useCodeMappings} from './hooks/useCodeMappings';
-import {
-  useSubmitSeerOnboarding,
-  type BackendRepository,
-} from './hooks/useSubmitSeerOnboarding';
 import {
   Field,
   FieldDescription,
@@ -42,9 +42,6 @@ import {RepositoryToProjectConfiguration} from './repositoryToProjectConfigurati
 
 export function ConfigureRootCauseAnalysisStep() {
   const organization = useOrganization();
-  const [proposeFixesEnabled, setProposeFixesEnabled] = useState(
-    organization.defaultAutofixAutomationTuning !== 'off'
-  );
   const [autoCreatePREnabled, setAutoCreatePREnabled] = useState(
     organization.autoOpenPrs ?? false
   );
@@ -58,6 +55,7 @@ export function ConfigureRootCauseAnalysisStep() {
     addRootCauseAnalysisRepository,
     addRepositoryProjectMappings,
     repositories,
+    setAutoCreatePR,
   } = useSeerOnboardingContext();
 
   const {
@@ -70,8 +68,8 @@ export function ConfigureRootCauseAnalysisStep() {
     enabled: selectedRootCauseAnalysisRepositories.length > 0,
   });
 
-  const {mutate: submitOnboarding, isPending: isSubmitOnboardingPending} =
-    useSubmitSeerOnboarding();
+  const {mutate: updateAutofix, isPending: isUpdateAutofixPending} =
+    useUpdateBulkAutofixAutomationSettings();
 
   useEffect(() => {
     if (!isCodeMappingsLoading && codeMappingsMap.size > 0) {
@@ -100,15 +98,15 @@ export function ConfigureRootCauseAnalysisStep() {
     );
 
     // Transform repositoryProjectMapping from {repoId: projectIds[]} to {projectId: repos[]}
-    const projectRepoMapping: Record<string, BackendRepository[]> = {};
+    const projectRepoMappings: Record<string, BackendRepository[]> = {};
     for (const [repoId, projectIds] of Object.entries(repositoryProjectMapping)) {
       const repo = repoMap.get(repoId);
       if (!repo) {
         continue;
       }
       for (const projectId of projectIds) {
-        if (!projectRepoMapping[projectId]) {
-          projectRepoMapping[projectId] = [];
+        if (!projectRepoMappings[projectId]) {
+          projectRepoMappings[projectId] = [];
         }
 
         // repo.name = `githubOrg/repositoryName`, need to split it for backend
@@ -119,7 +117,7 @@ export function ConfigureRootCauseAnalysisStep() {
           });
           continue;
         }
-        projectRepoMapping[projectId].push({
+        projectRepoMappings[projectId].push({
           external_id: repo.externalId,
           integration_id: repo.integrationId,
           organization_id: parseInt(organization.id, 10),
@@ -130,21 +128,31 @@ export function ConfigureRootCauseAnalysisStep() {
       }
     }
 
+    setAutoCreatePR(autoCreatePREnabled);
+
     // Only submit if RCA is disabled (empty mapping is fine) or there are valid mappings
-    const hasMappings = Object.keys(projectRepoMapping).length > 0;
-    if (proposeFixesEnabled && !hasMappings) {
-      addErrorMessage(t('At least one repository must be mapped to a project'));
+    const hasMappings = Object.keys(projectRepoMappings).length > 0;
+    if (!hasMappings) {
+      // Otherwise, there is nothing mapped so nothing to do here, can advance to the next step.
+      setCurrentStep(currentStep + 1);
       return;
     }
 
-    submitOnboarding(
+    updateAutofix(
       {
-        fixes: proposeFixesEnabled,
-        pr_creation: autoCreatePREnabled,
-        project_repo_mapping: projectRepoMapping,
+        autofixAutomationTuning: 'medium',
+        automatedRunStoppingPoint: autoCreatePREnabled ? 'open_pr' : 'code_changes',
+        projectRepoMappings,
+        projectIds: Object.keys(projectRepoMappings),
       },
       {
         onSuccess: () => {
+          addSuccessMessage(t('Root Cause Analysis settings saved successfully'));
+          trackGetsentryAnalytics('seer.onboarding.root_cause_analysis_updated', {
+            organization,
+            auto_create_pr: autoCreatePREnabled,
+            projects_mapped: Object.keys(projectRepoMappings).length,
+          });
           setCurrentStep(currentStep + 1);
         },
         onError: () => {
@@ -155,12 +163,12 @@ export function ConfigureRootCauseAnalysisStep() {
   }, [
     setCurrentStep,
     currentStep,
-    submitOnboarding,
+    updateAutofix,
     repositoryProjectMapping,
     selectedRootCauseAnalysisRepositories,
-    proposeFixesEnabled,
     autoCreatePREnabled,
-    organization.id,
+    organization,
+    setAutoCreatePR,
   ]);
 
   const handleRepositoryProjectMappingsChange = useCallback(
@@ -178,6 +186,13 @@ export function ConfigureRootCauseAnalysisStep() {
       changeRepositoryProjectMapping(repoId, index, newValue);
     },
     [changeRepositoryProjectMapping, repositoryProjectMapping]
+  );
+
+  const handleAutoCreatePRChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setAutoCreatePREnabled(e.target.checked);
+    },
+    [setAutoCreatePREnabled]
   );
 
   const availableRepositories = useMemo(() => {
@@ -220,43 +235,27 @@ export function ConfigureRootCauseAnalysisStep() {
         <MaxWidthPanel>
           <PanelBody>
             <PanelDescription>
+              <Text bold>{t('Root Cause Analysis')}</Text>
               <p>
                 {t(
-                  'Pair your projects with your repositories to make sure Seer can analyze your codebase.'
+                  'For all projects added below, Seer will automatically analyze highly actionable issues, and create a root cause analysis and proposed solution without a user needing to prompt it. '
                 )}
               </p>
             </PanelDescription>
 
             <Field>
               <Flex direction="column" flex="1" gap="xs">
-                <FieldLabel>{t('Enable Root Cause Analysis')}</FieldLabel>
-                <FieldDescription>
-                  <Text>
-                    {t(
-                      'For all new projects, Seer will automatically analyze highly actionable issues, create a root cause analysis, and propose a solution. '
-                    )}
-                  </Text>
-                </FieldDescription>
-              </Flex>
-              <Switch
-                size="lg"
-                checked={proposeFixesEnabled}
-                onChange={() => setProposeFixesEnabled(!proposeFixesEnabled)}
-              />
-            </Field>
-            <Field>
-              <Flex direction="column" flex="1" gap="xs">
                 <FieldLabel>{t('Automatic PR Creation')}</FieldLabel>
                 <FieldDescription>
                   {t(
-                    'For all projects below AND newly added projects, Seer will be able to create a pull request.'
+                    'For all projects below, Seer will be able to create a pull request.'
                   )}
                 </FieldDescription>
               </Flex>
               <Switch
                 size="lg"
                 checked={autoCreatePREnabled}
-                onChange={() => setAutoCreatePREnabled(!autoCreatePREnabled)}
+                onChange={handleAutoCreatePRChange}
               />
             </Field>
 
@@ -305,12 +304,12 @@ export function ConfigureRootCauseAnalysisStep() {
           size="md"
           onClick={handleNextStep}
           priority={isFinishDisabled ? 'default' : 'primary'}
-          disabled={isSubmitOnboardingPending || isFinishDisabled}
-          aria-label={t('Last Step')}
+          disabled={isUpdateAutofixPending || isFinishDisabled}
+          aria-label={t('Next Step')}
         >
-          {t('Last Step')}
+          {t('Next Step')}
         </Button>
-        {isSubmitOnboardingPending && <InlineLoadingIndicator size={20} />}
+        {isUpdateAutofixPending && <InlineLoadingIndicator size={20} />}
       </GuidedSteps.ButtonWrapper>
     </Fragment>
   );

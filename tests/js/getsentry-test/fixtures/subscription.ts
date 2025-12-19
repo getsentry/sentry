@@ -307,6 +307,11 @@ export function SubscriptionWithLegacySeerFixture(props: Props): TSubscription {
       isAvailable: true,
     },
   };
+  if (subscription.addOns?.[AddOnCategory.SEER]) {
+    subscription.addOns[AddOnCategory.SEER].enabled = false;
+    subscription.addOns[AddOnCategory.SEER].isAvailable = false;
+    delete subscription.categories.seerUsers;
+  }
   return subscription;
 }
 

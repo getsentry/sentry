@@ -24,6 +24,7 @@ from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.identity.services.identity.service import identity_service
 from sentry.integrations.base import IntegrationDomain
+from sentry.integrations.github.utils import should_create_or_increment_contributor_seat
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -38,7 +39,10 @@ from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
 from sentry.models.organization import Organization
-from sentry.models.organizationcontributors import OrganizationContributors
+from sentry.models.organizationcontributors import (
+    ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD,
+    OrganizationContributors,
+)
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
@@ -47,7 +51,9 @@ from sentry.plugins.providers.integration_repository import (
     get_integration_repository_provider,
 )
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
+from sentry.seer.code_review.webhooks import handle_github_check_run_event
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.tasks.organization_contributors import assign_seat_to_organization_contributor
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 
@@ -55,7 +61,6 @@ from .integration import GitHubIntegrationProvider
 from .repository import GitHubRepositoryProvider
 from .tasks.codecov_account_unlink import codecov_account_unlink
 from .types import IssueEvenntWebhookActionType
-from .utils import should_create_or_increment_contributor_seat
 
 logger = logging.getLogger("sentry.webhooks")
 
@@ -74,6 +79,13 @@ def get_file_language(filename: str) -> str | None:
     return language
 
 
+def is_contributor_eligible_for_seat_assignment(user_type: str | None) -> bool:
+    """
+    Determine if a contributor is eligible for seat assignment based on their user type.
+    """
+    return user_type != "Bot"
+
+
 class GitHubWebhook(SCMWebhook, ABC):
     """
     Base class for GitHub webhooks handled in region silos.
@@ -87,7 +99,7 @@ class GitHubWebhook(SCMWebhook, ABC):
     def _handle(self, integration: RpcIntegration, event: Mapping[str, Any], **kwargs) -> None:
         pass
 
-    def __call__(self, event: Mapping[str, Any], **kwargs) -> None:
+    def __call__(self, event: Mapping[str, Any], **kwargs: Any) -> None:
         external_id = get_github_external_id(event=event, host=kwargs.get("host"))
 
         result = integration_service.organization_contexts(
@@ -697,6 +709,7 @@ class PullRequestEventWebhook(GitHubWebhook):
         title = pull_request["title"]
         body = pull_request["body"]
         user = pull_request["user"]
+        user_type = user.get("type")
         action = event["action"]
 
         """
@@ -769,25 +782,11 @@ class PullRequestEventWebhook(GitHubWebhook):
             )
 
             if created:
-                # Track AI contributor if eligible
-                contributor, _ = OrganizationContributors.objects.get_or_create(
-                    organization_id=organization.id,
-                    integration_id=repo.integration_id,
-                    external_identifier=user["id"],
-                    defaults={
-                        "alias": user["login"],
-                    },
-                )
 
-                if should_create_or_increment_contributor_seat(organization, repo, contributor):
-                    metrics.incr(
-                        "github.webhook.organization_contributor.should_create",
-                        sample_rate=1.0,
-                        tags={
-                            "organization_id": organization.id,
-                            "repository_id": repo.id,
-                        },
-                    )
+                try:
+                    pr_repo_private = pull_request["head"]["repo"]["private"]
+                except (KeyError, AttributeError, TypeError):
+                    pr_repo_private = False
 
                 metrics.incr(
                     "github.webhook.pull_request.created",
@@ -795,8 +794,73 @@ class PullRequestEventWebhook(GitHubWebhook):
                     tags={
                         "organization_id": organization.id,
                         "repository_id": repo.id,
+                        "is_private": pr_repo_private,
                     },
                 )
+
+                logger.info(
+                    "github.webhook.organization_contributor.eligibility_check",
+                    extra={
+                        "organization_id": organization.id,
+                        "repository_id": repo.id,
+                        "pr_number": number,
+                        "user_login": user["login"],
+                        "user_type": user_type,
+                        "is_eligible": is_contributor_eligible_for_seat_assignment(user_type),
+                    },
+                )
+
+                if is_contributor_eligible_for_seat_assignment(user_type):
+                    # Track AI contributor if eligible
+                    contributor, _ = OrganizationContributors.objects.get_or_create(
+                        organization_id=organization.id,
+                        integration_id=integration.id,
+                        external_identifier=user["id"],
+                        defaults={
+                            "alias": user["login"],
+                        },
+                    )
+
+                    if should_create_or_increment_contributor_seat(organization, repo, contributor):
+                        metrics.incr(
+                            "github.webhook.organization_contributor.should_create",
+                            sample_rate=1.0,
+                            tags={
+                                "organization_id": organization.id,
+                                "repository_id": repo.id,
+                            },
+                        )
+
+                        locked_contributor = None
+                        with transaction.atomic(router.db_for_write(OrganizationContributors)):
+                            try:
+                                locked_contributor = (
+                                    OrganizationContributors.objects.select_for_update().get(
+                                        organization_id=organization.id,
+                                        integration_id=integration.id,
+                                        external_identifier=user["id"],
+                                    )
+                                )
+                                locked_contributor.num_actions += 1
+                                locked_contributor.save(
+                                    update_fields=["num_actions", "date_updated"]
+                                )
+                            except OrganizationContributors.DoesNotExist:
+                                logger.exception(
+                                    "github.webhook.organization_contributor.not_found",
+                                    extra={
+                                        "organization_id": organization.id,
+                                        "integration_id": integration.id,
+                                        "external_identifier": user["id"],
+                                    },
+                                )
+
+                        if (
+                            locked_contributor
+                            and locked_contributor.num_actions
+                            >= ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD
+                        ):
+                            assign_seat_to_organization_contributor.delay(locked_contributor.id)
 
         except IntegrityError:
             pass
@@ -804,6 +868,32 @@ class PullRequestEventWebhook(GitHubWebhook):
         # Because we require that the sentry github integration be installed for autofix, we can piggyback
         # on this webhook for autofix for now. We may move to a separate autofix github integration in the future.
         handle_github_pr_webhook_for_autofix(organization, action, pull_request, user)
+
+
+class CheckRunEventWebhook(GitHubWebhook):
+    """
+    Handles GitHub check_run webhook events.
+    https://docs.github.com/en/webhooks/webhook-events-and-payloads#check_run
+    """
+
+    @property
+    def event_type(self) -> IntegrationWebhookEventType:
+        return IntegrationWebhookEventType.CHECK_RUN
+
+    def _handle(
+        self,
+        integration: RpcIntegration,
+        event: Mapping[str, Any],
+        **kwargs,
+    ) -> None:
+        # Get organization from kwargs (populated by GitHubWebhook base class)
+        organization = kwargs.get("organization")
+        if organization is None:
+            logger.warning("github.webhook.check_run.missing-organization")
+            return
+
+        # XXX: Add support for registering functions to call
+        handle_github_check_run_event(organization=organization, event=event)
 
 
 @all_silo_endpoint
@@ -826,20 +916,24 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         GithubWebhookType.PULL_REQUEST: PullRequestEventWebhook,
         GithubWebhookType.INSTALLATION: InstallationEventWebhook,
         GithubWebhookType.ISSUE: IssuesEventWebhook,
+        GithubWebhookType.CHECK_RUN: CheckRunEventWebhook,
     }
 
     def get_handler(self, event_type: str) -> type[GitHubWebhook] | None:
         return self._handlers.get(event_type)
 
-    def is_valid_signature(self, method: str, body: bytes, secret: str, signature: str) -> bool:
+    @staticmethod
+    def compute_signature(method: str, body: bytes, secret: str) -> str:
         if method == "sha256":
             mod = hashlib.sha256
         elif method == "sha1":
             mod = hashlib.sha1
         else:
             raise NotImplementedError(f"signature method {method} is not supported")
-        expected = hmac.new(key=secret.encode("utf-8"), msg=body, digestmod=mod).hexdigest()
+        return hmac.new(key=secret.encode("utf-8"), msg=body, digestmod=mod).hexdigest()
 
+    def is_valid_signature(self, method: str, body: bytes, secret: str, signature: str) -> bool:
+        expected = GitHubIntegrationsWebhookEndpoint.compute_signature(method, body, secret)
         return constant_time_compare(expected, signature)
 
     @method_decorator(csrf_exempt)

@@ -1,6 +1,8 @@
 import logging
 from datetime import datetime, timedelta
 
+import sentry_sdk
+
 from sentry.constants import ObjectStatus
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -136,14 +138,14 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
     """
     organization = Organization.objects.get(id=organization_id)
 
+    sentry_sdk.set_tag("organization_id", organization.id)
+    sentry_sdk.set_tag("organization_slug", organization.slug)
+
     # Set org-level options
     organization.update_option("sentry:enable_seer_coding", True)
     organization.update_option(
         "sentry:default_autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
     )
-
-    # Invalidate seat-based tier cache so new settings take effect immediately
-    cache.delete(get_seer_seat_based_tier_cache_key(organization_id))
 
     projects = list(
         Project.objects.filter(organization_id=organization_id, status=ObjectStatus.ACTIVE)
@@ -191,6 +193,10 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
 
     if len(preferences_to_set) > 0:
         bulk_set_project_preferences(organization_id, preferences_to_set)
+
+    # Invalidate existing cache entry and set cache to True to prevent race conditions where another
+    # request re-caches False before the billing flag has fully propagated
+    cache.set(get_seer_seat_based_tier_cache_key(organization_id), True, timeout=60 * 5)
 
     logger.info(
         "Task: configure_seer_for_existing_org completed",

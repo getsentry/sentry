@@ -650,9 +650,11 @@ export function SourceMapsDebuggerModal({
               >
                 <StyledProgressRing
                   progressColor={
-                    activeTab === 'debug-ids' ? theme.purple300 : theme.gray300
+                    activeTab === 'debug-ids'
+                      ? theme.colors.blue400
+                      : theme.colors.gray400
                   }
-                  backgroundColor={theme.gray200}
+                  backgroundColor={theme.colors.gray200}
                   value={sourceResolutionResults.debugIdProgressPercent * 100}
                   size={16}
                   barWidth={4}
@@ -672,9 +674,9 @@ export function SourceMapsDebuggerModal({
               >
                 <StyledProgressRing
                   progressColor={
-                    activeTab === 'release' ? theme.purple300 : theme.gray300
+                    activeTab === 'release' ? theme.colors.blue400 : theme.colors.gray400
                   }
-                  backgroundColor={theme.gray200}
+                  backgroundColor={theme.colors.gray200}
                   value={sourceResolutionResults.releaseProgressPercent * 100}
                   size={16}
                   barWidth={4}
@@ -690,9 +692,9 @@ export function SourceMapsDebuggerModal({
               >
                 <StyledProgressRing
                   progressColor={
-                    activeTab === 'fetching' ? theme.purple300 : theme.gray300
+                    activeTab === 'fetching' ? theme.colors.blue400 : theme.colors.gray400
                   }
-                  backgroundColor={theme.gray200}
+                  backgroundColor={theme.colors.gray200}
                   value={sourceResolutionResults.scrapingProgressPercent * 100}
                   size={16}
                   barWidth={4}
@@ -2006,7 +2008,7 @@ const Line = styled('div')`
   margin: ${space(0.5)} 0;
   flex-grow: 1;
   width: ${space(0.25)};
-  background-color: ${p => p.theme.gray200};
+  background-color: ${p => p.theme.colors.gray200};
   border-radius: ${space(0.25)};
 `;
 
@@ -2038,8 +2040,8 @@ const ListItemTitle = styled('p')<{status: 'none' | 'checked' | 'alert' | 'quest
     ({
       none: p.theme.subText,
       question: p.theme.subText,
-      checked: p.theme.green300,
-      alert: p.theme.yellow400,
+      alert: p.theme.colors.yellow500,
+      checked: p.theme.colors.green400,
     })[p.status]};
 `;
 
@@ -2060,8 +2062,8 @@ const CheckListInstruction = styled(Alert)`
 
 const MonoBlock = styled('code')`
   padding: ${space(0.25)} ${space(0.5)};
-  color: ${p => p.theme.gray400};
-  background: ${p => p.theme.gray100};
+  color: ${p => p.theme.colors.gray500};
+  background: ${p => p.theme.colors.gray100};
   border: 1px solid ${p => p.theme.border};
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.xs};
@@ -2091,7 +2093,7 @@ const InstructionList = styled('ul')`
 
 const ScrapingSymbolificationErrorMessage = styled('p')`
   color: ${p => p.theme.subText};
-  border-left: 2px solid ${p => p.theme.gray200};
+  border-left: 2px solid ${p => p.theme.colors.gray200};
   padding-left: ${space(1)};
   margin-top: -${space(1)};
 `;

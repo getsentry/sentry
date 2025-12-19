@@ -136,6 +136,20 @@ describe('clipped box', () => {
       );
       expect(screen.queryByText(/show more/i)).not.toBeInTheDocument();
     });
+
+    it('does not show collapse button for content that was never clipped', () => {
+      if (!enableResizeObserver) {
+        mockGetBoundingClientRect({height: 10});
+      }
+
+      render(
+        <ClippedBox clipHeight={100} clipFlex={0} collapsible>
+          <Child height={10} />
+        </ClippedBox>
+      );
+      expect(screen.queryByText(/show more/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/show less/i)).not.toBeInTheDocument();
+    });
     it('preserves state on resize once it is open', async () => {
       if (!enableResizeObserver) {
         mockGetBoundingClientRect({height: 100});

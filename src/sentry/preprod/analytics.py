@@ -22,14 +22,6 @@ class PreprodArtifactApiAssembleGenericEvent(analytics.Event):
     project_id: int
 
 
-@analytics.eventclass("preprod_artifact.api.size_analysis_download")
-class PreprodArtifactApiSizeAnalysisDownloadEvent(analytics.Event):
-    organization_id: int
-    project_id: int
-    user_id: int | None = None
-    artifact_id: str
-
-
 @analytics.eventclass("preprod_artifact.api.get_build_details")
 class PreprodArtifactApiGetBuildDetailsEvent(analytics.Event):
     organization_id: int
@@ -43,6 +35,14 @@ class PreprodArtifactApiListBuildsEvent(analytics.Event):
     organization_id: int
     project_id: int
     user_id: int | None = None
+
+
+@analytics.eventclass("preprod_artifact.api.install_details")
+class PreprodArtifactApiInstallDetailsEvent(analytics.Event):
+    organization_id: int
+    project_id: int
+    user_id: int | None = None
+    artifact_id: str
 
 
 @analytics.eventclass("preprod_artifact.api.admin_rerun_analysis")
@@ -77,6 +77,15 @@ class PreprodArtifactApiDeleteEvent(analytics.Event):
     artifact_id: str
 
 
+# Size analysis
+@analytics.eventclass("preprod_artifact.api.size_analysis_download")
+class PreprodArtifactApiSizeAnalysisDownloadEvent(analytics.Event):
+    organization_id: int
+    project_id: int
+    user_id: int | None = None
+    artifact_id: str
+
+
 @analytics.eventclass("preprod_artifact.api.size_analysis_compare.get")
 class PreprodArtifactApiSizeAnalysisCompareGetEvent(analytics.Event):
     organization_id: int
@@ -93,14 +102,6 @@ class PreprodArtifactApiSizeAnalysisComparePostEvent(analytics.Event):
     user_id: int | None = None
     head_artifact_id: str
     base_artifact_id: str
-
-
-@analytics.eventclass("preprod_artifact.api.install_details")
-class PreprodArtifactApiInstallDetailsEvent(analytics.Event):
-    organization_id: int
-    project_id: int
-    user_id: int | None = None
-    artifact_id: str
 
 
 @analytics.eventclass("preprod_artifact.api.size_analysis_compare_download")
