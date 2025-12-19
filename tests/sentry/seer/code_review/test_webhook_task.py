@@ -13,6 +13,7 @@ from sentry.seer.code_review.webhook_task import (
     PREFIX,
     process_github_webhook_event,
 )
+from sentry.seer.code_review.webhooks.types import EventType
 from sentry.testutils.cases import TestCase
 
 
@@ -78,6 +79,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         with pytest.raises(HTTPError):
             process_github_webhook_event._func(
+                event_type=EventType.CHECK_RUN,
                 enqueued_at_str=self.enqueued_at_str,
                 original_run_id=self.original_run_id,
             )
@@ -103,6 +105,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         with pytest.raises(HTTPError):
             process_github_webhook_event._func(
+                event_type=EventType.CHECK_RUN,
                 enqueued_at_str=self.enqueued_at_str,
                 original_run_id=self.original_run_id,
             )
@@ -128,6 +131,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         with pytest.raises(HTTPError):
             process_github_webhook_event._func(
+                event_type=EventType.CHECK_RUN,
                 enqueued_at_str=self.enqueued_at_str,
                 original_run_id=self.original_run_id,
             )
@@ -151,6 +155,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         with pytest.raises(ClientError):
             process_github_webhook_event._func(
+                event_type=EventType.CHECK_RUN,
                 enqueued_at_str=self.enqueued_at_str,
                 original_run_id=self.original_run_id,
             )
@@ -179,6 +184,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         with pytest.raises(MaxRetryError):
             process_github_webhook_event._func(
+                event_type=EventType.CHECK_RUN,
                 enqueued_at_str=self.enqueued_at_str,
                 original_run_id=self.original_run_id,
             )
@@ -206,6 +212,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         with pytest.raises(TimeoutError):
             process_github_webhook_event._func(
+                event_type=EventType.CHECK_RUN,
                 enqueued_at_str=self.enqueued_at_str,
                 original_run_id=self.original_run_id,
             )
@@ -233,6 +240,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         with pytest.raises(SSLError):
             process_github_webhook_event._func(
+                event_type=EventType.CHECK_RUN,
                 enqueued_at_str=self.enqueued_at_str,
                 original_run_id=self.original_run_id,
             )
@@ -260,6 +268,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         with pytest.raises(NewConnectionError):
             process_github_webhook_event._func(
+                event_type=EventType.CHECK_RUN,
                 enqueued_at_str=self.enqueued_at_str,
                 original_run_id=self.original_run_id,
             )
@@ -287,6 +296,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         with pytest.raises(TimeoutError):
             process_github_webhook_event._func(
+                event_type=EventType.CHECK_RUN,
                 enqueued_at_str=self.enqueued_at_str,
                 original_run_id=self.original_run_id,
             )
@@ -315,6 +325,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
         # Unexpected exceptions are not retried
         with pytest.raises(ValueError, match="Invalid JSON format"):
             process_github_webhook_event._func(
+                event_type=EventType.CHECK_RUN,
                 enqueued_at_str=self.enqueued_at_str,
                 original_run_id=self.original_run_id,
             )
@@ -339,6 +350,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_request.return_value = self._mock_response(200, b"{}")
 
         process_github_webhook_event._func(
+            event_type=EventType.CHECK_RUN,
             enqueued_at_str=self.enqueued_at_str,
             original_run_id=self.original_run_id,
         )
@@ -375,6 +387,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
             try:
                 process_github_webhook_event._func(
+                    event_type=EventType.CHECK_RUN,
                     enqueued_at_str=enqueued_at_str,
                     original_run_id=self.original_run_id,
                 )

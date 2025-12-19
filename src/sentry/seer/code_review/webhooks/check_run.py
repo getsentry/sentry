@@ -21,6 +21,7 @@ from sentry.utils import metrics
 
 from ..permissions import has_code_review_enabled
 from ..utils import make_seer_request
+from .types import EventType
 
 logger = logging.getLogger(__name__)
 
@@ -139,6 +140,7 @@ def preprocess_check_run_event(event: Mapping[str, Any], **kwargs: Any) -> None:
 
     # Scheduling the work as a task allows us to retry the request if it fails.
     process_github_webhook_event.delay(
+        event_type=EventType.CHECK_RUN,
         original_run_id=validated_event.check_run.external_id,
         action=validated_event.action,
         html_url=validated_event.check_run.html_url,
@@ -160,6 +162,15 @@ def _validate_github_check_run_event(event: Mapping[str, Any]) -> GitHubCheckRun
 
 
 def process_check_run_event(kwargs: Mapping[str, Any]) -> None:
+    """
+    Process check_run webhook events.
+
+    Only processes events with event_type='check_run'.
+    This allows the task to be shared by multiple webhook types without conflicts.
+    """
+    if kwargs.get("event_type") != EventType.CHECK_RUN:
+        return
+
     original_run_id = kwargs["original_run_id"]
     payload = {"original_run_id": original_run_id}
     make_seer_request(path=SEER_PR_REVIEW_RERUN_PATH, payload=payload)

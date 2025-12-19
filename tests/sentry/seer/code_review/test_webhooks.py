@@ -45,6 +45,7 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
 
         mock_task.delay.assert_called_once()
         call_kwargs = mock_task.delay.call_args[1]
+        assert call_kwargs["event_type"] == "check_run"
         assert call_kwargs["original_run_id"] == self.event_dict["check_run"]["external_id"]
         assert call_kwargs["action"] == "rerequested"
         assert call_kwargs["html_url"] == self.event_dict["check_run"]["html_url"]
@@ -112,6 +113,7 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
 
         mock_task.delay.assert_called_once()
         call_kwargs = mock_task.delay.call_args[1]
+        assert call_kwargs["event_type"] == "check_run"
         assert call_kwargs["original_run_id"] == self.event_dict["check_run"]["external_id"]
 
     def test_check_run_without_integration_returns_204(self) -> None:
