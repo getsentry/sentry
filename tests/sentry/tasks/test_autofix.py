@@ -109,19 +109,31 @@ class TestCheckAutofixStatus(TestCase):
 class TestGenerateIssueSummaryOnly(SentryTestCase):
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     @patch("sentry.seer.autofix.issue_summary.get_issue_summary")
-    def test_generates_fixability_score(
+    def test_generates_fixability_score_with_summary(
         self, mock_get_issue_summary: MagicMock, mock_generate_fixability: MagicMock
     ) -> None:
-        """Test that fixability score is generated and saved to the group."""
+        """Test that fixability score is generated with summary passed to Seer."""
+        from sentry.seer.models import FixabilitySummaryPayload
+
         group = self.create_group(project=self.project)
 
+        mock_get_issue_summary.return_value = (
+            {
+                "groupId": str(group.id),
+                "headline": "Test Headline",
+                "whatsWrong": "Test whats wrong",
+                "trace": "Test trace",
+                "possibleCause": "Test cause",
+            },
+            200,
+        )
         mock_generate_fixability.return_value = SummarizeIssueResponse(
             group_id=str(group.id),
             headline="Test",
             whats_wrong="Test",
             trace="Test",
             possible_cause="Test",
-            scores=SummarizeIssueScores(fixability_score=0.75, actionability_score=0.85),
+            scores=SummarizeIssueScores(fixability_score=0.75),
         )
 
         generate_issue_summary_only(group.id)
@@ -129,10 +141,49 @@ class TestGenerateIssueSummaryOnly(SentryTestCase):
         mock_get_issue_summary.assert_called_once_with(
             group=group, source=SeerAutomationSource.POST_PROCESS, should_run_automation=False
         )
-        mock_generate_fixability.assert_called_once_with(group)
+        mock_generate_fixability.assert_called_once()
+        call_args = mock_generate_fixability.call_args
+        assert call_args[0][0] == group
+        summary_arg = call_args[1]["summary"]
+        assert isinstance(summary_arg, FixabilitySummaryPayload)
+        assert summary_arg.headline == "Test Headline"
 
         group.refresh_from_db()
         assert group.seer_fixability_score == 0.75
+
+    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
+    @patch("sentry.seer.autofix.issue_summary.get_issue_summary")
+    def test_does_not_pass_summary_when_fields_are_none(
+        self, mock_get_issue_summary: MagicMock, mock_generate_fixability: MagicMock
+    ) -> None:
+        """Test that summary is not passed when required fields are None."""
+        group = self.create_group(project=self.project)
+
+        mock_get_issue_summary.return_value = (
+            {
+                "groupId": str(group.id),
+                "headline": "Test Headline",
+                "whatsWrong": None,
+                "trace": "Test trace",
+                "possibleCause": None,
+            },
+            200,
+        )
+        mock_generate_fixability.return_value = SummarizeIssueResponse(
+            group_id=str(group.id),
+            headline="Test",
+            whats_wrong="Test",
+            trace="Test",
+            possible_cause="Test",
+            scores=SummarizeIssueScores(fixability_score=0.80),
+        )
+
+        generate_issue_summary_only(group.id)
+
+        mock_generate_fixability.assert_called_once_with(group, summary=None)
+
+        group.refresh_from_db()
+        assert group.seer_fixability_score == 0.80
 
 
 class TestConfigureSeerForExistingOrg(SentryTestCase):

@@ -93,10 +93,12 @@ def generate_issue_summary_only(group_id: int) -> None:
     summary_payload = None
     if status_code == 200:
         summary_snake = convert_dict_key_case(summary_data, camel_to_snake_case)
-        summary_payload = FixabilitySummaryPayload(
-            group_id=group.id,
-            **{k: summary_snake[k] for k in ["headline", "whats_wrong", "trace", "possible_cause"]},
-        )
+        required_fields = ["headline", "whats_wrong", "trace", "possible_cause"]
+        if all(summary_snake.get(k) is not None for k in required_fields):
+            summary_payload = FixabilitySummaryPayload(
+                group_id=group.id,
+                **{k: summary_snake[k] for k in required_fields},
+            )
 
     get_and_update_group_fixability_score(group, force_generate=True, summary=summary_payload)
 
