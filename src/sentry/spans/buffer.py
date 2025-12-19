@@ -532,6 +532,12 @@ class SpansBuffer:
             ingested_count = ingested_results[i * 2]
             ingested_byte_count = ingested_results[i * 2 + 1]
 
+            if ingested_byte_count:
+                metrics.timing(
+                    "spans.buffer.flush_segments.ingested_bytes_per_segment",
+                    int(ingested_byte_count),
+                )
+
             if ingested_count:
                 total_ingested = int(ingested_count)
                 metrics.timing(
@@ -561,12 +567,6 @@ class SpansBuffer:
                         category=DataCategory.SPAN_INDEXED,
                         quantity=dropped,
                     )
-
-            if ingested_byte_count:
-                metrics.timing(
-                    "spans.buffer.flush_segments.ingested_bytes_per_segment",
-                    int(ingested_byte_count),
-                )
 
         for key, spans in payloads.items():
             if not spans:
