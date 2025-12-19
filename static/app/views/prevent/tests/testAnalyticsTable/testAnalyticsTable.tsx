@@ -104,7 +104,7 @@ export default function TestAnalyticsTable({response, sort}: Props) {
 
   const selectorEmptyMessage = (
     <MessageContainer>
-      <StyledIconSearch color="subText" size="xl" />
+      <StyledIconSearch variant="muted" size="xl" />
       <Title>{t('It looks like there is nothing to show right now.')}</Title>
       <Subtitle>
         {t(

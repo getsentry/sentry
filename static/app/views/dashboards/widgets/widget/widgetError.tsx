@@ -17,7 +17,7 @@ interface WidgetErrorProps {
 export function WidgetError({error}: WidgetErrorProps) {
   return (
     <Panel>
-      <NonShrinkingWarningIcon variant={DEEMPHASIS_COLOR_NAME} size="md" />
+      <NonShrinkingWarningIcon color={DEEMPHASIS_COLOR_NAME} size="md" />
       <ErrorText>
         {typeof error === 'string'
           ? error
