@@ -19,7 +19,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
-import {useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {parseAsSort} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -40,7 +40,6 @@ function getDefaultAutofixSettings(
 }
 
 export default function SeerProjectTable() {
-  const queryClient = useQueryClient();
   const organization = useOrganization();
   const {projects, fetching, fetchError} = useProjects();
 
@@ -64,11 +63,6 @@ export default function SeerProjectTable() {
             };
           });
           return updated;
-        });
-      },
-      onSettled: () => {
-        queryClient.invalidateQueries({
-          queryKey: [`/organizations/${organization.slug}/autofix/automation-settings/`],
         });
       },
     });
