@@ -86,7 +86,7 @@ export function AgentSelector() {
     return list;
   }, [agentData, selectedAgents]);
 
-  const cacheKey = pageFilters.selection.projects.sort().join(' ');
+  const cacheKey = [...pageFilters.selection.projects].sort().join(' ');
   const {options} = useCompactSelectOptionsCache(agentList, cacheKey);
 
   return (
