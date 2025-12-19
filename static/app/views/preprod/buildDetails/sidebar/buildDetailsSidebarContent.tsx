@@ -5,6 +5,7 @@ import {Flex} from '@sentry/scraps/layout';
 import Placeholder from 'sentry/components/placeholder';
 import {space} from 'sentry/styles/space';
 import {BuildDetailsSidebarAppInfo} from 'sentry/views/preprod/buildDetails/sidebar/buildDetailsSidebarAppInfo';
+import {BuildDetailsSidebarStatusCheck} from 'sentry/views/preprod/buildDetails/sidebar/buildDetailsSidebarStatusCheck';
 import {BuildVcsInfo} from 'sentry/views/preprod/components/buildVcsInfo';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {BuildDetailsState} from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -31,6 +32,14 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
           appInfo={buildDetailsData.app_info}
           projectId={projectId}
           artifactId={artifactId}
+        />
+      )}
+
+      {/* Status check info */}
+      {buildDetailsData.posted_status_checks?.size && (
+        <BuildDetailsSidebarStatusCheck
+          statusCheck={buildDetailsData.posted_status_checks.size}
+          vcsInfo={buildDetailsData.vcs_info}
         />
       )}
 

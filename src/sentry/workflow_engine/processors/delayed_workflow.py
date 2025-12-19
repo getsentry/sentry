@@ -733,6 +733,7 @@ def fire_actions_for_groups(
                 filtered_actions = filter_recently_fired_workflow_actions(
                     dcgs_for_group, workflow_event_data
                 )
+                # TODO: trigger service hooks from here
 
                 metrics.incr(
                     "workflow_engine.delayed_workflow.triggered_actions",
@@ -747,6 +748,14 @@ def fire_actions_for_groups(
                     is_delayed=True,
                     start_timestamp=start_timestamp,
                 )
+
+                # Create mapping: workflow_id -> notification_uuid for propagation
+                workflow_uuid_map: dict[int, str] = {}
+                if workflow_fire_histories:
+                    workflow_uuid_map = {
+                        history.workflow_id: str(history.notification_uuid)
+                        for history in workflow_fire_histories
+                    }
 
                 event_id = (
                     workflow_event_data.event.event_id
@@ -766,7 +775,9 @@ def fire_actions_for_groups(
                 )
                 total_actions += len(filtered_actions)
 
-                fire_actions(filtered_actions, workflow_event_data)
+                fire_actions(
+                    filtered_actions, workflow_event_data, workflow_uuid_map=workflow_uuid_map
+                )
 
     logger.debug(
         "workflow_engine.delayed_workflow.triggered_actions_summary",

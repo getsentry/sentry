@@ -150,7 +150,7 @@ class ActionsPanel extends PureComponent<Props> {
     if (newAction.type === 'slack') {
       return (
         <FooterAlert
-          type="info"
+          variant="info"
           trailingItems={
             <ExternalLink href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error">
               {t('Learn More')}
@@ -164,7 +164,7 @@ class ActionsPanel extends PureComponent<Props> {
     if (newAction.type === 'discord') {
       return (
         <FooterAlert
-          type="info"
+          variant="info"
           trailingItems={
             <ExternalLink href="https://docs.sentry.io/product/accounts/early-adopter-features/discord/#issue-alerts">
               {t('Learn More')}
@@ -496,7 +496,7 @@ class ActionsPanel extends PureComponent<Props> {
         <ActionSection>
           <Button
             disabled={disabled || loading}
-            icon={<IconAdd color="gray300" />}
+            icon={<IconAdd variant="muted" />}
             onClick={this.handleAddAction}
           >
             {t('Add Action')}

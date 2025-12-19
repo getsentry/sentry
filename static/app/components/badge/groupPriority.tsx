@@ -98,7 +98,7 @@ export function GroupPriorityBadge({
   const label = PRIORITY_KEY_TO_LABEL[priority] ?? t('Unknown');
 
   return (
-    <StyledTag type="default" icon={<IconCellSignal bars={bars} />}>
+    <StyledTag variant="muted" icon={<IconCellSignal bars={bars} />}>
       {showLabel ? label : <VisuallyHidden>{label}</VisuallyHidden>}
       {children}
     </StyledTag>
@@ -211,7 +211,7 @@ export function GroupPriorityDropdown({
           }
         >
           <GroupPriorityBadge showLabel={false} priority={value}>
-            <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" color="subText" />
+            <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" variant="muted" />
           </GroupPriorityBadge>
         </DropdownButton>
       )}

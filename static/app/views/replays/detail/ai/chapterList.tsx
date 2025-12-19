@@ -67,7 +67,7 @@ export function ChapterList({timeRanges}: Props) {
   if (!chapterData?.length) {
     return (
       <EmptyContainer>
-        <Alert type="info" showIcon={false}>
+        <Alert variant="info" showIcon={false}>
           {t('No chapters available for this replay.')}
         </Alert>
       </EmptyContainer>
@@ -148,15 +148,15 @@ function ChapterRow({
         <ChapterIconWrapper>
           {isError ? (
             isOpen || isHovered ? (
-              <ChapterIconArrow direction="right" size="xs" color="red300" />
+              <ChapterIconArrow direction="right" size="xs" variant="danger" />
             ) : (
-              <IconFire size="xs" color="red300" />
+              <IconFire size="xs" variant="danger" />
             )
           ) : isFeedback ? (
             isOpen || isHovered ? (
-              <ChapterIconArrow direction="right" size="xs" color="pink300" />
+              <ChapterIconArrow direction="right" size="xs" variant="promotion" />
             ) : (
-              <IconMegaphone size="xs" color="pink300" />
+              <IconMegaphone size="xs" variant="promotion" />
             )
           ) : (
             <ChapterIconArrow direction="right" size="xs" />

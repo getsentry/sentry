@@ -71,7 +71,7 @@ const SESSION_DURATION_ALERT_TEXT = tct(
 );
 
 export const SESSION_DURATION_ALERT = (
-  <PanelAlert type="warning">{SESSION_DURATION_ALERT_TEXT}</PanelAlert>
+  <PanelAlert variant="warning">{SESSION_DURATION_ALERT_TEXT}</PanelAlert>
 );
 
 type Props = WithRouterProps & {
@@ -541,9 +541,9 @@ const ErrorCard = styled(Placeholder)`
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: ${p => p.theme.alert.error.backgroundLight};
-  border: 1px solid ${p => p.theme.alert.error.border};
-  color: ${p => p.theme.alert.error.textLight};
+  background-color: ${p => p.theme.alert.danger.backgroundLight};
+  border: 1px solid ${p => p.theme.alert.danger.border};
+  color: ${p => p.theme.alert.danger.textLight};
   border-radius: ${p => p.theme.radius.md};
   margin-bottom: ${space(2)};
 `;

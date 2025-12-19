@@ -49,20 +49,37 @@ sentry/
 
 ## Command Execution Requirements
 
-**CRITICAL**: Before running ANY Python commands (pytest, mypy, pre-commit, etc.), you MUST activate the virtual environment:
+**CRITICAL**: When running Python commands (pytest, mypy, pre-commit, etc.), you MUST use the virtual environment.
+
+### For AI Agents (automated commands)
+
+Use the full relative path to virtualenv executables:
 
 ```bash
-direnv allow
+cd /path/to/sentry && .venv/bin/pytest tests/...
+cd /path/to/sentry && .venv/bin/python -m mypy ...
 ```
 
-This ensures you're using the correct Python interpreter and dependencies from `.venv`. Commands will fail or use the wrong Python environment without this step.
+Or source the activate script in your command:
 
-**When to run `direnv allow`:**
+```bash
+cd /path/to/sentry && source .venv/bin/activate && pytest tests/...
+```
 
-- Before running tests (`pytest`)
-- Before running type checks (`mypy`)
-- Before running any Python scripts
-- At the start of any new terminal session
+**Important for AI agents:**
+
+- Always use `required_permissions: ['all']` when running Python commands to avoid sandbox permission issues
+- The `.venv/bin/` prefix ensures you're using the correct Python interpreter and dependencies
+
+### For Human Developers (interactive shells)
+
+Run `direnv allow` once to trust the `.envrc` file. After that, direnv will automatically activate the virtual environment when you cd into the directory.
+
+```bash
+cd /path/to/sentry
+direnv allow  # Only needed once, or after .envrc changes
+# Now pytest, python, etc. will automatically use .venv
+```
 
 ## Security Guidelines
 
@@ -609,7 +626,6 @@ print(silo_mode_delegation.get_current_mode())
 - `.github/`: CI/CD workflows
 - `devservices/config.yml`: Local service configuration
 - `.pre-commit-config.yaml`: Pre-commit hooks configuration
-- `codecov.yml`: Code coverage configuration
 
 ## File Location Map
 

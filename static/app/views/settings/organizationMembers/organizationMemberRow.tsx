@@ -1,6 +1,8 @@
 import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import Confirm from 'sentry/components/confirm';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
@@ -168,14 +170,18 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
             </Fragment>
           ) : (
             <AuthStatus>
-              {has2fa ? <IconCheckmark color="success" /> : <IconFlag color="error" />}
+              {has2fa ? (
+                <IconCheckmark variant="success" />
+              ) : (
+                <IconFlag variant="danger" />
+              )}
               {has2fa ? t('2FA Enabled') : t('2FA Not Enabled')}
             </AuthStatus>
           )}
         </div>
 
         {showRemoveButton || showLeaveButton ? (
-          <RightColumn>
+          <Flex justify="end">
             {showRemoveButton && canRemoveMember && (
               <Confirm
                 message={tct('Are you sure you want to remove [name] from [orgName]?', {
@@ -250,7 +256,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                 {t('Leave')}
               </Button>
             )}
-          </RightColumn>
+          </Flex>
         ) : null}
       </StyledPanelItem>
     );
@@ -267,11 +273,6 @@ const StyledPanelItem = styled(PanelItem)`
   align-items: center;
 `;
 // Force action button at the end to align to right
-const RightColumn = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-`;
-
 const Section = styled('div')`
   display: inline-grid;
   grid-template-columns: max-content auto;

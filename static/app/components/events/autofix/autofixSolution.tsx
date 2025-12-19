@@ -507,7 +507,7 @@ function AutofixSolutionDisplay({
   if (!solution || solution.length === 0) {
     return (
       <Alert.Container>
-        <Alert type="error">{t('No solution available.')}</Alert>
+        <Alert variant="danger">{t('No solution available.')}</Alert>
       </Alert.Container>
     );
   }
@@ -519,7 +519,7 @@ function AutofixSolutionDisplay({
           <HeaderWrapper>
             <HeaderText>
               <Flex justify="center" align="center" ref={iconFixRef}>
-                <IconFix size="sm" color="green400" />
+                <IconFix size="sm" variant="success" />
               </Flex>
               {t('Custom Solution')}
             </HeaderText>
@@ -547,7 +547,7 @@ function AutofixSolutionDisplay({
       <HeaderWrapper>
         <HeaderText>
           <Flex justify="center" align="center" ref={iconFixRef}>
-            <IconFix size="md" color="green400" />
+            <IconFix size="md" variant="success" />
           </Flex>
           {t('Solution')}
           <Button
@@ -680,7 +680,7 @@ export function AutofixSolution(props: AutofixSolutionProps) {
       <AnimatePresence initial={props.isSolutionFirstAppearance}>
         <AnimationWrapper key="card" {...cardAnimationProps}>
           <NoSolutionPadding>
-            <Alert type="warning">{t('No solution found.')}</Alert>
+            <Alert variant="warning">{t('No solution found.')}</Alert>
           </NoSolutionPadding>
         </AnimationWrapper>
       </AnimatePresence>
