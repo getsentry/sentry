@@ -2259,7 +2259,6 @@ function buildRoutes(): RouteObject[] {
       path: 'projects/',
       component: make(() => import('sentry/views/projects/')),
       children: projectsChildren,
-      deprecatedRouteProps: true,
     },
     {
       path: `${FRONTEND_LANDING_SUB_PATH}/uptime/`,
