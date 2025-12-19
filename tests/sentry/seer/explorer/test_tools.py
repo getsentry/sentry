@@ -1,3 +1,4 @@
+import copy
 import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
@@ -10,13 +11,17 @@ from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 from sentry.api import client
 from sentry.constants import ObjectStatus
 from sentry.issues.grouptype import ProfileFileIOGroupType
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
 from sentry.models.repository import Repository
 from sentry.replays.testutils import mock_replay
 from sentry.seer.endpoints.seer_rpc import get_organization_project_ids
 from sentry.seer.explorer.tools import (
     EVENT_TIMESERIES_RESOLUTIONS,
+    _get_suspect_commit,
     execute_table_query,
     execute_timeseries_query,
     execute_trace_table_query,
@@ -42,6 +47,7 @@ from sentry.testutils.cases import (
     TraceMetricsTestCase,
 )
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils.committers import SuspectCommitType
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin, SearchIssueTestMixin
@@ -1020,15 +1026,18 @@ class TestGetIssueAndEventDetailsV2(
 ):
     """Integration tests for the get_issue_and_event_details RPC."""
 
+    @patch("sentry.seer.explorer.tools._get_suspect_commit")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
     def _test_get_ie_details_from_issue_id(
         self,
         mock_get_tags,
+        mock_get_suspect_commit,
         expected_event_idx: int,
         should_include_issue: bool = True,
         **kwargs,
     ):
         mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
+        mock_get_suspect_commit.return_value = {"sus": "sus"}
 
         # Mock spans for the first 2 events' traces.
         event0_trace_id = uuid.uuid4().hex
@@ -1103,6 +1112,7 @@ class TestGetIssueAndEventDetailsV2(
             # Check correct event is returned.
             assert result["event_id"] == events[expected_event_idx].event_id
             assert result["event_trace_id"] == events[expected_event_idx].trace_id
+            assert result["event_suspect_commit"] == mock_get_suspect_commit.return_value
 
             # Validate fields of the selected event.
             event_dict = result["event"]
@@ -1137,13 +1147,16 @@ class TestGetIssueAndEventDetailsV2(
             end=before_now(minutes=5).isoformat(),
         )
 
+    @patch("sentry.seer.explorer.tools._get_suspect_commit")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
     def test_get_ie_details_from_issue_id_no_valid_events(
         self,
         mock_get_tags,
+        mock_get_suspect_commit,
     ):
         """Test an event is still returned when no events have a trace/spans."""
         mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
+        mock_get_suspect_commit.return_value = None
 
         # Create events with shared stacktrace (should have same group)
         events: list[Event] = []
@@ -1174,19 +1187,23 @@ class TestGetIssueAndEventDetailsV2(
             # Check any event is returned with right structure.
             assert "event_id" in result
             assert "event_trace_id" in result
+            assert "event_suspect_commit" in result
 
             event_dict = result["event"]
             assert isinstance(event_dict, dict)
             _SentryEventData.parse_obj(event_dict)
             assert result["event_id"] == event_dict["id"]
 
+    @patch("sentry.seer.explorer.tools._get_suspect_commit")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
     def test_get_ie_details_from_issue_id_single_event(
         self,
         mock_get_tags,
+        mock_get_suspect_commit,
     ):
         """Test non-empty result for an issue with a single event."""
         mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
+        mock_get_suspect_commit.return_value = None
 
         # Mock spans.
         event0_trace_id = uuid.uuid4().hex
@@ -1232,19 +1249,23 @@ class TestGetIssueAndEventDetailsV2(
             # Check any event is returned with right structure.
             assert "event_id" in result
             assert "event_trace_id" in result
+            assert "event_suspect_commit" in result
 
             event_dict = result["event"]
             assert isinstance(event_dict, dict)
             _SentryEventData.parse_obj(event_dict)
             assert result["event_id"] == event_dict["id"]
 
+    @patch("sentry.seer.explorer.tools._get_suspect_commit")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
     def _test_get_ie_details_from_event_id(
         self,
         mock_get_tags,
+        mock_get_suspect_commit,
         include_issue: bool,
     ):
         mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
+        mock_get_suspect_commit.return_value = None
 
         # Create events with shared stacktrace (should have same group)
         events: list[Event] = []
@@ -1284,6 +1305,7 @@ class TestGetIssueAndEventDetailsV2(
         # Check correct event is returned.
         assert result["event_id"] == events[1].event_id
         assert result["event_trace_id"] == events[1].trace_id
+        assert "event_suspect_commit" in result
 
         # Validate fields of the selected event.
         event_dict = result["event"]
@@ -1305,10 +1327,13 @@ class TestGetIssueAndEventDetailsV2(
 class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, OccurrenceTestMixin):
     """Unit tests for the util that derives a response from an event and group."""
 
+    @patch("sentry.seer.explorer.tools._get_suspect_commit")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
-    def test_get_ie_response_tags_exception(self, mock_get_tags):
+    def test_get_ie_response_tags_exception(self, mock_get_tags, mock_get_suspect_commit):
+        """Test exceptions are handled when getting tags_overview."""
         mock_get_tags.side_effect = Exception("Test exception")
-        """Test other fields are returned with null tags_overview when tag util fails."""
+        mock_get_suspect_commit.return_value = None
+
         # Create a valid group.
         data = load_data("python", timestamp=before_now(minutes=5))
         data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
@@ -1323,17 +1348,49 @@ class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, Occurr
         )
         assert result["tags_overview"] is None
 
-        assert "event_trace_id" in result
         assert isinstance(result.get("project_id"), int)
+        assert "event_trace_id" in result
+        assert isinstance(result.get("event"), dict)
         assert isinstance(result.get("issue"), dict)
         _IssueMetadata.parse_obj(result.get("issue", {}))
 
+    @patch("sentry.seer.explorer.tools._get_suspect_commit")
+    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    def test_get_ie_response_suspect_commit_exception(self, mock_get_tags, mock_get_suspect_commit):
+        """Test exceptions are handled when getting suspect commit."""
+        mock_get_tags.return_value = None
+        mock_get_suspect_commit.side_effect = Exception("Test exception")
+
+        # Create a valid group.
+        data = load_data("python", timestamp=before_now(minutes=5))
+        data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+        event = self.store_event(data=data, project_id=self.project.id)
+        group = event.group
+        assert isinstance(group, Group)
+
+        result = get_issue_and_event_response(
+            event=event,
+            group=group,
+            organization=self.organization,
+        )
+        assert result["event_suspect_commit"] is None
+
+        assert isinstance(result.get("project_id"), int)
+        assert "event_trace_id" in result
+        assert isinstance(result.get("event"), dict)
+        assert isinstance(result.get("issue"), dict)
+        _IssueMetadata.parse_obj(result.get("issue", {}))
+
+    @patch("sentry.seer.explorer.tools._get_suspect_commit")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
     def test_get_ie_response_with_assigned_user(
         self,
         mock_get_tags,
+        mock_get_suspect_commit,
     ):
         mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
+        mock_get_suspect_commit.return_value = None
+
         data = load_data("python", timestamp=before_now(minutes=5))
         event = self.store_event(data=data, project_id=self.project.id)
         group = event.group
@@ -1355,9 +1412,12 @@ class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, Occurr
         assert md.assignedTo.email == self.user.email
         assert md.assignedTo.name == self.user.get_display_name()
 
+    @patch("sentry.seer.explorer.tools._get_suspect_commit")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
-    def test_get_ie_response_with_assigned_team(self, mock_get_tags):
+    def test_get_ie_response_with_assigned_team(self, mock_get_tags, mock_get_suspect_commit):
         mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
+        mock_get_suspect_commit.return_value = None
+
         data = load_data("python", timestamp=before_now(minutes=5))
         event = self.store_event(data=data, project_id=self.project.id)
 
@@ -1381,14 +1441,17 @@ class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, Occurr
         assert md.assignedTo.email is None
 
     @patch("sentry.seer.explorer.tools.client")
+    @patch("sentry.seer.explorer.tools._get_suspect_commit")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
     def test_get_ie_response_timeseries_resolution(
         self,
         mock_get_tags,
+        mock_get_suspect_commit,
         mock_api_client,
     ):
         """Test timeseries resolution for groups with different first_seen dates"""
         mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
+        mock_get_suspect_commit.return_value = None
 
         for stats_period, interval in EVENT_TIMESERIES_RESOLUTIONS:
             # Fresh mock with passthrough to real client - allows testing call args
@@ -1439,6 +1502,128 @@ class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, Occurr
 
             # Ensure next iteration makes a fresh group.
             group.delete()
+
+
+class TestGetSuspectCommit(APITransactionTestCase, SnubaTestCase):
+    def setUp(self):
+        super().setUp()
+        self.repo = Repository.objects.create(
+            organization_id=self.organization.id, name="seer-test-repo"
+        )
+
+    def create_commit_author(self, name, email):
+        return CommitAuthor.objects.create(
+            organization_id=self.organization.id,
+            name=name,
+            email=email,
+        )
+
+    def create_commit(self, author, message):
+        return Commit.objects.create(
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+            key=uuid.uuid4().hex,
+            author=author,
+            message=message,
+        )
+
+    def test_get_suspect_commit_integration(self):
+        event = self.store_event(
+            data={"message": "Kaboom!", "platform": "python"}, project_id=self.project.id
+        )
+        assert event.group is not None
+
+        user = self.create_user(name="John Doe", email="john@example.com")
+        author = self.create_commit_author(name=user.name, email=user.email)
+        commit = self.create_commit(author=author, message="fix prod")
+        GroupOwner.objects.create(
+            group_id=event.group.id,
+            project=self.project,
+            organization_id=self.organization.id,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user_id=user.id,
+            context={
+                "commitId": commit.id,
+                "suspectCommitStrategy": SuspectCommitStrategy.RELEASE_BASED,
+            },
+        )
+
+        result = _get_suspect_commit(event.event_id, self.project, self.organization)
+        assert result is not None
+        assert result["id"] == commit.key
+        assert result["date_created"] == commit.date_added
+        assert result["message"] == commit.message
+        assert result["repo_name"] == self.repo.name
+        assert result["pr_title"] is None
+        assert result["suspect_commit_type"] == SuspectCommitType.RELEASE_COMMIT.value
+        assert "releases" in result
+
+        assert result["author"]["email"] == author.email
+        assert result["author"]["name"] == author.name
+
+    @patch("sentry.seer.explorer.tools.client")
+    def test_get_suspect_commit_unit_missing_fields(self, mock_client):
+        """Test fields derived from nested fields when the objects are null, empty, or missing."""
+        commit: dict[str, Any] = {
+            "id": "1",
+            "dateCreated": "2025-01-01T00:00:00Z",
+            "message": "Test message",
+            "repository": {"name": "my-repo"},
+            "pullRequest": {"title": "My PR"},
+            "releases": [{"version": "1.0.0"}],
+        }
+
+        test_cases: list[tuple[str, Any, str, Any]] = [
+            ("pullRequest", {}, "pr_title", None),
+            ("pullRequest", None, "pr_title", None),
+            ("pullRequest", "missing", "pr_title", None),
+            ("repository", {}, "repo_name", None),
+            ("repository", None, "repo_name", None),
+            ("repository", "missing", "repo_name", None),
+            ("releases", None, "releases", []),
+            ("releases", "missing", "releases", []),
+        ]
+
+        for in_field, in_val, out_field, out_val in test_cases:
+            commit_copy = copy.deepcopy(commit)
+            if in_val == "missing":
+                del commit_copy[in_field]
+            else:
+                commit_copy[in_field] = in_val
+
+            mock_client.get.return_value = Mock(
+                data={
+                    "committers": [
+                        {
+                            "author": {
+                                "id": "1",
+                                "name": "Jane Doe",
+                                "email": "jane@example.com",
+                            },
+                            "commits": [commit_copy],
+                        }
+                    ]
+                }
+            )
+
+            result = _get_suspect_commit("event-id", self.project, self.organization)
+            assert result is not None
+            assert result[out_field] == out_val, (in_field, in_val, out_field, out_val)
+
+    @patch("sentry.seer.explorer.tools.client")
+    def test_get_suspect_commit_unit_no_commits(self, mock_client):
+        mock_client.get.return_value = Mock(
+            data={
+                "committers": [
+                    {
+                        "author": {"id": "1", "name": "Jane Doe", "email": "jane@example.com"},
+                        "commits": [],
+                    }
+                ]
+            }
+        )
+        result = _get_suspect_commit("event-id", self.project, self.organization)
+        assert result is None
 
 
 class TestGetRepositoryDefinition(APITransactionTestCase):

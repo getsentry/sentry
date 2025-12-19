@@ -844,15 +844,66 @@ _SEER_EXPLORER_ACTIVITY_TYPES = [
 ]
 
 
+def _get_suspect_commit(
+    event_id: str, project: Project, organization: Organization
+) -> dict[str, Any] | None:
+    """
+    Get the suspect commit for the given event.
+    """
+    resp = client.get(
+        auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
+        user=None,
+        path=f"/projects/{organization.slug}/{project.slug}/events/{event_id}/committers/",
+    )
+
+    committers = resp.data["committers"]
+    if not committers or not committers[0]["commits"]:
+        return None
+
+    committer = committers[0]
+    author = committer["author"]
+    commit = committer["commits"][0]
+
+    releases = list(map(lambda r: r["version"], commit.get("releases") or []))
+
+    return {
+        "id": commit["id"],
+        "date_created": commit["dateCreated"],
+        "message": commit.get("message"),
+        "repo_name": (commit.get("repository") or {}).get("name"),
+        "pr_title": (commit.get("pullRequest") or {}).get("title"),
+        "releases": releases,
+        "suspect_commit_type": commit.get("suspectCommitType"),
+        "author": {
+            "name": author.get("name"),
+            "email": author.get("email"),
+        },
+    }
+
+
 def get_issue_and_event_response(
     event: Event | GroupEvent, group: Group | None, organization: Organization
 ) -> dict[str, Any]:
     serialized_event = serialize(event, user=None, serializer=EventSerializer())
 
+    try:
+        serialized_suspect_commit = _get_suspect_commit(event.event_id, event.project, organization)
+    except Exception:
+        logger.exception(
+            "Failed to get suspect commit for event",
+            extra={
+                "organization_id": organization.id,
+                "event_id": event.event_id,
+                "project_slug": event.project.slug,
+            },
+        )
+        serialized_suspect_commit = None
+
     result = {
         "event": serialized_event,
         "event_id": event.event_id,
         "event_trace_id": event.trace_id,
+        "event_suspect_commit": serialized_suspect_commit,
         "project_id": event.project_id,
         "project_slug": event.project.slug,
     }
