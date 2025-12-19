@@ -106,6 +106,7 @@ function revealAndDisconnectObserver({
 }
 
 const DEFAULT_BUTTON_TEXT = t('Show More');
+const DEFAULT_COLLAPSE_BUTTON_TEXT = t('Show Less');
 interface ClippedBoxProps {
   btnText?: string;
   /**
@@ -120,6 +121,14 @@ interface ClippedBoxProps {
   clipFade?: ({showMoreButton}: {showMoreButton: React.ReactNode}) => React.ReactNode;
   clipFlex?: number;
   clipHeight?: number;
+  /**
+   * Text for the collapse button when collapsible is true
+   */
+  collapseBtnText?: string;
+  /**
+   * When true, shows a "Show Less" button after expanding to allow collapsing back
+   */
+  collapsible?: boolean;
   defaultClipped?: boolean;
   /**
    * Triggered when user clicks on the show more button
@@ -174,6 +183,26 @@ function ClippedBox(props: ClippedBoxProps) {
       setClipped(false);
     },
     [clipHeight, onReveal, prefersReducedMotion]
+  );
+
+  const handleCollapse = useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      event.stopPropagation();
+
+      if (wrapperRef.current && contentRef.current) {
+        // First set maxHeight to current height so we have a starting point for the transition
+        const currentHeight =
+          contentRef.current.clientHeight + calculateAddedHeight({wrapperRef});
+        wrapperRef.current.style.maxHeight = `${currentHeight}px`;
+
+        // Force a reflow, then set to clip height to trigger the transition
+        void wrapperRef.current.offsetHeight;
+        wrapperRef.current.style.maxHeight = `${clipHeight}px`;
+      }
+      revealRef.current = false;
+      setClipped(true);
+    },
+    [clipHeight]
   );
 
   const onWrapperRef = useCallback(
@@ -281,6 +310,20 @@ function ClippedBox(props: ClippedBoxProps) {
     </Button>
   );
 
+  const showLessButton = (
+    <Button
+      size="xs"
+      priority="default"
+      onClick={handleCollapse}
+      aria-label={props.collapseBtnText ?? DEFAULT_COLLAPSE_BUTTON_TEXT}
+      {...props.buttonProps}
+    >
+      {props.collapseBtnText ?? DEFAULT_COLLAPSE_BUTTON_TEXT}
+    </Button>
+  );
+
+  const showCollapseButton = props.collapsible && revealRef.current && !clipped;
+
   return (
     <Wrapper ref={onWrapperRef} className={props.className}>
       <div ref={onContentRef}>
@@ -289,6 +332,7 @@ function ClippedBox(props: ClippedBoxProps) {
         {clipped
           ? (props.clipFade?.({showMoreButton}) ?? <ClipFade>{showMoreButton}</ClipFade>)
           : null}
+        {showCollapseButton ? <CollapseButton>{showLessButton}</CollapseButton> : null}
       </div>
     </Wrapper>
   );
@@ -327,4 +371,9 @@ const ClipFade = styled('div')`
   > * {
     pointer-events: auto;
   }
+`;
+
+const CollapseButton = styled('div')`
+  text-align: center;
+  margin-bottom: ${p => p.theme.space.lg};
 `;
