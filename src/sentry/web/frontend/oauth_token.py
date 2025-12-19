@@ -14,7 +14,7 @@ from django.views.generic.base import View
 from rest_framework.request import Request
 
 from sentry import options
-from sentry.models.apiapplication import ApiApplication
+from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apigrant import ApiGrant, ExpiredGrantError, InvalidGrantError
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.token_exchange.util import GrantTypes
@@ -139,7 +139,9 @@ class OAuthTokenView(View):
 
         try:
             application = ApiApplication.objects.get(
-                client_id=client_id, client_secret=client_secret
+                client_id=client_id,
+                client_secret=client_secret,
+                status=ApiApplicationStatus.active,
             )
         except ApiApplication.DoesNotExist:
             metrics.incr(
@@ -328,8 +330,6 @@ class OAuthTokenView(View):
 
         # Check application status to prevent inactive applications from refreshing tokens.
         # This prevents deactivated applications from generating new access tokens.
-        from sentry.models.apiapplication import ApiApplicationStatus
-
         if application.status != ApiApplicationStatus.active:
             return {"error": "invalid_client", "reason": "application not active"}
 

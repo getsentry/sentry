@@ -73,13 +73,13 @@ def validate_pkce_challenge(
     if not code_verifier:
         return False, "PKCE verifier required"
 
-    # Validate verifier format per RFC 7636 §4.1
-    if not CODE_VERIFIER_REGEX.match(code_verifier):
-        return False, "invalid code_verifier format"
-
     # Require S256 method explicitly (plain method not supported for security)
     if code_challenge_method != "S256":
         return False, f"unsupported challenge method: {code_challenge_method}"
+
+    # Validate verifier format per RFC 7636 §4.1
+    if not CODE_VERIFIER_REGEX.match(code_verifier):
+        return False, "invalid code_verifier format"
 
     # RFC 7636 §4.6: BASE64URL(SHA256(ASCII(code_verifier)))
     verifier_hash = hashlib.sha256(code_verifier.encode("ascii")).digest()
