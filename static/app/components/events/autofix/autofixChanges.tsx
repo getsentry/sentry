@@ -279,9 +279,9 @@ export function AutofixChanges({
         <ChangesContainer>
           <HeaderWrapper>
             <HeaderText>
-              <HeaderIconWrapper ref={iconCodeRef}>
+              <Flex justify="center" align="center" ref={iconCodeRef}>
                 <IconCode size="md" color="blue400" />
-              </HeaderIconWrapper>
+              </Flex>
               {t('Code Changes')}
               <Button
                 size="zero"
@@ -489,12 +489,6 @@ const HeaderWrapper = styled('div')`
   align-items: center;
   flex-wrap: wrap;
   gap: ${space(1)};
-`;
-
-const HeaderIconWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
 `;
 
 const BottomDivider = styled('div')`
