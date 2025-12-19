@@ -73,6 +73,12 @@ class OrganizationRepositorySettingsEndpoint(OrganizationEndpoint):
         if updated_code_review_triggers is not None:
             update_fields.append("code_review_triggers")
 
+            # Ensure ON_COMMAND_PHRASE is always a trigger
+            if CodeReviewTrigger.ON_COMMAND_PHRASE.value not in updated_code_review_triggers:
+                updated_code_review_triggers = list(updated_code_review_triggers) + [
+                    CodeReviewTrigger.ON_COMMAND_PHRASE.value
+                ]
+
         repositories = list(
             Repository.objects.filter(
                 id__in=repository_ids,

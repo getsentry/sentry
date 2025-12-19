@@ -27,7 +27,6 @@ class OrganizationRepositorySettingsTest(APITestCase):
                 "enabledCodeReview": True,
                 "codeReviewTriggers": [
                     CodeReviewTrigger.ON_NEW_COMMIT,
-                    CodeReviewTrigger.ON_READY_FOR_REVIEW,
                 ],
             },
             format="json",
@@ -38,11 +37,16 @@ class OrganizationRepositorySettingsTest(APITestCase):
 
         settings1 = RepositorySettings.objects.get(repository=repo1)
         assert settings1.enabled_code_review is True
-        assert settings1.code_review_triggers == ["on_new_commit", "on_ready_for_review"]
-
+        assert settings1.code_review_triggers == [
+            CodeReviewTrigger.ON_NEW_COMMIT,
+            CodeReviewTrigger.ON_COMMAND_PHRASE,
+        ]
         settings2 = RepositorySettings.objects.get(repository=repo2)
         assert settings2.enabled_code_review is True
-        assert settings2.code_review_triggers == ["on_new_commit", "on_ready_for_review"]
+        assert settings2.code_review_triggers == [
+            CodeReviewTrigger.ON_NEW_COMMIT,
+            CodeReviewTrigger.ON_COMMAND_PHRASE,
+        ]
 
         for repo_data in response.data:
             assert "settings" in repo_data
@@ -55,7 +59,7 @@ class OrganizationRepositorySettingsTest(APITestCase):
         self.create_repository_settings(
             repository=repo1,
             enabled_code_review=False,
-            code_review_triggers=[CodeReviewTrigger.ON_COMMAND_PHRASE],
+            code_review_triggers=[CodeReviewTrigger.ON_READY_FOR_REVIEW],
         )
         self.create_repository_settings(
             repository=repo2,
@@ -77,11 +81,17 @@ class OrganizationRepositorySettingsTest(APITestCase):
 
         settings1 = RepositorySettings.objects.get(repository=repo1)
         assert settings1.enabled_code_review is True
-        assert settings1.code_review_triggers == ["on_new_commit"]
+        assert settings1.code_review_triggers == [
+            CodeReviewTrigger.ON_NEW_COMMIT,
+            CodeReviewTrigger.ON_COMMAND_PHRASE,
+        ]
 
         settings2 = RepositorySettings.objects.get(repository=repo2)
         assert settings2.enabled_code_review is True
-        assert settings2.code_review_triggers == ["on_new_commit"]
+        assert settings2.code_review_triggers == [
+            CodeReviewTrigger.ON_NEW_COMMIT,
+            CodeReviewTrigger.ON_COMMAND_PHRASE,
+        ]
 
     def test_repository_not_found(self) -> None:
         response = self.client.put(
@@ -168,7 +178,7 @@ class OrganizationRepositorySettingsTest(APITestCase):
             repository=repo1,
             enabled_code_review=False,
             code_review_triggers=[
-                CodeReviewTrigger.ON_COMMAND_PHRASE,
+                CodeReviewTrigger.ON_READY_FOR_REVIEW,
                 CodeReviewTrigger.ON_NEW_COMMIT,
             ],
         )
@@ -191,11 +201,15 @@ class OrganizationRepositorySettingsTest(APITestCase):
 
         settings1 = RepositorySettings.objects.get(repository=repo1)
         assert settings1.enabled_code_review is True
-        assert settings1.code_review_triggers == ["on_command_phrase", "on_new_commit"]
+        assert settings1.code_review_triggers == [
+            CodeReviewTrigger.ON_READY_FOR_REVIEW,
+            CodeReviewTrigger.ON_NEW_COMMIT,
+            CodeReviewTrigger.ON_COMMAND_PHRASE,
+        ]
 
         settings2 = RepositorySettings.objects.get(repository=repo2)
         assert settings2.enabled_code_review is True
-        assert settings2.code_review_triggers == []
+        assert settings2.code_review_triggers == [CodeReviewTrigger.ON_COMMAND_PHRASE]
 
     def test_partial_bulk_update_code_review_triggers_preserves_enabled(self) -> None:
         repo1 = Repository.objects.create(name="repo1", organization_id=self.org.id)
@@ -204,7 +218,7 @@ class OrganizationRepositorySettingsTest(APITestCase):
         self.create_repository_settings(
             repository=repo1,
             enabled_code_review=True,
-            code_review_triggers=[CodeReviewTrigger.ON_COMMAND_PHRASE],
+            code_review_triggers=[CodeReviewTrigger.ON_NEW_COMMIT],
         )
         self.create_repository_settings(
             repository=repo2,
@@ -228,13 +242,21 @@ class OrganizationRepositorySettingsTest(APITestCase):
 
         settings1 = RepositorySettings.objects.get(repository=repo1)
         assert settings1.enabled_code_review is True
-        assert settings1.code_review_triggers == ["on_new_commit", "on_ready_for_review"]
+        assert settings1.code_review_triggers == [
+            CodeReviewTrigger.ON_NEW_COMMIT,
+            CodeReviewTrigger.ON_READY_FOR_REVIEW,
+            CodeReviewTrigger.ON_COMMAND_PHRASE,
+        ]
 
         settings2 = RepositorySettings.objects.get(repository=repo2)
         assert settings2.enabled_code_review is False
-        assert settings2.code_review_triggers == ["on_new_commit", "on_ready_for_review"]
+        assert settings2.code_review_triggers == [
+            CodeReviewTrigger.ON_NEW_COMMIT,
+            CodeReviewTrigger.ON_READY_FOR_REVIEW,
+            CodeReviewTrigger.ON_COMMAND_PHRASE,
+        ]
 
-    def test_partial_bulk_create_enabled_code_review_uses_default(self) -> None:
+    def test_partial_bulk_create_code_review_triggers_uses_default(self) -> None:
         repo1 = Repository.objects.create(name="repo1", organization_id=self.org.id)
         repo2 = Repository.objects.create(name="repo2", organization_id=self.org.id)
 
@@ -251,13 +273,13 @@ class OrganizationRepositorySettingsTest(APITestCase):
 
         settings1 = RepositorySettings.objects.get(repository=repo1)
         assert settings1.enabled_code_review is True
-        assert settings1.code_review_triggers == []
+        assert settings1.code_review_triggers == [CodeReviewTrigger.ON_COMMAND_PHRASE]
 
         settings2 = RepositorySettings.objects.get(repository=repo2)
         assert settings2.enabled_code_review is True
-        assert settings2.code_review_triggers == []
+        assert settings2.code_review_triggers == [CodeReviewTrigger.ON_COMMAND_PHRASE]
 
-    def test_partial_bulk_create_code_review_triggers_uses_default(self) -> None:
+    def test_partial_bulk_create_enabled_code_review_uses_default(self) -> None:
         repo1 = Repository.objects.create(name="repo1", organization_id=self.org.id)
         repo2 = Repository.objects.create(name="repo2", organization_id=self.org.id)
 
@@ -277,11 +299,19 @@ class OrganizationRepositorySettingsTest(APITestCase):
 
         settings1 = RepositorySettings.objects.get(repository=repo1)
         assert settings1.enabled_code_review is False
-        assert settings1.code_review_triggers == ["on_new_commit", "on_ready_for_review"]
+        assert settings1.code_review_triggers == [
+            CodeReviewTrigger.ON_NEW_COMMIT,
+            CodeReviewTrigger.ON_READY_FOR_REVIEW,
+            CodeReviewTrigger.ON_COMMAND_PHRASE,
+        ]
 
         settings2 = RepositorySettings.objects.get(repository=repo2)
         assert settings2.enabled_code_review is False
-        assert settings2.code_review_triggers == ["on_new_commit", "on_ready_for_review"]
+        assert settings2.code_review_triggers == [
+            CodeReviewTrigger.ON_NEW_COMMIT,
+            CodeReviewTrigger.ON_READY_FOR_REVIEW,
+            CodeReviewTrigger.ON_COMMAND_PHRASE,
+        ]
 
     def test_audit_log_created_on_update(self) -> None:
         repo1 = Repository.objects.create(name="repo1", organization_id=self.org.id)
@@ -309,4 +339,7 @@ class OrganizationRepositorySettingsTest(APITestCase):
             assert audit_log.data["repository_count"] == 2
             assert set(audit_log.data["repository_ids"]) == {repo1.id, repo2.id}
             assert audit_log.data["enabled_code_review"] is True
-            assert audit_log.data["code_review_triggers"] == [CodeReviewTrigger.ON_NEW_COMMIT]
+            assert audit_log.data["code_review_triggers"] == [
+                CodeReviewTrigger.ON_NEW_COMMIT,
+                CodeReviewTrigger.ON_COMMAND_PHRASE,
+            ]

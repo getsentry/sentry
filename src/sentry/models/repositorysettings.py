@@ -1,12 +1,18 @@
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import Any
 
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+
+
+def default_code_review_triggers() -> list[str]:
+    """Code review triggers always include ON_COMMAND_PHRASE."""
+    return [CodeReviewTrigger.ON_COMMAND_PHRASE.value]
 
 
 class CodeReviewTrigger(StrEnum):
@@ -33,7 +39,7 @@ class RepositorySettings(Model):
     enabled_code_review = models.BooleanField(default=False)
     code_review_triggers = ArrayField(
         models.CharField(max_length=32, choices=CodeReviewTrigger.as_choices()),
-        default=list,
+        default=default_code_review_triggers,
     )
 
     class Meta:
@@ -41,3 +47,16 @@ class RepositorySettings(Model):
         db_table = "sentry_repositorysettings"
 
     __repr__ = sane_repr("repository_id", "enabled_code_review")
+
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        # Ensure ON_COMMAND_PHRASE is always a trigger
+        if (
+            self.code_review_triggers is not None
+            and CodeReviewTrigger.ON_COMMAND_PHRASE.value not in self.code_review_triggers
+        ):
+            self.code_review_triggers = list(self.code_review_triggers) + [
+                CodeReviewTrigger.ON_COMMAND_PHRASE.value
+            ]
+
+        super().save(*args, **kwargs)
+        super().save(*args, **kwargs)
