@@ -161,27 +161,6 @@ export default function SeerProjectTable() {
     );
   }
 
-  if (filteredProjects.length === 0) {
-    return (
-      <ProjectTable
-        projects={filteredProjects}
-        onSortClick={setSort}
-        sort={sort}
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        updateBulkAutofixAutomationSettings={updateBulkAutofixAutomationSettings}
-      >
-        <SimpleTable.Empty>
-          {searchTerm
-            ? tct('No projects found matching [searchTerm]', {
-                searchTerm: <code>{searchTerm}</code>,
-              })
-            : t('No projects found')}
-        </SimpleTable.Empty>
-      </ProjectTable>
-    );
-  }
-
   return (
     <ListItemCheckboxProvider
       hits={filteredProjects.length}
@@ -196,19 +175,29 @@ export default function SeerProjectTable() {
         setSearchTerm={setSearchTerm}
         updateBulkAutofixAutomationSettings={updateBulkAutofixAutomationSettings}
       >
-        {filteredProjects.map(project => (
-          <SeerProjectTableRow
-            key={project.id}
-            project={project}
-            isFetchingSettings={isFetchingSettings}
-            autofixSettings={{
-              ...getDefaultAutofixSettings(organization, project.id),
-              ...autofixSettingsByProjectId.get(project.id),
-              ...mutationData[project.id],
-            }}
-            updateBulkAutofixAutomationSettings={updateBulkAutofixAutomationSettings}
-          />
-        ))}
+        {filteredProjects.length === 0 ? (
+          <SimpleTable.Empty>
+            {searchTerm
+              ? tct('No projects found matching [searchTerm]', {
+                  searchTerm: <code>{searchTerm}</code>,
+                })
+              : t('No projects found')}
+          </SimpleTable.Empty>
+        ) : (
+          filteredProjects.map(project => (
+            <SeerProjectTableRow
+              key={project.id}
+              project={project}
+              isFetchingSettings={isFetchingSettings}
+              autofixSettings={{
+                ...getDefaultAutofixSettings(organization, project.id),
+                ...autofixSettingsByProjectId.get(project.id),
+                ...mutationData[project.id],
+              }}
+              updateBulkAutofixAutomationSettings={updateBulkAutofixAutomationSettings}
+            />
+          ))
+        )}
       </ProjectTable>
     </ListItemCheckboxProvider>
   );
