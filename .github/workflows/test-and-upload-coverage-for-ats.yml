@@ -1,5 +1,7 @@
 name: Codecov - per test coverage
-on: [workflow_dispatch, workflow_call]
+#on: [workflow_dispatch, workflow_call]
+on:
+  pull_request:
 
 jobs:
   backend-test-with-cov-context:
@@ -18,7 +20,7 @@ jobs:
 
       - name: test
         run: |
-          python3 -b -m pytest --cov . --cov-context=test tests/sentry/utils
+          python3 -b -m pytest --cov . --cov-report=xml --cov-context=test tests/sentry/utils/test_json.py
 
       # Separate from the testing step above so that we always create the report
       # Even if some tests fail

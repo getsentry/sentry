@@ -1,7 +1,9 @@
 name: codecov-ats
 
-on:
-  pull_request:
+on: [workflow_dispatch, workflow_call]
+
+#on:
+#  pull_request:
 
 env:
   CLI_VERSION: v0.1.5
