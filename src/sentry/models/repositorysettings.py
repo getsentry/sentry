@@ -59,4 +59,3 @@ class RepositorySettings(Model):
             ]
 
         super().save(*args, **kwargs)
-        super().save(*args, **kwargs)
