@@ -85,7 +85,7 @@ export function EventDataSection({
             {showPermalink ? (
               <Permalink className="permalink">
                 <PermalinkAnchor href={`#${type}`} openInNewTab={false}>
-                  <StyledIconLink size="xs" color="subText" />
+                  <StyledIconLink size="xs" variant="muted" />
                 </PermalinkAnchor>
                 {titleNode}
               </Permalink>
