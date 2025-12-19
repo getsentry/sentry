@@ -297,7 +297,7 @@ describe('OrganizationSettingsForm', () => {
       {
         organization: {
           ...organization,
-          features: ['gen-ai-features'],
+          features: ['gen-ai-features', 'seer-added'],
         },
       }
     );
@@ -356,7 +356,7 @@ describe('OrganizationSettingsForm', () => {
       {
         organization: {
           ...organization,
-          features: ['gen-ai-features'],
+          features: ['gen-ai-features', 'seer-added'],
         },
       }
     );
@@ -379,7 +379,7 @@ describe('OrganizationSettingsForm', () => {
       {
         organization: {
           ...organization,
-          features: ['gen-ai-features'],
+          features: ['gen-ai-features', 'seer-added'],
         },
       }
     );
@@ -421,7 +421,7 @@ describe('OrganizationSettingsForm', () => {
         {
           organization: {
             ...organization,
-            features: ['gen-ai-features'],
+            features: ['gen-ai-features', 'seer-added'],
           },
         }
       );
@@ -436,7 +436,7 @@ describe('OrganizationSettingsForm', () => {
       expect(screen.queryByTestId('prevent-ai-disabled-tag')).not.toBeInTheDocument();
     });
 
-    it('is disabled when feature flag is off', async () => {
+    it('is hidden when seer-added or code-review-beta feature flag is off', async () => {
       jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
         name: 'us',
         displayName: 'United States of America (US)',
@@ -459,13 +459,11 @@ describe('OrganizationSettingsForm', () => {
 
       await waitFor(() => expect(membersRequest).toHaveBeenCalled());
 
-      const preventAiField = screen.getByRole('checkbox', {
-        name: /Enable AI Code Review/i,
-      });
-      expect(preventAiField).toBeInTheDocument();
-      expect(preventAiField).toBeEnabled();
-
-      expect(screen.queryByTestId('prevent-ai-disabled-tag')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('checkbox', {
+          name: /Enable AI Code Review/i,
+        })
+      ).not.toBeInTheDocument();
     });
 
     it('is enabled when EU region', async () => {
@@ -484,7 +482,7 @@ describe('OrganizationSettingsForm', () => {
         {
           organization: {
             ...organization,
-            features: ['gen-ai-features'],
+            features: ['gen-ai-features', 'seer-added'],
           },
         }
       );
@@ -518,7 +516,7 @@ describe('OrganizationSettingsForm', () => {
           organization: {
             ...organization,
             access: ['org:write'],
-            features: ['gen-ai-features'],
+            features: ['gen-ai-features', 'seer-added'],
           },
         }
       );
@@ -552,7 +550,7 @@ describe('OrganizationSettingsForm', () => {
           organization: {
             ...organization,
             access: ['org:read'],
-            features: ['gen-ai-features'],
+            features: ['gen-ai-features', 'seer-added'],
           },
         }
       );
@@ -580,7 +578,7 @@ describe('OrganizationSettingsForm', () => {
           organization: {
             ...organization,
             access: ['org:write'],
-            features: ['gen-ai-features'],
+            features: ['gen-ai-features', 'seer-added'],
           },
         }
       );
@@ -598,6 +596,36 @@ describe('OrganizationSettingsForm', () => {
       expect(
         await screen.findByText('This feature is not available for self-hosted instances')
       ).toBeInTheDocument();
+    });
+
+    it('is hidden when seat-based-seer-enabled feature is on', async () => {
+      jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
+        name: 'us',
+        displayName: 'United States of America (US)',
+        url: 'https://sentry.example.com',
+      });
+
+      render(
+        <OrganizationSettingsForm
+          {...routerProps}
+          initialData={OrganizationFixture({hideAiFeatures: true})}
+          onSave={onSave}
+        />,
+        {
+          organization: {
+            ...organization,
+            features: ['gen-ai-features', 'seer-added', 'seat-based-seer-enabled'],
+          },
+        }
+      );
+
+      await waitFor(() => expect(membersRequest).toHaveBeenCalled());
+
+      expect(
+        screen.queryByRole('checkbox', {
+          name: /Enable AI Code Review/i,
+        })
+      ).not.toBeInTheDocument();
     });
   });
 });

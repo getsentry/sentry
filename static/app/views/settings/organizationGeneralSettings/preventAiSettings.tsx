@@ -8,7 +8,6 @@ import {IconLock} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
-import showNewSeer from 'sentry/utils/seer/showNewSeer';
 
 export const makePreventAiField = (organization: Organization): FieldObject => {
   const isSelfHosted = ConfigStore.get('isSelfHosted');
@@ -45,13 +44,19 @@ export const makePreventAiField = (organization: Organization): FieldObject => {
       ),
     }),
     visible: ({model}) => {
-      if (showNewSeer(organization)) {
+      if (organization.features.includes('seat-based-seer-enabled')) {
         return false;
       }
 
-      // Show field when AI features are enabled (hideAiFeatures is false)
-      const hideAiFeatures = model.getValue('hideAiFeatures');
-      return hideAiFeatures;
+      if (
+        organization.features.includes('seer-added') ||
+        organization.features.includes('code-review-beta')
+      ) {
+        // This looks flipped but it's just a weirdly named field
+        return model.getValue('hideAiFeatures');
+      }
+
+      return false;
     },
     disabled: ({access}) => isDisabled || !access.has('org:write'),
   };
