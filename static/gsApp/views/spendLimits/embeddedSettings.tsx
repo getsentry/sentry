@@ -26,7 +26,6 @@ function EmbeddedSpendLimitSettings(props: EmbeddedSpendLimitSettingsProps) {
   return (
     <SpendLimitSettings
       {...props}
-      isOpen
       onDemandBudgets={currentOnDemandBudgets}
       onUpdate={handleUpdate}
     />

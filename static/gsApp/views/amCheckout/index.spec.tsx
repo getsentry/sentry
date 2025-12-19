@@ -5,7 +5,7 @@ import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixt
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {AddOnCategory, OnDemandBudgetMode, PlanTier} from 'getsentry/types';
@@ -13,7 +13,15 @@ import AMCheckout from 'getsentry/views/amCheckout';
 import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
 import {hasOnDemandBudgetsFeature} from 'getsentry/views/onDemandBudgets/utils';
 
-function assertCheckoutSteps(tier: PlanTier) {
+function assertCheckoutSteps({
+  tier,
+  hasBillingCycleStep = true,
+  hasBillingInfoStep = true,
+}: {
+  tier: PlanTier;
+  hasBillingCycleStep?: boolean;
+  hasBillingInfoStep?: boolean;
+}) {
   expect(screen.getByTestId('checkout-steps')).toBeInTheDocument();
   [
     'Select a plan',
@@ -22,9 +30,15 @@ function assertCheckoutSteps(tier: PlanTier) {
       : /Set your pay-as-you-go limit/,
     'Pay monthly or yearly, your choice',
     'Edit billing information',
-  ].forEach(step => {
-    expect(screen.getByText(step)).toBeInTheDocument();
-  });
+  ]
+    .filter(
+      step =>
+        (hasBillingCycleStep || step !== 'Pay monthly or yearly, your choice') &&
+        (hasBillingInfoStep || step !== 'Edit billing information')
+    )
+    .forEach(step => {
+      expect(screen.getByText(step)).toBeInTheDocument();
+    });
 }
 describe('Legacy Tier Checkout', () => {
   let mockResponse: any;
@@ -67,7 +81,7 @@ describe('Legacy Tier Checkout', () => {
     });
   });
 
-  it('renders', async () => {
+  it('renders for AM2', async () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
@@ -88,358 +102,31 @@ describe('Legacy Tier Checkout', () => {
       );
     });
 
-    assertCheckoutSteps(PlanTier.AM2);
+    assertCheckoutSteps({tier: PlanTier.AM2});
   });
 
-  it('renders for am1 team plan', async () => {
-    const sub = SubscriptionFixture({organization, plan: 'am1_team'});
-    SubscriptionStore.set(organization.slug, sub);
-
+  it('renders for AM1', async () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
+        checkoutTier={PlanTier.AM1}
         navigate={jest.fn()}
         api={api}
-        checkoutTier={PlanTier.AM2}
       />,
       {organization}
     );
 
-    expect(
-      await screen.findByRole('heading', {name: 'Change Subscription'})
-    ).toBeInTheDocument();
-
-    expect(screen.getByText('Choose Your Plan')).toBeInTheDocument();
-    expect(screen.getByRole('radio', {name: 'Business'})).toBeInTheDocument();
-
-    expect(screen.getByRole('radio', {name: 'Team'})).toBeInTheDocument();
-    expect(screen.getByText('Unlimited members')).toBeInTheDocument();
-
-    expect(mockResponse).toHaveBeenCalledWith(
-      `/customers/${organization.slug}/billing-config/`,
-      expect.objectContaining({
-        method: 'GET',
-        data: {tier: PlanTier.AM2},
-      })
-    );
-  });
-
-  it('renders for am2 free plan', async () => {
-    const sub = SubscriptionFixture({organization, plan: 'am2_f'});
-    SubscriptionStore.set(organization.slug, sub);
-
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM2}
-      />,
-      {organization}
-    );
-
-    expect(
-      await screen.findByRole('heading', {name: 'Change Subscription'})
-    ).toBeInTheDocument();
-
-    expect(screen.getByText('Choose Your Plan')).toBeInTheDocument();
-    expect(screen.getByRole('radio', {name: 'Business'})).toBeInTheDocument();
-
-    expect(screen.getByRole('radio', {name: 'Team'})).toBeInTheDocument();
-    expect(screen.getByText('Unlimited members')).toBeInTheDocument();
-
-    expect(mockResponse).toHaveBeenCalledWith(
-      `/customers/${organization.slug}/billing-config/`,
-      expect.objectContaining({
-        method: 'GET',
-        data: {tier: PlanTier.AM2},
-      })
-    );
-  });
-
-  it('prefills subscription data based on price with same plan type', async () => {
-    const sub = SubscriptionFixture({
-      organization,
-      plan: 'am1_business',
-      planTier: 'am1',
-      categories: {
-        errors: MetricHistoryFixture({reserved: 50_000}),
-        transactions: MetricHistoryFixture({reserved: 20_000_000}),
-        replays: MetricHistoryFixture({reserved: 500}),
-        attachments: MetricHistoryFixture({reserved: 1}),
-        monitorSeats: MetricHistoryFixture({reserved: 1}),
-      },
-      onDemandMaxSpend: 2000,
+    await waitFor(() => {
+      expect(mockResponse).toHaveBeenCalledWith(
+        `/customers/${organization.slug}/billing-config/`,
+        expect.objectContaining({
+          method: 'GET',
+          data: {tier: 'am1'},
+        })
+      );
     });
 
-    SubscriptionStore.set(organization.slug, sub);
-
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM2}
-      />,
-      {organization}
-    );
-
-    expect(
-      await screen.findByRole('heading', {name: 'Change Subscription'})
-    ).toBeInTheDocument();
-
-    expect(screen.getByRole('radio', {name: 'Business'})).toBeChecked();
-
-    await userEvent.click(screen.getByText('Reserved Volumes'));
-
-    // TODO: Can better write this once we have
-    // https://github.com/testing-library/jest-dom/issues/478
-    expect(screen.getByRole('slider', {name: 'Errors'})).toHaveAttribute(
-      'aria-valuetext',
-      '50000'
-    );
-    expect(screen.getByRole('slider', {name: 'Performance units'})).toHaveAttribute(
-      'aria-valuetext',
-      '35000000'
-    );
-    expect(screen.getByRole('slider', {name: 'Replays'})).toHaveAttribute(
-      'aria-valuetext',
-      '500'
-    );
-    expect(screen.getByRole('slider', {name: 'Attachments'})).toHaveAttribute(
-      'aria-valuetext',
-      '1'
-    );
-
-    await userEvent.click(screen.getByText('On-Demand Max Spend'));
-    expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('20');
-  });
-
-  it('prefills subscription data based on price with annual plan', async () => {
-    const sub = SubscriptionFixture({
-      organization,
-      plan: 'am1_business_auf',
-      planTier: 'am1',
-      categories: {
-        errors: MetricHistoryFixture({reserved: 100_000}),
-        transactions: MetricHistoryFixture({reserved: 20_000_000}),
-        replays: MetricHistoryFixture({reserved: 500}),
-        attachments: MetricHistoryFixture({reserved: 1}),
-        monitorSeats: MetricHistoryFixture({reserved: 1}),
-      },
-      onDemandMaxSpend: 2000,
-    });
-
-    SubscriptionStore.set(organization.slug, sub);
-
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM2}
-      />,
-      {organization}
-    );
-
-    expect(
-      await screen.findByRole('heading', {name: 'Change Subscription'})
-    ).toBeInTheDocument();
-
-    expect(screen.getByRole('radio', {name: 'Business'})).toBeChecked();
-
-    await userEvent.click(screen.getByText('Reserved Volumes'));
-
-    // TODO: Can better write this once we have
-    // https://github.com/testing-library/jest-dom/issues/478
-    expect(screen.getByRole('slider', {name: 'Errors'})).toHaveAttribute(
-      'aria-valuetext',
-      '100000'
-    );
-    expect(screen.getByRole('slider', {name: 'Performance units'})).toHaveAttribute(
-      'aria-valuetext',
-      '35000000'
-    );
-    expect(screen.getByRole('slider', {name: 'Replays'})).toHaveAttribute(
-      'aria-valuetext',
-      '500'
-    );
-    expect(screen.getByRole('slider', {name: 'Attachments'})).toHaveAttribute(
-      'aria-valuetext',
-      '1'
-    );
-
-    await userEvent.click(screen.getByText('On-Demand Max Spend'));
-    expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('20');
-  });
-
-  it('prefills subscription data based on events with different plan type', async () => {
-    const sub = SubscriptionFixture({
-      organization,
-      plan: 'am1_team',
-      planTier: 'am1',
-      categories: {
-        errors: MetricHistoryFixture({reserved: 100_000}),
-        transactions: MetricHistoryFixture({reserved: 20_000_000}),
-        attachments: MetricHistoryFixture({reserved: 1}),
-        replays: MetricHistoryFixture({reserved: 500}),
-        monitorSeats: MetricHistoryFixture({reserved: 1}),
-      },
-      onDemandMaxSpend: 2000,
-    });
-
-    SubscriptionStore.set(organization.slug, sub);
-
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM2}
-      />,
-      {organization}
-    );
-
-    expect(
-      await screen.findByRole('heading', {name: 'Change Subscription'})
-    ).toBeInTheDocument();
-
-    expect(screen.getByRole('radio', {name: 'Business'})).toBeChecked();
-
-    await userEvent.click(screen.getByText('Reserved Volumes'));
-
-    // TODO: Can better write this once we have
-    // https://github.com/testing-library/jest-dom/issues/478
-    expect(screen.getByRole('slider', {name: 'Errors'})).toHaveAttribute(
-      'aria-valuetext',
-      '100000'
-    );
-    expect(screen.getByRole('slider', {name: 'Performance units'})).toHaveAttribute(
-      'aria-valuetext',
-      '20000000'
-    );
-    expect(screen.getByRole('slider', {name: 'Replays'})).toHaveAttribute(
-      'aria-valuetext',
-      '500'
-    );
-    expect(screen.getByRole('slider', {name: 'Attachments'})).toHaveAttribute(
-      'aria-valuetext',
-      '1'
-    );
-
-    await userEvent.click(screen.getByText('On-Demand Max Spend'));
-    expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('20');
-  });
-
-  it('displays 40% india promotion', async () => {
-    const promotionData = {
-      completedPromotions: [
-        {
-          promotion: {
-            name: 'Test Promotion',
-            slug: 'test_promotion',
-            timeLimit: null,
-            startDate: null,
-            endDate: null,
-            showDiscountInfo: true,
-            discountInfo: {
-              amount: 4000,
-              billingInterval: 'monthly',
-              billingPeriods: 3,
-              creditCategory: 'subscription',
-              discountType: 'percentPoints',
-              disclaimerText:
-                "*Receive 40% off the monthly price of Sentry's Team or Business plan subscriptions for your first three months if you upgrade today",
-              durationText: 'First three months',
-            },
-          },
-        },
-      ],
-    };
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/promotions/trigger-check/`,
-      method: 'POST',
-      body: promotionData,
-    });
-
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM2}
-      />,
-      {organization}
-    );
-
-    await screen.findByText('Choose Your Plan');
-
-    expect(
-      screen.getByText(
-        "*Receive 40% off the monthly price of Sentry's Team or Business plan subscriptions for your first three months if you upgrade today"
-      )
-    ).toBeInTheDocument();
-
-    expect(screen.getByText('First three months 40% off')).toBeInTheDocument();
-    expect(screen.getAllByText('53.40')).toHaveLength(2);
-  });
-
-  it('does not skip step 1 for business plan pre-backfill', async () => {
-    const launchOrg = OrganizationFixture({features: ['seer-billing']});
-    const am2BizSubscription = SubscriptionFixture({
-      organization: launchOrg,
-      plan: 'am2_business',
-      planTier: 'am2',
-      categories: {
-        errors: MetricHistoryFixture({reserved: 100_000}),
-        transactions: MetricHistoryFixture({reserved: 20_000_000}),
-        attachments: MetricHistoryFixture({reserved: 1}),
-        monitorSeats: MetricHistoryFixture({reserved: 1}),
-        profileDuration: MetricHistoryFixture({reserved: 1}),
-        replays: MetricHistoryFixture({reserved: 10_000}),
-      },
-      onDemandMaxSpend: 2000,
-    });
-
-    SubscriptionStore.set(launchOrg.slug, am2BizSubscription);
-
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM2}
-      />,
-      {organization: launchOrg}
-    );
-    await screen.findByText('Choose Your Plan');
-    expect(screen.getByTestId('body-choose-your-plan')).toBeInTheDocument();
-    expect(screen.queryByTestId('errors-volume-item')).not.toBeInTheDocument();
-  });
-
-  it('does not skip step 1 for business plan without seer', async () => {
-    const nonSeerOrg = OrganizationFixture({features: ['seer-billing']});
-    const nonSeerSubscription = SubscriptionFixture({
-      organization: nonSeerOrg,
-      planTier: 'am2',
-      plan: 'am2_business',
-    });
-
-    SubscriptionStore.set(organization.slug, nonSeerSubscription);
-
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM2}
-      />,
-      {organization: nonSeerOrg}
-    );
-    await screen.findByText('Choose Your Plan');
-    expect(screen.getByTestId('body-choose-your-plan')).toBeInTheDocument();
-    expect(screen.queryByTestId('errors-volume-item')).not.toBeInTheDocument();
+    assertCheckoutSteps({tier: PlanTier.AM1});
   });
 
   it('renders standard checkout for business bundle', async () => {
@@ -479,269 +166,40 @@ describe('Legacy Tier Checkout', () => {
       );
     });
 
-    assertCheckoutSteps(PlanTier.AM2);
+    assertCheckoutSteps({tier: PlanTier.AM2});
 
     // Verify that Business is preselected
     expect(screen.getByRole('radio', {name: 'Business'})).toBeChecked();
   });
-
-  it('handles missing categories in subscription.categories', async () => {
-    /**
-     * In this test, we create a subscription where some categories are missing from
-     * `subscription.categories`. We then verify that the component renders correctly
-     * without throwing errors, and that the missing categories default to a reserved
-     * value of 0.
-     */
-    const sub = SubscriptionFixture({
-      organization,
-      plan: 'am2_business',
-      planTier: 'am2',
-      categories: {
-        // Intentionally omitting 'transactions' and 'replays' categories
-        errors: MetricHistoryFixture({reserved: 100_000}),
-        attachments: MetricHistoryFixture({reserved: 1}),
-        monitorSeats: MetricHistoryFixture({reserved: 1}),
-      },
-      onDemandMaxSpend: 2000,
-    });
-    // set all add-ons as unavailable so we don't check for them in order to skip the step
-    sub.addOns = {
-      ...sub.addOns,
-      [AddOnCategory.SEER]: {
-        ...sub.addOns?.[AddOnCategory.SEER]!,
-        isAvailable: false,
-      },
-      [AddOnCategory.LEGACY_SEER]: {
-        ...sub.addOns?.[AddOnCategory.LEGACY_SEER]!,
-        isAvailable: false,
-      },
-    };
-    SubscriptionStore.set(organization.slug, sub);
-
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM2}
-      />,
-      {organization}
-    );
-
-    expect(
-      await screen.findByRole('heading', {name: 'Change Subscription'})
-    ).toBeInTheDocument();
-
-    // Verify that the component renders without errors
-    expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument();
-
-    // Open 'Reserved Volumes' section
-    await userEvent.click(screen.getByText('Reserved Volumes'));
-
-    // Check that missing categories default to 0
-    expect(screen.getByRole('slider', {name: 'Errors'})).toHaveAttribute(
-      'aria-valuetext',
-      '100000'
-    );
-    // For missing 'Performance units', should default to 100,000 units
-    expect(screen.getByRole('slider', {name: 'Performance units'})).toHaveAttribute(
-      'aria-valuetext',
-      '100000'
-    );
-    // For missing 'Replays', should default to 500
-    expect(screen.getByRole('slider', {name: 'Replays'})).toHaveAttribute(
-      'aria-valuetext',
-      '500'
-    );
-
-    // Check that 'Attachments' category is correctly set
-    expect(screen.getByRole('slider', {name: 'Attachments'})).toHaveAttribute(
-      'aria-valuetext',
-      '1'
-    );
-
-    // Open 'On-Demand Max Spend' section
-    await userEvent.click(screen.getByText('On-Demand Max Spend'));
-    expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('20');
-  });
-
-  it('does not use trial volumes for trial subscriptions in checkout', async () => {
-    /**
-     * Test for the trial checkout slider fix. When subscription.isTrial is true,
-     * the checkout should use default volumes instead of trial reserved volumes.
-     */
-    const trialSub = SubscriptionFixture({
-      organization,
-      plan: 'am2_t',
-      planTier: 'am2',
-      isTrial: true, // This is true for both subscription trials and plan trials
-      categories: {
-        // These are high trial volumes that should NOT be used in checkout
-        errors: MetricHistoryFixture({reserved: 500_000}), // High trial volume
-        transactions: MetricHistoryFixture({reserved: 50_000_000}), // High trial volume
-        replays: MetricHistoryFixture({reserved: 25_000}), // High trial volume
-        attachments: MetricHistoryFixture({reserved: 100}), // High trial volume
-        monitorSeats: MetricHistoryFixture({reserved: 10}),
-        profileDuration: MetricHistoryFixture({reserved: 10}),
-      },
-      onDemandMaxSpend: 5000,
-    });
-
-    SubscriptionStore.set(organization.slug, trialSub);
-
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM2}
-      />,
-      {organization}
-    );
-
-    expect(
-      await screen.findByRole('heading', {name: 'Change Subscription'})
-    ).toBeInTheDocument();
-
-    // Navigate to Reserved Volumes step
-    await userEvent.click(screen.getByText('Reserved Volumes'));
-
-    // Verify that sliders show DEFAULT values, NOT the high trial volumes
-    // The key test is that they are NOT the trial volumes we set above
-    expect(screen.getByRole('slider', {name: 'Errors'})).not.toHaveAttribute(
-      'aria-valuetext',
-      '500000' // Should NOT be the trial value
-    );
-    expect(screen.getByRole('slider', {name: 'Performance units'})).not.toHaveAttribute(
-      'aria-valuetext',
-      '50000000' // Should NOT be the trial value
-    );
-    expect(screen.getByRole('slider', {name: 'Replays'})).not.toHaveAttribute(
-      'aria-valuetext',
-      '25000' // Should NOT be the trial value
-    );
-    expect(screen.getByRole('slider', {name: 'Attachments'})).not.toHaveAttribute(
-      'aria-valuetext',
-      '100' // Should NOT be the trial value
-    );
-
-    // Verify they are reasonable default values instead
-    const errorsSlider = screen.getByRole('slider', {name: 'Errors'});
-    const errorsValue = parseInt(errorsSlider.getAttribute('aria-valuetext') || '0', 10);
-    expect(errorsValue).toBe(50_000); // Should be much less than trial volume
-    expect(errorsValue).toBeGreaterThan(0); // Should be a reasonable default
-
-    const replaysSlider = screen.getByRole('slider', {name: 'Replays'});
-    const replaysValue = parseInt(
-      replaysSlider.getAttribute('aria-valuetext') || '0',
-      10
-    );
-    expect(replaysValue).toBe(500); // Should be much less than trial volume
-    expect(replaysValue).toBeGreaterThan(0); // Should be a reasonable default
-  });
-
-  it('continues to use reserved volumes for non-trial subscriptions', async () => {
-    /**
-     * Regression test to ensure non-trial subscriptions still work as expected
-     * and use their actual reserved volumes in checkout.
-     */
-    const nonTrialSub = SubscriptionFixture({
-      organization,
-      plan: 'am2_business',
-      planTier: 'am2',
-      isTrial: false, // NOT a trial subscription
-      categories: {
-        errors: MetricHistoryFixture({reserved: 200_000}),
-        transactions: MetricHistoryFixture({reserved: 30_000_000}),
-        replays: MetricHistoryFixture({reserved: 25_000}),
-        attachments: MetricHistoryFixture({reserved: 50}),
-        monitorSeats: MetricHistoryFixture({reserved: 5}),
-        profileDuration: MetricHistoryFixture({reserved: 5}),
-      },
-      onDemandMaxSpend: 3000,
-    });
-
-    SubscriptionStore.set(organization.slug, nonTrialSub);
-
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM2}
-      />,
-      {organization}
-    );
-
-    expect(
-      await screen.findByRole('heading', {name: 'Change Subscription'})
-    ).toBeInTheDocument();
-
-    // Navigate to Reserved Volumes step
-    await userEvent.click(screen.getByText('Reserved Volumes'));
-
-    // Verify that sliders show the ACTUAL reserved volumes from subscription
-    // These values might be adjusted by price comparison logic, but should be based on the reserved values
-    expect(screen.getByRole('slider', {name: 'Errors'})).toHaveAttribute(
-      'aria-valuetext',
-      '200000' // Should use actual reserved volume
-    );
-
-    // Performance units might be adjusted by price comparison, but should be reasonable
-    const performanceSlider = screen.getByRole('slider', {name: 'Performance units'});
-    const performanceValue = parseInt(
-      performanceSlider.getAttribute('aria-valuetext') || '0',
-      10
-    );
-    expect(performanceValue).toBe(30_000_000);
-
-    // Replays and attachments should be close to our reserved values
-    const replaysSlider = screen.getByRole('slider', {name: 'Replays'});
-    const replaysValue = parseInt(
-      replaysSlider.getAttribute('aria-valuetext') || '0',
-      10
-    );
-    expect(replaysValue).toBe(25_000);
-
-    expect(screen.getByRole('slider', {name: 'Attachments'})).toHaveAttribute(
-      'aria-valuetext',
-      '50' // Should use actual reserved volume
-    );
-
-    // Verify onDemand also uses actual value
-    await userEvent.click(screen.getByText('On-Demand Max Spend'));
-    expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('30');
-  });
 });
 
-describe('AM3 Checkout', () => {
+describe('Default Tier Checkout', () => {
   const api = new MockApiClient();
-  const organization = OrganizationFixture({
-    features: ['ondemand-budgets', 'am3-billing'],
-  });
+  const organization = OrganizationFixture({});
+  let mockBillingConfigResponse: any;
 
   beforeEach(() => {
+    organization.features = ['ondemand-budgets', 'am3-billing'];
     MockApiClient.clearMockResponses();
-
+    mockBillingConfigResponse = MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-config/`,
+      method: 'GET',
+      body: BillingConfigFixture(PlanTier.AM3),
+    });
     MockApiClient.addMockResponse({
       url: `/subscriptions/${organization.slug}/`,
       method: 'GET',
       body: {},
     });
-
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/promotions/trigger-check/`,
       method: 'POST',
     });
-
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/plan-migrations/?applied=0`,
       method: 'GET',
       body: {},
     });
-  });
-
-  it('renders', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
@@ -750,12 +208,9 @@ describe('AM3 Checkout', () => {
       url: `/customers/${organization.slug}/subscription/preview/`,
       method: 'GET',
     });
-    const mockResponse = MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-config/`,
-      method: 'GET',
-      body: BillingConfigFixture(PlanTier.AM3),
-    });
+  });
 
+  it('renders', async () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
@@ -767,7 +222,7 @@ describe('AM3 Checkout', () => {
     );
 
     await waitFor(() => {
-      expect(mockResponse).toHaveBeenCalledWith(
+      expect(mockBillingConfigResponse).toHaveBeenCalledWith(
         `/customers/${organization.slug}/billing-config/`,
         expect.objectContaining({
           method: 'GET',
@@ -776,21 +231,15 @@ describe('AM3 Checkout', () => {
       );
     });
 
-    assertCheckoutSteps(PlanTier.AM3);
+    assertCheckoutSteps({tier: PlanTier.AM3});
   });
 
-  it('renders for new customers (AM3 free plan)', async () => {
+  it('renders for new customers (default free plan)', async () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am3_f',
-      planTier: PlanTier.AM3,
     });
-    act(() => SubscriptionStore.set(organization.slug, sub));
-    const mockResponse = MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-config/`,
-      method: 'GET',
-      body: BillingConfigFixture(PlanTier.AM3),
-    });
+    SubscriptionStore.set(organization.slug, sub);
 
     render(
       <AMCheckout
@@ -802,15 +251,17 @@ describe('AM3 Checkout', () => {
       {organization}
     );
 
-    expect(await screen.findByText('Set Your Pay-as-you-go Budget')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockBillingConfigResponse).toHaveBeenCalledWith(
+        `/customers/${organization.slug}/billing-config/`,
+        expect.objectContaining({
+          method: 'GET',
+          data: {tier: 'am3'},
+        })
+      );
+    });
 
-    expect(mockResponse).toHaveBeenCalledWith(
-      `/customers/${organization.slug}/billing-config/`,
-      expect.objectContaining({
-        method: 'GET',
-        data: {tier: PlanTier.AM3},
-      })
-    );
+    assertCheckoutSteps({tier: PlanTier.AM3});
   });
 
   it('renders for customers migrating from partner billing', async () => {
@@ -833,12 +284,7 @@ describe('AM3 Checkout', () => {
         name: '',
       },
     });
-    act(() => SubscriptionStore.set(organization.slug, sub));
-    const mockResponse = MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-config/`,
-      method: 'GET',
-      body: BillingConfigFixture(PlanTier.AM3),
-    });
+    SubscriptionStore.set(organization.slug, sub);
 
     render(
       <AMCheckout
@@ -850,7 +296,18 @@ describe('AM3 Checkout', () => {
       {organization}
     );
 
-    expect(await screen.findByText('Set Your Pay-as-you-go Budget')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockBillingConfigResponse).toHaveBeenCalledWith(
+        `/customers/${organization.slug}/billing-config/`,
+        expect.objectContaining({
+          method: 'GET',
+          data: {tier: 'am3'},
+        })
+      );
+    });
+
+    assertCheckoutSteps({tier: PlanTier.AM3});
+
     expect(
       screen.getByText(
         'Your promotional plan with FOO ends on ' + contractPeriodEnd.format('ll') + '.'
@@ -858,16 +315,7 @@ describe('AM3 Checkout', () => {
     ).toBeInTheDocument();
 
     // 500 replays from sponsored plan becomes 50 on am3
-    expect(screen.getByText('50')).toBeInTheDocument();
-
-    expect(mockResponse).toHaveBeenCalledWith(
-      `/customers/${organization.slug}/billing-config/`,
-      expect.objectContaining({
-        method: 'GET',
-        data: {tier: PlanTier.AM3},
-      })
-    );
-    organization.features.pop(); // clean up
+    expect(screen.getByTestId('replays-volume-item')).toHaveTextContent('50');
   });
 
   it('renders for self-serve partners', async () => {
@@ -889,12 +337,7 @@ describe('AM3 Checkout', () => {
         name: '',
       },
     });
-    act(() => SubscriptionStore.set(organization.slug, sub));
-    const mockResponse = MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-config/`,
-      method: 'GET',
-      body: BillingConfigFixture(PlanTier.AM3),
-    });
+    SubscriptionStore.set(organization.slug, sub);
 
     render(
       <AMCheckout
@@ -906,24 +349,22 @@ describe('AM3 Checkout', () => {
       {organization}
     );
 
-    expect(await screen.findByText('Set Your Pay-as-you-go Budget')).toBeInTheDocument();
-    expect(await screen.findByText('Contract Term & Discounts')).toBeInTheDocument();
-    expect(screen.getByText('Review & Confirm')).toBeInTheDocument();
-    expect(screen.queryByText('Payment Method')).not.toBeInTheDocument();
-    expect(screen.queryByText('Billing Details')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockBillingConfigResponse).toHaveBeenCalledWith(
+        `/customers/${organization.slug}/billing-config/`,
+        expect.objectContaining({
+          method: 'GET',
+          data: {tier: 'am3'},
+        })
+      );
+    });
+
+    assertCheckoutSteps({tier: PlanTier.AM3, hasBillingInfoStep: false});
     expect(
       screen.queryByText(
         'Your promotional plan with BAR ends on ' + contractPeriodEnd.format('ll') + '.'
       )
     ).not.toBeInTheDocument();
-
-    expect(mockResponse).toHaveBeenCalledWith(
-      `/customers/${organization.slug}/billing-config/`,
-      expect.objectContaining({
-        method: 'GET',
-        data: {tier: PlanTier.AM3},
-      })
-    );
   });
 
   it('renders banner for self-serve partners', async () => {
@@ -945,12 +386,7 @@ describe('AM3 Checkout', () => {
         name: '',
       },
     });
-    act(() => SubscriptionStore.set(organization.slug, sub));
-    MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-config/`,
-      method: 'GET',
-      body: BillingConfigFixture(PlanTier.AM3),
-    });
+    SubscriptionStore.set(organization.slug, sub);
 
     render(
       <AMCheckout
@@ -962,7 +398,17 @@ describe('AM3 Checkout', () => {
       {organization}
     );
 
-    expect(await screen.findByText('Set Your Pay-as-you-go Budget')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockBillingConfigResponse).toHaveBeenCalledWith(
+        `/customers/${organization.slug}/billing-config/`,
+        expect.objectContaining({
+          method: 'GET',
+          data: {tier: 'am3'},
+        })
+      );
+    });
+
+    assertCheckoutSteps({tier: PlanTier.AM3, hasBillingInfoStep: false});
     expect(
       screen.getByText('Billing handled externally through BAR')
     ).toBeInTheDocument();
@@ -988,12 +434,7 @@ describe('AM3 Checkout', () => {
         name: '',
       },
     });
-    act(() => SubscriptionStore.set(organization.slug, sub));
-    const mockResponse = MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-config/`,
-      method: 'GET',
-      body: BillingConfigFixture(PlanTier.AM3),
-    });
+    SubscriptionStore.set(organization.slug, sub);
 
     render(
       <AMCheckout
@@ -1005,112 +446,60 @@ describe('AM3 Checkout', () => {
       {organization}
     );
 
-    expect(await screen.findByText('Set Your Pay-as-you-go Budget')).toBeInTheDocument();
-    expect(screen.getByText('Review & Confirm')).toBeInTheDocument();
-    expect(screen.queryByText('Payment Method')).not.toBeInTheDocument();
-    expect(screen.queryByText('Billing Details')).not.toBeInTheDocument();
-    expect(screen.queryByText('Contract Term & Discounts')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockBillingConfigResponse).toHaveBeenCalledWith(
+        `/customers/${organization.slug}/billing-config/`,
+        expect.objectContaining({
+          method: 'GET',
+          data: {tier: 'am3'},
+        })
+      );
+    });
 
-    expect(mockResponse).toHaveBeenCalledWith(
-      `/customers/${organization.slug}/billing-config/`,
-      expect.objectContaining({
-        method: 'GET',
-        data: {tier: PlanTier.AM3},
-      })
-    );
+    assertCheckoutSteps({
+      tier: PlanTier.AM3,
+      hasBillingInfoStep: false,
+      hasBillingCycleStep: false,
+    });
   });
-
-  it('does not render for AM2 customers', async () => {
+  it('renders for customers switching to default tier', async () => {
     const sub = SubscriptionFixture({
       organization,
-      plan: 'am2_f',
+      // This plan does not have hasOnDemandModes
+      plan: 'mm2_b_100k',
       planTier: PlanTier.AM2,
     });
-    act(() => SubscriptionStore.set(organization.slug, sub));
-
-    const mockResponse = MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-config/`,
-      method: 'GET',
-      body: BillingConfigFixture(PlanTier.AM2),
-    });
+    SubscriptionStore.set(organization.slug, sub);
 
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        checkoutTier={PlanTier.AM2}
+        checkoutTier={PlanTier.AM3}
       />,
       {organization}
     );
 
-    expect(await screen.findByText('Choose Your Plan')).toBeInTheDocument();
-    expect(screen.queryByText('Set Your Pay-as-you-go Budget')).not.toBeInTheDocument();
-
-    expect(mockResponse).toHaveBeenCalledWith(
-      `/customers/${organization.slug}/billing-config/`,
-      expect.objectContaining({
-        method: 'GET',
-        data: {tier: PlanTier.AM2},
-      })
-    );
-  });
-
-  it('does not render for AM1 customers', async () => {
-    const sub = SubscriptionFixture({
-      organization,
-      plan: 'am1_f',
-      planTier: PlanTier.AM1,
+    await waitFor(() => {
+      expect(mockBillingConfigResponse).toHaveBeenCalledWith(
+        `/customers/${organization.slug}/billing-config/`,
+        expect.objectContaining({
+          method: 'GET',
+          data: {tier: 'am3'},
+        })
+      );
     });
-    act(() => SubscriptionStore.set(organization.slug, sub));
-
-    const mockResponse = MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-config/`,
-      method: 'GET',
-      body: BillingConfigFixture(PlanTier.AM1),
-    });
-
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM1}
-      />,
-      {organization}
-    );
-
-    expect(await screen.findByText('Choose Your Plan')).toBeInTheDocument();
-    expect(screen.queryByText('Set Your Pay-as-you-go Budget')).not.toBeInTheDocument();
-
-    expect(mockResponse).toHaveBeenCalledWith(
-      `/customers/${organization.slug}/billing-config/`,
-      expect.objectContaining({
-        method: 'GET',
-        data: {tier: PlanTier.AM1},
-      })
-    );
+    expect(hasOnDemandBudgetsFeature(organization, sub)).toBe(false);
+    assertCheckoutSteps({tier: PlanTier.AM3});
+    expect(screen.getByRole('radio', {name: 'Business'})).toBeChecked();
   });
 
   it('prefills with existing subscription data', async () => {
-    MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-config/`,
-      method: 'GET',
-      body: BillingConfigFixture(PlanTier.AM3),
-    });
-
     const sub = SubscriptionFixture({
       organization,
       plan: 'am3_business',
       planTier: PlanTier.AM3,
-      categories: {
-        errors: MetricHistoryFixture({reserved: 100_000}),
-        attachments: MetricHistoryFixture({reserved: 25}),
-        replays: MetricHistoryFixture({reserved: 50}),
-        monitorSeats: MetricHistoryFixture({reserved: 1}),
-        spans: MetricHistoryFixture({reserved: 20_000_000}),
-        profileDuration: MetricHistoryFixture({reserved: 1}),
-      },
       onDemandBudgets: {
         onDemandSpendUsed: 0,
         sharedMaxBudget: 2000,
@@ -1121,17 +510,17 @@ describe('AM3 Checkout', () => {
       supportsOnDemand: true,
       isFree: false,
     });
-
-    // set all add-ons as unavailable so we don't check for them in order to skip the step
+    sub.categories = {
+      ...sub.categories,
+      errors: MetricHistoryFixture({reserved: 100_000}),
+      attachments: MetricHistoryFixture({reserved: 25}),
+      spans: MetricHistoryFixture({reserved: 20_000_000}),
+    };
     sub.addOns = {
       ...sub.addOns,
       [AddOnCategory.SEER]: {
         ...sub.addOns?.[AddOnCategory.SEER]!,
-        isAvailable: false,
-      },
-      [AddOnCategory.LEGACY_SEER]: {
-        ...sub.addOns?.[AddOnCategory.LEGACY_SEER]!,
-        isAvailable: false,
+        enabled: true,
       },
     };
 
@@ -1147,58 +536,34 @@ describe('AM3 Checkout', () => {
       {organization}
     );
 
-    expect(
-      await screen.findByRole('heading', {name: 'Change Subscription'})
-    ).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Pay-as-you-go budget'})).toHaveValue('20');
-
-    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
-    expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument(); // skips over first step when subscription is already on Business plan
-    // TODO: Can better write this once we have
-    // https://github.com/testing-library/jest-dom/issues/478
-    expect(screen.getByRole('slider', {name: 'Errors'})).toHaveAttribute(
-      'aria-valuetext',
-      '100000'
-    );
-    expect(screen.getByRole('slider', {name: 'Replays'})).toHaveAttribute(
-      'aria-valuetext',
-      '50'
-    );
-    expect(screen.getByRole('slider', {name: 'Spans'})).toHaveAttribute(
-      'aria-valuetext',
-      '20000000'
-    );
-    expect(screen.getByRole('slider', {name: 'Attachments'})).toHaveAttribute(
-      'aria-valuetext',
-      '25'
-    );
+    await waitFor(() => {
+      expect(mockBillingConfigResponse).toHaveBeenCalledWith(
+        `/customers/${organization.slug}/billing-config/`,
+        expect.objectContaining({
+          method: 'GET',
+          data: {tier: 'am3'},
+        })
+      );
+    });
 
     expect(
-      screen.queryByRole('slider', {name: 'Accepted Spans'})
-    ).not.toBeInTheDocument();
-    expect(screen.queryByRole('slider', {name: 'Stored Spans'})).not.toBeInTheDocument();
-    expect(screen.queryByRole('slider', {name: 'Cron Monitors'})).not.toBeInTheDocument();
+      screen.getByRole('textbox', {name: 'Custom shared spending limit (in dollars)'})
+    ).toHaveValue('20');
+    expect(screen.getByTestId('errors-volume-item')).toHaveTextContent('100K');
+    expect(screen.getByTestId('attachments-volume-item')).toHaveTextContent('25 GB');
+    expect(screen.getByTestId('spans-volume-item')).toHaveTextContent('20M');
+
+    // other categories use defaults
+    expect(screen.getByTestId('replays-volume-item')).toHaveTextContent('50');
+
+    expect(screen.getByTestId('product-option-seer')).toBeChecked();
   });
 
   it('prefills with existing subscription data with plan trial', async () => {
-    MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-config/`,
-      method: 'GET',
-      body: BillingConfigFixture(PlanTier.AM3),
-    });
-
     const sub = SubscriptionFixture({
       organization,
       plan: 'am3_business',
       planTier: PlanTier.AM3,
-      categories: {
-        errors: MetricHistoryFixture({reserved: 100_000}),
-        attachments: MetricHistoryFixture({reserved: 25}),
-        replays: MetricHistoryFixture({reserved: 50}),
-        monitorSeats: MetricHistoryFixture({reserved: 1}),
-        spans: MetricHistoryFixture({reserved: 20_000_000}),
-        profileDuration: MetricHistoryFixture({reserved: 1}),
-      },
       onDemandBudgets: {
         onDemandSpendUsed: 0,
         sharedMaxBudget: 2000,
@@ -1210,20 +575,12 @@ describe('AM3 Checkout', () => {
       isFree: false,
       isTrial: true, // isTrial is true for both subscription trials and plan trials
     });
-
-    // set all add-ons as unavailable so we don't check for them in order to skip the step
-    sub.addOns = {
-      ...sub.addOns,
-      [AddOnCategory.SEER]: {
-        ...sub.addOns?.[AddOnCategory.SEER]!,
-        isAvailable: false,
-      },
-      [AddOnCategory.LEGACY_SEER]: {
-        ...sub.addOns?.[AddOnCategory.LEGACY_SEER]!,
-        isAvailable: false,
-      },
+    sub.categories = {
+      ...sub.categories,
+      errors: MetricHistoryFixture({reserved: 100_000}),
+      attachments: MetricHistoryFixture({reserved: 25}),
+      spans: MetricHistoryFixture({reserved: 20_000_000}),
     };
-
     SubscriptionStore.set(organization.slug, sub);
 
     render(
@@ -1236,94 +593,30 @@ describe('AM3 Checkout', () => {
       {organization}
     );
 
-    expect(
-      await screen.findByRole('heading', {name: 'Change Subscription'})
-    ).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Pay-as-you-go budget'})).toHaveValue('20');
-
-    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
-    expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument(); // skips over first step when subscription is already on Business plan
-    // TODO: Can better write this once we have
-    // https://github.com/testing-library/jest-dom/issues/478
-    expect(screen.getByRole('slider', {name: 'Errors'})).toHaveAttribute(
-      'aria-valuetext',
-      '100000'
-    );
-    expect(screen.getByRole('slider', {name: 'Replays'})).toHaveAttribute(
-      'aria-valuetext',
-      '50'
-    );
-    expect(screen.getByRole('slider', {name: 'Spans'})).toHaveAttribute(
-      'aria-valuetext',
-      '20000000'
-    );
-    expect(screen.getByRole('slider', {name: 'Attachments'})).toHaveAttribute(
-      'aria-valuetext',
-      '25'
-    );
-
-    expect(
-      screen.queryByRole('slider', {name: 'Accepted Spans'})
-    ).not.toBeInTheDocument();
-    expect(screen.queryByRole('slider', {name: 'Stored Spans'})).not.toBeInTheDocument();
-    expect(screen.queryByRole('slider', {name: 'Cron Monitors'})).not.toBeInTheDocument();
-  });
-
-  it('allows setting PAYG for customers switching to AM3', async () => {
-    const sub = SubscriptionFixture({
-      organization,
-      // This plan does not have hasOnDemandModes
-      plan: 'mm2_b_100k',
-      planTier: PlanTier.AM2,
-    });
-    act(() => SubscriptionStore.set(organization.slug, sub));
-
-    const mockResponse = MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-config/`,
-      method: 'GET',
-      body: BillingConfigFixture(PlanTier.AM3),
+    await waitFor(() => {
+      expect(mockBillingConfigResponse).toHaveBeenCalledWith(
+        `/customers/${organization.slug}/billing-config/`,
+        expect.objectContaining({
+          method: 'GET',
+          data: {tier: 'am3'},
+        })
+      );
     });
 
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-      />,
-      {organization}
-    );
+    expect(
+      screen.getByRole('textbox', {name: 'Custom shared spending limit (in dollars)'})
+    ).toHaveValue('20');
+    expect(screen.getByTestId('errors-volume-item')).toHaveTextContent('100K');
+    expect(screen.getByTestId('attachments-volume-item')).toHaveTextContent('25 GB');
+    expect(screen.getByTestId('spans-volume-item')).toHaveTextContent('20M');
 
-    expect(hasOnDemandBudgetsFeature(organization, sub)).toBe(false);
-    expect(await screen.findByText('Choose Your Plan')).toBeInTheDocument();
-    expect(screen.getByRole('radio', {name: 'Business'})).toBeChecked();
-    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
-    await userEvent.clear(screen.getByRole('textbox', {name: 'Pay-as-you-go budget'}));
-    await userEvent.type(
-      screen.getByRole('textbox', {name: 'Pay-as-you-go budget'}),
-      '20'
-    );
-    expect(await screen.findByTestId('additional-monthly-charge')).toHaveTextContent(
-      '+ up to $20/mo based on PAYG usage'
-    );
+    // other categories use defaults
+    expect(screen.getByTestId('replays-volume-item')).toHaveTextContent('50');
 
-    expect(mockResponse).toHaveBeenCalledWith(
-      `/customers/${organization.slug}/billing-config/`,
-      expect.objectContaining({
-        method: 'GET',
-        data: {tier: PlanTier.AM3},
-      })
-    );
+    expect(screen.getByTestId('product-option-seer')).not.toBeChecked();
   });
 
   it('handles missing categories in subscription.categories', async () => {
-    // Add billing config mock response
-    MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-config/`,
-      method: 'GET',
-      body: BillingConfigFixture(PlanTier.AM3),
-    });
-
     /**
      * In this test, we create a subscription where some categories are missing from
      * `subscription.categories`. We then verify that the component renders correctly
@@ -1376,36 +669,25 @@ describe('AM3 Checkout', () => {
       {organization}
     );
 
-    expect(
-      await screen.findByRole('heading', {name: 'Change Subscription'})
-    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockBillingConfigResponse).toHaveBeenCalledWith(
+        `/customers/${organization.slug}/billing-config/`,
+        expect.objectContaining({
+          method: 'GET',
+          data: {tier: 'am3'},
+        })
+      );
+    });
 
-    // For AM3, first step is pay-as-you-go budget
-    expect(screen.getByText('Set Your Pay-as-you-go Budget')).toBeInTheDocument();
-
-    // Verify that the 'Pay-as-you-go budget' is correctly set
-    expect(screen.getByRole('textbox', {name: 'Pay-as-you-go budget'})).toHaveValue('20');
-
-    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
-
-    // Verify that the component renders without errors
-    expect(screen.getByTestId('replays-volume-item')).toBeInTheDocument();
-
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Show reserved volume sliders'})
+    );
     // Check that missing 'Errors' category defaults to 50,000 errors
-    expect(screen.getByRole('slider', {name: 'Errors'})).toHaveAttribute(
-      'aria-valuetext',
-      '50000'
-    );
+    expect(screen.getByTestId('errors-volume-item')).toHaveTextContent('50K');
     // For 'Replays', should be set to 50 as per the subscription
-    expect(screen.getByRole('slider', {name: 'Replays'})).toHaveAttribute(
-      'aria-valuetext',
-      '50'
-    );
+    expect(screen.getByTestId('replays-volume-item')).toHaveTextContent('50');
     // Check that missing 'Attachments' category defaults to 1 GB
-    expect(screen.getByRole('slider', {name: 'Attachments'})).toHaveAttribute(
-      'aria-valuetext',
-      '1'
-    );
+    expect(screen.getByTestId('attachments-volume-item')).toHaveTextContent('1 GB');
   });
 
   it('handles zero platform reserve', () => {
@@ -1437,16 +719,11 @@ describe('AM3 Checkout', () => {
     });
   });
 
-  it('does not use trial volumes for trial subscriptions in AM3 checkout', async () => {
+  it('does not use trial volumes for trial subscriptions', async () => {
     /**
      * Test for the trial checkout slider fix in AM3 tier. When subscription.isTrial is true,
      * the checkout should use default volumes instead of trial reserved volumes.
      */
-    MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-config/`,
-      method: 'GET',
-      body: BillingConfigFixture(PlanTier.AM3),
-    });
 
     const trialSub = SubscriptionFixture({
       organization,
@@ -1485,46 +762,32 @@ describe('AM3 Checkout', () => {
       {organization}
     );
 
-    expect(
-      await screen.findByRole('heading', {name: 'Change Subscription'})
-    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockBillingConfigResponse).toHaveBeenCalledWith(
+        `/customers/${organization.slug}/billing-config/`,
+        expect.objectContaining({
+          method: 'GET',
+          data: {tier: 'am3'},
+        })
+      );
+    });
 
-    // Continue to Reserved Volumes step (step 3 in AM3 checkout)
-    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
-    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
-    expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument();
+    // not open by default because it's a trial subscription
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Show reserved volume sliders'})
+    );
 
     // Verify that sliders show reasonable values, NOT the high trial volumes
     // The key test is that they are NOT the trial volumes we set above
-    expect(screen.getByRole('slider', {name: 'Errors'})).not.toHaveAttribute(
-      'aria-valuetext',
-      '750000' // Should NOT be the trial value
-    );
-    expect(screen.getByRole('slider', {name: 'Replays'})).not.toHaveAttribute(
-      'aria-valuetext',
-      '50000' // Should NOT be the trial value
-    );
-    expect(screen.getByRole('slider', {name: 'Spans'})).not.toHaveAttribute(
-      'aria-valuetext',
-      '100000000' // Should NOT be the trial value
-    );
-    expect(screen.getByRole('slider', {name: 'Attachments'})).not.toHaveAttribute(
-      'aria-valuetext',
-      '200' // Should NOT be the trial value
-    );
+    expect(screen.getByTestId('errors-volume-item')).not.toHaveTextContent('75K');
+    expect(screen.getByTestId('attachments-volume-item')).not.toHaveTextContent('200 GB');
+    expect(screen.getByTestId('spans-volume-item')).not.toHaveTextContent('100M');
+    expect(screen.getByTestId('replays-volume-item')).not.toHaveTextContent('50K');
 
-    // Verify they are reasonable default values instead
-    const errorsSlider = screen.getByRole('slider', {name: 'Errors'});
-    const errorsValue = parseInt(errorsSlider.getAttribute('aria-valuetext') || '0', 10);
-    expect(errorsValue).toBe(50_000); // Should be much less than trial volume
-    expect(errorsValue).toBeGreaterThan(0); // Should be a reasonable default
-
-    const replaysSlider = screen.getByRole('slider', {name: 'Replays'});
-    const replaysValue = parseInt(
-      replaysSlider.getAttribute('aria-valuetext') || '0',
-      10
-    );
-    expect(replaysValue).toBe(50); // Should be much less than trial volume
-    expect(replaysValue).toBeGreaterThan(0); // Should be a reasonable default
+    // Verify they are default values instead
+    expect(screen.getByTestId('errors-volume-item')).toHaveTextContent('50K');
+    expect(screen.getByTestId('attachments-volume-item')).toHaveTextContent('1 GB');
+    expect(screen.getByTestId('spans-volume-item')).toHaveTextContent('10M');
+    expect(screen.getByTestId('replays-volume-item')).toHaveTextContent('50');
   });
 });

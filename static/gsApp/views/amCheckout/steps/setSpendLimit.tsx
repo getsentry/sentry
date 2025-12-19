@@ -15,7 +15,7 @@ import {
 } from 'getsentry/views/onDemandBudgets/utils';
 import SpendLimitSettings from 'getsentry/views/spendLimits/spendLimitSettings';
 
-function SetSpendCap({
+function SetSpendLimit({
   activePlan,
   formData,
   stepNumber,
@@ -79,4 +79,4 @@ function SetSpendCap({
   );
 }
 
-export default SetSpendCap;
+export default SetSpendLimit;
