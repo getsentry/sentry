@@ -518,6 +518,122 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
     @patch(
         "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
     )
+    def test_post_appends_repos_when_append_flag_true(
+        self, mock_bulk_get_preferences, mock_bulk_set_preferences
+    ):
+        project = self.create_project(organization=self.organization)
+
+        mock_bulk_get_preferences.return_value = {
+            str(project.id): {
+                "repositories": [
+                    {
+                        "provider": "github",
+                        "owner": "existing-owner",
+                        "name": "existing-repo",
+                        "external_id": "111",
+                        "organization_id": self.organization.id,
+                    }
+                ],
+            }
+        }
+
+        new_repo_data = {
+            "provider": "github",
+            "owner": "new-owner",
+            "name": "new-repo",
+            "externalId": "222",
+            "organizationId": self.organization.id,
+        }
+
+        response = self.client.post(
+            self.url,
+            {
+                "projectIds": [project.id],
+                "projectRepoMappings": {
+                    str(project.id): [new_repo_data],
+                },
+                "appendRepositories": True,
+            },
+        )
+        assert response.status_code == 204
+
+        mock_bulk_set_preferences.assert_called_once()
+        call_args = mock_bulk_set_preferences.call_args
+        preferences = call_args[0][1]
+        assert len(preferences) == 1
+        assert len(preferences[0]["repositories"]) == 2
+        assert preferences[0]["repositories"][0]["external_id"] == "111"
+        assert preferences[0]["repositories"][1]["external_id"] == "222"
+
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_set_project_preferences"
+    )
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
+    )
+    def test_post_append_skips_duplicates(
+        self, mock_bulk_get_preferences, mock_bulk_set_preferences
+    ):
+        project = self.create_project(organization=self.organization)
+
+        mock_bulk_get_preferences.return_value = {
+            str(project.id): {
+                "repositories": [
+                    {
+                        "provider": "github",
+                        "owner": "existing-owner",
+                        "name": "existing-repo",
+                        "external_id": "111",
+                        "organization_id": self.organization.id,
+                    }
+                ],
+            }
+        }
+
+        # Include a duplicate (same organization_id, provider, external_id) and a new repo
+        duplicate_repo = {
+            "provider": "github",
+            "owner": "different-owner",
+            "name": "different-name",
+            "externalId": "111",
+            "organizationId": self.organization.id,
+        }
+        new_repo = {
+            "provider": "github",
+            "owner": "new-owner",
+            "name": "new-repo",
+            "externalId": "222",
+            "organizationId": self.organization.id,
+        }
+
+        response = self.client.post(
+            self.url,
+            {
+                "projectIds": [project.id],
+                "projectRepoMappings": {
+                    str(project.id): [duplicate_repo, new_repo],
+                },
+                "appendRepositories": True,
+            },
+        )
+        assert response.status_code == 204
+
+        mock_bulk_set_preferences.assert_called_once()
+        call_args = mock_bulk_set_preferences.call_args
+        preferences = call_args[0][1]
+        assert len(preferences) == 1
+        # Should only have 2 repos: the existing one and the new one (duplicate skipped)
+        assert len(preferences[0]["repositories"]) == 2
+        assert preferences[0]["repositories"][0]["external_id"] == "111"
+        assert preferences[0]["repositories"][0]["owner"] == "existing-owner"
+        assert preferences[0]["repositories"][1]["external_id"] == "222"
+
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_set_project_preferences"
+    )
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
+    )
     def test_post_creates_audit_log(self, mock_bulk_get_preferences, mock_bulk_set_preferences):
         project1 = self.create_project(organization=self.organization)
         project2 = self.create_project(organization=self.organization)
