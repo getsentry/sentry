@@ -96,11 +96,6 @@ const DetailContainer = styled('div')`
   padding: ${space(1)} ${space(2)};
 `;
 
-const FlexBox = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
 const Actions = styled(FlexBox)`
   gap: ${space(0.5)};
   justify-content: end;

@@ -2,6 +2,8 @@ import {Fragment} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -141,12 +143,12 @@ function VitalPill({vital, vitalDetails}: VitalPillProps) {
 
   const acronym = vitalDetails.acronym ?? vitalDetails.name;
   return (
-    <VitalPillContainer>
+    <Flex>
       <VitalPillName status={status}>
         <Tooltip title={toolTipTitle}>{`${acronym}`}</Tooltip>
       </VitalPillName>
       <VitalPillValue>{formattedMeterValueText}</VitalPillValue>
-    </VitalPillContainer>
+    </Flex>
   );
 }
 
@@ -154,10 +156,6 @@ const VitalMetersContainer = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-`;
-
-const VitalPillContainer = styled('div')`
-  display: flex;
 `;
 
 const VitalPillName = styled('div')<{status: PerformanceScore}>`

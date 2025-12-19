@@ -3,6 +3,8 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Link} from 'sentry/components/core/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -207,7 +209,7 @@ function PerformanceScoreRingWithTooltips({
     <ProgressRingContainer ref={elem} {...mouseTrackingProps}>
       {webVitalTooltip && (
         <PerformanceScoreRingTooltip x={mousePosition.x} y={mousePosition.y}>
-          <TooltipRow>
+          <Flex justify="between" align="center">
             <span>
               <Dot
                 color={ringBackgroundColors[ringSegmentOrder.indexOf(webVitalTooltip)]!}
@@ -217,8 +219,8 @@ function PerformanceScoreRingWithTooltips({
             <TooltipValue>
               {100 - (projectScore[`${webVitalTooltip}Score`] ?? 0)}
             </TooltipValue>
-          </TooltipRow>
-          <TooltipRow>
+          </Flex>
+          <Flex justify="between" align="center">
             <span>
               <Dot
                 color={ringSegmentColors[ringSegmentOrder.indexOf(webVitalTooltip)]!}
@@ -226,7 +228,7 @@ function PerformanceScoreRingWithTooltips({
               {webVitalTooltip.toUpperCase()} {t('Score')}
             </span>
             <TooltipValue>{projectScore[`${webVitalTooltip}Score`]}</TooltipValue>
-          </TooltipRow>
+          </Flex>
           <PerformanceScoreRingTooltipArrow />
         </PerformanceScoreRingTooltip>
       )}
@@ -411,12 +413,6 @@ const Dot = styled('span')<{color: string}>`
   width: 10px;
   height: 10px;
   background-color: ${p => p.color};
-`;
-
-const TooltipRow = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
 `;
 
 const TooltipValue = styled('span')`

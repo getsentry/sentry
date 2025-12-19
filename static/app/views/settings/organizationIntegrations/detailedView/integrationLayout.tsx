@@ -54,7 +54,7 @@ function TopSection({
 }) {
   const tags = getCategories(featureData);
   return (
-    <TopSectionWrapper>
+    <Flex justify="between">
       <Flex>
         {integrationIcon}
         <NameContainer>
@@ -75,7 +75,7 @@ function TopSection({
         {addInstallButton}
         {additionalCTA}
       </Flex>
-    </TopSectionWrapper>
+    </Flex>
   );
 }
 
@@ -309,11 +309,6 @@ export default IntegrationLayout;
 
 const IntegrationDescription = styled('div')`
   flex-grow: 1;
-`;
-
-const TopSectionWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
 `;
 
 const NameContainer = styled('div')`

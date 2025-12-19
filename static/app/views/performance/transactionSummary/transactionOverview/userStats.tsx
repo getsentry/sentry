@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 import type {Location} from 'history';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import Placeholder from 'sentry/components/placeholder';
@@ -75,7 +76,7 @@ function UserStats({
     <Fragment>
       {hasWebVitals && (
         <Fragment>
-          <VitalsHeading>
+          <Flex justify="between" align="center">
             <SectionHeading>
               {t('Web Vitals')}
               <QuestionTooltip
@@ -86,7 +87,7 @@ function UserStats({
                 size="sm"
               />
             </SectionHeading>
-          </VitalsHeading>
+          </Flex>
           <VitalInfo
             location={location}
             vital={[WebVital.FCP, WebVital.LCP, WebVital.FID, WebVital.CLS]}
@@ -128,11 +129,5 @@ function UserStats({
     </Fragment>
   );
 }
-
-const VitalsHeading = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
 
 export default UserStats;

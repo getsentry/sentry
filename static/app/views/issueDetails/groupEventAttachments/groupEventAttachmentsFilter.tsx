@@ -1,4 +1,4 @@
-import styled from '@emotion/styled';
+import {Flex} from '@sentry/scraps/layout';
 
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {t} from 'sentry/locale';
@@ -26,7 +26,7 @@ function GroupEventAttachmentsFilter({onChange}: GroupEventAttachmentsFilterProp
     EventAttachmentFilter.ALL;
 
   return (
-    <FilterWrapper>
+    <Flex justify="end">
       <SegmentedControl
         aria-label={t('Attachment Filter')}
         size="sm"
@@ -52,13 +52,8 @@ function GroupEventAttachmentsFilter({onChange}: GroupEventAttachmentsFilterProp
           {t('Only Crash Reports')}
         </SegmentedControl.Item>
       </SegmentedControl>
-    </FilterWrapper>
+    </Flex>
   );
 }
-
-const FilterWrapper = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-`;
 
 export default GroupEventAttachmentsFilter;

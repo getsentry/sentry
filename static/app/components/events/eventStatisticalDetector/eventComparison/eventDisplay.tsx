@@ -2,6 +2,8 @@ import {useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -205,7 +207,7 @@ function EventDisplay({
   return (
     <EventDisplayContainer>
       <div>
-        <StyledControlBar>
+        <Flex justify="between">
           <StyledEventControls>
             <CompactSelect
               size="sm"
@@ -262,7 +264,7 @@ function EventDisplay({
               />
             </NavButtons>
           </div>
-        </StyledControlBar>
+        </Flex>
         <ComparisonContentWrapper>
           <Link to={fullEventTarget}>
             <MinimapContainer>
@@ -307,11 +309,6 @@ const ButtonLabelWrapper = styled('span')`
   align-items: center;
   display: inline-grid;
   grid-template-columns: 1fr auto;
-`;
-
-const StyledControlBar = styled('div')`
-  display: flex;
-  justify-content: space-between;
 `;
 
 const StyledEventControls = styled('div')`

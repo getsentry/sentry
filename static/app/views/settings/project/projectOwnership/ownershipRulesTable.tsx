@@ -5,6 +5,8 @@ import chunk from 'lodash/chunk';
 import isEqual from 'lodash/isEqual';
 import uniqBy from 'lodash/uniqBy';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -201,7 +203,7 @@ export function OwnershipRulesTable({
           );
         })}
       </StyledPanelTable>
-      <PaginationWrapper>
+      <Flex justify="end">
         <ButtonBar merged gap="0">
           <Button
             icon={<IconChevron direction="left" size="sm" />}
@@ -222,7 +224,7 @@ export function OwnershipRulesTable({
             aria-label={t('Next page')}
           />
         </ButtonBar>
-      </PaginationWrapper>
+      </Flex>
     </RulesTableWrapper>
   );
 }
@@ -256,11 +258,6 @@ const StyledPanelTable = styled(PanelTable)`
         padding: ${space(1.5)} ${space(2)};
       }
     `}
-`;
-
-const PaginationWrapper = styled('div')`
-  display: flex;
-  justify-content: flex-end;
 `;
 
 const RowItem = styled('div')`

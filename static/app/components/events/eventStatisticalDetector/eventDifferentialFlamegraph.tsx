@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {LocationDescriptor} from 'history';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Link} from 'sentry/components/core/link';
@@ -569,7 +571,7 @@ function DifferentialFlamegraphChangedFunctionsTitle(props: {
   title: string;
 }) {
   return (
-    <DifferentialFlamegraphChangedFunctionsTitleContainer>
+    <Flex justify="between" align="center">
       <DifferentialFlamegraphChangedFunctionsTitleText>
         <div>{props.title}</div>
         <DifferentialFlamegraphChangedFunctionsSubtitleText>
@@ -592,15 +594,9 @@ function DifferentialFlamegraphChangedFunctionsTitle(props: {
           aria-label={t('Next page')}
         />
       </ButtonBar>
-    </DifferentialFlamegraphChangedFunctionsTitleContainer>
+    </Flex>
   );
 }
-
-const DifferentialFlamegraphChangedFunctionsTitleContainer = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
 
 const DifferentialFlamegraphChangedFunctionsTitleText = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};

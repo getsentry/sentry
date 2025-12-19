@@ -3,6 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
@@ -204,7 +206,7 @@ function DeprecatedLine({
         >
           {isExpandable ? <InteractionStateLayer /> : null}
           <DefaultLineTitleWrapper isInAppFrame={data.inApp}>
-            <LeftLineTitle>
+            <Flex align="center">
               <div>
                 <LeadHint
                   nextFrame={nextFrame}
@@ -220,7 +222,7 @@ function DeprecatedLine({
                   isPotentiallyThirdParty={isPotentiallyThirdPartyFrame(data, event)}
                 />
               </div>
-            </LeftLineTitle>
+            </Flex>
           </DefaultLineTitleWrapper>
           <DefaultLineTagWrapper>
             <RepeatsIndicator timesRepeated={timesRepeated} />
@@ -382,11 +384,6 @@ const DefaultLineTitleWrapper = styled('div')<{isInAppFrame: boolean}>`
   justify-content: space-between;
   color: ${p => (p.isInAppFrame ? '' : p.theme.subText)};
   font-style: ${p => (p.isInAppFrame ? '' : 'italic')};
-`;
-
-const LeftLineTitle = styled('div')`
-  display: flex;
-  align-items: center;
 `;
 
 const RepeatedContent = styled(LeftLineTitle)`
