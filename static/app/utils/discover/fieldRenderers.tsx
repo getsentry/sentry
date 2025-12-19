@@ -423,6 +423,8 @@ const DownloadCount = styled('span')`
 const RightAlignedContainer = styled('span')`
   margin-left: auto;
   margin-right: 0;
+  display: block;
+  text-align: right;
 `;
 
 /**
