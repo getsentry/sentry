@@ -14,12 +14,7 @@ import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import useApi from 'sentry/utils/useApi';
 
 import type {Reservations} from 'getsentry/components/upgradeNowModal/types';
-import {
-  DEFAULT_TIER,
-  MONTHLY,
-  RESERVED_BUDGET_QUOTA,
-  SUPPORTED_TIERS,
-} from 'getsentry/constants';
+import {MONTHLY, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {AddOnCategory, PlanTier, ReservedBudgetCategoryType} from 'getsentry/types';
 import type {
@@ -272,32 +267,6 @@ export function getReservedPriceCents({
   }
 
   return reservedCents;
-}
-
-/**
- * Gets the price in cents per reserved category, and returns the
- * reserved total in dollars.
- */
-export function getReservedTotal({
-  plan,
-  reserved,
-  amount,
-  discountType,
-  maxDiscount,
-  creditCategory,
-  addOns,
-}: ReservedTotalProps): string {
-  return formatPrice({
-    cents: getReservedPriceCents({
-      plan,
-      reserved,
-      amount,
-      discountType,
-      maxDiscount,
-      creditCategory,
-      addOns,
-    }),
-  });
 }
 
 type DiscountedPriceProps = {
@@ -742,26 +711,6 @@ export function useSubmitCheckout({
       }
     },
   });
-}
-
-export function getToggleTier(checkoutTier: PlanTier | undefined) {
-  // cannot toggle from or to AM3
-  if (checkoutTier === DEFAULT_TIER || !checkoutTier || SUPPORTED_TIERS.length === 0) {
-    return null;
-  }
-
-  if (SUPPORTED_TIERS.length === 1) {
-    return SUPPORTED_TIERS[0];
-  }
-
-  const tierIndex = SUPPORTED_TIERS.indexOf(checkoutTier);
-
-  // can toggle between AM1 and AM2 for AM1 customers
-  if (tierIndex === SUPPORTED_TIERS.length - 1) {
-    return SUPPORTED_TIERS[tierIndex - 1];
-  }
-
-  return SUPPORTED_TIERS[tierIndex + 1];
 }
 
 export function getContentForPlan(plan: Plan): PlanContent {

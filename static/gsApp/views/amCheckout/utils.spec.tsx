@@ -1,137 +1,17 @@
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 
-import {AddOnCategory, PlanTier} from 'getsentry/types';
+import {AddOnCategory} from 'getsentry/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
 
 describe('utils', () => {
   const teamPlan = PlanDetailsLookupFixture('am1_team')!;
-  const teamPlanAnnual = PlanDetailsLookupFixture('am1_team_auf')!;
   const bizPlan = PlanDetailsLookupFixture('am1_business')!;
-  const bizPlanAnnual = PlanDetailsLookupFixture('am1_business_auf')!;
-  const am3TeamPlan = PlanDetailsLookupFixture('am3_team')!;
-  const am3TeamPlanAnnual = PlanDetailsLookupFixture('am3_team_auf')!;
   const DEFAULT_ADDONS = {
     [AddOnCategory.LEGACY_SEER]: {
       enabled: false,
     },
   };
-
-  describe('getReservedTotal', () => {
-    it('can get base price for team plan', () => {
-      const priceDollars = utils.getReservedTotal({
-        plan: teamPlan,
-        reserved: {
-          errors: 50_000,
-          transactions: 100_000,
-          attachments: 1,
-        },
-        addOns: DEFAULT_ADDONS,
-      });
-      expect(priceDollars).toBe('29');
-    });
-
-    it('can get base price for annual team plan', () => {
-      const priceDollars = utils.getReservedTotal({
-        plan: teamPlanAnnual,
-        reserved: {
-          errors: 50_000,
-          transactions: 100_000,
-          attachments: 1,
-        },
-        addOns: DEFAULT_ADDONS,
-      });
-      expect(priceDollars).toBe('312');
-    });
-
-    it('can get base price for business plan', () => {
-      const priceDollars = utils.getReservedTotal({
-        plan: bizPlan,
-        reserved: {
-          errors: 50_000,
-          transactions: 100_000,
-          attachments: 1,
-        },
-        addOns: DEFAULT_ADDONS,
-      });
-      expect(priceDollars).toBe('89');
-    });
-
-    it('can get base price for annual business plan', () => {
-      const priceDollars = utils.getReservedTotal({
-        plan: bizPlanAnnual,
-        reserved: {
-          errors: 50_000,
-          transactions: 100_000,
-          attachments: 1,
-        },
-        addOns: DEFAULT_ADDONS,
-      });
-      expect(priceDollars).toBe('960');
-    });
-
-    it('adds comma to price', () => {
-      const priceDollars = utils.getReservedTotal({
-        plan: bizPlanAnnual,
-        reserved: {
-          errors: 200_000,
-          transactions: 100_000,
-          attachments: 1,
-        },
-        addOns: DEFAULT_ADDONS,
-      });
-      expect(priceDollars).toBe('1,992');
-    });
-
-    it('includes Seer price in the total when enabled', () => {
-      const priceDollars = utils.getReservedTotal({
-        plan: am3TeamPlan,
-        reserved: {
-          errors: 50_000,
-          spans: 10_000_000,
-          replays: 50,
-          attachments: 1,
-        },
-        addOns: {
-          [AddOnCategory.LEGACY_SEER]: {
-            enabled: true,
-          },
-        },
-      });
-      expect(priceDollars).toBe('49');
-    });
-
-    it('includes Seer annual price in the total when enabled', () => {
-      const priceDollars = utils.getReservedTotal({
-        plan: am3TeamPlanAnnual,
-        reserved: {
-          errors: 50_000,
-          spans: 10_000_000,
-          replays: 50,
-          attachments: 1,
-        },
-        addOns: {
-          [AddOnCategory.LEGACY_SEER]: {
-            enabled: true,
-          },
-        },
-      });
-      expect(priceDollars).toBe('528');
-    });
-
-    it('does not include Seer budget when not enabled', () => {
-      const priceDollars = utils.getReservedTotal({
-        plan: teamPlan,
-        reserved: {
-          errors: 50_000,
-          transactions: 100_000,
-          attachments: 1,
-        },
-        addOns: DEFAULT_ADDONS,
-      });
-      expect(priceDollars).toBe('29');
-    });
-  });
 
   describe('discountPrice', () => {
     it('discounts price correctly', () => {
@@ -358,15 +238,6 @@ describe('utils', () => {
         shouldMinimize: true,
       });
       expect(bucket.price).toBeLessThanOrEqual(price);
-    });
-  });
-
-  describe('utils.getToggleTier', () => {
-    it('gets the correct toggle tier given a checkout tier', () => {
-      expect(utils.getToggleTier(undefined)).toBeNull();
-      expect(utils.getToggleTier(PlanTier.AM3)).toBeNull();
-      expect(utils.getToggleTier(PlanTier.AM2)).toBe(PlanTier.AM1);
-      expect(utils.getToggleTier(PlanTier.AM1)).toBe(PlanTier.AM2);
     });
   });
 
