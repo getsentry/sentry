@@ -15,6 +15,7 @@ import SpansWidgetQueries from 'sentry/views/dashboards/widgetCard/spansWidgetQu
 import TraceMetricsWidgetQueries from 'sentry/views/dashboards/widgetCard/traceMetricsWidgetQueries';
 
 import IssueWidgetQueries from './issueWidgetQueries';
+import PreprodWidgetQueries from './preprodWidgetQueries';
 import ReleaseWidgetQueries from './releaseWidgetQueries';
 import WidgetQueries from './widgetQueries';
 
@@ -153,6 +154,21 @@ export function WidgetCardDataLoader({
       >
         {props => <Fragment>{children({...props})}</Fragment>}
       </TraceMetricsWidgetQueries>
+    );
+  }
+
+  if (widget.widgetType === WidgetType.MOBILE_APP_SIZE) {
+    return (
+      <PreprodWidgetQueries
+        widget={widget}
+        selection={selection}
+        limit={tableItemLimit}
+        onDataFetchStart={onDataFetchStart}
+        onDataFetched={onDataFetched}
+        dashboardFilters={dashboardFilters}
+      >
+        {props => <Fragment>{children({...props})}</Fragment>}
+      </PreprodWidgetQueries>
     );
   }
 

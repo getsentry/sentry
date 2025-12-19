@@ -38,6 +38,7 @@ import {
   type Widget,
 } from 'sentry/views/dashboards/types';
 import {isChartDisplayType} from 'sentry/views/dashboards/utils';
+import {AppSizeFilters} from 'sentry/views/dashboards/widgetBuilder/components/appSizeFilters';
 import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
 import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
 import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
@@ -134,17 +135,23 @@ function WidgetBuilderSlideout({
       : t('Custom Widget Builder');
   const isChartWidget = isChartDisplayType(state.displayType);
 
-  const showVisualizeSection = state.displayType !== DisplayType.DETAILS;
-  const showQueryFilterBuilder = !(
-    state.dataset === WidgetType.ISSUE && isChartDisplayType(state.displayType)
-  );
-  const showGroupBySelector = isChartWidget && !(state.dataset === WidgetType.ISSUE);
+  const showVisualizeSection =
+    state.displayType !== DisplayType.DETAILS &&
+    state.dataset !== WidgetType.MOBILE_APP_SIZE;
+  const showQueryFilterBuilder =
+    !(state.dataset === WidgetType.ISSUE && isChartDisplayType(state.displayType)) &&
+    state.dataset !== WidgetType.MOBILE_APP_SIZE;
+  const showGroupBySelector =
+    isChartWidget &&
+    !(state.dataset === WidgetType.ISSUE) &&
+    state.dataset !== WidgetType.MOBILE_APP_SIZE;
 
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
   const showSortByStep =
-    (isChartWidget && state.fields && state.fields.length > 0) ||
-    state.displayType === DisplayType.TABLE;
+    state.dataset !== WidgetType.MOBILE_APP_SIZE &&
+    ((isChartWidget && state.fields && state.fields.length > 0) ||
+      state.displayType === DisplayType.TABLE);
 
   const observer = useMemo(
     () =>
@@ -361,13 +368,17 @@ function WidgetBuilderSlideout({
                       />
                     </Section>
                   </DisableTransactionWidget>
-                  <Section>
-                    <WidgetBuilderDatasetSelector />
-                  </Section>
-                  <DisableTransactionWidget>
+                  {state.dataset !== WidgetType.MOBILE_APP_SIZE && (
                     <Section>
-                      <WidgetBuilderTypeSelector error={error} setError={setError} />
+                      <WidgetBuilderDatasetSelector />
                     </Section>
+                  )}
+                  <DisableTransactionWidget>
+                    {state.dataset !== WidgetType.MOBILE_APP_SIZE && (
+                      <Section>
+                        <WidgetBuilderTypeSelector error={error} setError={setError} />
+                      </Section>
+                    )}
                     <div ref={observeForDraggablePreview}>
                       {isSmallScreen && (
                         <Section>
@@ -394,6 +405,11 @@ function WidgetBuilderSlideout({
                       </Section>
                     )}
 
+                    {state.dataset === WidgetType.MOBILE_APP_SIZE && (
+                      <Section>
+                        <AppSizeFilters />
+                      </Section>
+                    )}
                     {showQueryFilterBuilder && (
                       <Section>
                         <WidgetBuilderQueryFilterBuilder

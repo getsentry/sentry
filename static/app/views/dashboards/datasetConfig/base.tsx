@@ -285,7 +285,9 @@ export function getDatasetConfig<T extends WidgetType | undefined>(
             ? typeof SpansConfig
             : T extends WidgetType.TRACEMETRICS
               ? typeof TraceMetricsConfig
-              : typeof ErrorsAndTransactionsConfig;
+              : T extends WidgetType.MOBILE_APP_SIZE
+                ? typeof ErrorsAndTransactionsConfig
+                : typeof ErrorsAndTransactionsConfig;
 
 export function getDatasetConfig(
   widgetType?: WidgetType
@@ -313,6 +315,10 @@ export function getDatasetConfig(
       return SpansConfig;
     case WidgetType.TRACEMETRICS:
       return TraceMetricsConfig;
+    case WidgetType.MOBILE_APP_SIZE:
+      // MOBILE_APP_SIZE uses custom queries (PreprodWidgetQueries), so we return
+      // ErrorsAndTransactionsConfig as a safe default that won't be used
+      return ErrorsAndTransactionsConfig;
     case WidgetType.DISCOVER:
     default:
       return ErrorsAndTransactionsConfig;

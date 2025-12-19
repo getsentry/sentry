@@ -335,11 +335,34 @@ const getDefaultWidgets = (organization: Organization) => {
     },
   ];
 
+  const appSizeWidgets: WidgetTemplate[] = [
+    {
+      id: 'app-size',
+      title: t('App Size'),
+      description: t(
+        'Track app size metrics over time. Configure to monitor install size, download size, or both.'
+      ),
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.MOBILE_APP_SIZE,
+      interval: '1d',
+      queries: [
+        {
+          name: '',
+          conditions: '',
+          fields: ['max(max_install_size)'],
+          aggregates: ['max(max_install_size)'],
+          columns: [],
+          orderby: '',
+        },
+      ],
+    },
+  ];
+
   return isSelfHostedErrorsOnly
     ? errorsWidgets
     : organization.features.includes('visibility-explore-view')
-      ? [...spanWidgets, ...errorsWidgets]
-      : [...transactionsWidgets, ...errorsWidgets];
+      ? [...spanWidgets, ...errorsWidgets, ...appSizeWidgets]
+      : [...transactionsWidgets, ...errorsWidgets, ...appSizeWidgets];
 };
 
 export function getTopNConvertedDefaultWidgets(
