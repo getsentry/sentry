@@ -128,14 +128,14 @@ comment:
 cli:
   # This would be used when uploading the ats results
   # But we will not be doing that yet
-  plugins:
-    pycoverage:
-      report_type: 'json'
-    compress-pycoverage:
-      file_to_compress: '.artifacts/python.coverage.json'
-      # We don't want to upload the original coverage report by accident
-      # Because it's too big
-      delete_uncompressed: true
+  # plugins:
+  #   pycoverage:
+  #     report_type: 'json'
+  #   compress-pycoverage:
+  #     file_to_compress: '.artifacts/python.coverage.json'
+  #     # We don't want to upload the original coverage report by accident
+  #     # Because it's too big
+  #     delete_uncompressed: true
   runners:
     pytest:
       # Same args used for the backend tests

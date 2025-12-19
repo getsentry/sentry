@@ -22,13 +22,6 @@ jobs:
         run: |
           python3 -b -m pytest --cov . --cov-report=xml --cov-context=test tests/sentry/utils/test_json.py
 
-      # Separate from the testing step above so that we always create the report
-      # Even if some tests fail
-      - name: Create coverage report in JSON format
-        if: ${{ always() }}
-        run: |
-          coverage json --show-contexts -o .artifacts/python.coverage.json
-
       # Upload coverage data even if running the tests step fails since
       # it reduces large coverage fluctuations
       - name: Upload coverage - special case to test Codecov ATS
@@ -37,8 +30,8 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
-          files: .artifacts/python.coverage.codecov.json
+          files: ./coverage.xml
           flags: smart-tests
           override_commit: ${{ github.event.pull_request.head.sha }}
-          plugins: compress-pycoverage
+          plugins: pycoverage,compress-pycoverage
         continue-on-error: true

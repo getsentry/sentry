@@ -1,9 +1,9 @@
 name: codecov-ats
 
-on: [workflow_dispatch, workflow_call]
+# on: [workflow_dispatch, workflow_call]
 
-#on:
-#  pull_request:
+on:
+  pull_request:
 
 env:
   CLI_VERSION: v0.1.5
@@ -70,7 +70,7 @@ jobs:
           # Directory for the artifacts from this step
           mkdir .artifacts/codecov_ats
           # Get list of tests to run from Codecov
-          output=$(codecovcli --codecov-yml-path=codecov.yml label-analysis --dry-run --token=${CODECOV_STATIC_TOKEN} --base-sha=0b901dafc6dfd4190db4b8a041ed9737d760c4fd) || true
+          output=$(codecovcli --codecov-yml-path=codecov.yml label-analysis --dry-run --token=${CODECOV_STATIC_TOKEN} --base-sha=5abb7558650b67ee3b47c1533b748b95993e73dc) || true
           # Post processing and validation
           if [ -n "${output}" ];
           then
