@@ -45,11 +45,11 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
-        id: setup
-        with:
-          mode: backend-ci
+#      - name: Setup sentry env
+#        uses: ./.github/actions/setup-sentry
+#        id: setup
+#        with:
+#          mode: backend-ci
 
       - name: Run ATS
         uses: codecov/codecov-ats@v0
