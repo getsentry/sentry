@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from rest_framework.exceptions import ParseError
@@ -161,7 +161,7 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
             delta = parse_stats_period(stats_period)
             if delta is None:
                 raise ParseError(f"Invalid statsPeriod: {stats_period}")
-            end = datetime.utcnow()
+            end = datetime.now(UTC)
             start = end - delta
         elif start_param and end_param:
             # Parse absolute timestamps
@@ -169,7 +169,7 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
             end = self._parse_datetime(end_param)
         else:
             # Default to last 14 days
-            end = datetime.utcnow()
+            end = datetime.now(UTC)
             start = end - timedelta(days=14)
 
         return start, end
@@ -178,7 +178,7 @@ class OrganizationPreprodAppSizeStatsEndpoint(OrganizationEndpoint):
         """Parse datetime from ISO format or Unix timestamp."""
         try:
             # Try Unix timestamp first
-            return datetime.fromtimestamp(float(value))
+            return datetime.fromtimestamp(float(value), UTC)
         except (ValueError, TypeError):
             # Try ISO format
             try:

@@ -3,6 +3,7 @@ from __future__ import annotations
 from enum import IntEnum
 from typing import Any, TypedDict
 
+import sentry_sdk
 from django.db import IntegrityError, router, transaction
 from django.db.models import (
     Case,
@@ -127,6 +128,57 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
 ]
 
 
+def sync_prebuilt_dashboards(organization: Organization) -> None:
+    """
+    Queries the database to check if prebuilt dashboards have a Dashboard record and
+    creates them if they don't, updates titles if they've changed, or deletes them
+    if they should no longer exist.
+    """
+
+    with transaction.atomic(router.db_for_write(Dashboard)):
+        enabled_prebuilt_dashboard_ids = options.get("dashboards.prebuilt-dashboard-ids")
+        enabled_prebuilt_dashboards = [
+            dashboard
+            for dashboard in PREBUILT_DASHBOARDS
+            if dashboard["prebuilt_id"] in enabled_prebuilt_dashboard_ids
+        ]
+
+        saved_prebuilt_dashboards = Dashboard.objects.filter(
+            organization=organization,
+            prebuilt_id__isnull=False,
+        )
+
+        saved_prebuilt_dashboard_map = {d.prebuilt_id: d for d in saved_prebuilt_dashboards}
+
+        # Create prebuilt dashboards if they don't exist, or update titles if changed
+        dashboards_to_update: list[Dashboard] = []
+        for prebuilt_dashboard in enabled_prebuilt_dashboards:
+            prebuilt_id: PrebuiltDashboardId = prebuilt_dashboard["prebuilt_id"]
+
+            if prebuilt_id not in saved_prebuilt_dashboard_map:
+                # Create new dashboard
+                Dashboard.objects.create(
+                    organization=organization,
+                    title=prebuilt_dashboard["title"],
+                    created_by_id=None,
+                    prebuilt_id=prebuilt_id,
+                )
+            elif saved_prebuilt_dashboard_map[prebuilt_id].title != prebuilt_dashboard["title"]:
+                # Update title if changed
+                saved_prebuilt_dashboard_map[prebuilt_id].title = prebuilt_dashboard["title"]
+                dashboards_to_update.append(saved_prebuilt_dashboard_map[prebuilt_id])
+
+        if dashboards_to_update:
+            Dashboard.objects.bulk_update(dashboards_to_update, ["title"])
+
+        # Delete old prebuilt dashboards if they should no longer exist
+        prebuilt_ids = [d["prebuilt_id"] for d in enabled_prebuilt_dashboards]
+        Dashboard.objects.filter(
+            organization=organization,
+            prebuilt_id__isnull=False,
+        ).exclude(prebuilt_id__in=prebuilt_ids).delete()
+
+
 class OrganizationDashboardsPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
@@ -146,14 +198,18 @@ class OrganizationDashboardsPermission(OrganizationPermission):
 
         if isinstance(obj, Dashboard):
             is_superuser = is_active_superuser(request)
+            # allow strictly for Owners and superusers, this allows them to delete dashboards
+            # of users that no longer have access to the organization
             if is_superuser or request.access.has_role_in_organization(
                 role=roles.get_top_dog().id, organization=obj.organization, user_id=request.user.id
             ):
                 return True
 
+            # check if user is restricted from editing dashboard
             if hasattr(obj, "permissions"):
                 return obj.permissions.has_edit_permissions(request.user.id)
 
+            # if no permissions are assigned, it is considered accessible to all users
             return True
 
         return True
@@ -198,6 +254,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             organization,
             actor=request.user,
         ):
+            # Sync prebuilt dashboards to the database
             try:
                 lock = locks.get(
                     f"dashboards:sync_prebuilt_dashboards:{organization.id}",
@@ -205,9 +262,14 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                     name="sync_prebuilt_dashboards",
                 )
                 with lock.acquire():
+                    # Adds prebuilt dashboards to the database if they don't exist.
+                    # Deletes old prebuilt dashboards from the database if they should no longer exist.
                     sync_prebuilt_dashboards(organization)
             except UnableToAcquireLock:
+                # Another process is already syncing the prebuilt dashboards. We can skip syncing this time.
                 pass
+            except Exception as err:
+                sentry_sdk.capture_exception(err)
 
         filter_by = request.query_params.get("filter")
         if filter_by == "onlyFavorites":
@@ -475,11 +537,14 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                     actor=request.user,
                 ):
                     if serializer.validated_data.get("is_favorited"):
-                        DashboardFavoriteUser.objects.insert_favorite_dashboard(
-                            organization=organization,
-                            user_id=request.user.id,
-                            dashboard=dashboard,
-                        )
+                        try:
+                            DashboardFavoriteUser.objects.insert_favorite_dashboard(
+                                organization=organization,
+                                user_id=request.user.id,
+                                dashboard=dashboard,
+                            )
+                        except Exception as e:
+                            sentry_sdk.capture_exception(e)
 
             return Response(serialize(dashboard, request.user), status=201)
         except IntegrityError:
@@ -493,50 +558,3 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             return self.post(request, organization, retry=retry + 1)
         except UnableToAcquireLock:
             return Response("Unable to create dashboard, please try again", status=503)
-
-
-def sync_prebuilt_dashboards(organization: Organization) -> None:
-    """
-    Queries the database to check if prebuilt dashboards have a Dashboard record and
-    creates them if they don't, updates titles if they've changed, or deletes them
-    if they should no longer exist.
-    """
-
-    with transaction.atomic(router.db_for_write(Dashboard)):
-        enabled_prebuilt_dashboard_ids = options.get("dashboards.prebuilt-dashboard-ids")
-        enabled_prebuilt_dashboards = [
-            dashboard
-            for dashboard in PREBUILT_DASHBOARDS
-            if dashboard["prebuilt_id"] in enabled_prebuilt_dashboard_ids
-        ]
-
-        saved_prebuilt_dashboards = Dashboard.objects.filter(
-            organization=organization,
-            prebuilt_id__isnull=False,
-        )
-
-        saved_prebuilt_dashboard_map = {d.prebuilt_id: d for d in saved_prebuilt_dashboards}
-
-        dashboards_to_update: list[Dashboard] = []
-        for prebuilt_dashboard in enabled_prebuilt_dashboards:
-            prebuilt_id: PrebuiltDashboardId = prebuilt_dashboard["prebuilt_id"]
-
-            if prebuilt_id not in saved_prebuilt_dashboard_map:
-                Dashboard.objects.create(
-                    organization=organization,
-                    title=prebuilt_dashboard["title"],
-                    created_by_id=None,
-                    prebuilt_id=prebuilt_id,
-                )
-            elif saved_prebuilt_dashboard_map[prebuilt_id].title != prebuilt_dashboard["title"]:
-                saved_prebuilt_dashboard_map[prebuilt_id].title = prebuilt_dashboard["title"]
-                dashboards_to_update.append(saved_prebuilt_dashboard_map[prebuilt_id])
-
-        if dashboards_to_update:
-            Dashboard.objects.bulk_update(dashboards_to_update, ["title"])
-
-        prebuilt_ids = [d["prebuilt_id"] for d in enabled_prebuilt_dashboards]
-        Dashboard.objects.filter(
-            organization=organization,
-            prebuilt_id__isnull=False,
-        ).exclude(prebuilt_id__in=prebuilt_ids).delete()

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import requests
 from django.conf import settings
@@ -446,12 +446,13 @@ class OrganizationPreprodAppSizeStatsEndpointTest(APITestCase):
     def test_include_filters_with_real_data(self) -> None:
         """Test that includeFilters returns actual filter values."""
         now = before_now(minutes=5)
+        start = now - timedelta(minutes=10)
 
         self.store_preprod_size_metric(
             project_id=self.project.id,
             organization_id=self.organization.id,
             timestamp=now,
-            app_id="com.example.app1",
+            app_id="com.test.filters.app1",
             git_head_ref="main",
             build_configuration_name="Release",
         )
@@ -460,20 +461,59 @@ class OrganizationPreprodAppSizeStatsEndpointTest(APITestCase):
             project_id=self.project.id,
             organization_id=self.organization.id,
             timestamp=now,
-            app_id="com.example.app2",
+            app_id="com.test.filters.app2",
             git_head_ref="develop",
             build_configuration_name="Debug",
         )
 
         response = self.get_success_response(
             self.organization.slug,
-            qs_params={"includeFilters": "true"},
+            qs_params={
+                "includeFilters": "true",
+                "start": str(int(start.timestamp())),
+                "end": str(int((now + timedelta(minutes=1)).timestamp())),
+            },
         )
 
         assert "filters" in response.data
-        assert "com.example.app1" in response.data["filters"]["app_ids"]
-        assert "com.example.app2" in response.data["filters"]["app_ids"]
-        assert "main" in response.data["filters"]["branches"]
-        assert "develop" in response.data["filters"]["branches"]
-        assert "Release" in response.data["filters"]["build_configs"]
-        assert "Debug" in response.data["filters"]["build_configs"]
+        app_ids = response.data["filters"]["app_ids"]
+        branches = response.data["filters"]["branches"]
+        configs = response.data["filters"]["build_configs"]
+
+        assert "com.test.filters.app1" in app_ids
+        assert "com.test.filters.app2" in app_ids
+        assert "main" in branches
+        assert "develop" in branches
+        assert "Release" in configs
+        assert "Debug" in configs
+
+    def test_timezone_consistency(self) -> None:
+        """Test that Unix timestamps are parsed consistently with UTC."""
+        # Create a specific UTC timestamp
+        utc_time = datetime(2024, 6, 15, 12, 0, 0, tzinfo=UTC)
+        unix_timestamp = int(utc_time.timestamp())
+
+        # Query with Unix timestamp for start/end
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={
+                "start": str(unix_timestamp),
+                "end": str(unix_timestamp + 3600),  # +1 hour
+            },
+        )
+
+        # Verify the returned timestamps match what we sent (in UTC)
+        assert response.data["start"] == unix_timestamp
+        assert response.data["end"] == unix_timestamp + 3600
+
+        # Verify statsPeriod also produces consistent results
+        # (both should use UTC, not local time)
+        response2 = self.get_success_response(
+            self.organization.slug,
+            qs_params={"statsPeriod": "1h"},
+        )
+
+        # Both should be within reasonable range
+        duration = response2.data["end"] - response2.data["start"]
+        # Allow some slack for test execution time
+        assert 3500 < duration < 3700
