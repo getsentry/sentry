@@ -119,7 +119,7 @@ class SafeRolloutComparator:
         experimental_data: TData,
         callsite: str,
         is_experimental_data_a_null_result: bool | None = None,
-        reasonable_match_comparator: Callable[[Any, Any], bool] | None = None,
+        reasonable_match_comparator: Callable[[TData, TData], bool] | None = None,
     ) -> TData:
         """
         This function does two things.
