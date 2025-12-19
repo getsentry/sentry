@@ -186,7 +186,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: '/sentry-apps/:sentryAppSlug/external-install/',
       component: make(() => import('sentry/views/sentryAppExternalInstallation')),
-      deprecatedRouteProps: true,
     },
     {
       path: '/account/',
