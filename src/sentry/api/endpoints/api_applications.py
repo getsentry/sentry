@@ -33,7 +33,7 @@ class ApiApplicationsEndpoint(Endpoint):
         )
 
     def post(self, request: Request) -> Response:
-        if not request.user.has_verified_emails():
+        if not request.user.is_authenticated or not request.user.has_verified_emails():
             return Response(
                 {
                     "detail": "You must verify your email address before creating an API application."
