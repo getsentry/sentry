@@ -1,4 +1,5 @@
 from functools import cached_property
+from unittest.mock import patch
 
 from django.utils import timezone
 
@@ -668,6 +669,36 @@ class OAuthTokenRefreshTokenTest(TestCase):
         assert token_after.token == self.token.token
         assert token_after.refresh_token == self.token.refresh_token
         assert token_after.expires_at == self.token.expires_at
+
+    @patch("sentry.web.frontend.oauth_token.ratelimiter.backend.is_limited", return_value=True)
+    def test_rate_limited(self, mock_is_limited) -> None:
+        """Test that excessive token refresh attempts are rate limited."""
+        self.login_as(self.user)
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "refresh_token",
+                "client_id": self.application.client_id,
+                "refresh_token": self.token.refresh_token,
+                "client_secret": self.client_secret,
+            },
+        )
+
+        assert resp.status_code == 429
+        assert resp.json() == {"error": "rate_limited"}
+
+        # Verify rate limit was checked with correct key
+        mock_is_limited.assert_called_once_with(
+            f"oauth:refresh:{self.application.id}:{self.user.id}",
+            limit=10,
+            window=60,
+        )
+
+        # Verify the token was not refreshed
+        token_after = ApiToken.objects.get(id=self.token.id)
+        assert token_after.token == self.token.token
+        assert token_after.refresh_token == self.token.refresh_token
 
 
 @control_silo_test

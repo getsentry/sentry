@@ -14,7 +14,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
 from rest_framework.request import Request
 
-from sentry import options
+from sentry import options, ratelimits as ratelimiter
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apigrant import ApiGrant, ExpiredGrantError, InvalidGrantError
 from sentry.models.apitoken import ApiToken
@@ -212,10 +212,12 @@ class OAuthTokenView(View):
         else:
             token_data = self.get_refresh_token(request=request, application=application)
         if "error" in token_data:
+            status = 429 if token_data["error"] == "rate_limited" else 400
             return self.error(
                 request=request,
                 name=token_data["error"],
                 reason=token_data["reason"] if "reason" in token_data else None,
+                status=status,
             )
         return self.process_token_details(
             token=token_data["token"],
@@ -366,6 +368,15 @@ class OAuthTokenView(View):
             )
         except ApiToken.DoesNotExist:
             return {"error": "invalid_grant", "reason": "invalid request"}
+
+        # Rate limit by (application_id, user_id) pair to prevent token refresh abuse
+        if ratelimiter.backend.is_limited(
+            f"oauth:refresh:{application.id}:{refresh_token.user_id}",
+            limit=10,
+            window=60,
+        ):
+            return {"error": "rate_limited", "reason": "too many token refresh attempts"}
+
         refresh_token.refresh()
 
         return {"token": refresh_token}
