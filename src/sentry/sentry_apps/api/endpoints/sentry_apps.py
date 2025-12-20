@@ -76,6 +76,12 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
         )
 
     def post(self, request: Request, organization) -> Response:
+        if not request.user.has_verified_emails():
+            return Response(
+                {"detail": "You must verify your email address before creating a Sentry App."},
+                status=403,
+            )
+
         data = {
             "name": request.data.get("name"),
             "user": request.user,

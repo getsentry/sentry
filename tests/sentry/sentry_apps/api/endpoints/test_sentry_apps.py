@@ -29,6 +29,7 @@ from sentry.testutils.helpers import Feature, with_feature
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.users.models.useremail import UserEmail
 
 POPULARITY = 27
 EXPECTED = {
@@ -525,6 +526,12 @@ class PostSentryAppsTest(SentryAppsTest):
                 assert sorted(content[key]) == sorted(value)
             else:
                 assert content[key] == value
+
+    def test_unverified_user_cannot_create(self) -> None:
+        UserEmail.objects.filter(user=self.user, email=self.user.email).update(is_verified=False)
+
+        response = self.get_error_response(**self.get_data(), status_code=403)
+        assert "verify your email" in response.data["detail"]
 
     def test_non_unique_app_slug_fails(self) -> None:
         sentry_app = self.create_sentry_app(name="Foo Bar", organization=self.organization)
