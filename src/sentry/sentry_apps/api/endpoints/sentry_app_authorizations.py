@@ -5,7 +5,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, ratelimits as ratelimiter
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
@@ -82,14 +82,6 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
                 if not refresh_serializer.is_valid():
                     return Response(refresh_serializer.errors, status=400)
 
-                # Rate limit by (sentry_app_id, proxy_user_id) to prevent outbox contention
-                if ratelimiter.backend.is_limited(
-                    f"sentry-app:refresh:{installation.sentry_app_id}:{installation.sentry_app.proxy_user_id}",
-                    limit=10,
-                    window=60,
-                ):
-                    return Response({"detail": "Too many token refresh attempts"}, status=429)
-
                 token = Refresher(
                     install=installation,
                     refresh_token=refresh_serializer.validated_data.get("refresh_token"),
@@ -117,14 +109,6 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
                     raise SentryAppIntegratorError(
                         message="JWT credentials are missing or invalid", status_code=403
                     )
-
-                # Rate limit by (sentry_app_id, proxy_user_id) to prevent outbox contention
-                if ratelimiter.backend.is_limited(
-                    f"sentry-app:refresh:{installation.sentry_app_id}:{installation.sentry_app.proxy_user_id}",
-                    limit=10,
-                    window=60,
-                ):
-                    return Response({"detail": "Too many token refresh attempts"}, status=429)
 
                 user = promote_request_api_user(request)
                 token = ManualTokenRefresher(

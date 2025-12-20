@@ -1,5 +1,4 @@
 from datetime import UTC, datetime, timedelta
-from unittest.mock import patch
 from uuid import uuid4
 
 from django.urls import reverse
@@ -362,50 +361,3 @@ class TestSentryAppAuthorizations(APITestCase):
 
         assert response.status_code == 200
         assert response.data["id"] == str(self.organization.id)
-
-    @patch(
-        "sentry.sentry_apps.api.endpoints.sentry_app_authorizations.ratelimiter.backend.is_limited",
-        return_value=True,
-    )
-    def test_refresh_token_rate_limited(self, mock_is_limited) -> None:
-        """Test that excessive token refresh attempts are rate limited."""
-        response = self.get_success_response()
-        refresh_token = response.data["refreshToken"]
-
-        response = self.get_error_response(
-            code=None, refresh_token=refresh_token, grant_type="refresh_token", status_code=429
-        )
-
-        assert response.data["detail"] == "Too many token refresh attempts"
-        mock_is_limited.assert_called_once_with(
-            f"sentry-app:refresh:{self.sentry_app.id}:{self.sentry_app.proxy_user_id}",
-            limit=10,
-            window=60,
-        )
-
-    @with_feature("organizations:sentry-app-manual-token-refresh")
-    @patch(
-        "sentry.sentry_apps.api.endpoints.sentry_app_authorizations.ratelimiter.backend.is_limited",
-        return_value=True,
-    )
-    def test_client_secret_jwt_rate_limited(self, mock_is_limited) -> None:
-        """Test that excessive manual token refresh attempts are rate limited."""
-        self.get_success_response()
-
-        jwt_token = self._create_jwt(
-            self.sentry_app.application.client_id, self.sentry_app.application.client_secret
-        )
-
-        response = self.get_error_response(
-            self.install.uuid,
-            grant_type=GrantTypes.CLIENT_SECRET_JWT,
-            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {jwt_token}"},
-            status_code=429,
-        )
-
-        assert response.data["detail"] == "Too many token refresh attempts"
-        mock_is_limited.assert_called_once_with(
-            f"sentry-app:refresh:{self.sentry_app.id}:{self.sentry_app.proxy_user_id}",
-            limit=10,
-            window=60,
-        )
