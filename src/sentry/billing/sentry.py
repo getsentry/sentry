@@ -19,13 +19,13 @@ class SentryUsageTrackingService(UsageTrackingService):
         track_outcome(
             org_id=org_id,
             project_id=properties["project_id"],
-            key_id=properties["key_id"],
+            key_id=properties.get("key_id"),
             outcome=usage_category_id.outcome(),
-            reason=properties["reason"],
+            reason=properties.get("reason"),
             timestamp=timestamp,
-            event_id=properties["event_id"],
+            event_id=properties.get("event_id"),
             category=usage_category_id.data_category(),
-            quantity=properties["quantity"] or 1,
+            quantity=properties.get("quantity", 1),
         )
 
     def get_aggregated_usage(
@@ -57,7 +57,7 @@ class SentryUsageTrackingService(UsageTrackingService):
                     category=[usage_category_id.data_category().api_name()],
                     reason=filter_properties["reason"] if filter_properties is not None else None,
                 ),
-                tenant_ids={},
+                tenant_ids={"organization_id": org_id},
             )
             for usage_category_id in usage_category_ids
         }

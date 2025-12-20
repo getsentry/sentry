@@ -11,7 +11,7 @@ class UsageProperties(TypedDict):
     key_id: NotRequired[int]
     reason: NotRequired[str]
     quantity: NotRequired[int]
-    idempotency_key: NotRequired[str]  # TODO
+    idempotency_key: NotRequired[str]  # TODO: seems useful?
 
 
 class UsageTrackingService(Protocol):
@@ -32,7 +32,7 @@ class UsageTrackingService(Protocol):
         usage_category_ids: list[UsageCategoryId],
         start: datetime,
         end: datetime,
-        filter_properties: UsageProperties | None = None,
+        filter_properties: UsageProperties | None = None,  # TODO: filter-specific type
         group_by: list[str] | None = None,
         values: list[str] | None = None,
         window_size: Literal["1h", "1d"] = "1d",
