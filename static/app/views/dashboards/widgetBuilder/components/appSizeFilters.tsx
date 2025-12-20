@@ -1,8 +1,11 @@
-import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/core/button';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import SelectField from 'sentry/components/forms/fields/selectField';
+import TextField from 'sentry/components/forms/fields/textField';
+import {IconAdd, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {explodeField} from 'sentry/utils/discover/fields';
@@ -26,26 +29,27 @@ interface FilterResponse {
   };
 }
 
+interface QueryConfig {
+  appIds: string[];
+  branch: string;
+  buildConfig: string;
+  name: string;
+  platform: string;
+}
+
 export function AppSizeFilters() {
   const organization = useOrganization();
   const {state, dispatch} = useWidgetBuilderContext();
-  const [selectedAppId, setSelectedAppId] = useState<string>('');
-  const [selectedBranch, setSelectedBranch] = useState<string>('');
-  const [selectedBuildConfig, setSelectedBuildConfig] = useState<string>('');
   const [sizeType, setSizeType] = useState<'install' | 'download'>('install');
-
-  // Use refs to always have the latest values without stale closures
-  const selectedAppIdRef = useRef(selectedAppId);
-  const selectedBranchRef = useRef(selectedBranch);
-  const selectedBuildConfigRef = useRef(selectedBuildConfig);
-  const lastDispatchedQueryRef = useRef<string>('');
-
-  // Keep refs in sync with state
-  useEffect(() => {
-    selectedAppIdRef.current = selectedAppId;
-    selectedBranchRef.current = selectedBranch;
-    selectedBuildConfigRef.current = selectedBuildConfig;
-  }, [selectedAppId, selectedBranch, selectedBuildConfig]);
+  const [queryConfigs, setQueryConfigs] = useState<QueryConfig[]>([
+    {
+      name: '',
+      appIds: [],
+      branch: '',
+      buildConfig: '',
+      platform: '',
+    },
+  ]);
 
   // Fetch available filter options from the app-size-stats endpoint
   // Cache for 5 minutes since filter options don't change frequently
@@ -77,40 +81,51 @@ export function AppSizeFilters() {
       })) ?? [],
   };
 
-  // Sync local state from query conditions only on initial mount
-  // This handles loading saved widgets but doesn't interfere with live updates
-  const isInitialMount = useRef(true);
+  // Parse initial state from widget queries on mount
   useEffect(() => {
-    if (!isInitialMount.current) {
+    const queries = state.query || [];
+    if (queries.length === 0) {
       return;
     }
-    isInitialMount.current = false;
 
-    const conditions = state.query?.[0] ?? '';
-    const parts = conditions.split(/\s+/);
-    let appId = '';
-    let branch = '';
-    let buildConfig = '';
+    const configs: QueryConfig[] = queries.map((conditions, index) => {
+      const parts = conditions.split(/\s+/);
+      let appIds: string[] = [];
+      let branch = '';
+      let buildConfig = '';
+      let platform = '';
 
-    for (const part of parts) {
-      if (part.startsWith('app_id:')) {
-        appId = part.substring(7);
-      } else if (part.startsWith('git_head_ref:')) {
-        branch = part.substring(13);
-      } else if (part.startsWith('build_configuration_name:')) {
-        buildConfig = part.substring(25);
+      for (const part of parts) {
+        if (part.startsWith('app_id:')) {
+          const appIdString = part.substring(7);
+          appIds = appIdString ? appIdString.split(',').filter(Boolean) : [];
+        } else if (part.startsWith('git_head_ref:')) {
+          branch = part.substring(13);
+        } else if (part.startsWith('build_configuration_name:')) {
+          buildConfig = part.substring(25);
+        } else if (part.startsWith('platform:')) {
+          platform = part.substring(9);
+        }
       }
-    }
 
-    setSelectedAppId(appId);
-    setSelectedBranch(branch);
-    setSelectedBuildConfig(buildConfig);
+      // Use the query name from state if available
+      const widgetQuery = state.queries?.[index];
+      const name = widgetQuery?.name || '';
 
-    lastDispatchedQueryRef.current = conditions;
+      return {
+        name,
+        appIds,
+        branch,
+        buildConfig,
+        platform,
+      };
+    });
+
+    setQueryConfigs(configs);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Sync size type from yAxis whenever it changes (e.g., when loading saved widget)
+  // Sync size type from yAxis whenever it changes
   useEffect(() => {
     const yAxis = state.yAxis || [];
     const firstAxis = yAxis[0];
@@ -123,79 +138,84 @@ export function AppSizeFilters() {
     }
   }, [state.yAxis]);
 
-  // Build conditions string from filters
-  const buildConditions = useCallback(
-    (appId: string, branch: string, buildConfig: string) => {
-      const parts: string[] = [];
-      if (appId) {
-        parts.push(`app_id:${appId}`);
-      }
-      if (branch) {
-        parts.push(`git_head_ref:${branch}`);
-      }
-      if (buildConfig) {
-        parts.push(`build_configuration_name:${buildConfig}`);
-      }
-      return parts.join(' ');
-    },
-    []
-  );
+  // Build conditions string from a query config
+  const buildConditions = useCallback((config: QueryConfig) => {
+    const parts: string[] = [];
+    if (config.appIds.length > 0) {
+      parts.push(`app_id:${config.appIds.join(',')}`);
+    }
+    if (config.branch) {
+      parts.push(`git_head_ref:${config.branch}`);
+    }
+    if (config.buildConfig) {
+      parts.push(`build_configuration_name:${config.buildConfig}`);
+    }
+    if (config.platform) {
+      parts.push(`platform:${config.platform}`);
+    }
+    return parts.join(' ');
+  }, []);
 
-  const handleAppIdChange = useCallback(
-    (value: string) => {
-      // Handle clearing (empty string or undefined)
-      const cleanValue = value || '';
-      setSelectedAppId(cleanValue);
-      const newConditions = buildConditions(
-        cleanValue,
-        selectedBranchRef.current,
-        selectedBuildConfigRef.current
-      );
-      lastDispatchedQueryRef.current = newConditions;
+  // Update all queries in widget state
+  const updateQueries = useCallback(
+    (configs: QueryConfig[]) => {
+      const conditions = configs.map(buildConditions);
       dispatch({
         type: 'SET_QUERY',
-        payload: [newConditions],
+        payload: conditions,
+      });
+
+      // Also update the queries array with names
+      dispatch({
+        type: 'SET_QUERIES',
+        payload: configs.map((config, index) => ({
+          name: config.name || `Query ${index + 1}`,
+          conditions: conditions[index] || '',
+          fields: state.queries?.[index]?.fields || [],
+          aggregates: state.queries?.[index]?.aggregates || [],
+          columns: state.queries?.[index]?.columns || [],
+          orderby: state.queries?.[index]?.orderby || '',
+        })),
       });
     },
-    [buildConditions, dispatch]
+    [buildConditions, dispatch, state.queries]
   );
 
-  const handleBranchChange = useCallback(
-    (value: string) => {
-      // Handle clearing (empty string or undefined)
-      const cleanValue = value || '';
-      setSelectedBranch(cleanValue);
-      const newConditions = buildConditions(
-        selectedAppIdRef.current,
-        cleanValue,
-        selectedBuildConfigRef.current
-      );
-      lastDispatchedQueryRef.current = newConditions;
-      dispatch({
-        type: 'SET_QUERY',
-        payload: [newConditions],
-      });
+  const handleQueryChange = useCallback(
+    (index: number, updates: Partial<QueryConfig>) => {
+      const newConfigs = [...queryConfigs];
+      newConfigs[index] = {...newConfigs[index], ...updates};
+      setQueryConfigs(newConfigs);
+      updateQueries(newConfigs);
     },
-    [buildConditions, dispatch]
+    [queryConfigs, updateQueries]
   );
 
-  const handleBuildConfigChange = useCallback(
-    (value: string) => {
-      // Handle clearing (empty string or undefined)
-      const cleanValue = value || '';
-      setSelectedBuildConfig(cleanValue);
-      const newConditions = buildConditions(
-        selectedAppIdRef.current,
-        selectedBranchRef.current,
-        cleanValue
-      );
-      lastDispatchedQueryRef.current = newConditions;
-      dispatch({
-        type: 'SET_QUERY',
-        payload: [newConditions],
-      });
+  const handleAddQuery = useCallback(() => {
+    const newConfigs = [
+      ...queryConfigs,
+      {
+        name: '',
+        appIds: [],
+        branch: '',
+        buildConfig: '',
+        platform: '',
+      },
+    ];
+    setQueryConfigs(newConfigs);
+    updateQueries(newConfigs);
+  }, [queryConfigs, updateQueries]);
+
+  const handleRemoveQuery = useCallback(
+    (index: number) => {
+      if (queryConfigs.length === 1) {
+        return; // Don't allow removing the last query
+      }
+      const newConfigs = queryConfigs.filter((_, i) => i !== index);
+      setQueryConfigs(newConfigs);
+      updateQueries(newConfigs);
     },
-    [buildConditions, dispatch]
+    [queryConfigs, updateQueries]
   );
 
   const handleSizeTypeChange = useCallback(
@@ -203,11 +223,8 @@ export function AppSizeFilters() {
       const newSizeType = value as 'install' | 'download';
       setSizeType(newSizeType);
 
-      // Update the aggregate field based on size type
       const newFieldString =
         newSizeType === 'install' ? 'max(max_install_size)' : 'max(max_download_size)';
-
-      // Convert string to Column object using explodeField
       const newField = explodeField({field: newFieldString});
 
       dispatch({
@@ -223,7 +240,7 @@ export function AppSizeFilters() {
       <Fragment>
         <SectionHeader
           title={t('Filter')}
-          tooltipText={t('Filter app size data by app and branch.')}
+          tooltipText={t('Filter app size data by app and platform.')}
         />
         <FiltersContainer>
           <div>{t('Loading filter options...')}</div>
@@ -236,42 +253,90 @@ export function AppSizeFilters() {
     <Fragment>
       <SectionHeader
         title={t('Filter')}
-        tooltipText={t('Filter app size data by app and branch.')}
+        tooltipText={t('Filter app size data by app and platform.')}
       />
       <FiltersContainer>
-        <SelectField
-          name="appId"
-          label={t('App ID')}
-          placeholder={t('Select an app')}
-          value={selectedAppId || undefined}
-          options={filterOptions.appIds}
-          onChange={handleAppIdChange}
-          inline={false}
-          stacked
-          clearable
-        />
-        <SelectField
-          name="branch"
-          label={t('Branch')}
-          placeholder={t('Select a branch')}
-          value={selectedBranch || undefined}
-          options={filterOptions.branches}
-          onChange={handleBranchChange}
-          inline={false}
-          stacked
-          clearable
-        />
-        <SelectField
-          name="buildConfig"
-          label={t('Build Configuration')}
-          placeholder={t('Select a build configuration')}
-          value={selectedBuildConfig || undefined}
-          options={filterOptions.buildConfigs}
-          onChange={handleBuildConfigChange}
-          inline={false}
-          stacked
-          clearable
-        />
+        {queryConfigs.map((config, index) => (
+          <QuerySection key={index}>
+            <QueryHeader>
+              <QueryTitle>{t('Query %s', index + 1)}</QueryTitle>
+              {queryConfigs.length > 1 && (
+                <Button
+                  size="xs"
+                  icon={<IconClose />}
+                  onClick={() => handleRemoveQuery(index)}
+                  aria-label={t('Remove query')}
+                />
+              )}
+            </QueryHeader>
+            <TextField
+              name={`queryName-${index}`}
+              label={t('Legend Label')}
+              placeholder={t('e.g., iOS Release Build')}
+              value={config.name}
+              onChange={value => handleQueryChange(index, {name: value})}
+              inline={false}
+              stacked
+            />
+            <SelectField
+              name={`appId-${index}`}
+              label={t('App ID')}
+              placeholder={t('Select one or more apps')}
+              value={config.appIds}
+              options={filterOptions.appIds}
+              onChange={value =>
+                handleQueryChange(index, {
+                  appIds: Array.isArray(value) ? value : value ? [value] : [],
+                })
+              }
+              inline={false}
+              stacked
+              clearable
+              multiple
+            />
+            <SelectField
+              name={`platform-${index}`}
+              label={t('Platform')}
+              placeholder={t('All platforms')}
+              value={config.platform || undefined}
+              options={[
+                {label: t('iOS'), value: 'iOS'},
+                {label: t('Android'), value: 'Android'},
+              ]}
+              onChange={value => handleQueryChange(index, {platform: value || ''})}
+              inline={false}
+              stacked
+              clearable
+            />
+            <SelectField
+              name={`branch-${index}`}
+              label={t('Branch')}
+              placeholder={t('Select a branch')}
+              value={config.branch || undefined}
+              options={filterOptions.branches}
+              onChange={value => handleQueryChange(index, {branch: value || ''})}
+              inline={false}
+              stacked
+              clearable
+            />
+            <SelectField
+              name={`buildConfig-${index}`}
+              label={t('Build Configuration')}
+              placeholder={t('Select a build configuration')}
+              value={config.buildConfig || undefined}
+              options={filterOptions.buildConfigs}
+              onChange={value => handleQueryChange(index, {buildConfig: value || ''})}
+              inline={false}
+              stacked
+              clearable
+            />
+          </QuerySection>
+        ))}
+
+        <Button size="sm" onClick={handleAddQuery} icon={<IconAdd />}>
+          {t('Add Query')}
+        </Button>
+
         <SizeTypeContainer>
           <RadioGroup
             label={t('Size Type')}
@@ -292,6 +357,26 @@ const FiltersContainer = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
+`;
+
+const QuerySection = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
+  padding: ${space(2)};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+`;
+
+const QueryHeader = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const QueryTitle = styled('div')`
+  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const SizeTypeContainer = styled('div')`

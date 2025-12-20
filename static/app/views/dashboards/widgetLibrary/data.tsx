@@ -337,10 +337,10 @@ const getDefaultWidgets = (organization: Organization) => {
 
   const appSizeWidgets: WidgetTemplate[] = [
     {
-      id: 'app-size',
-      title: t('App Size'),
+      id: 'mobile-app-size',
+      title: t('Mobile App Size'),
       description: t(
-        'Track app size metrics over time. Configure to monitor install size, download size, or both.'
+        'Track mobile app size metrics over time. Configure to monitor install size, download size, or both.'
       ),
       displayType: DisplayType.LINE,
       widgetType: WidgetType.MOBILE_APP_SIZE,

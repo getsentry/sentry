@@ -1,5 +1,4 @@
 import {type DashboardDetails} from 'sentry/views/dashboards/types';
-import {MOBILE_APP_SIZE_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/appSize/appSize';
 import {HTTP_DOMAIN_SUMMARY_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/http/domainSummary';
 import {HTTP_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/http/http';
 import {MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/appStarts';
@@ -24,7 +23,6 @@ export enum PrebuiltDashboardId {
   MOBILE_VITALS_APP_STARTS = 9,
   MOBILE_VITALS_SCREEN_LOADS = 10,
   MOBILE_VITALS_SCREEN_RENDERING = 11,
-  MOBILE_APP_SIZE = 12,
 }
 
 export type PrebuiltDashboard = Omit<DashboardDetails, 'id'>;
@@ -46,5 +44,4 @@ export const PREBUILT_DASHBOARDS: Record<PrebuiltDashboardId, PrebuiltDashboard>
     MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG,
   [PrebuiltDashboardId.MOBILE_VITALS_SCREEN_RENDERING]:
     MOBILE_VITALS_SCREEN_RENDERING_PREBUILT_CONFIG,
-  [PrebuiltDashboardId.MOBILE_APP_SIZE]: MOBILE_APP_SIZE_PREBUILT_CONFIG,
 };

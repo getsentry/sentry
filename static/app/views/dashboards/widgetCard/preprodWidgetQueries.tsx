@@ -63,11 +63,7 @@ function PreprodWidgetQueries({
     environments: selection.environments,
   });
 
-  console.log('[PreprodWidgetQueries] Serialized queries:', serializedQueries);
-  console.log('[PreprodWidgetQueries] Widget queries:', widget.queries);
-
   useEffect(() => {
-    console.log('[PreprodWidgetQueries] useEffect triggered, fetching data...');
     const fetchData = async () => {
       setLoading(true);
       onDataFetchStart?.();
@@ -77,9 +73,10 @@ function PreprodWidgetQueries({
         const isTableDisplay = widget.displayType === DisplayType.TABLE;
 
         // Build query params for each widget query
-        const promises = widget.queries.map(async query => {
+        // If a query has multiple app_ids (comma-separated), create separate requests for each
+        const promises = widget.queries.flatMap(query => {
           const {start, end, period} = selection.datetime;
-          const params: Record<string, any> = {
+          const baseParams: Record<string, any> = {
             project: selection.projects,
             environment: selection.environments,
             start: start ? new Date(start).toISOString() : undefined,
@@ -90,64 +87,110 @@ function PreprodWidgetQueries({
           };
 
           // Parse conditions string into separate filter parameters
-          // Old format: "app_id:com.example.app artifact_type:0 git_head_ref:main"
-          // New format: separate query params
+          // Format: "app_id:com.example.app1,com.example.app2 git_head_ref:main platform:iOS"
+          let appIds: string[] = [];
           if (query.conditions) {
             const tokens = query.conditions.split(' ');
             tokens.forEach(token => {
               if (token.includes(':')) {
                 const [key, value] = token.split(':', 2);
-                params[key] = value;
+                if (key === 'app_id' && value) {
+                  // Split comma-separated app_ids
+                  appIds = value.split(',').filter(Boolean);
+                } else if (value) {
+                  // Add other filters to baseParams
+                  baseParams[key] = value;
+                }
               }
             });
           }
 
-          const response = await api.requestPromise(
-            `/organizations/${organization.slug}/preprod/app-size-stats/`,
-            {
-              method: 'GET',
-              query: params,
-            }
-          );
+          // If no app_ids specified, make one request with no app_id filter
+          if (appIds.length === 0) {
+            return [
+              api
+                .requestPromise(
+                  `/organizations/${organization.slug}/preprod/app-size-stats/`,
+                  {
+                    method: 'GET',
+                    query: baseParams,
+                  }
+                )
+                .then(response => ({
+                  query,
+                  response: response as AppSizeResponse,
+                  appId: undefined,
+                })),
+            ];
+          }
 
-          return {query, response: response as AppSizeResponse};
+          // Create a separate request for each app_id
+          return appIds.map(appId =>
+            api
+              .requestPromise(
+                `/organizations/${organization.slug}/preprod/app-size-stats/`,
+                {
+                  method: 'GET',
+                  query: {...baseParams, app_id: appId},
+                }
+              )
+              .then(response => ({
+                query,
+                response: response as AppSizeResponse,
+                appId,
+              }))
+          );
         });
 
         const results = await Promise.all(promises);
 
         if (isTableDisplay) {
           // Transform to table format
-          const tableData: TableDataWithTitle[] = results.map(({query, response}) => {
-            const aggregate = query.aggregates[0] || 'value';
-            const data = response.data.map(([timestamp, values], idx) => ({
-              id: String(idx),
-              timestamp,
-              [aggregate]: values[0]?.count ?? 0,
-            }));
+          const tableData: TableDataWithTitle[] = results.map(
+            ({query, response, appId}) => {
+              const aggregate = query.aggregates[0] || 'value';
+              const data = response.data.map(([timestamp, values], idx) => ({
+                id: String(idx),
+                timestamp,
+                [aggregate]: values[0]?.count ?? 0,
+              }));
 
-            return {
-              title: query.name,
-              data,
-              meta: response.meta,
-            };
-          });
+              // Use query name if provided, otherwise fallback to app_id
+              let title = query.name || 'App Size';
+              if (!query.name && appId) {
+                title = appId;
+              }
+
+              return {
+                title,
+                data,
+                meta: response.meta,
+              };
+            }
+          );
 
           setTableResults(tableData);
           onDataFetched?.({tableResults: tableData});
         } else {
           // Transform to timeseries format
-          const series: Series[] = results.map(({query, response}) => {
+          const series: Series[] = results.map(({query, response, appId}) => {
             // Filter out time buckets with no data, then map to series format
             // This creates a continuous line connecting only the actual data points
             const seriesData = response.data
-              .filter(([, values]) => values[0]?.count != null)
+              .filter(([, values]) => values[0]?.count !== null)
               .map(([timestamp, values]) => ({
                 name: timestamp * 1000, // Convert to milliseconds
                 value: values[0]!.count as number,
               }));
 
+            // Use query name if provided, otherwise fallback to app_id or default
+            let seriesName = query.name || query.aggregates[0] || 'value';
+            if (!query.name && appId) {
+              seriesName = appId;
+            }
+
             return {
-              seriesName: query.name || query.aggregates[0] || 'value',
+              seriesName,
               data: seriesData,
             };
           });
