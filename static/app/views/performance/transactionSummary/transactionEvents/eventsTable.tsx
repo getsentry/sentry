@@ -235,15 +235,18 @@ export default function EventsTable({
           target.pathname = `/organizations/${organization.slug}/issues/${issueId}/events/${dataRow.id}/`;
         } else {
           if (field === 'id') {
-            target = generateLinkToEventInTraceView({
-              traceSlug: dataRow.trace?.toString()!,
-              eventId: dataRow.id,
-              timestamp: dataRow.timestamp!,
-              location,
-              organization,
-              source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
-              view: domainViewFilters?.view,
-            });
+            const traceSlug = dataRow.trace?.toString();
+            if (traceSlug) {
+              target = generateLinkToEventInTraceView({
+                traceSlug,
+                eventId: dataRow.id,
+                timestamp: dataRow.timestamp!,
+                location,
+                organization,
+                source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+                view: domainViewFilters?.view,
+              });
+            }
           } else {
             target = generateTraceLink(transactionName, domainViewFilters?.view)(
               organization,

@@ -331,21 +331,21 @@ export default function TableView(props: TableViewProps) {
           query: {...location.query, referrer: 'discover-events-table'},
         };
       } else {
-        if (!dataRow.trace) {
-          throw new Error(
-            'Transaction event should always have a trace associated with it.'
-          );
+        const traceSlug = dataRow.trace?.toString();
+        if (traceSlug) {
+          target = generateLinkToEventInTraceView({
+            traceSlug,
+            eventId: dataRow.id,
+            timestamp: dataRow.timestamp!,
+            organization,
+            location,
+            eventView,
+            source: TraceViewSources.DISCOVER,
+          });
+        } else {
+          // Some transactions may not have a trace associated
+          target = {};
         }
-
-        target = generateLinkToEventInTraceView({
-          traceSlug: dataRow.trace?.toString(),
-          eventId: dataRow.id,
-          timestamp: dataRow.timestamp!,
-          organization,
-          location,
-          eventView,
-          source: TraceViewSources.DISCOVER,
-        });
       }
 
       const idLink = (

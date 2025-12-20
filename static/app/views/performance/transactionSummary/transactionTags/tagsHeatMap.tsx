@@ -354,21 +354,24 @@ function TagsHeatMap(
                   <div>
                     {transactionTableData?.data.length ? null : <Placeholder />}
                     {[...(transactionTableData?.data ?? [])].slice(0, 3).map(row => {
-                      const target = generateLinkToEventInTraceView({
-                        eventId: row.id,
-                        traceSlug: row.trace?.toString()!,
-                        timestamp: row.timestamp!,
-                        location: {
-                          ...location,
-                          query: {
-                            ...location.query,
-                            tab: Tab.TAGS,
-                          },
-                        },
-                        organization,
-                        source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
-                        view,
-                      });
+                      const traceSlug = row.trace?.toString();
+                      const target = traceSlug
+                        ? generateLinkToEventInTraceView({
+                            eventId: row.id,
+                            traceSlug,
+                            timestamp: row.timestamp!,
+                            location: {
+                              ...location,
+                              query: {
+                                ...location.query,
+                                tab: Tab.TAGS,
+                              },
+                            },
+                            organization,
+                            source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+                            view,
+                          })
+                        : {};
 
                       return (
                         <DropdownItem width="small" key={row.id} to={target}>

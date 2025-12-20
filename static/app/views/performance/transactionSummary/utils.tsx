@@ -163,10 +163,15 @@ export function generateTransactionIdLink(view?: DomainView) {
     location: Location,
     spanId?: string
   ): LocationDescriptor => {
+    const traceSlug = tableRow.trace?.toString();
+    if (!traceSlug) {
+      return {};
+    }
+
     return generateLinkToEventInTraceView({
       eventId: tableRow.id,
       timestamp: tableRow.timestamp!,
-      traceSlug: tableRow.trace?.toString()!,
+      traceSlug,
       location,
       organization,
       spanId,

@@ -327,4 +327,91 @@ describe('Performance GridEditable Table', () => {
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     expect(screen.getAllByRole('columnheader')).toHaveLength(7);
   });
+
+  it('renders event id without link when trace is missing', async () => {
+    // Modify the existing mock data to not have a trace
+    const dataWithoutTrace = [
+      {
+        ...MOCK_EVENTS_TABLE_DATA[0],
+        trace: undefined, // Explicitly set trace to undefined
+      },
+    ];
+
+    MockApiClient.clearMockResponses();
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/prompts-activity/',
+      body: {},
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sdk-updates/',
+      body: [],
+    });
+
+    // Total events count response
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        meta: {fields: {'count()': 'integer'}},
+        data: [{'count()': 1}],
+      },
+      match: [(_url, options) => options.query?.field?.includes('count()')],
+    });
+
+    // Transaction list response with event without trace
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        meta: {
+          fields: {
+            id: 'string',
+            'user.display': 'string',
+            'transaction.duration': 'duration',
+            'project.id': 'integer',
+            timestamp: 'date',
+          },
+        },
+        data: dataWithoutTrace,
+      },
+      match: [(_url, options) => options.query?.field?.includes('user.display')],
+    });
+
+    const initialData = initializeData();
+    const eventView = EventView.fromNewQueryWithLocation(
+      {
+        id: undefined,
+        version: 2,
+        name: 'transactionName',
+        fields,
+        query,
+        projects: [],
+        orderby: '-timestamp',
+      },
+      initialData.router.location
+    );
+
+    render(
+      <EventsTable
+        theme={theme}
+        eventView={eventView}
+        organization={organization}
+        routes={initialData.router.routes}
+        location={initialData.router.location}
+        setError={() => {}}
+        columnTitles={transactionsListTitles}
+        transactionName={transactionName}
+      />
+    );
+
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
+    // The event ID should still be rendered
+    expect(screen.getByText('deadbeef')).toBeInTheDocument();
+  });
 });

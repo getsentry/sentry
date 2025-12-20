@@ -131,7 +131,7 @@ export function useReplayTraces({
             return aMinStart - bMinStart;
           })
           .map(row => ({
-            traceSlug: row.trace!.toString(),
+            traceSlug: row.trace.toString(),
             timestamp: getTimeStampFromTableDateField(row['min(timestamp)']),
           }));
 
