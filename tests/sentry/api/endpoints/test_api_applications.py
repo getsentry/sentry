@@ -3,6 +3,7 @@ from django.urls import reverse
 from sentry.models.apiapplication import ApiApplication
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.useremail import UserEmail
 
 
 @control_silo_test
@@ -29,3 +30,13 @@ class ApiApplicationsCreateTest(APITestCase):
         response = self.client.post(url, data={})
         assert response.status_code == 201
         assert ApiApplication.objects.get(client_id=response.data["id"], owner=self.user)
+
+    def test_unverified_user_cannot_create(self) -> None:
+        # Mark user's email as unverified
+        UserEmail.objects.filter(user=self.user, email=self.user.email).update(is_verified=False)
+
+        self.login_as(self.user)
+        url = reverse("sentry-api-0-api-applications")
+        response = self.client.post(url, data={})
+        assert response.status_code == 403
+        assert "verify your email" in response.data["detail"]
