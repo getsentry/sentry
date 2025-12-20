@@ -5,6 +5,7 @@ from sentry.models.organizationmemberinvite import InviteStatus, OrganizationMem
 from sentry.roles import organization_roles
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
+from sentry.users.models.useremail import UserEmail
 
 
 def mock_organization_roles_get_factory(original_organization_roles_get):
@@ -208,6 +209,14 @@ class OrganizationMemberInvitePostTest(APITestCase):
         data = {"email": "1234@qq.com", "orgRole": "member", "teams": [self.team.slug]}
         response = self.get_error_response(self.organization.slug, **data, status_code=400)
         assert response.data["email"][0] == "Enter a valid email address."
+
+    @with_feature("organizations:new-organization-member-invite")
+    def test_unverified_user_cannot_invite(self) -> None:
+        UserEmail.objects.filter(user=self.user, email=self.user.email).update(is_verified=False)
+
+        data = {"email": "test@email.com", "orgRole": "member", "teams": [self.team.slug]}
+        response = self.get_error_response(self.organization.slug, **data, status_code=403)
+        assert "verify your email" in response.data["detail"]
 
     @patch.object(OrganizationMemberInvite, "send_invite_email")
     def test_simple(self, mock_send_invite_email: MagicMock) -> None:

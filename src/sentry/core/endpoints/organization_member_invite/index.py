@@ -205,6 +205,12 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
         )
 
     def post(self, request: Request, organization) -> Response:
+        if not request.user.has_verified_emails():
+            return Response(
+                {"detail": "You must verify your email address before inviting members."},
+                status=403,
+            )
+
         if not features.has(
             "organizations:new-organization-member-invite", organization, actor=request.user
         ):
