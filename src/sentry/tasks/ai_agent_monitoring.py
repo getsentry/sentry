@@ -28,7 +28,7 @@ MODELS_DEV_API_URL = "https://models.dev/api.json"
 
 def _normalize_model_id(model_id: str) -> str:
     """
-    Normalize a model id by removing dates and versions.
+    Normalize a model id by removing dates, versions, and tier suffixes.
     Example:
     - "gpt-4" -> "gpt-4"
     - "gpt-4-20241022" -> "gpt-4"
@@ -36,7 +36,9 @@ def _normalize_model_id(model_id: str) -> str:
     - "gpt-4-20241022-v1.0" -> "gpt-4"
     - "gpt-4-20241022-v1.0-beta" -> "gpt-4"
     - "gpt-4-20241022-v1.0-beta-1" -> "gpt-4"
-    - "gpt-4-20241022-v1.0-beta-1" -> "gpt-4"
+    - "mistralai/devstral-2512:free" -> "mistralai/devstral-2512"
+    - "gpt-4:free" -> "gpt-4"
+    - "claude-3-opus:beta" -> "claude-3-opus"
 
     Args:
         model_id: The model id to normalize
@@ -45,7 +47,9 @@ def _normalize_model_id(model_id: str) -> str:
         The normalized model id
     """
     return re.sub(
-        r"(([-_@])(\d{4}[-/.]\d{2}[-/.]\d{2}|\d{8}))?([-_]v\d+[:.]?\d*([-:].*)?)?$", "", model_id
+        r"(([-_@])(\d{4}[-/.]\d{2}[-/.]\d{2}|\d{8}))?([-_]v\d+[:.]?\d*([-:].*)?)?(:[^/:]+)?$",
+        "",
+        model_id,
     )
 
 

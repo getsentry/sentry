@@ -625,6 +625,13 @@ class FetchAIModelCostsTest(TestCase):
             ("model@20250610-v1:0", "model"),  # @YYYYMMDD-v1:0 removed
             ("gpt-4", "gpt-4"),  # No date/version, unchanged
             ("claude-3-5-sonnet", "claude-3-5-sonnet"),  # Numbers are part of model name, unchanged
+            # Test tier suffixes
+            ("mistralai/devstral-2512:free", "mistralai/devstral-2512"),  # :free suffix removed
+            ("gpt-4:free", "gpt-4"),  # :free suffix removed
+            ("claude-3-opus:beta", "claude-3-opus"),  # :beta suffix removed
+            ("model:free", "model"),  # :free suffix removed
+            ("model-20241022:free", "model"),  # Date and :free suffix removed
+            ("model-v1.0:free", "model"),  # Version and :free suffix removed
         ]
 
         for model_id, expected_normalized in test_cases:
@@ -650,3 +657,55 @@ class FetchAIModelCostsTest(TestCase):
             assert (
                 actual_glob == expected_glob
             ), f"Expected {expected_glob} for {model_id}, got {actual_glob}"
+
+    @responses.activate
+    def test_fetch_ai_model_costs_with_tier_suffixes(self) -> None:
+        """Test that tier suffixes like :free are normalized correctly"""
+        mock_openrouter_response = {
+            "data": [
+                {
+                    "id": "openai/mistralai/devstral-2512:free",
+                    "pricing": {
+                        "prompt": "0.0",
+                        "completion": "0.0",
+                    },
+                },
+                {
+                    "id": "openai/gpt-4-turbo:free",
+                    "pricing": {
+                        "prompt": "0.0",
+                        "completion": "0.0",
+                    },
+                },
+            ]
+        }
+
+        self._mock_openrouter_api_response(mock_openrouter_response)
+        self._mock_models_dev_api_response({})
+
+        fetch_ai_model_costs()
+
+        # Verify the data was cached correctly
+        cached_data = _get_ai_model_costs_from_cache()
+        assert cached_data is not None
+        models = cached_data.get("models")
+        assert models is not None
+
+        # Check that both the original and normalized versions are stored
+        # Original with :free suffix
+        assert "mistralai/devstral-2512:free" in models
+        assert "gpt-4-turbo:free" in models
+
+        # Normalized without :free suffix (for Relay compatibility)
+        assert "mistralai/devstral-2512" in models
+        assert "gpt-4-turbo" in models
+
+        # Prefix glob versions
+        assert "*mistralai/devstral-2512" in models
+        assert "*gpt-4-turbo" in models
+
+        # Verify they all have the same pricing
+        mistral_original = models["mistralai/devstral-2512:free"]
+        mistral_normalized = models["mistralai/devstral-2512"]
+        assert mistral_original.get("inputPerToken") == mistral_normalized.get("inputPerToken")
+        assert mistral_original.get("outputPerToken") == mistral_normalized.get("outputPerToken")
