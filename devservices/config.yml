@@ -404,6 +404,8 @@ services:
         '-c',
         'wal_level=minimal',
         '-c',
+        'max_wal_senders=0',
+        '-c',
         'full_page_writes=off',
         '-c',
         'autovacuum=off',
@@ -431,8 +433,6 @@ services:
         'track_io_timing=off',
         '-c',
         'track_functions=none',
-        '-c',
-        'track_activity_query_size=0',
         '-c',
         "stats_temp_directory='/dev/null'",
       ]
