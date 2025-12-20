@@ -82,9 +82,9 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
                 if not refresh_serializer.is_valid():
                     return Response(refresh_serializer.errors, status=400)
 
-                # Rate limit by (sentry_app_id, installation_id) pair
+                # Rate limit by (sentry_app_id, proxy_user_id) to prevent outbox contention
                 if ratelimiter.backend.is_limited(
-                    f"sentry-app:refresh:{installation.sentry_app_id}:{installation.id}",
+                    f"sentry-app:refresh:{installation.sentry_app_id}:{installation.sentry_app.proxy_user_id}",
                     limit=10,
                     window=60,
                 ):
@@ -118,9 +118,9 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
                         message="JWT credentials are missing or invalid", status_code=403
                     )
 
-                # Rate limit by (sentry_app_id, installation_id) pair
+                # Rate limit by (sentry_app_id, proxy_user_id) to prevent outbox contention
                 if ratelimiter.backend.is_limited(
-                    f"sentry-app:refresh:{installation.sentry_app_id}:{installation.id}",
+                    f"sentry-app:refresh:{installation.sentry_app_id}:{installation.sentry_app.proxy_user_id}",
                     limit=10,
                     window=60,
                 ):

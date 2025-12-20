@@ -378,7 +378,7 @@ class TestSentryAppAuthorizations(APITestCase):
 
         assert response.data["detail"] == "Too many token refresh attempts"
         mock_is_limited.assert_called_once_with(
-            f"sentry-app:refresh:{self.sentry_app.id}:{self.install.id}",
+            f"sentry-app:refresh:{self.sentry_app.id}:{self.sentry_app.proxy_user_id}",
             limit=10,
             window=60,
         )
@@ -405,7 +405,7 @@ class TestSentryAppAuthorizations(APITestCase):
 
         assert response.data["detail"] == "Too many token refresh attempts"
         mock_is_limited.assert_called_once_with(
-            f"sentry-app:refresh:{self.sentry_app.id}:{self.install.id}",
+            f"sentry-app:refresh:{self.sentry_app.id}:{self.sentry_app.proxy_user_id}",
             limit=10,
             window=60,
         )
