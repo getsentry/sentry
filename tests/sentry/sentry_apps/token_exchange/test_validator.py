@@ -79,3 +79,19 @@ class TestValidator(TestCase):
         assert e.value.message == "Application does not exist"
         assert e.value.webhook_context == {"client_id": self.validator.client_id[:4]}
         assert e.value.public_context == {}
+
+    def test_raises_when_application_is_inactive(self) -> None:
+        from sentry.models.apiapplication import ApiApplicationStatus
+
+        self.install.sentry_app.application.status = ApiApplicationStatus.inactive
+        self.install.sentry_app.application.save()
+
+        with pytest.raises(SentryAppIntegratorError) as e:
+            self.validator.run()
+        assert e.value.message == "Application is not active"
+        assert e.value.status_code == 401
+        assert e.value.webhook_context == {
+            "application_id": self.install.sentry_app.application.id,
+            "client_id": self.client_id[:4],
+        }
+        assert e.value.public_context == {}
