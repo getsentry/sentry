@@ -9,6 +9,8 @@ import {Heading, Text} from '@sentry/scraps/text';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -24,11 +26,72 @@ import {
 
 export default function OrganizationDataForwarding() {
   const organization = useOrganization();
-  const {data: dataForwarders = []} = useDataForwarders({
+  const {
+    data: dataForwarders = [],
+    isPending,
+    isError,
+  } = useDataForwarders({
     params: {orgSlug: organization.slug},
   });
   const canCreateForwarder =
     dataForwarders.length < Object.values(DataForwarderProviderSlug).length;
+
+  const pageContent = (
+    <Feature
+      features={DATA_FORWARDING_FEATURES}
+      hookName="feature-disabled:data-forwarding"
+    >
+      {({hasFeature, features}) => (
+        <Fragment>
+          {!hasFeature && (
+            <FeatureDisabled
+              alert
+              featureName={t('Data Forwarding')}
+              features={features}
+            />
+          )}
+          {dataForwarders.length > 0 ? (
+            <Fragment>
+              <Stack gap="xl">
+                {dataForwarders.map(df => (
+                  <DataForwarderRow
+                    key={df.id}
+                    dataForwarder={df}
+                    disabled={!hasFeature}
+                  />
+                ))}
+              </Stack>
+              <Flex justify="end">
+                <Access access={['org:write']}>
+                  <LinkButton
+                    priority="primary"
+                    to={`/settings/${organization.slug}/data-forwarding/setup/`}
+                    icon={<IconAdd />}
+                    size="sm"
+                    onClick={() => {
+                      trackAnalytics('data_forwarding.add_forwarder_clicked', {
+                        organization,
+                      });
+                    }}
+                    disabled={!canCreateForwarder || !hasFeature}
+                    title={
+                      canCreateForwarder || !hasFeature
+                        ? undefined
+                        : t('Maximum data forwarders configured.')
+                    }
+                  >
+                    {t('Setup a new Forwarder')}
+                  </LinkButton>
+                </Access>
+              </Flex>
+            </Fragment>
+          ) : (
+            <DataForwarderOnboarding disabled={!hasFeature} />
+          )}
+        </Fragment>
+      )}
+    </Feature>
+  );
 
   return (
     <Fragment>
@@ -59,61 +122,13 @@ export default function OrganizationDataForwarding() {
             </Text>
           </Flex>
         </Flex>
-
-        <Feature
-          features={DATA_FORWARDING_FEATURES}
-          hookName="feature-disabled:data-forwarding"
-        >
-          {({hasFeature, features}) => (
-            <Fragment>
-              {!hasFeature && (
-                <FeatureDisabled
-                  alert
-                  featureName={t('Data Forwarding')}
-                  features={features}
-                />
-              )}
-              {dataForwarders.length > 0 ? (
-                <Fragment>
-                  <Stack gap="xl" aria-disabled={!hasFeature}>
-                    {dataForwarders.map(df => (
-                      <DataForwarderRow
-                        key={df.id}
-                        dataForwarder={df}
-                        disabled={!hasFeature}
-                      />
-                    ))}
-                  </Stack>
-                  <Flex justify="end">
-                    <Access access={['org:write']}>
-                      <LinkButton
-                        priority="primary"
-                        to={`/settings/${organization.slug}/data-forwarding/setup/`}
-                        icon={<IconAdd />}
-                        size="sm"
-                        onClick={() => {
-                          trackAnalytics('data_forwarding.add_forwarder_clicked', {
-                            organization,
-                          });
-                        }}
-                        disabled={!canCreateForwarder || !hasFeature}
-                        title={
-                          canCreateForwarder || !hasFeature
-                            ? undefined
-                            : t('Maximum data forwarders configured.')
-                        }
-                      >
-                        {t('Setup a new Forwarder')}
-                      </LinkButton>
-                    </Access>
-                  </Flex>
-                </Fragment>
-              ) : (
-                <DataForwarderOnboarding disabled={!hasFeature} />
-              )}
-            </Fragment>
-          )}
-        </Feature>
+        {isPending ? (
+          <LoadingIndicator />
+        ) : isError ? (
+          <LoadingError message={t('Failed to load data forwarders')} />
+        ) : (
+          pageContent
+        )}
       </Flex>
     </Fragment>
   );

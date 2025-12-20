@@ -54,21 +54,21 @@ function getEnablementForm({
   dataForwarder?: DataForwarder;
 }): JsonFormObject {
   const hasCompleteSetup = dataForwarder;
-  const enablementField: FieldObject = {
-    name: 'is_enabled',
-    label: t('Enable data forwarding'),
-    type: 'boolean',
-    defaultValue: dataForwarder?.isEnabled ?? true,
-    help: hasCompleteSetup
-      ? t('Will override all projects to shut-off data forwarding altogether.')
-      : t('Will be enabled after the initial setup is complete.'),
-  };
-  if (!hasCompleteSetup) {
-    enablementField.disabled = true;
-  }
   return {
     title: t('Enablement'),
-    fields: [enablementField],
+    fields: [
+      {
+        name: 'is_enabled',
+        label: t('Enable data forwarding'),
+        type: 'boolean',
+        defaultValue: dataForwarder?.isEnabled ?? true,
+        // Need to set 'undefined' instead of false so that the field can still be disabled by the form
+        disabled: hasCompleteSetup ? true : undefined,
+        help: hasCompleteSetup
+          ? t('Will override all projects to shut-off data forwarding altogether.')
+          : t('Will be enabled after the initial setup is complete.'),
+      },
+    ],
   };
 }
 

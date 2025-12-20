@@ -73,11 +73,12 @@ export function DataForwarderRow({
 }
 
 function getDataForwarderProjectText(dataForwarder: DataForwarder) {
-  const action = dataForwarder.isEnabled ? t('Enabled') : t('Configured');
   const count = dataForwarder.enrolledProjects.length;
   const projectText =
     count > 0
-      ? `${t('%s for', action)} ${tn('%s project', '%s projects', count)}`
+      ? dataForwarder.isEnabled
+        ? tn('Enabled for %s project', 'Enabled for %s projects', count)
+        : tn('Configured for %s project', 'Configured for %s projects', count)
       : t('Not connected to any projects');
   return dataForwarder.enrollNewProjects
     ? projectText.concat(t(', will auto-enroll new projects'))
