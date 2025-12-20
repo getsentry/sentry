@@ -533,7 +533,10 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         auth = self._auth_header_for_get(url, params, "test-secret")
         resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
         assert resp.status_code == 200
-        assert resp.data == {"enabledCodeReview": False, "codeReviewTriggers": []}
+        assert resp.data == {
+            "enabledCodeReview": False,
+            "codeReviewTriggers": ["on_command_phrase"],
+        }
 
     @patch(
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
@@ -551,7 +554,10 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         auth = self._auth_header_for_get(url, params, "test-secret")
         resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
         assert resp.status_code == 200
-        assert resp.data == {"enabledCodeReview": False, "codeReviewTriggers": []}
+        assert resp.data == {
+            "enabledCodeReview": False,
+            "codeReviewTriggers": ["on_command_phrase"],
+        }
 
     @patch(
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
@@ -647,7 +653,10 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
         assert resp.status_code == 200
         # Should return defaults since repository is inactive
-        assert resp.data == {"enabledCodeReview": False, "codeReviewTriggers": []}
+        assert resp.data == {
+            "enabledCodeReview": False,
+            "codeReviewTriggers": ["on_command_phrase"],
+        }
 
     @patch(
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",

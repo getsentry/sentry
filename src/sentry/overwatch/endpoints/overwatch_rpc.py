@@ -216,7 +216,7 @@ class CodeReviewRepoSettingsEndpoint(Endpoint):
             return Response(
                 {
                     "enabledCodeReview": False,
-                    "codeReviewTriggers": [CodeReviewTrigger.ON_COMMAND_PHRASE],
+                    "codeReviewTriggers": [CodeReviewTrigger.ON_COMMAND_PHRASE.value],
                 }
             )
 
