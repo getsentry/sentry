@@ -71,6 +71,16 @@ runs:
         # javascript + sentry projects.
         echo "SENTRY_RELEASE=ci@$GITHUB_SHA" >> $GITHUB_ENV
 
+        # this handles pytest test sharding
+        if [ "$MATRIX_INSTANCE" ]; then
+          if ! [ "${MATRIX_INSTANCE_TOTAL:-}" ]; then
+            echo "MATRIX_INSTANCE_TOTAL is required."
+            exit 1
+          fi
+          echo "TEST_GROUP=$MATRIX_INSTANCE" >> $GITHUB_ENV
+          echo "TOTAL_TEST_GROUPS=$MATRIX_INSTANCE_TOTAL" >> $GITHUB_ENV
+        fi
+
     - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
       with:
         version: '0.8.2'
