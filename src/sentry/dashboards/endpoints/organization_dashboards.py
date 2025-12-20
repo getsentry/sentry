@@ -48,11 +48,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.fields.text import CharField
 from sentry.locks import locks
-from sentry.models.dashboard import (
-    Dashboard,
-    DashboardFavoriteUser,
-    DashboardLastVisited,
-)
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardLastVisited
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
