@@ -22,7 +22,6 @@ import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hook
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -415,22 +414,7 @@ export const ProfilingDetailsListItem = styled('li')<{
   }
 `;
 
-const StyledButton = withChonk(
-  styled(Button)<{active: boolean}>`
-    opacity: ${p => (p.active ? 0.7 : 0.5)};
-    padding: ${space(0.5)} ${space(0.5)};
-    background-color: transparent;
-
-    display: flex !important;
-    align-items: center;
-    justify-content: center;
-
-    &:hover {
-      opacity: ${p => (p.active ? 0.6 : 0.5)};
-    }
-  `,
-  Button
-);
+const StyledButton = Button;
 
 const LayoutSelectionContainer = styled('div')`
   display: flex;

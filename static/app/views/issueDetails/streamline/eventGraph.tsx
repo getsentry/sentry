@@ -35,7 +35,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -627,27 +626,10 @@ function SummaryContainer(props: FlexProps) {
   );
 }
 
-const CalloutButton = withChonk(
-  styled(Button)<{isActive: boolean}>`
-    cursor: ${p => (p.isActive ? 'initial' : 'pointer')};
-    border: 1px solid ${p => (p.isActive ? p.theme.colors.blue100 : 'transparent')};
-    background: ${p => (p.isActive ? p.theme.colors.blue100 : 'transparent')};
-    padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
-    box-shadow: none;
-    height: unset;
-    overflow: hidden;
-    &:disabled {
-      opacity: 1;
-    }
-    &:hover {
-      border: 1px solid ${p => (p.isActive ? p.theme.colors.blue100 : 'transparent')};
-    }
-  `,
-  styled(Button)<never>`
-    height: unset;
-    padding: ${space(0.5)} ${space(1.5)};
-  `
-);
+const CalloutButton = styled(Button)<never>`
+  height: unset;
+  padding: ${space(0.5)} ${space(1.5)};
+`;
 
 const ChartContainer = styled('div')`
   position: relative;
