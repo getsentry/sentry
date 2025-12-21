@@ -16,7 +16,10 @@ import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import useAsciiSnapshot from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
 import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
-import {makeSeerExplorerQueryKey} from 'sentry/views/seerExplorer/utils';
+import {
+  makeSeerExplorerQueryKey,
+  RUN_ID_PARAM_KEY,
+} from 'sentry/views/seerExplorer/utils';
 
 export type PendingUserInput = {
   data: Record<string, any>;
@@ -119,7 +122,7 @@ export const useSeerExplorer = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const paramValue = location.query?.explorerRunId;
+    const paramValue = location.query?.[RUN_ID_PARAM_KEY];
     if (typeof paramValue !== 'string') {
       return;
     }
@@ -127,7 +130,7 @@ export const useSeerExplorer = () => {
     if (!Number.isNaN(parsedRunId)) {
       openExplorerPanel();
       setRunId(parsedRunId);
-      const {explorerRunId: _removed, ...restQuery} = location.query ?? {};
+      const {[RUN_ID_PARAM_KEY]: _removed, ...restQuery} = location.query ?? {};
       navigate({...location, query: restQuery}, {replace: true});
     }
   }, [location, navigate, openExplorerPanel, setRunId]);

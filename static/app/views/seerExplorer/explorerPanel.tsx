@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -22,7 +23,10 @@ import {usePRWidgetData} from 'sentry/views/seerExplorer/prWidget';
 import TopBar from 'sentry/views/seerExplorer/topBar';
 import type {Block} from 'sentry/views/seerExplorer/types';
 import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
-import {useCopySessionDataToClipboard} from 'sentry/views/seerExplorer/utils';
+import {
+  RUN_ID_PARAM_KEY,
+  useCopySessionDataToClipboard,
+} from 'sentry/views/seerExplorer/utils';
 
 function ExplorerPanel() {
   const {isOpen: isVisible} = useExplorerPanel();
@@ -485,6 +489,21 @@ function ExplorerPanel() {
     }
   }, [panelSize, handleMaxSize, handleMedSize]);
 
+  const handleCopyLink = useCallback(async () => {
+    if (!runId) {
+      return;
+    }
+
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set(RUN_ID_PARAM_KEY, String(runId));
+      await navigator.clipboard.writeText(url.toString());
+      addSuccessMessage('Copied link to current chat');
+    } catch {
+      addErrorMessage('Failed to copy link to current chat');
+    }
+  }, [runId]);
+
   const panelContent = (
     <PanelContainers
       ref={panelRef}
@@ -506,8 +525,10 @@ function ExplorerPanel() {
         }}
         onPRWidgetClick={openPRWidget}
         onCopySessionClick={copySessionToClipboard}
+        onCopyLinkClick={handleCopyLink}
         onSessionHistoryClick={openSessionHistory}
         isCopySessionEnabled={copySessionEnabled}
+        isCopyLinkEnabled={!!runId}
         onSizeToggleClick={handleSizeToggle}
         panelSize={panelSize}
         prWidgetButtonRef={prWidgetButtonRef}
