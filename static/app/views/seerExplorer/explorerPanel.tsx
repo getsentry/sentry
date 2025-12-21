@@ -20,10 +20,12 @@ import PanelContainers, {
 } from 'sentry/views/seerExplorer/panelContainers';
 import {usePRWidgetData} from 'sentry/views/seerExplorer/prWidget';
 import TopBar from 'sentry/views/seerExplorer/topBar';
-import type {Block, ExplorerPanelProps} from 'sentry/views/seerExplorer/types';
+import type {Block} from 'sentry/views/seerExplorer/types';
+import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
 import {useCopySessionDataToClipboard} from 'sentry/views/seerExplorer/utils';
 
-function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
+function ExplorerPanel() {
+  const {isOpen: isVisible} = useExplorerPanel();
   const organization = useOrganization({allowNull: true});
   const {projects} = useProjects();
 
@@ -45,6 +47,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
 
   const {panelSize, handleMaxSize, handleMedSize} = usePanelSizing();
   const {
+    runId,
     sessionData,
     sendMessage,
     deleteFromIndex,
@@ -58,7 +61,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
   } = useSeerExplorer();
 
   const copySessionEnabled = Boolean(
-    sessionData?.status === 'completed' && !!sessionData?.run_id && !!organization?.slug
+    sessionData?.status === 'completed' && !!runId && !!organization?.slug
   );
 
   const {copySessionToClipboard} = useCopySessionDataToClipboard({
@@ -74,7 +77,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     sendMessage,
     startNewSession,
     switchToRun,
-    sessionRunId: sessionData?.run_id,
+    sessionRunId: runId ?? undefined,
     sessionBlocks: sessionData?.blocks,
   });
 
@@ -247,8 +250,8 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     setIsMinimized(false);
   }, [setFocusedBlockIndex, textareaRef, setIsMinimized]);
 
-  const langfuseUrl = sessionData?.run_id
-    ? `https://langfuse.getsentry.net/project/clx9kma1k0001iebwrfw4oo0z/traces?filter=sessionId%3Bstring%3B%3B%3D%3B${sessionData.run_id}`
+  const langfuseUrl = runId
+    ? `https://langfuse.getsentry.net/project/clx9kma1k0001iebwrfw4oo0z/traces?filter=sessionId%3Bstring%3B%3B%3D%3B${runId}`
     : undefined;
 
   const handleOpenLangfuse = useCallback(() => {

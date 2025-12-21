@@ -11,7 +11,6 @@ import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {initApiClientErrorHandling} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import GlobalModal from 'sentry/components/globalModal';
-import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import Hook from 'sentry/components/hook';
 import Indicators from 'sentry/components/indicators';
 import {UserTimezoneProvider} from 'sentry/components/timezoneProvider';
@@ -30,7 +29,6 @@ import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import useApi from 'sentry/utils/useApi';
 import {useColorscheme} from 'sentry/utils/useColorscheme';
 import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
-import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
@@ -39,7 +37,7 @@ import LastKnownRouteContextProvider from 'sentry/views/lastKnownRouteContextPro
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 import ExplorerPanel from 'sentry/views/seerExplorer/explorerPanel';
-import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
+import {ExplorerPanelProvider} from 'sentry/views/seerExplorer/useExplorerPanel';
 
 const InstallWizard = lazy(() => import('sentry/views/admin/installWizard'));
 const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));
@@ -54,23 +52,7 @@ function App() {
   const api = useApi();
   const user = useUser();
   const config = useLegacyStore(ConfigStore);
-  const {visible: isModalOpen} = useGlobalModal();
   const preloadData = shouldPreloadData(config);
-
-  // Seer explorer panel hook and hotkeys
-  const {isOpen: isExplorerPanelOpen, toggleExplorerPanel} = useExplorerPanel();
-
-  useHotkeys(
-    isModalOpen
-      ? []
-      : [
-          {
-            match: ['command+/', 'ctrl+/', 'command+.', 'ctrl+.'],
-            callback: () => toggleExplorerPanel(),
-            includeInputs: true,
-          },
-        ]
-  );
 
   /**
    * Loads the users organization list into the OrganizationsStore
@@ -256,10 +238,12 @@ function App() {
                 <GlobalFeedbackForm>
                   <MainContainer tabIndex={-1} ref={mainContainerRef}>
                     <DemoToursProvider>
-                      <GlobalModal onClose={handleModalClose} />
-                      <ExplorerPanel isVisible={isExplorerPanelOpen} />
-                      <Indicators className="indicators-container" />
-                      <ErrorBoundary>{renderBody()}</ErrorBoundary>
+                      <ExplorerPanelProvider>
+                        <GlobalModal onClose={handleModalClose} />
+                        <ExplorerPanel />
+                        <Indicators className="indicators-container" />
+                        <ErrorBoundary>{renderBody()}</ErrorBoundary>
+                      </ExplorerPanelProvider>
                     </DemoToursProvider>
                   </MainContainer>
                 </GlobalFeedbackForm>
