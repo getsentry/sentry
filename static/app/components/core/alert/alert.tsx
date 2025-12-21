@@ -88,7 +88,7 @@ export function Alert({
         )}
         <Message>{children}</Message>
         {!!trailingItems && (
-          <TrailingItems showIcon={!!showIcon} onClick={e => e.stopPropagation()}>
+          <TrailingItems onClick={e => e.stopPropagation()}>
             {trailingItems}
           </TrailingItems>
         )}

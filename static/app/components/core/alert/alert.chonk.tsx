@@ -127,7 +127,7 @@ function generateAlertBackground(
   `;
 }
 
-export const TrailingItems = styled('div')<{showIcon: boolean}>`
+export const TrailingItems = styled('div')`
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: max-content;
