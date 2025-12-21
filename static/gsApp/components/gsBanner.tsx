@@ -451,7 +451,7 @@ class GSBanner extends Component<Props, State> {
     const daysLeft = getContractDaysLeft(subscription);
 
     const showPartnerPlanEndingNotice =
-      subscription.partner !== null &&
+      subscription.partner &&
       !hasPendingUpgrade &&
       daysLeft >= 0 &&
       daysLeft <= 30 &&
