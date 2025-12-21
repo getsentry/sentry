@@ -8,7 +8,12 @@
 {% block title %}{% trans "Sentry - Setup Wizard" %}{% endblock %}
 
 {% block auth_main %}
-  <div id="setup-wizard-container">
+  <div 
+    id="setup-wizard-container"
+    data-hash="{{ hash|to_json|safe }}"
+    data-organizations="{{ organizations|to_json|safe }}"
+    data-enable-project-selection="{{ enableProjectSelection|to_json|safe }}"
+  >
     <div class="loading">
       <div class="loading-mask"></div>
       <div class="loading-indicator" data-test-id="loading-indicator"></div>
@@ -22,11 +27,6 @@
       name: 'renderReact',
       component: 'SetupWizard',
       container: '#setup-wizard-container',
-      props: {
-        hash: {{ hash|to_json|safe }},
-        organizations: {{ organizations|to_json|safe }},
-        enableProjectSelection: {{ enableProjectSelection|to_json|safe }},
-      },
     });
   </script>
   {% endscript %}

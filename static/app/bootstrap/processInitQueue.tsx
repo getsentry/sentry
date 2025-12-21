@@ -102,10 +102,32 @@ async function processItem(initConfig: OnSentryInitConfiguration) {
     }
     const {default: Component} = await COMPONENT_MAP[initConfig.component]();
 
-    renderOnDomReady(() =>
+    renderOnDomReady(() => {
+      // If props are not provided, try to read them from data attributes
+      let props = initConfig.props || {};
+      if (!initConfig.props && initConfig.container) {
+        const containerElement = document.querySelector(initConfig.container);
+        if (containerElement) {
+          // Read all data-* attributes and parse them as JSON
+          Array.from(containerElement.attributes).forEach(attr => {
+            if (attr.name.startsWith('data-')) {
+              const propName = attr.name
+                .slice(5) // Remove 'data-' prefix
+                .replace(/-([a-z])/g, (_, letter) => letter.toUpperCase()); // Convert kebab-case to camelCase
+              try {
+                props[propName] = JSON.parse(attr.value);
+              } catch {
+                // If parsing fails, use the raw string value
+                props[propName] = attr.value;
+              }
+            }
+          });
+        }
+      }
+
       // TODO(ts): Unsure how to type this, complains about u2fsign's required props
       renderDom(
-        (props: any) => (
+        (p: any) => (
           /**
            * The screens and components rendering here will always render in light mode.
            * This is because config is not available at this point (user might not be logged in yet),
@@ -118,7 +140,7 @@ async function processItem(initConfig: OnSentryInitConfiguration) {
                   <SimpleRouter
                     element={
                       <ScrapsProviders>
-                        <Component {...props} />
+                        <Component {...p} />
                       </ScrapsProviders>
                     }
                   />
@@ -128,9 +150,9 @@ async function processItem(initConfig: OnSentryInitConfiguration) {
           </QueryClientProvider>
         ),
         initConfig.container,
-        initConfig.props
-      )
-    );
+        props
+      );
+    });
   }
 
   /**
