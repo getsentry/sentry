@@ -143,12 +143,7 @@ interface BaseTabListProps extends AriaTabListOptions<TabListItemProps>, TabList
   variant?: BaseTabProps['variant'];
 }
 
-function BaseTabList({
-  hideBorder = false,
-  outerWrapStyles,
-  variant = 'flat',
-  ...props
-}: BaseTabListProps) {
+function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListProps) {
   const navigate = useNavigate();
   const tabListRef = useRef<HTMLUListElement>(null);
   const {rootProps, setTabListState} = useContext(TabsContext);
@@ -229,7 +224,6 @@ function BaseTabList({
       <TabListWrap
         {...tabListProps}
         orientation={orientation}
-        hideBorder={hideBorder}
         ref={tabListRef}
         variant={variant}
       >

@@ -146,17 +146,7 @@ function Segment<Value extends string>({
 
   const {isDisabled} = props;
 
-  const label = (
-    <VisibleLabel
-      size={size}
-      isSelected={isSelected}
-      isDisabled={isDisabled}
-      priority={priority}
-      role="presentation"
-    >
-      {props.children}
-    </VisibleLabel>
-  );
+  const label = <VisibleLabel>{props.children}</VisibleLabel>;
 
   const content = (
     <SegmentWrap
