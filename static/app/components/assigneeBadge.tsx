@@ -12,7 +12,6 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {SuggestedOwnerReason} from 'sentry/types/group';
-import type {Theme} from 'sentry/utils/theme';
 
 type AssigneeBadgeProps = {
   assignedTo?: Actor | undefined;
@@ -156,7 +155,7 @@ const StyledTag = styled(Tag)`
   color: ${p => p.theme.subText};
 `;
 
-const UnassignedTag = styled(StyledTag)<{theme: Theme}>`
+const UnassignedTag = styled(StyledTag)`
   border: 1px dashed ${p => p.theme.border};
   background-color: transparent;
 `;

@@ -479,16 +479,8 @@ export function EventGraph({
       <Grid columns="auto 1fr" {...styleProps}>
         {showSummary ? (
           <SummaryContainer>
-            <GraphButton
-              disabled
-              isActive={visibleSeries === EventGraphSeries.EVENT}
-              label={t('Events')}
-            />
-            <GraphButton
-              disabled
-              isActive={visibleSeries === EventGraphSeries.USER}
-              label={t('Users')}
-            />
+            <GraphButton disabled label={t('Events')} />
+            <GraphButton disabled label={t('Users')} />
           </SummaryContainer>
         ) : (
           <div />
@@ -506,14 +498,12 @@ export function EventGraph({
         <SummaryContainer>
           <GraphButton
             onClick={() => setVisibleSeries(EventGraphSeries.EVENT)}
-            isActive={visibleSeries === EventGraphSeries.EVENT}
             disabled={visibleSeries === EventGraphSeries.EVENT}
             label={tn('Event', 'Events', eventCount)}
             count={String(eventCount)}
           />
           <GraphButton
             onClick={() => setVisibleSeries(EventGraphSeries.USER)}
-            isActive={visibleSeries === EventGraphSeries.USER}
             disabled={visibleSeries === EventGraphSeries.USER}
             label={tn('User', 'Users', userCount)}
             count={String(userCount)}
@@ -591,23 +581,17 @@ export function EventGraph({
 }
 
 function GraphButton({
-  isActive,
   label,
   count,
   ...props
 }: {
-  isActive: boolean;
   label: string;
   count?: string;
 } & Partial<ButtonProps>) {
   const textVariant = undefined;
 
   return (
-    <CalloutButton
-      isActive={isActive}
-      aria-label={`${t('Toggle graph series')} - ${label}`}
-      {...props}
-    >
+    <CalloutButton aria-label={`${t('Toggle graph series')} - ${label}`} {...props}>
       <Flex direction="column" gap="xs">
         <Text size="sm" variant={textVariant}>
           {label}
@@ -626,7 +610,7 @@ function SummaryContainer(props: FlexProps) {
   );
 }
 
-const CalloutButton = styled(Button)<never>`
+const CalloutButton = styled(Button)`
   height: unset;
   padding: ${space(0.5)} ${space(1.5)};
 `;
