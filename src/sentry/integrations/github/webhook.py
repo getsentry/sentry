@@ -51,7 +51,7 @@ from sentry.plugins.providers.integration_repository import (
     get_integration_repository_provider,
 )
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
-from sentry.seer.code_review.webhooks import handle_github_check_run_event
+from sentry.seer.code_review.webhooks import PREPROCESSORS
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.organization_contributors import assign_seat_to_organization_contributor
 from sentry.users.services.user.service import user_service
@@ -876,6 +876,12 @@ class CheckRunEventWebhook(GitHubWebhook):
     https://docs.github.com/en/webhooks/webhook-events-and-payloads#check_run
     """
 
+    # XXX: We will streamline this approach to other webhook handlers in the future.
+    # Add new webhook event processors here.
+    WEBHOOK_EVENT_PROCESSORS = [
+        *PREPROCESSORS,
+    ]
+
     @property
     def event_type(self) -> IntegrationWebhookEventType:
         return IntegrationWebhookEventType.CHECK_RUN
@@ -886,14 +892,8 @@ class CheckRunEventWebhook(GitHubWebhook):
         event: Mapping[str, Any],
         **kwargs,
     ) -> None:
-        # Get organization from kwargs (populated by GitHubWebhook base class)
-        organization = kwargs.get("organization")
-        if organization is None:
-            logger.warning("github.webhook.check_run.missing-organization")
-            return
-
-        # XXX: Add support for registering functions to call
-        handle_github_check_run_event(organization=organization, event=event)
+        for processor in self.WEBHOOK_EVENT_PROCESSORS:
+            processor(event=event, **kwargs)
 
 
 @all_silo_endpoint
