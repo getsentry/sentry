@@ -1,18 +1,14 @@
 import {useCallback, useState} from 'react';
 import moment from 'moment-timezone';
 
-import type {Client} from 'sentry/api';
 import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import ResultGrid from 'sentry/components/resultGrid';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import withApi from 'sentry/utils/withApi';
+import useApi from 'sentry/utils/useApi';
 
 const prettyDate = (x: string) => moment(x).format('ll LTS');
-
-type Props = RouteComponentProps & {api: Client};
 
 type RelayRow = {
   firstSeen: string;
@@ -22,20 +18,21 @@ type RelayRow = {
   relayId: string;
 };
 
-function AdminRelays(props: Props) {
+export default function AdminRelays() {
+  const api = useApi();
   // TODO: Loading not hooked up to anything?
   const [, setLoading] = useState(false);
 
   const onDelete = useCallback(
     (key: string) => {
       setLoading(true);
-      props.api.request(`/relays/${key}/`, {
+      api.request(`/relays/${key}/`, {
         method: 'DELETE',
         success: () => setLoading(false),
         error: () => setLoading(false),
       });
     },
-    [props.api]
+    [api]
   );
 
   const getRow = (row: RelayRow) => {
@@ -95,10 +92,7 @@ function AdminRelays(props: Props) {
           ['relayId', 'Relay ID'],
         ]}
         defaultSort="firstSeen"
-        {...props}
       />
     </div>
   );
 }
-
-export default withApi(AdminRelays);

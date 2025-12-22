@@ -2723,7 +2723,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'relays/',
       component: make(() => import('sentry/views/admin/adminRelays')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'organizations/',
