@@ -2,8 +2,10 @@ import type {CSSProperties} from 'react';
 import styled from '@emotion/styled';
 import type {DistributedOmit} from 'type-fest';
 
+import type {SpaceSize} from 'sentry/utils/theme';
+
 import {Container, type ContainerElement, type ContainerProps} from './container';
-import {getSpacing, rc, type Responsive, type SpacingSize} from './styles';
+import {getSpacing, rc, type Responsive} from './styles';
 
 const omitFlexProps = new Set<keyof FlexLayoutProps | 'as'>([
   'as',
@@ -37,7 +39,7 @@ interface FlexLayoutProps {
   /**
    * Specifies the spacing between flex items.
    */
-  gap?: Responsive<SpacingSize | `${SpacingSize} ${SpacingSize}`>;
+  gap?: Responsive<SpaceSize | `${SpaceSize} ${SpaceSize}`>;
   /**
    * Aligns flex items along the block axis of the current line of flex items.
    * Uses CSS justify-content property.

@@ -5,7 +5,7 @@ import {IconClose} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Theme} from 'sentry/utils/theme';
+import type {TagVariant} from 'sentry/utils/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 
 import * as ChonkTag from './tag.chonk';
@@ -23,7 +23,7 @@ export interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
   /**
    * Dictates color scheme of the tag.
    */
-  type?: keyof Theme['tag'];
+  type?: TagVariant;
 }
 
 export function Tag({

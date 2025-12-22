@@ -12,6 +12,7 @@ import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
+import type {GraphicsVariant} from 'sentry/utils/theme';
 
 const NODE_SIZES = [8, 12, 16];
 
@@ -63,11 +64,10 @@ const EventColumn = styled(Timeline.Col)`
   }
 `;
 
-type GraphicsKey = keyof Theme['tokens']['graphics'];
-type GraphicsKeyTrio =
-  | [GraphicsKey]
-  | [GraphicsKey, GraphicsKey]
-  | [GraphicsKey, GraphicsKey, GraphicsKey];
+type GraphicsVariantTrio =
+  | [GraphicsVariant]
+  | [GraphicsVariant, GraphicsVariant]
+  | [GraphicsVariant, GraphicsVariant, GraphicsVariant];
 
 function Event({
   frames,
@@ -129,11 +129,11 @@ function Event({
     'success',
     'accent',
     'muted',
-  ] as readonly GraphicsKey[];
-  const getColorPos = (c: GraphicsKey) => colorOrder.indexOf(c);
+  ] as readonly GraphicsVariant[];
+  const getColorPos = (c: GraphicsVariant) => colorOrder.indexOf(c);
   const sortedUniqueColorTokens = uniqueColorTokens
     .toSorted((x, y) => getColorPos(x) - getColorPos(y))
-    .slice(0, 3) as GraphicsKeyTrio;
+    .slice(0, 3) as GraphicsVariantTrio;
 
   return (
     <IconPosition style={{marginLeft: `${markerWidth / 2}px`}}>
@@ -167,7 +167,7 @@ const getBackgroundGradient = ({
   frameCount,
   theme,
 }: {
-  colorTokens: GraphicsKeyTrio;
+  colorTokens: GraphicsVariantTrio;
   frameCount: number;
   theme: Theme;
 }) => {
@@ -199,7 +199,7 @@ const getBackgroundGradient = ({
 };
 
 const IconNode = styled('button')<{
-  colorTokens: GraphicsKeyTrio;
+  colorTokens: GraphicsVariantTrio;
   frameCount: number;
 }>`
   padding: 0;

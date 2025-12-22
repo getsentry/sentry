@@ -1,8 +1,10 @@
 import type {CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
+import type {SpaceSize} from 'sentry/utils/theme';
+
 import {Container, type ContainerElement, type ContainerProps} from './container';
-import {getSpacing, rc, type Responsive, type SpacingSize} from './styles';
+import {getSpacing, rc, type Responsive} from './styles';
 
 const omitGridProps = new Set<keyof GridLayoutProps | 'as'>([
   'align',
@@ -62,7 +64,7 @@ interface GridLayoutProps {
    * Uses CSS grid-auto-flow property.
    */
   flow?: Responsive<'row' | 'column' | 'row dense' | 'column dense'>;
-  gap?: Responsive<SpacingSize | `${SpacingSize} ${SpacingSize}`>;
+  gap?: Responsive<SpaceSize | `${SpaceSize} ${SpaceSize}`>;
   /**
    * Aligns the grid container's content along the row axis when the grid is smaller than its container.
    * Uses CSS justify-content property.
