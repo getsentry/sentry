@@ -40,6 +40,7 @@ import {
   useAddQuery,
   useReadQueriesFromLocation,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
+import {MultiQueryParamsProvider} from 'sentry/views/explore/multiQueryMode/multiQueryParamsProvider';
 import {QueryRow} from 'sentry/views/explore/multiQueryMode/queryRow';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -220,7 +221,9 @@ export function MultiQueryModeContent() {
   return (
     <PageFiltersContainer maxPickableDays={datePageFilterProps.maxPickableDays}>
       <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <Content datePageFilterProps={datePageFilterProps} />
+        <MultiQueryParamsProvider>
+          <Content datePageFilterProps={datePageFilterProps} />
+        </MultiQueryParamsProvider>
       </TraceItemAttributeProvider>
     </PageFiltersContainer>
   );
