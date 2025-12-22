@@ -37,7 +37,7 @@ function AuthLayoutContent({children}: {children: React.ReactNode}) {
 }
 
 /**
- * Route component for auth pages (used in routes.tsx).
+ * Route component for auth pages.
  * Uses <Outlet /> for child routes.
  */
 export default function AuthLayout() {
@@ -49,7 +49,7 @@ export default function AuthLayout() {
 }
 
 /**
- * Wrapper component for auth-style layout (used directly in components like dataDownload).
+ * Wrapper component for auth-style layout with children to render.
  */
 export function AuthLayoutWrapper({children}: {children: React.ReactNode}) {
   return <AuthLayoutContent>{children}</AuthLayoutContent>;
