@@ -52,6 +52,7 @@ import {getMessage, getTitle} from 'sentry/utils/events';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
@@ -351,11 +352,17 @@ function ClusterIssues({groupIds}: {groupIds: number[]}) {
 
 interface ClusterCardProps {
   cluster: ClusterSummary;
+  onDismiss: (clusterId: number) => void;
   filterByEscalating?: boolean;
   filterByRegressed?: boolean;
 }
 
-function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCardProps) {
+function ClusterCard({
+  cluster,
+  filterByRegressed,
+  filterByEscalating,
+  onDismiss,
+}: ClusterCardProps) {
   const api = useApi();
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -449,7 +456,16 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
     });
   }, [api, cluster.group_ids, organization.slug, selection]);
 
-  const handleDismiss = () => {};
+  const handleDismiss = useCallback(() => {
+    openConfirmModal({
+      header: t('Dismiss Cluster'),
+      message: t('This will hide this cluster from your personal view.'),
+      confirmText: t('Dismiss'),
+      onConfirm: () => {
+        onDismiss(cluster.cluster_id);
+      },
+    });
+  }, [onDismiss, cluster.cluster_id]);
 
   const allTags = useMemo(() => {
     return [
@@ -750,6 +766,14 @@ function DynamicGrouping() {
   const [visibleClusterCount, setVisibleClusterCount] = useState(CLUSTERS_PER_PAGE);
   const [filterByRegressed, setFilterByRegressed] = useState(false);
   const [filterByEscalating, setFilterByEscalating] = useState(false);
+  const [dismissedClusterIds, setDismissedClusterIds] = useLocalStorageState<number[]>(
+    'top-issues-dismissed-clusters',
+    []
+  );
+
+  const handleDismissCluster = (clusterId: number) => {
+    setDismissedClusterIds(prev => [...prev, clusterId]);
+  };
 
   // Fetch cluster data from API
   const {data: topIssuesResponse, isPending} = useApiQuery<TopIssuesResponse>(
@@ -832,6 +856,10 @@ function DynamicGrouping() {
         return false;
       }
 
+      if (dismissedClusterIds.includes(cluster.cluster_id)) {
+        return false;
+      }
+
       if (
         selection.projects.length > 0 &&
         !selection.projects.includes(ALL_ACCESS_PROJECTS)
@@ -881,6 +909,7 @@ function DynamicGrouping() {
     userTeams,
     isTeamFilterActive,
     selectedTeamIds,
+    dismissedClusterIds,
   ]);
 
   const hasMoreClusters = filteredAndSortedClusters.length > visibleClusterCount;
@@ -1127,6 +1156,7 @@ function DynamicGrouping() {
                       cluster={cluster}
                       filterByRegressed={filterByRegressed}
                       filterByEscalating={filterByEscalating}
+                      onDismiss={handleDismissCluster}
                     />
                   ))}
               </CardsColumn>
@@ -1139,6 +1169,7 @@ function DynamicGrouping() {
                       cluster={cluster}
                       filterByRegressed={filterByRegressed}
                       filterByEscalating={filterByEscalating}
+                      onDismiss={handleDismissCluster}
                     />
                   ))}
               </CardsColumn>
