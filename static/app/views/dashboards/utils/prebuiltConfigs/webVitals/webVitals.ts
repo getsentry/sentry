@@ -252,7 +252,7 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
           max1: 0.1,
           max2: 0.25,
         },
-        unit: 'ms',
+        unit: 'ratio',
       },
       layout: {
         y: 2,
