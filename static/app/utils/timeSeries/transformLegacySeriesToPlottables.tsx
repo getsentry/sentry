@@ -100,10 +100,10 @@ function mapAggregationTypeToValueTypeAndUnit(
 } {
   // Special case, epm/eps come back as numbers but we want to show as reate
   // Checking eps/epm here is a hack until we migrate to new /timeseries endpoint
-  if (fieldName.includes('eps()')) {
+  if (fieldName?.includes('eps()')) {
     return {valueType: 'rate', valueUnit: RateUnit.PER_SECOND};
   }
-  if (fieldName.includes('epm()')) {
+  if (fieldName?.includes('epm()')) {
     return {valueType: 'rate', valueUnit: RateUnit.PER_MINUTE};
   }
 
