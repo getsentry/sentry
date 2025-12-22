@@ -94,7 +94,7 @@ class GitHubWebhook(SCMWebhook, ABC):
 
     EVENT_TYPE: IntegrationWebhookEventType
     # When subclassing, add your webhook event processor here.
-    WEBHOOK_EVENT_PROCESSORS: list[Callable[[str, Mapping[str, Any], Any], None]] = []
+    WEBHOOK_EVENT_PROCESSORS: list[Callable[..., None]] = []
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -710,7 +710,7 @@ class PullRequestEventWebhook(GitHubWebhook):
     """https://developer.github.com/v3/activity/events/types/#pullrequestevent"""
 
     EVENT_TYPE = IntegrationWebhookEventType.PULL_REQUEST
-    WEBHOOK_EVENT_PROCESSORS = []
+    WEBHOOK_EVENT_PROCESSORS = [handle_github_pr_webhook_for_autofix]
 
     def _handle(
         self,
@@ -881,7 +881,7 @@ class PullRequestEventWebhook(GitHubWebhook):
 
         # Because we require that the sentry github integration be installed for autofix, we can piggyback
         # on this webhook for autofix for now. We may move to a separate autofix github integration in the future.
-        # XXX: Move to signature expected in the for loop below.
+        # XXX: Use the signature expected in the for loop below.
         handle_github_pr_webhook_for_autofix(organization, action, pull_request, user)
         for processor in self.WEBHOOK_EVENT_PROCESSORS:
             processor(event_type=self.EVENT_TYPE, event=event, **kwargs)
