@@ -21,6 +21,11 @@ auth_control_tasks = app.taskregistry.create_namespace(
     app_feature="shared",
 )
 
+autopilot_tasks = app.taskregistry.create_namespace(
+    "autopilot",
+    app_feature="shared",
+)
+
 buffer_tasks = app.taskregistry.create_namespace(
     "buffer",
     app_feature="errors",
