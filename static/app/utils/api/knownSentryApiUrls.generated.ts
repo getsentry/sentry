@@ -468,6 +468,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/plugins/'
   | '/organizations/$organizationIdOrSlug/plugins/$pluginSlug/deprecation-info/'
   | '/organizations/$organizationIdOrSlug/plugins/configs/'
+  | '/organizations/$organizationIdOrSlug/preprod/app-size-stats/'
   | '/organizations/$organizationIdOrSlug/prevent/ai/github/config/$gitOrganizationName/'
   | '/organizations/$organizationIdOrSlug/prevent/ai/github/repos/'
   | '/organizations/$organizationIdOrSlug/prevent/owner/$owner/repositories/'
