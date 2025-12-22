@@ -9,6 +9,8 @@ import {BuildDetailsState} from 'sentry/views/preprod/types/buildDetailsTypes';
 
 const mockBuildDetailsData: BuildDetailsApiResponse = {
   id: '123',
+  project_id: 1,
+  project_slug: 'test-project',
   state: BuildDetailsState.PROCESSED,
   app_info: {
     app_id: 'com.example.app',
