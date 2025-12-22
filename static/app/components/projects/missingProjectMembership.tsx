@@ -10,106 +10,98 @@ import Panel from 'sentry/components/panels/panel';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import useApi from 'sentry/utils/useApi';
 
-type Props = {
+interface JoinTeamActionProps {
   organization: Organization;
-  project?: Project | null;
-};
+  teamSlug: string;
+}
 
-function MissingProjectMembership({organization, project}: Props) {
+function JoinTeamAction({teamSlug, organization}: JoinTeamActionProps) {
   const api = useApi({persistInFlight: true});
-  const [loading, setLoading] = useState(false);
-  const [team, setTeam] = useState<string | null>('');
+  const [isLoading, setIsLoading] = useState(false);
+  const teamsInStore = useLegacyStore(TeamStore);
+  const selectedTeam = teamsInStore.teams.find(team => team.slug === teamSlug);
 
-  const getTeamsForAccess = useCallback(() => {
-    const request: string[] = [];
-    const pending: string[] = [];
-    const teams = project?.teams ?? [];
-    teams.forEach(({slug}) => {
-      const teamFromStore = TeamStore.getBySlug(slug);
-      if (!teamFromStore) {
-        return;
-      }
-      if (teamFromStore.isPending) {
-        pending.push(teamFromStore.slug);
-      } else {
-        request.push(teamFromStore.slug);
-      }
-    });
+  const handleJoinTeam = useCallback(() => {
+    setIsLoading(true);
 
-    return [request, pending] as const;
-  }, [project]);
-
-  const getPendingTeamOption = useCallback((pendingTeam: string) => {
-    return {
-      value: pendingTeam,
-      label: <DisabledLabel>{`#${pendingTeam}`}</DisabledLabel>,
-    };
-  }, []);
-
-  const handleJoinTeam = useCallback(
-    (teamSlug: string) => {
-      setLoading(true);
-
-      joinTeam(
-        api,
-        {
-          orgId: organization.slug,
-          teamId: teamSlug,
+    joinTeam(
+      api,
+      {
+        orgId: organization.slug,
+        teamId: teamSlug,
+      },
+      {
+        success: () => {
+          setIsLoading(false);
+          addSuccessMessage(t('Request to join team sent.'));
         },
-        {
-          success: () => {
-            setLoading(false);
-            addSuccessMessage(t('Request to join team sent.'));
-          },
-          error: () => {
-            setLoading(false);
-            addErrorMessage(t('There was an error while trying to request access.'));
-          },
-        }
-      );
-    },
-    [api, organization.slug]
-  );
+        error: () => {
+          setIsLoading(false);
+          addErrorMessage(t('There was an error while trying to request access.'));
+        },
+      }
+    );
+  }, [api, organization.slug, teamSlug]);
 
-  const renderJoinTeam = useCallback(
-    (teamSlug: string, features: string[]) => {
-      const selectedTeam = TeamStore.getBySlug(teamSlug);
+  const openMembership = organization.features.includes('open-membership');
 
-      if (!selectedTeam) {
-        return null;
-      }
-      if (loading) {
-        if (features.includes('open-membership')) {
-          return <Button busy>{t('Join Team')}</Button>;
-        }
-        return <Button busy>{t('Request Access')}</Button>;
-      }
-      if (selectedTeam?.isPending) {
-        return <Button disabled>{t('Request Pending')}</Button>;
-      }
-      if (features.includes('open-membership')) {
-        return (
-          <Button priority="primary" onClick={() => handleJoinTeam(teamSlug)}>
-            {t('Join Team')}
-          </Button>
-        );
-      }
-      return (
-        <Button priority="primary" onClick={() => handleJoinTeam(teamSlug)}>
-          {t('Request Access')}
-        </Button>
-      );
-    },
-    [handleJoinTeam, loading]
+  if (!selectedTeam) {
+    return null;
+  }
+
+  if (isLoading) {
+    return <Button busy>{openMembership ? t('Join Team') : t('Request Access')}</Button>;
+  }
+
+  if (selectedTeam.isPending) {
+    return <Button disabled>{t('Request Pending')}</Button>;
+  }
+
+  return (
+    <Button priority="primary" onClick={handleJoinTeam}>
+      {openMembership ? t('Join Team') : t('Request Access')}
+    </Button>
   );
+}
+
+function getPendingTeamOption(pendingTeam: string) {
+  return {
+    value: pendingTeam,
+    label: <DisabledLabel>{`#${pendingTeam}`}</DisabledLabel>,
+  };
+}
+
+interface MissingProjectMembershipProps {
+  organization: Organization;
+  project: Project | undefined | null;
+}
+
+export default function MissingProjectMembership({
+  organization,
+  project,
+}: MissingProjectMembershipProps) {
+  const [team, setTeam] = useState<string | null>('');
+  const teamsInStore = useLegacyStore(TeamStore);
 
   const teamAccess = useMemo(() => {
-    const [request, pending] = getTeamsForAccess();
+    const request: string[] = [];
+    const pending: string[] = [];
+    const pendingTeams = new Set<string>(
+      teamsInStore.teams.filter(tm => tm.isPending).map(tm => tm.slug)
+    );
+    project?.teams?.forEach(({slug}) => {
+      if (pendingTeams.has(slug)) {
+        pending.push(slug);
+      } else {
+        request.push(slug);
+      }
+    });
 
     return [
       {
@@ -121,21 +113,20 @@ function MissingProjectMembership({organization, project}: Props) {
       },
       {
         label: t('Pending Requests'),
-        options: pending.map(pendingTeam => getPendingTeamOption(pendingTeam)),
+        options: pending.map(getPendingTeamOption),
       },
     ];
-  }, [getPendingTeamOption, getTeamsForAccess]);
+  }, [project, teamsInStore.teams]);
 
   const handleTeamChange = useCallback((teamObj: {value: string}) => {
     const selectedTeam = teamObj ? teamObj.value : null;
     setTeam(selectedTeam);
   }, []);
 
-  const teams = project?.teams ?? [];
-
+  const hasTeams = !!project?.teams?.length;
   return (
     <StyledPanel>
-      {teams.length ? (
+      {hasTeams ? (
         <EmptyMessage
           icon={<IconFlag />}
           title={t("You're not a member of this project.")}
@@ -148,7 +139,7 @@ function MissingProjectMembership({organization, project}: Props) {
                 onChange={handleTeamChange}
               />
               {team ? (
-                renderJoinTeam(team, organization.features)
+                <JoinTeamAction teamSlug={team} organization={organization} />
               ) : (
                 <Button disabled>{t('Select a Team')}</Button>
               )}
@@ -188,5 +179,3 @@ const DisabledLabel = styled('div')`
   opacity: 0.5;
   overflow: hidden;
 `;
-
-export default MissingProjectMembership;
