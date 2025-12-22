@@ -30,14 +30,26 @@ export const typography = {
       '2xl': '24px',
     },
     weight: {
-      /**
-       * A named fontWeight value evaluating to “400”
-       */
-      regular: 400,
-      /**
-       * A named fontWeight value evaluating to “500”
-       */
-      medium: 500,
+      sans: {
+        /**
+         * The regular font weight for text using the sans font family.
+         */
+        regular: 400,
+        /**
+         * The medium font weight for text using the sans font family.
+         */
+        medium: 500,
+      },
+      mono: {
+        /**
+         * The regular font weight for text using the mono font family.
+         */
+        regular: 425,
+        /**
+         * The medium font weight for text using the sans font family.
+         */
+        medium: 500,
+      },
     },
     family: {
       /**

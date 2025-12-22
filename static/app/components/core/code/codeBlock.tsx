@@ -240,7 +240,7 @@ const Header = styled('div')<{isFloating: boolean}>`
   font-family: ${p => p.theme.font.family.mono};
   font-size: ${p => p.theme.font.size.sm};
   color: var(--prism-base);
-  font-weight: ${p => p.theme.font.weight.medium};
+  font-weight: ${p => p.theme.font.weight.mono.medium};
   z-index: 2;
 
   ${p =>

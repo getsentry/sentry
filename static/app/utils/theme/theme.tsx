@@ -433,8 +433,8 @@ export type Space = keyof typeof space;
 const legacyTypography = {
   fontSize: typography.font.size,
   fontWeight: {
-    normal: typography.font.weight.regular,
-    bold: typography.font.weight.medium,
+    normal: typography.font.weight.sans.regular,
+    bold: typography.font.weight.sans.medium,
   },
   text: {
     family: typography.font.family.sans,

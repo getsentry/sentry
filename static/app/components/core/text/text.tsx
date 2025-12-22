@@ -152,9 +152,9 @@ export const Text = styled(
   font-family: ${p => p.theme.font.family[p.monospace ? 'mono' : 'sans']};
   font-weight: ${p =>
     p.bold === true
-      ? p.theme.font.weight.medium
+      ? p.theme.font.weight[p.monospace ? 'mono' : 'sans'].medium
       : p.bold === false
-        ? p.theme.font.weight.regular
+        ? p.theme.font.weight[p.monospace ? 'mono' : 'sans'].regular
         : undefined};
   font-variant-numeric: ${p =>
     [
