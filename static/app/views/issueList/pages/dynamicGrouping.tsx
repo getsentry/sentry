@@ -767,7 +767,7 @@ function DynamicGrouping() {
   const [filterByRegressed, setFilterByRegressed] = useState(false);
   const [filterByEscalating, setFilterByEscalating] = useState(false);
   const [dismissedClusterIds, setDismissedClusterIds] = useLocalStorageState<number[]>(
-    'top-issues-dismissed-clusters',
+    `top-issues-dismissed-clusters:${organization.slug}`,
     []
   );
 
