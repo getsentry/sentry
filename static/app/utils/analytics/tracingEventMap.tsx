@@ -1,5 +1,6 @@
 import type {PlatformKey} from 'sentry/types/project';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import type {CrossEventType} from 'sentry/views/explore/queryParams/crossEvent';
 import type {TraceTreeSource} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import type {TraceDrawerActionKind} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
@@ -10,6 +11,7 @@ export type TracingEventParameters = {
   'trace.configurations_docs_link_clicked': {
     title: string;
   };
+
   'trace.explorer.ai_query_applied': {
     group_by_count: number;
     query: string;
@@ -29,6 +31,16 @@ export type TracingEventParameters = {
   };
   'trace.explorer.ai_query_submitted': {
     natural_language_query: string;
+  };
+  'trace.explorer.cross_event_added': {
+    type: CrossEventType;
+  };
+  'trace.explorer.cross_event_changed': {
+    new_type: CrossEventType;
+    old_type: CrossEventType;
+  };
+  'trace.explorer.cross_event_removed': {
+    type: CrossEventType;
   };
   'trace.explorer.metadata': {
     columns: readonly string[];
@@ -53,6 +65,9 @@ export type TracingEventParameters = {
     visualizes: BaseVisualize[];
     visualizes_count: number;
     attribute_breakdowns_mode?: 'breakdowns' | 'cohort_comparison';
+    cross_event_log_query_count?: number;
+    cross_event_metric_query_count?: number;
+    cross_event_span_query_count?: number;
   };
   'trace.explorer.schema_hints_click': {
     source: 'list' | 'drawer';
@@ -191,6 +206,7 @@ export type TracingEventParameters = {
   'trace_explorer.search_request': {
     queries: string[];
   };
+
   'trace_explorer.search_success': {
     has_data: boolean;
     num_missing_trace_root: number;
@@ -221,6 +237,9 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.explorer.ai_query_interface': 'Trace Explorer: AI Query Interface',
   'trace.explorer.ai_query_feedback': 'Trace Explorer: AI Query Feedback',
   'trace.explorer.metadata': 'Improved Trace Explorer Pageload Metadata',
+  'trace.explorer.cross_event_added': 'Trace Explorer: Cross Event Added',
+  'trace.explorer.cross_event_changed': 'Trace Explorer: Cross Event Changed',
+  'trace.explorer.cross_event_removed': 'Trace Explorer: Cross Event Removed',
   'trace.explorer.schema_hints_click':
     'Improved Trace Explorer: Schema Hints Click Events',
   'trace.explorer.schema_hints_drawer':
