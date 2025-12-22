@@ -1244,5 +1244,17 @@ class TestGetAndUpdateGroupFixabilityScore(APITestCase, SnubaTestCase):
         mock_request.assert_called_once()
         call_args = mock_request.call_args
         payload = orjson.loads(call_args.kwargs["body"])
+
+        # Verify outer request fields match Seer's GetFixabilityScoreRequest
         assert payload["group_id"] == self.group.id
-        assert payload["summary"] == summary.dict()
+        assert "organization_slug" in payload
+        assert "project_id" in payload
+
+        # Verify summary structure matches Seer's SummarizeIssueResponse
+        assert "summary" in payload
+        summary_payload = payload["summary"]
+        assert summary_payload["group_id"] == self.group.id  # Must match outer group_id
+        assert summary_payload["headline"] == "Test Headline"
+        assert summary_payload["whats_wrong"] == "Test whats wrong"
+        assert summary_payload["trace"] == "Test trace"
+        assert summary_payload["possible_cause"] == "Test cause"
