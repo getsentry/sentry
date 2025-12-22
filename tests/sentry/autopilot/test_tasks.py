@@ -1,18 +1,22 @@
 from unittest import mock
 
+import pytest
+
 from sentry.autopilot.tasks import run_sdk_update_detector_for_organization
 from sentry.sdk_updates import SdkIndexState
-from sentry.testutils.cases import SnubaTestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.options import override_options
 
 
-class TestRunSdkUpdateDetector(SnubaTestCase):
+class TestRunSdkUpdateDetector(TestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.project2 = self.create_project(organization=self.organization)
 
+    @pytest.mark.django_db
     @mock.patch(
-        "sentry.api.endpoints.organization_sdk_updates.SdkIndexState",
+        "sentry.autopilot.tasks.SdkIndexState",
         return_value=SdkIndexState(sdk_versions={"example.sdk": "2.0.0"}),
     )
     def test_simple(self, mock_index_state: mock.MagicMock) -> None:
@@ -29,7 +33,9 @@ class TestRunSdkUpdateDetector(SnubaTestCase):
             assert_no_errors=False,
         )
 
-        updates = run_sdk_update_detector_for_organization(self.organization)
+        with override_options({"autopilot.organization-allowlist": [self.organization.slug]}):
+            updates = run_sdk_update_detector_for_organization(self.organization)
+
         assert len(updates) == 1
         assert updates[0]["suggestions"][0] == {
             "type": "updateSdk",

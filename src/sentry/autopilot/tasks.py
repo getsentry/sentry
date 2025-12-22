@@ -45,7 +45,7 @@ def run_sdk_update_detector_for_organization(organization: Organization):
     metrics.incr("autopilot.sdk_update_detector.projects_found", len(projects))
 
     with handle_query_errors():
-        data: Any = discover.query(
+        result: Any = discover.query(
             query="has:sdk.version",
             selected_columns=[
                 "project",
@@ -66,7 +66,7 @@ def run_sdk_update_detector_for_organization(organization: Organization):
 
     # filter out SDKs with empty sdk.name or sdk.version or invalid version
     nonempty_sdks = []
-    for sdk in data:
+    for sdk in result["data"]:
         if not sdk["sdk.name"] or not sdk["sdk.version"]:
             continue
 
