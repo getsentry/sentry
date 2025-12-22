@@ -183,10 +183,15 @@ function PreprodWidgetQueries({
                 value: values[0]!.count as number,
               }));
 
-            // Use query name if provided, otherwise fallback to app_id or default
-            let seriesName = query.name || query.aggregates[0] || 'value';
-            if (!query.name && appId) {
-              seriesName = appId;
+            // Determine series name
+            let seriesName: string;
+            if (query.name) {
+              // If query has a custom name, use it
+              // If this query resulted in multiple series (multiple app_ids), append the app_id
+              seriesName = appId ? `${query.name} (${appId})` : query.name;
+            } else {
+              // No custom name, just use app_id or fallback
+              seriesName = appId || query.aggregates[0] || 'value';
             }
 
             return {

@@ -31,10 +31,10 @@ interface FilterResponse {
 
 interface QueryConfig {
   appIds: string[];
+  artifactType: string;
   branch: string;
   buildConfig: string;
   name: string;
-  platform: string;
 }
 
 export function AppSizeFilters() {
@@ -47,7 +47,7 @@ export function AppSizeFilters() {
       appIds: [],
       branch: '',
       buildConfig: '',
-      platform: '',
+      artifactType: '',
     },
   ]);
 
@@ -93,7 +93,7 @@ export function AppSizeFilters() {
       let appIds: string[] = [];
       let branch = '';
       let buildConfig = '';
-      let platform = '';
+      let artifactType = '';
 
       for (const part of parts) {
         if (part.startsWith('app_id:')) {
@@ -103,8 +103,8 @@ export function AppSizeFilters() {
           branch = part.substring(13);
         } else if (part.startsWith('build_configuration_name:')) {
           buildConfig = part.substring(25);
-        } else if (part.startsWith('platform:')) {
-          platform = part.substring(9);
+        } else if (part.startsWith('artifact_type:')) {
+          artifactType = part.substring(14);
         }
       }
 
@@ -117,7 +117,7 @@ export function AppSizeFilters() {
         appIds,
         branch,
         buildConfig,
-        platform,
+        artifactType,
       };
     });
 
@@ -150,8 +150,8 @@ export function AppSizeFilters() {
     if (config.buildConfig) {
       parts.push(`build_configuration_name:${config.buildConfig}`);
     }
-    if (config.platform) {
-      parts.push(`platform:${config.platform}`);
+    if (config.artifactType) {
+      parts.push(`artifact_type:${config.artifactType}`);
     }
     return parts.join(' ');
   }, []);
@@ -160,6 +160,10 @@ export function AppSizeFilters() {
   const updateQueries = useCallback(
     (configs: QueryConfig[]) => {
       const conditions = configs.map(buildConditions);
+
+      // Get the current aggregate based on size type
+      const currentAggregate = state.yAxis?.[0]?.field || 'max(max_install_size)';
+
       dispatch({
         type: 'SET_QUERY',
         payload: conditions,
@@ -169,16 +173,16 @@ export function AppSizeFilters() {
       dispatch({
         type: 'SET_QUERIES',
         payload: configs.map((config, index) => ({
-          name: config.name || `Query ${index + 1}`,
+          name: config.name || '',
           conditions: conditions[index] || '',
-          fields: state.queries?.[index]?.fields || [],
-          aggregates: state.queries?.[index]?.aggregates || [],
-          columns: state.queries?.[index]?.columns || [],
-          orderby: state.queries?.[index]?.orderby || '',
+          fields: [currentAggregate],
+          aggregates: [currentAggregate],
+          columns: [],
+          orderby: '',
         })),
       });
     },
-    [buildConditions, dispatch, state.queries]
+    [buildConditions, dispatch, state.yAxis]
   );
 
   const handleQueryChange = useCallback(
@@ -199,7 +203,7 @@ export function AppSizeFilters() {
         appIds: [],
         branch: '',
         buildConfig: '',
-        platform: '',
+        artifactType: '',
       },
     ];
     setQueryConfigs(newConfigs);
@@ -231,8 +235,15 @@ export function AppSizeFilters() {
         type: 'SET_Y_AXIS',
         payload: [newField],
       });
+
+      // Update all queries with the new aggregate
+      // This ensures the queries have the correct aggregates when size type changes
+      // Note: We need to do this in a setTimeout to ensure SET_Y_AXIS has been processed
+      setTimeout(() => {
+        updateQueries(queryConfigs);
+      }, 0);
     },
-    [dispatch]
+    [dispatch, queryConfigs, updateQueries]
   );
 
   if (loading) {
@@ -295,15 +306,15 @@ export function AppSizeFilters() {
               multiple
             />
             <SelectField
-              name={`platform-${index}`}
-              label={t('Platform')}
-              placeholder={t('All platforms')}
-              value={config.platform || undefined}
+              name={`artifactType-${index}`}
+              label={t('Artifact Type')}
+              placeholder={t('All artifact types')}
+              value={config.artifactType || undefined}
               options={[
-                {label: t('iOS'), value: 'iOS'},
-                {label: t('Android'), value: 'Android'},
+                {label: t('iOS (.ipa)'), value: '0'},
+                {label: t('Android (.apk, .aab)'), value: '1'},
               ]}
-              onChange={value => handleQueryChange(index, {platform: value || ''})}
+              onChange={value => handleQueryChange(index, {artifactType: value || ''})}
               inline={false}
               stacked
               clearable
