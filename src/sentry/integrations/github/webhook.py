@@ -910,26 +910,6 @@ class PullRequestEventWebhook(GitHubWebhook):
         super()._handle(integration, event, **kwargs)
 
 
-class CheckRunEventWebhook(GitHubWebhook):
-    """
-    Handles GitHub check_run webhook events.
-    https://docs.github.com/en/webhooks/webhook-events-and-payloads#check_run
-    """
-
-    EVENT_TYPE = IntegrationWebhookEventType.CHECK_RUN
-    WEBHOOK_EVENT_PROCESSORS = [code_review_webhook_processor]
-
-
-class IssueCommentEventWebhook(GitHubWebhook):
-    """
-    Handles GitHub issue_comment webhook events.
-    https://docs.github.com/en/webhooks/webhook-events-and-payloads#issue_comment
-    """
-
-    EVENT_TYPE = IntegrationWebhookEventType.ISSUE_COMMENT
-    WEBHOOK_EVENT_PROCESSORS = [code_review_webhook_processor]
-
-
 class PullRequestReviewEventWebhook(GitHubWebhook):
     """
     Handles GitHub pull_request_review webhook events.
@@ -947,6 +927,26 @@ class PullRequestReviewCommentEventWebhook(GitHubWebhook):
     """
 
     EVENT_TYPE = IntegrationWebhookEventType.PULL_REQUEST_REVIEW_COMMENT
+    WEBHOOK_EVENT_PROCESSORS = [code_review_webhook_processor]
+
+
+class CheckRunEventWebhook(GitHubWebhook):
+    """
+    Handles GitHub check_run webhook events.
+    https://docs.github.com/en/webhooks/webhook-events-and-payloads#check_run
+    """
+
+    EVENT_TYPE = IntegrationWebhookEventType.CHECK_RUN
+    WEBHOOK_EVENT_PROCESSORS = [code_review_webhook_processor]
+
+
+class IssueCommentEventWebhook(GitHubWebhook):
+    """
+    Handles GitHub issue_comment webhook events.
+    https://docs.github.com/en/webhooks/webhook-events-and-payloads#issue_comment
+    """
+
+    EVENT_TYPE = IntegrationWebhookEventType.ISSUE_COMMENT
     WEBHOOK_EVENT_PROCESSORS = [code_review_webhook_processor]
 
 
@@ -968,12 +968,12 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
     _handlers: dict[str, type[GitHubWebhook]] = {
         GithubWebhookType.PUSH: PushEventWebhook,
         GithubWebhookType.PULL_REQUEST: PullRequestEventWebhook,
-        GithubWebhookType.INSTALLATION: InstallationEventWebhook,
-        GithubWebhookType.ISSUE: IssuesEventWebhook,
-        GithubWebhookType.CHECK_RUN: CheckRunEventWebhook,
-        GithubWebhookType.ISSUE_COMMENT: IssueCommentEventWebhook,
         GithubWebhookType.PULL_REQUEST_REVIEW: PullRequestReviewEventWebhook,
         GithubWebhookType.PULL_REQUEST_REVIEW_COMMENT: PullRequestReviewCommentEventWebhook,
+        GithubWebhookType.INSTALLATION: InstallationEventWebhook,
+        GithubWebhookType.ISSUE: IssuesEventWebhook,
+        GithubWebhookType.ISSUE_COMMENT: IssueCommentEventWebhook,
+        GithubWebhookType.CHECK_RUN: CheckRunEventWebhook,
     }
 
     def get_handler(self, event_type: str) -> type[GitHubWebhook] | None:
