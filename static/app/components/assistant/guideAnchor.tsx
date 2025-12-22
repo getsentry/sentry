@@ -75,6 +75,13 @@ function BaseGuideAnchor({
 
   const active = currentGuide?.steps[step]?.target === target && !forceHide;
 
+  /**
+   * Terminology:
+   *
+   *  - A guide can be FINISHED by clicking one of the buttons in the last step
+   *  - A guide can be DISMISSED by x-ing out of it at any step except the last (where there is no x)
+   *  - In both cases we consider it CLOSED
+   */
   const handleFinish = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
