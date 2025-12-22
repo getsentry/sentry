@@ -691,11 +691,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <Component />
-      </TraceItemAttributeProvider>
-    );
+    render(<Component />, {additionalWrapper: Wrapper()});
 
     expect(queries).toEqual([
       {
