@@ -104,7 +104,8 @@ def compare_preprod_artifact_size_analysis(
         ).select_related("preprod_artifact")
         head_size_metrics = list(head_size_metrics_qs)
 
-        if can_compare_size_metrics(head_size_metrics, base_size_metrics):
+        validation_result = can_compare_size_metrics(head_size_metrics, base_size_metrics)
+        if validation_result.can_compare:
 
             base_metrics_map = build_size_metrics_map(base_size_metrics)
             head_metrics_map = build_size_metrics_map(head_size_metrics)
@@ -130,7 +131,11 @@ def compare_preprod_artifact_size_analysis(
         else:
             logger.info(
                 "preprod.size_analysis.compare.cannot_compare_size_metrics",
-                extra={"head_artifact_id": artifact_id, "base_artifact_id": base_artifact.id},
+                extra={
+                    "head_artifact_id": artifact_id,
+                    "base_artifact_id": base_artifact.id,
+                    "error_message": validation_result.error_message,
+                },
             )
 
     # Also create comparisons with artifact as base
@@ -157,10 +162,15 @@ def compare_preprod_artifact_size_analysis(
         ).select_related("preprod_artifact")
         base_size_metrics = list(base_size_metrics_qs)
 
-        if not can_compare_size_metrics(head_size_metrics, base_size_metrics):
+        validation_result = can_compare_size_metrics(head_size_metrics, base_size_metrics)
+        if not validation_result.can_compare:
             logger.info(
                 "preprod.size_analysis.compare.cannot_compare_size_metrics",
-                extra={"head_artifact_id": head_artifact.id, "base_artifact_id": artifact_id},
+                extra={
+                    "head_artifact_id": head_artifact.id,
+                    "base_artifact_id": artifact_id,
+                    "error_message": validation_result.error_message,
+                },
             )
             continue
 
@@ -311,7 +321,8 @@ def manual_size_analysis_comparison(
         },
     )
 
-    if can_compare_size_metrics(head_size_metrics, base_size_metrics):
+    validation_result = can_compare_size_metrics(head_size_metrics, base_size_metrics)
+    if validation_result.can_compare:
 
         base_metrics_map = build_size_metrics_map(base_size_metrics)
         head_metrics_map = build_size_metrics_map(head_size_metrics)
@@ -340,7 +351,11 @@ def manual_size_analysis_comparison(
     else:
         logger.info(
             "preprod.size_analysis.compare.manual.cannot_compare_size_metrics",
-            extra={"head_artifact_id": head_artifact.id, "base_artifact_id": base_artifact.id},
+            extra={
+                "head_artifact_id": head_artifact.id,
+                "base_artifact_id": base_artifact.id,
+                "error_message": validation_result.error_message,
+            },
         )
 
 
