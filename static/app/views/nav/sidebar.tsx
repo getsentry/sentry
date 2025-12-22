@@ -8,7 +8,6 @@ import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {chonkStyled} from 'sentry/utils/theme/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
@@ -95,10 +94,8 @@ export function Sidebar() {
 const SidebarWrapper = styled('div')<{tourIsActive: boolean}>`
   width: ${PRIMARY_SIDEBAR_WIDTH}px;
   padding: ${space(1.5)} 0 ${space(1)} 0;
-  border-right: 1px solid
-    ${p => (p.theme.isChonk ? p.theme.border : p.theme.translucentGray200)};
-  background: ${p =>
-    p.theme.isChonk ? p.theme.tokens.background.primary : p.theme.surface300};
+  border-right: 1px solid ${p => p.theme.border};
+  background: ${p => p.theme.tokens.background.primary};
   display: flex;
   flex-direction: column;
 
@@ -114,7 +111,7 @@ const CollapsedSecondaryWrapper = styled(motion.div)`
   top: 0;
   left: ${PRIMARY_SIDEBAR_WIDTH}px;
   height: 100%;
-  box-shadow: ${p => (p.theme.isChonk ? 'none' : p.theme.dropShadowHeavy)};
+  box-shadow: none;
   background: ${p => p.theme.tokens.background.primary};
 `;
 
@@ -136,7 +133,7 @@ const SuperuserBadgeContainer = styled('div')`
   margin: 0;
 `;
 
-const ChonkSuperuserBadgeContainer = chonkStyled('div')`
+const ChonkSuperuserBadgeContainer = styled('div')`
   position: absolute;
   top: -${p => p.theme.space.lg};
   z-index: ${p => p.theme.zIndex.initial};

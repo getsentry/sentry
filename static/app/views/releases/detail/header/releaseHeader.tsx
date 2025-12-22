@@ -175,7 +175,7 @@ function ReleaseHeader({
       </Layout.HeaderActions>
 
       <Layout.HeaderTabs value={getActiveTabTo()}>
-        <TabList hideBorder>
+        <TabList>
           {tabs.map(tab => (
             <TabList.Item key={tab.to} to={getTabUrl(tab.to)} textValue={tab.textValue}>
               {tab.title}
@@ -208,7 +208,7 @@ const NavTabsBadge = styled(Badge)`
 `;
 
 const BadgeWrapper = styled('div')`
-  margin-left: ${p => (p.theme.isChonk ? 0 : p.theme.space.sm)};
+  margin-left: 0;
 `;
 
 export default ReleaseHeader;

@@ -24,9 +24,10 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Tag, TagCollection} from 'sentry/types/group';
+import type {TagCollection} from 'sentry/types/group';
 import type {Release} from 'sentry/types/release';
 import {ReleaseStatus} from 'sentry/types/release';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
@@ -37,6 +38,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import type {GetTagValues} from 'sentry/views/dashboards/datasetConfig/base';
 import ReleaseArchivedNotice from 'sentry/views/releases/detail/overview/releaseArchivedNotice';
 import MobileBuilds from 'sentry/views/releases/list/mobileBuilds';
 import ReleaseHealthCTA from 'sentry/views/releases/list/releaseHealthCTA';
@@ -293,6 +295,17 @@ export default function ReleasesList() {
     [location, navigate]
   );
 
+  const handleTabChange = useCallback(
+    (newTab: string) => {
+      if (newTab === 'mobile-builds') {
+        trackAnalytics('preprod.releases.mobile-builds.tab-clicked', {
+          organization,
+        });
+      }
+    },
+    [organization]
+  );
+
   const tagValueLoader = useCallback(
     (key: string, search: string) => {
       const {project} = location.query;
@@ -316,8 +329,8 @@ export default function ReleasesList() {
     [api, location, organization]
   );
 
-  const getTagValues = useCallback(
-    async (tag: Tag, currentQuery: string): Promise<string[]> => {
+  const getTagValues = useCallback<GetTagValues>(
+    async (tag, currentQuery) => {
       const values = await tagValueLoader(tag.key, currentQuery);
       return values.map(({value}) => value);
     },
@@ -395,7 +408,7 @@ export default function ReleasesList() {
             </ReleasesPageFilterBar>
 
             {shouldShowMobileBuildsTab && (
-              <Layout.HeaderTabs value={selectedTab}>
+              <Layout.HeaderTabs value={selectedTab} onChange={handleTabChange}>
                 <TabList aria-label={t('Releases tab selector')}>
                   <TabList.Item
                     key="releases"

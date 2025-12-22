@@ -35,7 +35,6 @@ import {
 } from 'sentry/types/breadcrumbs';
 import {EntryType, type Event} from 'sentry/types/event';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 const BREADCRUMB_TITLE_PLACEHOLDER = t('Generic');
 const BREADCRUMB_SUMMARY_COUNT = 5;
@@ -267,35 +266,56 @@ function getBreadcrumbColorConfig(
 ): NonNullable<TimelineItemProps['colorConfig']> {
   switch (type) {
     case BreadcrumbType.ERROR:
-      return {title: theme.red400, icon: theme.red400, iconBorder: theme.red200};
+      return {
+        title: theme.colors.red500,
+        icon: theme.colors.red500,
+        iconBorder: theme.colors.red200,
+      };
     case BreadcrumbType.WARNING:
-      return {title: theme.yellow400, icon: theme.yellow400, iconBorder: theme.yellow200};
+      return {
+        title: theme.colors.yellow500,
+        icon: theme.colors.yellow500,
+        iconBorder: theme.colors.yellow200,
+      };
     case BreadcrumbType.NAVIGATION:
     case BreadcrumbType.HTTP:
     case BreadcrumbType.QUERY:
     case BreadcrumbType.TRANSACTION:
-      return {title: theme.green400, icon: theme.green400, iconBorder: theme.green200};
+      return {
+        title: theme.colors.green500,
+        icon: theme.colors.green500,
+        iconBorder: theme.colors.green200,
+      };
     case BreadcrumbType.USER:
     case BreadcrumbType.UI:
-      return {title: theme.purple400, icon: theme.purple400, iconBorder: theme.purple200};
+      return {
+        title: theme.colors.blue500,
+        icon: theme.colors.blue500,
+        iconBorder: theme.colors.blue200,
+      };
     case BreadcrumbType.SYSTEM:
     case BreadcrumbType.SESSION:
     case BreadcrumbType.DEVICE:
     case BreadcrumbType.NETWORK:
     case BreadcrumbType.CONNECTIVITY:
-      return {title: theme.pink400, icon: theme.pink400, iconBorder: theme.pink200};
+      return {
+        title: theme.colors.pink500,
+        icon: theme.colors.pink500,
+        iconBorder: theme.colors.pink200,
+      };
     case BreadcrumbType.INFO:
-      return {title: theme.blue400, icon: theme.blue300, iconBorder: theme.blue200};
+      return {
+        title: theme.colors.blue500,
+        icon: theme.colors.blue400,
+        iconBorder: theme.colors.blue200,
+      };
     case BreadcrumbType.DEBUG:
     default:
-      if (isChonkTheme(theme)) {
-        return {
-          title: theme.tokens.content.primary,
-          icon: theme.tokens.content.muted,
-          iconBorder: theme.tokens.content.muted,
-        };
-      }
-      return {title: theme.gray400, icon: theme.gray300, iconBorder: theme.gray200};
+      return {
+        title: theme.tokens.content.primary,
+        icon: theme.tokens.content.muted,
+        iconBorder: theme.tokens.content.muted,
+      };
   }
 }
 
@@ -381,9 +401,9 @@ const BreadcrumbLevel = styled('div')<{level: BreadcrumbLevelType}>`
     switch (p.level) {
       case BreadcrumbLevelType.ERROR:
       case BreadcrumbLevelType.FATAL:
-        return p.theme.red400;
+        return p.theme.colors.red500;
       case BreadcrumbLevelType.WARNING:
-        return p.theme.yellow400;
+        return p.theme.colors.yellow500;
       default:
       case BreadcrumbLevelType.DEBUG:
       case BreadcrumbLevelType.INFO:

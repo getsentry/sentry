@@ -33,6 +33,7 @@ export type FormattedQueryProps = {
   fieldDefinitionGetter?: FieldDefinitionGetter;
   filterKeyAliases?: TagCollection;
   filterKeys?: TagCollection;
+  getFilterTokenWarning?: (key: string) => React.ReactNode;
 };
 
 type TokenProps = {
@@ -169,6 +170,7 @@ export function ProvidedFormattedQuery({
   fieldDefinitionGetter = defaultGetFieldDefinition,
   filterKeys = EMPTY_FILTER_KEYS,
   filterKeyAliases = EMPTY_FILTER_KEYS,
+  getFilterTokenWarning,
 }: FormattedQueryProps) {
   return (
     <SearchQueryBuilderProvider
@@ -177,6 +179,7 @@ export function ProvidedFormattedQuery({
       getTagValues={() => Promise.resolve([])}
       initialQuery={query}
       searchSource="formatted_query"
+      getFilterTokenWarning={getFilterTokenWarning}
     >
       <FormattedQuery
         className={className}
@@ -213,7 +216,7 @@ export const FilterWrapper = styled('div')`
 const FilterValue = styled('div')`
   width: 100%;
   max-width: 300px;
-  color: ${p => p.theme.purple400};
+  color: ${p => p.theme.colors.blue500};
   ${p => p.theme.overflowEllipsis};
 `;
 

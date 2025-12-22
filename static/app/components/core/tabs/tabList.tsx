@@ -9,13 +9,14 @@ import type {TabListStateOptions} from '@react-stately/tabs';
 import {useTabListState} from '@react-stately/tabs';
 import type {Node, Orientation} from '@react-types/shared';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import DropdownButton from 'sentry/components/dropdownButton';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {isChonkTheme, withChonk} from 'sentry/utils/theme/withChonk';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import type {TabListItemProps} from './item';
@@ -116,9 +117,7 @@ function OverflowMenu({state, overflowMenuItems, disabled}: any) {
         trigger={triggerProps => (
           <OverflowMenuTrigger
             {...triggerProps}
-            size="sm"
             borderless
-            showChevron={false}
             icon={<IconEllipsis />}
             aria-label={t('More tabs')}
           />
@@ -130,13 +129,6 @@ function OverflowMenu({state, overflowMenuItems, disabled}: any) {
 
 export interface TabListProps {
   children: TabListStateOptions<TabListItemProps>['children'];
-  /**
-   * @deprecated
-   * With chonk, tabs never have a border.
-   * Whether to hide the bottom border of the tab list.
-   * Defaults to `false`.
-   */
-  hideBorder?: boolean;
   outerWrapStyles?: React.CSSProperties;
   variant?: BaseTabProps['variant'];
 }
@@ -146,12 +138,7 @@ interface BaseTabListProps extends AriaTabListOptions<TabListItemProps>, TabList
   variant?: BaseTabProps['variant'];
 }
 
-function BaseTabList({
-  hideBorder = false,
-  outerWrapStyles,
-  variant = 'flat',
-  ...props
-}: BaseTabListProps) {
+function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListProps) {
   const navigate = useNavigate();
   const tabListRef = useRef<HTMLUListElement>(null);
   const {rootProps, setTabListState} = useContext(TabsContext);
@@ -232,7 +219,6 @@ function BaseTabList({
       <TabListWrap
         {...tabListProps}
         orientation={orientation}
-        hideBorder={hideBorder}
         ref={tabListRef}
         variant={variant}
       >
@@ -311,7 +297,6 @@ const TabListOuterWrap = styled('div')`
 
 const TabListWrap = withChonk(
   styled('ul', {shouldForwardProp: tabsShouldForwardProp})<{
-    hideBorder: boolean;
     orientation: Orientation;
     variant: BaseTabProps['variant'];
   }>`
@@ -328,7 +313,7 @@ const TabListWrap = withChonk(
             grid-auto-flow: column;
             justify-content: start;
             gap: ${p.variant === 'floating' ? 0 : space(2)};
-            ${!p.hideBorder && `border-bottom: solid 1px ${p.theme.border};`}
+            border-bottom: solid 1px ${p.theme.border};
           `
         : css`
             height: 100%;
@@ -336,8 +321,8 @@ const TabListWrap = withChonk(
             align-content: start;
             gap: 1px;
             padding-right: ${space(2)};
-            ${!p.hideBorder && `border-right: solid 1px ${p.theme.border};`}
-          `};
+            border-right: solid 1px ${p.theme.border};
+          `}
   `,
   ChonkStyledTabListWrap
 );
@@ -351,9 +336,8 @@ const TabListOverflowWrap = withChonk(
   ChonkStyledTabListOverflowWrap
 );
 
-const OverflowMenuTrigger = styled(DropdownButton)`
+const OverflowMenuTrigger = styled(SelectTrigger.IconButton)`
   padding-left: ${space(1)};
   padding-right: ${space(1)};
-  color: ${p =>
-    isChonkTheme(p.theme) ? p.theme.tokens.component.link.muted.default : undefined};
+  color: ${p => p.theme.tokens.component.link.muted.default};
 `;

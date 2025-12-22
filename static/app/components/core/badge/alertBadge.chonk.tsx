@@ -1,6 +1,7 @@
+import styled from '@emotion/styled';
+
 import type {AlertBadgeProps} from 'sentry/components/core/badge/alertBadge';
 import type {Theme} from 'sentry/utils/theme';
-import {chonkStyled} from 'sentry/utils/theme/theme';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 
 function makeChonkAlertBadgeDiamondBackgroundTheme(
@@ -44,7 +45,7 @@ function makeChonkAlertBadgeDiamondBackgroundTheme(
   };
 }
 
-export const ChonkAlertBadgeDiamondBackground = chonkStyled('div')<AlertBadgeProps>`
+export const ChonkAlertBadgeDiamondBackground = styled('div')<AlertBadgeProps>`
   ${p => ({
     ...makeChonkAlertBadgeDiamondBackgroundTheme(
       p.status,

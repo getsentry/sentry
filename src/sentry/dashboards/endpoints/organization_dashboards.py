@@ -65,6 +65,12 @@ class PrebuiltDashboardId(IntEnum):
     FRONTEND_SESSION_HEALTH = 1
     BACKEND_QUERIES = 2
     BACKEND_QUERIES_SUMMARY = 3
+    WEB_VITALS = 6
+    WEB_VITALS_SUMMARY = 7
+    MOBILE_VITALS = 8
+    MOBILE_VITALS_APP_STARTS = 9
+    MOBILE_VITALS_SCREEN_LOADS = 10
+    MOBILE_VITALS_SCREEN_RENDERING = 11
 
 
 class PrebuiltDashboard(TypedDict):
@@ -80,7 +86,7 @@ class PrebuiltDashboard(TypedDict):
 # deprecate once this feature is released.
 # Note B: Consider storing all dashboard and widget data in the database instead of relying on matching
 # prebuilt_id on the frontend, if there are issues.
-# Note C: These titles should match the titles in the frontend so that the results returned by the API match the titles in the frontend.
+# Note C: These titles should match the configs in the `PREBUILT_DASHBOARDS` constant in the frontend so that the results returned by the API match the titles in the frontend.
 PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
@@ -93,6 +99,26 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.BACKEND_QUERIES_SUMMARY,
         "title": "Query Details",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.WEB_VITALS,
+        "title": "Web Vitals",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS,
+        "title": "Mobile Vitals",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS_APP_STARTS,
+        "title": "App Starts",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS_SCREEN_LOADS,
+        "title": "Screen Loads",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS_SCREEN_RENDERING,
+        "title": "Screen Rendering",
     },
 ]
 

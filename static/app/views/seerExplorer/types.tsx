@@ -5,7 +5,7 @@ export interface TodoItem {
   status: 'pending' | 'in_progress' | 'completed';
 }
 
-interface ExplorerFilePatch {
+export interface ExplorerFilePatch {
   patch: FilePatch;
   repo_name: string;
 }
@@ -22,12 +22,20 @@ export interface RepoPRState {
   title?: string;
 }
 
+export interface Artifact {
+  data: Record<string, unknown> | null;
+  key: string;
+  reason: string;
+}
+
 export interface Block {
   id: string;
   message: Message;
   timestamp: string;
-  file_patches?: ExplorerFilePatch[];
+  artifacts?: Artifact[];
+  file_patches?: ExplorerFilePatch[]; // Incremental patches (for approval)
   loading?: boolean;
+  merged_file_patches?: ExplorerFilePatch[]; // Merged patches (original → current) for files touched in this block
   pr_commit_shas?: Record<string, string>;
   todos?: TodoItem[];
   tool_links?: Array<ToolLink | null>;
@@ -39,9 +47,10 @@ export interface ToolLink {
   params: Record<string, any>;
 }
 
-interface ToolResult {
+export interface ToolResult {
+  content: string;
+  tool_call_function: string;
   tool_call_id: string;
-  // other fields are unused for now.
 }
 
 export interface ToolCall {
@@ -53,6 +62,7 @@ export interface ToolCall {
 interface Message {
   content: string;
   role: 'user' | 'assistant' | 'tool_use';
+  thinking_content?: string;
   tool_calls?: ToolCall[];
 }
 

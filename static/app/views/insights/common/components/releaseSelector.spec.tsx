@@ -20,7 +20,6 @@ jest.mock('sentry/views/insights/common/queries/useReleases', () => ({
   }),
   useReleaseSelection: () => ({
     primaryRelease: undefined,
-    secondaryRelease: undefined,
     isLoading: false,
   }),
 }));

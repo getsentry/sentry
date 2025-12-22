@@ -1,9 +1,11 @@
 import {useCallback, useId, useMemo, useState} from 'react';
 import {Item, Section} from '@react-stately/collections';
+import * as Sentry from '@sentry/react';
 import maxBy from 'lodash/maxBy';
 import type {DistributedOmit} from 'type-fest';
 
 import {t} from 'sentry/locale';
+import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
 
 import {Control, type ControlProps} from './control';
 import type {MultipleListProps, SingleListProps} from './list';
@@ -120,7 +122,7 @@ export function CompactSelect<Value extends SelectKey>({
   const [measuredMenuWidth, setMeasuredMenuWidth] = useState<number>();
   const [hasMeasured, setHasMeasured] = useState(false);
   const needsMeasuring =
-    !menuWidth && !hasMeasured && shouldVirtualize(options, virtualizeThreshold);
+    !menuWidth && !grid && !hasMeasured && shouldVirtualize(options, virtualizeThreshold);
 
   const menuRef = useCallback(
     (element: HTMLDivElement | null) => {
@@ -170,6 +172,20 @@ export function CompactSelect<Value extends SelectKey>({
       items={allItemsWithKey}
       value={value}
       clearable={clearable}
+      onOpenChange={newOpenState => {
+        controlProps.onOpenChange?.(newOpenState);
+        if (newOpenState) {
+          scheduleMicroTask(() => {
+            trackVirtualizationMetrics(
+              allItemsWithKey,
+              virtualizeThreshold,
+              typeof controlProps.menuTitle === 'string'
+                ? controlProps.menuTitle
+                : undefined
+            );
+          });
+        }
+      }}
       onClear={({overlayState}) => {
         if (clearable) {
           if (multiple) {
@@ -232,4 +248,35 @@ function shouldVirtualize<Value extends SelectKey>(
   }
 
   return items.length > virtualizeThreshold;
+}
+
+function trackVirtualizationMetrics<Value extends SelectKey>(
+  items: Array<SelectOptionOrSectionWithKey<Value>>,
+  virtualizeThreshold = 150,
+  title = 'unknown'
+) {
+  const hasSections = items.some(item => 'options' in item);
+  const optionCount = items.reduce((sum, item) => {
+    return 'options' in item ? sum + item.options.length : sum + 1;
+  }, 0);
+
+  const threshold = virtualizeThreshold ?? 150;
+
+  if (optionCount > threshold) {
+    Sentry.metrics.count('scraps.compactSelect.virtualize_over_threshold', 1, {
+      attributes: {
+        has_sections: hasSections,
+        component_title: title,
+        count: optionCount,
+        threshold,
+      },
+    });
+  }
+
+  Sentry.metrics.distribution('scraps.compactSelect.option_count', optionCount, {
+    attributes: {
+      has_sections: hasSections,
+      component_title: title,
+    },
+  });
 }

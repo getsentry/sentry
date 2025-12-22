@@ -12,8 +12,6 @@ const PanelAlert = styled((props: Omit<AlertProps, 'system' | 'showIcon'>) => (
 ))`
   margin: 0 0 1px 0;
 
-  ${p => (p.theme.isChonk ? '' : 'border-bottom: none;')}
-
   &:last-child {
     margin: 0;
   }

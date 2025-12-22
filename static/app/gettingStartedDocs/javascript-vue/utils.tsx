@@ -88,7 +88,7 @@ const getDynamicParts = (params: Params): string[] => {
   if (params.isProfilingSelected) {
     dynamicParts.push(`
       // Profiling
-      profilesSampleRate: 1.0 // Profile 100% of the transactions. This value is relative to tracesSampleRate`);
+      profileSessionSampleRate: 1.0 // Profile 100% of user sessions`);
   }
 
   return dynamicParts;

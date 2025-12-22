@@ -9,6 +9,7 @@ from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.environment import Environment
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages
+from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
@@ -21,6 +22,7 @@ from sentry.tagstore.types import GroupTagValue, TagValue
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -285,6 +287,28 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
         assert len(top_release_values) == 1
         assert {v.value for v in top_release_values} == {"releaseme"}
         assert all(v.times_seen == 2 for v in top_release_values)
+
+    @with_feature("organizations:issue-tags-subtraction-query")
+    def test_get_group_tag_keys_and_top_values_subtraction_query(self) -> None:
+        """Test the 2-query subtraction approach for empty tag counts."""
+        perf_group, env = self.perf_group_and_env
+
+        result = list(
+            self.ts.get_group_tag_keys_and_top_values(
+                perf_group,
+                [env.id],
+                tenant_ids={"referrer": "r", "organization_id": 1234},
+                use_subtraction_query=True,
+            )
+        )
+        result.sort(key=lambda r: r.key)
+
+        # biz tag: event 1 has "baz", event 2 is missing it (empty)
+        assert result[0].key == "biz"
+        biz_values = {tv.value: tv.times_seen for tv in result[0].top_values}
+        assert biz_values.get("baz") == 1
+        assert biz_values.get("") == 1  # missing key counted as empty
+        assert result[0].count == 2
 
     def test_get_group_tag_keys_and_top_values_generic_issue(self) -> None:
         group, env = self.generic_group_and_env
@@ -1194,8 +1218,24 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             # Total should be 10 + 5 = 15 (weighted sum, not 2 raw events)
             assert total_count == 15
 
+    def test_eap_read_path(self) -> None:
+        with self.options({EAPOccurrencesComparator._should_eval_option_name(): True}):
+            gk = self.ts.get_group_tag_key(
+                self.proj1group1,
+                None,
+                "foo",
+                tenant_ids={"referrer": "r", "organization_id": 1234},
+                start=self.now - timedelta(days=5),
+                end=self.now + timedelta(days=5),
+            )
+
+            assert gk.key == "foo"
+            assert gk.values_seen == 1
+            assert gk.top_values[0].value == "bar"
+
 
 class ProfilingTagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
+
     def setUp(self) -> None:
         super().setUp()
         self.ts = SnubaTagStorage()

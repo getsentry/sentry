@@ -918,6 +918,158 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
 
     @with_feature("organizations:migrate-transaction-alerts-to-spans")
     @patch("sentry.snuba.tasks._create_rpc_in_snuba")
+    def test_extrapolation_mode_avg_custom_measurement_transactions(self, mock_create_rpc) -> None:
+        mock_create_rpc.return_value = "test-subscription-id"
+
+        snuba_query = create_snuba_query(
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.Transactions,
+            query="",
+            aggregate="avg(d:spans/exclusive_time@millisecond)",
+            time_window=timedelta(minutes=10),
+            environment=None,
+            event_types=[SnubaQueryEventType.EventType.TRANSACTION],
+            resolution=timedelta(minutes=1),
+        )
+
+        query_subscription = QuerySubscription.objects.create(
+            project=self.project,
+            type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            snuba_query=snuba_query,
+            status=QuerySubscription.Status.ACTIVE.value,
+        )
+
+        data_source = self.create_data_source(
+            organization=self.org,
+            source_id=str(query_subscription.id),
+            type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+        )
+
+        detector_data_condition_group = self.create_data_condition_group(
+            organization=self.org,
+        )
+
+        detector = self.create_detector(
+            name="Test Detector",
+            type=MetricIssue.slug,
+            project=self.project,
+            config={"detection_type": AlertRuleDetectionType.STATIC.value},
+            workflow_condition_group=detector_data_condition_group,
+        )
+
+        data_source.detectors.add(detector)
+
+        with self.tasks():
+            translate_detector_and_update_subscription_in_snuba(snuba_query)
+        snuba_query.refresh_from_db()
+
+        assert snuba_query.extrapolation_mode == ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED.value
+        assert snuba_query.aggregate == "avg(span.self_time)"
+
+    @with_feature("organizations:migrate-transaction-alerts-to-spans")
+    @patch("sentry.snuba.tasks._create_rpc_in_snuba")
+    def test_count_custom_measurement_transactions(self, mock_create_rpc) -> None:
+        mock_create_rpc.return_value = "test-subscription-id"
+
+        snuba_query = create_snuba_query(
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.Transactions,
+            query="",
+            aggregate="count(d:spans/duration@millisecond)",
+            time_window=timedelta(minutes=10),
+            environment=None,
+            event_types=[SnubaQueryEventType.EventType.TRANSACTION],
+            resolution=timedelta(minutes=1),
+        )
+
+        query_subscription = QuerySubscription.objects.create(
+            project=self.project,
+            type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            snuba_query=snuba_query,
+            status=QuerySubscription.Status.ACTIVE.value,
+        )
+
+        data_source = self.create_data_source(
+            organization=self.org,
+            source_id=str(query_subscription.id),
+            type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+        )
+
+        detector_data_condition_group = self.create_data_condition_group(
+            organization=self.org,
+        )
+
+        detector = self.create_detector(
+            name="Test Detector",
+            type=MetricIssue.slug,
+            project=self.project,
+            config={"detection_type": AlertRuleDetectionType.STATIC.value},
+            workflow_condition_group=detector_data_condition_group,
+        )
+
+        data_source.detectors.add(detector)
+
+        with self.tasks():
+            translate_detector_and_update_subscription_in_snuba(snuba_query)
+        snuba_query.refresh_from_db()
+
+        assert snuba_query.extrapolation_mode == ExtrapolationMode.NONE.value
+        assert snuba_query.aggregate == "count(span.duration)"
+        assert snuba_query.query == "(has:span.duration) AND is_transaction:1"
+
+    @with_feature("organizations:migrate-transaction-alerts-to-spans")
+    @patch("sentry.snuba.tasks._create_in_snuba")
+    def test_avg_custom_measurement_transactions(self, mock_create_in_snuba) -> None:
+        mock_create_in_snuba.return_value = "test-subscription-id"
+
+        snuba_query = create_snuba_query(
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.Transactions,
+            query="",
+            aggregate="avg(d:custom/foo@none)",
+            time_window=timedelta(minutes=10),
+            environment=None,
+            event_types=[SnubaQueryEventType.EventType.TRANSACTION],
+            resolution=timedelta(minutes=1),
+        )
+
+        query_subscription = QuerySubscription.objects.create(
+            project=self.project,
+            type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            snuba_query=snuba_query,
+            status=QuerySubscription.Status.ACTIVE.value,
+        )
+
+        data_source = self.create_data_source(
+            organization=self.org,
+            source_id=str(query_subscription.id),
+            type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+        )
+
+        detector_data_condition_group = self.create_data_condition_group(
+            organization=self.org,
+        )
+
+        detector = self.create_detector(
+            name="Test Detector",
+            type=MetricIssue.slug,
+            project=self.project,
+            config={"detection_type": AlertRuleDetectionType.STATIC.value},
+            workflow_condition_group=detector_data_condition_group,
+        )
+
+        data_source.detectors.add(detector)
+
+        with self.tasks():
+            translate_detector_and_update_subscription_in_snuba(snuba_query)
+        snuba_query.refresh_from_db()
+
+        assert snuba_query.extrapolation_mode == ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED.value
+        assert snuba_query.aggregate == "avg(foo)"
+        assert snuba_query.query == "is_transaction:1"
+
+    @with_feature("organizations:migrate-transaction-alerts-to-spans")
+    @patch("sentry.snuba.tasks._create_rpc_in_snuba")
     def test_extrapolation_mode_count_if_performance_metrics(self, mock_create_rpc) -> None:
         mock_create_rpc.return_value = "test-subscription-id"
 

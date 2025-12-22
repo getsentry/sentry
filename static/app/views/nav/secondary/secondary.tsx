@@ -13,7 +13,6 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {chonkStyled} from 'sentry/utils/theme/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -381,14 +380,17 @@ interface ItemProps extends LinkProps {
   layout: NavLayout;
 }
 
-const ChonkItem = chonkStyled(Link)<ItemProps>`
+const ChonkItem = styled(Link)<ItemProps>`
   display: flex;
   gap: ${space(0.75)};
   justify-content: center;
   align-items: center;
   position: relative;
   color: ${p => p.theme.tokens.component.link.muted.default};
-  padding: ${p => (p.layout === NavLayout.MOBILE ? `${space(0.75)} ${space(1.5)} ${space(0.75)} 48px` : `${space(0.75)} ${space(1.5)}`)};
+  padding: ${p =>
+    p.layout === NavLayout.MOBILE
+      ? `${space(0.75)} ${space(1.5)} ${space(0.75)} 48px`
+      : `${space(0.75)} ${space(1.5)}`};
   border-radius: ${p => p.theme.radius[p.layout === NavLayout.MOBILE ? '0' : 'md']};
 
   /* Disable interaction state layer */
@@ -449,11 +451,11 @@ const StyledNavItem = styled(Link)<ItemProps>`
   }
 
   &[aria-selected='true'] {
-    color: ${p => p.theme.purple400};
+    color: ${p => p.theme.colors.blue500};
     font-weight: ${p => p.theme.fontWeight.bold};
 
     &:hover {
-      color: ${p => p.theme.purple400};
+      color: ${p => p.theme.colors.blue500};
     }
   }
 

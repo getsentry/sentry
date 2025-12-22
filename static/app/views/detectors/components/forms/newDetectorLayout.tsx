@@ -22,6 +22,7 @@ type NewDetectorLayoutProps<TFormData, TUpdatePayload> = {
   formDataToEndpointPayload: (formData: TFormData) => TUpdatePayload;
   initialFormData: Partial<TFormData>;
   disabledCreate?: string;
+  envFieldProps?: React.ComponentProps<typeof DetectorBaseFields>['envFieldProps'];
   mapFormErrors?: (error: any) => any;
   noEnvironment?: boolean;
   previewChart?: React.ReactNode;
@@ -37,6 +38,7 @@ export function NewDetectorLayout<
   disabledCreate,
   mapFormErrors,
   noEnvironment,
+  envFieldProps,
   previewChart,
   detectorType,
 }: NewDetectorLayoutProps<TFormData, TUpdatePayload>) {
@@ -85,7 +87,10 @@ export function NewDetectorLayout<
         </div>
 
         <EditLayout.HeaderFields>
-          <DetectorBaseFields noEnvironment={noEnvironment} />
+          <DetectorBaseFields
+            noEnvironment={noEnvironment}
+            envFieldProps={envFieldProps}
+          />
           {previewChart ?? <div />}
         </EditLayout.HeaderFields>
       </EditLayout.Header>

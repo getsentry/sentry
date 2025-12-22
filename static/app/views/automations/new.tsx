@@ -80,7 +80,7 @@ export default function AutomationNewSettings() {
   const maxWidth = theme.breakpoints.lg;
 
   const [automationBuilderErrors, setAutomationBuilderErrors] = useState<
-    Record<string, string>
+    Record<string, any>
   >({});
   const removeError = useCallback((errorId: string) => {
     setAutomationBuilderErrors(prev => {

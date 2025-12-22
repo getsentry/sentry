@@ -129,12 +129,6 @@ export const platformProductAvailability = {
     ProductSolution.LOGS,
     ProductSolution.METRICS,
   ],
-  'javascript-react-router': [
-    ProductSolution.PERFORMANCE_MONITORING,
-    ProductSolution.SESSION_REPLAY,
-    ProductSolution.LOGS,
-    ProductSolution.METRICS,
-  ],
   'javascript-vue': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
@@ -655,15 +649,15 @@ const ProductButton = withChonk(
   styled(Button)`
     :hover,
     :focus-visible {
-      border: 1px solid ${p => p.theme.purple300};
-      background: ${p => p.theme.purple100};
-      color: ${p => p.theme.purple300};
+      border: 1px solid ${p => p.theme.colors.blue400};
+      background: ${p => p.theme.colors.blue100};
+      color: ${p => p.theme.colors.blue400};
     }
 
     [aria-disabled='true'] {
       input {
-        background: ${p => p.theme.purple100};
-        color: ${p => p.theme.purple300};
+        background: ${p => p.theme.colors.blue100};
+        color: ${p => p.theme.colors.blue400};
       }
     }
   `,

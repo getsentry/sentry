@@ -426,6 +426,7 @@ class IntegrationWebhookEventType(StrEnum):
     PUSH = "push"
     PULL_REQUEST = "pull_request"
     INBOUND_SYNC = "inbound_sync"
+    CHECK_RUN = "check_run"
 
 
 @dataclass

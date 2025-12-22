@@ -28,7 +28,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTraces} from 'sentry/views/explore/hooks/useTraces';
-import {getExploreUrl} from 'sentry/views/explore/utils';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useTraceViewDrawer} from 'sentry/views/insights/pages/agents/components/drawer';
@@ -39,6 +38,7 @@ import {
   ErrorCell,
   NumberPlaceholder,
 } from 'sentry/views/insights/pages/agents/utils/cells';
+import {getExploreUrlWithProjectSelection} from 'sentry/views/insights/pages/agents/utils/getExploreUrlWithProjectSelection';
 import {
   getAgentRunsFilter,
   getHasAiSpansFilter,
@@ -113,7 +113,7 @@ export function TracesTable() {
         'count_if(gen_ai.operation.type,equals,ai_client)',
         'count_if(gen_ai.operation.type,equals,tool)',
         'sum(gen_ai.usage.total_tokens)',
-        'sum(gen_ai.usage.total_cost)',
+        'sum(gen_ai.cost.total_tokens)',
       ],
       limit: tracesRequest.data?.data.length ?? 0,
       enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
@@ -175,7 +175,7 @@ export function TracesTable() {
           llmCalls: Number(span['count_if(gen_ai.operation.type,equals,ai_client)'] ?? 0),
           toolCalls: Number(span['count_if(gen_ai.operation.type,equals,tool)'] ?? 0),
           totalTokens: Number(span['sum(gen_ai.usage.total_tokens)'] ?? 0),
-          totalCost: Number(span['sum(gen_ai.usage.total_cost)'] ?? 0),
+          totalCost: Number(span['sum(gen_ai.cost.total_tokens)'] ?? 0),
           totalErrors: Number(errors[span.trace] ?? 0),
         };
         return acc;
@@ -312,7 +312,7 @@ const BodyCell = memo(function BodyCell({
       return (
         <ErrorCell
           value={dataRow.errors}
-          target={getExploreUrl({
+          target={getExploreUrlWithProjectSelection({
             query: `${query} span.status:internal_error trace:[${dataRow.traceId}]`,
             organization,
             selection,
@@ -340,7 +340,7 @@ const BodyCell = memo(function BodyCell({
     case 'timestamp':
       return (
         <TextAlignRight>
-          <TimeSince unitStyle="extraShort" date={new Date(dataRow.timestamp)} />
+          <TimeSince unitStyle="short" date={new Date(dataRow.timestamp)} />
         </TextAlignRight>
       );
     default:
@@ -466,4 +466,5 @@ const HeadCell = styled('div')<{align: 'left' | 'right'}>`
 
 const TraceIdButton = styled(Button)`
   font-weight: normal;
+  padding: 0;
 `;

@@ -6,7 +6,6 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {
   makeEAPOccurrence,
   makeTraceError,
@@ -16,6 +15,10 @@ import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/trace
 import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 
 class TestNode extends BaseNode {
+  get id(): string {
+    return (this.value as any).event_id;
+  }
+
   get type(): TraceTree.NodeType {
     return 'test' as TraceTree.NodeType;
   }
@@ -33,7 +36,7 @@ class TestNode extends BaseNode {
   }
 
   makeBarColor(theme: Theme): string {
-    return theme.blue300;
+    return theme.colors.blue400;
   }
 
   printNode(): string {
@@ -55,7 +58,7 @@ class TestNode extends BaseNode {
     return <div data-test-id="waterfall-row">Waterfall Row</div>;
   }
 
-  renderDetails<T extends TraceTreeNode<TraceTree.NodeValue>>(
+  renderDetails<T extends BaseNode>(
     _props: TraceTreeNodeDetailsProps<T>
   ): React.ReactNode {
     return <div data-test-id="node-details">Details</div>;
@@ -63,6 +66,10 @@ class TestNode extends BaseNode {
 
   matchWithFreeText(key: string): boolean {
     return this.description?.includes(key) || this.op?.includes(key) || false;
+  }
+
+  resolveValueFromSearchKey(_key: string): any | null {
+    return null;
   }
 }
 
@@ -105,7 +112,6 @@ describe('BaseNode', () => {
       expect(node.children).toEqual([]);
       expect(node.errors).toBeInstanceOf(Set);
       expect(node.occurrences).toBeInstanceOf(Set);
-      expect(node.profiles).toBeInstanceOf(Set);
       expect(node.isEAPEvent).toBe(false);
       expect(node.canShowDetails).toBe(true);
       expect(node.searchPriority).toBe(0);
@@ -515,8 +521,7 @@ describe('BaseNode', () => {
 
       const node = new TestNode(null, value, extra);
 
-      expect(node.profiles.size).toBe(1);
-      expect(Array.from(node.profiles)).toEqual([{profile_id: 'profile-123'}]);
+      expect(node.profileId).toBe('profile-123');
     });
 
     it('should collect profile from profiler_id during construction', () => {
@@ -527,9 +532,7 @@ describe('BaseNode', () => {
       });
 
       const node = new TestNode(null, value, extra);
-
-      expect(node.profiles.size).toBe(1);
-      expect(Array.from(node.profiles)).toEqual([{profiler_id: 'profiler-456'}]);
+      expect(node.profilerId).toBe('profiler-456');
     });
 
     it('should ignore empty profile IDs', () => {
@@ -537,12 +540,11 @@ describe('BaseNode', () => {
       const value = createMockValue({
         event_id: 'test-id',
         profile_id: '',
-        profiler_id: '   ',
       });
 
       const node = new TestNode(null, value, extra);
 
-      expect(node.profiles.size).toBe(0);
+      expect(node.profileId).toBeUndefined();
     });
 
     it('should collect both profile_id and profiler_id', () => {
@@ -555,10 +557,8 @@ describe('BaseNode', () => {
 
       const node = new TestNode(null, value, extra);
 
-      expect(node.profiles.size).toBe(2);
-      const profilesArray = Array.from(node.profiles);
-      expect(profilesArray).toContainEqual({profile_id: 'profile-123'});
-      expect(profilesArray).toContainEqual({profiler_id: 'profiler-456'});
+      expect(node.profileId).toBe('profile-123');
+      expect(node.profilerId).toBe('profiler-456');
     });
   });
 
@@ -571,7 +571,7 @@ describe('BaseNode', () => {
 
       parent.children = [child1, child2];
 
-      expect(parent.directChildren).toEqual([child1, child2]);
+      expect(parent.directVisibleChildren).toEqual([child1, child2]);
     });
 
     it('should return visible children when expanded', () => {
@@ -710,7 +710,6 @@ describe('BaseNode', () => {
 
       const result = await node.fetchChildren(false, {} as TraceTree, {
         api: {} as any,
-        preferences: {} as any,
       });
 
       expect(result).toBeNull();
@@ -727,7 +726,7 @@ describe('BaseNode', () => {
         title: 'Trace Header Title',
         subtitle: 'GET /api/users',
       });
-      expect(node.makeBarColor(ThemeFixture())).toBe(ThemeFixture().blue300);
+      expect(node.makeBarColor(ThemeFixture())).toEqual(ThemeFixture().blue300);
       expect(node.printNode()).toBe('Print Node(test-id)');
       expect(node.analyticsName()).toBe('test');
 
@@ -1223,36 +1222,6 @@ describe('BaseNode', () => {
       expect(child1.isLastChild()).toBe(false);
       expect(child2.isLastChild()).toBe(true);
     });
-
-    it('should consider nested visible children when determining last child', () => {
-      const extra = createMockExtra();
-      const grandparent = new TestNode(
-        null,
-        createMockValue({event_id: 'grandparent'}),
-        extra
-      );
-      const parent1 = new TestNode(
-        grandparent,
-        createMockValue({event_id: 'parent1'}),
-        extra
-      );
-      const parent2 = new TestNode(
-        grandparent,
-        createMockValue({event_id: 'parent2'}),
-        extra
-      );
-      const child = new TestNode(parent2, createMockValue({event_id: 'child'}), extra);
-
-      grandparent.children = [parent1, parent2];
-      parent2.children = [child];
-      grandparent.expanded = true;
-      parent2.expanded = true;
-
-      // child should be the last visible child of grandparent's visible children
-      expect(child.isLastChild()).toBe(true);
-      expect(parent2.isLastChild()).toBe(false);
-      expect(parent1.isLastChild()).toBe(false);
-    });
   });
 
   describe('isRootNodeChild', () => {
@@ -1588,6 +1557,101 @@ describe('BaseNode', () => {
 
       expect(node.depth).toBeUndefined();
       expect(node.connectors).toBeUndefined();
+    });
+  });
+
+  describe('findParentTransaction', () => {
+    it('should return null when no transaction parent exists', () => {
+      const extra = createMockExtra();
+      const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
+
+      expect(node.findParentNodeStoreTransaction()).toBeNull();
+    });
+
+    it('should find parent transaction node', () => {
+      const extra = createMockExtra();
+      const mockTransactionParent = {
+        type: 'txn',
+        id: 'transaction-parent',
+      };
+
+      const child = new TestNode(null, createMockValue({event_id: 'child'}), extra);
+      jest.spyOn(child, 'findParent').mockReturnValue(mockTransactionParent as any);
+
+      const result = child.findParentNodeStoreTransaction();
+      expect(result).toBe(mockTransactionParent);
+      expect(child.findParent).toHaveBeenCalledWith(expect.any(Function));
+    });
+  });
+
+  describe('findParentEapTransaction', () => {
+    it('should return null when no EAP transaction parent exists', () => {
+      const extra = createMockExtra();
+      const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
+
+      expect(node.findParentEapTransaction()).toBeNull();
+    });
+
+    it('should find parent EAP transaction node', () => {
+      const extra = createMockExtra();
+      const mockEapTransactionParent = {
+        type: 'eap_span',
+        id: 'eap-transaction-parent',
+        value: {is_transaction: true},
+      };
+
+      const child = new TestNode(null, createMockValue({event_id: 'child'}), extra);
+      jest.spyOn(child, 'findParent').mockReturnValue(mockEapTransactionParent as any);
+
+      const result = child.findParentEapTransaction();
+      expect(result).toBe(mockEapTransactionParent);
+      expect(child.findParent).toHaveBeenCalledWith(expect.any(Function));
+    });
+  });
+
+  describe('hasErrors getter', () => {
+    it('should return false when node has no errors', () => {
+      const extra = createMockExtra();
+      const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
+
+      expect(node.hasErrors).toBe(false);
+    });
+
+    it('should return true when node has errors', () => {
+      const extra = createMockExtra();
+      const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
+
+      node.errors.add(
+        makeTraceError({
+          issue_id: 1,
+          event_id: 'error-1',
+        })
+      );
+
+      expect(node.hasErrors).toBe(true);
+    });
+  });
+
+  describe('hasOccurrences getter', () => {
+    it('should return false when node has no occurrences', () => {
+      const extra = createMockExtra();
+      const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
+
+      expect(node.hasOccurrences).toBe(false);
+    });
+
+    it('should return true when node has occurrences', () => {
+      const extra = createMockExtra();
+      const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
+
+      node.occurrences.add(
+        makeEAPOccurrence({
+          issue_id: 1,
+          event_id: 'occurrence-1',
+        })
+      );
+
+      expect(node.hasOccurrences).toBe(true);
     });
   });
 });

@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
 from django.apps import apps
+from django.db.models import Q
 from redis.client import StrictRedis
 from rediscluster import RedisCluster
 
@@ -153,6 +154,28 @@ class GroupTypeRegistry:
         if id_ not in self._registry:
             raise InvalidGroupTypeError(id_)
         return self._registry[id_]
+
+    def get_detector_type_filters(self) -> Q:
+        """
+        Build a Q object that combines all detector type-specific filters.
+
+        For detector types without filters, they're included by default via a NOT IN clause.
+        For detector types with filters, we apply the specific filter condition.
+
+        This optimizes the query since most detector types won't have filters.
+        """
+        types_with_filters = []
+        filtered_type_conditions = Q()
+
+        for group_type in self.all():
+            if group_type.detector_settings and group_type.detector_settings.filter is not None:
+                filter = group_type.detector_settings.filter
+                types_with_filters.append(group_type.slug)
+                filtered_type_conditions |= Q(type=group_type.slug) & filter
+
+        # Include all types that don't have filters (type NOT IN types_with_filters)
+        # OR match the specific filter conditions for types that do have filters
+        return ~Q(type__in=types_with_filters) | filtered_type_conditions
 
 
 registry = GroupTypeRegistry()

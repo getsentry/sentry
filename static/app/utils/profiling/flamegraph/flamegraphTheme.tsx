@@ -121,36 +121,6 @@ export interface FlamegraphTheme {
   };
 }
 
-// Luma chroma settings for light theme
-const LCH_LIGHT = {
-  C_0: 0.25,
-  C_d: 0.2,
-  L_0: 0.8,
-  L_d: 0.15,
-};
-
-// Luma chroma settings for dark theme
-const LCH_DARK = {
-  C_0: 0.2,
-  C_d: 0.1,
-  L_0: 0.2,
-  L_d: 0.1,
-};
-
-const SPAN_LCH_LIGHT = {
-  C_0: 0.3,
-  C_d: 0.25,
-  L_0: 0.8,
-  L_d: 0.15,
-};
-
-const SPANS_LCH_DARK = {
-  C_0: 0.3,
-  C_d: 0.15,
-  L_0: 0.2,
-  L_d: 0.1,
-};
-
 const SIZES: FlamegraphTheme['SIZES'] = {
   AGGREGATE_FLAMEGRAPH_DEPTH_OFFSET: 4,
   BAR_FONT_SIZE: 11,
@@ -187,152 +157,33 @@ function makeFlamegraphFonts(theme: Theme): FlamegraphTheme['FONTS'] {
   };
 }
 
-/** Legacy theme definitions */
-export function makeLightFlamegraphTheme(theme: Theme): FlamegraphTheme {
-  const chartColors = theme.chart.getColorPalette(12);
-  return {
-    LCH: LCH_LIGHT,
-    SIZES,
-    FONTS: makeFlamegraphFonts(theme),
-    COLORS: {
-      BAR_LABEL_FONT_COLOR: '#000',
-      BATTERY_CHART_COLORS: [[0.4, 0.56, 0.9, 0.65]],
-      COLOR_BUCKET: makeColorBucketTheme(LCH_LIGHT),
-      SPAN_COLOR_BUCKET: makeColorBucketTheme(SPAN_LCH_LIGHT, 140, 220),
-      COLOR_MAPS: {
-        'by symbol name': makeColorMapBySymbolName,
-        'by system frame': makeColorMapBySystemFrame,
-        'by application frame': makeColorMapByApplicationFrame,
-        'by library': makeColorMapByLibrary,
-        'by recursion': makeColorMapByRecursion,
-        'by frequency': makeColorMapByFrequency,
-        'by system vs application frame': makeColorMapBySystemVsApplicationFrame,
-      },
-      CPU_CHART_COLORS: chartColors.map(c => hexToColorChannels(c, 0.8)),
-      MEMORY_CHART_COLORS: [
-        hexToColorChannels(chartColors[2], 0.8),
-        hexToColorChannels(chartColors[3], 0.8),
-      ],
-      CHART_CURSOR_INDICATOR: 'rgba(31,35,58,.75)',
-      CHART_LABEL_COLOR: 'rgba(31,35,58,.75)',
-      CURSOR_CROSSHAIR: '#bbbbbb',
-      DIFFERENTIAL_DECREASE: [0.309, 0.2558, 0.78],
-      DIFFERENTIAL_INCREASE: [0.84, 0.3, 0.33],
-      FOCUSED_FRAME_BORDER_COLOR: theme.focus,
-      FRAME_FALLBACK_COLOR: [0.5, 0.5, 0.6, 0.1],
-      FRAME_APPLICATION_COLOR: [0.1, 0.1, 0.8, 0.2],
-      FRAME_SYSTEM_COLOR: [0.7, 0.1, 0.1, 0.2],
-      SPAN_FALLBACK_COLOR: [0, 0, 0, 0.1],
-      GRID_FRAME_BACKGROUND_COLOR: 'rgb(250, 249, 251, 1)', // theme.backgroundSecondary
-      GRID_LINE_COLOR: '#e5e7eb',
-      HIGHLIGHTED_LABEL_COLOR: 'rgba(240, 240, 0, 1)',
-      HOVERED_FRAME_BORDER_COLOR: 'rgba(0, 0, 0, 0.8)',
-      LABEL_FONT_COLOR: '#1f233a',
-      MINIMAP_POSITION_OVERLAY_BORDER_COLOR: 'rgba(0,0,0, 0.2)',
-      MINIMAP_POSITION_OVERLAY_COLOR: 'rgba(0,0,0,0.1)',
-      SAMPLE_TICK_COLOR: [255, 0, 0, 0.5],
-      // Yellow 200
-      UI_FRAME_COLOR_SLOW: [0.96, 0.69, 0.0, 0.55],
-      // Red 200 but stronger opacity
-      UI_FRAME_COLOR_FROZEN: [0.96, 0.329, 0.349, 0.8],
-      SEARCH_RESULT_FRAME_COLOR: 'vec4(0.99, 0.70, 0.35, 1.0)',
-      SEARCH_RESULT_SPAN_COLOR: '#fdb359',
-      SELECTED_FRAME_BORDER_COLOR: theme.blue400,
-      SPAN_FRAME_LINE_PATTERN: '#dedae3',
-      SPAN_FRAME_LINE_PATTERN_BACKGROUND: '#f4f2f7',
-      SPAN_FRAME_BORDER: 'rgba(200, 200, 200, 1)',
-      STACK_TO_COLOR: makeStackToColor([0, 0, 0, 0.035]),
-    },
-  };
-}
-
-export function makeDarkFlamegraphTheme(theme: Theme): FlamegraphTheme {
-  const chartColors = theme.chart.getColorPalette(12);
-  return {
-    LCH: LCH_DARK,
-    SIZES,
-    FONTS: makeFlamegraphFonts(theme),
-    COLORS: {
-      BAR_LABEL_FONT_COLOR: 'rgb(255 255 255 / 80%)',
-      BATTERY_CHART_COLORS: [[0.4, 0.56, 0.9, 0.5]],
-      COLOR_BUCKET: makeColorBucketTheme(LCH_DARK),
-      SPAN_COLOR_BUCKET: makeColorBucketTheme(SPANS_LCH_DARK, 140, 220),
-      COLOR_MAPS: {
-        'by symbol name': makeColorMapBySymbolName,
-        'by system frame': makeColorMapBySystemFrame,
-        'by application frame': makeColorMapByApplicationFrame,
-        'by library': makeColorMapByLibrary,
-        'by recursion': makeColorMapByRecursion,
-        'by frequency': makeColorMapByFrequency,
-        'by system vs application frame': makeColorMapBySystemVsApplicationFrame,
-      },
-      CPU_CHART_COLORS: chartColors.map(c => hexToColorChannels(c, 0.8)),
-      MEMORY_CHART_COLORS: [
-        hexToColorChannels(chartColors[2], 0.5),
-        hexToColorChannels(chartColors[3], 0.5),
-      ],
-      CHART_CURSOR_INDICATOR: 'rgba(255, 255, 255, 0.5)',
-      CHART_LABEL_COLOR: 'rgba(255, 255, 255, 0.5)',
-      CURSOR_CROSSHAIR: '#828285',
-      DIFFERENTIAL_DECREASE: [0.309, 0.2058, 0.98],
-      DIFFERENTIAL_INCREASE: [0.98, 0.2058, 0.4381],
-      FOCUSED_FRAME_BORDER_COLOR: theme.focus,
-      FRAME_FALLBACK_COLOR: [0.5, 0.5, 0.5, 0.4],
-      FRAME_APPLICATION_COLOR: [0.1, 0.1, 0.5, 0.4],
-      FRAME_SYSTEM_COLOR: [0.6, 0.15, 0.25, 0.3],
-      SPAN_FALLBACK_COLOR: [1, 1, 1, 0.3],
-      GRID_FRAME_BACKGROUND_COLOR: 'rgb(26, 20, 31,1)',
-      GRID_LINE_COLOR: '#222227',
-      HIGHLIGHTED_LABEL_COLOR: 'rgba(136, 50, 0, 1)',
-      HOVERED_FRAME_BORDER_COLOR: 'rgba(255, 255, 255, 0.8)',
-      LABEL_FONT_COLOR: 'rgba(255, 255, 255, 0.8)',
-      MINIMAP_POSITION_OVERLAY_BORDER_COLOR: 'rgba(255,255,255, 0.35)',
-      MINIMAP_POSITION_OVERLAY_COLOR: 'rgba(82, 25, 25, 0.1)',
-      SAMPLE_TICK_COLOR: [255, 0, 0, 0.5],
-      // Yellow 200
-      UI_FRAME_COLOR_SLOW: [0.96, 0.69, 0.0, 0.6],
-      // Red 200 but stronger opacity
-      UI_FRAME_COLOR_FROZEN: [0.96, 0.329, 0.349, 0.5],
-      SEARCH_RESULT_FRAME_COLOR: 'vec4(0.99, 0.70, 0.35, 0.7)',
-      SPAN_FRAME_LINE_PATTERN: '#594b66',
-      SPAN_FRAME_LINE_PATTERN_BACKGROUND: '#1a1724',
-      SELECTED_FRAME_BORDER_COLOR: theme.blue400,
-      SEARCH_RESULT_SPAN_COLOR: '#b9834a',
-      SPAN_FRAME_BORDER: '#57575b',
-      STACK_TO_COLOR: makeStackToColor([1, 1, 1, 0.1]),
-    },
-  };
-}
-
-/** Chonk theme definitions */
-
-const LCH_LIGHT_CHONK = {
+const LCH_LIGHT = {
   C_0: 0.35,
   C_d: 0.3,
   L_0: 0.8,
   L_d: 0.15,
 };
 
-const SPAN_LCH_LIGHT_CHONK = {
+const SPAN_LCH_LIGHT = {
   C_0: 0.3,
   C_d: 0.25,
   L_0: 0.8,
   L_d: 0.15,
 };
 
-export const makeLightChonkFlamegraphTheme = (theme: Theme): FlamegraphTheme => {
+export const makeLightFlamegraphTheme = (theme: Theme): FlamegraphTheme => {
   const chartColors = theme.chart.getColorPalette(12);
 
   return {
-    LCH: LCH_LIGHT_CHONK,
+    LCH: LCH_LIGHT,
     SIZES: {
       ...SIZES,
       TIMELINE_LABEL_HEIGHT: 26,
     },
     FONTS: makeFlamegraphFonts(theme),
     COLORS: {
-      COLOR_BUCKET: makeColorBucketTheme(LCH_LIGHT_CHONK),
-      SPAN_COLOR_BUCKET: makeColorBucketTheme(SPAN_LCH_LIGHT_CHONK, 140, 220),
+      COLOR_BUCKET: makeColorBucketTheme(LCH_LIGHT),
+      SPAN_COLOR_BUCKET: makeColorBucketTheme(SPAN_LCH_LIGHT, 140, 220),
       COLOR_MAPS: {
         'by symbol name': makeColorMapBySymbolName,
         'by system frame': makeColorMapBySystemFrame,
@@ -371,7 +222,7 @@ export const makeLightChonkFlamegraphTheme = (theme: Theme): FlamegraphTheme => 
       FOCUSED_FRAME_BORDER_COLOR: theme.focus,
       HIGHLIGHTED_LABEL_COLOR: `rgba(240, 240, 0, 1)`,
       HOVERED_FRAME_BORDER_COLOR: theme.colors.gray400,
-      SELECTED_FRAME_BORDER_COLOR: theme.blue400,
+      SELECTED_FRAME_BORDER_COLOR: theme.colors.blue500,
 
       // Search results
       SEARCH_RESULT_FRAME_COLOR: 'vec4(0.99, 0.70, 0.35, 1.0)',
@@ -398,32 +249,32 @@ export const makeLightChonkFlamegraphTheme = (theme: Theme): FlamegraphTheme => 
   };
 };
 
-const LCH_DARK_CHONK = {
+const LCH_DARK = {
   C_0: 0.35,
   C_d: 0.25,
   L_0: 0.25,
   L_d: 0.15,
 };
 
-const SPANS_LCH_DARK_CHONK = {
+const SPANS_LCH_DARK = {
   C_0: 0.4,
   C_d: 0.25,
   L_0: 0.3,
   L_d: 0.2,
 };
 
-export const makeDarkChonkFlamegraphTheme = (theme: Theme): FlamegraphTheme => {
+export const makeDarkFlamegraphTheme = (theme: Theme): FlamegraphTheme => {
   const chartColors = theme.chart.getColorPalette(12);
   return {
-    LCH: LCH_DARK_CHONK,
+    LCH: LCH_DARK,
     SIZES: {
       ...SIZES,
       TIMELINE_LABEL_HEIGHT: 26,
     },
     FONTS: makeFlamegraphFonts(theme),
     COLORS: {
-      COLOR_BUCKET: makeColorBucketTheme(LCH_DARK_CHONK),
-      SPAN_COLOR_BUCKET: makeColorBucketTheme(SPANS_LCH_DARK_CHONK, 140, 220),
+      COLOR_BUCKET: makeColorBucketTheme(LCH_DARK),
+      SPAN_COLOR_BUCKET: makeColorBucketTheme(SPANS_LCH_DARK, 140, 220),
       COLOR_MAPS: {
         'by symbol name': makeColorMapBySymbolName,
         'by system frame': makeColorMapBySystemFrame,
@@ -462,7 +313,7 @@ export const makeDarkChonkFlamegraphTheme = (theme: Theme): FlamegraphTheme => {
       FOCUSED_FRAME_BORDER_COLOR: theme.focus,
       HIGHLIGHTED_LABEL_COLOR: theme.colors.yellow400,
       HOVERED_FRAME_BORDER_COLOR: theme.colors.gray400,
-      SELECTED_FRAME_BORDER_COLOR: theme.blue400,
+      SELECTED_FRAME_BORDER_COLOR: theme.colors.blue500,
 
       // Search results
       SEARCH_RESULT_FRAME_COLOR: 'vec4(0.99, 0.70, 0.35, 1.0)',

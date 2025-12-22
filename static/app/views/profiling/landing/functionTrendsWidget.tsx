@@ -491,7 +491,7 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
       },
       yAxis: {
         axisLabel: {
-          color: theme.chartLabel,
+          color: theme.tokens.content.muted,
           formatter: (value: number) => axisLabelFormatter(value, 'duration'),
         },
       },
@@ -502,7 +502,7 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
         valueFormatter: (value: number) => tooltipFormatter(value, 'duration'),
       },
     };
-  }, [theme.chartLabel]);
+  }, [theme.tokens.content.muted]);
 
   return (
     <ChartZoom {...selection.datetime}>
@@ -516,9 +516,9 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
 function getTrendLineColor(trend: TrendType, theme: Theme) {
   switch (trend) {
     case 'improvement':
-      return theme.green300;
+      return theme.colors.green400;
     case 'regression':
-      return theme.red300;
+      return theme.colors.red400;
     default:
       throw new Error('Unknown trend type');
   }

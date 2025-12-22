@@ -315,9 +315,9 @@ function OptimizableImageFileRow({
   }
 
   const hasMinifySavings =
-    originalFile.minified_size !== null && originalFile.minify_savings > 0;
+    typeof originalFile.minified_size === 'number' && originalFile.minify_savings > 0;
   const hasHeicSavings =
-    originalFile.heic_size !== null && originalFile.conversion_savings > 0;
+    typeof originalFile.heic_size === 'number' && originalFile.conversion_savings > 0;
 
   const maxSavings = Math.max(
     originalFile.minify_savings || 0,

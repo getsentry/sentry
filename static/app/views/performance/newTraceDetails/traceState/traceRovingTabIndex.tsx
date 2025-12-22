@@ -1,24 +1,23 @@
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/newTraceDetails/traceState';
 
 interface TraceRovingTabIndexState {
   index: number | null;
   items: number | null;
-  node: TraceTreeNode<TraceTree.NodeValue> | null;
+  node: BaseNode | null;
 }
 
 type TraceRovingTabIndexAction =
   | {
       index: number | null;
       items: number;
-      node: TraceTreeNode<TraceTree.NodeValue> | null;
+      node: BaseNode | null;
       type: 'initialize roving reducer';
     }
   | {
       action_source: 'click' | 'keyboard' | 'load';
       index: number;
-      node: TraceTreeNode<TraceTree.NodeValue>;
+      node: BaseNode;
       type: 'set roving index';
     }
   | {type: 'clear roving index'}

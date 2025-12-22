@@ -356,8 +356,8 @@ export function EventGraph({
 
   const series = useMemo((): BarChartSeries[] => {
     const seriesData: BarChartSeries[] = [];
-    const translucentGray300 = Color(theme.gray300).alpha(0.5).string();
-    const lightGray300 = Color(theme.gray300).alpha(0.2).string();
+    const translucentGray300 = Color(theme.colors.gray400).alpha(0.5).string();
+    const lightGray300 = Color(theme.colors.gray400).alpha(0.2).string();
 
     if (visibleSeries === EventGraphSeries.USER) {
       if (isUnfilteredStatsEnabled) {
@@ -365,7 +365,7 @@ export function EventGraph({
           seriesName: t('Total users'),
           itemStyle: {
             borderRadius: [2, 2, 0, 0],
-            borderColor: theme.translucentGray200,
+            borderColor: theme.colors.gray200,
             color: lightGray300,
           },
           barGap: '-100%', // Makes bars overlap completely
@@ -378,8 +378,8 @@ export function EventGraph({
         seriesName: isUnfilteredStatsEnabled ? t('Matching users') : t('Users'),
         itemStyle: {
           borderRadius: [2, 2, 0, 0],
-          borderColor: theme.translucentGray200,
-          color: isUnfilteredStatsEnabled ? theme.purple300 : translucentGray300,
+          borderColor: theme.colors.gray200,
+          color: isUnfilteredStatsEnabled ? theme.colors.blue400 : translucentGray300,
         },
         data: userSeries,
         animation: false,
@@ -391,7 +391,7 @@ export function EventGraph({
           seriesName: t('Total events'),
           itemStyle: {
             borderRadius: [2, 2, 0, 0],
-            borderColor: theme.translucentGray200,
+            borderColor: theme.colors.gray200,
             color: lightGray300,
           },
           barGap: '-100%', // Makes bars overlap completely
@@ -404,8 +404,8 @@ export function EventGraph({
         seriesName: isUnfilteredStatsEnabled ? t('Matching events') : t('Events'),
         itemStyle: {
           borderRadius: [2, 2, 0, 0],
-          borderColor: theme.translucentGray200,
-          color: isUnfilteredStatsEnabled ? theme.purple300 : translucentGray300,
+          borderColor: theme.colors.gray200,
+          color: isUnfilteredStatsEnabled ? theme.colors.blue400 : translucentGray300,
         },
         data: eventSeries,
         animation: false,
@@ -452,7 +452,7 @@ export function EventGraph({
     data: flagSeries.type === 'line' ? ['Feature Flags', 'Releases'] : ['Releases'],
     selected: legendSelected,
     zlevel: 10,
-    inactiveColor: theme.isChonk ? theme.tokens.content.muted : theme.gray200,
+    inactiveColor: theme.tokens.content.muted,
   });
 
   const onLegendSelectChanged = useMemo(
@@ -601,8 +601,7 @@ function GraphButton({
   label: string;
   count?: string;
 } & Partial<ButtonProps>) {
-  const theme = useTheme();
-  const textVariant = theme.isChonk ? undefined : props.disabled ? 'accent' : 'muted';
+  const textVariant = undefined;
 
   return (
     <CalloutButton
@@ -623,23 +622,16 @@ function GraphButton({
 }
 
 function SummaryContainer(props: FlexProps) {
-  const theme = useTheme();
   return (
-    <Flex
-      padding="lg xs lg lg"
-      direction="column"
-      gap={theme.isChonk ? 'sm' : 'xs'}
-      radius="md"
-      {...props}
-    />
+    <Flex padding="lg xs lg lg" direction="column" gap="sm" radius="md" {...props} />
   );
 }
 
 const CalloutButton = withChonk(
   styled(Button)<{isActive: boolean}>`
     cursor: ${p => (p.isActive ? 'initial' : 'pointer')};
-    border: 1px solid ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
-    background: ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
+    border: 1px solid ${p => (p.isActive ? p.theme.colors.blue100 : 'transparent')};
+    background: ${p => (p.isActive ? p.theme.colors.blue100 : 'transparent')};
     padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
     box-shadow: none;
     height: unset;
@@ -648,7 +640,7 @@ const CalloutButton = withChonk(
       opacity: 1;
     }
     &:hover {
-      border: 1px solid ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
+      border: 1px solid ${p => (p.isActive ? p.theme.colors.blue100 : 'transparent')};
     }
   `,
   styled(Button)<never>`

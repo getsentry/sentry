@@ -166,7 +166,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
                     organization,
                     include_all_accessible=True,
                 )
-                return Detector.objects.filter(
+                return Detector.objects.with_type_filters().filter(
                     project_id__in=projects,
                     id__in=ids,
                 )
@@ -178,7 +178,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             organization,
         )
 
-        queryset: QuerySet[Detector] = Detector.objects.filter(
+        queryset: QuerySet[Detector] = Detector.objects.with_type_filters().filter(
             project_id__in=projects,
         )
 

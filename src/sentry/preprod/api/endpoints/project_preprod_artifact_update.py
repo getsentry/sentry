@@ -61,19 +61,20 @@ def validate_preprod_artifact_update_schema(
                     "code_signature_errors": {"type": "array", "items": {"type": "string"}},
                     "missing_dsym_binaries": {"type": "array", "items": {"type": "string"}},
                     "build_date": {"type": "string"},
+                    "cli_version": {"type": "string", "maxLength": 255},
+                    "fastlane_plugin_version": {"type": "string", "maxLength": 255},
                 },
             },
             "android_app_info": {
                 "type": "object",
                 "properties": {
                     "has_proguard_mapping": {"type": "boolean"},
+                    "cli_version": {"type": "string", "maxLength": 255},
+                    "gradle_plugin_version": {"type": "string", "maxLength": 255},
                 },
             },
             "dequeued_at": {"type": "string"},
             "app_icon_id": {"type": "string", "maxLength": 255},
-            "cli_version": {"type": "string", "maxLength": 255},
-            "fastlane_plugin_version": {"type": "string", "maxLength": 255},
-            "gradle_plugin_version": {"type": "string", "maxLength": 255},
         },
         "additionalProperties": True,
     }
@@ -95,13 +96,14 @@ def validate_preprod_artifact_update_schema(
         "apple_app_info.code_signature_errors": "The code_signature_errors field must be an array of strings.",
         "apple_app_info.missing_dsym_binaries": "The missing_dsym_binaries field must be an array of strings.",
         "apple_app_info.build_date": "The build_date field must be a string.",
+        "apple_app_info.cli_version": "The cli_version field must be a string with a maximum length of 255 characters.",
+        "apple_app_info.fastlane_plugin_version": "The fastlane_plugin_version field must be a string with a maximum length of 255 characters.",
         "android_app_info": "The android_app_info field must be an object.",
         "android_app_info.has_proguard_mapping": "The has_proguard_mapping field must be a boolean.",
+        "android_app_info.cli_version": "The cli_version field must be a string with a maximum length of 255 characters.",
+        "android_app_info.gradle_plugin_version": "The gradle_plugin_version field must be a string with a maximum length of 255 characters.",
         "dequeued_at": "The dequeued_at field must be a string.",
         "app_icon_id": "The app_icon_id field must be a string with a maximum length of 255 characters.",
-        "cli_version": "The cli_version field must be a string with a maximum length of 255 characters.",
-        "fastlane_plugin_version": "The fastlane_plugin_version field must be a string with a maximum length of 255 characters.",
-        "gradle_plugin_version": "The gradle_plugin_version field must be a string with a maximum length of 255 characters.",
     }
 
     try:
@@ -288,18 +290,6 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
             head_artifact.app_icon_id = data["app_icon_id"]
             updated_fields.append("app_icon_id")
 
-        if "cli_version" in data:
-            head_artifact.cli_version = data["cli_version"]
-            updated_fields.append("cli_version")
-
-        if "fastlane_plugin_version" in data:
-            head_artifact.fastlane_plugin_version = data["fastlane_plugin_version"]
-            updated_fields.append("fastlane_plugin_version")
-
-        if "gradle_plugin_version" in data:
-            head_artifact.gradle_plugin_version = data["gradle_plugin_version"]
-            updated_fields.append("gradle_plugin_version")
-
         extras_updates = {}
 
         if "apple_app_info" in data:
@@ -317,6 +307,14 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
                 head_artifact.date_built = apple_info["build_date"]
                 updated_fields.append("date_built")
 
+            if "cli_version" in apple_info:
+                head_artifact.cli_version = apple_info["cli_version"]
+                updated_fields.append("cli_version")
+
+            if "fastlane_plugin_version" in apple_info:
+                head_artifact.fastlane_plugin_version = apple_info["fastlane_plugin_version"]
+                updated_fields.append("fastlane_plugin_version")
+
             for field in [
                 "is_simulator",
                 "codesigning_type",
@@ -331,6 +329,15 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
 
         if "android_app_info" in data:
             android_info = data["android_app_info"]
+
+            if "cli_version" in android_info:
+                head_artifact.cli_version = android_info["cli_version"]
+                updated_fields.append("cli_version")
+
+            if "gradle_plugin_version" in android_info:
+                head_artifact.gradle_plugin_version = android_info["gradle_plugin_version"]
+                updated_fields.append("gradle_plugin_version")
+
             for field in ["has_proguard_mapping"]:
                 if field in android_info:
                     extras_updates[field] = android_info[field]

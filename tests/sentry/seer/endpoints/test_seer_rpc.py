@@ -17,7 +17,6 @@ from sentry.integrations.models.repository_project_path_config import Repository
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.repository import Repository
 from sentry.seer.endpoints.seer_rpc import (
-    _can_use_prevent_ai_features,
     check_repository_integrations_status,
     generate_request_signature,
     get_attributes_for_span,
@@ -293,63 +292,6 @@ class TestSeerRpcMethods(APITestCase):
             "consent": False,
             "consent_url": self.organization.absolute_url("/settings/organization/"),
         }
-
-    def test_can_use_prevent_ai_features_without_gen_ai_flag(self) -> None:
-        """Test that _can_use_prevent_ai_features returns False when gen-ai-features flag is disabled"""
-        # Enable PR review and disable hide_ai_features (should normally pass)
-        OrganizationOption.objects.set_value(
-            self.organization, "sentry:enable_pr_review_test_generation", True
-        )
-        OrganizationOption.objects.set_value(self.organization, "sentry:hide_ai_features", False)
-
-        # Without the feature flag enabled, should return False
-        result = _can_use_prevent_ai_features(self.organization)
-        assert result is False
-
-    def test_can_use_prevent_ai_features_with_gen_ai_flag(self) -> None:
-        """Test that _can_use_prevent_ai_features checks org-level flags when gen-ai-features is enabled"""
-        from sentry.testutils.helpers.features import with_feature
-
-        # Enable PR review and disable hide_ai_features
-        OrganizationOption.objects.set_value(
-            self.organization, "sentry:enable_pr_review_test_generation", True
-        )
-        OrganizationOption.objects.set_value(self.organization, "sentry:hide_ai_features", False)
-
-        # With the feature flag enabled and correct org settings, should return True
-        with with_feature("organizations:gen-ai-features"):
-            result = _can_use_prevent_ai_features(self.organization)
-            assert result is True
-
-    def test_can_use_prevent_ai_features_with_gen_ai_flag_but_hide_ai(self) -> None:
-        """Test that _can_use_prevent_ai_features returns False when hide_ai_features is True"""
-        from sentry.testutils.helpers.features import with_feature
-
-        # Enable PR review but enable hide_ai_features
-        OrganizationOption.objects.set_value(
-            self.organization, "sentry:enable_pr_review_test_generation", True
-        )
-        OrganizationOption.objects.set_value(self.organization, "sentry:hide_ai_features", True)
-
-        # Even with feature flag enabled, should return False due to hide_ai_features
-        with with_feature("organizations:gen-ai-features"):
-            result = _can_use_prevent_ai_features(self.organization)
-            assert result is False
-
-    def test_can_use_prevent_ai_features_with_gen_ai_flag_but_no_pr_review(self) -> None:
-        """Test that _can_use_prevent_ai_features returns False when PR review is disabled"""
-        from sentry.testutils.helpers.features import with_feature
-
-        # Disable PR review but disable hide_ai_features
-        OrganizationOption.objects.set_value(
-            self.organization, "sentry:enable_pr_review_test_generation", False
-        )
-        OrganizationOption.objects.set_value(self.organization, "sentry:hide_ai_features", False)
-
-        # Even with feature flag enabled, should return False due to PR review being disabled
-        with with_feature("organizations:gen-ai-features"):
-            result = _can_use_prevent_ai_features(self.organization)
-            assert result is False
 
     def test_get_attributes_for_span(self) -> None:
         project = self.create_project(organization=self.organization)
