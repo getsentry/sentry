@@ -139,25 +139,33 @@ function AutomationEditForm({automation}: {automation: Automation}) {
   }, []);
 
   const handleFormSubmit = useCallback<OnSubmitCallback>(
-    async (data, _, __, ___, ____) => {
+    async (data, onSubmitSuccess, onSubmitError, _event, formModel) => {
       const errors = validateAutomationBuilderState(state);
       setAutomationBuilderErrors(errors);
 
       if (Object.keys(errors).length === 0) {
-        const formData: NewAutomation = getNewAutomationData(
-          data as AutomationFormData,
-          state
-        );
-        const updatedData = {
-          id: automation.id,
-          ...formData,
-        };
-        const updatedAutomation = await updateAutomation(updatedData);
-        trackAnalytics('automation.updated', {
-          organization,
-          ...getAutomationAnalyticsPayload(updatedAutomation),
-        });
-        navigate(makeAutomationDetailsPathname(organization.slug, updatedAutomation.id));
+        try {
+          formModel.setFormSaving();
+          const formData: NewAutomation = getNewAutomationData(
+            data as AutomationFormData,
+            state
+          );
+          const updatedData = {
+            id: automation.id,
+            ...formData,
+          };
+          const updatedAutomation = await updateAutomation(updatedData);
+          onSubmitSuccess(formModel?.getData() ?? data);
+          trackAnalytics('automation.updated', {
+            organization,
+            ...getAutomationAnalyticsPayload(updatedAutomation),
+          });
+          navigate(
+            makeAutomationDetailsPathname(organization.slug, updatedAutomation.id)
+          );
+        } catch (err) {
+          onSubmitError?.(err);
+        }
       }
     },
     [automation.id, organization, navigate, updateAutomation, state]
@@ -211,8 +219,8 @@ function AutomationEditForm({automation}: {automation: Automation}) {
           </StyledBody>
         </Layout.Page>
         <StickyFooter>
-          <Flex style={{maxWidth}} align="center" gap="md" justify="end">
-            <EditAutomationActions automation={automation} />
+          <Flex maxWidth={maxWidth} align="center" gap="md" justify="end">
+            <EditAutomationActions automation={automation} form={model} />
           </Flex>
         </StickyFooter>
       </AutomationFormProvider>

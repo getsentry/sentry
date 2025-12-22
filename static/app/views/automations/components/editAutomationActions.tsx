@@ -1,9 +1,11 @@
 import {useCallback} from 'react';
+import {Observer} from 'mobx-react-lite';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import type FormModel from 'sentry/components/forms/model';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -16,9 +18,10 @@ import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
 
 interface EditAutomationActionsProps {
   automation: Automation;
+  form: FormModel;
 }
 
-export function EditAutomationActions({automation}: EditAutomationActionsProps) {
+export function EditAutomationActions({automation, form}: EditAutomationActionsProps) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const {mutateAsync: deleteAutomation, isPending: isDeleting} =
@@ -67,9 +70,13 @@ export function EditAutomationActions({automation}: EditAutomationActionsProps) 
         <Button priority="danger" onClick={handleDelete} disabled={isDeleting} size="sm">
           {t('Delete')}
         </Button>
-        <Button type="submit" priority="primary" size="sm">
-          {t('Save')}
-        </Button>
+        <Observer>
+          {() => (
+            <Button type="submit" priority="primary" size="sm" disabled={form.isSaving}>
+              {t('Save')}
+            </Button>
+          )}
+        </Observer>
       </ButtonBar>
     </div>
   );
