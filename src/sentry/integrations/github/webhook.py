@@ -87,6 +87,29 @@ def is_contributor_eligible_for_seat_assignment(user_type: str | None) -> bool:
     return user_type != "Bot"
 
 
+def _handle_pr_webhook_for_autofix_processor(
+    event_type: str, event: Mapping[str, Any], **kwargs: Any
+) -> None:
+    """
+    Adapter to make handle_github_pr_webhook_for_autofix work with standard processor signature.
+
+    This extracts the required parameters from the standardized webhook processor format
+    and calls the legacy autofix handler with its expected signature.
+    """
+    pull_request = event.get("pull_request")
+    if not pull_request:
+        return
+
+    action = event.get("action")
+    user = pull_request.get("user")
+    organization = kwargs.get("organization")
+
+    if organization and action and user:
+        # Because we require that the sentry github integration be installed for autofix, we can piggyback
+        # on this webhook for autofix for now. We may move to a separate autofix github integration in the future
+        handle_github_pr_webhook_for_autofix(organization, action, pull_request, user)
+
+
 class GitHubWebhook(SCMWebhook, ABC):
     """
     Base class for GitHub webhooks handled in region silos.
@@ -710,7 +733,7 @@ class PullRequestEventWebhook(GitHubWebhook):
     """https://developer.github.com/v3/activity/events/types/#pullrequestevent"""
 
     EVENT_TYPE = IntegrationWebhookEventType.PULL_REQUEST
-    WEBHOOK_EVENT_PROCESSORS = []
+    WEBHOOK_EVENT_PROCESSORS = [_handle_pr_webhook_for_autofix_processor]
 
     def _handle(
         self,
@@ -724,7 +747,6 @@ class PullRequestEventWebhook(GitHubWebhook):
         body = pull_request["body"]
         user = pull_request["user"]
         user_type = user.get("type")
-        action = event["action"]
 
         """
         The value of the merge_commit_sha attribute changes depending on the
@@ -879,12 +901,7 @@ class PullRequestEventWebhook(GitHubWebhook):
         except IntegrityError:
             pass
 
-        # Because we require that the sentry github integration be installed for autofix, we can piggyback
-        # on this webhook for autofix for now. We may move to a separate autofix github integration in the future.
-        # XXX: Use the signature expected in the for loop below.
-        handle_github_pr_webhook_for_autofix(organization, action, pull_request, user)
-        for processor in self.WEBHOOK_EVENT_PROCESSORS:
-            processor(event_type=self.event_type.value, event=event, **kwargs)
+        super()._handle(integration, event, **kwargs)
 
 
 class CheckRunEventWebhook(GitHubWebhook):
