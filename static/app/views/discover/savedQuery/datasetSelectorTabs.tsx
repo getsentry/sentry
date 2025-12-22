@@ -168,7 +168,7 @@ export function DatasetSelectorTabs(props: Props) {
         });
       }}
     >
-      <TabList hideBorder>
+      <TabList>
         {options.map(option => (
           <TabList.Item key={option.value} tooltip={option.tooltip}>
             {option.label}

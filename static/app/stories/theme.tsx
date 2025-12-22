@@ -29,7 +29,7 @@ export function ThemeToggle({children}: ThemeToggleProps) {
           value={localThemeName}
           onChange={() => setLocalThemeName(localThemeName === 'dark' ? 'light' : 'dark')}
         >
-          <TabList hideBorder>
+          <TabList>
             <TabList.Item key="light">Light Theme</TabList.Item>
             <TabList.Item key="dark">Dark Theme</TabList.Item>
           </TabList>

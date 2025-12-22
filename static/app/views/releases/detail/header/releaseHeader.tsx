@@ -175,7 +175,7 @@ function ReleaseHeader({
       </Layout.HeaderActions>
 
       <Layout.HeaderTabs value={getActiveTabTo()}>
-        <TabList hideBorder>
+        <TabList>
           {tabs.map(tab => (
             <TabList.Item key={tab.to} to={getTabUrl(tab.to)} textValue={tab.textValue}>
               {tab.title}
