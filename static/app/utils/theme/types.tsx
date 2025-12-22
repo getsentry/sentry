@@ -1,10 +1,4 @@
 /**
- * Full t-shirt size scale.
- * @internal
- */
-type Size = SizeKeys[number];
-
-/**
  * Font size constraint for typography.
  */
 export type FontSize = SizeRange<'xs', '2xl'>;
@@ -134,6 +128,7 @@ export type ButtonVariant =
 // -----------------------------------------------------------------------------
 
 type SizeKeys = readonly ['0', '2xs', 'xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'];
+type Size = SizeKeys[number];
 
 // Extracts a contiguous range of keys from the size scale
 type ExtractRange<
