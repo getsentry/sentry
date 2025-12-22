@@ -2,6 +2,7 @@ import React, {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
+import Feature from 'sentry/components/acl/feature';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Container, Flex} from 'sentry/components/core/layout';
 import {ExternalLink, Link} from 'sentry/components/core/link';
@@ -78,15 +79,17 @@ export function PreprodBuildsTable({
                       {build.app_info?.name || '--'}
                     </Text>
                   </Container>
-                  {build.app_info.is_installable && (
-                    <InstallAppButton
-                      projectId={projectSlug}
-                      artifactId={build.id}
-                      platform={build.app_info.platform ?? null}
-                      source="builds_table"
-                      variant="icon"
-                    />
-                  )}
+                  <Feature features="organizations:preprod-build-distribution">
+                    {build.app_info.is_installable && (
+                      <InstallAppButton
+                        projectId={projectSlug}
+                        artifactId={build.id}
+                        platform={build.app_info.platform ?? null}
+                        source="builds_table"
+                        variant="icon"
+                      />
+                    )}
+                  </Feature>
                 </Flex>
                 <Flex align="center" gap="xs">
                   <Text size="sm" variant="muted">
