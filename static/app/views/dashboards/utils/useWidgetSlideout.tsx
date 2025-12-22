@@ -51,7 +51,7 @@ export function useWidgetSlideout(widget: Widget) {
   }, [component, openDrawer]);
 
   return {
-    hasSlideout: Boolean(slideOutId),
+    hasSlideout: Boolean(slideOutId) && component !== null,
     onWidgetClick: handleWidgetClick,
   };
 }
