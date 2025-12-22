@@ -2731,7 +2731,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'projects/',
       component: make(() => import('sentry/views/admin/adminProjects')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'settings/',
