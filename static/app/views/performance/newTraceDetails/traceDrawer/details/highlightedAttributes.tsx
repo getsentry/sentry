@@ -131,12 +131,13 @@ function getAISpanAttributes({
     });
   }
 
+  // Only trigger if we have valid token counts (not scrubbed/null values)
+  const hasInputOrOutputTokens =
+    (inputTokens && !Number.isNaN(Number(inputTokens))) ||
+    (outputTokens && !Number.isNaN(Number(outputTokens)));
+
   // Check for missing cost calculation and emit Sentry error
-  if (
-    model &&
-    (inputTokens || outputTokens) &&
-    (!totalCosts || Number(totalCosts) === 0)
-  ) {
+  if (model && hasInputOrOutputTokens && (!totalCosts || Number(totalCosts) === 0)) {
     const contextData: CaptureContext = {
       level: 'warning',
       tags: {
