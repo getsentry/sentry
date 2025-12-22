@@ -155,7 +155,7 @@ function PlanSelectRow({
                         </Feature>
                       ))}
                     {/* custom to match text size */}
-                    {hasMoreLink && <MoreFeaturesLink iconSize="14px" />}
+                    {hasMoreLink && <MoreFeaturesLink legacySize="14px" />}
                   </FeatureList>
                 ) : (
                   <FeatureList>
@@ -167,7 +167,7 @@ function PlanSelectRow({
                       </Feature>
                     ))}
                     {/* custom to match text size */}
-                    {hasMoreLink && <MoreFeaturesLink iconSize="14px" />}
+                    {hasMoreLink && <MoreFeaturesLink legacySize="14px" />}
                   </FeatureList>
                 ))}
             </PlanDetails>

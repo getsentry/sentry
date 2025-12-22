@@ -1664,6 +1664,37 @@ describe('useWidgetBuilderState', () => {
 
       expect(result.current.state.sort).toEqual([]);
     });
+
+    it('updates the limit when the y-axis changes', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            limit: '5',
+            field: ['event.type'],
+            yAxis: ['count()', 'count_unique(user)'],
+          },
+        })
+      );
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.limit).toBe(5);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_Y_AXIS,
+          payload: [
+            {function: ['count', '', undefined, undefined], kind: 'function'},
+            {function: ['count_unique', 'user', undefined, undefined], kind: 'function'},
+            {function: ['count_unique', 'title', undefined, undefined], kind: 'function'},
+          ],
+        });
+      });
+
+      // The resulting limit should be at max 3
+      expect(result.current.state.limit).toBe(3);
+    });
   });
 
   describe('sort', () => {

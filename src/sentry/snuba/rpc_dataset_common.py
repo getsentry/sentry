@@ -46,6 +46,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.discover import arithmetic
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models.project import Project
 from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute, ResolvedColumn
 from sentry.search.eap.constants import DOUBLE, MAX_ROLLUP_POINTS, VALID_GRANULARITIES
 from sentry.search.eap.resolver import SearchResolver
@@ -106,18 +107,6 @@ def check_timeseries_has_data(timeseries: SnubaData, y_axes: list[str]):
             if row[axis] and row[axis] != 0:
                 return True
     return False
-
-
-def log_rpc_request(message: str, rpc_request, rpc_logger: logging.Logger = logger):
-    rpc_debug_json = json.loads(MessageToJson(rpc_request))
-    rpc_logger.info(
-        message,
-        extra={
-            "rpc_query": rpc_debug_json,
-            "referrer": rpc_request.meta.referrer,
-            "trace_item_type": rpc_request.meta.trace_item_type,
-        },
-    )
 
 
 class RPCBase:
@@ -234,6 +223,10 @@ class RPCBase:
                         )
         return cross_trace_queries
 
+    @classmethod
+    def filter_project(cls, project: Project) -> bool:
+        return True
+
     """ Table Methods """
 
     @classmethod
@@ -241,7 +234,11 @@ class RPCBase:
         """Make the query"""
         resolver = query.resolver
         sentry_sdk.set_tag("query.sampling_mode", query.sampling_mode)
-        meta = resolver.resolve_meta(referrer=query.referrer, sampling_mode=query.sampling_mode)
+        meta = resolver.resolve_meta(
+            referrer=query.referrer,
+            sampling_mode=query.sampling_mode,
+            filter_project=cls.filter_project,
+        )
         where, having, query_contexts = resolver.resolve_query_with_columns(
             query.query_string,
             query.selected_columns,
@@ -350,7 +347,6 @@ class RPCBase:
         """Run the query"""
         table_request = cls.get_table_rpc_request(query)
         rpc_request = table_request.rpc_request
-        log_rpc_request("Running a table query with debug on", rpc_request)
         try:
             rpc_response = snuba_rpc.table_rpc([rpc_request])[0]
         except Exception as e:
@@ -557,10 +553,7 @@ class RPCBase:
             raise InvalidSearchQuery("start, end and interval are required")
 
     @classmethod
-    def _run_timeseries_rpc(
-        self, debug: bool, rpc_request: TimeSeriesRequest
-    ) -> TimeSeriesResponse:
-        log_rpc_request("Running a timeseries query with debug on", rpc_request)
+    def _run_timeseries_rpc(cls, debug: bool, rpc_request: TimeSeriesRequest) -> TimeSeriesResponse:
         try:
             return snuba_rpc.timeseries_rpc([rpc_request])[0]
         except Exception as e:
@@ -620,7 +613,11 @@ class RPCBase:
         groupbys, groupby_contexts = search_resolver.resolve_attributes(groupby)
 
         timeseries_filter, params = cls.update_timestamps(params, search_resolver)
-        meta = search_resolver.resolve_meta(referrer=referrer, sampling_mode=sampling_mode)
+        meta = search_resolver.resolve_meta(
+            referrer=referrer,
+            sampling_mode=sampling_mode,
+            filter_project=cls.filter_project,
+        )
         query, _, _ = search_resolver.resolve_query_with_columns(
             query_string,
             selected_axes,
@@ -832,8 +829,6 @@ class RPCBase:
             requests.append(other_request)
 
         """Run the query"""
-        for rpc_request in requests:
-            log_rpc_request("Running a top events query with debug on", rpc_request)
         try:
             timeseries_rpc_response = snuba_rpc.timeseries_rpc(requests)
             rpc_response = timeseries_rpc_response[0]

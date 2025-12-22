@@ -3,18 +3,17 @@ import type {Theme} from '@emotion/react';
 import {t} from 'sentry/locale';
 import {ErrorNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/error';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {
-  isEAPError,
-  isTraceError,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {isTraceError} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {TraceErrorRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceErrorRow';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
 import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 
 export class ErrorNode extends BaseNode<TraceTree.TraceErrorIssue> {
+  id: string;
+  type: TraceTree.NodeType;
+
   searchPriority = 3;
   constructor(
     parent: BaseNode | null,
@@ -23,7 +22,10 @@ export class ErrorNode extends BaseNode<TraceTree.TraceErrorIssue> {
   ) {
     super(parent, value, extra);
 
-    this.isEAPEvent = isEAPError(value);
+    this.id = value.event_id;
+    this.type = 'error';
+    // Part of the eap trace endpoint but still fetched from nodestore
+    this.isEAPEvent = false;
 
     if (value) {
       if (isTraceError(value) && value.timestamp) {
@@ -37,8 +39,8 @@ export class ErrorNode extends BaseNode<TraceTree.TraceErrorIssue> {
     this.parent?.children.push(this);
   }
 
-  get type(): TraceTree.NodeType {
-    return 'error';
+  get startTimestamp(): number {
+    return this.space[0];
   }
 
   get description(): string | undefined {
@@ -72,23 +74,13 @@ export class ErrorNode extends BaseNode<TraceTree.TraceErrorIssue> {
   renderWaterfallRow<NodeType extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<NodeType>
   ): React.ReactNode {
-    // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
-    return <TraceErrorRow {...props} node={props.node} />;
+    return <TraceErrorRow {...props} node={this} />;
   }
 
-  renderDetails<T extends TraceTreeNode<TraceTree.NodeValue>>(
+  renderDetails<T extends BaseNode>(
     props: TraceTreeNodeDetailsProps<T>
   ): React.ReactNode {
-    return (
-      <ErrorNodeDetails
-        {...props}
-        node={
-          props.node as
-            | TraceTreeNode<TraceTree.TraceError>
-            | TraceTreeNode<TraceTree.EAPError>
-        }
-      />
-    );
+    return <ErrorNodeDetails {...props} node={this} />;
   }
 
   matchWithFreeText(query: string): boolean {
@@ -102,11 +94,15 @@ export class ErrorNode extends BaseNode<TraceTree.TraceErrorIssue> {
   makeBarColor(theme: Theme): string {
     // Theme defines this as orange, yet everywhere in our product we show red for errors
     if (this.value.level === 'error' || this.value.level === 'fatal') {
-      return theme.red300;
+      return theme.colors.red400;
     }
     if (this.value.level) {
-      return theme.level[this.value.level] ?? theme.red300;
+      return theme.level[this.value.level] ?? theme.colors.red400;
     }
-    return theme.red300;
+    return theme.colors.red400;
+  }
+
+  resolveValueFromSearchKey(_key: string): any | null {
+    return null;
   }
 }

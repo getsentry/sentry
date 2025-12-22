@@ -3,6 +3,7 @@ import {ExternalLink} from '@sentry/scraps/link/link';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {t, tct} from 'sentry/locale';
+import {DEFAULT_CODE_REVIEW_TRIGGERS} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -29,11 +30,8 @@ export default function SeerAutomationSettings() {
 
           // Second section
           autoEnableCodeReview: organization.autoEnableCodeReview ?? true,
-          defaultCodeReviewTriggers: organization.defaultCodeReviewTriggers ?? [
-            'on_command_phrase',
-            'on_ready_for_review',
-            'on_new_commit',
-          ],
+          defaultCodeReviewTriggers:
+            organization.defaultCodeReviewTriggers ?? DEFAULT_CODE_REVIEW_TRIGGERS,
 
           // Third section
           enableSeerEnhancedAlerts: organization.enableSeerEnhancedAlerts ?? true,
@@ -99,9 +97,9 @@ export default function SeerAutomationSettings() {
                 },
                 {
                   name: 'defaultCodeReviewTriggers',
-                  label: t('Auto Run on Opened Pull Requests'),
+                  label: t('Code Review Triggers'),
                   help: t(
-                    'Run when a new pull request is published, ignoring subsequent pushes.'
+                    'Reviews can run on demand, whenever a PR is opened, or after each commit is pushed to a PR.'
                   ),
                   type: 'choice',
                   multiple: true,

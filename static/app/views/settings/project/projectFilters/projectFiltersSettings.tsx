@@ -601,7 +601,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                       name: 'filters:chunk-load-error',
                       label: t('Filter out ChunkLoadError(s)'),
                       help: t(
-                        "ChunkLoadErrors can happen in Webpack-powered applications when code chunks can't be found on the server. This often occurs during a redeploy of the website while users have the old page open. A page refresh usually resolves the issue."
+                        "ChunkLoadErrors can happen in applications powered by Webpack or Turbopack when code chunks can't be found on the server. This often occurs during a redeploy of the website while users have the old page open. A page refresh usually resolves the issue."
                       ),
                       disabled: !hasAccess,
                     }}

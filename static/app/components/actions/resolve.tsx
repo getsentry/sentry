@@ -19,7 +19,6 @@ import type {GroupStatusResolution, ResolvedStatusDetails} from 'sentry/types/gr
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {chonkStyled} from 'sentry/utils/theme/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
@@ -399,9 +398,9 @@ const ResolveButton = withChonk(
         }
       `}
   `,
-  chonkStyled(Button)`
+  styled(Button)`
     box-shadow: none;
-`
+  `
 );
 
 const DropdownTrigger = styled(Button)`
@@ -430,7 +429,7 @@ const SetupReleases = styled('div')`
   align-items: center;
   padding: ${space(2)} 0;
   text-align: center;
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
   width: 250px;
   white-space: normal;
   font-weight: ${p => p.theme.fontWeight.normal};

@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import logging
 from io import BytesIO
+from typing import Any
 
 from django.db import router, transaction
 from django.utils import timezone
 
+from sentry import features
+from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.files.file import File
 from sentry.preprod.models import (
     PreprodArtifact,
@@ -13,21 +16,25 @@ from sentry.preprod.models import (
     PreprodArtifactSizeMetrics,
 )
 from sentry.preprod.size_analysis.compare import compare_size_analysis
-from sentry.preprod.size_analysis.models import SizeAnalysisResults
+from sentry.preprod.size_analysis.models import ComparisonResults, SizeAnalysisResults
 from sentry.preprod.size_analysis.utils import build_size_metrics_map, can_compare_size_metrics
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import attachments_tasks
+from sentry.taskworker.namespaces import attachments_tasks, preprod_tasks
 from sentry.utils import metrics
 from sentry.utils.json import dumps_htmlsafe
+
+from .issues import diff_to_occurrence
 
 logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
     name="sentry.preprod.tasks.compare_preprod_artifact_size_analysis",
-    namespace=attachments_tasks,
+    namespace=preprod_tasks,
+    # TODO(EME-242): Remove once inflight tasks done.
+    alias_namespace=attachments_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.REGION,
 )
@@ -35,6 +42,7 @@ def compare_preprod_artifact_size_analysis(
     project_id: int,
     org_id: int,
     artifact_id: int,
+    **kwargs: Any,
 ) -> None:
     logger.info(
         "preprod.size_analysis.compare.start",
@@ -96,7 +104,8 @@ def compare_preprod_artifact_size_analysis(
         ).select_related("preprod_artifact")
         head_size_metrics = list(head_size_metrics_qs)
 
-        if can_compare_size_metrics(head_size_metrics, base_size_metrics):
+        validation_result = can_compare_size_metrics(head_size_metrics, base_size_metrics)
+        if validation_result.can_compare:
 
             base_metrics_map = build_size_metrics_map(base_size_metrics)
             head_metrics_map = build_size_metrics_map(head_size_metrics)
@@ -122,7 +131,11 @@ def compare_preprod_artifact_size_analysis(
         else:
             logger.info(
                 "preprod.size_analysis.compare.cannot_compare_size_metrics",
-                extra={"head_artifact_id": artifact_id, "base_artifact_id": base_artifact.id},
+                extra={
+                    "head_artifact_id": artifact_id,
+                    "base_artifact_id": base_artifact.id,
+                    "error_message": validation_result.error_message,
+                },
             )
 
     # Also create comparisons with artifact as base
@@ -149,10 +162,15 @@ def compare_preprod_artifact_size_analysis(
         ).select_related("preprod_artifact")
         base_size_metrics = list(base_size_metrics_qs)
 
-        if not can_compare_size_metrics(head_size_metrics, base_size_metrics):
+        validation_result = can_compare_size_metrics(head_size_metrics, base_size_metrics)
+        if not validation_result.can_compare:
             logger.info(
                 "preprod.size_analysis.compare.cannot_compare_size_metrics",
-                extra={"head_artifact_id": head_artifact.id, "base_artifact_id": artifact_id},
+                extra={
+                    "head_artifact_id": head_artifact.id,
+                    "base_artifact_id": artifact_id,
+                    "error_message": validation_result.error_message,
+                },
             )
             continue
 
@@ -227,7 +245,9 @@ def compare_preprod_artifact_size_analysis(
 
 @instrumented_task(
     name="sentry.preprod.tasks.manual_size_analysis_comparison",
-    namespace=attachments_tasks,
+    namespace=preprod_tasks,
+    # TODO(EME-242): Remove once inflight tasks done.
+    alias_namespace=attachments_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.REGION,
 )
@@ -236,6 +256,7 @@ def manual_size_analysis_comparison(
     org_id: int,
     head_artifact_id: int,
     base_artifact_id: int,
+    **kwargs: Any,
 ) -> None:
     logger.info(
         "preprod.size_analysis.compare.manual.start",
@@ -300,7 +321,8 @@ def manual_size_analysis_comparison(
         },
     )
 
-    if can_compare_size_metrics(head_size_metrics, base_size_metrics):
+    validation_result = can_compare_size_metrics(head_size_metrics, base_size_metrics)
+    if validation_result.can_compare:
 
         base_metrics_map = build_size_metrics_map(base_size_metrics)
         head_metrics_map = build_size_metrics_map(head_size_metrics)
@@ -329,7 +351,11 @@ def manual_size_analysis_comparison(
     else:
         logger.info(
             "preprod.size_analysis.compare.manual.cannot_compare_size_metrics",
-            extra={"head_artifact_id": head_artifact.id, "base_artifact_id": base_artifact.id},
+            extra={
+                "head_artifact_id": head_artifact.id,
+                "base_artifact_id": base_artifact.id,
+                "error_message": validation_result.error_message,
+            },
         )
 
 
@@ -474,7 +500,81 @@ def _run_size_analysis_comparison(
         comparison.state = PreprodArtifactSizeComparison.State.SUCCESS
         comparison.save()
 
+    maybe_emit_issues(
+        comparison_results=comparison_results,
+        head_metric=head_size_metric,
+        base_metric=base_size_metric,
+    )
+
     logger.info(
         "preprod.size_analysis.compare.success",
         extra={"comparison_id": comparison.id},
+    )
+
+
+def maybe_emit_issues(
+    comparison_results: ComparisonResults,
+    head_metric: PreprodArtifactSizeMetrics,
+    base_metric: PreprodArtifactSizeMetrics,
+) -> None:
+    try:
+        _maybe_emit_issues(
+            comparison_results=comparison_results, head_metric=head_metric, base_metric=base_metric
+        )
+    except Exception:
+        logger.exception("Error emitting issues")
+
+
+def _maybe_emit_issues(
+    comparison_results: ComparisonResults,
+    head_metric: PreprodArtifactSizeMetrics,
+    base_metric: PreprodArtifactSizeMetrics,
+) -> None:
+    project = head_metric.preprod_artifact.project
+    project_id = project.id
+    organization_id = project.organization.id
+
+    if not features.has("organizations:preprod-issues", project.organization):
+        logger.info(
+            "preprod.size_analysis.compare.issues.disabled",
+            extra={
+                "project_id": project_id,
+                "organization_id": organization_id,
+            },
+        )
+        return
+
+    # TODO(EME-80): Make threshold configurable:
+    arbitrary_threshold = 100 * 1024
+    diff = comparison_results.size_metric_diff_item
+    download_delta = diff.head_download_size - diff.base_download_size
+    install_delta = diff.head_install_size - diff.base_install_size
+
+    issue_count = 0
+
+    if download_delta >= arbitrary_threshold:
+        occurrence, event_data = diff_to_occurrence("download", diff, head_metric, base_metric)
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.OCCURRENCE,
+            occurrence=occurrence,
+            event_data=event_data,
+        )
+        issue_count += 1
+
+    if install_delta >= arbitrary_threshold:
+        occurrence, event_data = diff_to_occurrence("install", diff, head_metric, base_metric)
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.OCCURRENCE,
+            occurrence=occurrence,
+            event_data=event_data,
+        )
+        issue_count += 1
+
+    logger.info(
+        "preprod.size_analysis.compare.issues",
+        extra={
+            "project_id": project_id,
+            "organization_id": organization_id,
+            "issue_count": issue_count,
+        },
     )

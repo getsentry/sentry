@@ -321,7 +321,7 @@ const CardTitle = styled('h6')`
   margin: 0;
   font-size: ${p => p.theme.fontSize.lg};
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
 `;
 
 const Subtitle = styled('div')`

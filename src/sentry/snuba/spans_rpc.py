@@ -5,6 +5,7 @@ from datetime import timedelta
 from typing import Any
 
 import sentry_sdk
+from google.protobuf.json_format import MessageToJson
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
 from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
     AttributeDistributionsRequest,
@@ -16,6 +17,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
 from sentry import options
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models.project import Project
 from sentry.search.eap.constants import BOOLEAN, DOUBLE, INT, STRING, SUPPORTED_STATS_TYPES
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.sampling import events_meta_from_rpc_request_meta
@@ -31,7 +33,7 @@ from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.snuba.discover import zerofill
 from sentry.snuba.rpc_dataset_common import set_debug_meta
-from sentry.utils import snuba_rpc
+from sentry.utils import json, snuba_rpc
 from sentry.utils.snuba import SnubaTSResult
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
@@ -39,6 +41,10 @@ logger = logging.getLogger("sentry.snuba.spans_rpc")
 
 class Spans(rpc_dataset_common.RPCBase):
     DEFINITIONS = SPAN_DEFINITIONS
+
+    @classmethod
+    def filter_project(cls, project: Project) -> bool:
+        return project.flags.has_transactions
 
     @classmethod
     @sentry_sdk.trace
@@ -271,10 +277,14 @@ class Spans(rpc_dataset_common.RPCBase):
                     break
                 if MAX_TIMEOUT > 0 and time.time() - start_time > MAX_TIMEOUT:
                     # If timeout is not set then logging this is not helpful
-                    rpc_dataset_common.log_rpc_request(
+                    rpc_debug_json = json.loads(MessageToJson(request))
+                    logger.info(
                         "running a trace query timed out while paginating",
-                        request,
-                        logger,
+                        extra={
+                            "rpc_query": rpc_debug_json,
+                            "referrer": request.meta.referrer,
+                            "trace_item_type": request.meta.trace_item_type,
+                        },
                     )
                     break
                 request.page_token.CopyFrom(response.page_token)
@@ -292,6 +302,7 @@ class Spans(rpc_dataset_common.RPCBase):
         config: SearchResolverConfig,
         search_resolver: SearchResolver | None = None,
         attributes: list[AttributeKey] | None = None,
+        max_buckets: int = 75,
     ) -> list[dict[str, Any]]:
         search_resolver = search_resolver or cls.get_resolver(params, config)
         stats_filter, _, _ = search_resolver.resolve_query(query_string)
@@ -312,7 +323,7 @@ class Spans(rpc_dataset_common.RPCBase):
             stats_request.stats_types.append(
                 StatsType(
                     attribute_distributions=AttributeDistributionsRequest(
-                        max_buckets=75,
+                        max_buckets=max_buckets,
                         attributes=attributes,
                     )
                 )

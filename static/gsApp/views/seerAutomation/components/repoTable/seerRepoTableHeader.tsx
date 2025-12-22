@@ -5,6 +5,7 @@ import {Alert} from '@sentry/scraps/alert/alert';
 import {Checkbox} from '@sentry/scraps/checkbox/checkbox';
 import {Flex} from '@sentry/scraps/layout/flex';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
@@ -14,8 +15,10 @@ import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxS
 import {parseQueryKey} from 'sentry/utils/queryClient';
 
 import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
+import type {useBulkUpdateRepositorySettings} from 'getsentry/views/seerAutomation/onboarding/hooks/useBulkUpdateRepositorySettings';
 
 interface Props {
+  mutateRepositorySettings: ReturnType<typeof useBulkUpdateRepositorySettings>['mutate'];
   onSortClick: (key: Sort) => void;
   repositories: RepositoryWithSettings[];
   sort: Sort;
@@ -27,23 +30,48 @@ const COLUMNS = [
   {title: t('Code Review'), key: 'code_review'},
 ];
 
-export default function SeerRepoTableHeader({onSortClick, repositories, sort}: Props) {
+export default function SeerRepoTableHeader({
+  onSortClick,
+  repositories,
+  sort,
+  mutateRepositorySettings,
+}: Props) {
   const canWrite = useCanWriteSettings();
   const listItemCheckboxState = useListItemCheckboxContext();
-  const {
-    countSelected,
-    isAllSelected,
-    isAnySelected,
-    queryKey,
-    selectAll,
-    selectedIds: _selectedIds,
-  } = listItemCheckboxState;
+  const {countSelected, isAllSelected, isAnySelected, queryKey, selectAll, selectedIds} =
+    listItemCheckboxState;
   const queryOptions = parseQueryKey(queryKey).options;
   const queryString = queryOptions?.query?.query;
 
-  const handleBulkCodeReview = (_value: 'on' | 'off') => {
-    // const codeReview = value ? 'on' : 'off';
-    // Depends on https://github.com/getsentry/sentry/pull/104722
+  const handleBulkCodeReview = (enabledCodeReview: boolean) => {
+    const repositoryIds =
+      selectedIds === 'all' ? repositories.map(repo => repo.id) : selectedIds;
+    mutateRepositorySettings(
+      {
+        enabledCodeReview,
+        repositoryIds,
+      },
+      {
+        onError: () => {
+          addErrorMessage(
+            tn(
+              'Failed to update code review for %s repository',
+              'Failed to update code review for %s repositories',
+              repositoryIds.length
+            )
+          );
+        },
+        onSuccess: () => {
+          addSuccessMessage(
+            tn(
+              'Code review updated for %s repository',
+              'Code review updated for %s repositories',
+              repositoryIds.length
+            )
+          );
+        },
+      }
+    );
   };
 
   return (
@@ -95,12 +123,12 @@ export default function SeerRepoTableHeader({onSortClick, repositories, sort}: P
                 {
                   key: 'on',
                   label: t('On'),
-                  onAction: () => handleBulkCodeReview('on'),
+                  onAction: () => handleBulkCodeReview(true),
                 },
                 {
                   key: 'off',
                   label: t('Off'),
-                  onAction: () => handleBulkCodeReview('off'),
+                  onAction: () => handleBulkCodeReview(false),
                 },
               ]}
               triggerLabel={t('Code Review')}

@@ -1,6 +1,8 @@
 import logging
 from datetime import datetime, timedelta
 
+import sentry_sdk
+
 from sentry.constants import ObjectStatus
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -68,6 +70,10 @@ def generate_issue_summary_only(group_id: int) -> None:
     Generate issue summary WITHOUT triggering automation.
     Used for triage signals flow when event count < 10 or when summary doesn't exist yet.
     """
+    from sentry.api.serializers.rest_framework.base import (
+        camel_to_snake_case,
+        convert_dict_key_case,
+    )
     from sentry.seer.autofix.issue_summary import (
         get_and_update_group_fixability_score,
         get_issue_summary,
@@ -79,11 +85,21 @@ def generate_issue_summary_only(group_id: int) -> None:
         "Task: generate_issue_summary_only",
         extra={"org_id": organization.id, "org_slug": organization.slug},
     )
-    get_issue_summary(
+    summary_data, status_code = get_issue_summary(
         group=group, source=SeerAutomationSource.POST_PROCESS, should_run_automation=False
     )
 
-    _ = get_and_update_group_fixability_score(group, force_generate=True)
+    summary_payload = None
+    if status_code == 200:
+        summary_snake = convert_dict_key_case(summary_data, camel_to_snake_case)
+        required_fields = ["headline", "whats_wrong", "trace", "possible_cause"]
+        if all(summary_snake.get(k) is not None for k in required_fields):
+            summary_payload = {
+                "group_id": group.id,
+                **{k: summary_snake[k] for k in required_fields},
+            }
+
+    get_and_update_group_fixability_score(group, force_generate=True, summary=summary_payload)
 
 
 @instrumented_task(
@@ -136,14 +152,14 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
     """
     organization = Organization.objects.get(id=organization_id)
 
+    sentry_sdk.set_tag("organization_id", organization.id)
+    sentry_sdk.set_tag("organization_slug", organization.slug)
+
     # Set org-level options
     organization.update_option("sentry:enable_seer_coding", True)
     organization.update_option(
         "sentry:default_autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
     )
-
-    # Invalidate seat-based tier cache so new settings take effect immediately
-    cache.delete(get_seer_seat_based_tier_cache_key(organization_id))
 
     projects = list(
         Project.objects.filter(organization_id=organization_id, status=ObjectStatus.ACTIVE)
@@ -191,6 +207,10 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
 
     if len(preferences_to_set) > 0:
         bulk_set_project_preferences(organization_id, preferences_to_set)
+
+    # Invalidate existing cache entry and set cache to True to prevent race conditions where another
+    # request re-caches False before the billing flag has fully propagated
+    cache.set(get_seer_seat_based_tier_cache_key(organization_id), True, timeout=60 * 5)
 
     logger.info(
         "Task: configure_seer_for_existing_org completed",

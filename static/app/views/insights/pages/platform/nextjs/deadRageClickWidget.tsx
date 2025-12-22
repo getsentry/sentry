@@ -130,7 +130,7 @@ const ClicksGridCell = styled('div')`
 `;
 
 const ClickCount = styled(TextOverflow)`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
   display: grid;
   grid-template-columns: auto auto;
   gap: ${space(0.75)};

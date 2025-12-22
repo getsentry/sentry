@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
@@ -9,6 +10,7 @@ from typing import Protocol, TypeVar
 import sentry_sdk
 import sentry_sdk.scope
 import urllib3
+from google.protobuf.json_format import MessageToJson
 from google.protobuf.message import Message as ProtobufMessage
 from rest_framework.exceptions import NotFound
 from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import (
@@ -44,8 +46,10 @@ from sentry_protos.snuba.v1.error_pb2 import Error as ErrorProto
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
 from urllib3.response import BaseHTTPResponse
 
+from sentry.utils import json, metrics
 from sentry.utils.snuba import SnubaError, _snuba_pool
 
+logger = logging.getLogger(__name__)
 RPCResponseType = TypeVar("RPCResponseType", bound=ProtobufMessage)
 
 # Show the snuba query params and the corresponding sql or errors in the server logs
@@ -71,6 +75,10 @@ def log_snuba_info(content: str) -> None:
 
 
 class SnubaRPCError(SnubaError):
+    pass
+
+
+class SnubaRPCRateLimitExceeded(SnubaRPCError):
     pass
 
 
@@ -109,10 +117,23 @@ def _make_rpc_requests(
     timeseries_requests = [] if timeseries_requests is None else timeseries_requests
     requests = table_requests + timeseries_requests
 
-    endpoint_names = [
-        "EndpointTraceItemTable" if isinstance(req, TraceItemTableRequest) else "EndpointTimeSeries"
-        for req in requests
-    ]
+    endpoint_names: list[str] = []
+    for request in requests:
+        endpoint_name = (
+            "EndpointTraceItemTable"
+            if isinstance(request, TraceItemTableRequest)
+            else "EndpointTimeSeries"
+        )
+        endpoint_names.append(endpoint_name)
+        logger.info(
+            f"Running a {endpoint_name} RPC query",  # noqa: LOG011
+            extra={
+                "rpc_query": json.loads(MessageToJson(request)),
+                "referrer": request.meta.referrer,
+                "organization_id": request.meta.organization_id,
+                "trace_item_type": request.meta.trace_item_type,
+            },
+        )
 
     referrers = [req.meta.referrer for req in requests]
     assert (
@@ -150,14 +171,45 @@ def _make_rpc_requests(
             table_response = TraceItemTableResponse()
             table_response.ParseFromString(item.data)
             table_results.append(table_response)
+
+            if len(table_response.column_values) > 0:
+                rpc_rows = len(table_response.column_values[0].results)
+            else:
+                rpc_rows = 0
+            logger.info(
+                "Table RPC query response",
+                extra={
+                    "rpc_rows": rpc_rows,
+                    "page_token": table_response.page_token,
+                    "meta": table_response.meta,
+                },
+            )
+            metrics.distribution("snuba_rpc.table_response.length", rpc_rows)
         elif isinstance(request, TimeSeriesRequest):
             timeseries_response = TimeSeriesResponse()
             timeseries_response.ParseFromString(item.data)
             timeseries_results.append(timeseries_response)
+
+            if len(timeseries_response.result_timeseries) > 0:
+                rpc_rows = len(timeseries_response.result_timeseries[0].data_points)
+            else:
+                rpc_rows = 0
+            logger.info(
+                "Timeseries RPC query response",
+                extra={
+                    "rpc_rows": rpc_rows,
+                    "meta": timeseries_response.meta,
+                },
+            )
+            metrics.distribution("snuba_rpc.timeseries_response.length", rpc_rows)
     return MultiRpcResponse(table_results, timeseries_results)
 
 
 def attribute_names_rpc(req: TraceItemAttributeNamesRequest) -> TraceItemAttributeNamesResponse:
+    """
+    This endpoint allows you to request attribute names for traces matching some filters.
+    You can also specify a substring to refine the names returned.
+    """
     resp = _make_rpc_request("EndpointTraceItemAttributeNames", "v1", req.meta.referrer, req)
     response = TraceItemAttributeNamesResponse()
     response.ParseFromString(resp.data)
@@ -165,6 +217,14 @@ def attribute_names_rpc(req: TraceItemAttributeNamesRequest) -> TraceItemAttribu
 
 
 def attribute_values_rpc(req: TraceItemAttributeValuesRequest) -> TraceItemAttributeValuesResponse:
+    """
+    This endpoints allows you to request values for a given attribute key.
+    Only works for string attributes.
+
+    You can specify organizationID / projectID / time range / TraceItemType through meta.
+    You cannot apply arbitrary attribute filters (e.g. group_id) to this query.
+    You can specify a substring to refine the values returned.
+    """
     resp = _make_rpc_request("AttributeValuesRequest", "v1", req.meta.referrer, req)
     response = TraceItemAttributeValuesResponse()
     response.ParseFromString(resp.data)
@@ -172,6 +232,10 @@ def attribute_values_rpc(req: TraceItemAttributeValuesRequest) -> TraceItemAttri
 
 
 def get_traces_rpc(req: GetTracesRequest) -> GetTracesResponse:
+    """
+    Get Traces matching some set of TraceItemFilters.
+    The Trace data returned are restricted to the set of TraceAttribute.Key
+    """
     resp = _make_rpc_request("EndpointGetTraces", "v1", req.meta.referrer, req)
     response = GetTracesResponse()
     response.ParseFromString(resp.data)
@@ -271,8 +335,6 @@ def _make_rpc_request(
         sentry_sdk.get_current_scope() if thread_current_scope is None else thread_current_scope
     )
     if SNUBA_INFO:
-        from google.protobuf.json_format import MessageToJson
-
         log_snuba_info(f"{referrer}.body:\n{MessageToJson(req)}")  # type: ignore[arg-type]
     with sentry_sdk.scope.use_isolation_scope(thread_isolation_scope):
         with sentry_sdk.scope.use_scope(thread_current_scope):
@@ -303,6 +365,8 @@ def _make_rpc_request(
                         log_snuba_info(f"{referrer}.error:\n{error}")
                     if http_resp.status == 404:
                         raise NotFound() from SnubaRPCError(error)
+                    if http_resp.status == 429:
+                        raise SnubaRPCRateLimitExceeded(error)
                     raise SnubaRPCError(error)
                 return http_resp
 

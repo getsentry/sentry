@@ -148,6 +148,15 @@ describe('SeerDrawer', () => {
       },
     });
     MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/seer/onboarding-check/`,
+      body: {
+        hasSupportedScmIntegration: false,
+        isAutofixEnabled: false,
+        isCodeReviewEnabled: false,
+        isSeerConfigured: false,
+      },
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/integrations/coding-agents/`,
       body: {
         integrations: [],

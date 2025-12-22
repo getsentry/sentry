@@ -351,7 +351,7 @@ export const InnerWrap = withChonk(
         z-index: 1;
         /* Background to hide the previous item's divider */
         ::before {
-          background: ${p.theme.backgroundElevated};
+          background: ${p.theme.tokens.background.primary};
         }
       `}
   `,
@@ -434,7 +434,7 @@ const Label = withChonk(
 
 const Details = withChonk(
   styled('div')<{disabled: boolean; priority: Priority}>`
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
     color: ${p => p.theme.subText};
     line-height: 1.2;
     margin-bottom: 0;

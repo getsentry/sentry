@@ -17,7 +17,6 @@ import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import {getSearchFilters, isOnDemandSearchKey} from 'sentry/utils/onDemandMetrics/index';
 import {capitalize} from 'sentry/utils/string/capitalize';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 import useOrganization from 'sentry/utils/useOrganization';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import type {Action, MetricRule} from 'sentry/views/alerts/rules/metric/types';
@@ -130,18 +129,11 @@ function TriggerDescription({
 }
 
 function getColor(theme: Theme, type: 'critical' | 'warning' | 'success') {
-  if (isChonkTheme(theme)) {
-    return type === 'critical'
-      ? theme.colors.chonk.red400
-      : type === 'warning'
-        ? theme.colors.chonk.yellow400
-        : theme.colors.chonk.green400;
-  }
   return type === 'critical'
-    ? theme.errorText
+    ? theme.colors.chonk.red400
     : type === 'warning'
-      ? theme.warningText
-      : theme.successText;
+      ? theme.colors.chonk.yellow400
+      : theme.colors.chonk.green400;
 }
 const StyledIconDiamond = styled(IconDiamond)<{type: 'critical' | 'warning' | 'success'}>`
   fill: ${p => getColor(p.theme, p.type)};
@@ -422,7 +414,7 @@ const TriggerActions = styled('div')`
 
 const TriggerText = styled('span')`
   display: block;
-  background-color: ${p => p.theme.surface200};
+  background-color: ${p => p.theme.colors.surface300};
   padding: ${space(0.25)} ${space(0.75)};
   border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.tokens.content.primary};

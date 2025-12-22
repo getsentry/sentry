@@ -15,12 +15,12 @@ function makeBadgeTheme(
   switch (props.type) {
     case 'alpha':
       return {
-        background: `linear-gradient(90deg, ${theme.pink300}, ${theme.yellow300})`,
+        background: `linear-gradient(90deg, ${theme.colors.pink400}, ${theme.colors.yellow400})`,
         color: theme.white,
       };
     case 'beta':
       return {
-        background: `linear-gradient(90deg, ${theme.purple300}, ${theme.pink300})`,
+        background: `linear-gradient(90deg, ${theme.colors.blue400}, ${theme.colors.pink400})`,
         color: theme.white,
       };
     // @TODO(jonasbadalic) default, experimental and internal all look the same and should be consolidated
@@ -28,18 +28,18 @@ function makeBadgeTheme(
     case 'experimental':
     case 'internal':
       return {
-        background: theme.gray100,
-        color: theme.gray500,
+        background: theme.colors.gray100,
+        color: theme.colors.gray800,
       };
     case 'new':
       return {
-        background: `linear-gradient(90deg, ${theme.blue300}, ${theme.green300})`,
+        background: `linear-gradient(90deg, ${theme.colors.blue400}, ${theme.colors.green400})`,
         color: theme.white,
       };
     case 'warning':
       return {
-        background: theme.yellow300,
-        color: theme.gray500,
+        background: theme.colors.yellow400,
+        color: theme.colors.gray800,
       };
     default:
       unreachable(props.type);
@@ -77,8 +77,8 @@ const StyledBadge = styled('span')<BadgeProps>`
   min-width: 20px;
   line-height: 20px;
   border-radius: 20px;
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.xs};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.xs};
   padding: 0 ${space(0.75)};
   transition: background ${p => p.theme.motion.snap.fast};
 

@@ -210,7 +210,7 @@ function Chart({
       max: dataMax,
       type: 'value',
       axisLabel: {
-        color: theme.chartLabel,
+        color: theme.tokens.content.muted,
         formatter(value: number) {
           return axisLabelFormatter(value, 'number', true);
         },
@@ -278,7 +278,7 @@ function Chart({
       max: dataMax,
       type: log ? 'log' : 'value',
       axisLabel: {
-        color: theme.chartLabel,
+        color: theme.tokens.content.muted,
         formatter(value: number) {
           return axisLabelFormatter(
             value,
@@ -472,7 +472,7 @@ function Chart({
             splitNumber: definedAxisTicks,
             max: dataMax,
             axisLabel: {
-              color: theme.chartLabel,
+              color: theme.tokens.content.muted,
               formatter(value: number) {
                 return axisLabelFormatter(
                   value,

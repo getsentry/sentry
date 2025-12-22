@@ -5,7 +5,6 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {EventSamples} from 'sentry/views/insights/mobile/appStarts/components/eventSamples';
 import {
   MobileCursors,
@@ -35,11 +34,6 @@ describe('ScreenLoadEventSamples', () => {
         },
       })
     );
-    jest.mocked(useReleaseSelection).mockReturnValue({
-      primaryRelease: 'com.example.vu.android@2.10.5',
-      isLoading: false,
-      secondaryRelease: 'com.example.vu.android@2.10.3+42',
-    });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/events/`,
       method: 'GET',
@@ -65,11 +59,6 @@ describe('ScreenLoadEventSamples', () => {
           id: 970136705,
           version: 'com.example.vu.android@2.10.5',
           dateCreated: '2023-12-19T21:37:53.895495Z',
-        },
-        {
-          id: 969902997,
-          version: 'com.example.vu.android@2.10.3+42',
-          dateCreated: '2023-12-19T18:04:06.953025Z',
         },
       ],
     });
@@ -132,7 +121,7 @@ describe('ScreenLoadEventSamples', () => {
     );
 
     // Check that headers are set properly
-    expect(screen.getByRole('columnheader', {name: 'Event ID (R1)'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Event ID'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Profile'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Duration'})).toBeInTheDocument();
 

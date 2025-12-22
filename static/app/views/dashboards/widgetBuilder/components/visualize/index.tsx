@@ -63,6 +63,7 @@ import {validateColumnTypes} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
 
 export const NONE = 'none';
 
@@ -282,8 +283,12 @@ function Visualize({error, setError}: VisualizeProps) {
   const isChartWidget = isChartDisplayType(state.displayType);
   const isBigNumberWidget = state.displayType === DisplayType.BIG_NUMBER;
   const isTableWidget = state.displayType === DisplayType.TABLE;
-  const {tags: numericSpanTags} = useTraceItemTags('number');
-  const {tags: stringSpanTags} = useTraceItemTags('string');
+  let hiddenKeys: string[] = [];
+  if (state.dataset === WidgetType.TRACEMETRICS) {
+    hiddenKeys = HiddenTraceMetricSearchFields;
+  }
+  const {tags: numericSpanTags} = useTraceItemTags('number', hiddenKeys);
+  const {tags: stringSpanTags} = useTraceItemTags('string', hiddenKeys);
 
   // Span column options are explicitly defined and bypass all of the
   // fieldOptions filtering and logic used for showing options for
@@ -871,16 +876,6 @@ function Visualize({error, setError}: VisualizeProps) {
                               fields.length <= 1 || !canDelete || isOnlyFieldOrAggregate
                             }
                             onClick={() => {
-                              if (state.dataset === WidgetType.TRACEMETRICS) {
-                                // Ensure to remove the trace metric that corresponds to the field being deleted
-                                dispatch({
-                                  type: BuilderStateAction.SET_TRACE_METRIC,
-                                  payload:
-                                    state.traceMetrics?.filter(
-                                      (_traceMetric, i) => i !== index
-                                    ) ?? [],
-                                });
-                              }
                               dispatch({
                                 type: updateAction,
                                 payload: fields?.filter((_field, i) => i !== index) ?? [],

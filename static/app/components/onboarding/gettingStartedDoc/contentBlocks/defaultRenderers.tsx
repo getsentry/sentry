@@ -28,7 +28,7 @@ const baseBlockStyles = css`
 
 const coloredCodeStyles = (theme: Theme) => css`
   code:not([class*='language-']) {
-    color: ${theme.pink400};
+    color: ${theme.colors.pink500};
   }
 `;
 

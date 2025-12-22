@@ -67,7 +67,7 @@ export function DO_NOT_USE_getChonkButtonStyles(
     alignItems: 'center',
     justifyContent: 'center',
 
-    fontWeight: p.theme.fontWeight.bold,
+    fontWeight: p.theme.font.weight.sans.medium,
 
     opacity: p.busy || p.disabled ? 0.6 : undefined,
 
@@ -83,7 +83,10 @@ export function DO_NOT_USE_getChonkButtonStyles(
 
     background: 'none',
 
-    ...buttonSizes[p.size],
+    height: buttonSizes[p.size].height,
+    minHeight: buttonSizes[p.size].minHeight,
+    fontSize: buttonSizes[p.size].fontSize,
+    lineHeight: buttonSizes[p.size].lineHeight,
 
     '&::before': {
       content: '""',
