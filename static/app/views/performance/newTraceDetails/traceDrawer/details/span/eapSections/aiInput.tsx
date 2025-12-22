@@ -30,14 +30,20 @@ interface AIMessage {
 }
 
 const ALLOWED_MESSAGE_ROLES = new Set(['system', 'user', 'assistant', 'tool']);
+const FILE_CONTENT_PARTS = ['blob', 'uri', 'file'] as const;
+const SUPPORTED_CONTENT_PARTS = ['text', ...FILE_CONTENT_PARTS] as const;
 
 function renderTextMessages(content: any) {
   if (!Array.isArray(content)) {
     return content;
   }
   return content
-    .filter((part: any) => part.type === 'text')
-    .map((part: any) => part.text.trim())
+    .filter((part: any) => SUPPORTED_CONTENT_PARTS.includes(part.type))
+    .map((part: any) =>
+      FILE_CONTENT_PARTS.includes(part.type)
+        ? `\n\n[redacted content of type "${part.mime_type ?? 'unknown'}"]\n\n`
+        : part.text.trim()
+    )
     .join('\n');
 }
 
