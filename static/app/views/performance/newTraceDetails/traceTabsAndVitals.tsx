@@ -98,7 +98,7 @@ export function TraceTabsAndVitals({
   return (
     <Flex ref={setRef} justify="between" minHeight={`${CONTAINER_MIN_HEIGHT}px`}>
       <Tabs value={currentTab} onChange={onTabChange}>
-        <TabList hideBorder variant="floating">
+        <TabList variant="floating">
           {tabOptions.map(tab => (
             <TabList.Item key={tab.slug}>{tab.label}</TabList.Item>
           ))}
