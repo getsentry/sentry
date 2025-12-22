@@ -1,6 +1,7 @@
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import type {ContextValue} from 'sentry/components/events/contexts';
@@ -114,7 +115,7 @@ export default function ContextCard({
     <KeyValueData.Card
       contentItems={contentItems}
       title={
-        <Title>
+        <Flex justify="between" align="center">
           <div>{getContextTitle({alias, type, value})}</div>
           <div style={{minWidth: 14}}>
             <ErrorBoundary customComponent={null}>
@@ -129,15 +130,9 @@ export default function ContextCard({
               })}
             </ErrorBoundary>
           </div>
-        </Title>
+        </Flex>
       }
       sortAlphabetically
     />
   );
 }
-
-const Title = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
