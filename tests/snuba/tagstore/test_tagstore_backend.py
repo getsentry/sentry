@@ -22,7 +22,6 @@ from sentry.tagstore.types import GroupTagValue, TagValue
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import with_feature
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -287,28 +286,6 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
         assert len(top_release_values) == 1
         assert {v.value for v in top_release_values} == {"releaseme"}
         assert all(v.times_seen == 2 for v in top_release_values)
-
-    @with_feature("organizations:issue-tags-subtraction-query")
-    def test_get_group_tag_keys_and_top_values_subtraction_query(self) -> None:
-        """Test the 2-query subtraction approach for empty tag counts."""
-        perf_group, env = self.perf_group_and_env
-
-        result = list(
-            self.ts.get_group_tag_keys_and_top_values(
-                perf_group,
-                [env.id],
-                tenant_ids={"referrer": "r", "organization_id": 1234},
-                use_subtraction_query=True,
-            )
-        )
-        result.sort(key=lambda r: r.key)
-
-        # biz tag: event 1 has "baz", event 2 is missing it (empty)
-        assert result[0].key == "biz"
-        biz_values = {tv.value: tv.times_seen for tv in result[0].top_values}
-        assert biz_values.get("baz") == 1
-        assert biz_values.get("") == 1  # missing key counted as empty
-        assert result[0].count == 2
 
     def test_get_group_tag_keys_and_top_values_generic_issue(self) -> None:
         group, env = self.generic_group_and_env
