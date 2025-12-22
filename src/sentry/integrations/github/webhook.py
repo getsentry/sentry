@@ -710,7 +710,7 @@ class PullRequestEventWebhook(GitHubWebhook):
     """https://developer.github.com/v3/activity/events/types/#pullrequestevent"""
 
     EVENT_TYPE = IntegrationWebhookEventType.PULL_REQUEST
-    WEBHOOK_EVENT_PROCESSORS = [handle_github_pr_webhook_for_autofix]
+    WEBHOOK_EVENT_PROCESSORS = []
 
     def _handle(
         self,
