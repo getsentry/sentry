@@ -10,6 +10,9 @@ function createBackwardsCompatibleToken<
 >(tokenObj: T): T {
   return new Proxy(tokenObj, {
     get(target, prop, receiver) {
+      if (prop === '__emotion_styles') {
+        return target.vibrant;
+      }
       if (prop === 'toString' || prop === 'valueOf' || prop === Symbol.toPrimitive) {
         return () => target.vibrant;
       }
