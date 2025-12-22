@@ -1,0 +1,287 @@
+---
+title: Design System API Guidelines
+layout: document
+description: Guidelines for consistent component API design in the Scraps design system.
+---
+
+This is a living document that evolves along with the codebase. Contributions are welcome and encouraged.
+
+# Why do we need this document?
+
+Over the past decade, Sentry's codebase has grown to 1M+ LOC of code, and if you've tried reading through some of it, you have probably realized that it is written and organized in a number of very different ways. This manifests itself in an environment that requires high cognitive load, adding to the cost of our engineering operations and slowing down our development.
+
+This document exists in an effort to improve the status quo, and provide a path towards an environment in which we can operate more efficiently in. It is important to note that we currently do not enforce these guidelines simply because expressing them through a set of static rules would be impossible, but we are exploring ways of using LLM code review tools to nudge new contributions in this direction.
+
+# Guiding Principles
+
+### Optimize for Readability
+
+- Control flow (avoid nested branching or assignment, return early)
+- Code should explain what, not why
+- Do not optimize for character count
+- What would your future self thank you for?
+
+### Fight the temptation to abstract too early
+
+- Fight the temptation to abstract too early.
+- Fight the temptation to overly dry code
+
+## API Design
+
+### Provide value through simple interfaces
+
+- be opinionated, but allow for flexibility
+- do not not expose internal complexity
+- Prefer explicit APIs
+
+### Build shared mental models
+
+- Prefer composable primitives over god object components
+- Prefer string enums over boolean flags
+- Avoid optional properties
+- Avoid ambiguity of all kind
+- JSX should reflect the rendered DOM
+
+## Housekeeping:
+
+- You are not alone in the codebase
+  - Do not pollute global namespace with generic exports
+  - Avoid generic naming
+- Separate view from state
+  - React is a view library, keep state separately
+
+## Testing:
+
+- Test user behavior and public APIs, not internal state or implementation details
+
+## Tradeoffs:
+
+- Copy pasted code is better than hasty abstractions
+
+## WIP:
+
+Intent:
+
+- Optimize for Readability
+  - Do not optimize for deduplication
+  - Develop empathy, what would your future self thank you for?
+  - Explain why, not what - code should be self-documenting.
+
+- Use Your Judgement
+  - Do not follow arbitrary rules (each component needs its own file)
+    - There are diminishing return to organizing code into smaller files
+  - Develop a
+
+- Defer decisions to the last responsible moment
+  - There is no magic bullet for when this is - you will learn it over time and through experience.
+  - Fight the temptation to abstract too early.
+
+### Avoid Ambiguity
+
+An example of this is our flex component that uses `p` along with an integer value prop. You can guess that `p` probably denotes `padding`, but it is still unclear what the unit-less integer value represents. Does that map to our spacing sizes or px values? The only way to be sure is to lookup and read the implementation, which is a waste of time.
+
+```tsx
+// ❌ Incorrect - ambiguous abbreviations and unclear units
+<Flex padding={2}>...</Flex>
+<Flex padding="extrasmall">...</Flex>
+
+// ✅ Correct - clear and concise
+<Flex padding="xs">...</Flex>
+```
+
+On the opposite side, we do not want APIs to be overly expressive. `xs` for example carries context from many real world use-cases, and should be preferred over something like `extrasmall`.
+
+### Leverage Known Concepts
+
+Whenever possible, leverage the design of existing APIs. An example is staying close to the HTML implementation when creating buttons - you want to reuse the `disabled` attribute vs introducing something new like `isDisabled`.
+
+```tsx
+// ❌ Incorrect - introduces new naming unnecessarily
+<Button isDisabled={true}>Button</Button>
+<Button isDisabled={true} disabled={false}>Button</Button> // Confusing dual API
+
+// ✅ Correct - uses standard HTML attribute
+<Button disabled={true}>Button</Button>
+```
+
+## Field Definitions
+
+The following outlines each specific field, the key it should map to, as well as the default value (if any) and how to handle conflicts.
+
+### Size
+
+We use t-shirt sizing to indicate size.
+
+> **Convention**: `2xs | xs | sm | md | lg | xl | 2xl`
+> **Default**: `md`
+
+```tsx
+// ❌ Incorrect - non-standard size values
+<Button size="large">Button</Button>
+<Button size={20}>Button</Button>
+
+// ✅ Correct - t-shirt sizes
+<Button size="xs">Button</Button>
+<Button>Button</Button> // Defaults to md size
+```
+
+#### Handling Native Size Conflicts
+
+In cases of intrinsic elements that support a `size` property, the native size should be overridden.
+
+```tsx
+// ❌ Incorrect - creates confusing dual APIs
+interface ButtonProps extends HTMLAttributes<HTMLButtonElement> {
+  sentrySize: 'xs' | 'sm';
+}
+
+// ❌ Incorrect - too much complexity
+interface ButtonProps extends Omit<HTMLAttributes<HTMLButtonElement>, 'size'> {
+  size: 'xs' | 'sm';
+  nativeSize: HTMLAttributes<HTMLButtonElement>['size'];
+}
+
+// ✅ Correct - single size definition
+interface ButtonProps extends Omit<HTMLAttributes<HTMLButtonElement>, 'size'> {
+  size: 'xs' | 'sm';
+}
+```
+
+### Variants
+
+We use the `variant` key, as it is an intuitive concept which does not conflict with native properties like `type`, which are sometimes required in intrinsic components like `<Button type="submit"/>`. Our design system commonly uses variants like `muted | success | warning | danger | info` which should be preferred if the component is generic, but you are free to define your own.
+
+> **Convention**: `muted | success | warning | danger | info`
+> **Default**: `primary`
+
+```tsx
+// ❌ Incorrect - inconsistent naming
+<Button priority="primary">Button</Button>
+<Button type="primary">Button</Button>
+<Button kind="primary">Button</Button>
+
+// ✅ Correct - uses variant
+<Button variant="primary">Button</Button>
+```
+
+## The Do's
+
+### Export Coupled Components Under a Single Namespace
+
+Components are sometimes not intended to be used in isolation - this can occur due to a visual constraint, or due to an underlying functional coupling that needs to be respected. When that is the case, you should use namespace exports to guide users towards respecting this coupling.
+
+```tsx
+// ❌ Incorrect - independent exports don't show relationship
+export function Table() {...}
+export function TableCell() {...}
+export function TableRow() {...}
+
+import {Table, TableCell, TableRow} from '...';
+<Table>
+  <TableRow>
+    <TableCell>...</TableCell>
+  </TableRow>
+</Table>
+
+// ✅ Correct - namespace shows coupling
+export function Table() {...}
+Object.assign(Table, {
+  Row,
+  Cell,
+});
+
+import {Table} from '...';
+<Table>
+  <Table.Row>
+    <Table.Cell>...</Table.Cell>
+  </Table.Row>
+</Table>
+```
+
+### Leverage TypeScript's Const Operator to Enhance LSP
+
+Use TypeScript's `as const` to provide better autocomplete and type safety:
+
+```tsx
+// ✅ Provides better IDE autocomplete
+const BUTTON_SIZES = ['xs', 'sm', 'md', 'lg', 'xl'] as const;
+type ButtonSize = (typeof BUTTON_SIZES)[number];
+```
+
+### Use JSDoc
+
+Add JSDoc comments to provide context and documentation that appears in IDE tooltips:
+
+```tsx
+/**
+ * A button component following our design system standards.
+ *
+ * @param size - The size of the button (defaults to 'md')
+ * @param variant - The visual style variant
+ * @param disabled - Whether the button is disabled
+ */
+export function Button({size = 'md', variant = 'primary', disabled}: ButtonProps) {
+  // ...
+}
+```
+
+## The Don'ts
+
+### Avoid Adjectives
+
+Adjectives are subjective and lack specificity, so they should be avoided. Use naming that provides information about the underlying characteristic of the system.
+
+```tsx
+// ❌ Incorrect - "optimized" for what?
+export function OptimizedBreadcrumbs() {...}
+
+// ✅ Correct - indicates optimization technique
+export function VirtualizedBreadcrumbs() {...}
+
+// ❌ Incorrect - "simple" provides no useful information
+export function SimpleComponent() {...}
+
+// ✅ Correct - use the base name
+export function Component() {...}
+```
+
+### Avoid Generic Naming
+
+This is especially true if these components are exported, because they pollute the namespace.
+
+```tsx
+// ❌ Incorrect - generic name in specific context
+export function Breadcrumbs() {...}
+
+// ✅ Correct - specific name that indicates context
+export function ProfilingBreadcrumbs() {...}
+```
+
+### No "Default" Variant
+
+In some parts of the codebase, we have variant values like `default`. This variant type provides little or no description to the reader about its behavior, and should therefore not exist at all.
+
+```tsx
+// ❌ Incorrect - "default" provides no semantic meaning
+<Button variant="default">...</Button>;
+function Button({variant = 'default'}) {}
+
+// ✅ Correct - component handles its own default styling
+<Button>...</Button>;
+function Button({variant}) {
+  // Internal logic handles undefined variant
+}
+```
+
+## Checklist for New Components
+
+When creating a new component, ensure you:
+
+- [ ] Use standard size prop (`2xs | xs | sm | md | lg | xl | 2xl`) with `md` default
+- [ ] Use `variant` instead of `priority`, `type`, or `kind` for style variations
+- [ ] Leverage native HTML attributes (like `disabled`) instead of creating new patterns
+- [ ] Use namespace exports (e.g., `Table.Row`) for coupled components
+- [ ] Add JSDoc comments for complex props
+- [ ] Avoid adjectives in component names
+- [ ] Use specific names for domain-specific components
+- [ ] Never use "default" as a variant value
