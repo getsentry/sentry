@@ -884,7 +884,7 @@ class PullRequestEventWebhook(GitHubWebhook):
         # XXX: Use the signature expected in the for loop below.
         handle_github_pr_webhook_for_autofix(organization, action, pull_request, user)
         for processor in self.WEBHOOK_EVENT_PROCESSORS:
-            processor(event_type=self.EVENT_TYPE, event=event, **kwargs)
+            processor(event_type=self.event_type.value, event=event, **kwargs)
 
 
 class CheckRunEventWebhook(GitHubWebhook):
@@ -903,7 +903,7 @@ class CheckRunEventWebhook(GitHubWebhook):
         **kwargs,
     ) -> None:
         for processor in PREPROCESSORS:
-            processor(event_type=self.EVENT_TYPE, event=event, **kwargs)
+            processor(event_type=self.event_type.value, event=event, **kwargs)
 
 
 @all_silo_endpoint
