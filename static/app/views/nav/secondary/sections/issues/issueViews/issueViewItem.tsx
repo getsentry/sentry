@@ -2,6 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {motion, Reorder, useDragControls} from 'framer-motion';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconGrabbable} from 'sentry/icons';
@@ -137,9 +139,9 @@ export function IssueViewItem({
           </LeadingItemsWrapper>
         }
         trailingItems={
-          <TrailingItemsWrapper>
+          <Flex align="center">
             <IssueViewQueryCount view={view} isActive={isActive} />
-          </TrailingItemsWrapper>
+          </Flex>
         }
         onPointerDown={e => {
           e.preventDefault();
@@ -219,11 +221,6 @@ const StyledReorderItem = styled(Reorder.Item, {
 const StyledInteractionStateLayer = styled(InteractionStateLayer)`
   height: 120%;
   border-radius: 4px;
-`;
-
-const TrailingItemsWrapper = styled('div')`
-  display: flex;
-  align-items: center;
 `;
 
 const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
