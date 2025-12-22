@@ -2,7 +2,6 @@ import moment from 'moment-timezone';
 
 import ResultGrid from 'sentry/components/resultGrid';
 import {t} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 
 type Row = {
@@ -12,8 +11,6 @@ type Row = {
   slug: string;
   status: string;
 };
-
-type Props = RouteComponentProps;
 
 const getRow = (row: Row) => [
   <td key="name">
@@ -31,7 +28,7 @@ const getRow = (row: Row) => [
   </td>,
 ];
 
-function AdminProjects(props: Props) {
+export default function AdminProjects() {
   const columns = [
     <th key="name">Project</th>,
     <th key="status" style={{width: 150, textAlign: 'center'}}>
@@ -63,10 +60,7 @@ function AdminProjects(props: Props) {
         }}
         sortOptions={[['date', 'Date Created']]}
         defaultSort="date"
-        {...props}
       />
     </div>
   );
 }
-
-export default AdminProjects;
