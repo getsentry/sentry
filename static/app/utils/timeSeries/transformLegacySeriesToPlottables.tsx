@@ -29,7 +29,7 @@ export function transformLegacySeriesToPlottables(
   const plottables = timeseriesResults
     .map(series => {
       const unaliasedSeriesName =
-        series.seriesName?.split(' : ')[1]?.trim() ?? series.seriesName;
+        series.seriesName?.split(' : ').at(-1)?.trim() ?? series.seriesName;
       const fieldType =
         timeseriesResultsTypes?.[unaliasedSeriesName] ??
         aggregateOutputType(unaliasedSeriesName);
@@ -108,6 +108,8 @@ function mapAggregationTypeToValueTypeAndUnit(
   }
 
   switch (aggregationType) {
+    case 'rate':
+      return {valueType: 'rate', valueUnit: null};
     case 'size':
       return {valueType: 'size', valueUnit: null};
     case 'duration':
