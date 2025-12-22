@@ -45,20 +45,6 @@ jobs:
             cp -v "$f" .artifacts/coverage_db/
           done
 
-          # If shards exist, combine into a single DB for convenience.
-          if compgen -G ".artifacts/coverage_db/.coverage.*" > /dev/null; then
-            # Combine shards from that directory; writes .coverage in current working dir
-            coverage combine .artifacts/coverage_db || true
-            if [[ -f .coverage ]]; then
-              cp -v .coverage .artifacts/coverage_db/.coverage.combined
-            fi
-          else
-            # No shards; make combined just a copy of the single DB
-            if [[ -f .artifacts/coverage_db/.coverage ]]; then
-              cp -v .artifacts/coverage_db/.coverage .artifacts/coverage_db/.coverage.combined
-            fi
-          fi
-
           # Quick sanity output (no heredoc)
           if [[ -f .artifacts/coverage_db/.coverage.combined ]]; then
             python -c "import os,sqlite3; p='.artifacts/coverage_db/.coverage.combined'; \
