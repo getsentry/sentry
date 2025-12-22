@@ -159,7 +159,7 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
           max1: 1200,
           max2: 2400,
         },
-        unit: 'ms',
+        unit: null,
       },
       layout: {
         y: 2,
@@ -190,7 +190,7 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
           max1: 900,
           max2: 1600,
         },
-        unit: 'ms',
+        unit: null,
       },
       layout: {
         y: 2,
@@ -221,7 +221,7 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
           max1: 200,
           max2: 500,
         },
-        unit: 'ms',
+        unit: null,
       },
       layout: {
         y: 2,
@@ -252,7 +252,7 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
           max1: 0.1,
           max2: 0.25,
         },
-        unit: 'ratio',
+        unit: null,
       },
       layout: {
         y: 2,
@@ -283,7 +283,7 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
           max1: 200,
           max2: 400,
         },
-        unit: 'ms',
+        unit: 'millisecond',
       },
       layout: {
         y: 2,
@@ -309,6 +309,14 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
           orderby: '',
         },
       ],
+      thresholds: {
+        max_values: {
+          max1: 0.5,
+          max2: 0.9,
+        },
+        unit: null,
+        preferredPolarity: '+',
+      },
       layout: {
         y: 2,
         w: 1,
@@ -333,6 +341,14 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
           orderby: '',
         },
       ],
+      thresholds: {
+        max_values: {
+          max1: 0.5,
+          max2: 0.9,
+        },
+        unit: null,
+        preferredPolarity: '+',
+      },
       layout: {
         y: 2,
         w: 1,
@@ -357,6 +373,14 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
           orderby: '',
         },
       ],
+      thresholds: {
+        max_values: {
+          max1: 0.5,
+          max2: 0.9,
+        },
+        unit: null,
+        preferredPolarity: '+',
+      },
       layout: {
         y: 2,
         w: 1,
@@ -381,6 +405,14 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
           orderby: '',
         },
       ],
+      thresholds: {
+        max_values: {
+          max1: 0.5,
+          max2: 0.9,
+        },
+        unit: null,
+        preferredPolarity: '+',
+      },
       layout: {
         y: 2,
         w: 1,
@@ -405,6 +437,14 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
           orderby: '',
         },
       ],
+      thresholds: {
+        max_values: {
+          max1: 0.5,
+          max2: 0.9,
+        },
+        unit: null,
+        preferredPolarity: '+',
+      },
       layout: {
         y: 2,
         w: 1,
