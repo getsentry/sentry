@@ -1568,6 +1568,18 @@ wheels = [
 ]
 
 [[package]]
+name = "pytest-cov"
+version = "4.0.0"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+dependencies = [
+    { name = "coverage", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "pytest", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+]
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/pytest_cov-4.0.0-py3-none-any.whl", hash = "sha256:2feb1b751d66a8bd934e5edfa2e961d11309dc37b73b0eabe73b5945fee20f6b" },
+]
+
+[[package]]
 name = "pytest-django"
 version = "4.9.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
@@ -2065,6 +2077,7 @@ dev = [
     { name = "pip-tools", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "pre-commit", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "pytest", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "pytest-cov", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "pytest-django", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "pytest-fail-slow", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "pytest-json-report", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2232,6 +2245,7 @@ dev = [
     { name = "pip-tools", specifier = ">=7.1.0" },
     { name = "pre-commit", specifier = ">=4.2.0" },
     { name = "pytest", specifier = ">=8.1.2" },
+    { name = "pytest-cov", specifier = ">=4.0.0" },
     { name = "pytest-django", specifier = ">=4.9.0" },
     { name = "pytest-fail-slow", specifier = ">=0.3.0" },
     { name = "pytest-json-report", specifier = ">=1.5.0" },
