@@ -8,6 +8,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -27,6 +28,21 @@ from sentry.seer.autofix.utils import (
 )
 from sentry.seer.endpoints.project_seer_preferences import BranchOverrideSerializer
 from sentry.seer.models import SeerRepoDefinition
+
+
+def merge_repositories(existing: list[dict], new: list[dict]) -> list[dict]:
+    """
+    Merge new repositories with existing ones, skipping duplicates by (org_id, provider, external_id).
+    """
+    _unique_repo_key = lambda r: (r.get("organization_id"), r.get("provider"), r.get("external_id"))
+
+    existing_keys = {_unique_repo_key(repo) for repo in existing}
+    merged = list(existing)
+    for repo in new:
+        if _unique_repo_key(repo) not in existing_keys:
+            merged.append(repo)
+            existing_keys.add(_unique_repo_key(repo))
+    return merged
 
 
 class RepositorySerializer(CamelSnakeSerializer):
@@ -105,6 +121,11 @@ class SeerAutofixSettingsPostSerializer(SeerAutofixSettingsSerializer):
         required=False,
         allow_null=True,
         help_text="Optional mapping of project IDs to repository configurations. If provided, updates the repository list for each specified project.",
+    )
+    appendRepositories = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="If true, appends repositories to existing list instead of overwriting. Duplicates (by organization_id, provider, external_id) are skipped.",
     )
 
     def validate(self, data):
@@ -201,7 +222,8 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
         """
         Bulk create/update the autofix automation settings of projects in a single request.
 
-        NOTE: When ProjectRepoMappings are provided, it will overwrite the existing repositories for that project.
+        NOTE: When ProjectRepoMappings are provided, it will overwrite existing repositories by default.
+        Set appendRepositories=true to append instead (duplicates by organization_id, provider, external_id are skipped).
 
         :pparam string organization_id_or_slug: the id or slug of the organization.
         :auth: required
@@ -214,6 +236,7 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
         autofix_automation_tuning = serializer.validated_data.get("autofixAutomationTuning")
         automated_run_stopping_point = serializer.validated_data.get("automatedRunStoppingPoint")
         project_repo_mappings = serializer.validated_data.get("projectRepoMappings")
+        append_repositories = serializer.validated_data.get("appendRepositories")
 
         projects = self.get_projects(request, organization, project_ids=project_ids)
         projects_by_id = {project.id: project for project in projects}
@@ -256,9 +279,12 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
 
                 if has_repo_update:
                     repos_data = filtered_repo_mappings[proj_id]
-                    pref_update["repositories"] = [
-                        SeerRepoDefinition(**repo_data).dict() for repo_data in repos_data
-                    ]
+                    new_repos = [SeerRepoDefinition(**repo_data).dict() for repo_data in repos_data]
+                    if append_repositories:
+                        existing_repos = existing_pref.get("repositories") or []
+                        pref_update["repositories"] = merge_repositories(existing_repos, new_repos)
+                    else:
+                        pref_update["repositories"] = new_repos
 
                 preferences_to_set.append(pref_update)
 
@@ -273,5 +299,18 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
 
             if preferences_to_set:
                 bulk_set_project_preferences(organization.id, preferences_to_set)
+
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=organization.id,
+            event=audit_log.get_event_id("AUTOFIX_SETTINGS_EDIT"),
+            data={
+                "project_count": len(projects),
+                "project_ids": list(project_ids),
+                "autofix_automation_tuning": autofix_automation_tuning,
+                "automated_run_stopping_point": automated_run_stopping_point,
+            },
+        )
 
         return Response(status=204)

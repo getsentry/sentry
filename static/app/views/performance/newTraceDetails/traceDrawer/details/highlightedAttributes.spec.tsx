@@ -16,6 +16,7 @@ describe('getHighlightedSpanAttributes', () => {
     const attributes = {
       'gen_ai.request.model': 'gpt-4',
       'gen_ai.cost.total_tokens': '0',
+      'gen_ai.usage.input_tokens': '100',
       'gen_ai.operation.type': 'ai_client',
     };
 

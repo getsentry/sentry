@@ -16,11 +16,15 @@ import {color} from 'sentry/utils/theme/scraps/color';
 import {breakpoints, radius, size, space} from 'sentry/utils/theme/scraps/size';
 import {typography} from 'sentry/utils/theme/scraps/typography';
 
-type SimpleMotionName = 'smooth' | 'snap' | 'enter' | 'exit';
-
-type PhysicsMotionName = 'spring';
-
-type MotionDuration = 'fast' | 'moderate' | 'slow';
+import type {
+  AlertVariant,
+  ButtonVariant,
+  FormSize,
+  LevelVariant,
+  MotionDuration,
+  MotionEasing,
+  TagVariant,
+} from './types';
 
 type MotionDefinition = Record<MotionDuration, string>;
 
@@ -30,7 +34,10 @@ const motionDurations: Record<MotionDuration, number> = {
   slow: 240,
 };
 
-const motionCurves: Record<SimpleMotionName, [number, number, number, number]> = {
+const motionCurves: Record<
+  Exclude<MotionEasing, keyof typeof motionTransitions>,
+  [number, number, number, number]
+> = {
   smooth: [0.72, 0, 0.16, 1],
   snap: [0.8, -0.4, 0.5, 1],
   enter: [0.24, 1, 0.32, 1],
@@ -65,7 +72,7 @@ const motionCurveWithDuration = (
   return [motion, framerMotion];
 };
 
-const motionTransitions: Record<PhysicsMotionName, Record<MotionDuration, Transition>> = {
+const motionTransitions: Record<'spring', Record<MotionDuration, Transition>> = {
   spring: {
     fast: {
       type: 'spring',
@@ -143,9 +150,8 @@ function generateMotion() {
   };
 }
 
-type Alert = 'muted' | 'info' | 'warning' | 'success' | 'error';
 type AlertColors = Record<
-  Alert,
+  AlertVariant,
   {
     background: string;
     backgroundLight: string;
@@ -382,17 +388,8 @@ const generateTagTheme = (colors: Colors): TagColors => ({
 
 type Colors = typeof lightColors;
 
-type Tag =
-  | 'default'
-  | 'promotion'
-  | 'highlight'
-  | 'warning'
-  | 'success'
-  | 'error'
-  | 'info';
-
 type TagColors = Record<
-  Tag,
+  TagVariant,
   {
     background: string;
     border: string;
@@ -400,14 +397,10 @@ type TagColors = Record<
   }
 >;
 
-// @TODO: is this loose coupling enough?
-type Level = 'sample' | 'info' | 'warning' | 'error' | 'fatal' | 'default' | 'unknown';
-type LevelColors = Record<Level, string>;
+type LevelColors = Record<LevelVariant, string>;
 
-// @TODO(jonasbadalic): Disabled is not a button variant, it's a state
-type Button = 'default' | 'primary' | 'danger' | 'link' | 'disabled' | 'transparent';
 type ButtonColors = Record<
-  Button,
+  ButtonVariant,
   {
     background: string;
     backgroundActive: string;
@@ -421,20 +414,11 @@ type ButtonColors = Record<
   }
 >;
 
-export type Size = '2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
-/**
- * Unless you are implementing a new component in the `sentry/components/core`
- * directory, use `ComponentProps['size']` instead.
- * @internal
- */
-export type FormSize = 'xs' | 'sm' | 'md';
-export type Space = keyof typeof space;
-
 const legacyTypography = {
   fontSize: typography.font.size,
   fontWeight: {
-    normal: typography.font.weight.regular,
-    bold: typography.font.weight.medium,
+    normal: typography.font.weight.sans.regular,
+    bold: typography.font.weight.sans.medium,
   },
   text: {
     family: typography.font.family.sans,
@@ -1406,15 +1390,6 @@ const deprecatedColorMappings = (colors: Colors) => ({
   },
   /** @deprecated */
   get gray100() {
-    return colors.gray100;
-  },
-
-  /** @deprecated */
-  get translucentGray200() {
-    return colors.gray200;
-  },
-  /** @deprecated */
-  get translucentGray100() {
     return colors.gray100;
   },
 
