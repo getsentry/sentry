@@ -112,6 +112,12 @@ jobs:
           path: .artifacts/all-coverage
           merge-multiple: true
 
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          mode: backend-ci
+
       - name: List downloaded artifacts (debug)
         run: |
           ls -la .artifacts/all-coverage || true
