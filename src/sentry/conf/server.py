@@ -826,6 +826,7 @@ TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 # Taskworkers need to import task modules to make tasks
 # accessible to the worker.
 TASKWORKER_IMPORTS: tuple[str, ...] = (
+    "sentry.autopilot.tasks",
     "sentry.conduit.tasks",
     "sentry.data_export.tasks",
     "sentry.debug_files.tasks",
@@ -1057,6 +1058,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "dynamic-sampling-boost-low-volume-projects": {
         "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_projects",
         "schedule": task_crontab("*/10", "*", "*", "*", "*"),
+    },
+    "autopilot-run-sdk-update-detector": {
+        "task": "autopilot:sentry.autopilot.tasks.run_sdk_update_detector",
+        "schedule": task_crontab("*/5", "*", "*", "*", "*"),
     },
     "dynamic-sampling-boost-low-volume-transactions": {
         "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
