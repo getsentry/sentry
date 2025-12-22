@@ -88,11 +88,6 @@ function useTrackAnalytics({
   const organization = useOrganization();
   const crossEventQueries = useCrossEventQueries();
 
-  const crossEventQueryCount = Object.values(crossEventQueries ?? {}).reduce(
-    (acc, curr) => acc + curr.length,
-    0
-  );
-
   const {
     data: {hasExceededPerformanceUsageLimit},
     isLoading: isLoadingSubscriptionDetails,
@@ -157,10 +152,9 @@ function useTrackAnalytics({
       interval,
       gave_seer_consent: gaveSeerConsent,
       version: 2,
-      cross_event_query_count: crossEventQueryCount,
-      cross_event_log_queries: crossEventQueries?.logQuery,
-      cross_event_metric_queries: crossEventQueries?.metricQuery,
-      cross_event_span_queries: crossEventQueries?.spanQuery,
+      cross_event_log_query_count: crossEventQueries?.logQuery?.length ?? 0,
+      cross_event_metric_query_count: crossEventQueries?.metricQuery?.length ?? 0,
+      cross_event_span_query_count: crossEventQueries?.spanQuery?.length ?? 0,
     });
 
     /* eslint-disable @typescript-eslint/no-base-to-string */
@@ -180,10 +174,9 @@ function useTrackAnalytics({
       has_exceeded_performance_usage_limit: ${String(hasExceededPerformanceUsageLimit)}
       page_source: ${page_source}
       gave_seer_consent: ${gaveSeerConsent}
-      cross_event_query_count: ${crossEventQueryCount}
-      cross_event_log_queries: ${crossEventQueries?.logQuery}
-      cross_event_metric_queries: ${crossEventQueries?.metricQuery}
-      cross_event_span_queries: ${crossEventQueries?.spanQuery}
+      cross_event_log_query_count: ${crossEventQueries?.logQuery?.length ?? 0}
+      cross_event_metric_query_count: ${crossEventQueries?.metricQuery?.length ?? 0}
+      cross_event_span_query_count: ${crossEventQueries?.spanQuery?.length ?? 0}
     `,
       {isAnalytics: true}
     );
@@ -196,7 +189,6 @@ function useTrackAnalytics({
     crossEventQueries?.logQuery,
     crossEventQueries?.metricQuery,
     crossEventQueries?.spanQuery,
-    crossEventQueryCount,
     dataset,
     hasExceededPerformanceUsageLimit,
     interval,
@@ -260,10 +252,9 @@ function useTrackAnalytics({
       gave_seer_consent: gaveSeerConsent,
       version: 2,
       attribute_breakdowns_mode: attributeBreakdownsMode,
-      cross_event_query_count: crossEventQueryCount,
-      cross_event_log_queries: crossEventQueries?.logQuery,
-      cross_event_metric_queries: crossEventQueries?.metricQuery,
-      cross_event_span_queries: crossEventQueries?.spanQuery,
+      cross_event_log_query_count: crossEventQueries?.logQuery?.length ?? 0,
+      cross_event_metric_query_count: crossEventQueries?.metricQuery?.length ?? 0,
+      cross_event_span_query_count: crossEventQueries?.spanQuery?.length ?? 0,
     });
 
     info(fmt`trace.explorer.metadata:
@@ -282,17 +273,15 @@ function useTrackAnalytics({
       page_source: ${page_source}
       gave_seer_consent: ${gaveSeerConsent}
       attribute_breakdowns_mode: ${attributeBreakdownsMode}
-      cross_event_query_count: ${crossEventQueryCount}
-      cross_event_log_queries: ${crossEventQueries?.logQuery}
-      cross_event_metric_queries: ${crossEventQueries?.metricQuery}
-      cross_event_span_queries: ${crossEventQueries?.spanQuery}
+      cross_event_log_query_count: ${crossEventQueries?.logQuery?.length ?? 0}
+      cross_event_metric_query_count: ${crossEventQueries?.metricQuery?.length ?? 0}
+      cross_event_span_query_count: ${crossEventQueries?.spanQuery?.length ?? 0}
     `);
   }, [
     attributeBreakdownsMode,
     crossEventQueries?.logQuery,
     crossEventQueries?.metricQuery,
     crossEventQueries?.spanQuery,
-    crossEventQueryCount,
     dataset,
     fields,
     hasExceededPerformanceUsageLimit,
@@ -358,10 +347,9 @@ function useTrackAnalytics({
       gave_seer_consent: gaveSeerConsent,
       version: 2,
       attribute_breakdowns_mode: attributeBreakdownsMode,
-      cross_event_query_count: crossEventQueryCount,
-      cross_event_log_queries: crossEventQueries?.logQuery,
-      cross_event_metric_queries: crossEventQueries?.metricQuery,
-      cross_event_span_queries: crossEventQueries?.spanQuery,
+      cross_event_log_query_count: crossEventQueries?.logQuery?.length ?? 0,
+      cross_event_metric_query_count: crossEventQueries?.metricQuery?.length ?? 0,
+      cross_event_span_query_count: crossEventQueries?.spanQuery?.length ?? 0,
     });
 
     info(fmt`trace.explorer.metadata:
@@ -380,17 +368,15 @@ function useTrackAnalytics({
       page_source: ${page_source}
       gave_seer_consent: ${gaveSeerConsent}
       attribute_breakdowns_mode: ${attributeBreakdownsMode}
-      cross_event_query_count: ${crossEventQueryCount}
-      cross_event_log_queries: ${crossEventQueries?.logQuery}
-      cross_event_metric_queries: ${crossEventQueries?.metricQuery}
-      cross_event_span_queries: ${crossEventQueries?.spanQuery}
+      cross_event_log_query_count: ${crossEventQueries?.logQuery?.length ?? 0}
+      cross_event_metric_query_count: ${crossEventQueries?.metricQuery?.length ?? 0}
+      cross_event_span_query_count: ${crossEventQueries?.spanQuery?.length ?? 0}
     `);
   }, [
     attributeBreakdownsMode,
     crossEventQueries?.logQuery,
     crossEventQueries?.metricQuery,
     crossEventQueries?.spanQuery,
-    crossEventQueryCount,
     dataset,
     hasExceededPerformanceUsageLimit,
     interval,
@@ -466,16 +452,14 @@ function useTrackAnalytics({
       interval,
       gave_seer_consent: gaveSeerConsent,
       version: 2,
-      cross_event_query_count: crossEventQueryCount,
-      cross_event_log_queries: crossEventQueries?.logQuery,
-      cross_event_metric_queries: crossEventQueries?.metricQuery,
-      cross_event_span_queries: crossEventQueries?.spanQuery,
+      cross_event_log_query_count: crossEventQueries?.logQuery?.length ?? 0,
+      cross_event_metric_query_count: crossEventQueries?.metricQuery?.length ?? 0,
+      cross_event_span_query_count: crossEventQueries?.spanQuery?.length ?? 0,
     });
   }, [
     crossEventQueries?.logQuery,
     crossEventQueries?.metricQuery,
     crossEventQueries?.spanQuery,
-    crossEventQueryCount,
     dataset,
     hasExceededPerformanceUsageLimit,
     interval,
