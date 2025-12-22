@@ -29,13 +29,11 @@ describe('MissingProjectMembership', () => {
 
     render(<MissingProjectMembership organization={organization} project={project} />);
 
-    expect(await screen.findByRole('button', {name: 'Select a Team'})).toBeDisabled();
+    expect(await screen.findByRole('button', {name: 'Join Team'})).toBeDisabled();
     expect(screen.getByText("You're not a member of this project.")).toBeInTheDocument();
 
-    const selectInput = screen.getByRole('textbox');
-    await userEvent.click(selectInput);
-
     // Join team
+    await userEvent.click(screen.getByRole('button', {name: 'Select a Team'}));
     const teamOption = await screen.findByText('#team-a');
     await userEvent.click(teamOption);
 
