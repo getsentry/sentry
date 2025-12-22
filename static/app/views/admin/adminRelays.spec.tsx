@@ -1,4 +1,3 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   renderGlobalModal,
@@ -30,20 +29,14 @@ describe('AdminRelays', () => {
     },
   ];
 
-  afterEach(() => {
-    MockApiClient.clearMockResponses();
-  });
-
   it('renders rows', async () => {
-    const {routerProps} = initializeOrg();
-
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'GET',
       body: rows,
     });
 
-    render(<AdminRelays {...routerProps} />);
+    render(<AdminRelays />);
 
     expect(await screen.findByText('relay-one')).toBeInTheDocument();
     expect(screen.getByText('relay-two')).toBeInTheDocument();
@@ -52,8 +45,6 @@ describe('AdminRelays', () => {
   });
 
   it('deletes a relay via confirmation modal', async () => {
-    const {routerProps} = initializeOrg();
-
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'GET',
@@ -65,7 +56,7 @@ describe('AdminRelays', () => {
       method: 'DELETE',
     });
 
-    render(<AdminRelays {...routerProps} />);
+    render(<AdminRelays />);
     renderGlobalModal();
 
     const firstRow = await screen.findByText('relay-one');
