@@ -11,6 +11,7 @@ from sentry.seer.code_review.webhook_task import (
     DELAY_BETWEEN_RETRIES,
     MAX_RETRIES,
     PREFIX,
+    _transform_webhook_to_codegen_request,
     process_github_webhook_event,
 )
 from sentry.seer.code_review.webhooks.types import EventType
@@ -404,9 +405,129 @@ class ProcessGitHubWebhookEventTest(TestCase):
         assert "tags" in call_kwargs
         assert "status" in call_kwargs["tags"]
 
+<<<<<<< HEAD
         # With MAX_RETRIES=3, there are 2 delays: (3-1) * 60s = 120s
         # Allow tolerance for test execution time (3 attempts add overhead)
         expected_latency_ms = (MAX_RETRIES - 1) * DELAY_BETWEEN_RETRIES * 1000  # 120,000ms
         assert (
             expected_latency_ms - 1000 <= call_args[1] <= expected_latency_ms + 5000
         ), f"Expected latency ~{expected_latency_ms}ms, got {call_args[1]}ms"
+=======
+            call_kwargs = mock_metrics.timing.call_args[1]
+            assert "tags" in call_kwargs
+            assert "status" in call_kwargs["tags"]
+
+            # With MAX_RETRIES=3, there are 2 delays: (3-1) * 60s = 120s
+            # Allow tolerance for test execution time (3 attempts add overhead)
+            expected_latency_ms = (MAX_RETRIES - 1) * DELAY_BETWEEN_RETRIES * 1000  # 120,000ms
+            assert (
+                expected_latency_ms - 1000 <= call_args[1] <= expected_latency_ms + 5000
+            ), f"Expected latency ~{expected_latency_ms}ms, got {call_args[1]}ms"
+
+
+class TransformWebhookToCodegenRequestTest(TestCase):
+    """Unit tests for the _transform_webhook_to_codegen_request function."""
+
+    def test_transform_pull_request_event(self) -> None:
+        """Test transformation of pull_request webhook event."""
+        event_payload = {
+            "action": "opened",
+            "pull_request": {"number": 123, "title": "Test PR"},
+            "repository": {
+                "id": 456789,
+                "name": "test-repo",
+                "owner": {"login": "test-owner"},
+            },
+        }
+
+        result = _transform_webhook_to_codegen_request("pull_request", event_payload)
+
+        assert result["request_type"] == "pr-review"
+        assert result["external_owner_id"] == "test-owner"
+        assert result["data"]["pr_id"] == 123
+        assert result["data"]["repo"]["provider"] == "github"
+        assert result["data"]["repo"]["owner"] == "test-owner"
+        assert result["data"]["repo"]["name"] == "test-repo"
+        assert result["data"]["repo"]["external_id"] == "456789"
+        assert result["data"]["codecov_status"] is None
+        assert result["data"]["more_readable_repos"] == []
+
+    def test_transform_issue_comment_event_on_pr(self) -> None:
+        """Test transformation of issue_comment webhook event on a PR."""
+        event_payload = {
+            "action": "created",
+            "issue": {"number": 456, "pull_request": {"url": "https://api.github.com/..."}},
+            "comment": {"body": "Test comment"},
+            "repository": {
+                "id": 789012,
+                "name": "another-repo",
+                "owner": {"login": "another-owner"},
+            },
+        }
+
+        result = _transform_webhook_to_codegen_request("issue_comment", event_payload)
+
+        assert result["request_type"] == "pr-review"
+        assert result["external_owner_id"] == "another-owner"
+        assert result["data"]["pr_id"] == 456
+        assert result["data"]["repo"]["provider"] == "github"
+        assert result["data"]["repo"]["owner"] == "another-owner"
+        assert result["data"]["repo"]["name"] == "another-repo"
+        assert result["data"]["repo"]["external_id"] == "789012"
+
+    def test_transform_pull_request_review_event(self) -> None:
+        """Test transformation of pull_request_review webhook event."""
+        event_payload = {
+            "action": "submitted",
+            "pull_request": {"number": 789},
+            "review": {"state": "approved"},
+            "repository": {
+                "id": 111222,
+                "name": "review-repo",
+                "owner": {"login": "review-owner"},
+            },
+        }
+
+        result = _transform_webhook_to_codegen_request("pull_request_review", event_payload)
+
+        assert result["request_type"] == "pr-review"
+        assert result["data"]["pr_id"] == 789
+
+    def test_transform_pull_request_review_comment_event(self) -> None:
+        """Test transformation of pull_request_review_comment webhook event."""
+        event_payload = {
+            "action": "created",
+            "pull_request": {"number": 321},
+            "comment": {"body": "Review comment"},
+            "repository": {
+                "id": 333444,
+                "name": "comment-repo",
+                "owner": {"login": "comment-owner"},
+            },
+        }
+
+        result = _transform_webhook_to_codegen_request("pull_request_review_comment", event_payload)
+
+        assert result["request_type"] == "pr-review"
+        assert result["data"]["pr_id"] == 321
+
+    def test_missing_repository_raises_error(self) -> None:
+        """Test that missing repository information raises ValueError."""
+        event_payload = {"pull_request": {"number": 123}}
+
+        with pytest.raises(ValueError, match="Missing repository in webhook payload"):
+            _transform_webhook_to_codegen_request("pull_request", event_payload)
+
+    def test_missing_pr_number_raises_error(self) -> None:
+        """Test that missing PR number raises ValueError."""
+        event_payload = {
+            "repository": {
+                "id": 456789,
+                "name": "test-repo",
+                "owner": {"login": "test-owner"},
+            }
+        }
+
+        with pytest.raises(ValueError, match="Cannot extract PR number"):
+            _transform_webhook_to_codegen_request("pull_request", event_payload)
+>>>>>>> ed529305cb7 (feat(code_review): Placeholder code to circumvent calls to Overwatch)

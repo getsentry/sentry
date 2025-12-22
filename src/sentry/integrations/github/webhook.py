@@ -52,7 +52,7 @@ from sentry.plugins.providers.integration_repository import (
     get_integration_repository_provider,
 )
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
-from sentry.seer.code_review.webhooks import PREPROCESSORS
+from sentry.seer.code_review.webhooks import code_review_webhook_processor
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.organization_contributors import assign_seat_to_organization_contributor
 from sentry.users.services.user.service import user_service
@@ -736,7 +736,10 @@ class PullRequestEventWebhook(GitHubWebhook):
     """https://developer.github.com/v3/activity/events/types/#pullrequestevent"""
 
     EVENT_TYPE = IntegrationWebhookEventType.PULL_REQUEST
-    WEBHOOK_EVENT_PROCESSORS = [_handle_pr_webhook_for_autofix_processor]
+    WEBHOOK_EVENT_PROCESSORS = [
+        _handle_pr_webhook_for_autofix_processor,
+        code_review_webhook_processor,
+    ]
 
     def _handle(
         self,
@@ -914,16 +917,37 @@ class CheckRunEventWebhook(GitHubWebhook):
     """
 
     EVENT_TYPE = IntegrationWebhookEventType.CHECK_RUN
+    WEBHOOK_EVENT_PROCESSORS = [code_review_webhook_processor]
 
-    # XXX: This will be removed in the next PR.
-    def _handle(
-        self,
-        integration: RpcIntegration,
-        event: Mapping[str, Any],
-        **kwargs,
-    ) -> None:
-        for processor in PREPROCESSORS:
-            processor(event_type=self.event_type.value, event=event, **kwargs)
+
+class IssueCommentEventWebhook(GitHubWebhook):
+    """
+    Handles GitHub issue_comment webhook events.
+    https://docs.github.com/en/webhooks/webhook-events-and-payloads#issue_comment
+    """
+
+    EVENT_TYPE = IntegrationWebhookEventType.ISSUE_COMMENT
+    WEBHOOK_EVENT_PROCESSORS = [code_review_webhook_processor]
+
+
+class PullRequestReviewEventWebhook(GitHubWebhook):
+    """
+    Handles GitHub pull_request_review webhook events.
+    https://docs.github.com/en/webhooks/webhook-events-and-payloads#pull_request_review
+    """
+
+    EVENT_TYPE = IntegrationWebhookEventType.PULL_REQUEST_REVIEW
+    WEBHOOK_EVENT_PROCESSORS = [code_review_webhook_processor]
+
+
+class PullRequestReviewCommentEventWebhook(GitHubWebhook):
+    """
+    Handles GitHub pull_request_review_comment webhook events.
+    https://docs.github.com/en/webhooks/webhook-events-and-payloads#pull_request_review_comment
+    """
+
+    EVENT_TYPE = IntegrationWebhookEventType.PULL_REQUEST_REVIEW_COMMENT
+    WEBHOOK_EVENT_PROCESSORS = [code_review_webhook_processor]
 
 
 @all_silo_endpoint
@@ -947,6 +971,9 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         GithubWebhookType.INSTALLATION: InstallationEventWebhook,
         GithubWebhookType.ISSUE: IssuesEventWebhook,
         GithubWebhookType.CHECK_RUN: CheckRunEventWebhook,
+        GithubWebhookType.ISSUE_COMMENT: IssueCommentEventWebhook,
+        GithubWebhookType.PULL_REQUEST_REVIEW: PullRequestReviewEventWebhook,
+        GithubWebhookType.PULL_REQUEST_REVIEW_COMMENT: PullRequestReviewCommentEventWebhook,
     }
 
     def get_handler(self, event_type: str) -> type[GitHubWebhook] | None:

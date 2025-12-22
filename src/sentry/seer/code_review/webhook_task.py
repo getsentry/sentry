@@ -33,7 +33,7 @@ def process_github_webhook_event(
     *, enqueued_at_str: str, organization_id: int | None = None, **kwargs: Any
 ) -> None:
     """
-    Process a webhook event.
+    Process GitHub webhook event by forwarding to Seer if applicable.
 
     Args:
         organization_id: The organization ID (TO BE DEPRECATED)

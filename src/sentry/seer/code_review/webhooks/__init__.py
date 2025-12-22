@@ -3,15 +3,12 @@ Preprocessors can be used by the GitHub webhook handler to preprocess the event 
 Processors are in charge of processing the event.
 """
 
-from .check_run import preprocess_check_run_event, process_check_run_event
+from .check_run import process_check_run_event
+from .preprocessor import preprocess_webhook_event as code_review_webhook_processor
 
-# Add new preprocessors here.
-PREPROCESSORS = [
-    preprocess_check_run_event,
-]
-# Add new webhook processors here.
+# These handle the work rather than sending it to Seer.
 PROCESSORS = [
     process_check_run_event,
 ]
 
-__all__ = ["PREPROCESSORS", "PROCESSORS"]
+__all__ = ["code_review_webhook_processor", "PROCESSORS"]

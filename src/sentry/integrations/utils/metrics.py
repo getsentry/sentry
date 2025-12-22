@@ -425,6 +425,7 @@ class IntegrationWebhookEventType(StrEnum):
     INSTALLATION = "installation"
     PUSH = "push"
     PULL_REQUEST = "pull_request"
+    # This represents a webhook event for an inbound sync operation, such as syncing external resources or data into Sentry.
     INBOUND_SYNC = "inbound_sync"
     CHECK_RUN = "check_run"
 

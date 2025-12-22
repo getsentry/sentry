@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, Literal
 
 import orjson
 from django.conf import settings
@@ -43,3 +43,64 @@ def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:
         raise ClientError(f"Seer returned client error {response.status}")
     else:
         return response.data
+
+
+def _transform_webhook_to_codegen_request(
+    event_type: str, event_payload: dict[str, Any]
+) -> dict[str, Any]:
+    """
+    Transform a GitHub webhook payload into CodecovTaskRequest format for Seer.
+
+    Args:
+        event_type: The type of GitHub webhook event
+        event_payload: The full webhook event payload from GitHub
+
+    Returns:
+        Dictionary in CodecovTaskRequest format with request_type, data, and external_owner_id
+
+    Raises:
+        ValueError: If required fields are missing from the webhook payload
+    """
+    # Extract repository information
+    repository = event_payload.get("repository")
+    if not repository:
+        raise ValueError("Missing repository in webhook payload")
+
+    # Determine request_type based on event_type
+    # For now, we only support pr-review for these webhook types
+    request_type: Literal["pr-review", "unit-tests", "pr-closed"] = "pr-review"
+
+    # Extract pull request number
+    # Different event types have PR info in different locations
+    pr_number = None
+    if "pull_request" in event_payload:
+        pr_number = event_payload["pull_request"]["number"]
+    elif "issue" in event_payload and "pull_request" in event_payload["issue"]:
+        # issue_comment events on PRs have the PR number in the issue
+        pr_number = event_payload["issue"]["number"]
+
+    if not pr_number:
+        raise ValueError(f"Cannot extract PR number from {event_type} webhook payload")
+
+    # Build RepoDefinition
+    repo_definition = {
+        "provider": "github",  # All GitHub webhooks use "github" provider
+        "owner": repository["owner"]["login"],
+        "name": repository["name"],
+        "external_id": str(repository["id"]),
+    }
+
+    # Build CodegenBaseRequest (minimal required fields)
+    codegen_request = {
+        "repo": repo_definition,
+        "pr_id": pr_number,
+        "codecov_status": None,
+        "more_readable_repos": [],
+    }
+
+    # Build CodecovTaskRequest
+    return {
+        "data": codegen_request,
+        "external_owner_id": repository["owner"]["login"],
+        "request_type": request_type,
+    }
