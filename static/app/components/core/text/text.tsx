@@ -1,8 +1,8 @@
 import isPropValid from '@emotion/is-prop-valid';
-import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {rc, type Responsive} from 'sentry/components/core/layout/styles';
+import type {ContentVariant, FontSize} from 'sentry/utils/theme';
 
 import {getFontSize, getLineHeight, getTextDecoration} from './styles';
 
@@ -48,7 +48,7 @@ export interface BaseTextProps {
    * The size of the text.
    * @default md
    */
-  size?: Responsive<'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl'>;
+  size?: Responsive<FontSize>;
 
   /**
    * Strikethrough the text.
@@ -82,7 +82,7 @@ export interface BaseTextProps {
    * Variant determines the style of the text.
    * @default primary
    */
-  variant?: keyof Theme['tokens']['content'];
+  variant?: ContentVariant;
 
   /**
    * Determines where line breaks appear when wrapping the text.
