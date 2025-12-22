@@ -1,8 +1,8 @@
-import type {Theme} from '@emotion/react';
 import type {FocusTrap} from 'focus-trap';
 
 import type {ApiResult} from 'sentry/api';
 import type {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
+import type {AlertVariant} from 'sentry/utils/theme';
 
 import type {ParntershipAgreementType} from './hooks';
 import type {User} from './user';
@@ -173,7 +173,7 @@ export interface Config {
   /**
    * This comes from django (django.contrib.messages)
    */
-  messages: Array<{level: keyof Theme['alert']; message: string}>;
+  messages: Array<{level: AlertVariant; message: string}>;
   needsUpgrade: boolean;
   privacyUrl: string | null;
   // The list of regions the user has has access to.

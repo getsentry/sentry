@@ -2,7 +2,12 @@ import type React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import type {Theme} from 'sentry/utils/theme';
+import type {
+  BorderVariant,
+  RadiusSize,
+  SpaceSize,
+  SurfaceVariant,
+} from 'sentry/utils/theme';
 
 import {
   getBorder,
@@ -10,17 +15,14 @@ import {
   getRadius,
   getSpacing,
   rc,
-  type Border,
   type Margin,
-  type RadiusSize,
   type Responsive,
   type Shorthand,
-  type SpacingSize,
 } from './styles';
 
 /* eslint-disable typescript-sort-keys/interface */
 interface ContainerLayoutProps {
-  background?: Responsive<keyof Theme['tokens']['background']>;
+  background?: Responsive<SurfaceVariant>;
   display?: Responsive<
     | 'block'
     | 'inline'
@@ -32,11 +34,11 @@ interface ContainerLayoutProps {
     | 'none'
   >;
 
-  padding?: Responsive<Shorthand<SpacingSize, 4>>;
-  paddingTop?: Responsive<SpacingSize>;
-  paddingBottom?: Responsive<SpacingSize>;
-  paddingLeft?: Responsive<SpacingSize>;
-  paddingRight?: Responsive<SpacingSize>;
+  padding?: Responsive<Shorthand<SpaceSize, 4>>;
+  paddingTop?: Responsive<SpaceSize>;
+  paddingBottom?: Responsive<SpaceSize>;
+  paddingLeft?: Responsive<SpaceSize>;
+  paddingRight?: Responsive<SpaceSize>;
 
   position?: Responsive<'static' | 'relative' | 'absolute' | 'fixed' | 'sticky'>;
 
@@ -60,11 +62,11 @@ interface ContainerLayoutProps {
   minHeight?: Responsive<React.CSSProperties['minHeight']>;
   maxHeight?: Responsive<React.CSSProperties['maxHeight']>;
 
-  border?: Responsive<Border>;
-  borderTop?: Responsive<Border>;
-  borderBottom?: Responsive<Border>;
-  borderLeft?: Responsive<Border>;
-  borderRight?: Responsive<Border>;
+  border?: Responsive<BorderVariant>;
+  borderTop?: Responsive<BorderVariant>;
+  borderBottom?: Responsive<BorderVariant>;
+  borderLeft?: Responsive<BorderVariant>;
+  borderRight?: Responsive<BorderVariant>;
 
   // Grid Item Properties
   area?: Responsive<React.CSSProperties['gridArea']>;
