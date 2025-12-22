@@ -1462,7 +1462,7 @@ const lightThemeDefinition = {
   level: generateLevelTheme(baseLightTheme.tokens, 'light'),
 
   chart: {
-    neutral: modifyColor(lightColors.gray400).lighten(0.8).toString(),
+    neutral: baseLightTheme.tokens.dataviz.semantic.neutral,
     colors: CHART_PALETTE_LIGHT,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT),
   },
