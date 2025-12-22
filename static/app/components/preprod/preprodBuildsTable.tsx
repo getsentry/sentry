@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Flex} from 'sentry/components/core/layout';
+import {Container, Flex} from 'sentry/components/core/layout';
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -13,6 +13,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCheckmark, IconCommit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {InstallAppButton} from 'sentry/views/preprod/components/installAppButton';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
   formattedPrimaryMetricDownloadSize,
@@ -66,15 +67,26 @@ export function PreprodBuildsTable({
           <SimpleTable.RowCell justify="start">
             {build.app_info?.name || build.app_info?.app_id ? (
               <Flex direction="column" gap="xs">
-                <Flex align="center" gap="sm">
+                <Flex align="center" gap="2xs">
                   {build.app_info?.platform && (
                     <PlatformIcon
                       platform={getPlatformIconFromPlatform(build.app_info.platform)}
                     />
                   )}
-                  <Text size="lg" bold>
-                    {build.app_info?.name || '--'}
-                  </Text>
+                  <Container paddingLeft="xs">
+                    <Text size="lg" bold>
+                      {build.app_info?.name || '--'}
+                    </Text>
+                  </Container>
+                  {build.app_info.is_installable && (
+                    <InstallAppButton
+                      projectId={projectSlug}
+                      artifactId={build.id}
+                      platform={build.app_info.platform ?? null}
+                      source="builds_table"
+                      variant="icon"
+                    />
+                  )}
                 </Flex>
                 <Flex align="center" gap="xs">
                   <Text size="sm" variant="muted">
