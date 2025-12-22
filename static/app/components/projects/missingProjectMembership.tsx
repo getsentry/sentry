@@ -1,17 +1,18 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Grid} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {joinTeam} from 'sentry/actionCreators/teams';
 import {Button} from 'sentry/components/core/button';
-import {Select} from 'sentry/components/core/select';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Panel from 'sentry/components/panels/panel';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import useApi from 'sentry/utils/useApi';
@@ -24,8 +25,8 @@ interface JoinTeamActionProps {
 function JoinTeamAction({teamSlug, organization}: JoinTeamActionProps) {
   const api = useApi({persistInFlight: true});
   const [isLoading, setIsLoading] = useState(false);
-  const teamsInStore = useLegacyStore(TeamStore);
-  const selectedTeam = teamsInStore.teams.find(team => team.slug === teamSlug);
+  const teamStoreData = useLegacyStore(TeamStore);
+  const selectedTeam = teamStoreData.teams.find(team => team.slug === teamSlug);
 
   const handleJoinTeam = useCallback(() => {
     setIsLoading(true);
@@ -70,13 +71,6 @@ function JoinTeamAction({teamSlug, organization}: JoinTeamActionProps) {
   );
 }
 
-function getPendingTeamOption(pendingTeam: string) {
-  return {
-    value: pendingTeam,
-    label: <DisabledLabel>{`#${pendingTeam}`}</DisabledLabel>,
-  };
-}
-
 interface MissingProjectMembershipProps {
   organization: Organization;
   project: Project | undefined | null;
@@ -86,14 +80,14 @@ export default function MissingProjectMembership({
   organization,
   project,
 }: MissingProjectMembershipProps) {
-  const [team, setTeam] = useState<string | null>('');
-  const teamsInStore = useLegacyStore(TeamStore);
+  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
+  const teamStoreData = useLegacyStore(TeamStore);
 
-  const teamAccess = useMemo(() => {
+  const teamOptions = useMemo(() => {
     const request: string[] = [];
     const pending: string[] = [];
     const pendingTeams = new Set<string>(
-      teamsInStore.teams.filter(tm => tm.isPending).map(tm => tm.slug)
+      teamStoreData.teams.filter(tm => tm.isPending).map(tm => tm.slug)
     );
     project?.teams?.forEach(({slug}) => {
       if (pendingTeams.has(slug)) {
@@ -103,47 +97,57 @@ export default function MissingProjectMembership({
       }
     });
 
+    const hasOpenMembership = organization.features.includes('open-membership');
     return [
       {
-        label: t('Request Access'),
+        label: t('Pending Requests'),
+        options: pending.map(pendingTeam => ({
+          value: pendingTeam,
+          label: `#${pendingTeam}`,
+          disabled: true,
+        })),
+      },
+      {
+        label: hasOpenMembership ? t('Teams') : t('Request Access'),
         options: request.map(requestingTeam => ({
           value: requestingTeam,
           label: `#${requestingTeam}`,
         })),
       },
-      {
-        label: t('Pending Requests'),
-        options: pending.map(getPendingTeamOption),
-      },
     ];
-  }, [project, teamsInStore.teams]);
-
-  const handleTeamChange = useCallback((teamObj: {value: string}) => {
-    const selectedTeam = teamObj ? teamObj.value : null;
-    setTeam(selectedTeam);
-  }, []);
+  }, [organization.features, project, teamStoreData.teams]);
 
   const hasTeams = !!project?.teams?.length;
   return (
-    <StyledPanel>
+    <Panel>
       {hasTeams ? (
         <EmptyMessage
           icon={<IconFlag />}
           title={t("You're not a member of this project.")}
           action={
-            <Field>
-              <StyledSelectControl
-                name="select"
-                placeholder={t('Select a Team')}
-                options={teamAccess}
-                onChange={handleTeamChange}
+            <Grid
+              columns="minmax(200px, 300px) minmax(80px, 150px)"
+              gap="md"
+              justify="center"
+            >
+              <StyledCompactSelect
+                searchable
+                value={selectedTeam || undefined}
+                triggerProps={{
+                  children: selectedTeam ? `#${selectedTeam}` : t('Select a Team'),
+                }}
+                emptyMessage={t('No teams found')}
+                options={teamOptions}
+                onChange={option => {
+                  setSelectedTeam(option.value as string | null);
+                }}
               />
-              {team ? (
-                <JoinTeamAction teamSlug={team} organization={organization} />
+              {selectedTeam ? (
+                <JoinTeamAction teamSlug={selectedTeam} organization={organization} />
               ) : (
-                <Button disabled>{t('Select a Team')}</Button>
+                <Button disabled>{t('Join Team')}</Button>
               )}
-            </Field>
+            </Grid>
           }
         >
           {t(`You'll need to join a team with access before you can view this data.`)}
@@ -155,27 +159,15 @@ export default function MissingProjectMembership({
           )}
         </EmptyMessage>
       )}
-    </StyledPanel>
+    </Panel>
   );
 }
 
-const StyledPanel = styled(Panel)`
-  margin: ${space(2)} 0;
-`;
-
-const Field = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  gap: ${space(2)};
+// Parent EmptyMessage component is aligning text center, so we need to align the text left
+const StyledCompactSelect = styled(CompactSelect)`
+  width: 100%;
   text-align: left;
-`;
-
-const StyledSelectControl = styled(Select)`
-  width: 250px;
-`;
-
-const DisabledLabel = styled('div')`
-  display: flex;
-  opacity: 0.5;
-  overflow: hidden;
+  > button {
+    width: 100%;
+  }
 `;
