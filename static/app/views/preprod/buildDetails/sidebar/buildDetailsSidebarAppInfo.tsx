@@ -12,7 +12,7 @@ import {IconClock, IconFile, IconJson, IconLink, IconMobile} from 'sentry/icons'
 import {t} from 'sentry/locale';
 import {getFormat, getFormattedDate, getUtcToSystem} from 'sentry/utils/dates';
 import {AppIcon} from 'sentry/views/preprod/components/appIcon';
-import {openInstallModal} from 'sentry/views/preprod/components/installModal';
+import {InstallAppButton} from 'sentry/views/preprod/components/installAppButton';
 import {type BuildDetailsAppInfo} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
   getLabels,
@@ -113,13 +113,12 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
             </InfoIcon>
             <Text>
               {props.projectId ? (
-                <InstallableLink
-                  onClick={() => {
-                    openInstallModal(props.projectId!, props.artifactId);
-                  }}
-                >
-                  Install
-                </InstallableLink>
+                <InstallAppButton
+                  projectId={props.projectId}
+                  artifactId={props.artifactId}
+                  platform={props.appInfo.platform ?? null}
+                  source="build_details_sidebar"
+                />
               ) : null}
             </Text>
           </Flex>
@@ -147,22 +146,6 @@ const InfoIcon = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-`;
-
-const InstallableLink = styled('button')`
-  background: none;
-  border: none;
-  padding: 0;
-  margin: 0;
-  font-size: inherit;
-  color: ${p => p.theme.linkColor};
-  text-decoration: underline;
-  cursor: pointer;
-  font-family: inherit;
-
-  &:hover {
-    color: ${p => p.theme.linkHoverColor};
-  }
 `;
 
 const InlineCodeSnippet = styled(CodeBlock)`
