@@ -1336,7 +1336,6 @@ function buildRoutes(): RouteObject[] {
         deprecatedRouteProps: true,
       },
     ],
-    deprecatedRouteProps: true,
   };
 
   const projectsChildren: SentryRouteObject[] = [
