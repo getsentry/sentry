@@ -69,8 +69,9 @@ def get_anomaly_data_from_seer(
     aggregation_value = subscription_update.get("value")
     source_id = subscription.id
     source_type = DataSourceType.SNUBA_QUERY_SUBSCRIPTION
-    if aggregation_value is None:
-        logger.error(
+
+    if aggregation_value is None or str(aggregation_value) == "nan":
+        logger.warning(
             "Invalid aggregation value", extra={"source_id": source_id, "source_type": source_type}
         )
         return None
@@ -205,12 +206,12 @@ def get_anomaly_threshold_data_from_seer(
             body=json.dumps(payload).encode("utf-8"),
         )
     except (TimeoutError, MaxRetryError):
-        logger.warning("Timeout error when hitting anomaly detection detector data endpoint")
+        logger.warning("anomaly_threshold.timeout_error_hitting_seer_endpoint")
         return None
 
     if response.status >= 400:
         logger.error(
-            "Error when hitting Seer detector data endpoint",
+            "anomaly_threshold.seer_http_error",
             extra={
                 "response_data": response.data,
                 "payload": payload,
@@ -223,7 +224,7 @@ def get_anomaly_threshold_data_from_seer(
         results: SeerDetectorDataResponse = json.loads(response.data.decode("utf-8"))
     except JSONDecodeError:
         logger.exception(
-            "Failed to parse Seer detector data response",
+            "anomaly_threshold.failed_to_parse_seer_detector_data_response",
             extra={
                 "response_data": response.data,
                 "payload": payload,
@@ -233,9 +234,10 @@ def get_anomaly_threshold_data_from_seer(
 
     if not results.get("success"):
         detailed_error_message = results.get("message", "<unknown>")
-        # We want Sentry to group them by error message.
-        msg = f"Error when hitting Seer detector data endpoint: {detailed_error_message}"
-        logger.warning(msg)
+        logger.warning(
+            "anomaly_threshold.seer_returned_failure",
+            extra={"error_message": detailed_error_message},
+        )
         return None
 
     data = results.get("data")
@@ -246,5 +248,13 @@ def get_anomaly_threshold_data_from_seer(
             data_points=data,
             time_window_seconds=snuba_query.time_window,
             detector_created_at=subscription.date_added.timestamp(),
+        )
+        logger.info(
+            "anomaly_threshold.success",
+            extra={
+                "source_id": source_id,
+                "source_type": source_type,
+                "data_points_count": len(data),
+            },
         )
     return data

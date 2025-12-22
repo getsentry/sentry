@@ -1,4 +1,6 @@
-import {chonkStyled, type useChonkTheme} from 'sentry/utils/theme/theme';
+import type {Theme} from '@emotion/react';
+import styled from '@emotion/styled';
+
 import type {ChonkPropMapping} from 'sentry/utils/theme/withChonk';
 import {unreachable} from 'sentry/utils/unreachable';
 
@@ -31,7 +33,7 @@ export function ChonkBadge(props: ChonkBadgeProps) {
   return <StyledChonkBadge {...props} />;
 }
 
-const StyledChonkBadge = chonkStyled('span')<ChonkBadgeProps>`
+const StyledChonkBadge = styled('span')<ChonkBadgeProps>`
   ${p => ({...makeChonkBadgeTheme(p, p.theme)})};
   border-radius: ${p => p.theme.radius.sm};
   font-size: ${p => p.theme.font.size.sm};
@@ -40,14 +42,11 @@ const StyledChonkBadge = chonkStyled('span')<ChonkBadgeProps>`
   align-items: center;
   line-height: initial;
   height: 20px;
-  font-weight: ${p => p.theme.font.weight.medium};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.xs};
 `;
 
-function makeChonkBadgeTheme(
-  p: ChonkBadgeProps,
-  theme: ReturnType<typeof useChonkTheme>
-): React.CSSProperties {
+function makeChonkBadgeTheme(p: ChonkBadgeProps, theme: Theme): React.CSSProperties {
   switch (p.type) {
     // @TODO(jonasbadalic) these should use feature badge variants
     case 'alpha':

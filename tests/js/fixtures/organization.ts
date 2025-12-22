@@ -92,6 +92,8 @@ export function OrganizationFixture(params: Partial<Organization> = {}): Organiz
     defaultAutofixAutomationTuning: 'off',
     orgRoleList: OrgRoleListFixture(),
     teamRoleList: TeamRoleListFixture(),
+    hasGranularReplayPermissions: false,
+    replayAccessMembers: [],
     ...params,
   };
 }

@@ -9,12 +9,8 @@ import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
-import {
-  isEAPError,
-  isMissingInstrumentationNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import {TraceRowWidthMeasurer} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceRowWidthMeasurer';
 import {TraceTextMeasurer} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTextMeasurer';
 import type {TraceView} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceView';
@@ -36,7 +32,7 @@ function getHorizontalDelta(x: number, y: number): number {
 }
 
 type ViewColumn = {
-  column_nodes: Array<TraceTreeNode<TraceTree.NodeValue>>;
+  column_nodes: BaseNode[];
   column_refs: Array<HTMLElement | undefined>;
   translate: [number, number];
   width: number;
@@ -54,8 +50,8 @@ type VerticalIndicator = {
 export type ViewManagerScrollAnchor = 'top' | 'center if outside' | 'center';
 
 export class VirtualizedViewManager {
-  row_measurer: TraceRowWidthMeasurer<TraceTreeNode<TraceTree.NodeValue>> =
-    new TraceRowWidthMeasurer();
+  theme: Theme;
+  row_measurer: TraceRowWidthMeasurer<BaseNode> = new TraceRowWidthMeasurer();
   indicator_label_measurer: TraceRowWidthMeasurer<TraceTree['indicators'][0]> =
     new TraceRowWidthMeasurer();
   text_measurer: TraceTextMeasurer;
@@ -154,6 +150,7 @@ export class VirtualizedViewManager {
         translate: [0, 0],
       },
     };
+    this.theme = theme;
 
     this.text_measurer = new TraceTextMeasurer(theme);
 
@@ -370,7 +367,7 @@ export class VirtualizedViewManager {
     column: string,
     ref: HTMLElement | null,
     index: number,
-    node: TraceTreeNode<any>
+    node: BaseNode
   ) {
     if (column === 'list' && ref) {
       const scrollableElement = ref.children[0] as HTMLElement | undefined;
@@ -949,7 +946,7 @@ export class VirtualizedViewManager {
     const translation = this.columns.list.translate[0];
     let min = Number.POSITIVE_INFINITY;
     let max = Number.NEGATIVE_INFINITY;
-    let innerMostNode: TraceTreeNode<any> | undefined;
+    let innerMostNode: BaseNode | undefined;
 
     for (let i = 5; i < this.columns.span_list.column_refs.length - 5; i++) {
       const width = this.row_measurer.cache.get(this.columns.list.column_nodes[i]!);
@@ -980,7 +977,7 @@ export class VirtualizedViewManager {
     }
   }
 
-  isOutsideOfView(node: TraceTreeNode<any>): boolean {
+  isOutsideOfView(node: BaseNode): boolean {
     const width = this.row_measurer.cache.get(node);
 
     if (width === undefined) {
@@ -997,7 +994,7 @@ export class VirtualizedViewManager {
   }
 
   scrollRowIntoViewHorizontally(
-    node: TraceTreeNode<any>,
+    node: BaseNode,
     duration = 600,
     offset_px = 0,
     position: 'exact' | 'measured' = 'measured'
@@ -1129,7 +1126,7 @@ export class VirtualizedViewManager {
   }
 
   computeSpanTextPlacement(
-    node: TraceTreeNode<TraceTree.NodeValue>,
+    node: BaseNode,
     span_space: [number, number],
     text: string
   ): [number, number] {
@@ -1449,13 +1446,13 @@ export class VirtualizedViewManager {
     );
   }
 
-  drawSpanText(span_text: this['span_text'][0], node: TraceTreeNode<any> | undefined) {
-    if (!span_text) {
+  drawSpanText(span_text: this['span_text'][0], node: BaseNode | undefined) {
+    if (!span_text || !node) {
       return;
     }
 
     const [inside, text_transform] = this.computeSpanTextPlacement(
-      node!,
+      node,
       span_text.space,
       span_text.text
     );
@@ -1466,8 +1463,7 @@ export class VirtualizedViewManager {
 
     // We don't color the text white for missing instrumentation nodes
     // as the text will be invisible on the light background.
-    span_text.ref.style.color =
-      inside && node && !isMissingInstrumentationNode(node) ? 'white' : '';
+    span_text.ref.style.color = node.makeBarTextColor(!!inside, this.theme);
     span_text.ref.style.transform = `translateX(${text_transform}px)`;
   }
 
@@ -1689,7 +1685,7 @@ export class VirtualizedViewManager {
 // of the span to include the icon. We need this because when the icon is close to the edge
 // it can extend it and cause overlaps with duration labels
 function getIconTimestamps(
-  node: TraceTreeNode<any>,
+  node: BaseNode,
   span_space: [number, number],
   icon_width: number
 ) {
@@ -1717,7 +1713,7 @@ function getIconTimestamps(
   }
 
   for (const err of node.errors) {
-    const timestamp = isEAPError(err) ? err.start_timestamp : err.timestamp;
+    const timestamp = 'start_timestamp' in err ? err.start_timestamp : err.timestamp;
     if (typeof timestamp === 'number') {
       min_icon_timestamp = Math.min(min_icon_timestamp, timestamp * 1e3 - icon_width);
       max_icon_timestamp = Math.max(max_icon_timestamp, timestamp * 1e3 + icon_width);

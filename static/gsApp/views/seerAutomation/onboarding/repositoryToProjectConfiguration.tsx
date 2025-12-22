@@ -2,6 +2,8 @@ import {Fragment, memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
+import {Alert} from '@sentry/scraps/alert/alert';
+
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Select} from 'sentry/components/core/select';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -45,8 +47,23 @@ export function RepositoryToProjectConfiguration({
     [selectedRootCauseAnalysisRepositories]
   );
 
+  const isValidMappings = useMemo(() => {
+    const repos = new Set(selectedRootCauseAnalysisRepositories.map(repo => repo.id));
+    const repoList = Object.entries(repositoryProjectMapping).filter(([repoId]) =>
+      repos.has(repoId)
+    );
+    const result = repoList.every(([, projectIds]) => projectIds.length > 0);
+    return repoList.length === selectedRootCauseAnalysisRepositories.length && result;
+  }, [repositoryProjectMapping, selectedRootCauseAnalysisRepositories]);
+
   return (
     <Fragment>
+      {!isPending && !isValidMappings && (
+        <Alert type="error">
+          {t('Each repository must have at least one project mapped')}
+        </Alert>
+      )}
+
       {selectedRootCauseAnalysisRepositories.length > 0 &&
         selectedRootCauseAnalysisRepositories.map(repository => {
           // Filter repository options to exclude already-selected ones
@@ -191,7 +208,7 @@ const RepositoryRow = memo(function RepositoryRow({
 
 function getProjectItem(project: Project) {
   return {
-    value: project.slug,
+    value: project.id,
     textValue: project.slug,
     label: (
       <ProjectBadge

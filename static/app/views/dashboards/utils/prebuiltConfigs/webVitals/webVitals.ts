@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {type PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -54,30 +54,30 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
           fields: [
             'performance_score(measurements.score.lcp)',
             'performance_score(measurements.score.fcp)',
-            'performance_score(measurements.score.cls)',
             'performance_score(measurements.score.inp)',
+            'performance_score(measurements.score.cls)',
             'performance_score(measurements.score.ttfb)',
             'performance_score(measurements.score.total)',
             'count_scores(measurements.score.total)',
             'count_scores(measurements.score.lcp)',
             'count_scores(measurements.score.fcp)',
-            'count_scores(measurements.score.cls)',
             'count_scores(measurements.score.inp)',
+            'count_scores(measurements.score.cls)',
             'count_scores(measurements.score.ttfb)',
           ],
           aggregates: [],
           columns: [
             'performance_score(measurements.score.lcp)',
             'performance_score(measurements.score.fcp)',
-            'performance_score(measurements.score.cls)',
             'performance_score(measurements.score.inp)',
+            'performance_score(measurements.score.cls)',
             'performance_score(measurements.score.ttfb)',
             'performance_score(measurements.score.total)',
             'count_scores(measurements.score.total)',
             'count_scores(measurements.score.lcp)',
             'count_scores(measurements.score.fcp)',
-            'count_scores(measurements.score.cls)',
             'count_scores(measurements.score.inp)',
+            'count_scores(measurements.score.cls)',
             'count_scores(measurements.score.ttfb)',
           ],
           orderby: '',
@@ -104,15 +104,15 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
           fields: [
             'performance_score(measurements.score.lcp)',
             'performance_score(measurements.score.fcp)',
-            'performance_score(measurements.score.cls)',
             'performance_score(measurements.score.inp)',
+            'performance_score(measurements.score.cls)',
             'performance_score(measurements.score.ttfb)',
           ],
           aggregates: [
             'performance_score(measurements.score.lcp)',
             'performance_score(measurements.score.fcp)',
-            'performance_score(measurements.score.cls)',
             'performance_score(measurements.score.inp)',
+            'performance_score(measurements.score.cls)',
             'performance_score(measurements.score.ttfb)',
           ],
           columns: [],
@@ -125,6 +125,126 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
         h: 2,
         x: 2,
         minH: 2,
+      },
+    },
+    {
+      id: 'lcp-score-meter',
+      title: t('Largest Contentful Paint'),
+      displayType: DisplayType.BIG_NUMBER,
+      widgetType: WidgetType.SPANS,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          conditions: DEFAULT_QUERY_FILTER,
+          fields: ['p75(measurements.lcp)', 'avg(measurements.score.ratio.lcp)'],
+          aggregates: ['p75(measurements.lcp)', 'avg(measurements.score.ratio.lcp)'],
+          columns: [],
+          orderby: '',
+        },
+      ],
+      layout: {
+        y: 2,
+        w: 1,
+        h: 1,
+        x: 0,
+        minH: 1,
+      },
+    },
+    {
+      id: 'fcp-score-meter',
+      title: t('First Contentful Paint'),
+      displayType: DisplayType.BIG_NUMBER,
+      widgetType: WidgetType.SPANS,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          conditions: DEFAULT_QUERY_FILTER,
+          fields: ['p75(measurements.fcp)', 'avg(measurements.score.ratio.fcp)'],
+          aggregates: ['p75(measurements.fcp)', 'avg(measurements.score.ratio.fcp)'],
+          columns: [],
+          orderby: '',
+        },
+      ],
+      layout: {
+        y: 2,
+        w: 1,
+        h: 1,
+        x: 1,
+        minH: 1,
+      },
+    },
+    {
+      id: 'inp-score-meter',
+      title: t('Interaction to Next Paint'),
+      displayType: DisplayType.BIG_NUMBER,
+      widgetType: WidgetType.SPANS,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          conditions: DEFAULT_QUERY_FILTER,
+          fields: ['p75(measurements.inp)', 'avg(measurements.score.ratio.inp)'],
+          aggregates: ['p75(measurements.inp)', 'avg(measurements.score.ratio.inp)'],
+          columns: [],
+          orderby: '',
+        },
+      ],
+      layout: {
+        y: 2,
+        w: 1,
+        h: 1,
+        x: 2,
+        minH: 1,
+      },
+    },
+    {
+      id: 'cls-score-meter',
+      title: t('Cumulative Layout Shift'),
+      displayType: DisplayType.BIG_NUMBER,
+      widgetType: WidgetType.SPANS,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          conditions: DEFAULT_QUERY_FILTER,
+          fields: ['p75(measurements.cls)', 'avg(measurements.score.ratio.cls)'],
+          aggregates: ['p75(measurements.cls)', 'avg(measurements.score.ratio.cls)'],
+          columns: [],
+          orderby: '',
+        },
+      ],
+      layout: {
+        y: 2,
+        w: 1,
+        h: 1,
+        x: 3,
+        minH: 1,
+      },
+    },
+    {
+      id: 'ttfb-score-meter',
+      title: t('Time To First Byte'),
+      displayType: DisplayType.BIG_NUMBER,
+      widgetType: WidgetType.SPANS,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          conditions: DEFAULT_QUERY_FILTER,
+          fields: ['p75(measurements.ttfb)', 'avg(measurements.score.ratio.ttfb)'],
+          aggregates: ['p75(measurements.ttfb)', 'avg(measurements.score.ratio.ttfb)'],
+          columns: [],
+          orderby: '',
+        },
+      ],
+      layout: {
+        y: 2,
+        w: 1,
+        h: 1,
+        x: 4,
+        minH: 1,
       },
     },
     {
@@ -176,10 +296,17 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
             t('Perf Score'),
             t('Opportunity'),
           ],
+          linkedDashboards: [
+            {
+              dashboardId: '-1',
+              field: SpanFields.TRANSACTION,
+              staticDashboardId: 7,
+            },
+          ],
         },
       ],
       layout: {
-        y: 2,
+        y: 3,
         w: 6,
         h: 6,
         x: 0,
@@ -187,14 +314,4 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
       },
     },
   ],
-};
-
-export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
-  dateCreated: '',
-  projects: [],
-  title: 'Web Vitals Page Summary',
-  filters: {
-    globalFilter: [],
-  },
-  widgets: [],
 };

@@ -1,5 +1,6 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {AnimatePresence} from 'framer-motion';
 
 import {Flex} from '@sentry/scraps/layout';
 
@@ -12,7 +13,8 @@ import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {
   hasCodeChanges as checkHasCodeChanges,
   getArtifactsFromBlocks,
-  getFilePatchesFromBlocks,
+  getMergedFilePatchesFromBlocks,
+  getOrderedArtifactKeys,
   useExplorerAutofix,
   type AutofixExplorerStep,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -22,6 +24,7 @@ import {
   RootCauseCard,
   SolutionCard,
   TriageCard,
+  type ArtifactData,
 } from 'sentry/components/events/autofix/v2/artifactCards';
 import {ExplorerAutofixStart} from 'sentry/components/events/autofix/v2/autofixStart';
 import {ExplorerStatusCard} from 'sentry/components/events/autofix/v2/autofixStatusCard';
@@ -67,59 +70,58 @@ const drawerBreadcrumbs = (group: Group, event: Event, project: Project) => [
 ];
 
 interface DrawerNavigatorProps {
-  iconVariant: 'loading' | 'waiting';
+  iconAnimation: 'loading' | 'waiting';
   organization: Organization;
   project: Project;
   copyButtonDisabled?: boolean;
   onCopyMarkdown?: () => void;
   onReset?: () => void;
-  showCopyButton?: boolean;
 }
 
 /**
  * Common navigator section with header and buttons.
  */
 function DrawerNavigator({
-  iconVariant,
+  iconAnimation,
   organization,
   project,
   copyButtonDisabled = false,
   onCopyMarkdown,
   onReset,
-  showCopyButton = false,
 }: DrawerNavigatorProps) {
   return (
     <SeerDrawerNavigator>
       <HeaderContainer>
         <Header>{t('Seer')}</Header>
-        <IconSeer variant={iconVariant} size="md" />
+        <IconSeer animation={iconAnimation} size="md" />
       </HeaderContainer>
       <ButtonWrapper>
-        {showCopyButton && (
-          <Button
-            size="xs"
-            onClick={onCopyMarkdown}
-            title={t('Copy analysis as Markdown / LLM prompt')}
-            aria-label={t('Copy analysis as Markdown')}
-            icon={<IconCopy />}
-            disabled={copyButtonDisabled}
-          />
-        )}
+        <AutofixFeedback iconOnly />
+
         <Feature features={['organizations:autofix-seer-preferences']}>
           <LinkButton
-            to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
+            external
+            href={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
             size="xs"
-            title={t('Project Settings for Seer')}
-            aria-label={t('Project Settings for Seer')}
+            title={t('Configure Seer settings for this project')}
+            aria-label={t('Configure Seer settings for this project')}
             icon={<IconSettings />}
           />
         </Feature>
         <Button
           size="xs"
+          onClick={onCopyMarkdown}
+          title={t('Copy analysis as Markdown / LLM prompt')}
+          aria-label={t('Copy analysis as Markdown')}
+          icon={<IconCopy />}
+          disabled={copyButtonDisabled}
+        />
+        <Button
+          size="xs"
           onClick={onReset}
           icon={<IconAdd />}
-          aria-label={t('Start a new analysis')}
-          title={t('Start a new analysis')}
+          aria-label={t('Start a new analysis from scratch')}
+          title={t('Start a new analysis from scratch')}
           disabled={!onReset}
         />
       </ButtonWrapper>
@@ -148,10 +150,15 @@ export function ExplorerSeerDrawer({
   // Extract data from run state
   const blocks = useMemo(() => runState?.blocks ?? [], [runState?.blocks]);
   const artifacts = useMemo(() => getArtifactsFromBlocks(blocks), [blocks]);
-  const filePatches = useMemo(() => getFilePatchesFromBlocks(blocks), [blocks]);
+  const mergedPatches = useMemo(() => getMergedFilePatchesFromBlocks(blocks), [blocks]);
   const loadingBlock = useMemo(() => blocks.find(block => block.loading), [blocks]);
   const hasChanges = checkHasCodeChanges(blocks);
   const prStates = runState?.repo_pr_states;
+
+  const orderedArtifactKeys = useMemo(
+    () => getOrderedArtifactKeys(blocks, artifacts),
+    [blocks, artifacts]
+  );
 
   // Handlers
   const handleStartStep = useCallback(
@@ -213,6 +220,14 @@ export function ExplorerSeerDrawer({
         <SeerDrawerHeader>
           <NavigationCrumbs crumbs={breadcrumbs} />
         </SeerDrawerHeader>
+        <DrawerNavigator
+          iconAnimation="loading"
+          copyButtonDisabled={!hasArtifacts}
+          onCopyMarkdown={handleCopyMarkdown}
+          onReset={undefined}
+          organization={organization}
+          project={project}
+        />
         <PlaceholderStack>
           <Placeholder height="10rem" />
           <Placeholder height="15rem" />
@@ -229,9 +244,8 @@ export function ExplorerSeerDrawer({
           <NavigationCrumbs crumbs={breadcrumbs} />
         </SeerDrawerHeader>
         <DrawerNavigator
-          iconVariant="waiting"
-          showCopyButton
-          copyButtonDisabled
+          iconAnimation="waiting"
+          copyButtonDisabled={!hasArtifacts}
           onCopyMarkdown={handleCopyMarkdown}
           onReset={undefined}
           organization={organization}
@@ -257,9 +271,8 @@ export function ExplorerSeerDrawer({
           <NavigationCrumbs crumbs={breadcrumbs} />
         </SeerDrawerHeader>
         <DrawerNavigator
-          iconVariant="waiting"
-          showCopyButton
-          copyButtonDisabled
+          iconAnimation="waiting"
+          copyButtonDisabled={!hasArtifacts}
           onCopyMarkdown={handleCopyMarkdown}
           onReset={undefined}
           organization={organization}
@@ -281,16 +294,12 @@ export function ExplorerSeerDrawer({
     <DrawerContainer>
       <SeerDrawerHeader>
         <NavigationCrumbs crumbs={breadcrumbs} />
-        <FeedbackWrapper>
-          <AutofixFeedback />
-        </FeedbackWrapper>
       </SeerDrawerHeader>
       <DrawerNavigator
-        iconVariant={
+        iconAnimation={
           runState.status === 'processing' && isPolling ? 'loading' : 'waiting'
         }
-        showCopyButton={hasArtifacts}
-        copyButtonDisabled={false}
+        copyButtonDisabled={!hasArtifacts}
         onCopyMarkdown={handleCopyMarkdown}
         onReset={() => reset()}
         organization={organization}
@@ -305,37 +314,67 @@ export function ExplorerSeerDrawer({
 
         {/* Artifact cards in sequence */}
         <Flex direction="column" gap="lg">
-          {artifacts.root_cause?.data && (
-            <RootCauseCard data={artifacts.root_cause.data} />
-          )}
-          {artifacts.solution?.data && <SolutionCard data={artifacts.solution.data} />}
-          {artifacts.impact_assessment?.data && (
-            <ImpactCard data={artifacts.impact_assessment.data} />
-          )}
-          {artifacts.triage?.data && (
-            <TriageCard
-              data={artifacts.triage.data}
-              group={group}
-              organization={organization}
-            />
-          )}
+          <AnimatePresence initial={false}>
+            {orderedArtifactKeys.map(key => {
+              const artifact = artifacts[key];
+              if (!artifact?.data) {
+                return null;
+              }
 
-          {/* Code changes from file patches */}
-          {filePatches.length > 0 && (
-            <CodeChangesCard
-              patches={filePatches}
-              prStates={prStates}
-              onCreatePR={handleCreatePR}
-            />
-          )}
+              switch (key) {
+                case 'root_cause':
+                  return (
+                    <RootCauseCard
+                      key="root_cause"
+                      data={artifact.data as ArtifactData}
+                    />
+                  );
+                case 'impact_assessment':
+                  return (
+                    <ImpactCard
+                      key="impact_assessment"
+                      data={artifact.data as ArtifactData}
+                    />
+                  );
+                case 'triage':
+                  return (
+                    <TriageCard
+                      key="triage"
+                      data={artifact.data as ArtifactData}
+                      group={group}
+                      organization={organization}
+                    />
+                  );
+                case 'solution':
+                  return (
+                    <SolutionCard key="solution" data={artifact.data as ArtifactData} />
+                  );
+                default:
+                  return null;
+              }
+            })}
+            {/* Code changes from merged file patches */}
+            {mergedPatches.length > 0 && (
+              <CodeChangesCard
+                patches={mergedPatches}
+                prStates={prStates}
+                onCreatePR={handleCreatePR}
+              />
+            )}
+          </AnimatePresence>
 
           {/* Status card when processing */}
-          <ExplorerStatusCard
-            status={runState.status}
-            loadingBlock={loadingBlock}
-            blocks={blocks}
-            onOpenChat={handleOpenChat}
-          />
+          <AnimatePresence initial={false}>
+            {runState.status === 'processing' && (
+              <ExplorerStatusCard
+                key="status_card"
+                status={runState.status}
+                loadingBlock={loadingBlock}
+                blocks={blocks}
+                onOpenChat={handleOpenChat}
+              />
+            )}
+          </AnimatePresence>
 
           {/* Next step buttons when completed */}
           {runState.status === 'completed' && (
@@ -343,7 +382,6 @@ export function ExplorerSeerDrawer({
               artifacts={artifacts}
               hasCodeChanges={hasChanges}
               onStartStep={handleStartStep}
-              onCreatePR={() => handleCreatePR()}
               onOpenChat={handleOpenChat}
               isLoading={isPolling}
             />
@@ -421,11 +459,6 @@ const ShortId = styled('div')`
 
 const ButtonWrapper = styled(ButtonBar)`
   margin-left: auto;
-`;
-
-const FeedbackWrapper = styled('div')`
-  margin-left: auto;
-  margin-right: ${p => p.theme.space.md};
 `;
 
 const PlaceholderStack = styled('div')`

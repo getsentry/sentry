@@ -30,8 +30,8 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
       // prior to making the request because the current types for y-axes do not support
       // the correct number of arguments required for trace metrics
       aggregates =
-        state.yAxis?.map((axis, index) => {
-          const traceMetric = state.traceMetrics?.[index] ?? {name: '', type: ''};
+        state.yAxis?.map(axis => {
+          const traceMetric = state.traceMetric ?? {name: '', type: ''};
           if (axis.kind === 'function') {
             return generateMetricAggregate(traceMetric, axis);
           }

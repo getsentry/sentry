@@ -240,7 +240,7 @@ const Header = styled('div')<{isFloating: boolean}>`
   font-family: ${p => p.theme.font.family.mono};
   font-size: ${p => p.theme.font.size.sm};
   color: var(--prism-base);
-  font-weight: ${p => p.theme.font.weight.medium};
+  font-weight: ${p => p.theme.font.weight.mono.medium};
   z-index: 2;
 
   ${p =>
@@ -283,7 +283,7 @@ const Tab = styled('button')<{isSelected: boolean}>`
   color: var(--prism-comment);
   ${p =>
     p.isSelected
-      ? `border-bottom: 3px solid ${p.theme.purple300};
+      ? `border-bottom: 3px solid ${p.theme.colors.blue400};
       padding-bottom: 5px;
       color: var(--prism-base);`
       : ''}

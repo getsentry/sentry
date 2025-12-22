@@ -1,9 +1,14 @@
+import {useEffect, useState} from 'react';
+import styled from '@emotion/styled';
+import {AnimatePresence, motion} from 'framer-motion';
+
 import {Container} from '@sentry/scraps/layout/container';
 import {Flex} from '@sentry/scraps/layout/flex';
 
 import {Button} from 'sentry/components/core/button';
 import {Text} from 'sentry/components/core/text';
 import type {AutofixExplorerStep} from 'sentry/components/events/autofix/useExplorerAutofix';
+import {cardAnimationProps} from 'sentry/components/events/autofix/v2/utils';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Artifact} from 'sentry/views/seerExplorer/types';
@@ -34,10 +39,6 @@ interface ExplorerNextStepsProps {
    */
   isLoading?: boolean;
   /**
-   * Callback when the create PR button is clicked.
-   */
-  onCreatePR?: () => void;
-  /**
    * Callback when the open chat button is clicked.
    */
   onOpenChat?: () => void;
@@ -49,7 +50,8 @@ interface ExplorerNextStepsProps {
  * After root cause is complete, all other steps become available.
  */
 function getAvailableNextSteps(
-  artifacts: Record<string, Artifact>
+  artifacts: Record<string, Artifact>,
+  hasCodeChanges: boolean
 ): AutofixExplorerStep[] {
   const hasRootCause = 'root_cause' in artifacts;
   const hasSolution = 'solution' in artifacts;
@@ -68,8 +70,10 @@ function getAvailableNextSteps(
     available.push('solution');
   }
 
-  // Code changes is always available after root cause (can regenerate)
-  available.push('code_changes');
+  // Only show code changes if they don't already exist
+  if (!hasCodeChanges) {
+    available.push('code_changes');
+  }
 
   if (!hasImpact) {
     available.push('impact_assessment');
@@ -91,60 +95,92 @@ export function ExplorerNextSteps({
   artifacts,
   hasCodeChanges,
   onStartStep,
-  onCreatePR,
   onOpenChat,
   isLoading,
 }: ExplorerNextStepsProps) {
-  const availableSteps = getAvailableNextSteps(artifacts);
+  const availableSteps = getAvailableNextSteps(artifacts, hasCodeChanges);
+  const [busyStep, setBusyStep] = useState<AutofixExplorerStep | null>(null);
+
+  // Clear busy state when loading starts (step is triggered)
+  useEffect(() => {
+    if (isLoading && busyStep) {
+      setBusyStep(null);
+    }
+  }, [isLoading, busyStep]);
+
+  // Clear busy state when the specific artifact for the busy step appears
+  useEffect(() => {
+    if (busyStep && busyStep in artifacts) {
+      setBusyStep(null);
+    }
+  }, [artifacts, busyStep]);
+
+  const handleStepClick = (step: AutofixExplorerStep) => {
+    setBusyStep(step);
+    onStartStep(step);
+  };
 
   return (
-    <Container border="primary" radius="md" background="primary" padding="lg">
-      {hasCodeChanges && onCreatePR && (
-        <Button priority="primary" onClick={onCreatePR} disabled={isLoading}>
-          {t('Create Pull Request')}
-        </Button>
-      )}
-
-      {availableSteps.length > 0 ? (
-        <Flex direction="column" gap="xl">
-          <Flex gap="md">
-            <Text size="md" variant="muted">
-              {t('Tell Seer what to do next...')}
-            </Text>
-          </Flex>
-          <Flex gap="md">
-            {availableSteps.map((step, index) => (
-              <Button
-                key={step}
-                onClick={() => onStartStep(step)}
-                disabled={isLoading}
-                priority={index === 0 ? 'primary' : 'default'}
-              >
-                {STEP_LABELS[step]}
-              </Button>
-            ))}
-          </Flex>
-          <Text size="md" variant="muted">
-            {t("Or read and chat about what's already on the page...")}
-          </Text>
-          <Flex gap="md">
-            <Button size="md" onClick={onOpenChat} priority="primary" icon={<IconChat />}>
-              {t('Open Chat')}
-            </Button>
-          </Flex>
-        </Flex>
-      ) : (
-        <Flex direction="column" gap="xl">
-          <Text size="md" variant="muted">
-            {t("Read and chat about Seer's analysis...")}
-          </Text>
-          <Flex gap="md">
-            <Button size="md" onClick={onOpenChat} priority="primary" icon={<IconChat />}>
-              {t('Open Chat')}
-            </Button>
-          </Flex>
-        </Flex>
-      )}
-    </Container>
+    <AnimatePresence initial={false}>
+      <AnimatedNextSteps {...cardAnimationProps}>
+        <Container border="primary" radius="md" background="primary" padding="lg">
+          {availableSteps.length > 0 ? (
+            <Flex direction="column" gap="xl">
+              <Flex gap="md">
+                <Text size="md" variant="muted">
+                  {t('Tell Seer what to do next...')}
+                </Text>
+              </Flex>
+              <Flex gap="md">
+                {availableSteps.map((step, index) => (
+                  <Button
+                    key={step}
+                    onClick={() => handleStepClick(step)}
+                    disabled={isLoading}
+                    busy={busyStep === step}
+                    priority={index === 0 ? 'primary' : 'default'}
+                  >
+                    {STEP_LABELS[step]}
+                  </Button>
+                ))}
+              </Flex>
+              <Text size="md" variant="muted">
+                {t("Or read and chat about what's already on the page...")}
+              </Text>
+              <Flex gap="md">
+                <Button
+                  size="md"
+                  onClick={onOpenChat}
+                  priority="primary"
+                  icon={<IconChat />}
+                >
+                  {t('Open Chat')}
+                </Button>
+              </Flex>
+            </Flex>
+          ) : (
+            <Flex direction="column" gap="xl">
+              <Text size="md" variant="muted">
+                {t("Read and chat about Seer's analysis...")}
+              </Text>
+              <Flex gap="md">
+                <Button
+                  size="md"
+                  onClick={onOpenChat}
+                  priority="primary"
+                  icon={<IconChat />}
+                >
+                  {t('Open Chat')}
+                </Button>
+              </Flex>
+            </Flex>
+          )}
+        </Container>
+      </AnimatedNextSteps>
+    </AnimatePresence>
   );
 }
+
+const AnimatedNextSteps = styled(motion.div)`
+  transform-origin: top center;
+`;

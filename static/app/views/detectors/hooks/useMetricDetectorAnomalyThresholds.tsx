@@ -91,7 +91,6 @@ export function useMetricDetectorAnomalyThresholds({
 
     const upperBoundData: Array<[number, number]> = [];
     const lowerBoundData: Array<[number, number]> = [];
-    const seerValueData: Array<[number, number]> = [];
 
     metricData.forEach(metricPoint => {
       const timestamp =
@@ -103,12 +102,10 @@ export function useMetricDetectorAnomalyThresholds({
       if (anomalyPoint) {
         upperBoundData.push([timestamp, Math.round(anomalyPoint.yhat_upper)]);
         lowerBoundData.push([timestamp, Math.round(anomalyPoint.yhat_lower)]);
-        seerValueData.push([timestamp, Math.round(anomalyPoint.value)]);
       }
     });
 
-    const lineColor = theme.red300;
-    const seerValueColor = theme.yellow300;
+    const lineColor = theme.colors.red400;
 
     return [
       LineSeries({
@@ -154,22 +151,6 @@ export function useMetricDetectorAnomalyThresholds({
         symbol: 'none',
         connectNulls: true,
         step: false,
-      }),
-      LineSeries({
-        name: 'Seer Historical Value',
-        data: seerValueData,
-        lineStyle: {
-          color: seerValueColor,
-          type: 'solid',
-          width: 2,
-        },
-        itemStyle: {color: seerValueColor},
-        animation: false,
-        animationThreshold: 1,
-        animationDuration: 0,
-        symbol: 'circle',
-        symbolSize: 4,
-        connectNulls: true,
       }),
     ];
   }, [anomalyData, series, theme]);

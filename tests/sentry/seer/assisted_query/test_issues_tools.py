@@ -1496,6 +1496,26 @@ class TestAssigneeAndUsernameValues(APITestCase, SnubaTestCase):
         assert subscribed_field is not None
         assert "values" in subscribed_field
 
+    def test_format_username_uuid_username_uses_email(self):
+        """Test that users with UUID usernames (32 hex chars) return email instead"""
+        # Create a user with a UUID username (SAML users get UUID usernames)
+        uuid_username = "01e2eb9a75174388a63daa4afcf782de"  # 32 hex characters
+        user_email = "samluser@sentry.io"
+        user = self.create_user(username=uuid_username, email=user_email)
+        self.create_member(organization=self.organization, user=user)
+
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            attribute_key="assigned",
+        )
+
+        assert result is not None
+        values = [item["value"] for item in result]
+        # Should use email, not UUID username
+        assert user_email in values
+        assert uuid_username not in values
+
 
 @pytest.mark.django_db(databases=["default", "control"])
 class TestReleaseFieldValues(APITestCase, SnubaTestCase):

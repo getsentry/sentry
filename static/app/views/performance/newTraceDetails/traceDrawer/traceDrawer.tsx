@@ -24,10 +24,9 @@ import type {
   TraceShape,
   TraceTree,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {TraceScheduler} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceScheduler';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
-import {makeTraceNodeBarColor} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
 import type {
   TraceReducerAction,
   TraceReducerState,
@@ -37,19 +36,14 @@ import {
   useTraceState,
   useTraceStateDispatch,
 } from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
-import {
-  getTraceTabTitle,
-  type TraceTabsReducerState,
-} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
+import {type TraceTabsReducerState} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 import type {ReplayRecord} from 'sentry/views/replays/types';
-
-import {TraceTreeNodeDetails} from './tabs/traceTreeNodeDetails';
 
 type TraceDrawerProps = {
   manager: VirtualizedViewManager;
   meta: TraceMetaQueryResults;
-  onScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
-  onTabScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
+  onScrollToNode: (node: BaseNode) => void;
+  onTabScrollToNode: (node: BaseNode) => void;
   replay: ReplayRecord | null;
   scheduler: TraceScheduler;
   trace: TraceTree;
@@ -206,7 +200,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
 
   const {onMouseDown, size} = usePassiveResizableDrawer(resizableDrawerOptions);
   const onParentClick = useCallback(
-    (node: TraceTreeNode<TraceTree.NodeValue>) => {
+    (node: BaseNode) => {
       props.onTabScrollToNode(node);
       traceDispatch({
         type: 'activate tab',
@@ -388,18 +382,19 @@ export function TraceDrawer(props: TraceDrawerProps) {
             data-test-id="trace-drawer"
           >
             <ContentWrapper>
-              {traceState.tabs.current_tab ? (
-                <TraceTreeNodeDetails
-                  tree={props.trace}
-                  replay={props.replay}
-                  manager={props.manager}
-                  organization={organization}
-                  onParentClick={onParentClick}
-                  node={traceState.tabs.current_tab.node}
-                  traceId={props.traceId}
-                  onTabScrollToNode={props.onTabScrollToNode}
-                />
-              ) : null}
+              {traceState.tabs.current_tab &&
+              typeof traceState.tabs.current_tab.node !== 'string'
+                ? traceState.tabs.current_tab.node.renderDetails({
+                    manager: props.manager,
+                    node: traceState.tabs.current_tab.node,
+                    onParentClick,
+                    onTabScrollToNode: props.onTabScrollToNode,
+                    organization,
+                    replay: props.replay,
+                    traceId: props.traceId,
+                    tree: props.trace,
+                  })
+                : null}
             </ContentWrapper>
           </Content>
         </DrawerContainerRefContext>
@@ -410,7 +405,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
 
 interface TraceDrawerTabProps {
   index: number;
-  onTabScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
+  onTabScrollToNode: (node: BaseNode) => void;
   pinned: boolean;
   tab: TraceTabsReducerState['tabs'][number];
   theme: Theme;
@@ -443,9 +438,7 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
         {props.tab.node === 'trace' ||
         props.tab.node === 'vitals' ||
         props.tab.node === 'profiles' ? null : (
-          <TabButtonIndicator
-            backgroundColor={makeTraceNodeBarColor(props.theme, root!)}
-          />
+          <TabButtonIndicator backgroundColor={root!.makeBarColor(props.theme)} />
         )}
         <TabButton>{props.tab.label ?? node}</TabButton>
       </Tab>
@@ -462,11 +455,8 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
         props.traceDispatch({type: 'activate tab', payload: props.index});
       }}
     >
-      <StyledIconCircleFilled
-        size="xs"
-        color={makeTraceNodeBarColor(props.theme, node) as Color}
-      />
-      <TabButton>{getTraceTabTitle(node)}</TabButton>
+      <StyledIconCircleFilled size="xs" color={node.makeBarColor(props.theme) as Color} />
+      <TabButton>{node.drawerTabsTitle}</TabButton>
       <TabPinButton
         pinned={props.pinned}
         onClick={e => {
@@ -648,7 +638,7 @@ const Tab = styled('li')`
   }
 
   &:hover {
-    border-bottom: 2px solid ${p => p.theme.blue200};
+    border-bottom: 2px solid ${p => p.theme.colors.blue200};
 
     button:last-child {
       transition: all 0.3s ease-in-out 500ms;
@@ -657,7 +647,7 @@ const Tab = styled('li')`
     }
   }
   &[aria-selected='true'] {
-    border-bottom: 2px solid ${p => p.theme.blue400};
+    border-bottom: 2px solid ${p => p.theme.colors.blue500};
   }
 `;
 
@@ -701,13 +691,12 @@ function TabPinButton(props: {
   pinned: boolean;
   onClick?: (e: React.MouseEvent<HTMLElement>) => void;
 }) {
-  const theme = useTheme();
   return (
     <StyledButton
       data-test-id="trace-drawer-tab-pin-button"
       size="zero"
       onClick={props.onClick}
-      priority={theme.isChonk ? 'transparent' : 'default'}
+      priority="transparent"
       aria-label={props.pinned ? t('Unpin Tab') : t('Pin Tab')}
       icon={<StyledIconPin size="xs" isSolid={props.pinned} />}
     />

@@ -184,12 +184,12 @@ export function hasPullRequest(autofixData: AutofixData | null | undefined): boo
   return Boolean(changesStep?.changes?.some(change => change.pull_request));
 }
 
-const supportedProviders = ['integrations:github', 'integrations:github_enterprise'];
-
-export const isSupportedAutofixProvider = (provider?: {id: string; name: string}) => {
-  if (!provider) {
-    return false;
-  }
+const supportedProviders = [
+  'github',
+  'integrations:github',
+  'integrations:github_enterprise',
+];
+export const isSupportedAutofixProvider = (provider: {id: string; name: string}) => {
   return supportedProviders.includes(provider.id);
 };
 

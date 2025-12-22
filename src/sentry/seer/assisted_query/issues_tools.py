@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import Any
 
 from sentry.api import client
@@ -13,6 +14,7 @@ from sentry.seer.endpoints.utils import validate_date_params
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.types.group import PriorityLevel
+from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 
 logger = logging.getLogger(__name__)
@@ -159,6 +161,22 @@ API_KEY_SCOPES = ["org:read", "project:read", "event:read"]
 RELEASE_STAGE_VALUES = ["adopted", "low_adoption", "replaced"]
 
 
+def _format_username(user: RpcUser) -> str | None:
+    """
+    Format username to match frontend search values.
+    - If username is a UUID (32 hex chars), use email instead
+    - Otherwise use username if available, fallback to email
+    Returns the formatted username/email, or None if neither is available.
+    """
+    uuid_pattern = re.compile(r"[0-9a-f]{32}$")
+    if user.username and uuid_pattern.match(user.username):
+        return user.email
+    elif user.username:
+        return user.username
+    else:
+        return user.email
+
+
 def _get_assignee_values(organization: Organization) -> list[dict[str, Any]]:
     """
     Get assignee values for the assigned and assigned_or_suggested fields.
@@ -194,8 +212,7 @@ def _get_assignee_values(organization: Organization) -> list[dict[str, Any]]:
         # Fetch user details to get usernames
         users = user_service.get_many(filter={"user_ids": list(member_user_ids)})
         for user in users:
-            # Use username if available, otherwise email
-            username = user.username or user.email
+            username = _format_username(user)
             if username:
                 values.append({"value": username})
 
@@ -220,7 +237,7 @@ def _get_username_values(organization: Organization) -> list[dict[str, Any]]:
     if member_user_ids:
         users = user_service.get_many(filter={"user_ids": list(member_user_ids)})
         for user in users:
-            username = user.username or user.email
+            username = _format_username(user)
             if username:
                 values.append({"value": username})
 
@@ -429,9 +446,7 @@ def get_issue_filter_keys(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
-    stats_period, start, end = validate_date_params(
-        stats_period, start, end, default_stats_period="7d"
-    )
+    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     api_key = ApiKey(organization_id=organization.id, scope_list=API_KEY_SCOPES)
 
@@ -545,9 +560,7 @@ def get_filter_key_values(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
-    stats_period, start, end = validate_date_params(
-        stats_period, start, end, default_stats_period="7d"
-    )
+    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     # Check if this is a built-in field first
     # For 'has' field, we need to get tag keys first
@@ -681,9 +694,7 @@ def execute_issues_query(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
-    stats_period, start, end = validate_date_params(
-        stats_period, start, end, default_stats_period="7d"
-    )
+    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     api_key = ApiKey(organization_id=organization.id, scope_list=API_KEY_SCOPES)
 
@@ -754,9 +765,7 @@ def get_issues_stats(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
-    stats_period, start, end = validate_date_params(
-        stats_period, start, end, default_stats_period="7d"
-    )
+    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     if not issue_ids:
         return []

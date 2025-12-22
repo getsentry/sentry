@@ -21,6 +21,10 @@ export const CUSTOMER_DOMAIN =
     ? undefined
     : window?.__initialData?.customerDomain?.subdomain;
 
+// Constant used for tracking referrer in session storage rather than
+// ?referrer=foo get parameter:
+export const CUSTOM_REFERRER_KEY = 'customReferrer';
+
 // This is considered the "default" route/view that users should be taken
 // to when the application does not have any further context
 //

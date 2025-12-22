@@ -21,7 +21,7 @@ def root_cause_prompt(*, short_id: str, title: str, culprit: str) -> str:
 
         When you have enough information, generate the root_cause artifact with:
         - one_line_description: A concise summary under 30 words
-        - five_whys: Chain of "why" statements leading to the root cause, each under 15 words.
+        - five_whys: Chain of brief "why" statements leading to the root cause.
         - reproduction_steps: Steps that would reproduce this issue, each under 15 words.
         """
     )
@@ -37,7 +37,9 @@ def solution_prompt(*, short_id: str, title: str, culprit: str) -> str:
         Steps:
         1. Review the root cause that was identified
         2. Explore the codebase to understand the affected areas
-        3. Design a clear, step-by-step solution plan
+        3. Consider different possible approaches and pick the single most pragmatic one.
+
+        Do NOT include testing as part of your plan.
 
         When you have a solid plan, generate the solution artifact with:
         - one_line_summary: A concise summary of the fix in under 30 words
@@ -106,8 +108,13 @@ def triage_prompt(*, short_id: str, title: str, culprit: str) -> str:
 
         When you have enough information, generate the triage artifact with:
         - suspect_commit: If you can identify a likely culprit commit:
-          - sha: The git commit SHA
-          - description: Why this commit is suspected
+          - sha: The git commit SHA (7 characters)
+          - repo_name: Full repository name (e.g. 'getsentry/sentry')
+          - message: The commit message/title
+          - author_name: Name of the commit author
+          - author_email: Email of the commit author
+          - committed_date: When the commit was made (YYYY-MM-DD format)
+          - description: Why this commit is suspected of causing the issue
         - suggested_assignee: If you can identify who should fix this:
           - name: Name of the suggested assignee
           - email: Email of the suggested assignee

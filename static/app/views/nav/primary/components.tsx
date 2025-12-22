@@ -1,11 +1,10 @@
 import {Fragment, type MouseEventHandler} from 'react';
 import type {Theme} from '@emotion/react';
-import {css, useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -14,7 +13,6 @@ import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {chonkStyled} from 'sentry/utils/theme/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -117,7 +115,6 @@ export function SidebarMenu({
   disableTooltip,
   triggerWrap: TriggerWrap = Fragment,
 }: SidebarItemDropdownProps) {
-  const theme = useTheme();
   // This component can be rendered without an organization in some cases
   const organization = useOrganization({allowNull: true});
   const {layout} = useNavContext();
@@ -129,7 +126,7 @@ export function SidebarMenu({
       position={layout === NavLayout.MOBILE ? 'bottom' : 'right-end'}
       shouldApplyMinWidth={false}
       minMenuWidth={200}
-      trigger={(props, isOpen) => {
+      trigger={props => {
         return (
           <SidebarItem
             label={label}
@@ -154,9 +151,6 @@ export function SidebarMenu({
                   ) : null
                 }
               >
-                {theme.isChonk ? null : (
-                  <InteractionStateLayer hasSelectedBackground={isOpen} />
-                )}
                 {showLabel ? label : children}
               </NavButton>
             </TriggerWrap>
@@ -177,7 +171,6 @@ function SidebarNavLink({
 }: SidebarItemLinkProps) {
   const organization = useOrganization();
   const {layout, activePrimaryNavGroup} = useNavContext();
-  const theme = useTheme();
   const location = useLocation();
   const isActive = isLinkActive(normalizeUrl(activeTo, location), location.pathname);
   const label = PRIMARY_NAV_GROUP_CONFIG[group].label;
@@ -202,7 +195,6 @@ function SidebarNavLink({
     >
       {layout === NavLayout.MOBILE ? (
         <Fragment>
-          {theme.isChonk ? null : <InteractionStateLayer />}
           {children}
           {label}
         </Fragment>
@@ -248,7 +240,6 @@ export function SidebarButton({
   onClick,
   label,
 }: SidebarButtonProps) {
-  const theme = useTheme();
   const organization = useOrganization();
   const {layout} = useNavContext();
   const showLabel = layout === NavLayout.MOBILE;
@@ -268,7 +259,7 @@ export function SidebarButton({
           showLabel ? <SidebarItemIcon layout={layout}>{children}</SidebarItemIcon> : null
         }
       >
-        {theme.isChonk ? null : <InteractionStateLayer />}
+        {null}
         {showLabel ? label : children}
       </NavButton>
     </SidebarItem>
@@ -352,7 +343,7 @@ const baseNavItemStyles = (p: {isMobile: boolean; theme: Theme}) => css`
   `}
 `;
 
-const ChonkNavLinkIconContainer = chonkStyled('span')`
+const ChonkNavLinkIconContainer = styled('span')`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -394,7 +385,7 @@ const NavLinkLabel = styled('div')`
   letter-spacing: -0.05em;
 `;
 
-const ChonkNavLink = chonkStyled(Link, {
+const ChonkNavLink = styled(Link, {
   shouldForwardProp: prop => prop !== 'isMobile',
 })<{isMobile: boolean}>`
   display: flex;
@@ -404,7 +395,8 @@ const ChonkNavLink = chonkStyled(Link, {
   justify-content: ${p => (p.isMobile ? 'flex-start' : 'center')};
   align-items: center;
 
-  padding: ${p => (p.isMobile ? `${space(1)} ${space(3)}` : `${space(0.75)} ${space(1.5)}`)};
+  padding: ${p =>
+    p.isMobile ? `${space(1)} ${space(3)}` : `${space(0.75)} ${space(1.5)}`};
 
   /* On mobile, the buttons are horizontal, so we need a gap between the icon and label */
   gap: ${p => (p.isMobile ? space(1) : space(0.5))};
@@ -457,7 +449,9 @@ const ChonkNavLink = chonkStyled(Link, {
   &[aria-current='page'] {
     color: ${p => p.theme.tokens.content.accent};
 
-    &::before { opacity: 1; }
+    &::before {
+      opacity: 1;
+    }
     ${NavLinkIconContainer} {
       background-color: ${p => p.theme.colors.blue100};
     }
@@ -502,10 +496,10 @@ const StyledNavLink = styled(Link, {
       }
 
       &[aria-current='page'] {
-        color: ${p.theme.purple400};
+        color: ${p.theme.colors.blue500};
 
         ${NavLinkIconContainer} {
-          box-shadow: inset 0 0 0 1px ${p.theme.purple100};
+          box-shadow: inset 0 0 0 1px ${p.theme.colors.blue100};
 
           &::before {
             opacity: 0.09;
@@ -539,33 +533,18 @@ const ChonkNavButton = styled(Button, {
   }
 `;
 
-const StyledNavButton = styled(Button, {
-  shouldForwardProp: prop => prop !== 'isMobile',
-})<{isMobile: boolean}>`
-  border: none;
-  position: relative;
-  background: transparent;
-
-  ${baseNavItemStyles}
-`;
-
 type NavButtonProps = ButtonProps & {
   isMobile: boolean;
 };
 
-// Use a manual theme switch because the types of Button dont seem to play well with withChonk.
 const NavButton = styled((p: NavButtonProps) => {
-  const theme = useTheme();
-  if (theme.isChonk) {
-    return (
-      <ChonkNavButton
-        {...p}
-        aria-label={p['aria-label'] ?? ''}
-        size={p.isMobile ? 'zero' : undefined}
-      />
-    );
-  }
-  return <StyledNavButton {...p} borderless />;
+  return (
+    <ChonkNavButton
+      {...p}
+      aria-label={p['aria-label'] ?? ''}
+      size={p.isMobile ? 'zero' : undefined}
+    />
+  );
 })``;
 
 export const SidebarItemUnreadIndicator = styled('span')<{isMobile: boolean}>`
@@ -577,14 +556,13 @@ export const SidebarItemUnreadIndicator = styled('span')<{isMobile: boolean}>`
   text-align: center;
   color: ${p => p.theme.white};
   font-size: ${p => p.theme.fontSize.xs};
-  background: ${p => p.theme.purple400};
+  background: ${p => p.theme.colors.blue500};
   width: 10px;
   height: 10px;
   border-radius: 50%;
   border: 2px solid ${p => p.theme.tokens.background.primary};
 
   ${p =>
-    p.theme.isChonk &&
     p.isMobile &&
     css`
       top: 5px;
@@ -605,14 +583,11 @@ export const SidebarList = styled('ul')<{isMobile: boolean; compact?: boolean}>`
   width: 100%;
 
   /* TriggerWrap div is getting in the way here */
-  ${p =>
-    p.theme.isChonk &&
-    css`
-      > div,
-      > li {
-        width: 100%;
-      }
-    `}
+  > div,
+  > div > li,
+  > li {
+    width: 100%;
+  }
 `;
 
 export const SidebarFooterWrapper = styled('div')<{isMobile: boolean}>`

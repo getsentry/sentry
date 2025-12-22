@@ -5,7 +5,8 @@ from unittest.mock import patch
 
 from django.urls import reverse
 
-from sentry.constants import ObjectStatus
+from sentry.constants import DEFAULT_CODE_REVIEW_TRIGGERS, DataCategory, ObjectStatus
+from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.repositorysettings import RepositorySettings
 from sentry.prevent.models import PreventAIConfiguration
 from sentry.prevent.types.config import PREVENT_AI_CONFIG_DEFAULT, PREVENT_AI_CONFIG_DEFAULT_V1
@@ -556,6 +557,30 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
         ["test-secret"],
     )
+    def test_returns_enabled_with_default_triggers_when_code_review_beta_flag(self):
+        org = self.create_organization()
+
+        url = reverse("sentry-api-0-code-review-repo-settings")
+        params = {
+            "sentryOrgId": str(org.id),
+            "externalRepoId": "nonexistent-repo-id",
+            "provider": "integrations:github",
+        }
+        auth = self._auth_header_for_get(url, params, "test-secret")
+
+        with self.feature({"organizations:code-review-beta": org}):
+            resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
+
+        assert resp.status_code == 200
+        assert resp.data == {
+            "enabledCodeReview": True,
+            "codeReviewTriggers": DEFAULT_CODE_REVIEW_TRIGGERS,
+        }
+
+    @patch(
+        "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
+        ["test-secret"],
+    )
     def test_returns_repo_settings_when_exist(self):
         org = self.create_organization()
         project = self.create_project(organization=org)
@@ -681,3 +706,309 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         resp2 = self.client.get(url, params2, HTTP_AUTHORIZATION=auth)
         assert resp2.status_code == 200
         assert resp2.data == {"enabledCodeReview": False, "codeReviewTriggers": []}
+
+
+class TestPreventPrReviewEligibilityEndpoint(APITestCase):
+    def _auth_header_for_get(self, url: str, params: dict[str, str], secret: str) -> str:
+        message = b"[]"
+        signature = hmac.new(secret.encode(), message, hashlib.sha256).hexdigest()
+        return f"Rpcsignature rpc0:{signature}"
+
+    @patch(
+        "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
+        ["test-secret"],
+    )
+    def test_requires_auth(self):
+        url = reverse("sentry-api-0-prevent-pr-review-eligibility")
+        resp = self.client.get(url, {"repoId": "456", "prAuthorId": "789"})
+        assert resp.status_code == 403
+
+    @patch(
+        "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
+        ["test-secret"],
+    )
+    def test_missing_repo_id_returns_400(self):
+        url = reverse("sentry-api-0-prevent-pr-review-eligibility")
+        params = {"prAuthorId": "789"}
+        auth = self._auth_header_for_get(url, params, "test-secret")
+        resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
+        assert resp.status_code == 400
+        assert "repoId" in resp.data["detail"]
+
+    @patch(
+        "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
+        ["test-secret"],
+    )
+    def test_missing_pr_author_id_returns_400(self):
+        url = reverse("sentry-api-0-prevent-pr-review-eligibility")
+        params = {"repoId": "456"}
+        auth = self._auth_header_for_get(url, params, "test-secret")
+        resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
+        assert resp.status_code == 400
+        assert "prAuthorId" in resp.data["detail"]
+
+    @patch(
+        "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
+        ["test-secret"],
+    )
+    def test_returns_true_for_code_review_beta_org(self):
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        external_repo_id = "12345"
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=org,
+                provider="github",
+                external_id="github:123",
+            )
+
+        self.create_repo(
+            project=project,
+            external_id=external_repo_id,
+            name="org/repo",
+            provider="integrations:github",
+            integration_id=integration.id,
+        )
+
+        url = reverse("sentry-api-0-prevent-pr-review-eligibility")
+        params = {"repoId": external_repo_id, "prAuthorId": "789"}
+        auth = self._auth_header_for_get(url, params, "test-secret")
+
+        with self.feature({"organizations:code-review-beta": org}):
+            resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
+
+        assert resp.status_code == 200
+        assert resp.data == {"is_eligible": True}
+
+    @patch(
+        "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
+        ["test-secret"],
+    )
+    def test_returns_false_when_code_review_not_enabled(self):
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        external_repo_id = "12345"
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=org,
+                provider="github",
+                external_id="github:123",
+            )
+
+        self.create_repo(
+            project=project,
+            external_id=external_repo_id,
+            name="org/repo",
+            provider="integrations:github",
+            integration_id=integration.id,
+        )
+
+        url = reverse("sentry-api-0-prevent-pr-review-eligibility")
+        params = {"repoId": external_repo_id, "prAuthorId": "789"}
+        auth = self._auth_header_for_get(url, params, "test-secret")
+        resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
+        assert resp.status_code == 200
+        assert resp.data == {"is_eligible": False}
+
+    @patch(
+        "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
+        ["test-secret"],
+    )
+    def test_returns_false_when_code_review_enabled_but_no_contributor_exists(self):
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        external_repo_id = "12345"
+        pr_author_id = "789"
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=org,
+                provider="github",
+                external_id="github:123",
+            )
+
+        repo = self.create_repo(
+            project=project,
+            external_id=external_repo_id,
+            name="org/repo",
+            provider="integrations:github",
+            integration_id=integration.id,
+        )
+
+        RepositorySettings.objects.create(
+            repository=repo,
+            enabled_code_review=True,
+            code_review_triggers=["on_command_phrase"],
+        )
+
+        url = reverse("sentry-api-0-prevent-pr-review-eligibility")
+        params = {"repoId": external_repo_id, "prAuthorId": pr_author_id}
+        auth = self._auth_header_for_get(url, params, "test-secret")
+        resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
+        assert resp.status_code == 200
+        assert resp.data == {"is_eligible": False}
+
+    @patch(
+        "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
+        ["test-secret"],
+    )
+    @patch("sentry.overwatch.endpoints.overwatch_rpc.quotas.backend.check_seer_quota")
+    def test_returns_false_when_quota_check_fails(self, mock_check_quota):
+        mock_check_quota.return_value = False
+
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        external_repo_id = "12345"
+        pr_author_id = "789"
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=org,
+                provider="github",
+                external_id="github:123",
+            )
+
+        repo = self.create_repo(
+            project=project,
+            external_id=external_repo_id,
+            name="org/repo",
+            provider="integrations:github",
+            integration_id=integration.id,
+        )
+
+        RepositorySettings.objects.create(
+            repository=repo,
+            enabled_code_review=True,
+            code_review_triggers=["on_command_phrase"],
+        )
+
+        OrganizationContributors.objects.create(
+            organization=org,
+            integration_id=integration.id,
+            external_identifier=pr_author_id,
+            alias="testuser",
+        )
+
+        url = reverse("sentry-api-0-prevent-pr-review-eligibility")
+        params = {"repoId": external_repo_id, "prAuthorId": pr_author_id}
+        auth = self._auth_header_for_get(url, params, "test-secret")
+        resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
+        assert resp.status_code == 200
+        assert resp.data == {"is_eligible": False}
+        mock_check_quota.assert_called_once()
+
+    @patch(
+        "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
+        ["test-secret"],
+    )
+    @patch("sentry.overwatch.endpoints.overwatch_rpc.quotas.backend.check_seer_quota")
+    def test_returns_true_when_code_review_enabled_and_quota_available(self, mock_check_quota):
+        mock_check_quota.return_value = True
+
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        external_repo_id = "12345"
+        pr_author_id = "789"
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=org,
+                provider="github",
+                external_id="github:123",
+            )
+
+        repo = self.create_repo(
+            project=project,
+            external_id=external_repo_id,
+            name="org/repo",
+            provider="integrations:github",
+            integration_id=integration.id,
+        )
+
+        RepositorySettings.objects.create(
+            repository=repo,
+            enabled_code_review=True,
+            code_review_triggers=["on_command_phrase"],
+        )
+
+        contributor = OrganizationContributors.objects.create(
+            organization=org,
+            integration_id=integration.id,
+            external_identifier=pr_author_id,
+            alias="testuser",
+        )
+
+        url = reverse("sentry-api-0-prevent-pr-review-eligibility")
+        params = {"repoId": external_repo_id, "prAuthorId": pr_author_id}
+        auth = self._auth_header_for_get(url, params, "test-secret")
+        resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
+        assert resp.status_code == 200
+        assert resp.data == {"is_eligible": True}
+        mock_check_quota.assert_called_once_with(
+            org_id=org.id,
+            data_category=DataCategory.SEER_USER,
+            seat_object=contributor,
+        )
+
+    @patch(
+        "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
+        ["test-secret"],
+    )
+    @patch("sentry.overwatch.endpoints.overwatch_rpc.quotas.backend.check_seer_quota")
+    def test_returns_true_when_any_org_is_eligible(self, mock_check_quota):
+        mock_check_quota.return_value = True
+
+        org1 = self.create_organization()
+        org2 = self.create_organization()
+        project1 = self.create_project(organization=org1)
+        project2 = self.create_project(organization=org2)
+        external_repo_id = "12345"
+        pr_author_id = "789"
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration1 = self.create_integration(
+                organization=org1,
+                provider="github",
+                external_id="github:123",
+            )
+            integration2 = self.create_integration(
+                organization=org2,
+                provider="github",
+                external_id="github:456",
+            )
+
+        self.create_repo(
+            project=project1,
+            external_id=external_repo_id,
+            name="org/repo",
+            provider="integrations:github",
+            integration_id=integration1.id,
+        )
+        repo2 = self.create_repo(
+            project=project2,
+            external_id=external_repo_id,
+            name="org/repo",
+            provider="integrations:github",
+            integration_id=integration2.id,
+        )
+
+        RepositorySettings.objects.create(
+            repository=repo2,
+            enabled_code_review=True,
+            code_review_triggers=["on_command_phrase"],
+        )
+        OrganizationContributors.objects.create(
+            organization=org2,
+            integration_id=integration2.id,
+            external_identifier=pr_author_id,
+            alias="testuser",
+        )
+
+        url = reverse("sentry-api-0-prevent-pr-review-eligibility")
+        params = {"repoId": external_repo_id, "prAuthorId": pr_author_id}
+        auth = self._auth_header_for_get(url, params, "test-secret")
+        resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
+        assert resp.status_code == 200
+        assert resp.data == {"is_eligible": True}
