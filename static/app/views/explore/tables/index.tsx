@@ -93,7 +93,7 @@ export function ExploreTables(props: ExploreTablesProps) {
     <Fragment>
       <SamplesTableHeader>
         <Tabs value={props.tab} onChange={props.setTab} size="sm">
-          <TabList hideBorder variant="floating">
+          <TabList variant="floating">
             <TabList.Item key={Tab.SPAN}>{t('Span Samples')}</TabList.Item>
             <TabList.Item key={Tab.TRACE}>{t('Trace Samples')}</TabList.Item>
             <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>

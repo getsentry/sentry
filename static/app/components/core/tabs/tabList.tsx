@@ -129,13 +129,6 @@ function OverflowMenu({state, overflowMenuItems, disabled}: any) {
 
 export interface TabListProps {
   children: TabListStateOptions<TabListItemProps>['children'];
-  /**
-   * @deprecated
-   * With chonk, tabs never have a border.
-   * Whether to hide the bottom border of the tab list.
-   * Defaults to `false`.
-   */
-  hideBorder?: boolean;
   outerWrapStyles?: React.CSSProperties;
   variant?: BaseTabProps['variant'];
 }
@@ -145,12 +138,7 @@ interface BaseTabListProps extends AriaTabListOptions<TabListItemProps>, TabList
   variant?: BaseTabProps['variant'];
 }
 
-function BaseTabList({
-  hideBorder = false,
-  outerWrapStyles,
-  variant = 'flat',
-  ...props
-}: BaseTabListProps) {
+function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListProps) {
   const navigate = useNavigate();
   const tabListRef = useRef<HTMLUListElement>(null);
   const {rootProps, setTabListState} = useContext(TabsContext);
@@ -231,7 +219,6 @@ function BaseTabList({
       <TabListWrap
         {...tabListProps}
         orientation={orientation}
-        hideBorder={hideBorder}
         ref={tabListRef}
         variant={variant}
       >
@@ -310,7 +297,6 @@ const TabListOuterWrap = styled('div')`
 
 const TabListWrap = withChonk(
   styled('ul', {shouldForwardProp: tabsShouldForwardProp})<{
-    hideBorder: boolean;
     orientation: Orientation;
     variant: BaseTabProps['variant'];
   }>`
@@ -327,7 +313,7 @@ const TabListWrap = withChonk(
             grid-auto-flow: column;
             justify-content: start;
             gap: ${p.variant === 'floating' ? 0 : space(2)};
-            ${!p.hideBorder && `border-bottom: solid 1px ${p.theme.border};`}
+            border-bottom: solid 1px ${p.theme.border};
           `
         : css`
             height: 100%;
@@ -335,8 +321,8 @@ const TabListWrap = withChonk(
             align-content: start;
             gap: 1px;
             padding-right: ${space(2)};
-            ${!p.hideBorder && `border-right: solid 1px ${p.theme.border};`}
-          `};
+            border-right: solid 1px ${p.theme.border};
+          `}
   `,
   ChonkStyledTabListWrap
 );

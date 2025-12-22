@@ -159,7 +159,7 @@ function NoteInput({
   return (
     <NoteInputForm data-test-id="note-input-form" noValidate onSubmit={handleSubmit}>
       <Tabs>
-        <TabList variant="floating" hideBorder>
+        <TabList variant="floating">
           <TabList.Item key="edit">{existingItem ? t('Edit') : t('Write')}</TabList.Item>
           <TabList.Item key="preview">{t('Preview')}</TabList.Item>
         </TabList>

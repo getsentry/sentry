@@ -15,7 +15,7 @@ type Props = {
 
 function StatsHeaderTabs({organization}: Props) {
   return (
-    <TabList hideBorder>
+    <TabList>
       <TabList.Item
         key="stats"
         to={makeStatsPathname({

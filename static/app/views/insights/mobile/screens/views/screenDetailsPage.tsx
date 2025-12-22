@@ -96,7 +96,7 @@ function ScreenDetailsPage() {
   }
 
   const tabList = (
-    <TabList hideBorder>
+    <TabList>
       {tabs.map(tab => {
         const visible =
           tab.feature === undefined || organization.features.includes(tab.feature);

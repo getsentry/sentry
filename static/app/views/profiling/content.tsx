@@ -205,7 +205,7 @@ export default function ProfilingContent() {
                   )}
                   <div>
                     <Tabs value={tab} onChange={onTabChange}>
-                      <TabList hideBorder>
+                      <TabList>
                         <TabList.Item key="transactions">
                           {t('Transactions')}
                           <StyledQuestionTooltip

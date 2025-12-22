@@ -25,7 +25,7 @@ function NetworkDetailsTabs() {
           setParamValue(tab);
         }}
       >
-        <TabList hideBorder>
+        <TabList>
           {Object.entries(TABS).map(([tab, label]) => (
             <TabList.Item key={tab}>{label}</TabList.Item>
           ))}

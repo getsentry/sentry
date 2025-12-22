@@ -92,7 +92,7 @@ function GroupHeaderTabs({
   }, [group.issueType, organization]);
 
   return (
-    <StyledTabList hideBorder>
+    <StyledTabList>
       <TabList.Item
         key={Tab.DETAILS}
         disabled={disabledTabs.includes(Tab.DETAILS)}
