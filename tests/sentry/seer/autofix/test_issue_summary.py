@@ -23,11 +23,7 @@ from sentry.seer.autofix.issue_summary import (
     run_automation,
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint
-from sentry.seer.models import (
-    FixabilitySummaryPayload,
-    SummarizeIssueResponse,
-    SummarizeIssueScores,
-)
+from sentry.seer.models import SummarizeIssueResponse, SummarizeIssueScores
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
@@ -1228,13 +1224,13 @@ class TestGetAndUpdateGroupFixabilityScore(APITestCase, SnubaTestCase):
         )
         mock_request.return_value = mock_response
 
-        summary = FixabilitySummaryPayload(
-            group_id=self.group.id,
-            headline="Test Headline",
-            whats_wrong="Test whats wrong",
-            trace="Test trace",
-            possible_cause="Test cause",
-        )
+        summary = {
+            "group_id": self.group.id,
+            "headline": "Test Headline",
+            "whats_wrong": "Test whats wrong",
+            "trace": "Test trace",
+            "possible_cause": "Test cause",
+        }
 
         result = get_and_update_group_fixability_score(
             self.group, force_generate=True, summary=summary

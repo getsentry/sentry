@@ -113,8 +113,6 @@ class TestGenerateIssueSummaryOnly(SentryTestCase):
         self, mock_get_issue_summary: MagicMock, mock_generate_fixability: MagicMock
     ) -> None:
         """Test that fixability score is generated with summary passed to Seer."""
-        from sentry.seer.models import FixabilitySummaryPayload
-
         group = self.create_group(project=self.project)
 
         mock_get_issue_summary.return_value = (
@@ -145,8 +143,8 @@ class TestGenerateIssueSummaryOnly(SentryTestCase):
         call_args = mock_generate_fixability.call_args
         assert call_args[0][0] == group
         summary_arg = call_args[1]["summary"]
-        assert isinstance(summary_arg, FixabilitySummaryPayload)
-        assert summary_arg.headline == "Test Headline"
+        assert isinstance(summary_arg, dict)
+        assert summary_arg["headline"] == "Test Headline"
 
         group.refresh_from_db()
         assert group.seer_fixability_score == 0.75

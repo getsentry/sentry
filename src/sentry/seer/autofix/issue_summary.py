@@ -30,7 +30,7 @@ from sentry.seer.autofix.utils import (
     is_seer_autotriggered_autofix_rate_limited,
     is_seer_seat_based_tier_enabled,
 )
-from sentry.seer.models import FixabilitySummaryPayload, SummarizeIssueResponse
+from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
 from sentry.services import eventstore
@@ -268,7 +268,7 @@ fixability_connection_pool_gpu = connection_from_url(
 
 def _generate_fixability_score(
     group: Group,
-    summary: FixabilitySummaryPayload | None = None,
+    summary: dict[str, Any] | None = None,
 ) -> SummarizeIssueResponse:
     payload: dict[str, Any] = {
         "group_id": group.id,
@@ -277,7 +277,7 @@ def _generate_fixability_score(
         "project_id": group.project.id,
     }
     if summary is not None:
-        payload["summary"] = summary.dict()
+        payload["summary"] = summary
     response = make_signed_seer_api_request(
         fixability_connection_pool_gpu,
         "/v1/automation/summarize/fixability",
@@ -293,7 +293,7 @@ def _generate_fixability_score(
 def get_and_update_group_fixability_score(
     group: Group,
     force_generate: bool = False,
-    summary: FixabilitySummaryPayload | None = None,
+    summary: dict[str, Any] | None = None,
 ) -> float:
     """
     Get the fixability score for a group and update the group with the score.
