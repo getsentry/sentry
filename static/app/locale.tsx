@@ -4,6 +4,7 @@ import Jed from 'jed';
 // @ts-expect-error TS(7016): Could not find a declaration file for module 'spri... Remove this comment to see the full error message
 import {sprintf} from 'sprintf-js';
 
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import toArray from 'sentry/utils/array/toArray';
 import localStorage from 'sentry/utils/localStorage';
 
@@ -63,6 +64,46 @@ export function setLocale(translations: any): Jed {
 }
 
 type FormatArg = ComponentMap | React.ReactNode;
+
+/**
+ * Type-level utilities for extracting shortcodes from template strings
+ * and enforcing component requirements at compile-time.
+ */
+
+// Check if string is a literal (not a variable)
+type IsStringLiteral<T> = T extends string ? (string extends T ? false : true) : false;
+
+// Helper to continue extraction after bracket content
+type ExtractAfterBracket<S extends string> = S extends `${infer _Before}]${infer Rest}`
+  ? Rest
+  : '';
+
+// Recursively extract all shortcode names from template string
+// Handles both [name] and [name:value] patterns, including nested shortcodes
+type ExtractShortcodes<S extends string> =
+  S extends `${infer _Before}[${infer Name}]${infer Rest}`
+    ? Name | ExtractShortcodes<Rest>
+    : S extends `${infer _Before}[${infer Name}:${infer Content}`
+      ? Name | ExtractShortcodes<`${Content}${ExtractAfterBracket<Content>}`>
+      : never;
+
+// Built-in shortcodes that have default implementations
+type BuiltInShortcodes = 'code' | 'link' | 'strong' | 'break' | 'bold' | 'italic';
+
+// Extract only custom (non-built-in) shortcodes
+type CustomShortcodes<T extends string> = Exclude<
+  ExtractShortcodes<T>,
+  BuiltInShortcodes
+>;
+
+// Build the required component map type based on template string
+type ComponentMapFor<Template extends string> =
+  IsStringLiteral<Template> extends false
+    ? ComponentMap // Fallback for dynamic strings (variables)
+    : CustomShortcodes<Template> extends never
+      ? Partial<Record<BuiltInShortcodes, React.ReactNode>> // Only built-ins used
+      : Record<CustomShortcodes<Template>, React.ReactNode> & // Custom required
+          Partial<Record<BuiltInShortcodes, React.ReactNode>>; // Built-ins optional
 
 /**
  * Helper to return the i18n client, and initialize for the default locale (English)
@@ -165,6 +206,69 @@ type ParsedTemplate = Record<string, TemplateSubvalue[]>;
  * will be translated to `<strong>this string is the sub value</strong>`.
  */
 type ComponentMap = Record<string, React.ReactNode>;
+
+/**
+ * SmartLink component that automatically routes to Link or ExternalLink
+ * based on the href/to prop:
+ * - `to` prop → Link (internal routing)
+ * - `href` starting with '/' → Link (internal path)
+ * - `href` with http/https → ExternalLink (external URL)
+ * - No URL → plain <a> tag (fallback)
+ */
+function SmartLink(props: React.PropsWithChildren<any>) {
+  const {children, to, href, ...rest} = props;
+
+  // Explicit `to` prop always uses Link
+  if (to !== undefined) {
+    return (
+      <Link to={to} {...rest}>
+        {children}
+      </Link>
+    );
+  }
+
+  // href with / prefix is internal path
+  if (typeof href === 'string' && href.startsWith('/')) {
+    return (
+      <Link to={href} {...rest}>
+        {children}
+      </Link>
+    );
+  }
+
+  // href with http/https is external
+  if (
+    typeof href === 'string' &&
+    (href.startsWith('http://') || href.startsWith('https://'))
+  ) {
+    return (
+      <ExternalLink href={href} {...rest}>
+        {children}
+      </ExternalLink>
+    );
+  }
+
+  // Fallback to plain anchor
+  return (
+    <a href={href} {...rest}>
+      {children}
+    </a>
+  );
+}
+
+/**
+ * Default component implementations for built-in shortcodes.
+ * These are automatically available in tct() calls and can be overridden
+ * by passing custom components with the same key.
+ */
+const DEFAULT_COMPONENTS: Record<BuiltInShortcodes, React.ReactNode> = {
+  code: <code />,
+  link: <SmartLink />,
+  strong: <strong />,
+  bold: <b />,
+  italic: <i />,
+  break: <br />,
+};
 
 /**
  * Parses a template string into groups.
@@ -397,21 +501,39 @@ function ngettext(singular: string, plural: string, ...args: FormatArg[]): strin
  * in the brackets
  *
  * You may recursively nest additional groups within the grouped string values.
+ *
+ * Built-in shortcodes are available: [code], [link], [strong], [bold], [italic], [break]
+ * These can be used without providing components, or can be overridden by passing
+ * custom components with the same key.
  */
-function gettextComponentTemplate(
-  template: string,
-  components: ComponentMap
+function gettextComponentTemplate<T extends string>(
+  template: T,
+  components?: ComponentMapFor<T>
 ): React.JSX.Element {
+  // Merge default components with user components (user components override)
+  const mergedComponents = {...DEFAULT_COMPONENTS, ...components};
+
   const parsedTemplate = parseComponentTemplate(getClient().gettext(template));
-  return mark(renderTemplate(parsedTemplate, components));
+  return mark(renderTemplate(parsedTemplate, mergedComponents));
 }
 
 /**
  * Helper over `gettextComponentTemplate` with a pre-populated `<code />` component that
  * is commonly used.
+ *
+ * @deprecated Use `tct()` directly instead. The [code] shortcode is now built-in.
+ *
+ * Before: tctCode('Install [code:package]', {...})
+ * After:  tct('Install [code:package]', {...})
  */
-export function tctCode(template: string, components: ComponentMap = {}) {
-  return gettextComponentTemplate(template, {code: <code />, ...components});
+export function tctCode<T extends string>(template: T, components?: ComponentMapFor<T>) {
+  if (process.env.NODE_ENV === 'development') {
+    // eslint-disable-next-line no-console
+    console.warn(
+      'tctCode is deprecated. Use tct() instead - [code] is now a built-in shortcode.'
+    );
+  }
+  return gettextComponentTemplate(template, components);
 }
 
 /**
