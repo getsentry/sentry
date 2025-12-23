@@ -1,7 +1,9 @@
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {CodeBlock} from 'sentry/components/core/code';
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingError from 'sentry/components/loadingError';
@@ -38,15 +40,32 @@ export function OtherPlatformsInfo({
     return <LoadingError onRetry={refetch} />;
   }
 
+  const dsn = data[0]?.dsn?.public;
+
   return (
     <Wrapper>
       {t(
         "We cannot provide instructions for '%s' projects. However, please find below the DSN key for this project, which is required to instrument Sentry.",
         platform
       )}
-      <CodeBlock dark language="properties">
-        {t('dsn: %s', data[0]!.dsn.public)}
-      </CodeBlock>
+      {dsn ? (
+        <CodeBlock dark language="properties">
+          {t('dsn: %s', data[0]!.dsn.public)}
+        </CodeBlock>
+      ) : (
+        <Alert type="warning">
+          {tct(
+            'No DSN found for this project. You an create a new one by visiting your [link:project settings].',
+            {
+              link: (
+                <Link
+                  to={`/organizations/${organization.slug}/settings/projects/${projectSlug}/keys/`}
+                />
+              ),
+            }
+          )}
+        </Alert>
+      )}
       <Suggestion>
         {t(
           'Since it can be a lot of work creating a Sentry SDK from scratch, we suggest you review the following SDKs which are applicable for a wide variety of applications:'
