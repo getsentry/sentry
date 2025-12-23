@@ -1,80 +1,82 @@
 ---
-title: Design System API Guidelines
+title: Componet API Guidelines
 layout: document
-description: Guidelines for consistent component API design in the Scraps design system.
+description:
 ---
 
-This is a living document that evolves along with the codebase. Contributions are welcome and encouraged.
+This is a living document that evolves along with the codebase. The examples you see are taken directly from our codebase - they are not made up, and have in many cases only been slightly modified to convey the message more clearly. Contributions to this document are welcome and encouraged.
 
-# Why do we need this document?
+> [!NOTE]
+> We currently do not enforce these guidelines for the simple reason that expressing them through a set of static rules would be impossible. That said, we are exploring ways of using LLM code review tools to nudge new contributions in this direction.
 
-Over the past decade, Sentry's codebase has grown to 1M+ LOC of code, and if you've tried reading through some of it, you have probably realized that it is written and organized in a number of very different ways. This manifests itself in an environment that requires high cognitive load, adding to the cost of our engineering operations and slowing down our development.
+# Why it's good to have a document like this?
 
-This document exists in an effort to improve the status quo, and provide a path towards an environment in which we can operate more efficiently in. It is important to note that we currently do not enforce these guidelines simply because expressing them through a set of static rules would be impossible, but we are exploring ways of using LLM code review tools to nudge new contributions in this direction.
+Over the past decade, Sentry's codebase has grown to 1M+ LOC of code, and if you've tried reading through some of it, you would have been quick to realize that it is written and organized in a handful of very different ways. Unfortunately, this manifests itself in an environment where developers need to keep track of many things in order to be efficient, which slows down our development velocity and adds cost to our engineering operations.
+
+This document is our attempt at addressing the problem by provide a set of guidelines for writing code and designing component APIs.
 
 # Guiding Principles
 
-### Optimize for Readability
+## Optimize for Cognitive Load
 
-- Control flow (avoid nested branching or assignment, return early)
+A lot has alread been written about [cognitive load](https://github.com/zakirullin/cognitive-load) and readability, yet the lessons seem to have seldom translated well into practice. Perhaps this is due to the subjective nature of the topic, or the struggle to encapsulate it via a fixed set of rules. We will attempt to tackle this by providing you with examples and explanations of the possible improvements that could be made.
 
-- mutable variable with if-else chain pollutes component body with logic that could be kept closer to the DOM
-- title switch inside component body obscures the more important data fetching logic
+You should observe how the seemingly subtle changes can lead to code that is easier to understand, modify and even delete. As you read through the examples, pay attention to quickly you are able to scan the document, and piece together their intent or understanding. Write down how many things you are required to keep in memory by the time you get to the end of it, does the code flow nicely, or are you finding yourself jumping around to piece it together?
+
+Optimizing for cognitive load requires developing some intuition and empathy - skills that are above just producing working code. A helpful thing for you to hone on these skills is to question yourself if the solution you've arrived to can be simplified, and to try and put yourself in the shoes of a new comer who has no prior knowledge; how would they piece it together?
+
+### Simplify control flow
+
+Branching, variable initializaiton and assignment are all things that we store in our short term memory - as it turns out computers do the same (albeit a tad more efficienty). Optimizing control flow is about reducing the amount of things we are required to hold onto when understanding some code. Lets read the example below:
 
 ```tsx
-function ComponentBadge({conditionA, conditionB}: Props) {
+function Component()) {
   const request = useQuery();
-  let message = null;
-  if (conditionA) {
-    message = t('Condition A met');
-  } else if (conditionB) {
-    message = t('Condition B met');
+  let message: string | null = null;
+  if (foo) {
+    message = t('Foo');
+  } else if (bar) {
+    message = t('Bar');
   }
 
   return (
     <Tooltip title={message} skipWrapper>
-      <Component />
+      <Component request={request} />
     </Tooltip>
   );
 }
 ```
 
-- Component logic is separated from the DOM output
-- The DOM output is self-documenting and easy to understand with a clear null case
+Now lets look at the example below, what do you notice?
 
 ```tsx
-function ComponentBadge({conditionA, conditionB}: Props) {
+function Component() {
   const request = useQuery();
 
   return (
-    <Tooltip
-      title={conditionA ? t('Condition A met') : conditionB ? t('Condition B met') : null}
-    >
-      <Component />
+    <Tooltip title={foo ? t('Foo') : bar ? t('Bar') : null}>
+      <Component request={request} />
     </Tooltip>
   );
 }
 ```
 
-- Code should explain what, not why
+There are no functional changes, but we've managed to improve quite a few things:
+
+- We no longer need to type `let message: string | null`
+- We are no longer required to jump between lines to understand the value of `message`. Imagine if the body of this component was larger, then you'd be required to scroll back down to the use of message value as well.
+- To understand the value of `message`, we now only need to read a single line of code. Previously, if wanted to be thorough, we would have needed to check the entire component body before for other instances of message value reassignment.
+- The API request stands out, giving us an immediate clue that this component does some data fetching
+- We have created separation between business logic (request) and the rendered output (DOM). This separation enables us to parse the implementation more efficiently, and dependign on the task, only focus on either of the two in isolation.
+
+Code should explain what, not why
 
 ```tsx
-// ❌ Less readable - comment explains what variable name should convey
-const optionsCount = options.length;
-// "Custom" is the last option (index = optionsCount)
-const isCustomSelected = selectedIndex === optionsCount;
-
-// ✅ Self explanatory - the comment is redundant
-const isCustomSelected = selectedIndex === options.length;
+fetchData(currentPage + 1);
 ```
 
 ```tsx
-// ❌ Why are we incrementing the page?
-fetchData(currentPage + 1);
-
-//
 // API expects 1-indexed pages, not 0-indexed
-
 fetchData(currentPage + 1);
 ```
 
