@@ -94,6 +94,7 @@ export const enum SectionKey {
   MCP_OUTPUT = 'mcp-output',
 
   SPAN_LINKS = 'span-links',
+  CLUSTERED_ISSUES = 'clustered-issues',
 }
 
 /**

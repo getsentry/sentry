@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
@@ -10,6 +9,8 @@ import type {ClusterSummary, TopIssuesResponse} from 'sentry/types/cluster';
 import type {Group} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
 
 interface Props {
@@ -51,12 +52,15 @@ export function ClusteredIssuesSidebarSection({group}: Props) {
   }
 
   return (
-    <Fragment>
-      <SidebarSectionTitle>{t('Clustered Issues')}</SidebarSectionTitle>
+    <SidebarFoldSection
+      title={<SidebarSectionTitle>{t('Clustered Issues')}</SidebarSectionTitle>}
+      sectionKey={SectionKey.CLUSTERED_ISSUES}
+      initialCollapse
+    >
       <Flex direction="column" gap="sm">
         <ClusterInfo>
           <strong>{cluster.impact || t('Cluster')}</strong>{' '}
-          <span style={{color: 'var(--sub-text)'}}>[{cluster.cluster_id}]</span>
+          <span style={{color: 'var(--sub-text)'}}>[CLUSTER-{cluster.cluster_id}]</span>
         </ClusterInfo>
 
         <IssueList>
@@ -74,7 +78,7 @@ export function ClusteredIssuesSidebarSection({group}: Props) {
           )}
         </IssueList>
       </Flex>
-    </Fragment>
+    </SidebarFoldSection>
   );
 }
 
