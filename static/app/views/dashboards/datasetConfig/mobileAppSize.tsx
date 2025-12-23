@@ -1,5 +1,5 @@
 import type {Client, ResponseMeta} from 'sentry/api';
-import type {PageFilters, SelectValue} from 'sentry/types/core';
+import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -8,19 +8,14 @@ import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, QueryFieldValue} from 'sentry/utils/discover/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
-import type {
-  DashboardFilters,
-  DisplayType,
-  Widget,
-  WidgetQuery,
-} from 'sentry/views/dashboards/types';
+import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/types';
 import {EventsSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
-import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
-import type {DatasetConfig, WidgetBuilderSearchBarProps} from './base';
+import type {DatasetConfig} from './base';
 import {handleOrderByReset} from './base';
 
 interface AppSizeResponse {
@@ -66,7 +61,12 @@ export const MobileAppSizeConfig: DatasetConfig<AppSizeResponse[], TableData> = 
     return generateFieldOptions({
       organization,
       tagKeys: [],
-      fieldKeys: [],
+      fieldKeys: [
+        'min_install_size',
+        'max_install_size',
+        'min_download_size',
+        'max_download_size',
+      ],
       aggregations: {
         max: {
           isSortable: true,
@@ -144,7 +144,7 @@ export const MobileAppSizeConfig: DatasetConfig<AppSizeResponse[], TableData> = 
           const [key, value] = token.split(':', 2);
           if (key === 'app_id' && value) {
             appIds = value.split(',').filter(Boolean);
-          } else if (value) {
+          } else if (key && value) {
             baseParams[key] = value;
           }
         }
@@ -207,7 +207,7 @@ export const MobileAppSizeConfig: DatasetConfig<AppSizeResponse[], TableData> = 
           const [key, value] = token.split(':', 2);
           if (key === 'app_id' && value) {
             appIds = value.split(',').filter(Boolean);
-          } else if (value) {
+          } else if (key && value) {
             baseParams[key] = value;
           }
         }
@@ -302,13 +302,11 @@ export const MobileAppSizeConfig: DatasetConfig<AppSizeResponse[], TableData> = 
     }
 
     return data.map((response, index) => {
-      // Filter out time buckets with no data
-      const seriesData = response.data
-        .filter(([, values]) => values[0]?.count !== null)
-        .map(([timestamp, values]) => ({
-          name: timestamp * 1000, // Convert to milliseconds
-          value: values[0]!.count as number,
-        }));
+      // Map all data points, including nulls, so the chart axes always display
+      const seriesData = response.data.map(([timestamp, values]) => ({
+        name: timestamp * 1000, // Convert to milliseconds
+        value: values[0]?.count ?? null,
+      }));
 
       // Build series name
       const parts: string[] = [];
@@ -338,8 +336,11 @@ export const MobileAppSizeConfig: DatasetConfig<AppSizeResponse[], TableData> = 
         if (appIds[index]) {
           parts.push(appIds[index]);
         }
-        if (artifactType && artifactTypeLabels[artifactType]) {
-          parts.push(artifactTypeLabels[artifactType]);
+        if (artifactType) {
+          const label = artifactTypeLabels[artifactType];
+          if (label) {
+            parts.push(label);
+          }
         }
         if (branch) {
           parts.push(branch);

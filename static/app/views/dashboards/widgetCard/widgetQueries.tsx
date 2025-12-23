@@ -59,9 +59,12 @@ function WidgetQueries({
   onWidgetSplitDecision,
   onDataFetchStart,
 }: Props) {
-  // Discover and Errors datasets are the only datasets processed in this component
   const config = getDatasetConfig(
-    widget.widgetType as WidgetType.DISCOVER | WidgetType.ERRORS | WidgetType.TRANSACTIONS
+    widget.widgetType as
+      | WidgetType.DISCOVER
+      | WidgetType.ERRORS
+      | WidgetType.TRANSACTIONS
+      | WidgetType.MOBILE_APP_SIZE
   );
   const context = useDashboardsMEPContext();
   const metricsMeta = useMetricsResultsMeta();
