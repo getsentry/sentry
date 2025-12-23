@@ -15,7 +15,11 @@ export function MetricSaveAs() {
   if (items.length === 1) {
     const item = items[0]!;
     return (
-      <Button size="sm" onClick={item.onAction} aria-label={item.textValue}>
+      <Button
+        size="sm"
+        onClick={'onAction' in item ? item.onAction : undefined}
+        aria-label={item.textValue}
+      >
         {t('Save as')}…
       </Button>
     );

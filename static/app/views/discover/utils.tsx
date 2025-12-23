@@ -796,6 +796,7 @@ export function constructAddQueryToDashboardLink({
         fields: eventView.getFields(),
         columns:
           widgetType === WidgetType.SPANS ||
+          widgetType === WidgetType.TRACEMETRICS ||
           displayType === DisplayType.TOP_N ||
           eventView.display === DisplayModes.DAILYTOP5
             ? eventView
