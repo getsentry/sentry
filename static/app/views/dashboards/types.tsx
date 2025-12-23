@@ -234,4 +234,5 @@ export enum DashboardWidgetSource {
   TRACE_EXPLORER = 'traceExplorer',
   LOGS = 'logs',
   INSIGHTS = 'insights',
+  TRACEMETRICS = 'traceMetrics',
 }

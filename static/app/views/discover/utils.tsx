@@ -650,7 +650,7 @@ export function handleAddQueryToDashboard({
   yAxis?: string | string[];
 }) {
   const displayType =
-    widgetType === WidgetType.SPANS
+    widgetType === WidgetType.SPANS || widgetType === WidgetType.TRACEMETRICS
       ? (eventView.display as DisplayType)
       : displayModeToDisplayType(eventView.display as DisplayModes);
   const defaultWidgetQuery = eventViewToWidgetQuery({
@@ -796,6 +796,7 @@ export function constructAddQueryToDashboardLink({
         fields: eventView.getFields(),
         columns:
           widgetType === WidgetType.SPANS ||
+          widgetType === WidgetType.TRACEMETRICS ||
           displayType === DisplayType.TOP_N ||
           eventView.display === DisplayModes.DAILYTOP5
             ? eventView
