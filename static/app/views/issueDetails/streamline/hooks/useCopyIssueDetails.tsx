@@ -59,7 +59,7 @@ function formatStacktraceToMarkdown(stacktrace: StacktraceType): string {
     markdownText += ` ${function_name} in ${filename} [${lineInfo}] (${inAppInfo})\n`;
 
     // Add context if available
-    frame.context.forEach((ctx: [number, string | null]) => {
+    frame.context?.forEach((ctx: [number, string | null]) => {
       if (Array.isArray(ctx) && ctx.length >= 2) {
         const isSuspectLine = ctx[0] === frame.lineNo;
         markdownText += `${ctx[1]}${isSuspectLine ? '  <-- SUSPECT LINE' : ''}\n`;
