@@ -7,6 +7,7 @@ import type {NumberFieldProps} from 'sentry/components/forms/fields/numberField'
 import NumberField from 'sentry/components/forms/fields/numberField';
 import type {SelectFieldProps} from 'sentry/components/forms/fields/selectField';
 import SelectField from 'sentry/components/forms/fields/selectField';
+import type {Polarity} from 'sentry/components/percentChange';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getThresholdUnitSelectOptions} from 'sentry/views/dashboards/utils';
@@ -43,6 +44,7 @@ type ThresholdMaxValues = Partial<Record<ThresholdMaxKeys, number>>;
 export type ThresholdsConfig = {
   max_values: ThresholdMaxValues;
   unit: string | null;
+  preferredPolarity?: Polarity;
 };
 
 const WIDGET_INDICATOR_SIZE = 15;

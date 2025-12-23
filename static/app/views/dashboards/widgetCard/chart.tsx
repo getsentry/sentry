@@ -678,7 +678,9 @@ function BigNumberComponent({
         type={meta.fields?.[field] ?? null}
         unit={(meta.units?.[field] as DataUnit) ?? null}
         thresholds={widget.thresholds ?? undefined}
-        preferredPolarity="-"
+        // TODO: preferredPolarity has been added to ThresholdsConfig as a property,
+        // we should remove this prop fromBigNumberWidgetVisualization
+        preferredPolarity={widget.thresholds?.preferredPolarity ?? '-'}
       />
     );
   });
