@@ -45,7 +45,6 @@ describe('ReleaseSelector', () => {
           organization,
           moduleName: ModuleName.MOBILE_VITALS,
           filtered: true,
-          type: 'primary',
         })
       );
 
