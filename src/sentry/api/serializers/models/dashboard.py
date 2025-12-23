@@ -58,10 +58,13 @@ class DashboardWidgetQueryResponse(TypedDict):
     linkedDashboards: list[LinkedDashboardResponse]
 
 
-class ThresholdType(TypedDict):
+class ThresholdTypeOptional(TypedDict, total=False):
+    preferredPolarity: str
+
+
+class ThresholdType(ThresholdTypeOptional):
     max_values: dict[str, int]
     unit: str
-    preferredPolarity: NotRequired[str]
 
 
 def _convert_thresholds_to_camel_case(thresholds: dict[str, Any] | None) -> ThresholdType | None:
