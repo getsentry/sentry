@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -289,9 +289,13 @@ function OrganizationMembersList() {
   const membersPageLinks = getResponseHeader?.('Link');
 
   // hides other users in demo mode
-  const membersToShow = isDemoModeActive()
-    ? members.filter(({email}) => email === currentUser.email)
-    : members;
+  const membersToShow = useMemo(
+    () =>
+      isDemoModeActive()
+        ? members.filter(({email}) => email === currentUser.email)
+        : members.filter(m => m),
+    [members, currentUser.email]
+  );
 
   const action = (
     <InviteMembersButtonHook
