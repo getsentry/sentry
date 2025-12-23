@@ -15,6 +15,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {BuildDetailsSidebarAppInfo} from 'sentry/views/preprod/buildDetails/sidebar/buildDetailsSidebarAppInfo';
+import {BuildDetailsSidebarStatusCheck} from 'sentry/views/preprod/buildDetails/sidebar/buildDetailsSidebarStatusCheck';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {BuildDetailsState} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
@@ -178,6 +179,14 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
           appInfo={buildDetailsData.app_info}
           projectId={projectId}
           artifactId={artifactId}
+        />
+      )}
+
+      {/* Status check info */}
+      {buildDetailsData.posted_status_checks?.size && (
+        <BuildDetailsSidebarStatusCheck
+          statusCheck={buildDetailsData.posted_status_checks.size}
+          vcsInfo={buildDetailsData.vcs_info}
         />
       )}
 
