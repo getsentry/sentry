@@ -102,7 +102,7 @@ function AddMemberDropdown({
   const isDropdownDisabled = team.flags['idp:provisioned'];
 
   const addTeamMember = (selection: SelectOption<string>) => {
-    const orgMember = orgMembers.find(member => member.id === selection.value);
+    const orgMember = orgMembers.find(member => member !== null && member.id === selection.value);
     if (orgMember === undefined) {
       return;
     }
@@ -114,8 +114,10 @@ function AddMemberDropdown({
 
   const items = useMemo(() => {
     const existingMembers = new Set(teamMembers.map(member => member.id));
+    // Filter out null values that may be returned by the API when serialization fails
+    // (e.g., when a member has a user_id but the user record is missing and email is null)
     return (orgMembers || [])
-      .filter(m => !existingMembers.has(m.id))
+      .filter(m => m !== null && !existingMembers.has(m.id))
       .map<SelectOption<string>>(m => ({
         textValue: `${m.name} ${m.email}`,
         value: m.id,

@@ -53,6 +53,22 @@ class OrganizationMemberSerializerTest(TestCase):
         assert result["user"]["id"] == str(user.id)
         assert result["user"]["name"] == "bob"
 
+    def test_missing_user_with_no_email(self) -> None:
+        """Test that serialization fails gracefully when user is missing and email is None."""
+        # Create a member with a user_id but the user is missing/deleted
+        # and the email field is also None
+        member = self.create_member(
+            organization=self.org,
+            email=None,  # No fallback email
+        )
+        # Set a fake user_id to simulate a missing user
+        member.user_id = 99999
+        member.save()
+
+        # Serialization should return None for this invalid member
+        result = serialize(member, self.user_2, OrganizationMemberSerializer())
+        assert result is None
+
 
 class OrganizationMemberWithProjectsSerializerTest(OrganizationMemberSerializerTest):
     def test_simple(self) -> None:

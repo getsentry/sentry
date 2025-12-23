@@ -1,3 +1,4 @@
+import logging
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
@@ -14,6 +15,8 @@ from sentry.users.services.user.service import user_service
 
 from .response import OrganizationMemberResponse
 from .utils import get_organization_id
+
+logger = logging.getLogger(__name__)
 
 
 @register(OrganizationMember)
@@ -110,14 +113,19 @@ class OrganizationMemberSerializer(Serializer):
             # will use it directly
             email = obj.email
 
-        # helping mypy - the email will always be populated at this point
-        # in the case that it is a user that has an account, we pull the email
-        # address above from the serialized_user. The email field on OrganizationMember
-        # is null in the case, so it is necessary.
-        #
-        # invited users do not yet have a full account and the email field
-        # on OrganizationMember will be populated in such cases
-        assert email is not None
+        # If email is None, log the issue and skip serialization.
+        # This can happen when a user_id exists but the user record is missing or cannot be serialized,
+        # and the email field on OrganizationMember is also null.
+        if email is None:
+            logger.warning(
+                "OrganizationMember missing email",
+                extra={
+                    "organization_member_id": obj.id,
+                    "user_id": obj.user_id,
+                    "has_serialized_user": serialized_user is not None,
+                },
+            )
+            raise ValueError(f"OrganizationMember {obj.id} has no email address")
 
         inviter_name = None
         if obj.inviter_id:

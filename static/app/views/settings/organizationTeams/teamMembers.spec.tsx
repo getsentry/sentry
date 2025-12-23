@@ -435,4 +435,38 @@ describe('TeamMembers', () => {
     // MembersFixure has a single pending member
     expect(await screen.findByText('Pending')).toBeInTheDocument();
   });
+
+  it('filters out null members from API response', async () => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/members/`,
+      method: 'GET',
+      body: [member, null, MemberFixture({id: '10', email: 'sentry10@test.com'})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/teams/${organization.slug}/${team.slug}/members/`,
+      method: 'GET',
+      body: members,
+    });
+    MockApiClient.addMockResponse({
+      url: `/teams/${organization.slug}/${team.slug}/`,
+      method: 'GET',
+      body: team,
+    });
+
+    const org = OrganizationFixture({access: [], openMembership: true});
+    render(<TeamMembers />, {
+      outletContext: {team},
+      initialRouterConfig,
+      organization: org,
+    });
+
+    await userEvent.click(
+      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!
+    );
+
+    // Should render 2 members (member and sentry10), null should be filtered out
+    const avatars = screen.getAllByTestId('letter_avatar-avatar');
+    expect(avatars).toHaveLength(2);
+  });
 });
