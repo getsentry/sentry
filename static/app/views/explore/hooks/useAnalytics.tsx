@@ -65,6 +65,7 @@ interface UseTrackAnalyticsProps {
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   visualizes: readonly Visualize[];
   attributeBreakdownsMode?: 'breakdowns' | 'cohort_comparison';
+  crossEventQueries?: ReturnType<typeof useCrossEventQueries>;
   title?: string;
   tracesTableResult?: TracesTableResult;
 }
@@ -84,9 +85,9 @@ function useTrackAnalytics({
   page_source,
   interval,
   isTopN,
+  crossEventQueries,
 }: UseTrackAnalyticsProps) {
   const organization = useOrganization();
-  const crossEventQueries = useCrossEventQueries();
 
   const {
     data: {hasExceededPerformanceUsageLimit},
@@ -506,6 +507,7 @@ export function useAnalytics({
   const topEvents = useTopEvents();
   const isTopN = topEvents ? topEvents > 0 : false;
   const {chartSelection} = useChartSelection();
+  const crossEventQueries = useCrossEventQueries();
 
   const attributeBreakdownsMode =
     queryType === 'attribute_breakdowns'
@@ -529,6 +531,7 @@ export function useAnalytics({
     page_source: 'explore',
     isTopN,
     attributeBreakdownsMode,
+    crossEventQueries,
   });
 }
 
