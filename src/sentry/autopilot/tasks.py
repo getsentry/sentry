@@ -10,7 +10,7 @@ from sentry import options
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sdk_updates import SdkIndexState, SdkSetupState, get_suggested_updates
+from sentry.sdk_updates import get_sdk_versions
 from sentry.search.events.types import SnubaParams
 from sentry.snuba import discover
 from sentry.tasks.base import instrumented_task
@@ -34,6 +34,10 @@ def run_sdk_update_detector() -> None:
 
     for organization in organizations:
         run_sdk_update_detector_for_organization(organization)
+
+
+def strip_patch_version(sdk_version: str) -> str:
+    return ".".join(sdk_version.split(".")[:2])
 
 
 def run_sdk_update_detector_for_organization(organization: Organization):
@@ -94,27 +98,24 @@ def run_sdk_update_detector_for_organization(organization: Organization):
     )
 
     # Determine suggested upgrades for each project
-    index_state = SdkIndexState()
+    sdk_versions = get_sdk_versions()
+
+    def needs_update(sdk_name, sdk_version):
+        # Ignore patch versions
+        return version.Version(strip_patch_version(sdk_version)) < version.Version(
+            strip_patch_version(sdk_versions.get(sdk_name))
+        )
 
     updates_list = [
         dict(
             **latest,
-            suggestions=list(
-                get_suggested_updates(
-                    # TODO: In the future it would be nice to also add
-                    # the integrations and modules the SDK is using.
-                    # However this isn't currently available in the
-                    # discover dataset from snuba.
-                    SdkSetupState(latest["sdkName"], latest["sdkVersion"], (), ()),
-                    index_state,
-                    ignore_patch_version=True,
-                )
-            ),
+            newestSdkVersion=sdk_versions.get(latest["sdkName"]),
+            needsUpdate=needs_update(latest["sdkName"], latest["sdkVersion"]),
         )
         for latest in latest_sdks
     ]
 
-    updates_list = [update for update in updates_list if len(update["suggestions"]) > 0]
+    updates_list = [update for update in updates_list if update["needsUpdate"]]
 
     logger.warning("updates_list: %s", updates_list)
     metrics.incr("autopilot.sdk_update_detector.updates_found", len(updates_list))
