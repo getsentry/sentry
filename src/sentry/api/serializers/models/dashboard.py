@@ -61,6 +61,21 @@ class DashboardWidgetQueryResponse(TypedDict):
 class ThresholdType(TypedDict):
     max_values: dict[str, int]
     unit: str
+    preferredPolarity: NotRequired[str]
+
+
+def _convert_thresholds_to_camel_case(thresholds: dict[str, Any] | None) -> ThresholdType | None:
+    if thresholds is None:
+        return None
+
+    result: ThresholdType = {
+        # We currently do not convert max_values to camelCase because the frontend already expects it in snake_case.
+        "max_values": thresholds.get("max_values", {}),
+        "unit": thresholds.get("unit", ""),
+    }
+    if thresholds.get("preferred_polarity"):
+        result["preferredPolarity"] = thresholds["preferred_polarity"]
+    return result
 
 
 class WidgetChangedReasonType(TypedDict):
@@ -313,7 +328,7 @@ class DashboardWidgetSerializer(Serializer):
             "title": obj.title,
             "description": obj.description,
             "displayType": DashboardWidgetDisplayTypes.get_type_name(obj.display_type),
-            "thresholds": obj.thresholds,
+            "thresholds": _convert_thresholds_to_camel_case(obj.thresholds),
             # Default value until a backfill can be done.
             "interval": str(obj.interval or "5m"),
             "dateCreated": obj.date_added,
