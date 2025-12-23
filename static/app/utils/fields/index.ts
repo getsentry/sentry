@@ -1,4 +1,6 @@
-import {t} from 'sentry/locale';
+import {ATTRIBUTE_METADATA} from '@sentry/conventions';
+
+import {t, td} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from 'sentry/utils/discover/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
@@ -2109,7 +2111,7 @@ const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
 
 const BROWSER_FIELD_DEFINITION: Record<BrowserFieldKey, FieldDefinition> = {
   [FieldKey.BROWSER_NAME]: {
-    desc: t('Name of the browser'),
+    desc: td(ATTRIBUTE_METADATA[FieldKey.BROWSER_NAME].brief),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -2979,12 +2981,12 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     values: SMALL_INTEGER_VALUES,
   },
   [ReplayFieldKey.BROWSER_NAME]: {
-    desc: t('Name of the browser'),
+    desc: td(ATTRIBUTE_METADATA[ReplayFieldKey.BROWSER_NAME].brief),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   [ReplayFieldKey.BROWSER_VERSION]: {
-    desc: t('Version number of the browser'),
+    desc: td(ATTRIBUTE_METADATA[ReplayFieldKey.BROWSER_VERSION].brief),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -3293,7 +3295,7 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
     allowWildcard: true,
   },
   [FeedbackFieldKey.BROWSER_NAME]: {
-    desc: t('Name of the browser'),
+    desc: td(ATTRIBUTE_METADATA[ReplayFieldKey.BROWSER_NAME].brief),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
