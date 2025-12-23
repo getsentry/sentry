@@ -69,8 +69,6 @@ def code_owners_auto_sync(commit_id: int, **kwargs: Any) -> None:
         .filter(codeowners_auto_sync=True, has_codeowners=True)
     )
 
-    organization = Organization.objects.get(id=commit.organization_id)
-
     for code_mapping in code_mappings:
         try:
             codeowner_contents = get_codeowner_contents(code_mapping)
@@ -85,6 +83,8 @@ def code_owners_auto_sync(commit_id: int, **kwargs: Any) -> None:
         codeowners: ProjectCodeOwners = ProjectCodeOwners.objects.get(
             repository_project_path_config=code_mapping
         )
+
+        organization = Organization.objects.get(id=code_mapping.organization_id)
         codeowners.update_schema(
             organization=organization,
             raw=codeowner_contents["raw"],
