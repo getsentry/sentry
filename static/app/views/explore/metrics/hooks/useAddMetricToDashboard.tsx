@@ -10,19 +10,13 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   DashboardWidgetSource,
   DEFAULT_WIDGET_NAME,
-  DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
+import {CHART_TYPE_TO_DISPLAY_TYPE} from 'sentry/views/explore/hooks/useAddToDashboard';
 import type {BaseMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
 import {isVisualize} from 'sentry/views/explore/queryParams/visualize';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-
-export const CHART_TYPE_TO_DISPLAY_TYPE = {
-  [ChartType.LINE]: DisplayType.LINE,
-  [ChartType.BAR]: DisplayType.BAR,
-  [ChartType.AREA]: DisplayType.AREA,
-};
 
 export function useAddMetricToDashboard() {
   const location = useLocation();
