@@ -356,11 +356,17 @@ const getDefaultWidgets = (organization: Organization) => {
     },
   ];
 
+  const hasPreprodFeatures = organization.features.includes('preprod-frontend-routes');
+
   return isSelfHostedErrorsOnly
     ? errorsWidgets
     : organization.features.includes('visibility-explore-view')
-      ? [...spanWidgets, ...errorsWidgets, ...appSizeWidgets]
-      : [...transactionsWidgets, ...errorsWidgets, ...appSizeWidgets];
+      ? [...spanWidgets, ...errorsWidgets, ...(hasPreprodFeatures ? appSizeWidgets : [])]
+      : [
+          ...transactionsWidgets,
+          ...errorsWidgets,
+          ...(hasPreprodFeatures ? appSizeWidgets : []),
+        ];
 };
 
 export function getTopNConvertedDefaultWidgets(

@@ -12,7 +12,6 @@ import {useMetricsResultsMeta} from 'sentry/utils/performance/contexts/metricsEn
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OnDemandControlConsumer} from 'sentry/utils/performance/contexts/onDemandControl';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import type {AppSizeResponse} from 'sentry/views/dashboards/datasetConfig/mobileAppSize';
 import {
   WidgetType,
   type DashboardFilters,
@@ -28,11 +27,7 @@ import type {
 } from './genericWidgetQueries';
 import GenericWidgetQueries from './genericWidgetQueries';
 
-type SeriesResult =
-  | EventsStats
-  | MultiSeriesEventsStats
-  | GroupedMultiSeriesEventsStats
-  | AppSizeResponse[];
+type SeriesResult = EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats;
 type TableResult = TableData | EventsTableData;
 
 type Props = {
@@ -65,11 +60,7 @@ function WidgetQueries({
   onDataFetchStart,
 }: Props) {
   const config = getDatasetConfig(
-    widget.widgetType as
-      | WidgetType.DISCOVER
-      | WidgetType.ERRORS
-      | WidgetType.TRANSACTIONS
-      | WidgetType.MOBILE_APP_SIZE
+    widget.widgetType as WidgetType.DISCOVER | WidgetType.ERRORS | WidgetType.TRANSACTIONS
   );
   const context = useDashboardsMEPContext();
   const metricsMeta = useMetricsResultsMeta();
@@ -172,7 +163,7 @@ function WidgetQueries({
   return (
     <OnDemandControlConsumer>
       {OnDemandControlContext => (
-        <GenericWidgetQueries<SeriesResult, TableResult>
+        <GenericWidgetQueries
           queue={queue}
           config={config}
           api={api}

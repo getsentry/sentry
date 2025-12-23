@@ -69,6 +69,15 @@ export const MobileAppSizeConfig: DatasetConfig<AppSizeResponse[], TableData> = 
       return Promise.reject(new Error('No widget query found'));
     }
 
+    let field = 'max(max_install_size)';
+    if (widgetQuery.conditions) {
+      const condParams = new URLSearchParams(widgetQuery.conditions);
+      const sizeType = condParams.get('size_type');
+      if (sizeType === 'download') {
+        field = 'max(max_download_size)';
+      }
+    }
+
     const {start, end, period} = pageFilters.datetime;
     const baseParams: Record<string, any> = {
       project: pageFilters.projects,
@@ -77,7 +86,7 @@ export const MobileAppSizeConfig: DatasetConfig<AppSizeResponse[], TableData> = 
       end: end ? new Date(end).toISOString() : undefined,
       statsPeriod: period || (!start && !end ? '14d' : undefined),
       interval: widget.interval || '1d',
-      field: widgetQuery.aggregates[0] || 'max(max_install_size)',
+      field,
     };
 
     if (widgetQuery.conditions) {
@@ -125,7 +134,9 @@ export const MobileAppSizeConfig: DatasetConfig<AppSizeResponse[], TableData> = 
     return data.map(response => {
       // Filter out time buckets with no data, creating a continuous line
       const seriesData = response.data
-        .filter(([, values]) => values[0] !== undefined && values[0].count !== null)
+        .filter(
+          ([, values]) => values[0]?.count !== null && values[0]?.count !== undefined
+        )
         .map(([timestamp, values]) => ({
           name: timestamp * 1000,
           value: values[0]!.count as number,
