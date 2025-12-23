@@ -26,7 +26,10 @@ import {Divider} from 'sentry/views/issueDetails/divider';
 import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
-import {issueAndEventToMarkdown} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
+import {
+  issueAndEventToMarkdown,
+  useActiveThreadId,
+} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
 import {IssueDetailsJumpTo} from 'sentry/views/issueDetails/streamline/issueDetailsJumpTo';
 
 type EventNavigationProps = {
@@ -45,6 +48,7 @@ export const MIN_NAV_HEIGHT = 44;
 
 function GroupMarkdownButton({group, event}: {event: Event; group: Group}) {
   const organization = useOrganization();
+  const activeThreadId = useActiveThreadId();
 
   // Get data for markdown copy functionality
   const {data: groupSummaryData} = useGroupSummaryData(group);
@@ -52,7 +56,8 @@ function GroupMarkdownButton({group, event}: {event: Event; group: Group}) {
 
   const markdownText = useMemo(() => {
     return issueAndEventToMarkdown(group, event, groupSummaryData, autofixData);
-  }, [group, event, groupSummaryData, autofixData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- activeThreadId triggers recomputation when thread changes
+  }, [group, event, groupSummaryData, autofixData, activeThreadId]);
   const markdownLines = markdownText.trim().split('\n').length.toLocaleString();
 
   const {copy} = useCopyToClipboard();

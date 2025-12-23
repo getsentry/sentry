@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useMemo, useSyncExternalStore} from 'react';
 
 import type {AutofixData} from 'sentry/components/events/autofix/types';
 import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
@@ -14,10 +14,69 @@ import {NODE_ENV} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {EntryType, type Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import useOrganization from 'sentry/utils/useOrganization';
+
+// Simple store for active thread ID from the UI with subscription support
+let _activeThreadId: number | undefined;
+const _listeners = new Set<() => void>();
+
+export function setActiveThreadId(threadId: number | undefined) {
+  _activeThreadId = threadId;
+  _listeners.forEach(listener => listener());
+}
+
+export function getActiveThreadId() {
+  return _activeThreadId;
+}
+
+export function useActiveThreadId() {
+  return useSyncExternalStore(callback => {
+    _listeners.add(callback);
+    return () => _listeners.delete(callback);
+  }, getActiveThreadId);
+}
+
+function formatStacktraceToMarkdown(stacktrace: StacktraceType): string {
+  let markdownText = `#### Stacktrace\n\n`;
+  markdownText += `\`\`\`\n`;
+
+  // Process frames (show at most 16 frames, similar to Python example)
+  const maxFrames = 16;
+  const frames = stacktrace.frames?.slice(-maxFrames) ?? [];
+
+  // Display frames in reverse order (most recent call first)
+  [...frames].reverse().forEach(frame => {
+    const function_name = frame.function || 'Unknown function';
+    const filename = frame.filename || 'unknown file';
+    const lineInfo =
+      frame.lineNo === undefined ? 'Line: Unknown' : `Line ${frame.lineNo}`;
+    const inAppInfo = frame.inApp ? 'In app' : 'Not in app';
+
+    markdownText += ` ${function_name} in ${filename} [${lineInfo}] (${inAppInfo})\n`;
+
+    // Add context if available
+    frame.context.forEach((ctx: [number, string | null]) => {
+      if (Array.isArray(ctx) && ctx.length >= 2) {
+        const isSuspectLine = ctx[0] === frame.lineNo;
+        markdownText += `${ctx[1]}${isSuspectLine ? '  <-- SUSPECT LINE' : ''}\n`;
+      }
+    });
+
+    // Add variables if available
+    if (frame.vars) {
+      markdownText += `---\nVariable values:\n`;
+      markdownText += JSON.stringify(frame.vars, null, 2) + '\n';
+      markdownText += `\n=======\n`;
+    }
+  });
+
+  markdownText += `\`\`\`\n`;
+  return markdownText;
+}
 
 export function formatEventToMarkdown(event: Event): string {
   let markdownText = '';
@@ -49,47 +108,29 @@ export function formatEventToMarkdown(event: Event): string {
 
           // Add stacktrace if available
           if (exception.stacktrace?.frames && exception.stacktrace.frames.length > 0) {
-            markdownText += `#### Stacktrace\n\n`;
-            markdownText += `\`\`\`\n`;
-
-            // Process frames (show at most 16 frames, similar to Python example)
-            const maxFrames = 16;
-            const frames = exception.stacktrace.frames.slice(-maxFrames);
-
-            // Display frames in reverse order (most recent call first)
-            [...frames].reverse().forEach(frame => {
-              const function_name = frame.function || 'Unknown function';
-              const filename = frame.filename || 'unknown file';
-              const lineInfo =
-                frame.lineNo === undefined ? 'Line: Unknown' : `Line ${frame.lineNo}`;
-              const inAppInfo = frame.inApp ? 'In app' : 'Not in app';
-
-              markdownText += ` ${function_name} in ${filename} [${lineInfo}] (${inAppInfo})\n`;
-
-              // Add context if available
-              frame.context.forEach((ctx: [number, string | null]) => {
-                if (Array.isArray(ctx) && ctx.length >= 2) {
-                  const isSuspectLine = ctx[0] === frame.lineNo;
-                  markdownText += `${ctx[1]}${isSuspectLine ? '  <-- SUSPECT LINE' : ''}\n`;
-                }
-              });
-
-              // Add variables if available
-              if (frame.vars) {
-                markdownText += `---\nVariable values:\n`;
-                markdownText += JSON.stringify(frame.vars, null, 2) + '\n';
-                markdownText += `\n=======\n`;
-              }
-
-              if (index < arr.length - 1) {
-                markdownText += `------\n`;
-              }
-            });
-
-            markdownText += `\`\`\`\n`;
+            markdownText += formatStacktraceToMarkdown(exception.stacktrace);
+            if (index < arr.length - 1) {
+              markdownText += `------\n`;
+            }
           }
         }
       });
+    } else if (entry.type === EntryType.THREADS && entry.data.values) {
+      const threads = entry.data.values;
+      // Use active thread from UI
+      const activeThread = threads.find(thread => thread.id === _activeThreadId);
+
+      if (activeThread?.stacktrace) {
+        markdownText += `\n## Thread: ${activeThread.name || ` Thread ${activeThread.id}`}`;
+        if (activeThread.crashed) {
+          markdownText += ` (crashed)`;
+        }
+        if (activeThread.current) {
+          markdownText += ` (current)`;
+        }
+        markdownText += `\n\n`;
+        markdownText += formatStacktraceToMarkdown(activeThread.stacktrace);
+      }
     }
   });
 
@@ -150,10 +191,12 @@ export const useCopyIssueDetails = (group: Group, event?: Event) => {
   // These aren't guarded by useAiConfig because they are both non fetching, and should only return data when it's fetched elsewhere.
   const {data: groupSummaryData} = useGroupSummaryData(group);
   const {data: autofixData} = useAutofixData({groupId: group.id});
+  const activeThreadId = useActiveThreadId();
 
   const text = useMemo(() => {
     return issueAndEventToMarkdown(group, event, groupSummaryData, autofixData);
-  }, [group, event, groupSummaryData, autofixData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- activeThreadId triggers recomputation when thread changes
+  }, [group, event, groupSummaryData, autofixData, activeThreadId]);
 
   const {copy} = useCopyToClipboard();
 
