@@ -21,6 +21,7 @@ import {
 } from 'sentry/views/issueDetails/issueDetailsTour';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
+import {ClusteredIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/clusteredIssuesSidebarSection';
 import {DetectorSection} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
 import {ExternalIssueSidebarList} from 'sentry/views/issueDetails/streamline/sidebar/externalIssueSidebarList';
 import FirstLastSeenSection from 'sentry/views/issueDetails/streamline/sidebar/firstLastSeenSection';
@@ -105,6 +106,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
             <StyledBreak />
           </Fragment>
         )}
+        <ClusteredIssuesSidebarSection group={group} />
         {issueTypeConfig.detector.enabled && (
           <DetectorSection group={group} project={project} />
         )}

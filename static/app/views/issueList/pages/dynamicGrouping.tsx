@@ -46,6 +46,7 @@ import {t, tn} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
+import type {ClusterSummary, TopIssuesResponse} from 'sentry/types/cluster';
 import type {Group} from 'sentry/types/group';
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 import {getMessage, getTitle} from 'sentry/utils/events';
@@ -60,38 +61,6 @@ import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {openSeerExplorer} from 'sentry/views/seerExplorer/openSeerExplorer';
 
 const CLUSTERS_PER_PAGE = 20;
-
-interface AssignedEntity {
-  email: string | null;
-  id: string;
-  name: string;
-  type: string;
-}
-
-interface ClusterSummary {
-  assignedTo: AssignedEntity[];
-  cluster_avg_similarity: number | null;
-  // unused
-  cluster_id: number;
-  cluster_min_similarity: number | null;
-  // unused
-  cluster_size: number | null;
-  // unused
-  description: string;
-  fixability_score: number | null;
-  group_ids: number[];
-  issue_titles: string[];
-  project_ids: number[];
-  summary: string | null;
-  tags: string[];
-  title: string;
-  code_area_tags?: string[];
-  error_type?: string;
-  error_type_tags?: string[];
-  impact?: string;
-  location?: string;
-  service_tags?: string[];
-}
 
 /**
  * Formats cluster information for copying to clipboard in a readable format.
@@ -137,11 +106,6 @@ function renderWithInlineCode(text: string): React.ReactNode {
     }
     return part;
   });
-}
-
-interface TopIssuesResponse {
-  data: ClusterSummary[];
-  last_updated?: string;
 }
 
 function CompactIssuePreview({group}: {group: Group}) {
