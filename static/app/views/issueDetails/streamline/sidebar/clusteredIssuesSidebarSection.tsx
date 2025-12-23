@@ -59,7 +59,7 @@ export function ClusteredIssuesSidebarSection({group}: Props) {
       <Flex direction="column" gap="sm">
         <ClusterInfo>
           <strong>{cluster.impact || t('Cluster')}</strong>{' '}
-          <span style={{color: 'var(--sub-text)'}}>[CLUSTER-{cluster.cluster_id}]</span>
+          <ClusterId>[CLUSTER-{cluster.cluster_id}]</ClusterId>
         </ClusterInfo>
 
         <IssueList>
@@ -84,6 +84,10 @@ export function ClusteredIssuesSidebarSection({group}: Props) {
 const ClusterInfo = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   margin-bottom: ${space(1)};
+`;
+
+const ClusterId = styled('span')`
+  color: ${p => p.theme.subText};
 `;
 
 const IssueList = styled('ul')`

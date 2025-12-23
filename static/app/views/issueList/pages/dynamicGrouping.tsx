@@ -458,14 +458,7 @@ function ClusterCard({
         {cluster.impact && (
           <ClusterTitle>
             {cluster.impact}
-            <Text
-              as="span"
-              size="md"
-              variant="muted"
-              style={{fontWeight: 'normal', marginLeft: space(1)}}
-            >
-              [CLUSTER-{cluster.cluster_id}]
-            </Text>
+            <ClusterId>[CLUSTER-{cluster.cluster_id}]</ClusterId>
           </ClusterTitle>
         )}
         {!clusterStats.isPending &&
@@ -1235,6 +1228,13 @@ const ClusterTitle = styled('h3')`
   color: ${p => p.theme.tokens.content.primary};
   line-height: 1.3;
   word-break: break-word;
+`;
+
+const ClusterId = styled('span')`
+  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.subText};
+  font-weight: normal;
+  margin-left: ${space(1)};
 `;
 
 // Stats container with left/right separation
