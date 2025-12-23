@@ -5,7 +5,7 @@ import {type PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConf
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import {SpanFields} from 'sentry/views/insights/types';
 
-const ISSUE_TYPES = [
+export const ISSUE_TYPES = [
   'web_vitals',
   'performance_render_blocking_asset_span',
   'performance_uncompressed_assets',
