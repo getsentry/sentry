@@ -113,9 +113,9 @@ function AddMemberDropdown({
   };
 
   const items = useMemo(() => {
-    const existingMembers = new Set(teamMembers.map(member => member.id));
+    const existingMembers = new Set(teamMembers.filter(Boolean).map(member => member.id));
     return (orgMembers || [])
-      .filter(m => !existingMembers.has(m.id))
+      .filter(m => m && !existingMembers.has(m.id))
       .map<SelectOption<string>>(m => ({
         textValue: `${m.name} ${m.email}`,
         value: m.id,
@@ -330,7 +330,7 @@ export default function TeamMembers() {
       return <LoadingIndicator />;
     }
     if (teamMembers.length) {
-      return teamMembers.map(member => {
+      return teamMembers.filter(Boolean).map(member => {
         return (
           <TeamMembersRow
             key={member.id}

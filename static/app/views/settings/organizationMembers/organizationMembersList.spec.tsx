@@ -701,6 +701,24 @@ describe('OrganizationMembersList', () => {
       (isDemoModeActive as jest.Mock).mockReset();
     });
 
+    it('renders all members when currentUser is null in demo mode', async () => {
+      (isDemoModeActive as jest.Mock).mockReturnValue(true);
+      ConfigStore.set('user', null);
+
+      render(<OrganizationMembersList />, {
+        organization,
+      });
+      renderGlobalModal();
+
+      expect(await screen.findByText('Members')).toBeInTheDocument();
+      // Should show all members when currentUser is null
+      expect(screen.getAllByText(currentUser.name).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(member.name).length).toBeGreaterThan(0);
+
+      (isDemoModeActive as jest.Mock).mockReset();
+      ConfigStore.set('user', currentUser.user!);
+    });
+
     it('allows you to leave as a member after searching', async () => {
       const searchQuery = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/members/',

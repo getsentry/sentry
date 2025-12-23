@@ -279,7 +279,9 @@ function OrganizationMembersList() {
   const currentUser = ConfigStore.get('user');
 
   // Find out if current user is the only owner
-  const isOnlyOwner = !activeOwnerMembers.some(({email}) => email !== currentUser.email);
+  const isOnlyOwner = currentUser
+    ? !activeOwnerMembers.some(({email}) => email !== currentUser.email)
+    : false;
 
   // Only admins/owners can remove members
   const requireLink = !!authProvider && authProvider.require_link;
@@ -289,7 +291,7 @@ function OrganizationMembersList() {
   const membersPageLinks = getResponseHeader?.('Link');
 
   // hides other users in demo mode
-  const membersToShow = isDemoModeActive()
+  const membersToShow = isDemoModeActive() && currentUser
     ? members.filter(({email}) => email === currentUser.email)
     : members;
 

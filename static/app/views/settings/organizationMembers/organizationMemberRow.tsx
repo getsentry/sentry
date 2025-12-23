@@ -111,10 +111,10 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
     const isIdpProvisioned = flags['idp:provisioned'];
     const isPartnershipUser = flags['partnership:restricted'];
     const needsSso = !flags['sso:linked'] && requireLink;
-    const isCurrentUser = currentUser.email === email;
+    const isCurrentUser = currentUser ? currentUser.email === email : false;
     const showRemoveButton = !isCurrentUser;
     const showLeaveButton = isCurrentUser;
-    const isInviteFromCurrentUser = pending && inviterName === currentUser.name;
+    const isInviteFromCurrentUser = pending && currentUser && inviterName === currentUser.name;
     const canInvite = organization.allowMemberInvite && access.includes('member:invite');
     // members can remove invites they sent if allowMemberInvite is true
     const canEditInvite = canInvite && isInviteFromCurrentUser;
