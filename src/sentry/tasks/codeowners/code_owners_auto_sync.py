@@ -83,7 +83,6 @@ def code_owners_auto_sync(commit_id: int, **kwargs: Any) -> None:
         codeowners: ProjectCodeOwners = ProjectCodeOwners.objects.get(
             repository_project_path_config=code_mapping
         )
-
         organization = Organization.objects.get(id=code_mapping.organization_id)
         codeowners.update_schema(
             organization=organization,
