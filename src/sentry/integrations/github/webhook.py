@@ -738,7 +738,7 @@ class IssuesEventWebhook(GitHubWebhook):
 class PullRequestEventWebhook(GitHubWebhook):
     """https://developer.github.com/v3/activity/events/types/#pullrequestevent"""
 
-    EVENT_TYPE = IntegrationWebhookEventType.PULL_REQUEST
+    EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST
     WEBHOOK_EVENT_PROCESSORS = (_handle_pr_webhook_for_autofix_processor,)
 
     def _handle(
@@ -916,7 +916,7 @@ class PullRequestReviewEventWebhook(GitHubWebhook):
     https://docs.github.com/en/webhooks/webhook-events-and-payloads#pull_request_review
     """
 
-    EVENT_TYPE = IntegrationWebhookEventType.PULL_REQUEST_REVIEW
+    EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST_REVIEW
     # XXX: Once we port the Overwatch feature, we can add the processor here.
     WEBHOOK_EVENT_PROCESSORS = ()
 
@@ -927,7 +927,7 @@ class PullRequestReviewCommentEventWebhook(GitHubWebhook):
     https://docs.github.com/en/webhooks/webhook-events-and-payloads#pull_request_review_comment
     """
 
-    EVENT_TYPE = IntegrationWebhookEventType.PULL_REQUEST_REVIEW_COMMENT
+    EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST_REVIEW_COMMENT
     # XXX: Once we port the Overwatch feature, we can add the processor here.
     WEBHOOK_EVENT_PROCESSORS = ()
 
@@ -938,7 +938,7 @@ class CheckRunEventWebhook(GitHubWebhook):
     https://docs.github.com/en/webhooks/webhook-events-and-payloads#check_run
     """
 
-    EVENT_TYPE = IntegrationWebhookEventType.CHECK_RUN
+    EVENT_TYPE = IntegrationWebhookEventType.CI_CHECK
     WEBHOOK_EVENT_PROCESSORS = (code_review_webhook_processor,)
 
 
