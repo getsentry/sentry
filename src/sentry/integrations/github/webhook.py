@@ -4,7 +4,7 @@ import hashlib
 import hmac
 import inspect
 import logging
-from abc import ABC, abstractmethod
+from abc import ABC
 from collections.abc import Callable, Mapping, MutableMapping
 from datetime import timezone
 from typing import Any
@@ -132,7 +132,6 @@ class GitHubWebhook(SCMWebhook, ABC):
     def provider(self) -> str:
         return IntegrationProviderSlug.GITHUB.value
 
-    @abstractmethod
     def _handle(
         self,
         integration: RpcIntegration,
