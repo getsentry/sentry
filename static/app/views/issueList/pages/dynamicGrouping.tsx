@@ -484,7 +484,7 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
               variant="muted"
               style={{fontWeight: 'normal', marginLeft: space(1)}}
             >
-              [{cluster.cluster_id}]
+              [CLUSTER-{cluster.cluster_id}]
             </Text>
           </ClusterTitle>
         )}
