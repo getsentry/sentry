@@ -29,7 +29,7 @@ export function setActiveThreadId(threadId: number | undefined) {
   _listeners.forEach(listener => listener());
 }
 
-export function getActiveThreadId() {
+function getActiveThreadId() {
   return _activeThreadId;
 }
 
