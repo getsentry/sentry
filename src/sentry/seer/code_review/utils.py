@@ -46,7 +46,7 @@ def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:
 
 
 def _transform_webhook_to_codegen_request(
-    event_type: str, event_payload: dict[str, Any]
+    event_type: str, event_payload: Mapping[str, Any]
 ) -> dict[str, Any]:
     """
     Transform a GitHub webhook payload into CodecovTaskRequest format for Seer.

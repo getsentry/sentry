@@ -142,6 +142,7 @@ class OverwatchGithubWebhookForwarder:
 
         return org_contexts_by_region
 
+    # This is called from the middleware after the webhook has been processed by the integration webhook handler
     def forward_if_applicable(self, event: Mapping[str, Any], headers: Mapping[str, str]):
         region_name = None
         try:
