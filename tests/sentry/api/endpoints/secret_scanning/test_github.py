@@ -116,7 +116,6 @@ class SecretScanningGitHubTest(TestCase):
     @override_options(
         {
             "secret-scanning.github.enable-signature-verification": False,
-            "secret-scanning.github.notifications.email-allowlist": ["test@example.com"],
         }
     )
     @patch("sentry.api.endpoints.secret_scanning.github.logger")
@@ -167,7 +166,6 @@ class SecretScanningGitHubTest(TestCase):
     @override_options(
         {
             "secret-scanning.github.enable-signature-verification": False,
-            "secret-scanning.github.notifications.email-allowlist": ["org-owner@example.com"],
         }
     )
     @patch("sentry.api.endpoints.secret_scanning.github.logger")
