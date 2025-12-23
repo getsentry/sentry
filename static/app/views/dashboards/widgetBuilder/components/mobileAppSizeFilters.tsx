@@ -2,9 +2,10 @@ import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
+import {ExternalLink} from 'sentry/components/core/link';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import SelectField from 'sentry/components/forms/fields/selectField';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -38,6 +39,40 @@ interface QueryConfig {
   sizeType: 'install' | 'download';
 }
 
+function parseConditionsString(conditions: string): Omit<QueryConfig, 'name'> {
+  const params = new URLSearchParams(conditions);
+
+  return {
+    appIds: params.get('app_id')?.split(',').filter(Boolean) ?? [],
+    branch: params.get('git_head_ref') ?? '',
+    buildConfig: params.get('build_configuration_name') ?? '',
+    artifactType: params.get('artifact_type') ?? '',
+    sizeType: (params.get('size_type') as 'install' | 'download') ?? 'install',
+  };
+}
+
+function buildConditionsString(config: QueryConfig): string {
+  const params = new URLSearchParams();
+
+  if (config.appIds.length > 0) {
+    params.set('app_id', config.appIds.join(','));
+  }
+  if (config.branch) {
+    params.set('git_head_ref', config.branch);
+  }
+  if (config.buildConfig) {
+    params.set('build_configuration_name', config.buildConfig);
+  }
+  if (config.artifactType) {
+    params.set('artifact_type', config.artifactType);
+  }
+  if (config.sizeType) {
+    params.set('size_type', config.sizeType);
+  }
+
+  return params.toString();
+}
+
 export function MobileAppSizeFilters() {
   const organization = useOrganization();
   const {state, dispatch} = useWidgetBuilderContext();
@@ -56,46 +91,20 @@ export function MobileAppSizeFilters() {
       ];
     }
 
-    return queries.map(conditions => {
-      const parts = conditions.split(/\s+/);
-      let appIds: string[] = [];
-      let branch = '';
-      let buildConfig = '';
-      let artifactType = '';
-
-      for (const part of parts) {
-        if (part.startsWith('app_id:')) {
-          const appIdString = part.substring(7);
-          appIds = appIdString ? appIdString.split(',').filter(Boolean) : [];
-        } else if (part.startsWith('git_head_ref:')) {
-          branch = part.substring(13);
-        } else if (part.startsWith('build_configuration_name:')) {
-          buildConfig = part.substring(25);
-        } else if (part.startsWith('artifact_type:')) {
-          artifactType = part.substring(14);
-        }
-      }
-
-      return {
-        name: '',
-        appIds,
-        branch,
-        buildConfig,
-        artifactType,
-        sizeType: 'install' as const,
-      };
-    });
+    return queries.map(conditions => ({
+      name: '',
+      ...parseConditionsString(conditions),
+    }));
   });
 
-  // Fetch available filter options from the app-size-stats endpoint
-  // Cache for 5 minutes since filter options don't change frequently
   const {data: filterResponse, isPending: loading} = useApiQuery<FilterResponse>(
     [
       `/organizations/${organization.slug}/preprod/app-size-stats/`,
       {query: {includeFilters: 'true', statsPeriod: '90d'}},
     ],
     {
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      // Cache for 5 minutes since filter options don't change frequently
+      staleTime: 5 * 60 * 1000,
     }
   );
 
@@ -117,28 +126,9 @@ export function MobileAppSizeFilters() {
       })) ?? [],
   };
 
-  // Build conditions string from a query config
-  const buildConditions = useCallback((config: QueryConfig) => {
-    const parts: string[] = [];
-    if (config.appIds.length > 0) {
-      parts.push(`app_id:${config.appIds.join(',')}`);
-    }
-    if (config.branch) {
-      parts.push(`git_head_ref:${config.branch}`);
-    }
-    if (config.buildConfig) {
-      parts.push(`build_configuration_name:${config.buildConfig}`);
-    }
-    if (config.artifactType) {
-      parts.push(`artifact_type:${config.artifactType}`);
-    }
-    return parts.join(' ');
-  }, []);
-
-  // Update all queries in widget state
   const updateQueries = useCallback(
     (configs: QueryConfig[]) => {
-      const conditions = configs.map(buildConditions);
+      const conditions = configs.map(buildConditionsString);
 
       dispatch({
         type: 'SET_QUERY',
@@ -159,13 +149,13 @@ export function MobileAppSizeFilters() {
         payload: yAxisFields,
       });
     },
-    [buildConditions, dispatch]
+    [dispatch]
   );
 
   const handleQueryChange = useCallback(
     (index: number, updates: Partial<QueryConfig>) => {
       const newConfigs = [...queryConfigs];
-      newConfigs[index] = {...newConfigs[index], ...updates};
+      newConfigs[index] = {...newConfigs[index], ...updates} as QueryConfig;
       setQueryConfigs(newConfigs);
       updateQueries(newConfigs);
     },
@@ -207,9 +197,9 @@ export function MobileAppSizeFilters() {
           title={t('Filter')}
           tooltipText={t('Filter app size data by app and platform.')}
         />
-        <FiltersContainer>
+        <Flex direction="column" gap="md">
           <div>{t('Loading filter options...')}</div>
-        </FiltersContainer>
+        </Flex>
       </Fragment>
     );
   }
@@ -223,10 +213,10 @@ export function MobileAppSizeFilters() {
         title={t('Filter')}
         tooltipText={t('Filter app size data by app and platform.')}
       />
-      <FiltersContainer>
+      <Flex direction="column" gap="md">
         {queryConfigs.map((config, index) => (
-          <QuerySection key={index}>
-            <QueryHeader>
+          <QuerySection key={index} direction="column" gap="md">
+            <Flex justify="between" align="center">
               <QueryTitle>{t('Query %s', index + 1)}</QueryTitle>
               {queryConfigs.length > 1 && (
                 <Button
@@ -236,7 +226,7 @@ export function MobileAppSizeFilters() {
                   aria-label={t('Remove query')}
                 />
               )}
-            </QueryHeader>
+            </Flex>
             <SelectField
               name={`appId-${index}`}
               label={t('App ID')}
@@ -308,39 +298,24 @@ export function MobileAppSizeFilters() {
         <Button size="sm" onClick={handleAddQuery} icon={<IconAdd />}>
           {t('Add Query')}
         </Button>
-      </FiltersContainer>
+      </Flex>
     </Fragment>
   );
 }
 
 const DocsLink = styled(ExternalLink)`
   display: block;
-  margin-bottom: ${space(2)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  margin-bottom: ${p => p.theme.space.md};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
-const FiltersContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-`;
-
-const QuerySection = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
+const QuerySection = styled(Flex)`
   padding: ${space(2)};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-`;
-
-const QueryHeader = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const QueryTitle = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.fontSize.md};
 `;

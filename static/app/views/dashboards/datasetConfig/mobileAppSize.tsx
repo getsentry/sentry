@@ -138,15 +138,13 @@ export const MobileAppSizeConfig: DatasetConfig<AppSizeResponse[], TableData> = 
     // Parse conditions string into separate filter parameters
     let appIds: string[] = [];
     if (widgetQuery.conditions) {
-      const tokens = widgetQuery.conditions.split(' ');
-      tokens.forEach(token => {
-        if (token.includes(':')) {
-          const [key, value] = token.split(':', 2);
-          if (key === 'app_id' && value) {
-            appIds = value.split(',').filter(Boolean);
-          } else if (key && value) {
-            baseParams[key] = value;
-          }
+      const params = new URLSearchParams(widgetQuery.conditions);
+      appIds = params.get('app_id')?.split(',').filter(Boolean) ?? [];
+
+      // Add other filter parameters to baseParams
+      params.forEach((value, key) => {
+        if (key !== 'app_id' && value) {
+          baseParams[key] = value;
         }
       });
     }
@@ -201,15 +199,13 @@ export const MobileAppSizeConfig: DatasetConfig<AppSizeResponse[], TableData> = 
     // Parse conditions
     let appIds: string[] = [];
     if (query.conditions) {
-      const tokens = query.conditions.split(' ');
-      tokens.forEach(token => {
-        if (token.includes(':')) {
-          const [key, value] = token.split(':', 2);
-          if (key === 'app_id' && value) {
-            appIds = value.split(',').filter(Boolean);
-          } else if (key && value) {
-            baseParams[key] = value;
-          }
+      const params = new URLSearchParams(query.conditions);
+      appIds = params.get('app_id')?.split(',').filter(Boolean) ?? [];
+
+      // Add other filter parameters to baseParams
+      params.forEach((value, key) => {
+        if (key !== 'app_id' && value) {
+          baseParams[key] = value;
         }
       });
     }
@@ -291,14 +287,16 @@ export const MobileAppSizeConfig: DatasetConfig<AppSizeResponse[], TableData> = 
   ): Series[] => {
     // Parse conditions to extract app_ids for series names
     let appIds: string[] = [];
+    let branch = '';
+    let buildConfig = '';
+    let artifactType = '';
+
     if (widgetQuery.conditions) {
-      const tokens = widgetQuery.conditions.split(' ');
-      tokens.forEach(token => {
-        if (token.startsWith('app_id:')) {
-          const value = token.substring(7);
-          appIds = value.split(',').filter(Boolean);
-        }
-      });
+      const params = new URLSearchParams(widgetQuery.conditions);
+      appIds = params.get('app_id')?.split(',').filter(Boolean) ?? [];
+      branch = params.get('git_head_ref') ?? '';
+      buildConfig = params.get('build_configuration_name') ?? '';
+      artifactType = params.get('artifact_type') ?? '';
     }
 
     return data.map((response, index) => {
@@ -312,46 +310,28 @@ export const MobileAppSizeConfig: DatasetConfig<AppSizeResponse[], TableData> = 
 
       // Build series name
       const parts: string[] = [];
-      if (widgetQuery.conditions) {
-        const tokens = widgetQuery.conditions.split(' ');
-        let branch = '';
-        let buildConfig = '';
-        let artifactType = '';
 
-        tokens.forEach(token => {
-          if (token.startsWith('git_head_ref:')) {
-            branch = token.substring(13);
-          } else if (token.startsWith('build_configuration_name:')) {
-            buildConfig = token.substring(25);
-          } else if (token.startsWith('artifact_type:')) {
-            artifactType = token.substring(14);
-          }
-        });
+      // Map artifact type number to readable label
+      const artifactTypeLabels: Record<string, string> = {
+        '0': 'xcarchive',
+        '1': 'aab',
+        '2': 'apk',
+      };
 
-        // Map artifact type number to readable label
-        const artifactTypeLabels: Record<string, string> = {
-          '0': 'xcarchive',
-          '1': 'aab',
-          '2': 'apk',
-        };
-
-        if (appIds[index]) {
-          parts.push(appIds[index]);
-        }
-        if (artifactType) {
-          const label = artifactTypeLabels[artifactType];
-          if (label) {
-            parts.push(label);
-          }
-        }
-        if (branch) {
-          parts.push(branch);
-        }
-        if (buildConfig) {
-          parts.push(buildConfig);
-        }
-      } else if (appIds[index]) {
+      if (appIds[index]) {
         parts.push(appIds[index]);
+      }
+      if (artifactType) {
+        const label = artifactTypeLabels[artifactType];
+        if (label) {
+          parts.push(label);
+        }
+      }
+      if (branch) {
+        parts.push(branch);
+      }
+      if (buildConfig) {
+        parts.push(buildConfig);
       }
 
       const displayLabel = parts.length > 0 ? parts.join(' : ') : 'App Size';
