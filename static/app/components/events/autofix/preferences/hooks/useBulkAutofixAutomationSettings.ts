@@ -4,6 +4,7 @@ import useFetchSequentialPages from 'sentry/utils/api/useFetchSequentialPages';
 import {
   fetchMutation,
   useMutation,
+  useQueryClient,
   type UseMutationOptions,
 } from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -108,6 +109,7 @@ export function useUpdateBulkAutofixAutomationSettings(
   >
 ) {
   const organization = useOrganization();
+  const queryClient = useQueryClient();
 
   return useMutation<unknown, Error, AutofixAutomationUpdate, unknown>({
     mutationFn: (data: AutofixAutomationUpdate) => {
@@ -118,5 +120,11 @@ export function useUpdateBulkAutofixAutomationSettings(
       });
     },
     ...options,
+    onSettled: (...args) => {
+      queryClient.invalidateQueries({
+        queryKey: [`/organizations/${organization.slug}/autofix/automation-settings/`],
+      });
+      options?.onSettled?.(...args);
+    },
   });
 }
