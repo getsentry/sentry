@@ -302,11 +302,13 @@ export const MobileAppSizeConfig: DatasetConfig<AppSizeResponse[], TableData> = 
     }
 
     return data.map((response, index) => {
-      // Map all data points, including nulls, so the chart axes always display
-      const seriesData = response.data.map(([timestamp, values]) => ({
-        name: timestamp * 1000, // Convert to milliseconds
-        value: values[0]?.count ?? null,
-      }));
+      // Filter out time buckets with no data, creating a continuous line
+      const seriesData = response.data
+        .filter(([, values]) => values[0]?.count !== null)
+        .map(([timestamp, values]) => ({
+          name: timestamp * 1000, // Convert to milliseconds
+          value: values[0]!.count as number,
+        }));
 
       // Build series name
       const parts: string[] = [];

@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -35,12 +35,12 @@ interface QueryConfig {
   branch: string;
   buildConfig: string;
   name: string;
+  sizeType: 'install' | 'download';
 }
 
 export function AppSizeFilters() {
   const organization = useOrganization();
   const {state, dispatch} = useWidgetBuilderContext();
-  const [sizeType, setSizeType] = useState<'install' | 'download'>('install');
   const [queryConfigs, setQueryConfigs] = useState<QueryConfig[]>(() => {
     const queries = state.query || [];
     if (queries.length === 0) {
@@ -51,11 +51,12 @@ export function AppSizeFilters() {
           branch: '',
           buildConfig: '',
           artifactType: '',
+          sizeType: 'install',
         },
       ];
     }
 
-    return queries.map((conditions, index) => {
+    return queries.map(conditions => {
       const parts = conditions.split(/\s+/);
       let appIds: string[] = [];
       let branch = '';
@@ -75,16 +76,13 @@ export function AppSizeFilters() {
         }
       }
 
-      // Use the query name from state if available
-      const widgetQuery = state.queries?.[index];
-      const name = widgetQuery?.name || '';
-
       return {
-        name,
+        name: '',
         appIds,
         branch,
         buildConfig,
         artifactType,
+        sizeType: 'install' as const,
       };
     });
   });
@@ -119,19 +117,6 @@ export function AppSizeFilters() {
       })) ?? [],
   };
 
-  // Sync size type from yAxis whenever it changes
-  useEffect(() => {
-    const yAxis = state.yAxis || [];
-    const firstAxis = yAxis[0];
-    if (firstAxis && 'field' in firstAxis && firstAxis.field) {
-      if (firstAxis.field.includes('download_size')) {
-        setSizeType('download');
-      } else if (firstAxis.field.includes('install_size')) {
-        setSizeType('install');
-      }
-    }
-  }, [state.yAxis]);
-
   // Build conditions string from a query config
   const buildConditions = useCallback((config: QueryConfig) => {
     const parts: string[] = [];
@@ -152,33 +137,29 @@ export function AppSizeFilters() {
 
   // Update all queries in widget state
   const updateQueries = useCallback(
-    (configs: QueryConfig[], aggregate?: string) => {
+    (configs: QueryConfig[]) => {
       const conditions = configs.map(buildConditions);
-
-      // Get the current aggregate based on size type
-      // Use provided aggregate or fall back to state
-      const currentAggregate =
-        aggregate || state.yAxis?.[0]?.field || 'max(max_install_size)';
 
       dispatch({
         type: 'SET_QUERY',
         payload: conditions,
       });
 
-      // Also update the queries array with names
+      // Update Y-axis with the aggregates for each query
+      const yAxisFields = configs.map(config => {
+        const fieldString =
+          config.sizeType === 'install'
+            ? 'max(max_install_size)'
+            : 'max(max_download_size)';
+        return explodeField({field: fieldString});
+      });
+
       dispatch({
-        type: 'SET_QUERIES',
-        payload: configs.map((config, index) => ({
-          name: config.name || '',
-          conditions: conditions[index] || '',
-          fields: [currentAggregate],
-          aggregates: [currentAggregate],
-          columns: [],
-          orderby: '',
-        })),
+        type: 'SET_Y_AXIS',
+        payload: yAxisFields,
       });
     },
-    [buildConditions, dispatch, state.yAxis]
+    [buildConditions, dispatch]
   );
 
   const handleQueryChange = useCallback(
@@ -200,6 +181,7 @@ export function AppSizeFilters() {
         branch: '',
         buildConfig: '',
         artifactType: '',
+        sizeType: 'install' as const,
       },
     ];
     setQueryConfigs(newConfigs);
@@ -216,27 +198,6 @@ export function AppSizeFilters() {
       updateQueries(newConfigs);
     },
     [queryConfigs, updateQueries]
-  );
-
-  const handleSizeTypeChange = useCallback(
-    (value: string) => {
-      const newSizeType = value as 'install' | 'download';
-      setSizeType(newSizeType);
-
-      const newFieldString =
-        newSizeType === 'install' ? 'max(max_install_size)' : 'max(max_download_size)';
-      const newField = explodeField({field: newFieldString});
-
-      dispatch({
-        type: 'SET_Y_AXIS',
-        payload: [newField],
-      });
-
-      // Update all queries with the new aggregate
-      // Pass the new aggregate directly to avoid race conditions with state updates
-      updateQueries(queryConfigs, newFieldString);
-    },
-    [dispatch, queryConfigs, updateQueries]
   );
 
   if (loading) {
@@ -329,24 +290,24 @@ export function AppSizeFilters() {
               stacked
               clearable
             />
+            <RadioGroup
+              label={t('Size Type')}
+              value={config.sizeType}
+              choices={[
+                ['install', t('Install / Uncompressed Size')],
+                ['download', t('Download Size')],
+              ]}
+              onChange={value => {
+                const sizeType = value === 'download' ? 'download' : 'install';
+                handleQueryChange(index, {sizeType});
+              }}
+            />
           </QuerySection>
         ))}
 
         <Button size="sm" onClick={handleAddQuery} icon={<IconAdd />}>
           {t('Add Query')}
         </Button>
-
-        <SizeTypeContainer>
-          <RadioGroup
-            label={t('Size Type')}
-            value={sizeType}
-            choices={[
-              ['install', t('Install / Uncompressed Size')],
-              ['download', t('Download Size')],
-            ]}
-            onChange={handleSizeTypeChange}
-          />
-        </SizeTypeContainer>
       </FiltersContainer>
     </Fragment>
   );
@@ -382,10 +343,4 @@ const QueryHeader = styled('div')`
 const QueryTitle = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-const SizeTypeContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
 `;
