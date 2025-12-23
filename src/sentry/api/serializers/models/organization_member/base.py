@@ -44,6 +44,9 @@ class OrganizationMemberSerializer(Serializer):
         users_by_id: MutableMapping[str, Any] = {}
         email_map: MutableMapping[str, str] = {}
         for u in user_service.serialize_many(filter={"user_ids": users_set}):
+            # Skip None values that may be returned due to serialization failures
+            if u is None:
+                continue
             # Filter out the emails from the user data
             u.pop("emails", None)
             users_by_id[u["id"]] = u

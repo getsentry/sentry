@@ -77,7 +77,12 @@ def serialize(
             )
 
         with sentry_sdk.start_span(op="serialize.iterate", name=type(serializer).__name__):
-            return [serializer(o, attrs=attrs.get(o, {}), user=user, **kwargs) for o in objects]
+            return [
+                result
+                for o in objects
+                if (result := serializer(o, attrs=attrs.get(o, {}), user=user, **kwargs))
+                is not None
+            ]
 
 
 class Serializer:
