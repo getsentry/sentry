@@ -92,7 +92,8 @@ export const MobileAppSizeConfig: DatasetConfig<AppSizeResponse[], TableData> = 
     if (widgetQuery.conditions) {
       const params = new URLSearchParams(widgetQuery.conditions);
       params.forEach((value, key) => {
-        if (value) {
+        // Skip size_type - it's client-side only to determine which field to use
+        if (value && key !== 'size_type') {
           baseParams[key] = value;
         }
       });

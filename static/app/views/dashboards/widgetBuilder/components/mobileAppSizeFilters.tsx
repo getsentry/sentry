@@ -32,22 +32,22 @@ interface FilterResponse {
 }
 
 interface QueryConfig {
-  appId: string;
-  artifactType: string;
-  branch: string;
-  buildConfig: string;
   name: string;
   sizeType: 'install' | 'download';
+  appId?: string;
+  artifactType?: string;
+  branch?: string;
+  buildConfig?: string;
 }
 
 function parseConditionsString(conditions: string): Omit<QueryConfig, 'name'> {
   const params = new URLSearchParams(conditions);
 
   return {
-    appId: params.get('app_id') ?? '',
-    branch: params.get('git_head_ref') ?? '',
-    buildConfig: params.get('build_configuration_name') ?? '',
-    artifactType: params.get('artifact_type') ?? '',
+    appId: params.get('app_id') ?? undefined,
+    branch: params.get('git_head_ref') ?? undefined,
+    buildConfig: params.get('build_configuration_name') ?? undefined,
+    artifactType: params.get('artifact_type') ?? undefined,
     sizeType: (params.get('size_type') as 'install' | 'download') ?? 'install',
   };
 }
@@ -67,6 +67,8 @@ function buildConditionsString(config: QueryConfig): string {
   if (config.artifactType) {
     params.set('artifact_type', config.artifactType);
   }
+  // size_type is client-side only - used to determine which field to request
+  // (max_install_size vs max_download_size), but not sent to the API
   if (config.sizeType) {
     params.set('size_type', config.sizeType);
   }
@@ -83,10 +85,6 @@ export function MobileAppSizeFilters() {
       return [
         {
           name: '',
-          appId: '',
-          branch: '',
-          buildConfig: '',
-          artifactType: '',
           sizeType: 'install',
         },
       ];
@@ -168,10 +166,6 @@ export function MobileAppSizeFilters() {
       ...queryConfigs,
       {
         name: '',
-        appId: '',
-        branch: '',
-        buildConfig: '',
-        artifactType: '',
         sizeType: 'install' as const,
       },
     ];
@@ -229,9 +223,9 @@ export function MobileAppSizeFilters() {
                 name={`appId-${index}`}
                 label={t('App ID')}
                 placeholder={t('Select an app')}
-                value={config.appId || undefined}
+                value={config.appId}
                 options={filterOptions.appIds}
-                onChange={value => handleQueryChange(index, {appId: value || ''})}
+                onChange={value => handleQueryChange(index, {appId: value})}
                 inline={false}
                 stacked
                 allowClear
@@ -240,7 +234,7 @@ export function MobileAppSizeFilters() {
                 name={`artifactType-${index}`}
                 label={t('Artifact Type')}
                 placeholder={t('All artifact types')}
-                value={config.artifactType || undefined}
+                value={config.artifactType}
                 options={[
                   {
                     label: t('xcarchive (.app)'),
@@ -255,7 +249,7 @@ export function MobileAppSizeFilters() {
                     value: String(BuildDetailsArtifactType.APK),
                   },
                 ]}
-                onChange={value => handleQueryChange(index, {artifactType: value || ''})}
+                onChange={value => handleQueryChange(index, {artifactType: value})}
                 inline={false}
                 stacked
                 allowClear
@@ -264,9 +258,9 @@ export function MobileAppSizeFilters() {
                 name={`branch-${index}`}
                 label={t('Branch')}
                 placeholder={t('Select a branch')}
-                value={config.branch || undefined}
+                value={config.branch}
                 options={filterOptions.branches}
-                onChange={value => handleQueryChange(index, {branch: value || ''})}
+                onChange={value => handleQueryChange(index, {branch: value})}
                 inline={false}
                 stacked
                 allowClear
@@ -275,9 +269,9 @@ export function MobileAppSizeFilters() {
                 name={`buildConfig-${index}`}
                 label={t('Build Configuration')}
                 placeholder={t('Select a build configuration')}
-                value={config.buildConfig || undefined}
+                value={config.buildConfig}
                 options={filterOptions.buildConfigs}
-                onChange={value => handleQueryChange(index, {buildConfig: value || ''})}
+                onChange={value => handleQueryChange(index, {buildConfig: value})}
                 inline={false}
                 stacked
                 allowClear
