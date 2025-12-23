@@ -630,6 +630,7 @@ export type AggregationOutputType = Extract<
   | 'percentage'
   | 'string'
   | 'size'
+  | 'size_base10'
   | 'rate'
   | 'score'
 >;

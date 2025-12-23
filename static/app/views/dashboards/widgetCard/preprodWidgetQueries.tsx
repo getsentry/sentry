@@ -183,16 +183,53 @@ function PreprodWidgetQueries({
                 value: values[0]!.count as number,
               }));
 
-            // Determine series name
-            let seriesName: string;
-            if (query.name) {
-              // If query has a custom name, use it
-              // If this query resulted in multiple series (multiple app_ids), append the app_id
-              seriesName = appId ? `${query.name} (${appId})` : query.name;
-            } else {
-              // No custom name, just use app_id or fallback
-              seriesName = appId || query.aggregates[0] || 'value';
+            // Parse conditions to extract filter details
+            const parts: string[] = [];
+            if (query.conditions) {
+              const tokens = query.conditions.split(' ');
+              let branch = '';
+              let buildConfig = '';
+              let artifactType = '';
+
+              tokens.forEach(token => {
+                if (token.startsWith('git_head_ref:')) {
+                  branch = token.substring(13);
+                } else if (token.startsWith('build_configuration_name:')) {
+                  buildConfig = token.substring(25);
+                } else if (token.startsWith('artifact_type:')) {
+                  artifactType = token.substring(14);
+                }
+              });
+
+              // Map artifact type number to readable label
+              const artifactTypeLabels: Record<string, string> = {
+                '0': 'xcarchive',
+                '1': 'aab',
+                '2': 'apk',
+              };
+
+              if (appId) {
+                parts.push(appId);
+              }
+              if (artifactType && artifactTypeLabels[artifactType]) {
+                parts.push(artifactTypeLabels[artifactType]);
+              }
+              if (branch) {
+                parts.push(branch);
+              }
+              if (buildConfig) {
+                parts.push(buildConfig);
+              }
+            } else if (appId) {
+              parts.push(appId);
             }
+
+            // Build display label from filters
+            const displayLabel = parts.length > 0 ? parts.join(' : ') : 'App Size';
+
+            // Always append aggregate at the end for formatter to extract (hidden from display)
+            const aggregate = query.aggregates[0] || 'value';
+            const seriesName = `${displayLabel} : ${aggregate}`;
 
             return {
               seriesName,
@@ -204,7 +241,7 @@ function PreprodWidgetQueries({
           results.forEach(({query}) => {
             const aggregate = query.aggregates[0];
             if (aggregate) {
-              types[aggregate] = 'size';
+              types[aggregate] = 'size_base10';
             }
           });
 

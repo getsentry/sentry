@@ -340,11 +340,11 @@ const getDefaultWidgets = (organization: Organization) => {
       id: 'mobile-app-size',
       title: t('Mobile App Size'),
       description: t(
-        'Track mobile app size metrics over time. Configure to monitor install size, download size, or both.'
+        'Track mobile app size metrics over time. Configure to monitor install size or download size.'
       ),
       displayType: DisplayType.LINE,
       widgetType: WidgetType.MOBILE_APP_SIZE,
-      interval: '1d',
+      interval: '30d',
       queries: [
         {
           name: '',

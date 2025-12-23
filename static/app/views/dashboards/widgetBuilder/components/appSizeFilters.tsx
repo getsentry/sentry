@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import SelectField from 'sentry/components/forms/fields/selectField';
-import TextField from 'sentry/components/forms/fields/textField';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -262,6 +262,9 @@ export function AppSizeFilters() {
 
   return (
     <Fragment>
+      <DocsLink href="https://docs.sentry.io/product/size-analysis/">
+        {t('Size Analysis documentation')}
+      </DocsLink>
       <SectionHeader
         title={t('Filter')}
         tooltipText={t('Filter app size data by app and platform.')}
@@ -280,15 +283,6 @@ export function AppSizeFilters() {
                 />
               )}
             </QueryHeader>
-            <TextField
-              name={`queryName-${index}`}
-              label={t('Legend Label')}
-              placeholder={t('e.g., iOS Release Build')}
-              value={config.name}
-              onChange={value => handleQueryChange(index, {name: value})}
-              inline={false}
-              stacked
-            />
             <SelectField
               name={`appId-${index}`}
               label={t('App ID')}
@@ -311,8 +305,9 @@ export function AppSizeFilters() {
               placeholder={t('All artifact types')}
               value={config.artifactType || undefined}
               options={[
-                {label: t('iOS (.ipa)'), value: '0'},
-                {label: t('Android (.apk, .aab)'), value: '1'},
+                {label: t('xcarchive (.app)'), value: '0'},
+                {label: t('aab (Android App Bundle)'), value: '1'},
+                {label: t('apk (Android APK)'), value: '2'},
               ]}
               onChange={value => handleQueryChange(index, {artifactType: value || ''})}
               inline={false}
@@ -353,7 +348,7 @@ export function AppSizeFilters() {
             label={t('Size Type')}
             value={sizeType}
             choices={[
-              ['install', t('Install Size')],
+              ['install', t('Install / Uncompressed Size')],
               ['download', t('Download Size')],
             ]}
             onChange={handleSizeTypeChange}
@@ -363,6 +358,12 @@ export function AppSizeFilters() {
     </Fragment>
   );
 }
+
+const DocsLink = styled(ExternalLink)`
+  display: block;
+  margin-bottom: ${space(2)};
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
 
 const FiltersContainer = styled('div')`
   display: flex;

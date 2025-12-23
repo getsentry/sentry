@@ -306,7 +306,18 @@ function WidgetCardChart(props: WidgetCardChartProps) {
   };
 
   const nameFormatter = (name: string) => {
-    return WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(name);
+    const decodedName = WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(name);
+    // Strip off the aggregate function at the end (after the last ':')
+    // e.g., "com.example.app : main : Release : max(max_install_size)" -> "com.example.app : main : Release"
+    const lastColonIndex = decodedName.lastIndexOf(':');
+    if (lastColonIndex !== -1) {
+      const afterColon = decodedName.substring(lastColonIndex + 1).trim();
+      // Check if it looks like an aggregate function (contains parentheses)
+      if (afterColon.includes('(') && afterColon.includes(')')) {
+        return decodedName.substring(0, lastColonIndex).trim();
+      }
+    }
+    return decodedName;
   };
 
   const handleLegendSelectChange: EChartLegendSelectChangeHandler = (
