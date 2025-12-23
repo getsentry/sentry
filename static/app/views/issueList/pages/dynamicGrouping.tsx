@@ -71,12 +71,9 @@ interface AssignedEntity {
 interface ClusterSummary {
   assignedTo: AssignedEntity[];
   cluster_avg_similarity: number | null;
-  // unused
   cluster_id: number;
   cluster_min_similarity: number | null;
-  // unused
   cluster_size: number | null;
-  // unused
   description: string;
   fixability_score: number | null;
   group_ids: number[];
@@ -93,9 +90,6 @@ interface ClusterSummary {
   service_tags?: string[];
 }
 
-/**
- * Formats cluster information for copying to clipboard in a readable format.
- */
 function formatClusterInfoForClipboard(cluster: ClusterSummary): string {
   const lines: string[] = [];
 
@@ -114,18 +108,11 @@ function formatClusterInfoForClipboard(cluster: ClusterSummary): string {
   return lines.join('\n');
 }
 
-/**
- * Formats a prompt for Seer Explorer about the cluster.
- */
 function formatClusterPromptForSeer(cluster: ClusterSummary): string {
   const message = formatClusterInfoForClipboard(cluster);
   return `I'd like to investigate this cluster of issues:\n\n${message}\n\nPlease help me understand the root cause and potential fixes for these related issues.`;
 }
 
-/**
- * Parses a string and renders backtick-wrapped text as inline code elements.
- * Example: "Error in `Contains` filter" becomes ["Error in ", <InlineCode>Contains</InlineCode>, " filter"]
- */
 function renderWithInlineCode(text: string): React.ReactNode {
   const parts = text.split(/(`[^`]+`)/g);
   if (parts.length === 1) {
@@ -934,24 +921,34 @@ function DynamicGrouping() {
     <PageFiltersContainer>
       <PageWrapper>
         <HeaderSection>
-          <Flex align="center" gap="md" style={{marginBottom: space(2)}}>
-            <ClickableHeading as="h1" onClick={() => setShowDevTools(prev => !prev)}>
-              {t('Top Issues (Experimental)')}
-            </ClickableHeading>
-            {isUsingCustomData && (
-              <CustomDataBadge>
-                <Text size="xs" bold>
-                  {t('Using Custom Data')}
-                </Text>
-                <Button
-                  size="zero"
-                  borderless
-                  icon={<IconClose size="xs" />}
-                  aria-label={t('Clear custom data')}
-                  onClick={handleClearCustomData}
-                />
-              </CustomDataBadge>
-            )}
+          <Flex
+            align="center"
+            gap="md"
+            justify="between"
+            style={{marginBottom: space(2)}}
+          >
+            <Flex align="center" gap="md">
+              <ClickableHeading as="h1" onClick={() => setShowDevTools(prev => !prev)}>
+                {t('Top Issues (Experimental)')}
+              </ClickableHeading>
+              {isUsingCustomData && (
+                <CustomDataBadge>
+                  <Text size="xs" bold>
+                    {t('Using Custom Data')}
+                  </Text>
+                  <Button
+                    size="zero"
+                    borderless
+                    icon={<IconClose size="xs" />}
+                    aria-label={t('Clear custom data')}
+                    onClick={handleClearCustomData}
+                  />
+                </CustomDataBadge>
+              )}
+            </Flex>
+            <Link to={`/organizations/${organization.slug}/issues/top-issues/`}>
+              <Button size="sm">{t('View Single Card Layout')}</Button>
+            </Link>
           </Flex>
 
           <Flex gap="sm" align="center" style={{marginBottom: space(2)}}>
@@ -1225,7 +1222,6 @@ const CardsColumn = styled('div')`
   min-width: 0;
 `;
 
-// Card with subtle hover effect
 const CardContainer = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.border};
@@ -1244,7 +1240,6 @@ const CardContainer = styled('div')`
   }
 `;
 
-// Zone 1: Title area - clean and prominent
 const CardHeader = styled('div')`
   padding: ${space(3)} ${space(3)} ${space(2)};
   display: flex;
@@ -1261,7 +1256,6 @@ const ClusterTitle = styled('h3')`
   word-break: break-word;
 `;
 
-// Stats container with left/right separation
 const StatsRow = styled('div')`
   display: flex;
   justify-content: space-between;
@@ -1269,7 +1263,6 @@ const StatsRow = styled('div')`
   gap: ${space(2)};
 `;
 
-// Stats row within header (left side)
 const ClusterStats = styled('div')`
   display: flex;
   flex-wrap: wrap;
@@ -1279,7 +1272,6 @@ const ClusterStats = styled('div')`
   color: ${p => p.theme.subText};
 `;
 
-// Time stats (right side) - first seen, last seen
 const TimeStats = styled('div')`
   display: flex;
   align-items: center;
@@ -1306,7 +1298,6 @@ const MoreProjectsCount = styled('span')`
   margin-left: ${space(0.25)};
 `;
 
-// Status tags row for new/regressed/escalating indicators
 const ClusterStatusTags = styled('div')`
   display: flex;
   flex-wrap: wrap;
@@ -1344,7 +1335,6 @@ const StatusTag = styled('div')<{color: 'purple' | 'yellow' | 'red'}>`
   }}
 `;
 
-// Tab section for Summary / Preview Issues
 const TabSection = styled('div')``;
 
 const TabBar = styled('div')`
@@ -1388,7 +1378,6 @@ const TabContent = styled('div')`
   padding: ${space(2)} ${space(3)};
 `;
 
-// Zone 4: Footer with actions
 const CardFooter = styled('div')`
   padding: ${space(2)} ${space(3)};
   border-top: 1px solid ${p => p.theme.innerBorder};
@@ -1404,7 +1393,6 @@ const FooterActions = styled('div')`
   gap: ${space(1)};
 `;
 
-// Split button for Send to Seer action
 const SeerButton = styled(Button)`
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
@@ -1416,7 +1404,6 @@ const SeerDropdownTrigger = styled(Button)`
   border-left: 1px solid rgba(255, 255, 255, 0.15);
 `;
 
-// Issue preview link with hover effect - consistent with issue feed cards
 const IssuePreviewLink = styled(Link)`
   display: block;
   padding: ${space(1.5)} ${space(2)};
@@ -1433,7 +1420,6 @@ const IssuePreviewLink = styled(Link)`
   }
 `;
 
-// Issue title with ellipsis and nested em styling for EventOrGroupTitle
 const IssueTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   font-weight: 600;
@@ -1449,7 +1435,6 @@ const IssueTitle = styled('div')`
   }
 `;
 
-// EventMessage override for compact display
 const IssueMessage = styled(EventMessage)`
   margin: 0;
   font-size: ${p => p.theme.fontSize.sm};
@@ -1457,7 +1442,6 @@ const IssueMessage = styled(EventMessage)`
   opacity: 0.9;
 `;
 
-// Meta separator line
 const MetaSeparator = styled('div')`
   height: 10px;
   width: 1px;
