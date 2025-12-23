@@ -9,8 +9,8 @@ from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
-from sentry.tasks.base import RetryTaskError
 from sentry.tasks.codeowners import code_owners_auto_sync, update_code_owners_schema
+from sentry.taskworker.retry import RetryTaskError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 
