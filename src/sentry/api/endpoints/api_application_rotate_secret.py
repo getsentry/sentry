@@ -9,6 +9,7 @@ from sentry.api.endpoints.api_application_details import ApiApplicationEndpoint
 from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import serialize
 from sentry.models.apiapplication import ApiApplication, generate_token
+from sentry.types.token import AuthTokenType
 
 
 @control_silo_endpoint
@@ -21,6 +22,6 @@ class ApiApplicationRotateSecretEndpoint(ApiApplicationEndpoint):
     permission_classes = (SentryIsAuthenticated,)
 
     def post(self, request: Request, application: ApiApplication) -> Response:
-        new_token = generate_token()
+        new_token = generate_token(token_type=AuthTokenType.USER_APP)
         application.update(client_secret=new_token)
         return Response(serialize({"clientSecret": new_token}))

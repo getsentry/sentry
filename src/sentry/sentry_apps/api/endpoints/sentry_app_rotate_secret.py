@@ -17,6 +17,7 @@ from sentry.organizations.services.organization import organization_service
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppBaseEndpoint
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.utils.errors import SentryAppError
+from sentry.types.token import AuthTokenType
 from sentry.users.services.user.service import user_service
 
 logger = logging.getLogger(__name__)
@@ -84,7 +85,7 @@ class SentryAppRotateSecretEndpoint(SentryAppBaseEndpoint):
         if sentry_app.application is None:
             return Response({"detail": "Corresponding application was not found."}, status=404)
 
-        new_token = generate_token()
+        new_token = generate_token(token_type=AuthTokenType.USER_APP)
         sentry_app.application.update(client_secret=new_token)
         self.create_audit_entry(
             request=self.request,
