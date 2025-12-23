@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {Link} from 'sentry/components/core/link';
@@ -9,7 +10,10 @@ import {AppBodyContent} from 'sentry/views/app/appBodyContent';
 
 const BODY_CLASSES = ['narrow'];
 
-function Layout({children}: {children: React.ReactNode}) {
+/**
+ * Shared auth layout structure - includes all wrapper elements.
+ */
+function AuthLayoutContent({children}: {children: React.ReactNode}) {
   useEffect(() => {
     document.body.classList.add(...BODY_CLASSES);
     return () => document.body.classList.remove(...BODY_CLASSES);
@@ -30,6 +34,25 @@ function Layout({children}: {children: React.ReactNode}) {
       </AppBodyContent>
     </div>
   );
+}
+
+/**
+ * Route component for auth pages.
+ * Uses <Outlet /> for child routes.
+ */
+export default function AuthLayout() {
+  return (
+    <AuthLayoutContent>
+      <Outlet />
+    </AuthLayoutContent>
+  );
+}
+
+/**
+ * Wrapper component for auth-style layout with children to render.
+ */
+export function AuthLayoutWrapper({children}: {children: React.ReactNode}) {
+  return <AuthLayoutContent>{children}</AuthLayoutContent>;
 }
 
 const AuthContainer = styled('div')`
@@ -75,5 +98,3 @@ const SentryButton = styled(
     color: #fff;
   }
 `;
-
-export default Layout;

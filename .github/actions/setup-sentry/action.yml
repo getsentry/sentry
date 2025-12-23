@@ -50,7 +50,6 @@ runs:
         ### pytest configuration ###
         echo "PY_COLORS=1" >> "$GITHUB_ENV"
         echo "PYTEST_ADDOPTS=--reruns=5 --durations=10 --fail-slow=60s" >> $GITHUB_ENV
-        echo "COVERAGE_CORE=sysmon" >> "$GITHUB_ENV"
 
         ### pytest-sentry configuration ###
         if [ "$GITHUB_REPOSITORY" = "getsentry/sentry" ]; then
