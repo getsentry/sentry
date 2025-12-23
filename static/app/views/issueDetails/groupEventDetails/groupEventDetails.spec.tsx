@@ -619,6 +619,34 @@ describe('groupEventDetails', () => {
       expect(screen.getByText('App Hang Profile')).toBeInTheDocument();
     });
 
+    it('does not render ANR profile section for js events', async () => {
+      const project = ProjectFixture({platform: 'javascript-electron'});
+      const props = makeDefaultMockData(undefined, project);
+      ProjectsStore.loadInitialData([props.project]);
+
+      mockGroupApis(
+        props.organization,
+        props.project,
+        props.group,
+        props.event,
+        undefined,
+        mockedTrace(props.project)
+      );
+
+      render(<GroupEventDetails />, {
+        organization: props.organization,
+        initialRouterConfig: props.initialRouterConfig,
+      });
+
+      // Wait for component to render by checking for an element that should be present
+      expect(await screen.findByTestId('group-event-details')).toBeInTheDocument();
+
+      // Check that profile-preview does not exist
+      expect(
+        screen.queryByRole('region', {name: 'profile-preview'})
+      ).not.toBeInTheDocument();
+    });
+
     it('does not render root cause section if related perf issues do not exist', async () => {
       const props = makeDefaultMockData();
       const trace = mockedTrace(props.project);
