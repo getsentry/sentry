@@ -101,6 +101,10 @@ def run_sdk_update_detector_for_organization(organization: Organization):
     sdk_versions = get_sdk_versions()
 
     def needs_update(sdk_name, sdk_version):
+        if sdk_name not in sdk_versions:
+            # Unknown SDK, we can't determine if it needs an update
+            return False
+
         # Ignore patch versions
         return version.Version(strip_patch_version(sdk_version)) < version.Version(
             strip_patch_version(sdk_versions.get(sdk_name))
