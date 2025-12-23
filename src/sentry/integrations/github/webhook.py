@@ -917,6 +917,7 @@ class PullRequestReviewEventWebhook(GitHubWebhook):
     """
 
     EVENT_TYPE = IntegrationWebhookEventType.PULL_REQUEST_REVIEW
+    # XXX: Once we port the Overwatch feature, we can add the processor here.
     WEBHOOK_EVENT_PROCESSORS = ()
 
 
@@ -927,6 +928,7 @@ class PullRequestReviewCommentEventWebhook(GitHubWebhook):
     """
 
     EVENT_TYPE = IntegrationWebhookEventType.PULL_REQUEST_REVIEW_COMMENT
+    # XXX: Once we port the Overwatch feature, we can add the processor here.
     WEBHOOK_EVENT_PROCESSORS = ()
 
 
@@ -947,6 +949,7 @@ class IssueCommentEventWebhook(GitHubWebhook):
     """
 
     EVENT_TYPE = IntegrationWebhookEventType.ISSUE_COMMENT
+    # XXX: Once we port the Overwatch feature, we can add the processor here.
     WEBHOOK_EVENT_PROCESSORS = ()
 
 

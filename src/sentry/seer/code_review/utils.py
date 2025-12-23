@@ -47,7 +47,7 @@ def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:
 
 def _transform_webhook_to_codegen_request(
     event_type: str, event_payload: Mapping[str, Any]
-) -> dict[str, Any]:
+) -> dict[str, Any] | None:
     """
     Transform a GitHub webhook payload into CodecovTaskRequest format for Seer.
 
@@ -56,7 +56,8 @@ def _transform_webhook_to_codegen_request(
         event_payload: The full webhook event payload from GitHub
 
     Returns:
-        Dictionary in CodecovTaskRequest format with request_type, data, and external_owner_id
+        Dictionary in CodecovTaskRequest format with request_type, data, and external_owner_id,
+        or None if the event is not PR-related (e.g., issue_comment on regular issues)
 
     Raises:
         ValueError: If required fields are missing from the webhook payload
@@ -80,7 +81,8 @@ def _transform_webhook_to_codegen_request(
         pr_number = event_payload["issue"]["number"]
 
     if not pr_number:
-        raise ValueError(f"Cannot extract PR number from {event_type} webhook payload")
+        # Not a PR-related event (e.g., issue_comment on regular issues)
+        return None
 
     # Build RepoDefinition
     repo_definition = {
