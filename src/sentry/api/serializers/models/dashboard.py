@@ -76,7 +76,7 @@ def _convert_thresholds_to_camel_case(thresholds: dict[str, Any] | None) -> Thre
         "max_values": thresholds.get("max_values", {}),
         "unit": thresholds.get("unit", ""),
     }
-    if thresholds.get("preferred_polarity"):
+    if thresholds.get("preferred_polarity") is not None:
         result["preferredPolarity"] = thresholds["preferred_polarity"]
     return result
 
