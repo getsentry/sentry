@@ -1,11 +1,15 @@
 from unittest.mock import MagicMock, patch
 
+import pytest
+from rest_framework.exceptions import NotFound
+
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
+from sentry.tasks.base import RetryTaskError
 from sentry.tasks.codeowners import code_owners_auto_sync, update_code_owners_schema
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -297,3 +301,57 @@ class CodeOwnersTest(TestCase):
             post_bulk_create(file_changes)
 
             mock_code_owners_auto_sync.delay.assert_called_once_with(commit_id=commit.id)
+
+    def test_codeowners_auto_sync_retries_on_missing_commit(self) -> None:
+        non_existent_commit_id = 999999999
+
+        with self.tasks() and self.feature({"organizations:integrations-codeowners": True}):
+            with pytest.raises(RetryTaskError):
+                code_owners_auto_sync(non_existent_commit_id)
+
+        code_owners = ProjectCodeOwners.objects.get(id=self.code_owners.id)
+        assert code_owners.raw == self.data["raw"]
+
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_codeowner_file",
+        side_effect=NotImplementedError("Integration does not support CODEOWNERS"),
+    )
+    @patch("sentry.notifications.notifications.codeowners_auto_sync.AutoSyncNotification.send")
+    def test_codeowners_auto_sync_handles_not_implemented_error(
+        self,
+        mock_send_email: MagicMock,
+        mock_get_codeowner_file: MagicMock,
+    ) -> None:
+        original_raw = self.code_owners.raw
+
+        with self.tasks() and self.feature({"organizations:integrations-codeowners": True}):
+            commit = self.create_commit(repo=self.repo)
+            code_owners_auto_sync(commit.id)
+
+        # The codeowners should NOT be updated
+        code_owners = ProjectCodeOwners.objects.get(id=self.code_owners.id)
+        assert code_owners.raw == original_raw
+        # Notification should have been sent
+        mock_send_email.assert_called_once_with()
+
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_codeowner_file",
+        side_effect=NotFound("CODEOWNERS file not found"),
+    )
+    @patch("sentry.notifications.notifications.codeowners_auto_sync.AutoSyncNotification.send")
+    def test_codeowners_auto_sync_handles_not_found_error(
+        self,
+        mock_send_email: MagicMock,
+        mock_get_codeowner_file: MagicMock,
+    ) -> None:
+        original_raw = self.code_owners.raw
+
+        with self.tasks() and self.feature({"organizations:integrations-codeowners": True}):
+            commit = self.create_commit(repo=self.repo)
+            code_owners_auto_sync(commit.id)
+
+        # The codeowners should NOT be updated
+        code_owners = ProjectCodeOwners.objects.get(id=self.code_owners.id)
+        assert code_owners.raw == original_raw
+        # Notification should have been sent
+        mock_send_email.assert_called_once_with()
