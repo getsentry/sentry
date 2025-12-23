@@ -98,7 +98,9 @@ describe('locale.gettextComponentTemplate', () => {
   describe('built-in shortcodes', () => {
     it('should render [code] without explicit component', () => {
       const {container} = render(<div>{tct('Run [code:npm install]')}</div>);
-      expect(container.innerHTML).toContain('<code>npm install</code>');
+      // [code] uses InlineCode component which renders as <code> with styling
+      expect(container.innerHTML).toContain('<code');
+      expect(container.innerHTML).toContain('npm install</code>');
     });
 
     it('should render [strong] without explicit component', () => {
@@ -106,14 +108,21 @@ describe('locale.gettextComponentTemplate', () => {
       expect(container.innerHTML).toContain('<strong>important</strong>');
     });
 
-    it('should render [bold] without explicit component', () => {
+    it('should render [bold] normalized to <strong>', () => {
       const {container} = render(<div>{tct('This is [bold:bold text]')}</div>);
-      expect(container.innerHTML).toContain('<b>bold text</b>');
+      // [bold] is normalized to <strong> element
+      expect(container.innerHTML).toContain('<strong>bold text</strong>');
     });
 
-    it('should render [italic] without explicit component', () => {
+    it('should render [em] without explicit component', () => {
+      const {container} = render(<div>{tct('This is [em:emphasized]')}</div>);
+      expect(container.innerHTML).toContain('<em>emphasized</em>');
+    });
+
+    it('should render [italic] normalized to <em>', () => {
       const {container} = render(<div>{tct('This is [italic:italic text]')}</div>);
-      expect(container.innerHTML).toContain('<i>italic text</i>');
+      // [italic] is normalized to <em> element
+      expect(container.innerHTML).toContain('<em>italic text</em>');
     });
 
     it('should render [break] for line breaks', () => {
@@ -132,7 +141,8 @@ describe('locale.gettextComponentTemplate', () => {
     it('should handle nested built-in shortcodes', () => {
       const {container} = render(<div>{tct('[strong:Bold [code:code] text]')}</div>);
       expect(container.innerHTML).toContain('<strong>');
-      expect(container.innerHTML).toContain('<code>code</code>');
+      expect(container.innerHTML).toContain('<code');
+      expect(container.innerHTML).toContain('code</code>');
       expect(container.innerHTML).toContain('</strong>');
     });
 
@@ -140,19 +150,21 @@ describe('locale.gettextComponentTemplate', () => {
       const {container} = render(
         <div>{tct('[code:value] and [custom:text]', {custom: <em />})}</div>
       );
-      expect(container.innerHTML).toContain('<code>value</code>');
+      expect(container.innerHTML).toContain('<code');
+      expect(container.innerHTML).toContain('value</code>');
       expect(container.innerHTML).toContain('<em>text</em>');
     });
 
     it('should handle multiple instances of same built-in shortcode', () => {
       const {container} = render(<div>{tct('[code:first] and [code:second]')}</div>);
-      expect(container.innerHTML).toContain('<code>first</code>');
-      expect(container.innerHTML).toContain('<code>second</code>');
+      expect(container.innerHTML).toContain('first</code>');
+      expect(container.innerHTML).toContain('second</code>');
     });
 
     it('should work with empty template and only built-ins', () => {
       const {container} = render(<div>{tct('[code:test]')}</div>);
-      expect(container.innerHTML).toContain('<code>test</code>');
+      expect(container.innerHTML).toContain('<code');
+      expect(container.innerHTML).toContain('test</code>');
     });
   });
 });
