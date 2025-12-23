@@ -1234,7 +1234,11 @@ register(
 # {"alternative_model_id": "gpt-4o", "existing_model_id": "openai/gpt-4o"}
 register(
     "ai-agent-monitoring.custom-model-mapping",
-    default=[],
+    default=[
+        # Pipecat-specific model variants that should use base model pricing
+        {"alternative_model_id": "gpt-4o-pipecat", "existing_model_id": "gpt-4o"},
+        {"alternative_model_id": "gpt-4o-mini-pipecat", "existing_model_id": "gpt-4o-mini"},
+    ],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

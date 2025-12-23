@@ -650,3 +650,59 @@ class FetchAIModelCostsTest(TestCase):
             assert (
                 actual_glob == expected_glob
             ), f"Expected {expected_glob} for {model_id}, got {actual_glob}"
+
+    @responses.activate
+    def test_fetch_ai_model_costs_with_default_pipecat_mapping(self) -> None:
+        """Test that default pipecat model mappings work correctly"""
+        mock_openrouter_response = {
+            "data": [
+                {
+                    "id": "openai/gpt-4o",
+                    "pricing": {
+                        "prompt": "0.0000025",
+                        "completion": "0.00001",
+                    },
+                },
+                {
+                    "id": "openai/gpt-4o-mini",
+                    "pricing": {
+                        "prompt": "0.00000015",
+                        "completion": "0.0000006",
+                    },
+                },
+            ]
+        }
+
+        self._mock_openrouter_api_response(mock_openrouter_response)
+        self._mock_models_dev_api_response({})
+
+        fetch_ai_model_costs()
+
+        # Verify the data was cached correctly
+        cached_data = _get_ai_model_costs_from_cache()
+        assert cached_data is not None
+        models = cached_data.get("models")
+        assert models is not None
+
+        # Original models should exist
+        assert "gpt-4o" in models
+        assert "gpt-4o-mini" in models
+
+        # Pipecat variants should be mapped to base models (from defaults)
+        assert "gpt-4o-pipecat" in models
+        assert "gpt-4o-mini-pipecat" in models
+
+        # Verify that pipecat models have the same pricing as base models
+        gpt4o_model = models["gpt-4o"]
+        gpt4o_pipecat_model = models["gpt-4o-pipecat"]
+        assert gpt4o_model.get("inputPerToken") == gpt4o_pipecat_model.get("inputPerToken")
+        assert gpt4o_model.get("outputPerToken") == gpt4o_pipecat_model.get("outputPerToken")
+
+        gpt4o_mini_model = models["gpt-4o-mini"]
+        gpt4o_mini_pipecat_model = models["gpt-4o-mini-pipecat"]
+        assert gpt4o_mini_model.get("inputPerToken") == gpt4o_mini_pipecat_model.get(
+            "inputPerToken"
+        )
+        assert gpt4o_mini_model.get("outputPerToken") == gpt4o_mini_pipecat_model.get(
+            "outputPerToken"
+        )
