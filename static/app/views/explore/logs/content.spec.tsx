@@ -223,7 +223,7 @@ describe('LogsPage', () => {
             interval: '5m',
             partial: 1,
             project: [],
-            query: 'timestamp_precise:<=1508208040000000000',
+            query: '',
             referrer: 'api.explore.ourlogs-timeseries',
             sampling: 'NORMAL',
             sort: '-count_message',
