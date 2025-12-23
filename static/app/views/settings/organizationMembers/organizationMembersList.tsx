@@ -133,7 +133,7 @@ function OrganizationMembersList() {
           cursor: location.query.cursor as string,
         },
       }),
-      currentMembers => currentMembers?.filter(member => member.id !== id)
+      currentMembers => currentMembers?.filter(member => member && member.id !== id)
     );
   };
 
@@ -190,7 +190,7 @@ function OrganizationMembersList() {
       getInviteRequestsQueryKey({organization}),
       currentInviteRequests => {
         return currentInviteRequests?.map(request => {
-          if (request.id === id) {
+          if (request && request.id === id) {
             return {...request, ...data};
           }
 
@@ -204,7 +204,7 @@ function OrganizationMembersList() {
     setApiQueryData<Member[]>(
       queryClient,
       getInviteRequestsQueryKey({organization}),
-      curentInviteRequests => curentInviteRequests?.filter(request => request.id !== id)
+      curentInviteRequests => curentInviteRequests?.filter(request => request && request.id !== id)
     );
   };
 
@@ -279,7 +279,9 @@ function OrganizationMembersList() {
   const currentUser = ConfigStore.get('user');
 
   // Find out if current user is the only owner
-  const isOnlyOwner = !activeOwnerMembers.some(({email}) => email !== currentUser.email);
+  const isOnlyOwner = !activeOwnerMembers
+    .filter(member => member !== null)
+    .some(({email}) => email !== currentUser.email);
 
   // Only admins/owners can remove members
   const requireLink = !!authProvider && authProvider.require_link;
@@ -289,9 +291,10 @@ function OrganizationMembersList() {
   const membersPageLinks = getResponseHeader?.('Link');
 
   // hides other users in demo mode
+  // Filter out null members that failed serialization on the backend
   const membersToShow = isDemoModeActive()
-    ? members.filter(({email}) => email === currentUser.email)
-    : members;
+    ? members.filter(member => member && member.email === currentUser.email)
+    : members.filter(member => member !== null);
 
   const action = (
     <InviteMembersButtonHook
@@ -339,7 +342,7 @@ function OrganizationMembersList() {
             </StyledPanelItem>
           </PanelHeader>
           <PanelBody>
-            {inviteRequests.map(inviteRequest => (
+            {inviteRequests.filter(request => request !== null).map(inviteRequest => (
               <InviteRequestRow
                 key={inviteRequest.id}
                 organization={organization}

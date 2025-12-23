@@ -732,5 +732,46 @@ describe('OrganizationMembersList', () => {
       const leaveButton = screen.getByRole('button', {name: 'Leave'});
       expect(leaveButton).toBeEnabled();
     });
+
+    it('gracefully handles null members from failed backend serialization', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/members/',
+        method: 'GET',
+        body: [members[0], null, members[1], null, member],
+      });
+
+      render(<OrganizationMembersList />, {
+        organization,
+      });
+
+      expect(await screen.findByText('Members')).toBeInTheDocument();
+      expect(screen.getByText(members[0]!.name)).toBeInTheDocument();
+      expect(screen.getByText(members[1]!.name)).toBeInTheDocument();
+      expect(screen.getByText(member.name)).toBeInTheDocument();
+    });
+
+    it('gracefully handles null invite requests from failed backend serialization', async () => {
+      const inviteRequest = MemberFixture({
+        id: '123',
+        user: null,
+        inviteStatus: 'requested_to_be_invited',
+        inviterName: UserFixture().name,
+        role: 'member',
+        teams: [],
+      });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/invite-requests/',
+        method: 'GET',
+        body: [inviteRequest, null],
+      });
+
+      render(<OrganizationMembersList />, {
+        organization,
+      });
+
+      expect(await screen.findByText('Pending Members')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Approve'})).toBeInTheDocument();
+    });
   });
 });
