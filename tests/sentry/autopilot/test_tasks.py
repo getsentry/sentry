@@ -49,7 +49,7 @@ class TestRunSdkUpdateDetector(TestCase, SnubaTestCase):
         "sentry.autopilot.tasks.get_sdk_versions",
         return_value={"example.sdk": "1.4.0"},
     )
-    def it_handles_multiple_projects(self, mock_index_state: mock.MagicMock) -> None:
+    def test_it_handles_multiple_projects(self, mock_index_state: mock.MagicMock) -> None:
         min_ago = before_now(minutes=1).isoformat()
         self.store_event(
             data={
@@ -68,7 +68,7 @@ class TestRunSdkUpdateDetector(TestCase, SnubaTestCase):
                 "message": "oh no",
                 "timestamp": min_ago,
                 "fingerprint": ["group-2"],
-                "sdk": {"name": "example.sdk", "version": "1.0.0"},
+                "sdk": {"name": "example.sdk", "version": "0.9.0"},
             },
             project_id=self.project2.id,
             assert_no_errors=False,
@@ -79,14 +79,14 @@ class TestRunSdkUpdateDetector(TestCase, SnubaTestCase):
 
         assert len(updates) == 2
         assert updates[0] == {
-            "projectId": str(self.project.id),
+            "projectId": str(self.project2.id),
             "sdkName": "example.sdk",
-            "sdkVersion": "1.0.0",
+            "sdkVersion": "0.9.0",
             "newestSdkVersion": "1.4.0",
             "needsUpdate": True,
         }
         assert updates[1] == {
-            "projectId": str(self.project2.id),
+            "projectId": str(self.project.id),
             "sdkName": "example.sdk",
             "sdkVersion": "1.0.0",
             "newestSdkVersion": "1.4.0",
@@ -98,7 +98,7 @@ class TestRunSdkUpdateDetector(TestCase, SnubaTestCase):
         "sentry.autopilot.tasks.get_sdk_versions",
         return_value={"example.sdk": "1.4.0", "example.sdk2": "1.2.0"},
     )
-    def it_handles_multiple_sdks(self, mock_index_state: mock.MagicMock) -> None:
+    def test_it_handles_multiple_sdks(self, mock_index_state: mock.MagicMock) -> None:
         min_ago = before_now(minutes=1).isoformat()
         self.store_event(
             data={
@@ -128,17 +128,17 @@ class TestRunSdkUpdateDetector(TestCase, SnubaTestCase):
 
         assert len(updates) == 2
         assert updates[0] == {
-            "projectId": str(self.project.id),
-            "sdkName": "example.sdk",
-            "sdkVersion": "1.0.0",
-            "newestSdkVersion": "1.4.0",
-            "needsUpdate": True,
-        }
-        assert updates[1] == {
             "projectId": str(self.project2.id),
             "sdkName": "example.sdk2",
             "sdkVersion": "0.9.0",
             "newestSdkVersion": "1.2.0",
+            "needsUpdate": True,
+        }
+        assert updates[1] == {
+            "projectId": str(self.project.id),
+            "sdkName": "example.sdk",
+            "sdkVersion": "1.0.0",
+            "newestSdkVersion": "1.4.0",
             "needsUpdate": True,
         }
 
