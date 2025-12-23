@@ -547,6 +547,7 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
                 },
                 as_user=user,
             )
+            if user is not None
         }
 
         for permission in permissions:
@@ -652,15 +653,16 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
         ):
             tag_filters["globalFilter"] = []
 
+        serialized_created_by = None
+        if obj.created_by_id:
+            created_by_list = user_service.serialize_many(filter={"user_ids": [obj.created_by_id]})
+            serialized_created_by = created_by_list[0] if created_by_list and created_by_list[0] is not None else None
+        
         data: DashboardDetailsResponse = {
             "id": str(obj.id),
             "title": obj.title,
             "dateCreated": obj.date_added,
-            "createdBy": (
-                user_service.serialize_many(filter={"user_ids": [obj.created_by_id]})[0]
-                if obj.created_by_id
-                else None
-            ),
+            "createdBy": serialized_created_by,
             "widgets": attrs["widgets"],
             "filters": tag_filters,
             "permissions": serialize(obj.permissions) if hasattr(obj, "permissions") else None,

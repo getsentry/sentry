@@ -599,6 +599,7 @@ class ReleaseSerializer(Serializer):
                     filter={"user_ids": owner_ids},
                     as_user=serialize_generic_user(user),
                 )
+                if d is not None
             }
 
         authors_metadata_attrs = _get_authors_metadata(item_list, user)

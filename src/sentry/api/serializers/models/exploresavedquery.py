@@ -77,7 +77,7 @@ class ExploreSavedQueryModelSerializer(Serializer):
             },
             as_user=user if user.id else None,
         )
-        serialized_users = {user["id"]: user for user in service_serialized}
+        serialized_users = {user["id"]: user for user in service_serialized if user is not None}
 
         for explore_saved_query in item_list:
             result[explore_saved_query]["created_by"] = serialized_users.get(

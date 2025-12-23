@@ -55,6 +55,7 @@ class OrganizationMemberWithRolesSerializer(OrganizationMemberWithTeamsSerialize
                 filter=dict(user_ids=[om.user_id for om in item_list if om.user_id is not None]),
                 serializer=UserSerializeType.DETAILED,
             )
+            if u is not None
         }
 
         # Filter out emails from the serialized user data

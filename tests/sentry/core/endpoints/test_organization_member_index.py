@@ -201,6 +201,31 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
         assert not response.data[0]["pending"]
         assert not response.data[0]["expired"]
 
+    def test_handles_deleted_user(self) -> None:
+        """
+        Test that when a user is deleted from the system but their OrganizationMember
+        remains, the endpoint handles it gracefully without crashing.
+        
+        This can happen when a user is deleted but their organization membership record
+        persists, causing user_service.serialize_many() to return None for that user.
+        """
+        # Create a third user and member
+        deleted_user = self.create_user("deleted@localhost", username="deleted")
+        deleted_member = self.create_member(organization=self.organization, user=deleted_user)
+        
+        # Delete the user from the system
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            deleted_user.delete()
+        
+        # The endpoint should still return successfully without crashing
+        response = self.get_success_response(self.organization.slug)
+        
+        # Should return the two active users but not crash on the deleted user's member record
+        # The deleted user's member record should either be filtered out or have None user data
+        assert len(response.data) == 2
+        assert response.data[0]["email"] == self.user.email
+        assert response.data[1]["email"] == self.user2.email
+
     def test_staff_simple(self) -> None:
         staff_user = self.create_user("staff@localhost", is_staff=True)
         self.login_as(user=staff_user, staff=True)

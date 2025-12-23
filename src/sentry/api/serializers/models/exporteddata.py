@@ -13,6 +13,7 @@ class ExportedDataSerializer(Serializer):
             for u in user_service.serialize_many(
                 filter=dict(user_ids=[item.user_id for item in item_list])
             )
+            if u is not None
         }
         for item in item_list:
             if str(item.user_id) in serialized_users:
