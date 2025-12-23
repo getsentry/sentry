@@ -256,7 +256,6 @@ export function ReleaseSelector({moduleName}: ReleaseSelectorProps) {
           trackAnalytics('insights.release.select_release', {
             organization,
             filtered: defined(newValue.value) && newValue.value !== '',
-            type: 'primary',
             moduleName,
           });
 

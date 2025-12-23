@@ -26,7 +26,7 @@ jest.mock('sentry/views/insights/common/queries/useReleases', () => ({
 
 describe('ReleaseSelector', () => {
   describe('Analytics', () => {
-    it('tracks primary release selection with module name and release', async () => {
+    it('tracks release selection with module name and release', async () => {
       const organization = OrganizationFixture();
 
       render(<ReleaseSelector moduleName={ModuleName.MOBILE_VITALS} />, {
