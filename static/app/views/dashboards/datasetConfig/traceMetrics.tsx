@@ -1,8 +1,9 @@
+import type {ReactNode} from 'react';
 import pickBy from 'lodash/pickBy';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {ApiResult, Client} from 'sentry/api';
-import type {PageFilters, SelectValue} from 'sentry/types/core';
+import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
@@ -154,12 +155,15 @@ function useTraceMetricsSearchBarDataProvider(
   };
 }
 
-function prettifySortOption(option: SelectValue<string>) {
-  const parsedFunction = parseFunction(option.value);
+export function formatTraceMetricsFunction(
+  valueToParse: string,
+  defaultValue: string | ReactNode = ''
+) {
+  const parsedFunction = parseFunction(valueToParse);
   if (parsedFunction) {
     return `${parsedFunction.name}(${parsedFunction.arguments[1] ?? '…'})`;
   }
-  return option.label;
+  return defaultValue;
 }
 
 export const TraceMetricsConfig: DatasetConfig<EventsTimeSeriesResponse, never> = {
@@ -176,7 +180,7 @@ export const TraceMetricsConfig: DatasetConfig<EventsTimeSeriesResponse, never> 
   // we only want to allow sorting by selected aggregates.
   getTableSortOptions: (organization, widgetQuery) =>
     getTableSortOptions(organization, widgetQuery).map(option => ({
-      label: prettifySortOption(option),
+      label: formatTraceMetricsFunction(option.value, option.label),
       value: option.value,
     })),
   getGroupByFieldOptions,
