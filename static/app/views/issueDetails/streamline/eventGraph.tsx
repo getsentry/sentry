@@ -540,7 +540,6 @@ export function EventGraph({
             ...releaseBubbleGrid,
           }}
           tooltip={{
-            appendToBody: true,
             formatAxisLabel: (
               value,
               isTimestamp,
