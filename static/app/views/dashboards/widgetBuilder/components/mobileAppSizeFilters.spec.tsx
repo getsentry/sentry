@@ -3,10 +3,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
-import {AppSizeFilters} from 'sentry/views/dashboards/widgetBuilder/components/appSizeFilters';
+import {MobileAppSizeFilters} from 'sentry/views/dashboards/widgetBuilder/components/mobileAppSizeFilters';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 
-describe('AppSizeFilters', () => {
+describe('MobileAppSizeFilters', () => {
   let organization: Organization;
   let mockApiRequest: jest.Mock;
 
@@ -30,7 +30,7 @@ describe('AppSizeFilters', () => {
   const renderComponent = (initialRouterConfig = {}) => {
     return render(
       <WidgetBuilderProvider>
-        <AppSizeFilters />
+        <MobileAppSizeFilters />
       </WidgetBuilderProvider>,
       {
         organization,

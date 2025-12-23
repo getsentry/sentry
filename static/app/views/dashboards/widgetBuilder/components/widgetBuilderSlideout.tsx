@@ -38,11 +38,11 @@ import {
   type Widget,
 } from 'sentry/views/dashboards/types';
 import {isChartDisplayType} from 'sentry/views/dashboards/utils';
-import {AppSizeFilters} from 'sentry/views/dashboards/widgetBuilder/components/appSizeFilters';
 import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
 import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
 import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
 import WidgetBuilderGroupBySelector from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
+import {MobileAppSizeFilters} from 'sentry/views/dashboards/widgetBuilder/components/mobileAppSizeFilters';
 import WidgetBuilderNameAndDescription from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
 import {
   WidgetPreviewContainer,
@@ -407,7 +407,7 @@ function WidgetBuilderSlideout({
 
                     {state.dataset === WidgetType.MOBILE_APP_SIZE && (
                       <Section>
-                        <AppSizeFilters />
+                        <MobileAppSizeFilters />
                       </Section>
                     )}
                     {showQueryFilterBuilder && (

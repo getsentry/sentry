@@ -38,7 +38,7 @@ interface QueryConfig {
   sizeType: 'install' | 'download';
 }
 
-export function AppSizeFilters() {
+export function MobileAppSizeFilters() {
   const organization = useOrganization();
   const {state, dispatch} = useWidgetBuilderContext();
   const [queryConfigs, setQueryConfigs] = useState<QueryConfig[]>(() => {
