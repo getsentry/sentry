@@ -180,6 +180,7 @@ def _make_rpc_requests(
                 "Table RPC query response",
                 extra={
                     "rpc_rows": rpc_rows,
+                    "organization_id": request.meta.organization_id,
                     "page_token": table_response.page_token,
                     "meta": table_response.meta,
                 },
@@ -198,6 +199,7 @@ def _make_rpc_requests(
                 "Timeseries RPC query response",
                 extra={
                     "rpc_rows": rpc_rows,
+                    "organization_id": request.meta.organization_id,
                     "meta": timeseries_response.meta,
                 },
             )
