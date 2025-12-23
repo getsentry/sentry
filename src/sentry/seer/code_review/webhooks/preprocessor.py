@@ -33,7 +33,9 @@ def preprocess_webhook_event(
     from ..webhook_task import process_github_webhook_event
 
     event_type_enum = EventType.from_string(event_type)
-    transformed_event = _transform_webhook_to_codegen_request(event_type_enum, dict(event))
+    transformed_event = _transform_webhook_to_codegen_request(
+        event_type_enum, dict(event), organization.id
+    )
 
     if transformed_event is None:
         # Not a PR-related event (e.g., issue_comment on regular issues), skip processing
@@ -46,7 +48,6 @@ def preprocess_webhook_event(
     process_github_webhook_event.delay(
         event_type=event_type,
         event_payload=transformed_event,
-        organization_id=organization.id,
         enqueued_at_str=datetime.now(timezone.utc).isoformat(),
     )
     metrics.incr(

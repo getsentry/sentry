@@ -46,7 +46,7 @@ def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:
 
 
 def _transform_webhook_to_codegen_request(
-    event_type: str, event_payload: Mapping[str, Any]
+    event_type: str, event_payload: Mapping[str, Any], organization_id: int
 ) -> dict[str, Any] | None:
     """
     Transform a GitHub webhook payload into CodecovTaskRequest format for Seer.
@@ -54,6 +54,7 @@ def _transform_webhook_to_codegen_request(
     Args:
         event_type: The type of GitHub webhook event
         event_payload: The full webhook event payload from GitHub
+        organization_id: The Sentry organization ID
 
     Returns:
         Dictionary in CodecovTaskRequest format with request_type, data, and external_owner_id,
@@ -105,4 +106,5 @@ def _transform_webhook_to_codegen_request(
         "data": codegen_request,
         "external_owner_id": repository["owner"]["login"],
         "request_type": request_type,
+        "organization_id": organization_id,
     }

@@ -968,18 +968,18 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
 
-    _handlers: dict[str, type[GitHubWebhook]] = {
-        GithubWebhookType.PUSH: PushEventWebhook,
-        GithubWebhookType.PULL_REQUEST: PullRequestEventWebhook,
-        GithubWebhookType.PULL_REQUEST_REVIEW: PullRequestReviewEventWebhook,
-        GithubWebhookType.PULL_REQUEST_REVIEW_COMMENT: PullRequestReviewCommentEventWebhook,
+    _handlers: dict[GithubWebhookType, type[GitHubWebhook]] = {
+        GithubWebhookType.CHECK_RUN: CheckRunEventWebhook,
         GithubWebhookType.INSTALLATION: InstallationEventWebhook,
         GithubWebhookType.ISSUE: IssuesEventWebhook,
         GithubWebhookType.ISSUE_COMMENT: IssueCommentEventWebhook,
-        GithubWebhookType.CHECK_RUN: CheckRunEventWebhook,
+        GithubWebhookType.PULL_REQUEST: PullRequestEventWebhook,
+        GithubWebhookType.PULL_REQUEST_REVIEW: PullRequestReviewEventWebhook,
+        GithubWebhookType.PULL_REQUEST_REVIEW_COMMENT: PullRequestReviewCommentEventWebhook,
+        GithubWebhookType.PUSH: PushEventWebhook,
     }
 
-    def get_handler(self, event_type: str) -> type[GitHubWebhook] | None:
+    def get_handler(self, event_type: GithubWebhookType) -> type[GitHubWebhook] | None:
         return self._handlers.get(event_type)
 
     @staticmethod
