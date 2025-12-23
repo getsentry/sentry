@@ -47,12 +47,7 @@ export const MobileAppSizeConfig: DatasetConfig<AppSizeResponse[], TableData> = 
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: false,
   SearchBar: EventsSearchBar,
-  supportedDisplayTypes: [
-    DisplayType.AREA,
-    DisplayType.BAR,
-    DisplayType.LINE,
-    DisplayType.TABLE,
-  ],
+  supportedDisplayTypes: [DisplayType.LINE],
   getTableFieldOptions: (
     organization: Organization,
     _tags?: TagCollection,
@@ -123,7 +118,6 @@ export const MobileAppSizeConfig: DatasetConfig<AppSizeResponse[], TableData> = 
       return Promise.reject(new Error('No widget query found'));
     }
 
-    // Build query params
     const {start, end, period} = pageFilters.datetime;
     const baseParams: Record<string, any> = {
       project: pageFilters.projects,
@@ -136,40 +130,22 @@ export const MobileAppSizeConfig: DatasetConfig<AppSizeResponse[], TableData> = 
     };
 
     // Parse conditions string into separate filter parameters
-    let appIds: string[] = [];
     if (widgetQuery.conditions) {
       const params = new URLSearchParams(widgetQuery.conditions);
-      appIds = params.get('app_id')?.split(',').filter(Boolean) ?? [];
 
-      // Add other filter parameters to baseParams
       params.forEach((value, key) => {
-        if (key !== 'app_id' && value) {
+        if (value) {
           baseParams[key] = value;
         }
       });
     }
 
-    // If no app_ids specified, make one request with no app_id filter
-    if (appIds.length === 0) {
-      return api
-        .requestPromise(`/organizations/${organization.slug}/preprod/app-size-stats/`, {
-          method: 'GET',
-          query: baseParams,
-        })
-        .then(response => [[response as AppSizeResponse], undefined, undefined]);
-    }
-
-    // Create a separate request for each app_id
-    const promises = appIds.map(appId =>
-      api
-        .requestPromise(`/organizations/${organization.slug}/preprod/app-size-stats/`, {
-          method: 'GET',
-          query: {...baseParams, app_id: appId},
-        })
-        .then(response => response as AppSizeResponse)
-    );
-
-    return Promise.all(promises).then(responses => [responses, undefined, undefined]);
+    return api
+      .requestPromise(`/organizations/${organization.slug}/preprod/app-size-stats/`, {
+        method: 'GET',
+        query: baseParams,
+      })
+      .then(response => [[response as AppSizeResponse], undefined, undefined]);
   },
   getTableRequest: (
     api: Client,
@@ -197,79 +173,38 @@ export const MobileAppSizeConfig: DatasetConfig<AppSizeResponse[], TableData> = 
     };
 
     // Parse conditions
-    let appIds: string[] = [];
     if (query.conditions) {
       const params = new URLSearchParams(query.conditions);
-      appIds = params.get('app_id')?.split(',').filter(Boolean) ?? [];
 
-      // Add other filter parameters to baseParams
+      // Add all filter parameters to baseParams
       params.forEach((value, key) => {
-        if (key !== 'app_id' && value) {
+        if (value) {
           baseParams[key] = value;
         }
       });
     }
 
-    // If no app_ids, make single request
-    if (appIds.length === 0) {
-      return api
-        .requestPromise(`/organizations/${organization.slug}/preprod/app-size-stats/`, {
-          method: 'GET',
-          query: baseParams,
-        })
-        .then((response: AppSizeResponse) => {
-          const aggregate = query.aggregates[0] || 'value';
-          const data = response.data.map(([timestamp, values], idx) => ({
-            id: String(idx),
-            timestamp,
-            [aggregate]: values[0]?.count ?? 0,
-          }));
-          return [
-            {
-              data,
-              meta: response.meta,
-            },
-            undefined,
-            undefined,
-          ];
-        });
-    }
-
-    // Multiple app_ids - fetch all and combine
-    const promises = appIds.map(appId =>
-      api
-        .requestPromise(`/organizations/${organization.slug}/preprod/app-size-stats/`, {
-          method: 'GET',
-          query: {...baseParams, app_id: appId},
-        })
-        .then((response: AppSizeResponse) => ({appId, response}))
-    );
-
-    return Promise.all(promises).then(results => {
-      const aggregate = query.aggregates[0] || 'value';
-      const allData: any[] = [];
-      let meta: any = {};
-
-      results.forEach(({response}, resultIdx) => {
-        response.data.forEach(([timestamp, values], idx) => {
-          allData.push({
-            id: String(resultIdx * 1000 + idx),
-            timestamp,
-            [aggregate]: values[0]?.count ?? 0,
-          });
-        });
-        meta = response.meta;
+    return api
+      .requestPromise(`/organizations/${organization.slug}/preprod/app-size-stats/`, {
+        method: 'GET',
+        query: baseParams,
+      })
+      .then((response: AppSizeResponse) => {
+        const aggregate = query.aggregates[0] || 'value';
+        const data = response.data.map(([timestamp, values], idx) => ({
+          id: String(idx),
+          timestamp,
+          [aggregate]: values[0]?.count ?? 0,
+        }));
+        return [
+          {
+            data,
+            meta: response.meta,
+          },
+          undefined,
+          undefined,
+        ];
       });
-
-      return [
-        {
-          data: allData,
-          meta,
-        },
-        undefined,
-        undefined,
-      ];
-    });
   },
   transformTable: (
     data: TableData,
@@ -285,21 +220,21 @@ export const MobileAppSizeConfig: DatasetConfig<AppSizeResponse[], TableData> = 
     widgetQuery: WidgetQuery,
     _organization: Organization
   ): Series[] => {
-    // Parse conditions to extract app_ids for series names
-    let appIds: string[] = [];
+    // Parse conditions to extract app_id for series name
+    let appId = '';
     let branch = '';
     let buildConfig = '';
     let artifactType = '';
 
     if (widgetQuery.conditions) {
       const params = new URLSearchParams(widgetQuery.conditions);
-      appIds = params.get('app_id')?.split(',').filter(Boolean) ?? [];
+      appId = params.get('app_id') ?? '';
       branch = params.get('git_head_ref') ?? '';
       buildConfig = params.get('build_configuration_name') ?? '';
       artifactType = params.get('artifact_type') ?? '';
     }
 
-    return data.map((response, index) => {
+    return data.map(response => {
       // Filter out time buckets with no data, creating a continuous line
       const seriesData = response.data
         .filter(([, values]) => values[0]?.count !== null)
@@ -318,8 +253,8 @@ export const MobileAppSizeConfig: DatasetConfig<AppSizeResponse[], TableData> = 
         '2': 'apk',
       };
 
-      if (appIds[index]) {
-        parts.push(appIds[index]);
+      if (appId) {
+        parts.push(appId);
       }
       if (artifactType) {
         const label = artifactTypeLabels[artifactType];

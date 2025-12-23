@@ -8,7 +8,6 @@ import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {explodeField} from 'sentry/utils/discover/fields';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -31,7 +30,7 @@ interface FilterResponse {
 }
 
 interface QueryConfig {
-  appIds: string[];
+  appId: string;
   artifactType: string;
   branch: string;
   buildConfig: string;
@@ -43,7 +42,7 @@ function parseConditionsString(conditions: string): Omit<QueryConfig, 'name'> {
   const params = new URLSearchParams(conditions);
 
   return {
-    appIds: params.get('app_id')?.split(',').filter(Boolean) ?? [],
+    appId: params.get('app_id') ?? '',
     branch: params.get('git_head_ref') ?? '',
     buildConfig: params.get('build_configuration_name') ?? '',
     artifactType: params.get('artifact_type') ?? '',
@@ -54,8 +53,8 @@ function parseConditionsString(conditions: string): Omit<QueryConfig, 'name'> {
 function buildConditionsString(config: QueryConfig): string {
   const params = new URLSearchParams();
 
-  if (config.appIds.length > 0) {
-    params.set('app_id', config.appIds.join(','));
+  if (config.appId) {
+    params.set('app_id', config.appId);
   }
   if (config.branch) {
     params.set('git_head_ref', config.branch);
@@ -82,7 +81,7 @@ export function MobileAppSizeFilters() {
       return [
         {
           name: '',
-          appIds: [],
+          appId: '',
           branch: '',
           buildConfig: '',
           artifactType: '',
@@ -167,7 +166,7 @@ export function MobileAppSizeFilters() {
       ...queryConfigs,
       {
         name: '',
-        appIds: [],
+        appId: '',
         branch: '',
         buildConfig: '',
         artifactType: '',
@@ -230,18 +229,13 @@ export function MobileAppSizeFilters() {
             <SelectField
               name={`appId-${index}`}
               label={t('App ID')}
-              placeholder={t('Select one or more apps')}
-              value={config.appIds}
+              placeholder={t('Select an app')}
+              value={config.appId || undefined}
               options={filterOptions.appIds}
-              onChange={value =>
-                handleQueryChange(index, {
-                  appIds: Array.isArray(value) ? value : value ? [value] : [],
-                })
-              }
+              onChange={value => handleQueryChange(index, {appId: value || ''})}
               inline={false}
               stacked
-              clearable
-              multiple
+              allowClear
             />
             <SelectField
               name={`artifactType-${index}`}
@@ -256,7 +250,7 @@ export function MobileAppSizeFilters() {
               onChange={value => handleQueryChange(index, {artifactType: value || ''})}
               inline={false}
               stacked
-              clearable
+              allowClear
             />
             <SelectField
               name={`branch-${index}`}
@@ -267,7 +261,7 @@ export function MobileAppSizeFilters() {
               onChange={value => handleQueryChange(index, {branch: value || ''})}
               inline={false}
               stacked
-              clearable
+              allowClear
             />
             <SelectField
               name={`buildConfig-${index}`}
@@ -278,7 +272,7 @@ export function MobileAppSizeFilters() {
               onChange={value => handleQueryChange(index, {buildConfig: value || ''})}
               inline={false}
               stacked
-              clearable
+              allowClear
             />
             <RadioGroup
               label={t('Size Type')}
@@ -310,7 +304,7 @@ const DocsLink = styled(ExternalLink)`
 `;
 
 const QuerySection = styled(Flex)`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.md};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.radius.md};
 `;
