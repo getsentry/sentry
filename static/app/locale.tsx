@@ -4,7 +4,7 @@ import Jed from 'jed';
 // @ts-expect-error TS(7016): Could not find a declaration file for module 'spri... Remove this comment to see the full error message
 import {sprintf} from 'sprintf-js';
 
-import {InlineCode} from '@sentry/scraps/code';
+import {InlineCode} from '@sentry/scraps/code/inlineCode';
 
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import toArray from 'sentry/utils/array/toArray';
