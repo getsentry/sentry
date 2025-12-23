@@ -41,54 +41,21 @@ export function AppSizeFilters() {
   const organization = useOrganization();
   const {state, dispatch} = useWidgetBuilderContext();
   const [sizeType, setSizeType] = useState<'install' | 'download'>('install');
-  const [queryConfigs, setQueryConfigs] = useState<QueryConfig[]>([
-    {
-      name: '',
-      appIds: [],
-      branch: '',
-      buildConfig: '',
-      artifactType: '',
-    },
-  ]);
-
-  // Fetch available filter options from the app-size-stats endpoint
-  // Cache for 5 minutes since filter options don't change frequently
-  const {data: filterResponse, isPending: loading} = useApiQuery<FilterResponse>(
-    [
-      `/organizations/${organization.slug}/preprod/app-size-stats/`,
-      {query: {includeFilters: 'true', statsPeriod: '90d'}},
-    ],
-    {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    }
-  );
-
-  const filterOptions: AppSizeFilterOptions = {
-    appIds:
-      filterResponse?.filters?.app_ids?.map((id: string) => ({
-        label: id,
-        value: id,
-      })) ?? [],
-    branches:
-      filterResponse?.filters?.branches?.map((branch: string) => ({
-        label: branch,
-        value: branch,
-      })) ?? [],
-    buildConfigs:
-      filterResponse?.filters?.build_configs?.map((config: string) => ({
-        label: config,
-        value: config,
-      })) ?? [],
-  };
-
-  // Parse initial state from widget queries on mount
-  useEffect(() => {
+  const [queryConfigs, setQueryConfigs] = useState<QueryConfig[]>(() => {
     const queries = state.query || [];
     if (queries.length === 0) {
-      return;
+      return [
+        {
+          name: '',
+          appIds: [],
+          branch: '',
+          buildConfig: '',
+          artifactType: '',
+        },
+      ];
     }
 
-    const configs: QueryConfig[] = queries.map((conditions, index) => {
+    return queries.map((conditions, index) => {
       const parts = conditions.split(/\s+/);
       let appIds: string[] = [];
       let branch = '';
@@ -120,10 +87,37 @@ export function AppSizeFilters() {
         artifactType,
       };
     });
+  });
 
-    setQueryConfigs(configs);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Fetch available filter options from the app-size-stats endpoint
+  // Cache for 5 minutes since filter options don't change frequently
+  const {data: filterResponse, isPending: loading} = useApiQuery<FilterResponse>(
+    [
+      `/organizations/${organization.slug}/preprod/app-size-stats/`,
+      {query: {includeFilters: 'true', statsPeriod: '90d'}},
+    ],
+    {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    }
+  );
+
+  const filterOptions: AppSizeFilterOptions = {
+    appIds:
+      filterResponse?.filters?.app_ids?.map((id: string) => ({
+        label: id,
+        value: id,
+      })) ?? [],
+    branches:
+      filterResponse?.filters?.branches?.map((branch: string) => ({
+        label: branch,
+        value: branch,
+      })) ?? [],
+    buildConfigs:
+      filterResponse?.filters?.build_configs?.map((config: string) => ({
+        label: config,
+        value: config,
+      })) ?? [],
+  };
 
   // Sync size type from yAxis whenever it changes
   useEffect(() => {
@@ -158,11 +152,13 @@ export function AppSizeFilters() {
 
   // Update all queries in widget state
   const updateQueries = useCallback(
-    (configs: QueryConfig[]) => {
+    (configs: QueryConfig[], aggregate?: string) => {
       const conditions = configs.map(buildConditions);
 
       // Get the current aggregate based on size type
-      const currentAggregate = state.yAxis?.[0]?.field || 'max(max_install_size)';
+      // Use provided aggregate or fall back to state
+      const currentAggregate =
+        aggregate || state.yAxis?.[0]?.field || 'max(max_install_size)';
 
       dispatch({
         type: 'SET_QUERY',
@@ -237,11 +233,8 @@ export function AppSizeFilters() {
       });
 
       // Update all queries with the new aggregate
-      // This ensures the queries have the correct aggregates when size type changes
-      // Note: We need to do this in a setTimeout to ensure SET_Y_AXIS has been processed
-      setTimeout(() => {
-        updateQueries(queryConfigs);
-      }, 0);
+      // Pass the new aggregate directly to avoid race conditions with state updates
+      updateQueries(queryConfigs, newFieldString);
     },
     [dispatch, queryConfigs, updateQueries]
   );
