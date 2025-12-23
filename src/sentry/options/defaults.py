@@ -3818,3 +3818,20 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Project ID allowlist to enable truncation of group IDs in Snuba query
+# when search filters are selective.
+register(
+    "snuba.search.truncate-group-ids-for-selective-filters-project-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Organization slug allowlist to enable Autopilot for specific organizations.
+register(
+    "autopilot.organization-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)

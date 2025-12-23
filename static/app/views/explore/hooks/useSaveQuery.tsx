@@ -1,5 +1,6 @@
 import {useCallback, useMemo} from 'react';
 
+import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import type {DateString} from 'sentry/types/core';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import useApi from 'sentry/utils/useApi';
@@ -41,6 +42,7 @@ type ExploreSavedQueryRequest = {
     mode: Mode;
     aggregateField?: Array<{groupBy: string} | {yAxes: string[]; chartType?: number}>;
     aggregateOrderby?: string;
+    caseInsensitive?: '1';
     fields?: string[];
     groupby?: string[];
     orderby?: string;
@@ -60,6 +62,7 @@ function useSavedQueryForDataset(dataset: 'spans' | 'logs') {
   const queryParams = useQueryParams();
   const {id, title} = queryParams;
 
+  const [caseInsensitive] = useCaseInsensitivity();
   const {saveQueryFromSavedQuery, updateQueryFromSavedQuery} = useFromSavedQuery();
 
   const requestData = useMemo((): ExploreSavedQueryRequest => {
@@ -69,8 +72,9 @@ function useSavedQueryForDataset(dataset: 'spans' | 'logs') {
       pageFilters,
       interval,
       title: title ?? '',
+      caseInsensitive: caseInsensitive ? '1' : undefined,
     });
-  }, [dataset, queryParams, pageFilters, interval, title]);
+  }, [dataset, queryParams, pageFilters, interval, title, caseInsensitive]);
 
   const {saveQueryApi, updateQueryApi} = useCreateOrUpdateSavedQuery(id);
 
@@ -200,12 +204,14 @@ function convertQueryParamsToRequest({
   pageFilters,
   interval,
   title,
+  caseInsensitive,
 }: {
   dataset: 'spans' | 'logs';
   interval: string;
   pageFilters: ReturnType<typeof usePageFilters>;
   queryParams: ReadableQueryParams;
   title: string;
+  caseInsensitive?: '1';
 }): ExploreSavedQueryRequest {
   const {selection} = pageFilters;
   const {datetime, projects, environments} = selection;
@@ -253,6 +259,7 @@ function convertQueryParamsToRequest({
         query,
         mode,
         aggregateField: aggregateFields,
+        caseInsensitive,
       },
     ],
   };
