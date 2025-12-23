@@ -47,11 +47,6 @@ jobs:
 
       - name: test-tools
         run: make test-tools
-      - name: Handle artifacts
-        uses: ./.github/actions/artifacts
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          commit_sha: ${{ github.event.pull_request.head.sha }}
 
   devenv:
     runs-on: ubuntu-24.04
