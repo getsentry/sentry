@@ -16,7 +16,7 @@ import {BuildDetailsArtifactType} from 'sentry/views/preprod/types/buildDetailsT
 import type {DatasetConfig} from './base';
 import {handleOrderByReset} from './base';
 
-interface AppSizeResponse {
+export interface AppSizeResponse {
   data: Array<[number, Array<{count: number | null}>]>;
   end: number;
   meta: {
@@ -125,7 +125,7 @@ export const MobileAppSizeConfig: DatasetConfig<AppSizeResponse[], TableData> = 
     return data.map(response => {
       // Filter out time buckets with no data, creating a continuous line
       const seriesData = response.data
-        .filter(([, values]) => values[0]?.count !== null)
+        .filter(([, values]) => values[0] !== undefined && values[0].count !== null)
         .map(([timestamp, values]) => ({
           name: timestamp * 1000,
           value: values[0]!.count as number,

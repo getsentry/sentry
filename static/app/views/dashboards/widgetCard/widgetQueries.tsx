@@ -12,6 +12,7 @@ import {useMetricsResultsMeta} from 'sentry/utils/performance/contexts/metricsEn
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OnDemandControlConsumer} from 'sentry/utils/performance/contexts/onDemandControl';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
+import type {AppSizeResponse} from 'sentry/views/dashboards/datasetConfig/mobileAppSize';
 import {
   WidgetType,
   type DashboardFilters,
@@ -27,7 +28,11 @@ import type {
 } from './genericWidgetQueries';
 import GenericWidgetQueries from './genericWidgetQueries';
 
-type SeriesResult = EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats;
+type SeriesResult =
+  | EventsStats
+  | MultiSeriesEventsStats
+  | GroupedMultiSeriesEventsStats
+  | AppSizeResponse[];
 type TableResult = TableData | EventsTableData;
 
 type Props = {
