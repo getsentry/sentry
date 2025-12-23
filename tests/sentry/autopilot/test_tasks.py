@@ -189,3 +189,27 @@ class TestRunSdkUpdateDetector(TestCase, SnubaTestCase):
             updates = run_sdk_update_detector_for_organization(self.organization)
 
         assert len(updates) == 0
+
+    @pytest.mark.django_db
+    @mock.patch(
+        "sentry.autopilot.tasks.get_sdk_versions",
+        return_value={"example.sdk": "1.0.5"},
+    )
+    def test_it_ignores_invalid_sdk_versions(self, mock_index_state: mock.MagicMock) -> None:
+        min_ago = before_now(minutes=1).isoformat()
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "oh no",
+                "timestamp": min_ago,
+                "fingerprint": ["group-1"],
+                "sdk": {"name": "example.sdk", "version": "abcdefg"},
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+
+        with override_options({"autopilot.organization-allowlist": [self.organization.slug]}):
+            updates = run_sdk_update_detector_for_organization(self.organization)
+
+        assert len(updates) == 0

@@ -106,9 +106,12 @@ def run_sdk_update_detector_for_organization(organization: Organization):
             return False
 
         # Ignore patch versions
-        return version.Version(strip_patch_version(sdk_version)) < version.Version(
-            strip_patch_version(sdk_versions.get(sdk_name))
-        )
+        try:
+            return version.Version(strip_patch_version(sdk_version)) < version.Version(
+                strip_patch_version(sdk_versions.get(sdk_name))
+            )
+        except version.InvalidVersion:
+            return False
 
     updates_list = [
         dict(
