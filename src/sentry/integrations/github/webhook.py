@@ -121,7 +121,7 @@ class GitHubWebhook(SCMWebhook, ABC):
 
     EVENT_TYPE: IntegrationWebhookEventType
     # When subclassing, add your webhook event processor here.
-    WEBHOOK_EVENT_PROCESSORS: list[WebhookProcessor] = []
+    WEBHOOK_EVENT_PROCESSORS: tuple[WebhookProcessor, ...] = ()
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -136,6 +136,9 @@ class GitHubWebhook(SCMWebhook, ABC):
     def provider(self) -> str:
         return IntegrationProviderSlug.GITHUB.value
 
+    # _handle() is needed by _call() in the base class.
+    # subclasses can now just add their function to the WEBHOOK_EVENT_PROCESSORS tuple
+    # without needing to implement _handle()
     def _handle(
         self,
         integration: RpcIntegration,
@@ -736,7 +739,7 @@ class PullRequestEventWebhook(GitHubWebhook):
     """https://developer.github.com/v3/activity/events/types/#pullrequestevent"""
 
     EVENT_TYPE = IntegrationWebhookEventType.PULL_REQUEST
-    WEBHOOK_EVENT_PROCESSORS = [_handle_pr_webhook_for_autofix_processor]
+    WEBHOOK_EVENT_PROCESSORS = (_handle_pr_webhook_for_autofix_processor,)
 
     def _handle(
         self,
@@ -914,7 +917,7 @@ class PullRequestReviewEventWebhook(GitHubWebhook):
     """
 
     EVENT_TYPE = IntegrationWebhookEventType.PULL_REQUEST_REVIEW
-    WEBHOOK_EVENT_PROCESSORS = []
+    WEBHOOK_EVENT_PROCESSORS = ()
 
 
 class PullRequestReviewCommentEventWebhook(GitHubWebhook):
@@ -924,7 +927,7 @@ class PullRequestReviewCommentEventWebhook(GitHubWebhook):
     """
 
     EVENT_TYPE = IntegrationWebhookEventType.PULL_REQUEST_REVIEW_COMMENT
-    WEBHOOK_EVENT_PROCESSORS = []
+    WEBHOOK_EVENT_PROCESSORS = ()
 
 
 class CheckRunEventWebhook(GitHubWebhook):
@@ -934,7 +937,7 @@ class CheckRunEventWebhook(GitHubWebhook):
     """
 
     EVENT_TYPE = IntegrationWebhookEventType.CHECK_RUN
-    WEBHOOK_EVENT_PROCESSORS = [code_review_webhook_processor]
+    WEBHOOK_EVENT_PROCESSORS = (code_review_webhook_processor,)
 
 
 class IssueCommentEventWebhook(GitHubWebhook):
@@ -944,7 +947,7 @@ class IssueCommentEventWebhook(GitHubWebhook):
     """
 
     EVENT_TYPE = IntegrationWebhookEventType.ISSUE_COMMENT
-    WEBHOOK_EVENT_PROCESSORS = []
+    WEBHOOK_EVENT_PROCESSORS = ()
 
 
 @all_silo_endpoint
