@@ -28,7 +28,7 @@ _INSTALLATION_EVENTS = {
 # Mapping of webhook types to their corresponding option keys
 _WEBHOOK_TYPE_TO_OPTION = {
     GithubWebhookType.ISSUE_COMMENT: "github.webhook.issue-comment",
-    GithubWebhookType.PULL_REQUEST: "github.webhook.pull-request",
+    GithubWebhookType.PULL_REQUEST: "github.webhook.pr",
     GithubWebhookType.PULL_REQUEST_REVIEW_COMMENT: "github.webhook.pr-review-comment",
     GithubWebhookType.PULL_REQUEST_REVIEW: "github.webhook.pr-review",
 }
