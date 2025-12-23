@@ -1,4 +1,5 @@
 from collections.abc import Mapping
+from enum import StrEnum
 from typing import Any, Literal
 
 import orjson
@@ -13,6 +14,15 @@ class ClientError(Exception):
     "Non-retryable client error from Seer"
 
     pass
+
+
+class SeerEndpoint(StrEnum):
+    # XXX: We will need to either add a new one or re-use the overwatch-request endpoint.
+    # https://github.com/getsentry/seer/blob/main/src/seer/routes/automation_request.py#L57
+    SENTRY_REQUEST = "/v1/automation/sentry-request"
+    # This needs to match the value defined in the Seer API:
+    # https://github.com/getsentry/seer/blob/main/src/seer/routes/codegen.py
+    PR_REVIEW_RERUN = "/v1/automation/codegen/pr-review/rerun"
 
 
 def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:

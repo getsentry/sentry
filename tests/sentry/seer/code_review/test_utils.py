@@ -7,7 +7,7 @@ from sentry.testutils.cases import TestCase
 class TransformWebhookToCodegenRequestTest(TestCase):
     """Unit tests for _transform_webhook_to_codegen_request."""
 
-    def test_transform_includes_organization_id(self):
+    def test_transform_includes_organization_id(self) -> None:
         """Test that the transformed payload includes organization_id."""
         event_payload = {
             "action": "opened",
@@ -31,7 +31,7 @@ class TransformWebhookToCodegenRequestTest(TestCase):
         assert result["data"]["repo"]["name"] == "test-repo"
         assert result["data"]["pr_id"] == 123
 
-    def test_transform_with_issue_comment_on_pr(self):
+    def test_transform_with_issue_comment_on_pr(self) -> None:
         """Test that issue_comment events on PRs include organization_id."""
         event_payload = {
             "action": "created",
@@ -55,7 +55,7 @@ class TransformWebhookToCodegenRequestTest(TestCase):
         assert result["organization_id"] == organization_id
         assert result["data"]["pr_id"] == 123
 
-    def test_transform_returns_none_for_non_pr_issue_comment(self):
+    def test_transform_returns_none_for_non_pr_issue_comment(self) -> None:
         """Test that issue_comment events on regular issues return None."""
         event_payload = {
             "action": "created",
@@ -77,7 +77,7 @@ class TransformWebhookToCodegenRequestTest(TestCase):
 
         assert result is None
 
-    def test_transform_raises_valueerror_for_missing_repository(self):
+    def test_transform_raises_valueerror_for_missing_repository(self) -> None:
         """Test that missing repository raises ValueError."""
         event_payload = {
             "action": "opened",

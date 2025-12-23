@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from datetime import datetime, timezone
 from typing import Any
 
 from urllib3.exceptions import HTTPError
 
-from sentry.seer.code_review.webhooks import PROCESSORS
+from sentry.seer.code_review.webhooks import process_task_event
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_code_review_tasks
@@ -30,7 +31,7 @@ RETRYABLE_ERRORS = (HTTPError,)
     silo_mode=SiloMode.REGION,
 )
 def process_github_webhook_event(
-    *, enqueued_at_str: str, organization_id: int | None = None, **kwargs: Any
+    *, enqueued_at_str: str, event_type: str, event_payload: Mapping[str, Any], **kwargs: Any
 ) -> None:
     """
     Process GitHub webhook event by forwarding to Seer if applicable.
@@ -43,9 +44,7 @@ def process_github_webhook_event(
     status = "success"
     should_record_latency = True
     try:
-        # XXX: We may be able to add mapping from webhook event to the right processor.
-        for processor in PROCESSORS:
-            processor(kwargs=kwargs)
+        process_task_event(event_type=event_type, event_payload=event_payload, **kwargs)
     except Exception as e:
         status = e.__class__.__name__
         # Retryable errors are automatically retried by taskworker.

@@ -139,6 +139,7 @@ class GitHubWebhook(SCMWebhook, ABC):
     # _handle() is needed by _call() in the base class.
     # subclasses can now just add their function to the WEBHOOK_EVENT_PROCESSORS tuple
     # without needing to implement _handle()
+    # XXX: Fix the signature in a follow-up.
     def _handle(
         self,
         integration: RpcIntegration,
@@ -146,7 +147,18 @@ class GitHubWebhook(SCMWebhook, ABC):
         **kwargs,
     ) -> None:
         for processor in self.WEBHOOK_EVENT_PROCESSORS:
-            processor(event_type=self.event_type.value, event=event, **kwargs)
+            try:
+                processor(event_type=self.event_type.value, event=event, **kwargs)
+            except Exception as e:
+                # Continue processing other processors even if one fails.
+                logger.exception(
+                    "github.webhook.processor.error",
+                    extra={"event_type": self.event_type.value, "error": str(e)},
+                )
+                metrics.incr(
+                    "github.webhook.processor.error", tags={"event_type": self.event_type.value}
+                )
+                continue
 
     def __call__(self, event: Mapping[str, Any], **kwargs: Any) -> None:
         external_id = get_github_external_id(event=event, host=kwargs.get("host"))

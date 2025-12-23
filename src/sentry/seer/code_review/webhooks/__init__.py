@@ -1,14 +1,9 @@
 """
-Preprocessors can be used by the GitHub webhook handler to preprocess the event before it is processed. They're useful to schedule tasks for later processing.
-Processors are in charge of processing the event.
+This module provides a single entry point for the webhook handler to preprocess the webhook and schedule tasks for later processing.
+It also provides a single entry point for the task processor to process each task.
 """
 
-from .check_run import process_check_run_event
 from .preprocessor import preprocess_webhook_event as code_review_webhook_processor
+from .processor import process_task_event
 
-# These handle the work rather than sending it to Seer.
-PROCESSORS = [
-    process_check_run_event,
-]
-
-__all__ = ["code_review_webhook_processor", "PROCESSORS"]
+__all__ = ["code_review_webhook_processor", "process_task_event"]
