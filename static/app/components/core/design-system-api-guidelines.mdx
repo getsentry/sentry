@@ -17,7 +17,67 @@ This document exists in an effort to improve the status quo, and provide a path 
 ### Optimize for Readability
 
 - Control flow (avoid nested branching or assignment, return early)
+
+- mutable variable with if-else chain pollutes component body with logic that could be kept closer to the DOM
+- title switch inside component body obscures the more important data fetching logic
+
+```tsx
+function ComponentBadge({conditionA, conditionB}: Props) {
+  const request = useQuery();
+  let message = null;
+  if (conditionA) {
+    message = t('Condition A met');
+  } else if (conditionB) {
+    message = t('Condition B met');
+  }
+
+  return (
+    <Tooltip title={message} skipWrapper>
+      <Component />
+    </Tooltip>
+  );
+}
+```
+
+- Component logic is separated from the DOM output
+- The DOM output is self-documenting and easy to understand with a clear null case
+
+```tsx
+function ComponentBadge({conditionA, conditionB}: Props) {
+  const request = useQuery();
+
+  return (
+    <Tooltip
+      title={conditionA ? t('Condition A met') : conditionB ? t('Condition B met') : null}
+    >
+      <Component />
+    </Tooltip>
+  );
+}
+```
+
 - Code should explain what, not why
+
+```tsx
+// ❌ Less readable - comment explains what variable name should convey
+const optionsCount = options.length;
+// "Custom" is the last option (index = optionsCount)
+const isCustomSelected = selectedIndex === optionsCount;
+
+// ✅ Self explanatory - the comment is redundant
+const isCustomSelected = selectedIndex === options.length;
+```
+
+```tsx
+// ❌ Why are we incrementing the page?
+fetchData(currentPage + 1);
+
+//
+// API expects 1-indexed pages, not 0-indexed
+
+fetchData(currentPage + 1);
+```
+
 - Do not optimize for character count
 - What would your future self thank you for?
 
