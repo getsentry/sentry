@@ -129,8 +129,11 @@ function resolveMargin(sizeComponent: Margin, theme: Theme) {
 }
 
 function borderValue(key: BorderVariant, theme: Theme): string {
-  if (key === 'primary' || key === 'muted') {
+  if (key === 'primary') {
     return theme.tokens.border[key];
+  }
+  if (key === 'muted') {
+    return theme.tokens.border.secondary;
   }
   return theme.tokens.border[key].vibrant;
 }
