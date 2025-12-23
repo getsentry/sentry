@@ -104,7 +104,7 @@ def _transform_webhook_to_codegen_request(
     # Build CodecovTaskRequest
     return {
         "data": codegen_request,
-        "external_owner_id": repository["owner"]["login"],
+        "external_owner_id": str(repository["id"]),
         "request_type": request_type,
         "organization_id": organization_id,
     }

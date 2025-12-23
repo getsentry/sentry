@@ -432,7 +432,7 @@ class IntegrationWebhookEventType(StrEnum):
     String values preserve original GitHub naming for backward compatibility with existing metrics.
     """
 
-    CI_CHECK = "check_run"
+    CI_CHECK = "ci_check"
     # This represents a webhook event for an inbound sync operation, such as syncing external resources or data into Sentry.
     INBOUND_SYNC = "inbound_sync"
     INSTALLATION = "installation"

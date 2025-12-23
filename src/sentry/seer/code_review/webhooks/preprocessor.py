@@ -4,7 +4,6 @@ from collections.abc import Mapping
 from datetime import datetime, timezone
 from typing import Any
 
-from sentry.models.organization import Organization
 from sentry.seer.code_review.webhooks.types import EventType
 from sentry.utils import metrics
 
@@ -14,18 +13,19 @@ from .check_run import preprocess_check_run_event
 METRICS_PREFIX = "seer.code_review.webhook"
 
 
-def preprocess_webhook_event(
-    *, event_type: str, event: Mapping[str, Any], organization: Organization, **kwargs: Any
-) -> None:
+def preprocess_webhook_event(*, event_type: str, event: Mapping[str, Any], **kwargs: Any) -> None:
     """
     Preprocess GitHub webhook events.
 
     Args:
         event_type: The type of the webhook event (as string)
         event: The webhook event payload
-        organization: The Sentry organization
-        **kwargs: Additional keyword arguments (e.g., repo, integration) passed by webhook handlers
+        **kwargs: Additional keyword arguments including organization (Organization), repo, integration
     """
+    organization = kwargs.get("organization")
+    if not organization:
+        return
+
     if event_type == EventType.CHECK_RUN:
         preprocess_check_run_event(event=event, organization=organization)
         return
