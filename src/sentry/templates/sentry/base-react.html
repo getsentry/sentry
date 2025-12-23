@@ -3,9 +3,8 @@
 {% load sentry_api sentry_assets sentry_helpers %}
 
 {% block body %}
-  <div id="blk_router">
-    {% include "sentry/partial/loader.html" %}
-  </div>
+  <div id="blk_router"></div>
+  {% include "sentry/partial/loader.html" %}
 {% endblock %}
 
 {% block wrapperclass %}{{ user_theme }}{% endblock %}

@@ -539,15 +539,18 @@ table.table.key-value {
 
 // UI2 loader
 .splash-loader {
-  position: absolute;
+  position: fixed;
+  inset: 0;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translate3d(-50%, -50%, 0);
   margin: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  isolation: isolate;
+  background: inherit;
 
   .loading-indicator {
     height: 256px;
@@ -558,6 +561,7 @@ table.table.key-value {
     justify-content: center;
 
     animation: none;
+    animation-delay: 200ms;
     border: 0;
     overflow: hidden;
     border-radius: 0;

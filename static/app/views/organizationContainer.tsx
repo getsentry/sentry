@@ -1,10 +1,11 @@
+import {useEffect} from 'react';
 import {useProfiler} from '@sentry/react';
 
 import {Container} from '@sentry/scraps/layout';
 
 import {Alert} from 'sentry/components/core/alert';
 import LoadingError from 'sentry/components/loadingError';
-import {ORGANIZATION_FETCH_ERROR_TYPES, ROOT_ELEMENT} from 'sentry/constants';
+import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -15,21 +16,7 @@ function OrganizationLoadingIndicator() {
     hasRenderSpan: true,
   });
 
-  /**
-   * This is the initial loader React will render as the app bootstraps.
-   * Rather than rendering a loader component, we can reuse the existing DOM
-   * provided by the server-rendered Django view!
-   *
-   * This ensures there are no layout shifts as the app initially boots up
-   * because the DOM is exactly the same and React doesn't have to reconcile
-   * the fallback state.
-   */
-  const root = document.getElementById(ROOT_ELEMENT);
-  // There is no scenario in which this component is rendering,
-  // but the root element where the app is mounted doesn't exist
-  const ssrLoader = root!.innerHTML;
-
-  return <div dangerouslySetInnerHTML={{__html: ssrLoader}} />;
+  return null;
 }
 
 interface Props {
@@ -42,6 +29,12 @@ interface Props {
  */
 function OrganizationContainer({children}: Props) {
   const {loading, error, errorType} = useLegacyStore(OrganizationStore);
+
+  useEffect(() => {
+    if (!loading) {
+      document.querySelector('.splash-loader')?.remove();
+    }
+  }, [loading]);
 
   if (loading) {
     return <OrganizationLoadingIndicator />;
