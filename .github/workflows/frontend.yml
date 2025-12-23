@@ -226,21 +226,6 @@ jobs:
             pnpm run test-ci --forceExit
           fi
 
-      # We only upload coverage data for FE changes since it conflicts with
-      # codecov's carry forward functionality.
-      # Upload coverage data even if running the tests step fails since
-      # it reduces large coverage fluctuations.
-      - name: Handle artifacts
-        uses: ./.github/actions/artifacts
-        if: ${{ !cancelled() }}
-        continue-on-error: true
-        timeout-minutes: 5
-        with:
-          files: .artifacts/coverage/*
-          type: frontend
-          token: ${{ secrets.CODECOV_TOKEN }}
-          commit_sha: ${{ github.event.pull_request.head.sha }}
-
   # This check runs once all dependant jobs have passed
   # It symbolizes that all required Frontend checks have succesfully passed (Or skipped)
   # This check is the only required Github check
