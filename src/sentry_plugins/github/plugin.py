@@ -245,8 +245,8 @@ class GitHubPlugin(CorePluginMixin, IssuePlugin2):
                 "help": (
                     "If you want to add a repository to integrate commit data with releases, please install the "
                     'new <a href="/settings/{}/integrations/github/">'
-                    "Github global integration</a>.  "
-                    "You cannot add repositories to the legacy Github integration."
+                    "GitHub global integration</a>.  "
+                    "You cannot add repositories to the legacy GitHub integration."
                 ).format(project.organization.slug),
                 "required": True,
             }

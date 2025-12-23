@@ -86,7 +86,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
     ? [
         t('Unlimited users'),
         t('Event volume controls'),
-        t('SSO via Google and Github'),
+        t('SSO via Google and GitHub'),
         t('Third party integrations'),
         t('Extended data retention'),
         t('Custom alerts'),

@@ -123,7 +123,7 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
   [
     ActionType.GITHUB,
     {
-      label: t('Github'),
+      label: t('GitHub'),
       action: GithubNode,
       details: GithubDetails,
       ticketType: t('a GitHub issue'),
@@ -133,7 +133,7 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
   [
     ActionType.GITHUB_ENTERPRISE,
     {
-      label: t('Github Enterprise'),
+      label: t('GitHub Enterprise'),
       action: GithubEnterpriseNode,
       details: GithubEnterpriseDetails,
       ticketType: t('a GitHub Enterprise issue'),

@@ -619,7 +619,7 @@ class GitHubIntegration(
                     {
                         "name": self.inbound_assignee_key,
                         "type": "boolean",
-                        "label": _("Sync Github Assignment to Sentry"),
+                        "label": _("Sync GitHub Assignment to Sentry"),
                         "help": _(
                             "When an issue is assigned in GitHub, assign its linked Sentry issue to the same user."
                         ),
@@ -688,14 +688,14 @@ class GitHubIntegration(
                     {
                         "name": self.outbound_status_key,
                         "type": "choice_mapper",
-                        "label": _("Sync Sentry Status to Github"),
+                        "label": _("Sync Sentry Status to GitHub"),
                         "help": _(
-                            "When a Sentry issue changes status, change the status of the linked ticket in Github."
+                            "When a Sentry issue changes status, change the status of the linked ticket in GitHub."
                         ),
-                        "addButtonText": _("Add Github Project"),
+                        "addButtonText": _("Add GitHub Project"),
                         "addDropdown": {
                             "emptyMessage": _("All projects configured"),
-                            "noResultsMessage": _("Could not find Github project"),
+                            "noResultsMessage": _("Could not find GitHub project"),
                             "items": current_repo_items,
                             "url": reverse(
                                 "sentry-integration-github-search",
@@ -711,7 +711,7 @@ class GitHubIntegration(
                             "on_resolve": _("When resolved"),
                             "on_unresolve": _("When unresolved"),
                         },
-                        "mappedColumnLabel": _("Github Project"),
+                        "mappedColumnLabel": _("GitHub Project"),
                         "formatMessageValue": False,
                     },
                 )
@@ -721,14 +721,14 @@ class GitHubIntegration(
                     {
                         "name": self.outbound_status_key,
                         "type": "choice_mapper",
-                        "label": _("Sync Sentry Status to Github"),
+                        "label": _("Sync Sentry Status to GitHub"),
                         "help": _(
-                            "When a Sentry issue changes status, change the status of the linked ticket in Github."
+                            "When a Sentry issue changes status, change the status of the linked ticket in GitHub."
                         ),
-                        "addButtonText": _("Add Github Project"),
+                        "addButtonText": _("Add GitHub Project"),
                         "addDropdown": {
                             "emptyMessage": _("All projects configured"),
-                            "noResultsMessage": _("Could not find Github project"),
+                            "noResultsMessage": _("Could not find GitHub project"),
                             "items": [],  # Populated with projects
                         },
                         "mappedSelectors": {},
@@ -736,7 +736,7 @@ class GitHubIntegration(
                             "on_resolve": _("When resolved"),
                             "on_unresolve": _("When unresolved"),
                         },
-                        "mappedColumnLabel": _("Github Project"),
+                        "mappedColumnLabel": _("GitHub Project"),
                         "formatMessageValue": False,
                     },
                 )

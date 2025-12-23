@@ -95,7 +95,7 @@ describe('IntegrationRow', () => {
           organization={org}
           type="firstParty"
           slug="github"
-          displayName="Github"
+          displayName="GitHub"
           status="Not Installed"
           publishStatus="published"
           configurations={0}
@@ -103,7 +103,7 @@ describe('IntegrationRow', () => {
         />
       );
       expect(screen.getByText('Not Installed')).toBeInTheDocument();
-      expect(screen.getByText('Github')).toHaveAttribute(
+      expect(screen.getByText('GitHub')).toHaveAttribute(
         'href',
         `/settings/${org.slug}/integrations/github/`
       );
