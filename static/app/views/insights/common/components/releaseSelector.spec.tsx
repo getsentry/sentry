@@ -58,7 +58,6 @@ describe('ReleaseSelector', () => {
           organization,
           moduleName: ModuleName.MOBILE_VITALS,
           filtered: false,
-          type: 'primary',
         })
       );
     });
