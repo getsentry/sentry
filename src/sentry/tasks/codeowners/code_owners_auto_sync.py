@@ -77,8 +77,7 @@ def code_owners_auto_sync(commit_id: int, **kwargs: Any) -> None:
 
         # If we fail to fetch the codeowners file, the user can manually sync. We'll send them an email on failure.
         if not codeowner_contents:
-            AutoSyncNotification(code_mapping.project).send()
-            continue
+            return AutoSyncNotification(code_mapping.project).send()
 
         codeowners: ProjectCodeOwners = ProjectCodeOwners.objects.get(
             repository_project_path_config=code_mapping
