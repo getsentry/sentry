@@ -2,6 +2,7 @@ import type {Series} from 'sentry/types/echarts';
 import type {EventsStats} from 'sentry/types/organization';
 import {
   aggregateOutputType,
+  RateUnit,
   type AggregationOutputType,
 } from 'sentry/utils/discover/fields';
 import type {Widget} from 'sentry/views/dashboards/types';
@@ -27,10 +28,15 @@ export function transformLegacySeriesToPlottables(
 
   const plottables = timeseriesResults
     .map(series => {
+      const unaliasedSeriesName =
+        series.seriesName?.split(' : ').at(-1)?.trim() ?? series.seriesName;
       const fieldType =
-        timeseriesResultsTypes?.[series.seriesName] ??
-        aggregateOutputType(series.seriesName);
-      const {valueType, valueUnit} = mapAggregationTypeToValueTypeAndUnit(fieldType);
+        timeseriesResultsTypes?.[unaliasedSeriesName] ??
+        aggregateOutputType(unaliasedSeriesName);
+      const {valueType, valueUnit} = mapAggregationTypeToValueTypeAndUnit(
+        fieldType,
+        unaliasedSeriesName
+      );
       const timeSeries = convertEventsStatsToTimeSeriesData(
         series.seriesName,
         createEventsStatsFromSeries(series, valueType as AggregationOutputType, valueUnit)
@@ -85,11 +91,29 @@ function createPlottableFromTimeSeries(
   }
 }
 
-function mapAggregationTypeToValueTypeAndUnit(aggregationType: AggregationOutputType): {
+function mapAggregationTypeToValueTypeAndUnit(
+  aggregationType: AggregationOutputType,
+  fieldName: string
+): {
   valueType: TimeSeries['meta']['valueType'];
   valueUnit: TimeSeries['meta']['valueUnit'];
 } {
+  // Special case, epm/eps come back as numbers but we want to show as reate
+  // Checking eps/epm here is a hack until we migrate to new /timeseries endpoint
+  if (fieldName?.includes('eps()')) {
+    return {valueType: 'rate', valueUnit: RateUnit.PER_SECOND};
+  }
+  if (fieldName?.includes('epm()')) {
+    return {valueType: 'rate', valueUnit: RateUnit.PER_MINUTE};
+  }
+
   switch (aggregationType) {
+    case 'rate':
+      return {valueType: 'rate', valueUnit: null};
+    case 'size':
+      return {valueType: 'size', valueUnit: null};
+    case 'duration':
+      return {valueType: 'duration', valueUnit: null};
     case 'score':
       return {valueType: 'score', valueUnit: null};
     case 'percentage':

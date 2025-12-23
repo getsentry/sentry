@@ -2,7 +2,7 @@ import {TransactionEventFixture} from 'sentry-fixture/event';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
@@ -16,7 +16,11 @@ import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/tr
 import {RootNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/rootNode';
 import {TraceNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/traceNode';
 import {UptimeCheckNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/uptimeCheckNode';
-import {makeUptimeCheck} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
+import {
+  makeEAPSpan,
+  makeEAPTrace,
+  makeUptimeCheck,
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
 
 jest.mock('sentry/views/performance/newTraceDetails/traceState/traceStateProvider');
 jest.mock('sentry/utils/useLocation');
@@ -29,7 +33,7 @@ const baseProps: Partial<TraceMetadataHeaderProps> = {
       projects: 1,
       transactions: 1,
       transaction_child_count_map: {span1: 1},
-      span_count: 0,
+      span_count: 1,
       span_count_map: {},
     },
     errors: [],
@@ -55,6 +59,12 @@ const useLocationMock = jest.mocked(useLocation);
 describe('TraceMetaDataHeader', () => {
   beforeEach(() => {
     jest.resetAllMocks();
+
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/projects/',
+    });
+
     organization = OrganizationFixture();
   });
 
@@ -225,6 +235,52 @@ describe('TraceMetaDataHeader', () => {
       expect(screen.getByText('Uptime Monitor Check')).toBeInTheDocument();
       // Check for subtitle with method and URL
       expect(screen.getByText('GET https://example.com')).toBeInTheDocument();
+    });
+  });
+
+  describe('meta', () => {
+    it('should render meta with different spans count', async () => {
+      useLocationMock.mockReturnValue(
+        LocationFixture({
+          pathname: '/organizations/org-slug/traces/trace/trace-slug',
+        })
+      );
+
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'eap-span-1',
+            op: 'http',
+            description: 'request',
+            start_timestamp: 0,
+            end_timestamp: 1,
+            is_transaction: false,
+            children: [],
+          }),
+        ]),
+        {
+          meta: null,
+          replay: null,
+          organization,
+        }
+      );
+
+      const props = {
+        ...baseProps,
+        tree,
+        metaResults: {
+          ...baseProps.metaResults,
+          data: {
+            ...baseProps.metaResults?.data,
+            span_count: 20,
+          },
+        },
+      } as TraceMetadataHeaderProps;
+      render(<TraceMetaDataHeader {...props} organization={organization} />);
+
+      expect(screen.getByText('20')).toBeInTheDocument();
+      await userEvent.hover(screen.getByText('20'));
+      expect(await screen.findByText('Showing 1 of 20 spans')).toBeInTheDocument();
     });
   });
 });
