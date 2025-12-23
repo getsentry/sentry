@@ -146,7 +146,6 @@ function buildRoutes(): RouteObject[] {
     ? {
         path: '/auth/login/',
         component: errorHandler(AuthLayout),
-        deprecatedRouteProps: true,
         children: experimentalSpaChildRoutes,
       }
     : {};
