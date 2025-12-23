@@ -914,7 +914,7 @@ class PullRequestReviewEventWebhook(GitHubWebhook):
     """
 
     EVENT_TYPE = IntegrationWebhookEventType.PULL_REQUEST_REVIEW
-    WEBHOOK_EVENT_PROCESSORS = [code_review_webhook_processor]
+    WEBHOOK_EVENT_PROCESSORS = []
 
 
 class PullRequestReviewCommentEventWebhook(GitHubWebhook):
@@ -924,7 +924,7 @@ class PullRequestReviewCommentEventWebhook(GitHubWebhook):
     """
 
     EVENT_TYPE = IntegrationWebhookEventType.PULL_REQUEST_REVIEW_COMMENT
-    WEBHOOK_EVENT_PROCESSORS = [code_review_webhook_processor]
+    WEBHOOK_EVENT_PROCESSORS = []
 
 
 class CheckRunEventWebhook(GitHubWebhook):
@@ -944,7 +944,7 @@ class IssueCommentEventWebhook(GitHubWebhook):
     """
 
     EVENT_TYPE = IntegrationWebhookEventType.ISSUE_COMMENT
-    WEBHOOK_EVENT_PROCESSORS = [code_review_webhook_processor]
+    WEBHOOK_EVENT_PROCESSORS = []
 
 
 @all_silo_endpoint
