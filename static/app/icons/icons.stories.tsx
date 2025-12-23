@@ -302,7 +302,7 @@ const SECTIONS: TSection[] = [
         id: 'github',
         groups: ['logo'],
         keywords: ['git', 'repository', 'code', 'microsoft'],
-        name: 'Github',
+        name: 'GitHub',
         defaultProps: {},
       },
       {
