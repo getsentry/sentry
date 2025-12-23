@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from sentry.api.serializers import (
     OrganizationMemberSerializer,
     OrganizationMemberWithProjectsSerializer,
@@ -52,6 +54,32 @@ class OrganizationMemberSerializerTest(TestCase):
         result = serialize(member, self.user_2, OrganizationMemberSerializer())
         assert result["user"]["id"] == str(user.id)
         assert result["user"]["name"] == "bob"
+
+    def test_serialize_many_returns_none_values(self) -> None:
+        """
+        Test that the serializer handles None values returned from user_service.serialize_many.
+
+        This can happen due to serialization failures in the user service.
+        """
+        user = self.create_user(name="charlie", email="charlie@example.com")
+        member = self.create_member(
+            organization=self.org,
+            user_id=user.id,
+        )
+
+        # Mock serialize_many to return a list containing None values
+        with patch(
+            "sentry.api.serializers.models.organization_member.base.user_service.serialize_many"
+        ) as mock_serialize_many:
+            mock_serialize_many.return_value = [None, None]
+
+            result = serialize(member, self.user_2, OrganizationMemberSerializer())
+
+            # When user serialization fails, the member should still be serialized
+            # but with user=None and email falling back to member's email
+            assert result["user"] is None
+            assert result["email"] == member.email
+            assert result["name"] == member.email
 
 
 class OrganizationMemberWithProjectsSerializerTest(OrganizationMemberSerializerTest):
