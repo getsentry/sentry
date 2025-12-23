@@ -491,7 +491,19 @@ function ClusterCard({
   return (
     <CardContainer>
       <CardHeader>
-        {cluster.impact && <ClusterTitle>{cluster.impact}</ClusterTitle>}
+        {cluster.impact && (
+          <ClusterTitle>
+            {cluster.impact}
+            <Text
+              as="span"
+              size="md"
+              variant="muted"
+              style={{fontWeight: 'normal', marginLeft: space(1)}}
+            >
+              [CLUSTER-{cluster.cluster_id}]
+            </Text>
+          </ClusterTitle>
+        )}
         {!clusterStats.isPending &&
           (clusterStats.newIssuesCount > 0 ||
             clusterStats.hasRegressedIssues ||
