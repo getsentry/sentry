@@ -795,8 +795,8 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         group = event.group
         group.update(status=GroupStatus.RESOLVED, substatus=None)
 
-        # Create a SET_RESOLVED_IN_RELEASE activity WITHOUT a GroupResolution
-        # This simulates the bug where ident is not set or GroupResolution is missing
+        # Create a SET_RESOLVED_IN_RELEASE activity WITHOUT a GroupResolution/ident.
+        # This simulates the bug where ident is not set or GroupResolution is missing.
         Activity.objects.create(
             group=group,
             project=group.project,

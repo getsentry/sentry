@@ -95,7 +95,7 @@ from sentry.models.eventattachment import CRASH_REPORT_TYPES, EventAttachment, g
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
-from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
+from sentry.models.grouphistory import RESOLVED_STATUSES, GroupHistoryStatus, record_group_history
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupopenperiod import create_open_period
 from sentry.models.grouprelease import GroupRelease
@@ -1735,7 +1735,6 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
                 update_fields=["last_seen", "active_at", "status", "substatus"],
             )
 
-    follows_semver = False
     resolved_in_activity = None
     if is_regression and release:
         resolution = None
@@ -1752,52 +1751,46 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
             cursor.execute("DELETE FROM sentry_groupresolution WHERE id = %s", [resolution.id])
             affected = cursor.rowcount > 0
 
+        # If we removed the GroupResolution, find the corresponding activity
         if affected and resolution:
-            # if we had to remove the GroupResolution (i.e. we beat the
-            # the queue to handling this) then we need to also record
-            # the corresponding event
-            try:
-                resolved_in_activity = Activity.objects.filter(
+            resolved_in_activity = (
+                Activity.objects.filter(
                     group=group,
                     type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
                     ident=resolution.id,
-                ).order_by("-datetime")[0]
-            except IndexError:
-                # XXX: handle missing data, as its not overly important
-                pass
-            else:
-                try:
-                    # We should only update last activity version prior to the regression in the
-                    # case where we have "Resolved in upcoming release" i.e. version == ""
-                    # We also should not override the `data` attribute here because it might have
-                    # a `current_release_version` for semver releases and we wouldn't want to
-                    # lose that
-                    if resolved_in_activity.data["version"] == "":
-                        resolved_in_activity.update(
-                            data={**resolved_in_activity.data, "version": release.version}
-                        )
-                except KeyError:
-                    # Safeguard in case there is no "version" key. However, should not happen
+                )
+                .order_by("-datetime")
+                .first()
+            )
+
+            # If the activity was "resolved in upcoming release" (version == ""),
+            # rewrite it to the actual release version so consumers can compare.
+            # We preserve existing keys like `current_release_version`.
+            if resolved_in_activity is not None:
+                existing_version = resolved_in_activity.data.get("version")
+                if existing_version == "":
+                    resolved_in_activity.update(
+                        data={**resolved_in_activity.data, "version": release.version}
+                    )
+                elif existing_version is None:
                     resolved_in_activity.update(data={"version": release.version})
 
-        # Fallback: if we didn't find an activity by ident (e.g., GroupResolution was missing
-        # or activity was created without ident), try to find the most recent resolution activity
+        # Fallback to the most recent resolved activity. If the group was resolved in a
+        # release, we can still record the comparison data even if GroupResolution/ident is missing.
         if resolved_in_activity is None:
-            try:
-                resolved_in_activity = Activity.objects.filter(
+            latest_resolution = (
+                Activity.objects.filter(
                     group=group,
-                    type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
-                ).order_by("-datetime")[0]
-            except IndexError:
-                pass
-
-        # Record how we compared the two releases - compute this regardless of whether
-        # GroupResolution was found, as it only depends on the project and release version
-        follows_semver = follows_semver_versioning_scheme(
-            project_id=group.project.id,
-            org_id=group.organization.id,
-            release_version=release.version,
-        )
+                    type__in=RESOLVED_STATUSES,
+                )
+                .order_by("-datetime")
+                .first()
+            )
+            if (
+                latest_resolution
+                and latest_resolution.type == ActivityType.SET_RESOLVED_IN_RELEASE.value
+            ):
+                resolved_in_activity = latest_resolution
 
     if is_regression:
         activity_data: dict[str, str | bool] = {
@@ -1805,6 +1798,12 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
             "version": release.version if release else "",
         }
         if resolved_in_activity and release:
+            # Record how we compared the two releases
+            follows_semver = follows_semver_versioning_scheme(
+                project_id=group.project.id,
+                org_id=group.organization.id,
+                release_version=release.version,
+            )
             activity_data.update(
                 {
                     "follows_semver": follows_semver,
