@@ -1172,7 +1172,6 @@ function buildRoutes(): RouteObject[] {
       path: 'early-features/',
       name: t('Early Features'),
       component: make(() => import('sentry/views/settings/earlyFeatures')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'dynamic-sampling/',
