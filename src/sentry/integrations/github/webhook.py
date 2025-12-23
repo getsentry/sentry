@@ -5,9 +5,9 @@ import hmac
 import inspect
 import logging
 from abc import ABC
-from collections.abc import Callable, Mapping, MutableMapping
+from collections.abc import Mapping, MutableMapping
 from datetime import timezone
-from typing import Any
+from typing import Any, Protocol
 
 import orjson
 from dateutil.parser import parse as parse_date
@@ -66,6 +66,10 @@ from .types import IssueEvenntWebhookActionType
 logger = logging.getLogger("sentry.webhooks")
 
 
+class WebhookProcessor(Protocol):
+    def __call__(self, *, event_type: str, event: Mapping[str, Any], **kwargs: Any) -> None: ...
+
+
 def get_github_external_id(event: Mapping[str, Any], host: str | None = None) -> str | None:
     external_id: str | None = event.get("installation", {}).get("id")
     return f"{host}:{external_id}" if host else external_id
@@ -88,7 +92,7 @@ def is_contributor_eligible_for_seat_assignment(user_type: str | None) -> bool:
 
 
 def _handle_pr_webhook_for_autofix_processor(
-    event_type: str, event: Mapping[str, Any], **kwargs: Any
+    *, event_type: str, event: Mapping[str, Any], **kwargs: Any
 ) -> None:
     """
     Adapter to make handle_github_pr_webhook_for_autofix work with standard processor signature.
@@ -117,7 +121,7 @@ class GitHubWebhook(SCMWebhook, ABC):
 
     EVENT_TYPE: IntegrationWebhookEventType
     # When subclassing, add your webhook event processor here.
-    WEBHOOK_EVENT_PROCESSORS: list[Callable[..., None]] = []
+    WEBHOOK_EVENT_PROCESSORS: list[WebhookProcessor] = []
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
