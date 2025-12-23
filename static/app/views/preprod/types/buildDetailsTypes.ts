@@ -124,18 +124,18 @@ export enum BuildDetailsSizeAnalysisState {
   FAILED = 3,
 }
 
-export interface PostedStatusChecks {
+interface PostedStatusChecks {
   size?: StatusCheckResult | null;
 }
 
-export type StatusCheckResult = StatusCheckResultSuccess | StatusCheckResultFailure;
+type StatusCheckResult = StatusCheckResultSuccess | StatusCheckResultFailure;
 
-export interface StatusCheckResultSuccess {
+interface StatusCheckResultSuccess {
   success: true;
   check_id?: string | null;
 }
 
-export interface StatusCheckResultFailure {
+interface StatusCheckResultFailure {
   success: false;
   error_type?: StatusCheckErrorType | null;
 }
