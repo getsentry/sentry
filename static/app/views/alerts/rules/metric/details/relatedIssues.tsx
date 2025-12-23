@@ -12,7 +12,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import useRouter from 'sentry/utils/useRouter';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   RELATED_ISSUES_BOOLEAN_QUERY_ERROR,
   RelatedIssuesNotAvailable,
@@ -33,7 +34,7 @@ interface Props {
   skipHeader?: boolean;
 }
 
-function RelatedIssues({
+export default function RelatedIssues({
   rule,
   organization,
   projects,
@@ -41,19 +42,23 @@ function RelatedIssues({
   timePeriod,
   skipHeader,
 }: Props) {
-  const router = useRouter();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   // Add environment to the query parameters to be picked up by GlobalSelectionLink
   // GlobalSelectionLink uses the current query parameters to build links to issue details
   useEffect(() => {
     const env = rule.environment ?? '';
-    if (env !== (router.location.query.environment ?? '')) {
-      router.replace({
-        pathname: router.location.pathname,
-        query: {...router.location.query, environment: env},
-      });
+    if (env !== (location.query.environment ?? '')) {
+      navigate(
+        {
+          pathname: location.pathname,
+          query: {...location.query, environment: env},
+        },
+        {replace: true}
+      );
     }
-  }, [rule.environment, router]);
+  }, [rule.environment, location, navigate]);
 
   function renderErrorMessage({detail}: {detail: string}, retry: () => void) {
     if (
@@ -152,5 +157,3 @@ const TableWrapper = styled('div')`
     margin-bottom: -${space(1)};
   }
 `;
-
-export default RelatedIssues;

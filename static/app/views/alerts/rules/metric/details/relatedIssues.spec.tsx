@@ -1,24 +1,17 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {MetricRuleFixture} from 'sentry-fixture/metricRule';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import RelatedIssues from './relatedIssues';
 
 describe('metric details -> RelatedIssues', () => {
   const project = ProjectFixture();
+  const organization = OrganizationFixture();
 
   it('adds environment to query parameters', async () => {
-    const {router, organization} = initializeOrg({
-      router: {
-        location: {
-          pathname: '/mock-pathname/',
-          query: {environment: 'test-env'},
-        },
-      },
-    });
     const rule = MetricRuleFixture({
       projects: [project.slug],
       environment: 'production',
@@ -33,7 +26,7 @@ describe('metric details -> RelatedIssues', () => {
       body: [GroupFixture()],
     });
 
-    render(
+    const {router} = render(
       <RelatedIssues
         organization={organization}
         projects={[project]}
@@ -48,23 +41,32 @@ describe('metric details -> RelatedIssues', () => {
         }}
       />,
       {
-        router,
         organization,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
+            query: {environment: 'test-env'},
+          },
+        },
       }
     );
 
     expect(await screen.findByTestId('group')).toBeInTheDocument();
-    expect(router.replace).toHaveBeenCalledWith({
-      pathname: '/mock-pathname/',
-      query: {
-        environment: 'production',
-      },
+
+    // The component's useEffect replaces the environment query param with the rule's environment
+    await waitFor(() => {
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: '/mock-pathname/',
+          query: {environment: 'production'},
+        })
+      );
     });
-    // The links should contain the query parameters, our test environment isn't able to update it
+
+    // The link should now contain the updated environment from the router
     expect(screen.getByRole('link', {name: /RequestError/})).toHaveAttribute(
       'href',
-      expect.stringContaining('environment=test-env')
+      expect.stringContaining('environment=production')
     );
   });
 });
