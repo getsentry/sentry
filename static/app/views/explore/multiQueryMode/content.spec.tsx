@@ -1,4 +1,4 @@
-import {useMemo, type ReactNode} from 'react';
+import {type ReactNode} from 'react';
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
@@ -13,62 +13,21 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import {useResettableState} from 'sentry/utils/useResettableState';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
-import {
-  defaultAggregateFields,
-  defaultAggregateSortBys,
-  defaultFields,
-  defaultQuery,
-  defaultSortBys,
-} from 'sentry/views/explore/metrics/metricQuery';
 import {MultiQueryModeContent} from 'sentry/views/explore/multiQueryMode/content';
 import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
-import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/context';
-import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
-import {defaultCursor} from 'sentry/views/explore/queryParams/cursor';
-import {Mode} from 'sentry/views/explore/queryParams/mode';
-import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 jest.mock('sentry/components/lazyRender', () => ({
   LazyRender: ({children}: {children: React.ReactNode}) => children,
 }));
 
-function Wrapper(crossEvents?: CrossEvent[]) {
+function Wrapper() {
   return function ({children}: {children: ReactNode}) {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const [query] = useResettableState(defaultQuery);
-
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const readableQueryParams = useMemo(
-      () =>
-        new ReadableQueryParams({
-          aggregateCursor: defaultCursor(),
-          aggregateFields: defaultAggregateFields(),
-          aggregateSortBys: defaultAggregateSortBys(defaultAggregateFields()),
-          cursor: defaultCursor(),
-          extrapolate: true,
-          fields: defaultFields(),
-          mode: Mode.AGGREGATE,
-          query,
-          sortBys: defaultSortBys(defaultFields()),
-          crossEvents,
-        }),
-      [query]
-    );
-
     return (
-      <QueryParamsContextProvider
-        isUsingDefaultFields={false}
-        queryParams={readableQueryParams}
-        setQueryParams={jest.fn()}
-        shouldManageFields={false}
-      >
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          {children}
-        </TraceItemAttributeProvider>
-      </QueryParamsContextProvider>
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+        {children}
+      </TraceItemAttributeProvider>
     );
   };
 }
