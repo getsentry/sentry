@@ -4,6 +4,8 @@ import Jed from 'jed';
 // @ts-expect-error TS(7016): Could not find a declaration file for module 'spri... Remove this comment to see the full error message
 import {sprintf} from 'sprintf-js';
 
+import {InlineCode} from '@sentry/scraps/code';
+
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import toArray from 'sentry/utils/array/toArray';
 import localStorage from 'sentry/utils/localStorage';
@@ -88,7 +90,7 @@ type ExtractShortcodes<S extends string> =
       : never;
 
 // Built-in shortcodes that have default implementations
-type BuiltInShortcodes = 'code' | 'link' | 'strong' | 'break' | 'bold' | 'italic';
+type BuiltInShortcodes = 'code' | 'link' | 'strong' | 'break' | 'bold' | 'italic' | 'em';
 
 // Extract only custom (non-built-in) shortcodes
 type CustomShortcodes<T extends string> = Exclude<
@@ -262,11 +264,12 @@ function SmartLink(props: React.PropsWithChildren<any>) {
  * by passing custom components with the same key.
  */
 const DEFAULT_COMPONENTS: Record<BuiltInShortcodes, React.ReactNode> = {
-  code: <code />,
+  code: <InlineCode />,
   link: <SmartLink />,
   strong: <strong />,
-  bold: <b />,
-  italic: <i />,
+  bold: <strong />,
+  em: <em />,
+  italic: <em />,
   break: <br />,
 };
 
