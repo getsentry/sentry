@@ -292,7 +292,7 @@ function OrganizationMembersList() {
   const membersToShow = useMemo(
     () =>
       isDemoModeActive()
-        ? members.filter(({email}) => email === currentUser.email)
+        ? members.filter(m => m).filter(({email}) => email === currentUser.email)
         : members.filter(m => m),
     [members, currentUser.email]
   );
