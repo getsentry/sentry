@@ -12,6 +12,7 @@ import {explodeField} from 'sentry/utils/discover/fields';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {BuildDetailsArtifactType} from 'sentry/views/preprod/types/buildDetailsTypes';
 
 import {SectionHeader} from './common/sectionHeader';
 
@@ -243,9 +244,18 @@ export function MobileAppSizeFilters() {
               placeholder={t('All artifact types')}
               value={config.artifactType || undefined}
               options={[
-                {label: t('xcarchive (.app)'), value: '0'},
-                {label: t('aab (Android App Bundle)'), value: '1'},
-                {label: t('apk (Android APK)'), value: '2'},
+                {
+                  label: t('xcarchive (.app)'),
+                  value: String(BuildDetailsArtifactType.XCARCHIVE),
+                },
+                {
+                  label: t('aab (Android App Bundle)'),
+                  value: String(BuildDetailsArtifactType.AAB),
+                },
+                {
+                  label: t('apk (Android APK)'),
+                  value: String(BuildDetailsArtifactType.APK),
+                },
               ]}
               onChange={value => handleQueryChange(index, {artifactType: value || ''})}
               inline={false}
@@ -299,6 +309,7 @@ export function MobileAppSizeFilters() {
 
 const DocsLink = styled(ExternalLink)`
   display: block;
+  width: fit-content;
   margin-bottom: ${p => p.theme.space.md};
   font-size: ${p => p.theme.fontSize.sm};
 `;
