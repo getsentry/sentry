@@ -1,6 +1,7 @@
 from sentry.models.apiapplication import ApiApplication
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.types.token import AuthTokenType
 
 
 @control_silo_test
@@ -206,3 +207,11 @@ class ApiApplicationTest(TestCase):
         )
 
         assert f"{app} is cool" == f"{app.name} is cool"
+
+    def test_client_secret_has_prefix(self) -> None:
+        app = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="http://example.com",
+        )
+
+        assert app.client_secret.startswith(AuthTokenType.USER_APP)
