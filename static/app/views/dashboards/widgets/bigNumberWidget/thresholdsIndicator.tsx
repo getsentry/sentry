@@ -53,6 +53,7 @@ export function ThresholdsIndicator({
       max1: max1 ?? null,
       max2: max2 ?? null,
     },
+    preferredPolarity,
   };
 
   return (
