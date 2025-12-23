@@ -67,8 +67,6 @@ def preprocess_webhook_event(*, event_type: str, event: Mapping[str, Any], **kwa
         event: The webhook event payload
         **kwargs: Additional keyword arguments including organization (Organization), repo, integration
     """
-    # XXX: We can fix the signature once we fix the _handle() signature in the GitHub webhook handler.
-    # This is added by the GitHub webhook handler to the kwargs.
     organization = kwargs.get("organization")
     assert organization is not None
 
@@ -77,7 +75,7 @@ def preprocess_webhook_event(*, event_type: str, event: Mapping[str, Any], **kwa
     if preprocessor is None:
         return
 
-    preprocessor(event_type=event_type, event=event, organization=organization, **kwargs)
+    preprocessor(event_type=event_type, event=event, **kwargs)
 
 
 # Type check to ensure the function matches WebhookProcessor protocol
