@@ -5,7 +5,7 @@ import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {ClusterSummary, TopIssuesResponse} from 'sentry/types/cluster';
+import type {TopIssuesResponse} from 'sentry/types/cluster';
 import type {Group} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -28,7 +28,6 @@ export function ClusteredIssuesSidebarSection({group}: Props) {
     }
   );
 
-  // Check feature flag
   if (!organization.features.includes('top-issues-ui')) {
     return null;
   }
@@ -37,7 +36,7 @@ export function ClusteredIssuesSidebarSection({group}: Props) {
     return <LoadingIndicator size={20} mini />;
   }
 
-  const cluster = topIssuesResponse?.data?.find((c: ClusterSummary) =>
+  const cluster = topIssuesResponse?.data?.find(c =>
     c.group_ids.includes(Number(group.id))
   );
 
@@ -45,7 +44,7 @@ export function ClusteredIssuesSidebarSection({group}: Props) {
     return null;
   }
 
-  const otherIssueIds = cluster.group_ids.filter((id: number) => String(id) !== group.id);
+  const otherIssueIds = cluster.group_ids.filter(id => String(id) !== group.id);
 
   if (otherIssueIds.length === 0) {
     return null;
@@ -64,7 +63,7 @@ export function ClusteredIssuesSidebarSection({group}: Props) {
         </ClusterInfo>
 
         <IssueList>
-          {otherIssueIds.slice(0, 5).map((id: number) => (
+          {otherIssueIds.slice(0, 5).map(id => (
             <IssueItem key={id}>
               <Link to={`/organizations/${organization.slug}/issues/${id}/`}>
                 {t('Issue #%s', id)}

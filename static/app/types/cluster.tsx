@@ -5,7 +5,7 @@ interface AssignedEntity {
   type: string;
 }
 
-export interface ClusterSummary {
+interface ClusterSummary {
   assignedTo: AssignedEntity[];
   cluster_avg_similarity: number | null;
   // unused
