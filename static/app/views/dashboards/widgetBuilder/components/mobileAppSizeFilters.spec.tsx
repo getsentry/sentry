@@ -14,7 +14,6 @@ describe('MobileAppSizeFilters', () => {
     organization = OrganizationFixture();
     MockApiClient.clearMockResponses();
 
-    // Mock the app-size-stats endpoint that provides filter options
     mockApiRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/preprod/app-size-stats/`,
       body: {
@@ -56,10 +55,7 @@ describe('MobileAppSizeFilters', () => {
       );
     });
 
-    // Should show the Size Analysis documentation link
     expect(await screen.findByText('Size Analysis documentation')).toBeInTheDocument();
-
-    // Should show filter section
     expect(screen.getByText('Filter')).toBeInTheDocument();
     expect(screen.getByText('Query 1')).toBeInTheDocument();
   });
@@ -74,7 +70,6 @@ describe('MobileAppSizeFilters', () => {
     const addQueryButton = screen.getByRole('button', {name: 'Add Query'});
     await userEvent.click(addQueryButton);
 
-    // Should now show Query 2
     expect(screen.getByText('Query 2')).toBeInTheDocument();
   });
 
@@ -85,17 +80,14 @@ describe('MobileAppSizeFilters', () => {
       expect(screen.getByText('Query 1')).toBeInTheDocument();
     });
 
-    // Add a second query
     const addQueryButton = screen.getByRole('button', {name: 'Add Query'});
     await userEvent.click(addQueryButton);
 
     expect(screen.getByText('Query 2')).toBeInTheDocument();
 
-    // Remove button should be visible now
     const removeButtons = screen.getAllByRole('button', {name: 'Remove query'});
     expect(removeButtons).toHaveLength(2);
 
-    // Click the first remove button
     await userEvent.click(removeButtons[0]!);
 
     // Should only have Query 1 left (renumbered from Query 2)
@@ -122,7 +114,29 @@ describe('MobileAppSizeFilters', () => {
       expect(screen.getByText('Filter')).toBeInTheDocument();
     });
 
-    // Should render without errors even with empty filter options
     expect(screen.getByText('Query 1')).toBeInTheDocument();
+  });
+
+  it('updates query conditions when filters are selected', async () => {
+    renderComponent();
+
+    await waitFor(() => {
+      expect(screen.getByText('Filter')).toBeInTheDocument();
+    });
+
+    const appIdSelect = screen.getByText('Select an app');
+    await userEvent.click(appIdSelect);
+    await userEvent.click(await screen.findByText('com.example.app1'));
+
+    const artifactTypeSelect = screen.getByText('All artifact types');
+    await userEvent.click(artifactTypeSelect);
+    await userEvent.click(await screen.findByText('apk (Android APK)'));
+
+    await waitFor(() => {
+      expect(screen.getByText('com.example.app1')).toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(screen.getByText('apk (Android APK)')).toBeInTheDocument();
+    });
   });
 });

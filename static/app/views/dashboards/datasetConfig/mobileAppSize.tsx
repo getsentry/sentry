@@ -171,14 +171,14 @@ export const MobileAppSizeConfig: DatasetConfig<AppSizeResponse[], TableData> = 
   },
   getSeriesResultType: (
     _data: AppSizeResponse[],
-    widgetQuery: WidgetQuery
+    _widgetQuery: WidgetQuery
   ): Record<string, AggregationOutputType> => {
-    const types: Record<string, AggregationOutputType> = {};
-    const aggregate = widgetQuery.aggregates[0];
-    if (aggregate) {
-      types[aggregate] = 'size_base10';
-    }
-    return types;
+    // Register both possible aggregates as size_base10 to handle multi-query widgets
+    // where different queries may use different size types (install vs download)
+    return {
+      'max(max_install_size)': 'size_base10',
+      'max(max_download_size)': 'size_base10',
+    };
   },
   handleOrderByReset,
 };

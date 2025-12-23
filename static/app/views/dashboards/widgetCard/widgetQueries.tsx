@@ -59,6 +59,7 @@ function WidgetQueries({
   onWidgetSplitDecision,
   onDataFetchStart,
 }: Props) {
+  // Discover and Errors datasets are the only datasets processed in this component
   const config = getDatasetConfig(
     widget.widgetType as WidgetType.DISCOVER | WidgetType.ERRORS | WidgetType.TRANSACTIONS
   );
@@ -163,7 +164,7 @@ function WidgetQueries({
   return (
     <OnDemandControlConsumer>
       {OnDemandControlContext => (
-        <GenericWidgetQueries
+        <GenericWidgetQueries<SeriesResult, TableResult>
           queue={queue}
           config={config}
           api={api}

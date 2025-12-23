@@ -2,8 +2,9 @@ import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
+import {Container, Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import {IconAdd, IconClose} from 'sentry/icons';
@@ -193,10 +194,7 @@ export function MobileAppSizeFilters() {
   if (loading) {
     return (
       <Fragment>
-        <SectionHeader
-          title={t('Filter')}
-          tooltipText={t('Filter app size data by app and platform.')}
-        />
+        <SectionHeader title={t('Filter')} />
         <Flex direction="column" gap="md">
           <div>{t('Loading filter options...')}</div>
         </Flex>
@@ -209,94 +207,95 @@ export function MobileAppSizeFilters() {
       <DocsLink href="https://docs.sentry.io/product/size-analysis/">
         {t('Size Analysis documentation')}
       </DocsLink>
-      <SectionHeader
-        title={t('Filter')}
-        tooltipText={t('Filter app size data by app and platform.')}
-      />
+      <SectionHeader title={t('Filter')} />
       <Flex direction="column" gap="md">
         {queryConfigs.map((config, index) => (
-          <QuerySection key={index} direction="column" gap="md">
-            <Flex justify="between" align="center">
-              <QueryTitle>{t('Query %s', index + 1)}</QueryTitle>
-              {queryConfigs.length > 1 && (
-                <Button
-                  size="xs"
-                  icon={<IconClose />}
-                  onClick={() => handleRemoveQuery(index)}
-                  aria-label={t('Remove query')}
-                />
-              )}
+          <Container key={index} padding="md" border="primary" radius="md">
+            <Flex direction="column" gap="md">
+              <Flex justify="between" align="center">
+                <Text bold size="md">
+                  {t('Query %s', index + 1)}
+                </Text>
+                {queryConfigs.length > 1 && (
+                  <Button
+                    size="xs"
+                    icon={<IconClose />}
+                    onClick={() => handleRemoveQuery(index)}
+                    aria-label={t('Remove query')}
+                  />
+                )}
+              </Flex>
+              <SelectField
+                name={`appId-${index}`}
+                label={t('App ID')}
+                placeholder={t('Select an app')}
+                value={config.appId || undefined}
+                options={filterOptions.appIds}
+                onChange={value => handleQueryChange(index, {appId: value || ''})}
+                inline={false}
+                stacked
+                allowClear
+              />
+              <SelectField
+                name={`artifactType-${index}`}
+                label={t('Artifact Type')}
+                placeholder={t('All artifact types')}
+                value={config.artifactType || undefined}
+                options={[
+                  {
+                    label: t('xcarchive (.app)'),
+                    value: String(BuildDetailsArtifactType.XCARCHIVE),
+                  },
+                  {
+                    label: t('aab (Android App Bundle)'),
+                    value: String(BuildDetailsArtifactType.AAB),
+                  },
+                  {
+                    label: t('apk (Android APK)'),
+                    value: String(BuildDetailsArtifactType.APK),
+                  },
+                ]}
+                onChange={value => handleQueryChange(index, {artifactType: value || ''})}
+                inline={false}
+                stacked
+                allowClear
+              />
+              <SelectField
+                name={`branch-${index}`}
+                label={t('Branch')}
+                placeholder={t('Select a branch')}
+                value={config.branch || undefined}
+                options={filterOptions.branches}
+                onChange={value => handleQueryChange(index, {branch: value || ''})}
+                inline={false}
+                stacked
+                allowClear
+              />
+              <SelectField
+                name={`buildConfig-${index}`}
+                label={t('Build Configuration')}
+                placeholder={t('Select a build configuration')}
+                value={config.buildConfig || undefined}
+                options={filterOptions.buildConfigs}
+                onChange={value => handleQueryChange(index, {buildConfig: value || ''})}
+                inline={false}
+                stacked
+                allowClear
+              />
+              <RadioGroup
+                label={t('Size Type')}
+                value={config.sizeType}
+                choices={[
+                  ['install', t('Install / Uncompressed Size')],
+                  ['download', t('Download Size')],
+                ]}
+                onChange={value => {
+                  const sizeType = value === 'download' ? 'download' : 'install';
+                  handleQueryChange(index, {sizeType});
+                }}
+              />
             </Flex>
-            <SelectField
-              name={`appId-${index}`}
-              label={t('App ID')}
-              placeholder={t('Select an app')}
-              value={config.appId || undefined}
-              options={filterOptions.appIds}
-              onChange={value => handleQueryChange(index, {appId: value || ''})}
-              inline={false}
-              stacked
-              allowClear
-            />
-            <SelectField
-              name={`artifactType-${index}`}
-              label={t('Artifact Type')}
-              placeholder={t('All artifact types')}
-              value={config.artifactType || undefined}
-              options={[
-                {
-                  label: t('xcarchive (.app)'),
-                  value: String(BuildDetailsArtifactType.XCARCHIVE),
-                },
-                {
-                  label: t('aab (Android App Bundle)'),
-                  value: String(BuildDetailsArtifactType.AAB),
-                },
-                {
-                  label: t('apk (Android APK)'),
-                  value: String(BuildDetailsArtifactType.APK),
-                },
-              ]}
-              onChange={value => handleQueryChange(index, {artifactType: value || ''})}
-              inline={false}
-              stacked
-              allowClear
-            />
-            <SelectField
-              name={`branch-${index}`}
-              label={t('Branch')}
-              placeholder={t('Select a branch')}
-              value={config.branch || undefined}
-              options={filterOptions.branches}
-              onChange={value => handleQueryChange(index, {branch: value || ''})}
-              inline={false}
-              stacked
-              allowClear
-            />
-            <SelectField
-              name={`buildConfig-${index}`}
-              label={t('Build Configuration')}
-              placeholder={t('Select a build configuration')}
-              value={config.buildConfig || undefined}
-              options={filterOptions.buildConfigs}
-              onChange={value => handleQueryChange(index, {buildConfig: value || ''})}
-              inline={false}
-              stacked
-              allowClear
-            />
-            <RadioGroup
-              label={t('Size Type')}
-              value={config.sizeType}
-              choices={[
-                ['install', t('Install / Uncompressed Size')],
-                ['download', t('Download Size')],
-              ]}
-              onChange={value => {
-                const sizeType = value === 'download' ? 'download' : 'install';
-                handleQueryChange(index, {sizeType});
-              }}
-            />
-          </QuerySection>
+          </Container>
         ))}
 
         <Button size="sm" onClick={handleAddQuery} icon={<IconAdd />}>
@@ -312,15 +311,4 @@ const DocsLink = styled(ExternalLink)`
   width: fit-content;
   margin-bottom: ${p => p.theme.space.md};
   font-size: ${p => p.theme.fontSize.sm};
-`;
-
-const QuerySection = styled(Flex)`
-  padding: ${p => p.theme.space.md};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.radius.md};
-`;
-
-const QueryTitle = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.md};
 `;
