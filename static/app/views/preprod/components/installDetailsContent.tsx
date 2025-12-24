@@ -9,7 +9,6 @@ import {Separator} from 'sentry/components/core/separator';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {QuietZoneQRCode} from 'sentry/components/quietZoneQRCode';
 import {IconLink} from 'sentry/icons';
-import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {MarkedText} from 'sentry/utils/marked/markedText';
@@ -21,14 +20,12 @@ import type {InstallDetailsApiResponse} from 'sentry/views/preprod/types/install
 interface InstallDetailsContentProps {
   artifactId: string;
   projectId: string;
-  onClose?: () => void;
   size?: 'sm' | 'lg';
 }
 
 export function InstallDetailsContent({
   projectId,
   artifactId,
-  onClose,
   size = 'sm',
 }: InstallDetailsContentProps) {
   const organization = useOrganization();
@@ -36,7 +33,6 @@ export function InstallDetailsContent({
   const isLarge = size === 'lg';
   const qrSize = isLarge ? 200 : 120;
   const outerGap = isLarge ? 'lg' : 'xl';
-  const wrapperStyle = isLarge ? {padding: space(4)} : undefined;
 
   const {
     data: installDetails,
@@ -53,50 +49,24 @@ export function InstallDetailsContent({
     }
   );
 
-  const header = (
-    <Flex justify="center" align="center" width="100%" position="relative">
-      <Heading as={isLarge ? 'h3' : 'h2'}>{t('Install App')}</Heading>
-      {onClose && (
-        <Container
-          position="absolute"
-          style={{top: '50%', right: 0, transform: 'translateY(-50%)'}}
-        >
-          <Button
-            onClick={onClose}
-            priority="transparent"
-            icon={<IconClose />}
-            size="sm"
-            aria-label={t('Close')}
-          />
-        </Container>
-      )}
-    </Flex>
-  );
-
+  let body: ReactNode;
   if (isPending) {
-    return (
-      <Flex direction="column" align="center" gap={outerGap} style={wrapperStyle}>
-        {header}
+    body = (
+      <Flex direction="column" align="center" gap={outerGap}>
         <LoadingIndicator />
         <Text>{t('Loading install details...')}</Text>
       </Flex>
     );
-  }
-
-  if (isError || !installDetails) {
-    return (
-      <Flex direction="column" align="center" gap={outerGap} style={wrapperStyle}>
-        {header}
+  } else if (isError || !installDetails) {
+    body = (
+      <Flex direction="column" align="center" gap={outerGap}>
         <Text>{t('Error: %s', error?.message || 'Failed to fetch install details')}</Text>
         <Button onClick={() => refetch()}>{t('Retry')}</Button>
       </Flex>
     );
-  }
-
-  if (installDetails.codesigning_type === 'appstore') {
-    return (
-      <Flex direction="column" align="center" gap={outerGap} style={wrapperStyle}>
-        {header}
+  } else if (installDetails.codesigning_type === 'appstore') {
+    body = (
+      <Flex direction="column" align="center" gap={outerGap}>
         <CodeSignatureInfo>
           <Text>{t('This app cannot be installed')}</Text>
           <br />
@@ -111,62 +81,25 @@ export function InstallDetailsContent({
         </CodeSignatureInfo>
       </Flex>
     );
-  }
-
-  if (!installDetails.install_url) {
-    if (!installDetails.is_code_signature_valid) {
-      let errors = null;
-      if (
-        installDetails.code_signature_errors &&
-        installDetails.code_signature_errors.length > 0
-      ) {
-        errors = (
-          <CodeSignatureInfo>
-            <Stack gap="sm">
-              {installDetails.code_signature_errors.map((e, index) => (
-                <Text key={index}>{e}</Text>
-              ))}
-            </Stack>
-          </CodeSignatureInfo>
-        );
-      }
-      return (
-        <Flex direction="column" align="center" gap={outerGap} style={wrapperStyle}>
-          {header}
-          <Text>{'Code signature is invalid'}</Text>
-          {errors}
-        </Flex>
-      );
-    }
-    return (
-      <Flex direction="column" align="center" gap={outerGap} style={wrapperStyle}>
-        {header}
-        <Text>{t('No install download link available')}</Text>
-      </Flex>
+  } else if (installDetails.install_url) {
+    const details = installDetails.is_code_signature_valid !== undefined && (
+      <CodeSignatureInfo>
+        {installDetails.profile_name && (
+          <Text size="sm" variant="muted" style={{marginBottom: space(0.5)}}>
+            {t('Profile: %s', installDetails.profile_name)}
+          </Text>
+        )}
+        {installDetails.profile_name && installDetails.codesigning_type && <br />}
+        {installDetails.codesigning_type && (
+          <Text size="sm" variant="muted" style={{marginBottom: space(0.5)}}>
+            {t('Type: %s', installDetails.codesigning_type)}
+          </Text>
+        )}
+      </CodeSignatureInfo>
     );
-  }
 
-  const details = installDetails.is_code_signature_valid !== undefined && (
-    <CodeSignatureInfo>
-      {installDetails.profile_name && (
-        <Text size="sm" variant="muted" style={{marginBottom: space(0.5)}}>
-          {t('Profile: %s', installDetails.profile_name)}
-        </Text>
-      )}
-      {installDetails.profile_name && installDetails.codesigning_type && <br />}
-      {installDetails.codesigning_type && (
-        <Text size="sm" variant="muted" style={{marginBottom: space(0.5)}}>
-          {t('Type: %s', installDetails.codesigning_type)}
-        </Text>
-      )}
-    </CodeSignatureInfo>
-  );
-
-  return (
-    <Fragment>
-      <Flex direction="column" align="center" gap={outerGap} style={wrapperStyle}>
-        {header}
-
+    body = (
+      <Flex direction="column" align="center" gap={outerGap} width="100%">
         <Fragment>
           <Stack align="center" gap="md">
             {installDetails.download_count !== undefined &&
@@ -252,8 +185,40 @@ export function InstallDetailsContent({
           )}
         </Fragment>
       </Flex>
-    </Fragment>
-  );
+    );
+  } else {
+    if (installDetails.is_code_signature_valid) {
+      body = (
+        <Flex direction="column" align="center" gap={outerGap}>
+          <Text>{t('No install download link available')}</Text>
+        </Flex>
+      );
+    } else {
+      let errors = null;
+      if (
+        installDetails.code_signature_errors &&
+        installDetails.code_signature_errors.length > 0
+      ) {
+        errors = (
+          <CodeSignatureInfo>
+            <Stack gap="sm">
+              {installDetails.code_signature_errors.map((e, index) => (
+                <Text key={index}>{e}</Text>
+              ))}
+            </Stack>
+          </CodeSignatureInfo>
+        );
+      }
+      body = (
+        <Flex direction="column" align="center" gap={outerGap}>
+          <Text>{'Code signature is invalid'}</Text>
+          {errors}
+        </Flex>
+      );
+    }
+  }
+
+  return body;
 }
 
 function CodeSignatureInfo({children}: {children: ReactNode}) {
