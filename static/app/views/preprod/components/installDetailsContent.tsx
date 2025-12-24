@@ -129,7 +129,7 @@ export function InstallDetailsContent({
           <Flex align="center" gap="md" width="100%">
             <Separator
               orientation="horizontal"
-              border="primary"
+              border="muted"
               style={{flex: 1, margin: 'auto'}}
             />
             <Text size="sm" variant="muted">
@@ -137,7 +137,7 @@ export function InstallDetailsContent({
             </Text>
             <Separator
               orientation="horizontal"
-              border="primary"
+              border="muted"
               style={{flex: 1, margin: 'auto'}}
             />
           </Flex>
