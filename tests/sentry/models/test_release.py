@@ -1930,51 +1930,22 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
         unused_releases = Release.objects.filter(unused_filter)
         assert old_release in unused_releases
 
-    def test_get_unused_filter_excludes_releases_with_recent_group_resolutions(self):
-        """Test that releases with recent group resolutions are not considered unused"""
+    def test_get_unused_filter_excludes_releases_with_old_group_resolutions(self):
+        """Test that releases with old GroupResolutions are still protected"""
         old_release = self.create_release(
             project=self.project,
             version="1.0.0",
             date_added=timezone.now() - timedelta(days=35),
         )
-
-        # Release should be unused initially
-        unused_filter = Release.get_unused_filter(self.cutoff_date)
-        unused_releases = Release.objects.filter(unused_filter)
-        assert old_release in unused_releases
-
-        # Create a recent group resolution (within cutoff) - should keep the release
-        from sentry.models.groupresolution import GroupResolution
-
         group = self.create_group(project=self.project)
+
+        # Even old GroupResolutions should protect the release
         GroupResolution.objects.create(
             group=group,
             release=old_release,
-            datetime=timezone.now() - timedelta(days=10),  # Recent group resolution
+            datetime=timezone.now() - timedelta(days=100),
         )
 
         unused_filter = Release.get_unused_filter(self.cutoff_date)
         unused_releases = Release.objects.filter(unused_filter)
         assert old_release not in unused_releases
-
-    def test_get_unused_filter_allows_cleanup_with_old_group_resolutions(self):
-        """Test that releases with old group resolutions can be cleaned up"""
-        old_release = self.create_release(
-            project=self.project,
-            version="1.0.0",
-            date_added=timezone.now() - timedelta(days=35),
-        )
-
-        # Create an old group resolution (before cutoff) - should allow cleanup
-        from sentry.models.groupresolution import GroupResolution
-
-        group = self.create_group(project=self.project)
-        GroupResolution.objects.create(
-            group=group,
-            release=old_release,
-            datetime=timezone.now() - timedelta(days=100),  # Old group resolution
-        )
-
-        unused_filter = Release.get_unused_filter(self.cutoff_date)
-        unused_releases = Release.objects.filter(unused_filter)
-        assert old_release in unused_releases
