@@ -1,5 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {StatusCheckErrorType} from 'sentry/views/preprod/types/buildDetailsTypes';
+
 import {BuildDetailsSidebarStatusCheck} from './buildDetailsSidebarStatusCheck';
 
 describe('BuildDetailsSidebarStatusCheck', () => {
@@ -59,7 +61,7 @@ describe('BuildDetailsSidebarStatusCheck', () => {
   it('renders error message for integration error', () => {
     const statusCheck = {
       success: false as const,
-      error_type: 'integration_error' as const,
+      error_type: StatusCheckErrorType.INTEGRATION_ERROR,
     };
 
     render(
@@ -77,7 +79,7 @@ describe('BuildDetailsSidebarStatusCheck', () => {
   it('renders error message for API error', () => {
     const statusCheck = {
       success: false as const,
-      error_type: 'api_error' as const,
+      error_type: StatusCheckErrorType.API_ERROR,
     };
 
     render(
@@ -92,7 +94,7 @@ describe('BuildDetailsSidebarStatusCheck', () => {
   it('renders error message for unknown error', () => {
     const statusCheck = {
       success: false as const,
-      error_type: 'unknown' as const,
+      error_type: StatusCheckErrorType.UNKNOWN,
     };
 
     render(
@@ -160,7 +162,7 @@ describe('BuildDetailsSidebarStatusCheck', () => {
   it('renders nothing for error when provider is not set', () => {
     const statusCheck = {
       success: false as const,
-      error_type: 'integration_error' as const,
+      error_type: StatusCheckErrorType.INTEGRATION_ERROR,
     };
 
     const vcsInfoWithoutProvider = {
