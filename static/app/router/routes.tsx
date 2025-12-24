@@ -1,4 +1,5 @@
 import type {RouteObject} from 'react-router-dom';
+import {Outlet} from 'react-router-dom';
 import memoize from 'lodash/memoize';
 
 import {EXPERIMENTAL_SPA} from 'sentry/constants';
@@ -146,7 +147,6 @@ function buildRoutes(): RouteObject[] {
     ? {
         path: '/auth/login/',
         component: errorHandler(AuthLayout),
-        deprecatedRouteProps: true,
         children: experimentalSpaChildRoutes,
       }
     : {};
@@ -1172,7 +1172,6 @@ function buildRoutes(): RouteObject[] {
       path: 'early-features/',
       name: t('Early Features'),
       component: make(() => import('sentry/views/settings/earlyFeatures')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'dynamic-sampling/',
@@ -1321,7 +1320,6 @@ function buildRoutes(): RouteObject[] {
         component: withDomainRequired(NoOp),
         customerDomainOnlyRoute: true,
         children: [orgSettingsRoutes, projectSettingsRoutes, subscriptionSettingsRoutes],
-        deprecatedRouteProps: true,
       },
       {
         path: ':orgId/',
@@ -1333,10 +1331,8 @@ function buildRoutes(): RouteObject[] {
           subscriptionSettingsRoutes,
           legacySettingsRedirects,
         ],
-        deprecatedRouteProps: true,
       },
     ],
-    deprecatedRouteProps: true,
   };
 
   const projectsChildren: SentryRouteObject[] = [
@@ -3131,6 +3127,6 @@ export const routes = memoize(buildRoutes);
 // Exported for use in tests.
 export {buildRoutes};
 
-function NoOp({children}: {children: React.JSX.Element}) {
-  return children;
+function NoOp() {
+  return <Outlet />;
 }
