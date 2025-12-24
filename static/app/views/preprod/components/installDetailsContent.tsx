@@ -256,7 +256,7 @@ export function InstallDetailsContent({
   );
 }
 
-export function CodeSignatureInfo({children}: {children: ReactNode}) {
+function CodeSignatureInfo({children}: {children: ReactNode}) {
   return (
     <Container
       padding="md"
