@@ -16,6 +16,8 @@ import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {CodeSignatureInfo} from 'sentry/views/preprod/components/installModal';
+import {BuildInstallHeader} from 'sentry/views/preprod/install/buildInstallHeader';
+import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {InstallDetailsApiResponse} from 'sentry/views/preprod/types/installDetailsTypes';
 
 interface InstallContentProps {
@@ -149,10 +151,25 @@ export default function InstallPage() {
     }
   );
 
+  const buildDetailsQuery = useApiQuery<BuildDetailsApiResponse>(
+    [
+      `/projects/${organization.slug}/${projectId}/preprodartifacts/${artifactId}/build-details/`,
+    ],
+    {
+      staleTime: 0,
+      enabled: !!projectId && !!artifactId,
+    }
+  );
+
   return (
     <SentryDocumentTitle title="Install">
       <Layout.Page>
-        <Layout.Header />
+        <Layout.Header>
+          <BuildInstallHeader
+            buildDetailsQuery={buildDetailsQuery}
+            projectId={projectId}
+          />
+        </Layout.Header>
 
         <Layout.Body>
           <UrlParamBatchProvider>
