@@ -128,7 +128,7 @@ interface PostedStatusChecks {
   size?: StatusCheckResult | null;
 }
 
-type StatusCheckResult = StatusCheckResultSuccess | StatusCheckResultFailure;
+export type StatusCheckResult = StatusCheckResultSuccess | StatusCheckResultFailure;
 
 interface StatusCheckResultSuccess {
   success: true;
