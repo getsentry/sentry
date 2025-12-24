@@ -1,12 +1,15 @@
-# Python Testing Guide
+---
+name: backend-tests
+description: Guidelines for writing tests and running the test suite for the backend Django project.
+---
 
-> For critical test commands, see `/AGENTS.md` in the repository root.
+# Sentry Backend Tests
 
 ## Running Tests
 
-Always run pytest with these parameters: `pytest -svv --reuse-db` since it is faster to execute.
+Always run pytest with these parameters: `./venv/bin/pytest -svv --reuse-db` to re-use the database connection.
 
-## How to Determine Where to Add New Test Cases
+## Adding New Test Cases
 
 When fixing errors or adding functionality, you MUST add test cases to existing test files rather than creating new test files. Follow this pattern to locate the correct test file:
 

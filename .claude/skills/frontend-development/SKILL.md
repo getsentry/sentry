@@ -1,32 +1,22 @@
-# Frontend Development Guide
+---
+name: frontend-development
+description: The design system and guidelines that should be followed when working in the frontend React code.
+---
 
-> For critical commands and testing rules, see `/AGENTS.md` in the repository root.
+# Frontend Development
 
-## Frontend Tech Stack
-
-- **Language**: TypeScript
-- **Framework**: React 19
-- **Build Tool**: Rspack (Webpack alternative)
-- **Package management**: pnpm
-- **State Management**: Reflux, React Query (TanStack Query)
-- **Styling**: Emotion (CSS-in-JS), Less
-- **Testing**: Jest, React Testing Library
-
-## Commands
-
-### Development Setup
+## Development Setup
 
 ```bash
-# Start the development server
+# If running the full stack
+devservices serve
+
+# Start the frontend development server
 pnpm run dev
 
 # Start only the UI development server with hot reload
 pnpm run dev-ui
-```
 
-### Linting
-
-```bash
 # JavaScript/TypeScript linting
 pnpm run lint:js
 
@@ -37,17 +27,17 @@ pnpm run lint:js components/avatar.tsx [...other files]
 pnpm run fix
 ```
 
-### Testing
+## Tech Stack
 
-```bash
-# Run JavaScript tests (always use CI flag)
-CI=true pnpm test <file_path>
+- **Language**: TypeScript
+- **Framework**: React 19
+- **Build Tool**: Rspack (Webpack alternative)
+- **Package management**: pnpm
+- **State Management**: Reflux, React Query (TanStack Query)
+- **Styling**: Emotion (CSS-in-JS), Less
+- **Testing**: Jest, React Testing Library
 
-# Run specific test file(s)
-CI=true pnpm test components/avatar.spec.tsx
-```
-
-### Important Files and Directories
+## Important Files and Directories
 
 - `package.json`: Node.js dependencies and scripts
 - `rspack.config.ts`: Frontend build configuration
@@ -62,13 +52,13 @@ CI=true pnpm test components/avatar.spec.tsx
 - **Types**: `static/app/types/{area}.tsx`
 - **API Client**: `static/app/api.tsx`
 
-### Routing
+## Routing
 
 - Routes defined in `static/app/routes.tsx`
 - Use React Router v6 patterns
 - Lazy load route components when possible
 
-### Frontend API Calls
+## API Calls
 
 ```typescript
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
@@ -82,32 +72,27 @@ const appSizeQuery: UseApiQueryResult<ResponseType, RequestError> = useApiQuery<
 );
 ```
 
-## General Frontend Rules
-
-1. NO new Reflux stores
-2. NO class components
-3. NO CSS files (use [core components](./app/components/core/) or Emotion in edge cases)
-4. ALWAYS use TypeScript
-5. ALWAYS colocate tests
-6. Lazy load routes: `React.lazy(() => import('...'))`
-
-## Design system
-
-### General practices
+## General practices
 
 - Use [core components](./app/components/core/) whenever possible. Use Emotion (styled components) only in edge cases.
 - Use Text, Heading, Flex, Grid, Stack, Container and other core typography/layout components whenever possible.
 - Add stories whenever possible (\*.stories.tsx).
 - Icons should be part of our icon set at static/app/icons and never inlined
 - Images should be placed inside static/app/images and imported via loader
+- NO new Reflux stores
+- NO class components
+- NO CSS files (use [core components](./app/components/core/) or Emotion in edge cases)
+- ALWAYS use TypeScript
+- ALWAYS colocate tests
+- Lazy load routes: `React.lazy(() => import('...'))`
 
-### Core components
+## Core components
 
 Always use Core components whenever available. Avoid using Emotion (styled components) unless absolutely necessary.
 
-#### Layout
+### Layout
 
-##### Grid
+#### Grid
 
 Use <Grid> from `@sentry/scraps/layout` for elements that require grid layout as opposed to styled components with `display: grid`
 
@@ -124,7 +109,7 @@ const Component = styled('div')`
 <Grid direction="column"></Grid>;
 ```
 
-##### Flex
+#### Flex
 
 Use <Flex> from `@sentry/scraps/layout` for elements that require flex layout as opposed to styled components with `display: flex`.
 
@@ -141,7 +126,7 @@ const Component = styled('div')`
 <Flex direction="column"></Flex>;
 ```
 
-##### Container
+#### Container
 
 Use using <Container> from `@sentry/scraps/layout` over simple elements that require a border or border radius.
 
@@ -158,7 +143,7 @@ const Component = styled('div')`
 <Container padding="md" border="primary"></Container>;
 ```
 
-##### General Guidelines
+## General Guidelines
 
 Use responsive props instead of styled media queries for Flex, Grid and Container.
 
@@ -198,9 +183,9 @@ const Component = styled('div')`
 </Flex>;
 ```
 
-#### Typography
+## Typography
 
-##### Heading
+### Heading
 
 Use <Heading> from `@sentry/scraps/text` for headings instead of styled components that style heading typography.
 
@@ -242,7 +227,7 @@ function Component(){
 }
 ```
 
-##### Text
+### Text
 
 Use <Text> from `@sentry/scraps/text` for text styling instead of styled components that handle typography features like color, overflow, font-size, font-weight.
 
@@ -304,7 +289,7 @@ function Content() {
 }
 ```
 
-##### Splitting layout and typography
+### Splitting layout and typography
 
 - Split Layout from Typography by directly using Flex, Grid, Stack or Container and Text or Heading components
 
@@ -323,9 +308,9 @@ const Component = styled('div')`
 <Flex>
 ```
 
-#### Assets
+## Assets
 
-##### Image
+### Image
 
 Use the core component <Image/> from `@sentry/scraps/image` instead of intrinsic <img />.
 
@@ -348,7 +333,7 @@ function Component() {
 }
 ```
 
-##### Avatars
+### Avatars
 
 Use the core avatar components (<UserAvatar/>, <TeamAvatar/>, <ProjectAvatar/>, <OrganizationAvatar/>, <SentryAppAvatar/>, <DocIntegrationAvatar/>) from `static/app/components/core/avatar` for avatars.
 
@@ -379,7 +364,7 @@ function Component() {
 
 For lists of avatars, use <AvatarList>.
 
-##### Disclosure
+### Disclosure
 
 Use the core disclosure component instead of building
 
@@ -410,7 +395,7 @@ function Component() {
 }
 ```
 
-### Images and Icons
+## Images and Icons
 
 Place all icons in the static/app/icons folder. Never inline SVGs or add them to any other folder. Optimize SVGs using svgo or svgomg
 
@@ -456,288 +441,4 @@ function Component() {
 function Component() {
   return <Image src={image} />;
 }
-```
-
-## React Testing Guidelines
-
-### Testing Philosophy
-
-- **User-centric testing**: Write tests that resemble how users interact with the app.
-- **Avoid implementation details**: Focus on behavior, not internal component structure.
-- **Do not share state between tests**: Behavior should not be influenced by other tests in the test suite.
-
-### Imports
-
-**Always** import from `sentry-test/reactTestingLibrary`, not directly from `@testing-library/react`:
-
-```tsx
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
-```
-
-### Query Priority (in order of preference)
-
-1. **`getByRole`** - Primary selector for most elements
-
-   ```tsx
-   screen.getByRole('button', {name: 'Save'});
-   screen.getByRole('textbox', {name: 'Search'});
-   ```
-
-2. **`getByLabelText`/`getByPlaceholderText`** - For form elements
-
-   ```tsx
-   screen.getByLabelText('Email Address');
-   screen.getByPlaceholderText('Enter Search Term');
-   ```
-
-3. **`getByText`** - For non-interactive elements
-
-   ```tsx
-   screen.getByText('Error Message');
-   ```
-
-4. **`getByTestId`** - Last resort only
-   ```tsx
-   screen.getByTestId('custom-component');
-   ```
-
-### Best Practices
-
-#### Avoid mocking hooks, functions, or components
-
-Do not use `jest.mocked()`.
-
-```tsx
-// ❌ Don't mock hooks
-jest.mocked(useDataFetchingHook)
-
-// ✅ Set the response data
-MockApiClient.addMockResponse({
-    url: '/data/',
-    body: DataFixture(),
-})
-
-// ❌ Don't mock contexts
-jest.mocked(useOrganization)
-
-// ✅ Use the provided organization config on render()
-render(<Component />, {organization: OrganizationFixture({...})})
-
-// ❌ Don't mock router hooks
-jest.mocked(useLocation)
-
-// ✅ Use the provided router config
-render(<TestComponent />, {
-  initialRouterConfig: {
-    location: {
-      pathname: "/foo/",
-    },
-  },
-});
-
-// ❌ Don't mock page filters hook
-jest.mocked(usePageFilters)
-
-// ✅ Update the corresponding data store with your data
-PageFiltersStore.onInitializeUrlState(
-    PageFiltersFixture({ projects: [1]}),
-)
-```
-
-#### Use fixtures
-
-Sentry fixtures are located in tests/js/fixtures/ while GetSentry fixtures are located in tests/js/getsentry-test/fixtures/.
-
-```tsx
-
-// ❌ Don't import type and initialize it
-import type {Project} from 'sentry/types/project';
-const project: Project = {...}
-
-// ✅ Import a fixture instead
-import {ProjectFixture} from 'sentry-fixture/project';
-
-const project = ProjectFixture(partialProject)
-
-```
-
-#### Use `screen` instead of destructuring
-
-```tsx
-// ❌ Don't do this
-const {getByRole} = render(<Component />);
-
-// ✅ Do this
-render(<Component />);
-const button = screen.getByRole('button');
-```
-
-#### Query selection guidelines
-
-- Use `getBy...` for elements that should exist
-- Use `queryBy...` ONLY when checking for non-existence
-- Use `await findBy...` when waiting for elements to appear
-
-```tsx
-// ❌ Wrong
-expect(screen.queryByRole('alert')).toBeInTheDocument();
-
-// ✅ Correct
-expect(screen.getByRole('alert')).toBeInTheDocument();
-expect(screen.queryByRole('button')).not.toBeInTheDocument();
-```
-
-#### Async testing
-
-```tsx
-// ❌ Don't use waitFor for appearance
-await waitFor(() => {
-  expect(screen.getByRole('alert')).toBeInTheDocument();
-});
-
-// ✅ Use findBy for appearance
-expect(await screen.findByRole('alert')).toBeInTheDocument();
-
-// ✅ Use waitForElementToBeRemoved for disappearance
-await waitForElementToBeRemoved(() => screen.getByRole('alert'));
-```
-
-#### User interactions
-
-```tsx
-// ❌ Don't use fireEvent
-fireEvent.change(input, {target: {value: 'text'}});
-
-// ✅ Use userEvent
-await userEvent.click(input);
-await userEvent.keyboard('text');
-```
-
-#### Testing routing
-
-```tsx
-const {router} = render(<TestComponent />, {
-  initialRouterConfig: {
-    location: {
-      pathname: '/foo/',
-      query: {page: '1'},
-    },
-  },
-});
-// Uses passes in config to set initial location
-expect(router.location.pathname).toBe('/foo');
-expect(router.location.query.page).toBe('1');
-// Clicking links goes to the correct location
-await userEvent.click(screen.getByRole('link', {name: 'Go to /bar/'}));
-// Can check current route on the returned router
-expect(router.location.pathname).toBe('/bar/');
-// Can test manual route changes with router.navigate
-router.navigate('/new/path/');
-router.navigate(-1); // Simulates clicking the back button
-```
-
-If the component uses `useParams()`, the `route` property can be used:
-
-```tsx
-function TestComponent() {
-  const {id} = useParams();
-  return <div>{id}</div>;
-}
-const {router} = render(<TestComponent />, {
-  initialRouterConfig: {
-    location: {
-      pathname: '/foo/123/',
-    },
-    route: '/foo/:id/',
-  },
-});
-expect(screen.getByText('123')).toBeInTheDocument();
-```
-
-#### Testing components that make network requests
-
-```tsx
-// Simple GET request
-MockApiClient.addMockResponse({
-  url: '/projects/',
-  body: [{id: 1, name: 'my project'}],
-});
-
-// POST request
-MockApiClient.addMockResponse({
-  url: '/projects/',
-  method: 'POST',
-  body: {id: 1, name: 'my project'},
-});
-
-// Complex matching with query params and request body
-MockApiClient.addMockResponse({
-  url: '/projects/',
-  method: 'POST',
-  body: {id: 2, name: 'other'},
-  match: [
-    MockApiClient.matchQuery({param: '1'}),
-    MockApiClient.matchData({name: 'other'}),
-  ],
-});
-
-// Error responses
-MockApiClient.addMockResponse({
-  url: '/projects/',
-  body: {
-    detail: 'Internal Error',
-  },
-  statusCode: 500,
-});
-```
-
-##### Always Await Async Assertions
-
-Network requests are asynchronous. Always use `findBy` queries or properly await assertions:
-
-```tsx
-// ❌ Wrong - will fail intermittently
-expect(screen.getByText('Loaded Data')).toBeInTheDocument();
-
-// ✅ Correct - waits for element to appear
-expect(await screen.findByText('Loaded Data')).toBeInTheDocument();
-```
-
-##### Handle Refetches in Mutations
-
-When testing mutations that trigger data refetches, update mocks before the refetch occurs:
-
-```tsx
-it('adds item and updates list', async () => {
-  // Initial empty state
-  MockApiClient.addMockResponse({
-    url: '/items/',
-    body: [],
-  });
-
-  const createRequest = MockApiClient.addMockResponse({
-    url: '/items/',
-    method: 'POST',
-    body: {id: 1, name: 'New Item'},
-  });
-
-  render(<ItemList />);
-
-  await userEvent.click(screen.getByRole('button', {name: 'Add Item'}));
-
-  // CRITICAL: Override mock before refetch happens
-  MockApiClient.addMockResponse({
-    url: '/items/',
-    body: [{id: 1, name: 'New Item'}],
-  });
-
-  await waitFor(() => expect(createRequest).toHaveBeenCalled());
-  expect(await screen.findByText('New Item')).toBeInTheDocument();
-});
 ```
