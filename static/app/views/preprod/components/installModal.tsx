@@ -5,15 +5,18 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {QuietZoneQRCode} from 'sentry/components/quietZoneQRCode';
+import {IconLink} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {InstallDetailsApiResponse} from 'sentry/views/preprod/types/installDetailsTypes';
 
@@ -25,6 +28,7 @@ interface InstallModalProps {
 
 function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
   const organization = useOrganization();
+  const {copy} = useCopyToClipboard();
 
   const {
     data: installDetails,
@@ -187,13 +191,29 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
             </Container>
           </Divider>
           <Stack align="center" gap="lg">
-            <Button
-              onClick={() => window.open(installDetails.install_url, '_blank')}
-              priority="primary"
-              size="md"
-            >
-              {t('Download')}
-            </Button>
+            <Flex gap="md">
+              <Button
+                onClick={() => window.open(installDetails.install_url, '_blank')}
+                priority="primary"
+                size="md"
+              >
+                {t('Download')}
+              </Button>
+              {installDetails.install_url && (
+                <Tooltip title={t('Copy Download Link')}>
+                  <Button
+                    aria-label={t('Copy Download Link')}
+                    icon={<IconLink />}
+                    size="md"
+                    onClick={() =>
+                      copy(installDetails.install_url!, {
+                        successMessage: t('Copied Download Link'),
+                      })
+                    }
+                  />
+                </Tooltip>
+              )}
+            </Flex>
             <Text align="center" size="md" variant="muted">
               {t('The install link will expire in 12 hours')}
             </Text>
