@@ -104,11 +104,11 @@ export function BuildInstallHeader(props: BuildInstallHeaderProps) {
           {appInfo.platform ? (
             <Tooltip title={t('Platform')}>
               <Flex gap="2xs" align="center">
-                <InfoIcon>
+                <Flex align="center" justify="center" width="24px" height="24px">
                   <PlatformIcon
                     platform={getPlatformIconFromPlatform(appInfo.platform)}
                   />
-                </InfoIcon>
+                </Flex>
                 <Text size="sm" variant="muted">
                   {getReadablePlatformLabel(appInfo.platform)}
                 </Text>
@@ -118,9 +118,9 @@ export function BuildInstallHeader(props: BuildInstallHeaderProps) {
           {appInfo.app_id ? (
             <Tooltip title={labels.appId}>
               <Flex gap="2xs" align="center">
-                <InfoIcon>
+                <Flex align="center" justify="center" width="24px" height="24px">
                   <IconJson />
-                </InfoIcon>
+                </Flex>
                 <Text size="sm" variant="muted">
                   {appInfo.app_id}
                 </Text>
@@ -132,9 +132,9 @@ export function BuildInstallHeader(props: BuildInstallHeaderProps) {
               title={appInfo.date_built ? t('App build time') : t('App upload time')}
             >
               <Flex gap="2xs" align="center">
-                <InfoIcon>
+                <Flex align="center" justify="center" width="24px" height="24px">
                   <IconClock />
-                </InfoIcon>
+                </Flex>
                 <Text size="sm" variant="muted">
                   {getFormattedDate(
                     getUtcToSystem(appInfo.date_built || appInfo.date_added),
@@ -148,9 +148,9 @@ export function BuildInstallHeader(props: BuildInstallHeaderProps) {
           {appInfo.build_configuration ? (
             <Tooltip title={labels.buildConfiguration}>
               <Flex gap="2xs" align="center">
-                <InfoIcon>
+                <Flex align="center" justify="center" width="24px" height="24px">
                   <IconMobile />
-                </InfoIcon>
+                </Flex>
                 <InlineCodeSnippet data-render-inline hideCopyButton>
                   {appInfo.build_configuration}
                 </InlineCodeSnippet>
@@ -160,9 +160,9 @@ export function BuildInstallHeader(props: BuildInstallHeaderProps) {
           {appInfo.artifact_type !== null && appInfo.artifact_type !== undefined ? (
             <Tooltip title={getReadableArtifactTypeTooltip(appInfo.artifact_type)}>
               <Flex gap="2xs" align="center">
-                <InfoIcon>
+                <Flex align="center" justify="center" width="24px" height="24px">
                   <IconFile />
-                </InfoIcon>
+                </Flex>
                 <Text size="sm" variant="muted">
                   {getReadableArtifactTypeLabel(appInfo.artifact_type)}
                 </Text>
@@ -174,14 +174,6 @@ export function BuildInstallHeader(props: BuildInstallHeaderProps) {
     </Layout.HeaderContent>
   );
 }
-
-const InfoIcon = styled('div')`
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
 
 const InlineCodeSnippet = styled(CodeBlock)`
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
