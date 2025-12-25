@@ -1,0 +1,3 @@
+[tool.pytest.ini_options]
+testpaths = ["."]
+python_files = ["test_recruiter_crm.py"]

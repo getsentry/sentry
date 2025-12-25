@@ -1,0 +1,7 @@
+fastapi==0.115.6
+uvicorn==0.32.1
+pydantic==2.10.5
+pydantic-settings==2.7.0
+pytest==8.3.4
+httpx==0.28.1
+email-validator==2.2.0
