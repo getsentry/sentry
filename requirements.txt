@@ -1,0 +1,12 @@
+# FastAPI and dependencies
+fastapi>=0.109.0
+uvicorn>=0.27.0
+starlette>=0.36.0
+
+# For testing
+pytest>=8.0.0
+httpx>=0.26.0
+
+# Additional utilities
+python-multipart>=0.0.6
+pydantic>=2.5.0
