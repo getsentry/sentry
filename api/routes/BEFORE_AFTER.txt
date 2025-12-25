@@ -1,0 +1,106 @@
+================================================================================
+                    BEFORE vs AFTER - NameError Fix
+================================================================================
+
+PROBLEM LOCATION: api/routes/applications.py (around line 447 in original)
+ISSUE: NameError: name 'result' is not defined
+HTTP ERROR: 500 Internal Server Error
+
+--------------------------------------------------------------------------------
+                              BEFORE (BROKEN)
+--------------------------------------------------------------------------------
+
+async def update_application(
+    application_id: UUID,
+    request: UpdateApplicationRequest
+) -> Application:
+    try:
+        # Build update data dictionary
+        update_data = {
+            "last_updated": datetime.utcnow().isoformat()
+        }
+        
+        if request.status:
+            update_data["status"] = request.status
+            
+        if request.notes:
+            update_data["notes"] = request.notes
+            
+        if request.salary_offered:
+            update_data["salary_offered"] = request.salary_offered
+        
+        # Update in Neon/Postgres using SQLAlchemy
+        
+        if not result.data:  # ❌ ERROR: 'result' is not defined!
+            raise HTTPException(
+                status_code=404,
+                detail=f"Application {application_id} not found"
+            )
+
+--------------------------------------------------------------------------------
+                              AFTER (FIXED)
+--------------------------------------------------------------------------------
+
+async def update_application(
+    application_id: UUID,
+    request: UpdateApplicationRequest
+) -> Application:
+    try:
+        # Build update data dictionary
+        update_data = {
+            "last_updated": datetime.utcnow().isoformat()
+        }
+        
+        if request.status:
+            update_data["status"] = request.status
+            
+        if request.notes:
+            update_data["notes"] = request.notes
+            
+        if request.salary_offered:
+            update_data["salary_offered"] = request.salary_offered
+        
+        # Update in Neon/Postgres using SQLAlchemy
+        # FIXED: Added the missing database update call
+        result = db.update_application(str(application_id), update_data)  # ✅
+        
+        if not result.data:  # ✅ Now works correctly!
+            raise HTTPException(
+                status_code=404,
+                detail=f"Application {application_id} not found"
+            )
+
+--------------------------------------------------------------------------------
+                                IMPACT
+--------------------------------------------------------------------------------
+
+BEFORE:
+  - PUT /api/v1/applications/{id} → 500 Internal Server Error
+  - Error: "Failed to update application: name 'result' is not defined"
+  - All update requests failing
+
+AFTER:
+  - PUT /api/v1/applications/{id} → 200 OK
+  - Successfully updates application data
+  - Returns updated application object
+  - Proper 404 handling for non-existent applications
+
+--------------------------------------------------------------------------------
+                            TEST RESULTS
+--------------------------------------------------------------------------------
+
+✅ Test 1: Update existing application with notes
+   Status: 200 OK
+   Response: {notes: "Updated notes after interview", last_updated: "..."}
+
+✅ Test 2: Update non-existent application
+   Status: 404 Not Found
+   Response: {detail: "Application {id} not found"}
+
+✅ Test 3: Update multiple fields
+   Status: 200 OK
+   Response: All fields updated correctly
+
+================================================================================
+                           FIX COMPLETE ✅
+================================================================================
