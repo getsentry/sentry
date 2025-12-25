@@ -1,0 +1,16 @@
+# Requirements for Recruiter CRM API
+
+# FastAPI framework
+fastapi>=0.109.0
+
+# ASGI server
+uvicorn[standard]>=0.27.0
+
+# Testing
+pytest>=7.4.0
+httpx>=0.26.0  # Required for TestClient
+
+# Optional: for production deployment
+gunicorn>=21.2.0  # Production WSGI server
+python-multipart>=0.0.6  # For form data parsing
+pydantic>=2.5.0  # Data validation (comes with FastAPI but explicit for clarity)
