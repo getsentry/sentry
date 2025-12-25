@@ -1,0 +1,1 @@
+# Example FastAPI application created
