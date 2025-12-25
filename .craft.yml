@@ -16,10 +16,10 @@ targets:
   - name: github
   - id: release
     name: docker
-    source: ghcr.io/getsentry/snuba
-    target: ghcr.io/getsentry/snuba
+    source: ghcr.io/getsentry/sentry
+    target: ghcr.io/getsentry/sentry
   - id: latest
     name: docker
-    source: ghcr.io/getsentry/snuba
-    target: ghcr.io/getsentry/snuba
+    source: ghcr.io/getsentry/sentry
+    target: ghcr.io/getsentry/sentry
     targetFormat: '{{{target}}}:latest'
