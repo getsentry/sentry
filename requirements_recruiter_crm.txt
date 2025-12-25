@@ -1,0 +1,30 @@
+# Core dependencies for Recruiter CRM API
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.4.0
+python-multipart>=0.0.6
+starlette>=0.27.0
+
+# Testing dependencies
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+httpx>=0.25.0
+
+# Optional dependencies
+# Database
+# sqlalchemy>=2.0.0
+# psycopg2-binary>=2.9.0  # PostgreSQL
+# pymysql>=1.1.0  # MySQL
+
+# Caching
+# redis>=5.0.0
+# hiredis>=2.2.0
+
+# Authentication
+# python-jose[cryptography]>=3.3.0
+# passlib[bcrypt]>=1.7.4
+# python-multipart>=0.0.6
+
+# Monitoring
+# sentry-sdk[fastapi]>=1.32.0
+# prometheus-client>=0.18.0
