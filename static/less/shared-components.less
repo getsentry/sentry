@@ -550,9 +550,8 @@ table.table.key-value {
   justify-content: center;
 
   .loading-indicator {
-    height: 256px;
-    width: 256px;
-    transform: scale(0.75);
+    height: 192px;
+    width: 192px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -561,11 +560,23 @@ table.table.key-value {
     border: 0;
     overflow: hidden;
     border-radius: 0;
+
+    margin-bottom: 16px;
   }
 
   .loading-message {
     font-family: @font-family-code;
     text-align: center;
+    font-weight: bold;
+
+    p:first-child {
+      margin-bottom: 8px;
+    }
+  }
+
+  small {
+    font-size: 12px;
+    opacity: .7;
   }
 }
 .splash-loader code {
