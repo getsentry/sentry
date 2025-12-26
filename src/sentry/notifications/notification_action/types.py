@@ -316,7 +316,7 @@ class BaseIssueAlertHandler(ABC):
         2. activate_downstream_actions
         3. execute_futures (also in post_process process_rules)
         """
-        # Create a notification uuid
+        # Use provided notification_uuid or generate a new one as fallback
         notification_uuid = str(uuid.uuid4())
 
         # Create a rule
@@ -494,6 +494,7 @@ class BaseMetricAlertHandler(ABC):
 
         trigger_status = cls.get_trigger_status(invocation.event_data.group)
 
+        # Use provided notification_uuid or generate a new one as fallback
         notification_uuid = str(uuid.uuid4())
 
         logger.info(

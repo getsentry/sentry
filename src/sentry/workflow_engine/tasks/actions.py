@@ -75,6 +75,7 @@ def trigger_action(
     has_reappeared: bool,
     has_escalated: bool,
     detector_id: int | None = None,  # TODO: remove
+    notification_uuid: str | None = None,
 ) -> None:
     from sentry.notifications.notification_action.utils import should_fire_workflow_actions
     from sentry.workflow_engine.processors.detector import get_detector_from_event_data
@@ -127,7 +128,7 @@ def trigger_action(
         # Set up a timeout grouping context because we want to make sure any Sentry timeout reporting
         # in this scope is grouped properly.
         with timeout_grouping_context(action.type):
-            action.trigger(event_data)
+            action.trigger(event_data, notification_uuid=notification_uuid)
     else:
         logger.info(
             "workflow_engine.triggered_actions.dry-run",

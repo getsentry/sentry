@@ -189,11 +189,22 @@ def get_unique_active_actions(
 
 
 @scopedstats.timer()
-def fire_actions(actions: BaseQuerySet[Action], event_data: WorkflowEventData) -> None:
+def fire_actions(
+    actions: BaseQuerySet[Action],
+    event_data: WorkflowEventData,
+    workflow_uuid_map: dict[int, str] | None = None,
+) -> None:
     deduped_actions = get_unique_active_actions(actions)
 
     for action in deduped_actions:
         task_params = build_trigger_action_task_params(action, event_data)
+
+        # Add notification_uuid if available
+        if workflow_uuid_map and hasattr(action, "workflow_id"):
+            workflow_id = getattr(action, "workflow_id")
+            if workflow_id in workflow_uuid_map:
+                task_params["notification_uuid"] = workflow_uuid_map[workflow_id]
+
         trigger_action.apply_async(kwargs=task_params, headers={"sentry-propagate-traces": False})
 
 
