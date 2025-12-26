@@ -77,8 +77,14 @@ def trigger_action(
     detector_id: int | None = None,  # TODO: remove
     notification_uuid: str | None = None,
 ) -> None:
+    import uuid
+
     from sentry.notifications.notification_action.utils import should_fire_workflow_actions
     from sentry.workflow_engine.processors.detector import get_detector_from_event_data
+
+    # Generate UUID if not provided (handles version skew at task boundary)
+    if notification_uuid is None:
+        notification_uuid = str(uuid.uuid4())
 
     # XOR check to ensure exactly one of event_id or activity_id is provided
     if (event_id is not None) == (activity_id is not None):

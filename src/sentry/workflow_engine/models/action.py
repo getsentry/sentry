@@ -123,7 +123,7 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         action_type = Action.Type(self.type)
         return action_handler_registry.get(action_type)
 
-    def trigger(self, event_data: WorkflowEventData, notification_uuid: str | None = None) -> None:
+    def trigger(self, event_data: WorkflowEventData, notification_uuid: str) -> None:
         from sentry.workflow_engine.processors.detector import get_detector_from_event_data
 
         detector = get_detector_from_event_data(event_data)

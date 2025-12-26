@@ -1,5 +1,4 @@
 import logging
-import uuid
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Collection, Sequence
 from dataclasses import asdict
@@ -316,8 +315,6 @@ class BaseIssueAlertHandler(ABC):
         2. activate_downstream_actions
         3. execute_futures (also in post_process process_rules)
         """
-        # Use provided notification_uuid or generate a new one as fallback
-        notification_uuid = str(uuid.uuid4())
 
         # Create a rule
         rule = cls.create_rule_instance_from_action(
@@ -494,8 +491,6 @@ class BaseMetricAlertHandler(ABC):
 
         trigger_status = cls.get_trigger_status(invocation.event_data.group)
 
-        # Use provided notification_uuid or generate a new one as fallback
-        notification_uuid = str(uuid.uuid4())
 
         logger.info(
             "notification_action.execute_via_metric_alert_handler",
