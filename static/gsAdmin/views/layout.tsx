@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {Outlet} from 'react-router-dom';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -37,11 +38,7 @@ const useToggleTheme = () => {
   return [themeName === 'darkTheme', themes[themeName], toggleTheme] as const;
 };
 
-type Props = {
-  children: React.ReactNode;
-};
-
-function Layout({children}: Props) {
+export default function Layout() {
   const [isDark, theme, toggleTheme] = useToggleTheme();
 
   return (
@@ -100,7 +97,9 @@ function Layout({children}: Props) {
               </ThemeToggle>
             </div>
           </Sidebar>
-          <Content>{children}</Content>
+          <Content>
+            <Outlet />
+          </Content>
         </AppContainer>
       </ScrapsProviders>
     </ThemeProvider>
@@ -196,5 +195,3 @@ const NavLink = styled(ListLink)`
     color: ${p => p.theme.active};
   }
 `;
-
-export default Layout;
