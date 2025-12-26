@@ -10,7 +10,6 @@ import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 
 import type {Subscription} from 'getsentry/types';
-import {hasCategoryFeature} from 'getsentry/utils/dataCategory';
 
 type Props = {
   onSuccess: () => void;
@@ -19,6 +18,10 @@ type Props = {
 };
 
 type ModalProps = Props & ModalRenderProps;
+
+function getNumberOrNull(n: number | null | string): number | null {
+  return n === null || n === '' ? null : Number(n);
+}
 
 function UpdateRetentionSettingsModal({
   onSuccess,
@@ -57,33 +60,32 @@ function UpdateRetentionSettingsModal({
 
   const onSubmit = () => {
     const retentions: Partial<
-      Record<DataCategory, {downsampled: number | null; standard: number}>
+      Record<DataCategory, {downsampled: number | null; standard: number | null}>
     > = {};
 
-    if (hasCategoryFeature(DataCategory.LOG_BYTE, subscription, organization)) {
+    if (subscription.planDetails.categories.includes(DataCategory.LOG_BYTE)) {
       retentions.logBytes = {
-        standard: Number(logBytesStandard),
-        downsampled: logBytesDownsampled === '' ? null : Number(logBytesDownsampled),
+        standard: getNumberOrNull(logBytesStandard),
+        downsampled: getNumberOrNull(logBytesDownsampled),
       };
     }
 
-    if (hasCategoryFeature(DataCategory.TRANSACTIONS, subscription, organization)) {
+    if (subscription.planDetails.categories.includes(DataCategory.TRANSACTIONS)) {
       retentions.transactions = {
-        standard: Number(transactionsStandard),
-        downsampled:
-          transactionsDownsampled === '' ? null : Number(transactionsDownsampled),
+        standard: getNumberOrNull(transactionsStandard),
+        downsampled: getNumberOrNull(transactionsDownsampled),
       };
     }
 
-    if (hasCategoryFeature(DataCategory.SPANS, subscription, organization)) {
+    if (subscription.planDetails.categories.includes(DataCategory.SPANS)) {
       retentions.spans = {
-        standard: Number(spansStandard),
-        downsampled: spansDownsampled === '' ? null : Number(spansDownsampled),
+        standard: getNumberOrNull(spansStandard),
+        downsampled: getNumberOrNull(spansDownsampled),
       };
     }
 
     const orgRetention = {
-      standard: orgStandard === null || orgStandard === '' ? null : Number(orgStandard),
+      standard: getNumberOrNull(orgStandard),
       downsampled: null,
     };
 
@@ -125,14 +127,13 @@ function UpdateRetentionSettingsModal({
             defaultValue={orgStandard}
             onChange={setOrgStandard}
           />
-          {hasCategoryFeature(DataCategory.LOG_BYTE, subscription, organization) && (
+          {subscription.planDetails.categories.includes(DataCategory.LOG_BYTE) && (
             <Fragment>
               <NumberField
                 name="logBytesStandard"
                 label="Logs Standard"
                 defaultValue={logBytesStandard}
                 onChange={setLogBytesStandard}
-                required
               />
               <NumberField
                 name="logBytesDownsampled"
@@ -143,14 +144,13 @@ function UpdateRetentionSettingsModal({
             </Fragment>
           )}
 
-          {hasCategoryFeature(DataCategory.TRANSACTIONS, subscription, organization) && (
+          {subscription.planDetails.categories.includes(DataCategory.TRANSACTIONS) && (
             <Fragment>
               <NumberField
                 name="transactionsStandard"
                 label="Transactions Standard"
                 defaultValue={transactionsStandard}
                 onChange={setTransactionsStandard}
-                required
               />
               <NumberField
                 name="transactionsDownsampled"
@@ -161,14 +161,13 @@ function UpdateRetentionSettingsModal({
             </Fragment>
           )}
 
-          {hasCategoryFeature(DataCategory.SPANS, subscription, organization) && (
+          {subscription.planDetails.categories.includes(DataCategory.SPANS) && (
             <Fragment>
               <NumberField
                 name="spansStandard"
                 label="Spans Standard"
                 defaultValue={spansStandard}
                 onChange={setSpansStandard}
-                required
               />
               <NumberField
                 name="spansDownsampled"
