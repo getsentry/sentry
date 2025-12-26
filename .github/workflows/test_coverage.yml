@@ -1,4 +1,4 @@
-name: Test coverage testing
+name: backend - with test coverage reporting
 
 on: [workflow_dispatch, workflow_call, pull_request]
 
@@ -60,14 +60,6 @@ jobs:
             echo "Error: Coverage database is corrupted"
             exit 1
           }
-
-          # Show coverage info
-          python -c "import os,sqlite3; p='.coverage'; \
-            print('coverage db:', p, os.path.getsize(p), 'bytes'); \
-            con=sqlite3.connect(p); cur=con.cursor(); \
-            print('tables:', [r[0] for r in cur.execute(\"select name from sqlite_master where type='table' order by 1\").fetchall()]); \
-            print('file rows:', cur.execute('select count(*) from file').fetchone()[0] if cur.execute(\"select count(*) from sqlite_master where type='table' and name='file'\").fetchone() else 'n/a'); \
-            print('context rows:', cur.execute('select count(*) from context').fetchone()[0] if cur.execute(\"select count(*) from sqlite_master where type='table' and name='context'\").fetchone() else 'n/a')"
 
       - name: Upload raw coverage sqlite as artifact
         if: ${{ always() }}
