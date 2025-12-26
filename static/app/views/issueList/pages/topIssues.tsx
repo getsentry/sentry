@@ -148,12 +148,8 @@ function useClusterStats(groupIds: number[]): ClusterStats {
   }, [groups, isPending]);
 }
 
-type StatsPeriod = '7d' | '30d';
-
-function useClusterEventsStats(groupIds: number[], statsPeriod: StatsPeriod) {
+function useClusterEventsStats(groupIds: number[]) {
   const organization = useOrganization();
-
-  const interval = statsPeriod === '7d' ? '1d' : '1d';
 
   return useApiQuery<EventsStats>(
     [
@@ -161,8 +157,8 @@ function useClusterEventsStats(groupIds: number[], statsPeriod: StatsPeriod) {
       {
         query: {
           query: `issue.id:[${groupIds.join(',')}]`,
-          statsPeriod,
-          interval,
+          statsPeriod: '30d',
+          interval: '1d',
           yAxis: 'count()',
           project: -1,
           referrer: 'top-issues.cluster-events-graph',
@@ -182,13 +178,12 @@ interface ClusterEventsGraphProps {
 
 interface SinglePeriodGraphProps {
   groupIds: number[];
-  statsPeriod: StatsPeriod;
   title: string;
 }
 
-function SinglePeriodGraph({groupIds, statsPeriod, title}: SinglePeriodGraphProps) {
+function SinglePeriodGraph({groupIds, title}: SinglePeriodGraphProps) {
   const theme = useTheme();
-  const {data: eventsStats, isPending} = useClusterEventsStats(groupIds, statsPeriod);
+  const {data: eventsStats, isPending} = useClusterEventsStats(groupIds);
 
   const series = useMemo((): Series[] => {
     if (!eventsStats?.data) {
@@ -247,11 +242,7 @@ function SinglePeriodGraph({groupIds, statsPeriod, title}: SinglePeriodGraphProp
 function ClusterEventsGraph({groupIds}: ClusterEventsGraphProps) {
   return (
     <EventsGraphContainer>
-      <SinglePeriodGraph
-        groupIds={groupIds}
-        statsPeriod="30d"
-        title={t('Last 30 Days')}
-      />
+      <SinglePeriodGraph groupIds={groupIds} title={t('Last 30 Days')} />
     </EventsGraphContainer>
   );
 }
