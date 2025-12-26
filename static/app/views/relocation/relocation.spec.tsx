@@ -1,4 +1,3 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   fireEvent,
   render,
@@ -9,7 +8,6 @@ import {
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import ConfigStore from 'sentry/stores/configStore';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import Relocation from 'sentry/views/relocation/relocation';
 
 jest.mock('sentry/actionCreators/indicator');
@@ -38,7 +36,6 @@ const fakeRegions: Record<string, FakeRegion> = {
 };
 
 describe('Relocation', () => {
-  let router: InjectedRouter;
   let fetchExistingRelocations: jest.Mock;
   let fetchPublicKeys: jest.Mock;
 
@@ -78,27 +75,20 @@ describe('Relocation', () => {
   });
 
   function renderPage(step: string) {
-    const routeParams = {
-      step,
-    };
-
-    const {routerProps, organization, ...rest} = initializeOrg({
-      router: {
-        params: routeParams,
+    return render(<Relocation />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/relocation/${step}/`,
+        },
+        route: '/relocation/:step/',
       },
-    });
-    router = rest.router;
-
-    return render(<Relocation {...routerProps} />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
     });
   }
 
   async function waitForRenderSuccess(step: string) {
-    renderPage(step);
+    const result = renderPage(step);
     await screen.findByTestId(step);
+    return result;
   }
 
   async function waitForRenderError(step: string) {
@@ -138,11 +128,15 @@ describe('Relocation', () => {
         },
       });
 
-      await waitForRenderSuccess('get-started');
+      const {router} = await waitForRenderSuccess('get-started');
       await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
-      expect(router.push).toHaveBeenCalledWith('/relocation/in-progress/');
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: '/relocation/in-progress/',
+        })
+      );
     });
 
     it('should prevent user from going to the next step if no org slugs or region are entered', async () => {
@@ -350,15 +344,29 @@ describe('Relocation', () => {
         })
       );
 
-      await waitForRenderSuccess('public-key');
+      const {router} = await waitForRenderSuccess('public-key');
       await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
-      expect(router.push).toHaveBeenCalledWith('/relocation/get-started/');
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: '/relocation/get-started/',
+        })
+      );
     });
   });
 
   describe('Encrypt Backup', () => {
+    beforeEach(() => {
+      sessionStorage.setItem(
+        'relocationOnboarding',
+        JSON.stringify({
+          orgSlugs: fakeOrgSlug,
+          regionUrl: fakeRegions.Earth!.url,
+        })
+      );
+    });
+
     it('renders', async () => {
       await waitForRenderSuccess('encrypt-backup');
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
@@ -379,11 +387,15 @@ describe('Relocation', () => {
         })
       );
 
-      await waitForRenderSuccess('encrypt-backup');
+      const {router} = await waitForRenderSuccess('encrypt-backup');
       await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
-      expect(router.push).toHaveBeenCalledWith('/relocation/get-started/');
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: '/relocation/get-started/',
+        })
+      );
     });
   });
 
@@ -576,15 +588,29 @@ describe('Relocation', () => {
     it('redirects to `get-started` page if expected local storage data is missing', async () => {
       sessionStorage.setItem('relocationOnboarding', JSON.stringify({}));
 
-      await waitForRenderSuccess('upload-backup');
+      const {router} = await waitForRenderSuccess('upload-backup');
       await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
-      expect(router.push).toHaveBeenCalledWith('/relocation/get-started/');
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: '/relocation/get-started/',
+        })
+      );
     });
   });
 
   describe('In Progress', () => {
+    beforeEach(() => {
+      sessionStorage.setItem(
+        'relocationOnboarding',
+        JSON.stringify({
+          orgSlugs: fakeOrgSlug,
+          regionUrl: fakeRegions.Earth!.url,
+        })
+      );
+    });
+
     it('renders', async () => {
       MockApiClient.clearMockResponses();
       fetchExistingRelocations = MockApiClient.addMockResponse({
@@ -610,11 +636,15 @@ describe('Relocation', () => {
     });
 
     it('redirects to `get-started` page if there is no existing relocation', async () => {
-      await waitForRenderSuccess('in-progress');
+      const {router} = await waitForRenderSuccess('in-progress');
       await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
-      expect(router.push).toHaveBeenCalledWith('/relocation/get-started/');
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: '/relocation/get-started/',
+        })
+      );
     });
 
     it('redirects to `get-started` page if there is no active relocation', async () => {
@@ -635,11 +665,15 @@ describe('Relocation', () => {
         },
       });
 
-      await waitForRenderSuccess('in-progress');
+      const {router} = await waitForRenderSuccess('in-progress');
       await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
-      expect(router.push).toHaveBeenCalledWith('/relocation/get-started/');
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: '/relocation/get-started/',
+        })
+      );
     });
   });
 });

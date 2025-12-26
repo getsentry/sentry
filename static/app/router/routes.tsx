@@ -272,7 +272,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: '/relocation/',
       component: make(() => import('sentry/views/relocation')),
-      deprecatedRouteProps: true,
       children: [
         {
           index: true,
@@ -281,7 +280,6 @@ function buildRoutes(): RouteObject[] {
         {
           path: ':step/',
           component: make(() => import('sentry/views/relocation')),
-          deprecatedRouteProps: true,
         },
       ],
     },
