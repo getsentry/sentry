@@ -1,30 +1,20 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectQuickLinks from 'sentry/views/projectDetail/projectQuickLinks';
 
 describe('ProjectDetail > ProjectQuickLinks', () => {
-  const {organization, router} = initializeOrg({
-    organization: {features: ['performance-view']},
-  });
+  const organization = OrganizationFixture({features: ['performance-view']});
 
   afterEach(() => {
     jest.clearAllMocks();
   });
 
   it('renders a list', async () => {
-    render(
-      <ProjectQuickLinks
-        organization={organization}
-        location={router.location}
-        project={ProjectFixture()}
-      />,
-      {
-        router,
-        deprecatedRouterMocks: true,
-      }
+    const {router} = render(
+      <ProjectQuickLinks organization={organization} project={ProjectFixture()} />
     );
 
     expect(screen.getByRole('heading', {name: 'Quick Links'})).toBeInTheDocument();
@@ -34,35 +24,25 @@ describe('ProjectDetail > ProjectQuickLinks', () => {
     const keyTransactions = screen.getByRole('link', {name: 'View Transactions'});
 
     await userEvent.click(userFeedback);
-    expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/feedback/',
-      query: {project: '2'},
-    });
+    expect(router.location.pathname).toBe('/organizations/org-slug/feedback/');
+    expect(router.location.query).toEqual({project: '2'});
 
     await userEvent.click(keyTransactions);
-    expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/insights/backend/',
-      query: {project: '2'},
-    });
+    expect(router.location.pathname).toBe('/organizations/org-slug/insights/backend/');
+    expect(router.location.query).toEqual({project: '2'});
   });
 
   it('disables link if feature is missing', async () => {
     render(
       <ProjectQuickLinks
         organization={{...organization, features: []}}
-        location={router.location}
         project={ProjectFixture()}
-      />,
-      {
-        router,
-        deprecatedRouterMocks: true,
-      }
+      />
     );
 
     const keyTransactions = screen.getByText('View Transactions');
 
     await userEvent.click(keyTransactions);
-    expect(router.push).toHaveBeenCalledTimes(0);
 
     await userEvent.hover(keyTransactions);
     expect(
