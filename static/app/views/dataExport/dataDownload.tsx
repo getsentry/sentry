@@ -15,7 +15,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
-import {AuthLayoutWrapper as Layout} from 'sentry/views/auth/layout';
+import {AuthLayoutContent as Layout} from 'sentry/views/auth/layout';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getLogsUrl} from 'sentry/views/explore/logs/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -69,7 +69,7 @@ type OtherDownload = BaseDownload & {
 
 type Download = ExploreDownload | OtherDownload;
 
-function DataDownload() {
+export default function DataDownload() {
   const {dataExportId, orgId: orgSlug} = useParams<{
     dataExportId: string;
     orgId: string;
@@ -390,5 +390,3 @@ const Body = styled('div')`
 const DownloadButton = styled(LinkButton)`
   margin-bottom: ${space(1.5)};
 `;
-
-export default DataDownload;
