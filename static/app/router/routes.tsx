@@ -241,7 +241,6 @@ function buildRoutes(): RouteObject[] {
           path: '/disabled-member/',
           component: make(() => import('sentry/views/disabledMember')),
           withOrgPath: true,
-          deprecatedRouteProps: true,
         },
       ],
     },
