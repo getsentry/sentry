@@ -288,7 +288,7 @@ export function InviteMissingMembersModal({
           );
         })}
       </StyledPanelTable>
-      <Footer>
+      <Flex justify="between">
         <div>{renderStatusMessage()}</div>
         <ButtonBar>
           <Button
@@ -315,7 +315,7 @@ export function InviteMissingMembersModal({
             {inviteButtonLabel()}
           </Button>
         </ButtonBar>
-      </Footer>
+      </Flex>
     </Fragment>
   );
 
@@ -343,11 +343,6 @@ const StyledHeader = styled('div')`
 
 const StyledPanelItem = styled(PanelItem)`
   flex-direction: column;
-`;
-
-const Footer = styled('div')`
-  display: flex;
-  justify-content: space-between;
 `;
 
 const ContentRow = styled('div')`
