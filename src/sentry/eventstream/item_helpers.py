@@ -90,7 +90,10 @@ def encode_attributes(
     tag_keys = set()
     tags = event_data.get("tags")
     if tags is not None:
-        for key, value in tags:
+        for tag in tags:
+            if tag is None:
+                continue
+            key, value = tag
             if value is None:
                 continue
             formatted_key = format_tag_key(key)
