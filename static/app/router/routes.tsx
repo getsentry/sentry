@@ -15,7 +15,6 @@ import withDomainRedirect from 'sentry/utils/withDomainRedirect';
 import withDomainRequired from 'sentry/utils/withDomainRequired';
 import App from 'sentry/views/app';
 import {AppBodyContentRoute} from 'sentry/views/app/appBodyContent';
-import AuthLayout from 'sentry/views/auth/layout';
 import AuthLayoutRoute from 'sentry/views/auth/layout';
 import {authV2Routes} from 'sentry/views/authV2/routes';
 import {automationRoutes} from 'sentry/views/automations/routes';
