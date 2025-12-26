@@ -15,7 +15,7 @@ import withDomainRedirect from 'sentry/utils/withDomainRedirect';
 import withDomainRequired from 'sentry/utils/withDomainRequired';
 import App from 'sentry/views/app';
 import {AppBodyContent} from 'sentry/views/app/appBodyContent';
-import AuthLayout from 'sentry/views/auth/layout';
+import AuthLayoutRoute from 'sentry/views/auth/layout';
 import {authV2Routes} from 'sentry/views/authV2/routes';
 import {automationRoutes} from 'sentry/views/automations/routes';
 import {detectorRoutes} from 'sentry/views/detectors/routes';
@@ -146,7 +146,7 @@ function buildRoutes(): RouteObject[] {
   const experimentalSpaRoutes: SentryRouteObject = EXPERIMENTAL_SPA
     ? {
         path: '/auth/login/',
-        component: errorHandler(AuthLayout),
+        component: errorHandler(AuthLayoutRoute),
         children: experimentalSpaChildRoutes,
       }
     : {};
