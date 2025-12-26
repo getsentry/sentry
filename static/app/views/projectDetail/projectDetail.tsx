@@ -277,11 +277,7 @@ export default function ProjectDetail() {
                   isProjectStabilized={isProjectStabilized}
                   project={project}
                 />
-                <ProjectQuickLinks
-                  organization={organization}
-                  project={project}
-                  location={location}
-                />
+                <ProjectQuickLinks organization={organization} project={project} />
               </Layout.Side>
             </Layout.Body>
           </NoProjectMessage>
