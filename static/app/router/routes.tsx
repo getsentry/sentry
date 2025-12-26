@@ -16,6 +16,7 @@ import withDomainRequired from 'sentry/utils/withDomainRequired';
 import App from 'sentry/views/app';
 import {AppBodyContentRoute} from 'sentry/views/app/appBodyContent';
 import AuthLayout from 'sentry/views/auth/layout';
+import AuthLayoutRoute from 'sentry/views/auth/layout';
 import {authV2Routes} from 'sentry/views/authV2/routes';
 import {automationRoutes} from 'sentry/views/automations/routes';
 import {detectorRoutes} from 'sentry/views/detectors/routes';
@@ -146,7 +147,7 @@ function buildRoutes(): RouteObject[] {
   const experimentalSpaRoutes: SentryRouteObject = EXPERIMENTAL_SPA
     ? {
         path: '/auth/login/',
-        component: errorHandler(AuthLayout),
+        component: errorHandler(AuthLayoutRoute),
         children: experimentalSpaChildRoutes,
       }
     : {};
@@ -272,7 +273,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: '/relocation/',
       component: make(() => import('sentry/views/relocation')),
-      deprecatedRouteProps: true,
       children: [
         {
           index: true,
@@ -281,7 +281,6 @@ function buildRoutes(): RouteObject[] {
         {
           path: ':step/',
           component: make(() => import('sentry/views/relocation')),
-          deprecatedRouteProps: true,
         },
       ],
     },
@@ -2654,6 +2653,10 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'dynamic-groups/',
       component: make(() => import('sentry/views/issueList/pages/dynamicGrouping')),
+    },
+    {
+      path: 'top-issues/',
+      component: make(() => import('sentry/views/issueList/pages/topIssues')),
     },
     {
       path: 'views/:viewId/',
