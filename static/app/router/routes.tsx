@@ -34,7 +34,7 @@ import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDeta
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {OverviewWrapper} from 'sentry/views/issueList/overviewWrapper';
 import {IssueTaxonomy} from 'sentry/views/issueList/taxonomies';
-import OrganizationContainer from 'sentry/views/organizationContainer';
+import OrganizationContainerRoute from 'sentry/views/organizationContainer';
 import OrganizationLayout from 'sentry/views/organizationLayout';
 import {OrganizationStatsWrapper} from 'sentry/views/organizationStats/organizationStatsWrapper';
 import TransactionSummaryTab from 'sentry/views/performance/transactionSummary/tabs';
@@ -170,8 +170,7 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/acceptProjectTransfer')),
     },
     {
-      component: errorHandler(OrganizationContainer),
-      deprecatedRouteProps: true,
+      component: errorHandler(OrganizationContainerRoute),
       children: [
         {
           path: '/extensions/external-install/:integrationSlug/:installationId',
@@ -236,8 +235,7 @@ function buildRoutes(): RouteObject[] {
       withOrgPath: true,
     },
     {
-      component: errorHandler(OrganizationContainer),
-      deprecatedRouteProps: true,
+      component: errorHandler(OrganizationContainerRoute),
       children: [
         {
           path: '/disabled-member/',
@@ -292,9 +290,8 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: '/onboarding/:step/',
-      component: errorHandler(withDomainRequired(OrganizationContainer)),
+      component: errorHandler(withDomainRequired(OrganizationContainerRoute)),
       customerDomainOnlyRoute: true,
-      deprecatedRouteProps: true,
       children: [
         {
           index: true,
@@ -308,8 +305,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: '/onboarding/:orgId/:step/',
-      component: withDomainRedirect(errorHandler(OrganizationContainer)),
-      deprecatedRouteProps: true,
+      component: withDomainRedirect(errorHandler(OrganizationContainerRoute)),
       children: [
         {
           index: true,
