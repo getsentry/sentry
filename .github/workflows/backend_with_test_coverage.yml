@@ -25,10 +25,10 @@ jobs:
         with:
           mode: backend-ci
 
-      - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }}) with --cov-context=test
+      - name: Run backend test with coverage (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         id: run_backend_tests
         run: |
-          make test-python-ci COV_ARGS=--cov-context=test
+          make test-python-ci-with-coverage
 
       # Even if tests fail, gather the raw coverage sqlite DB(s)
       - name: Collect raw coverage database files
