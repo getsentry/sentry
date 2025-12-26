@@ -1,6 +1,6 @@
 import type React from 'react';
 
-import OrganizationContainer from 'sentry/views/organizationContainer';
+import {OrganizationContainer} from 'sentry/views/organizationContainer';
 
 import SubscriptionContext from 'getsentry/components/subscriptionContext';
 

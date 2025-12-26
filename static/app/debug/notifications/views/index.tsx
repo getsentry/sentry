@@ -13,7 +13,7 @@ import {DiscordPreview} from 'sentry/debug/notifications/previews/discordPreview
 import {EmailPreview} from 'sentry/debug/notifications/previews/emailPreview';
 import {SlackPreview} from 'sentry/debug/notifications/previews/slackPreview';
 import {TeamsPreview} from 'sentry/debug/notifications/previews/teamsPreview';
-import OrganizationContainer from 'sentry/views/organizationContainer';
+import {OrganizationContainer} from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 
 const HEADER_HEIGHT = 52;

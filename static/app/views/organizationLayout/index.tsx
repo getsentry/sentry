@@ -19,7 +19,7 @@ import {AppBodyContent} from 'sentry/views/app/appBodyContent';
 import {useRegisterDomainViewUsage} from 'sentry/views/insights/common/utils/domainRedirect';
 import Nav from 'sentry/views/nav';
 import {NavContextProvider} from 'sentry/views/nav/context';
-import OrganizationContainer from 'sentry/views/organizationContainer';
+import {OrganizationContainer} from 'sentry/views/organizationContainer';
 import {useReleasesDrawer} from 'sentry/views/releases/drawer/useReleasesDrawer';
 
 import OrganizationDetailsBody from './body';

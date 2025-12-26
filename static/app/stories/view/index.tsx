@@ -10,7 +10,7 @@ import {
 } from 'sentry/stories/view/storySidebar';
 import {StoryTreeNode, type StoryCategory} from 'sentry/stories/view/storyTree';
 import {useLocation} from 'sentry/utils/useLocation';
-import OrganizationContainer from 'sentry/views/organizationContainer';
+import {OrganizationContainer} from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 
 import {StoryLanding} from './landing';
