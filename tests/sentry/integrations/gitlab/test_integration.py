@@ -11,9 +11,11 @@ from django.test import override_settings
 from fixtures.gitlab import GET_COMMIT_RESPONSE, GitLabTestCase
 from sentry.integrations.gitlab.blame import GitLabCommitResponse, GitLabFileBlameResponseItem
 from sentry.integrations.gitlab.client import GitLabApiClient, GitLabSetupApiClient
+from sentry.integrations.gitlab.constants import GITLAB_WEBHOOK_VERSION, GITLAB_WEBHOOK_VERSION_KEY
 from sentry.integrations.gitlab.integration import GitlabIntegration, GitlabIntegrationProvider
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.commit_context import (
     CommitInfo,
     FileBlameInfo,
@@ -853,9 +855,10 @@ class GitlabIssueSyncTest(GitLabTestCase):
         # Initial config should be empty
         assert org_integration.config == {}
 
-        # Update configuration
-        data = {"sync_reverse_assignment": True, "other_option": "test_value"}
-        installation.update_organization_config(data)
+        with patch("sentry.integrations.gitlab.integration.update_all_project_webhooks"):
+            # Update configuration
+            data = {"sync_reverse_assignment": True, "other_option": "test_value"}
+            installation.update_organization_config(data)
 
         # Refresh from database
         org_integration.refresh_from_db()
@@ -882,9 +885,10 @@ class GitlabIssueSyncTest(GitLabTestCase):
         }
         org_integration.save()
 
-        # Update configuration with new data
-        data = {"sync_reverse_assignment": True, "new_key": "new_value"}
-        installation.update_organization_config(data)
+        with patch("sentry.integrations.gitlab.integration.update_all_project_webhooks"):
+            # Update configuration with new data
+            data = {"sync_reverse_assignment": True, "new_key": "new_value"}
+            installation.update_organization_config(data)
 
         org_integration.refresh_from_db()
 
@@ -1126,3 +1130,212 @@ class GitlabIssueSyncTest(GitLabTestCase):
         result = installation.create_comment_attribution(self.user.id, comment_text)
 
         assert result == "**Test User** wrote:\n\n> This is a comment\n> With multiple lines"
+
+    @responses.activate
+    def test_update_organization_config_triggers_webhook_update_on_outdated_version(self) -> None:
+        """Test that updating org config triggers webhook update when version is outdated"""
+
+        integration = Integration.objects.get(provider=self.provider)
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
+
+        org_integration = integration_service.get_organization_integration(
+            integration_id=integration.id,
+            organization_id=self.organization.id,
+        )
+        assert org_integration is not None
+
+        # Set webhook version to outdated
+        org_integration = integration_service.update_organization_integration(
+            org_integration_id=org_integration.id,
+            config={GITLAB_WEBHOOK_VERSION_KEY: 0},
+        )
+
+        with patch(
+            "sentry.integrations.gitlab.integration.update_all_project_webhooks"
+        ) as mock_task:
+            # Update configuration
+            data = {"sync_reverse_assignment": True}
+            installation.update_organization_config(data)
+
+            # Verify task was called with correct arguments
+            mock_task.delay.assert_called_once_with(
+                integration_id=integration.id,
+                organization_id=self.organization.id,
+            )
+
+        # Verify config was updated (but version stays at 0 since task was mocked)
+        org_integration = integration_service.get_organization_integration(
+            integration_id=integration.id,
+            organization_id=self.organization.id,
+        )
+        assert org_integration is not None
+        assert org_integration.config["sync_reverse_assignment"] is True
+        # Version is still 0 because the task was mocked and didn't actually run
+        assert org_integration.config[GITLAB_WEBHOOK_VERSION_KEY] == 0
+
+    @responses.activate
+    def test_update_organization_config_does_not_trigger_webhook_update_on_current_version(
+        self,
+    ) -> None:
+        """Test that updating org config does not trigger webhook update when version is current"""
+
+        integration = Integration.objects.get(provider=self.provider)
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
+
+        org_integration = integration_service.get_organization_integration(
+            integration_id=integration.id,
+            organization_id=self.organization.id,
+        )
+        assert org_integration is not None
+
+        # Set webhook version to current
+        org_integration = integration_service.update_organization_integration(
+            org_integration_id=org_integration.id,
+            config={GITLAB_WEBHOOK_VERSION_KEY: GITLAB_WEBHOOK_VERSION},
+        )
+
+        with patch(
+            "sentry.integrations.gitlab.integration.update_all_project_webhooks"
+        ) as mock_task:
+            # Update configuration
+            data = {"sync_reverse_assignment": True}
+            installation.update_organization_config(data)
+
+            # Verify task was NOT called
+            mock_task.delay.assert_not_called()
+
+        # Verify config was still updated
+        org_integration = integration_service.get_organization_integration(
+            integration_id=integration.id,
+            organization_id=self.organization.id,
+        )
+        assert org_integration is not None
+        assert org_integration.config["sync_reverse_assignment"] is True
+
+    @responses.activate
+    def test_update_organization_config_triggers_webhook_update_on_missing_version(
+        self,
+    ) -> None:
+        """Test that updating org config triggers webhook update when version is missing"""
+
+        integration = Integration.objects.get(provider=self.provider)
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
+
+        org_integration = integration_service.get_organization_integration(
+            integration_id=integration.id,
+            organization_id=self.organization.id,
+        )
+        assert org_integration is not None
+
+        # Ensure webhook version is not set (simulating old installations)
+        config = org_integration.config
+        if GITLAB_WEBHOOK_VERSION_KEY in config:
+            del config[GITLAB_WEBHOOK_VERSION_KEY]
+        org_integration = integration_service.update_organization_integration(
+            org_integration_id=org_integration.id,
+            config=config,
+        )
+
+        with patch(
+            "sentry.integrations.gitlab.integration.update_all_project_webhooks"
+        ) as mock_task:
+            # Update configuration
+            data = {"sync_comments": True}
+            installation.update_organization_config(data)
+
+            # Verify task was called
+            mock_task.delay.assert_called_once_with(
+                integration_id=integration.id,
+                organization_id=self.organization.id,
+            )
+
+        # Verify config was updated (but version is not set since task was mocked)
+        org_integration = integration_service.get_organization_integration(
+            integration_id=integration.id,
+            organization_id=self.organization.id,
+        )
+        assert org_integration is not None
+        assert org_integration.config["sync_comments"] is True
+        # Version is not set because the task was mocked and didn't actually run
+        assert GITLAB_WEBHOOK_VERSION_KEY not in org_integration.config
+
+    @responses.activate
+    def test_update_organization_config_triggers_task_when_version_missing(self) -> None:
+        """Test that updating org config triggers task when webhook version is missing"""
+
+        integration = Integration.objects.get(provider=self.provider)
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
+
+        # Ensure version is not set
+        org_integration = integration_service.get_organization_integration(
+            integration_id=integration.id,
+            organization_id=self.organization.id,
+        )
+        assert org_integration is not None
+        config = org_integration.config
+        config.pop(GITLAB_WEBHOOK_VERSION_KEY, None)
+        integration_service.update_organization_integration(
+            org_integration_id=org_integration.id,
+            config=config,
+        )
+
+        with patch(
+            "sentry.integrations.gitlab.integration.update_all_project_webhooks"
+        ) as mock_task:
+            # Update configuration
+            data = {"sync_reverse_assignment": False, "sync_comments": False}
+            installation.update_organization_config(data)
+
+            # Task should be called since version is missing (defaults to 0)
+            mock_task.delay.assert_called_once_with(
+                integration_id=integration.id,
+                organization_id=self.organization.id,
+            )
+
+    @responses.activate
+    def test_update_organization_config_preserves_other_config_values(self) -> None:
+        """Test that updating org config preserves other configuration values"""
+
+        integration = Integration.objects.get(provider=self.provider)
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
+
+        org_integration = integration_service.get_organization_integration(
+            integration_id=integration.id,
+            organization_id=self.organization.id,
+        )
+        assert org_integration is not None
+
+        # Set some existing config
+        org_integration = integration_service.update_organization_integration(
+            org_integration_id=org_integration.id,
+            config={
+                "existing_key": "existing_value",
+                "sync_forward_assignment": True,
+                GITLAB_WEBHOOK_VERSION_KEY: 0,
+            },
+        )
+
+        with patch("sentry.integrations.gitlab.integration.update_all_project_webhooks"):
+            # Update configuration
+            data = {"sync_comments": True}
+            installation.update_organization_config(data)
+
+        # Verify all config values are preserved
+        org_integration = integration_service.get_organization_integration(
+            integration_id=integration.id,
+            organization_id=self.organization.id,
+        )
+        assert org_integration is not None
+        assert org_integration.config["existing_key"] == "existing_value"
+        assert org_integration.config["sync_forward_assignment"] is True
+        assert org_integration.config["sync_comments"] is True
