@@ -68,6 +68,32 @@
 // [1]: https://sentry.io/careers/
 
 async function app() {
+  // eslint-disable-next-line no-console
+  console.log(
+    `%c
+    ██████╗ ███████╗███╗   ██╗████████╗██████╗ ██╗   ██╗
+   ██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝██╔══██╗╚██╗ ██╔╝
+   ╚█████╗  █████╗  ██╔██╗ ██║   ██║   ██████╔╝ ╚████╔╝
+    ╚═══██╗ ██╔══╝  ██║╚██╗██║   ██║   ██╔══██╗  ╚██╔╝
+   ██████╔╝ ███████╗██║ ╚████║   ██║   ██║  ██║   ██║
+   ╚═════╝  ╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝  ╚═╝   ╚═╝
+
+   👋 Hey, you opened the console!
+
+   Found a bug?
+   Yeah, we probably know about it. We literally built a company
+   around finding and fixing bugs. The irony isn't lost on us.
+
+   📚 Docs (we wrote them, please read them): https://docs.sentry.io/
+   💬 Ideas? Complaints? Hot takes? https://github.com/getsentry/sentry/discussions
+
+   Like poking around in dev tools? We like that about you.
+   We're hiring: https://sentry.io/careers/
+   (We have snacks. And opinions about error handling.)
+`,
+    `color: #6C5FC7; font-family: 'Roboto Mono', Monaco, Consolas, 'Courier New', monospace;`
+  );
+
   // We won't need initalizeMainImport until we complete bootstrapping.
   // Initaite the fetch, just don't await it until we need it.
   const initalizeMainImport = import('sentry/bootstrap/initializeMain');
