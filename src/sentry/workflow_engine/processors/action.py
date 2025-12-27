@@ -197,15 +197,7 @@ def fire_actions(
     deduped_actions = get_unique_active_actions(actions)
 
     for action in deduped_actions:
-        task_params = build_trigger_action_task_params(action, event_data)
-
-        # Add notification_uuid if available from workflow_uuid_map
-        # workflow_id is annotated in the queryset by filter_recently_fired_workflow_actions
-        if workflow_uuid_map:
-            workflow_id = getattr(action, "workflow_id", None)
-            if workflow_id is not None and workflow_id in workflow_uuid_map:
-                task_params["notification_uuid"] = workflow_uuid_map[workflow_id]
-
+        task_params = build_trigger_action_task_params(action, event_data, workflow_uuid_map)
         trigger_action.apply_async(kwargs=task_params, headers={"sentry-propagate-traces": False})
 
 

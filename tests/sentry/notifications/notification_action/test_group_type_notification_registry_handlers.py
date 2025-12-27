@@ -1,4 +1,6 @@
+import uuid
 from unittest import mock
+from unittest.mock import ANY
 
 import pytest
 
@@ -35,10 +37,15 @@ class TestIssueAlertRegistryInvoker(BaseWorkflowTest):
         mock_registry_get.side_effect = NoRegistrationExistsError()
 
         with pytest.raises(NoRegistrationExistsError):
+<<<<<<< HEAD
             invocation = ActionInvocation(
                 event_data=self.event_data,
                 action=self.action,
                 detector=self.detector,
+=======
+            IssueAlertRegistryHandler.handle_workflow_action(
+                self.event_data, self.action, self.detector, notification_uuid=str(uuid.uuid4())
+>>>>>>> 9511567f9cf (tests)
             )
             IssueAlertRegistryHandler.handle_workflow_action(invocation)
 
@@ -60,10 +67,15 @@ class TestMetricAlertRegistryInvoker(BaseWorkflowTest):
         mock_registry_get.side_effect = NoRegistrationExistsError()
 
         with pytest.raises(NoRegistrationExistsError):
+<<<<<<< HEAD
             invocation = ActionInvocation(
                 event_data=self.event_data,
                 action=self.action,
                 detector=self.detector,
+=======
+            MetricAlertRegistryHandler.handle_workflow_action(
+                self.event_data, self.action, self.detector, notification_uuid=str(uuid.uuid4())
+>>>>>>> 9511567f9cf (tests)
             )
             MetricAlertRegistryHandler.handle_workflow_action(invocation)
 
@@ -71,12 +83,18 @@ class TestMetricAlertRegistryInvoker(BaseWorkflowTest):
         self.event_data = WorkflowEventData(event=self.activity, group=self.group)
 
         with mock.patch.object(self.activity, "send_notification"):
+<<<<<<< HEAD
             invocation = ActionInvocation(
                 event_data=self.event_data,
                 action=self.action,
                 detector=self.detector,
             )
             execute_via_group_type_registry(invocation)
+=======
+            execute_via_group_type_registry(
+                self.event_data, self.action, self.detector, notification_uuid=str(uuid.uuid4())
+            )
+>>>>>>> 9511567f9cf (tests)
             self.activity.send_notification.assert_called_once_with()
 
     @mock.patch("sentry.notifications.notification_action.utils.execute_via_metric_alert_handler")
@@ -88,10 +106,19 @@ class TestMetricAlertRegistryInvoker(BaseWorkflowTest):
         )
         self.event_data = WorkflowEventData(event=activity, group=group)
 
+<<<<<<< HEAD
         invocation = ActionInvocation(
             event_data=self.event_data,
             action=self.action,
             detector=self.detector,
+=======
+        notification_uuid = str(uuid.uuid4())
+        execute_via_group_type_registry(
+            self.event_data, self.action, self.detector, notification_uuid=notification_uuid
+        )
+        mock_execute_metric_alert_handler.assert_called_once_with(
+            self.event_data, self.action, self.detector, notification_uuid=notification_uuid
+>>>>>>> 9511567f9cf (tests)
         )
         execute_via_group_type_registry(invocation)
         mock_execute_metric_alert_handler.assert_called_once_with(invocation)
@@ -114,10 +141,18 @@ class TestGroupTypeNotificationRegistryHandler(BaseWorkflowTest):
     ) -> None:
         """Test that handle_workflow_action invokes the when no handler exists"""
 
+<<<<<<< HEAD
         invocation = ActionInvocation(
             event_data=self.event_data,
             action=self.action,
             detector=self.detector,
+=======
+        execute_via_group_type_registry(
+            self.event_data, self.action, self.detector, notification_uuid=str(uuid.uuid4())
+        )
+        mock_execute_via_issue_alert_handler.assert_called_once_with(
+            self.event_data, self.action, self.detector, notification_uuid=ANY
+>>>>>>> 9511567f9cf (tests)
         )
         execute_via_group_type_registry(invocation)
         mock_execute_via_issue_alert_handler.assert_called_once_with(invocation)
