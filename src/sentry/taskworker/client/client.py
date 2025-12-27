@@ -317,8 +317,11 @@ class TaskworkerClient:
                 )
 
             with metrics.timer("taskworker.update_task.rpc", tags={"host": processing_result.host}):
+                print("calling set task status...")
                 response = self._host_to_stubs[processing_result.host].SetTaskStatus(request)
+                print(f"done!")
         except grpc.RpcError as err:
+            print(f"err: {err}")
             metrics.incr(
                 "taskworker.client.rpc_error",
                 tags={"method": "SetTaskStatus", "status": err.code().name},
@@ -332,6 +335,8 @@ class TaskworkerClient:
                 self._num_consecutive_unavailable_errors += 1
                 self._check_consecutive_unavailable_errors()
             raise
+
+        print("done updating task.")
 
         self._num_consecutive_unavailable_errors = 0
         self._temporary_unavailable_hosts.pop(processing_result.host, None)

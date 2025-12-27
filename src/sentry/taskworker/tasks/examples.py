@@ -52,8 +52,9 @@ def will_retry(failure: str) -> None:
 
 @exampletasks.register(name="examples.simple_task")
 def simple_task(*args: list[Any], **kwargs: dict[str, Any]) -> None:
-    sleep(0.1)
-    logger.debug("simple_task complete")
+    sleep(60)
+    # logger.debug("simple_task complete")
+    print("simple_task HELLO!")
 
 
 @exampletasks.register(
@@ -90,7 +91,7 @@ def timed_task(sleep_seconds: float | str, *args: list[Any], **kwargs: dict[str,
     logger.debug("timed_task complete")
 
 
-@exampletasks.register(name="examples.simple_task", compression_type=CompressionType.ZSTD)
-def simple_task_compressed(*args: list[Any], **kwargs: dict[str, Any]) -> None:
-    sleep(0.1)
-    logger.debug("simple_task_compressed complete")
+# @exampletasks.register(name="examples.simple_task", compression_type=CompressionType.ZSTD)
+# def simple_task_compressed(*args: list[Any], **kwargs: dict[str, Any]) -> None:
+#     sleep(0.1)
+#     logger.debug("simple_task_compressed complete")
