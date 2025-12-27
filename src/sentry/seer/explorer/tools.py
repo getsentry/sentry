@@ -733,7 +733,7 @@ def _get_recommended_event(
     organization: Organization,
     start: datetime | None = None,
     end: datetime | None = None,
-) -> Event | GroupEvent | None:
+) -> GroupEvent | None:
     """
     Our own implementation of Group.get_recommended_event. Requires the return event to fall in the time range and have a non-empty trace.
     Time range defaults to the group's first and last seen times.
@@ -763,62 +763,74 @@ def _get_recommended_event(
     else:
         dataset = Dataset.IssuePlatform
 
-    # Get up to 30 events with a recommended ordering.
-    events: list[Event] = eventstore.backend.get_events_snql(
-        organization_id=organization.id,
-        group_id=group.id,
-        start=start,
-        end=end,
-        conditions=[
-            Condition(Column("project_id"), Op.IN, [group.project.id]),
-            Condition(Column("group_id"), Op.IN, [group.id]),
-        ],
-        limit=30,
-        orderby=EventOrdering.RECOMMENDED.value,
-        referrer=Referrer.SEER_EXPLORER_TOOLS,
-        dataset=dataset,
-        tenant_ids={"organization_id": group.project.organization_id},
-        inner_limit=1000,
-    )
+    w_size = timedelta(days=3)
+    w_start = max(end - w_size, start)
+    w_end = end
+    event_query_limit = 50
+    fallback_event: GroupEvent | None = None  # Highest recommended in most recent window
 
-    if not events:
-        return None
+    while w_start >= start:
+        # Get up to 50 events with the recommended ordering.
+        events: list[Event] = eventstore.backend.get_events_snql(
+            organization_id=organization.id,
+            group_id=group.id,
+            start=w_start,
+            end=w_end,
+            conditions=[
+                Condition(Column("project_id"), Op.IN, [group.project.id]),
+                Condition(Column("group_id"), Op.IN, [group.id]),
+            ],
+            limit=event_query_limit,
+            orderby=EventOrdering.RECOMMENDED.value,
+            referrer=Referrer.SEER_EXPLORER_TOOLS,
+            dataset=dataset,
+            tenant_ids={"organization_id": group.project.organization_id},
+            inner_limit=1000,
+        )
 
-    trace_ids = list({e.trace_id for e in events if e.trace_id})
-    if len(trace_ids) == 0:
-        return events[0].for_group(group)
-    elif len(trace_ids) == 1:
-        query = f"trace:{trace_ids[0]}"
-    else:
-        query = f"trace:[{','.join(trace_ids)}]"
+        if events and not fallback_event:
+            fallback_event = events[0].for_group(group)
 
-    # Query EAP to get the span count of each trace.
-    # Extend the time range by +-1 day to account for min/max trace start/end times.
-    spans_start = start - timedelta(days=1)
-    spans_end = end + timedelta(days=1)
+        trace_ids = list({e.trace_id for e in events if e.trace_id})
+        if len(trace_ids) == 0:
+            w_start, w_end = w_start - w_size, w_start
+            continue
+        elif len(trace_ids) == 1:
+            query = f"trace:{trace_ids[0]}"
+        else:
+            query = f"trace:[{','.join(trace_ids)}]"
 
-    result = execute_table_query(
-        org_id=organization.id,
-        dataset="spans",
-        per_page=len(trace_ids),
-        fields=["trace", "count()"],
-        query=query,
-        start=spans_start.isoformat(),
-        end=spans_end.isoformat(),
-    )
+        # Query EAP to get the span count of each trace.
+        # Extend the time range by +-1 day to account for min/max trace start/end times.
+        spans_start = w_start - timedelta(days=1)
+        spans_end = w_end + timedelta(days=1)
 
-    if not result or not result.get("data"):
-        return events[0].for_group(group)
+        result = execute_table_query(
+            org_id=organization.id,
+            dataset="spans",
+            per_page=len(trace_ids),
+            fields=["trace", "count()"],
+            query=query,
+            project_ids=[group.project.id],
+            start=spans_start.isoformat(),
+            end=spans_end.isoformat(),
+        )
 
-    # Return the first event with a span count greater than 0.
-    traces_with_spans: set[str] = set()
-    for item in result["data"]:
-        if item.get("trace") and item["count()"] > 0:
-            traces_with_spans.add(item["trace"])
+        if not result or not result.get("data"):
+            w_start, w_end = w_start - w_size, w_start
+            continue
 
-    for e in events:
-        if e.trace_id in traces_with_spans:
-            return e.for_group(group)
+        # Return the first event with a span count greater than 0.
+        traces_with_spans: set[str] = set()
+        for item in result["data"]:
+            if item.get("trace") and item["count()"] > 0:
+                traces_with_spans.add(item["trace"])
+
+        for e in events:
+            if e.trace_id in traces_with_spans:
+                return e.for_group(group)
+
+        w_start, w_end = w_start - w_size, w_start
 
     logger.warning(
         "_get_recommended_event: No event with a span found",
@@ -829,7 +841,7 @@ def _get_recommended_event(
             "end": end,
         },
     )
-    return events[0].for_group(group)
+    return fallback_event
 
 
 # Activity types to include in issue details for Seer Explorer (manual actions only)
