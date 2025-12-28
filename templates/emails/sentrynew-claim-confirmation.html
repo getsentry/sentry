@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Your Hackweek Organization Has Been Claimed</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: #2D3748;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px 10px 0 0;
+            text-align: center;
+        }
+        .content {
+            background: #ffffff;
+            padding: 30px;
+            border: 1px solid #E2E8F0;
+            border-radius: 0 0 10px 10px;
+        }
+        h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+        h2 {
+            color: #4A5568;
+            font-size: 20px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+        .success-badge {
+            display: inline-block;
+            background: #48BB78;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .org-info {
+            background: #F7FAFC;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #667eea;
+        }
+        .org-info h3 {
+            margin: 0 0 10px 0;
+            color: #2D3748;
+            font-size: 18px;
+        }
+        .org-info p {
+            margin: 5px 0;
+            color: #4A5568;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin: 10px 0;
+        }
+        .button {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            margin: 10px 10px 10px 0;
+        }
+        .button:hover {
+            background: #5a67d8;
+        }
+        .button-secondary {
+            background: #718096;
+        }
+        .button-secondary:hover {
+            background: #4A5568;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #E2E8F0;
+            color: #718096;
+            font-size: 14px;
+            text-align: center;
+        }
+        .warning {
+            background: #FFF5F5;
+            border: 1px solid #FEB2B2;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #C53030;
+        }
+        .checkmark {
+            color: #48BB78;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎉 Organization Successfully Claimed!</h1>
+    </div>
+
+    <div class="content">
+        <div class="success-badge">✓ CLAIMED SUCCESSFULLY</div>
+
+        <p>Hi <strong>{{ user_name }}</strong>,</p>
+
+        <p>Great news! You've successfully claimed your Hackweek organization, converting it from a temporary trial to a <strong>permanent free-tier Sentry account</strong>.</p>
+
+        <div class="org-info">
+            <h3>Organization Details</h3>
+            <p><strong>Name:</strong> {{ organization_name }}</p>
+            <p><strong>Slug:</strong> {{ organization_slug }}</p>
+            <p><strong>Claimed on:</strong> {{ claim_date|date:"F j, Y, g:i a" }}</p>
+            <p><strong>Status:</strong> <span class="checkmark">Active & Protected</span></p>
+        </div>
+
+        <h2>✅ What This Means</h2>
+        <ul>
+            <li><strong>No Automatic Deletion:</strong> Your organization is now permanent and will NOT be automatically deleted</li>
+            <li><strong>Free Tier Access:</strong> You have full access to Sentry's free tier with generous limits</li>
+            <li><strong>All Data Preserved:</strong> All your projects, issues, and settings remain intact</li>
+            <li><strong>Team Collaboration:</strong> You can invite team members to collaborate</li>
+            <li><strong>Upgrade Anytime:</strong> You can upgrade to a paid plan whenever you need more capacity</li>
+        </ul>
+
+        <h2>🚀 Next Steps</h2>
+        <p>Here are some things you can do with your new Sentry organization:</p>
+
+        <div style="margin: 30px 0;">
+            <a href="{{ login_url }}" class="button">Access Your Organization</a>
+            <a href="{{ invite_url }}" class="button button-secondary">Invite Team Members</a>
+        </div>
+
+        <ul>
+            <li><strong>Set up alerting rules</strong> to get notified about important issues</li>
+            <li><strong>Configure integrations</strong> with your favorite tools (Slack, GitHub, etc.)</li>
+            <li><strong>Create additional projects</strong> for different applications or services</li>
+            <li><strong>Explore performance monitoring</strong> to track application performance</li>
+            <li><strong>Set up release tracking</strong> to monitor deployments</li>
+        </ul>
+
+        <h2>📊 Free Tier Limits</h2>
+        <p>Your free tier includes:</p>
+        <ul>
+            <li>5,000 errors per month</li>
+            <li>10,000 performance units per month</li>
+            <li>500 replays per month</li>
+            <li>1 GB of attachments</li>
+            <li>Unlimited users and projects</li>
+            <li>30-day data retention</li>
+        </ul>
+
+        <p>Need more? You can <a href="{{ settings_url }}billing/plans/">upgrade your plan</a> at any time.</p>
+
+        <h2>📚 Resources</h2>
+        <ul>
+            <li><a href="https://docs.sentry.io/">Documentation</a> - Learn how to use Sentry effectively</li>
+            <li><a href="https://sentry.io/for/">Platform Guides</a> - Setup guides for your stack</li>
+            <li><a href="https://develop.sentry.dev/">SDK Documentation</a> - Detailed SDK references</li>
+            <li><a href="https://discord.gg/sentry">Discord Community</a> - Get help from the community</li>
+        </ul>
+
+        <div class="footer">
+            <p>Happy debugging! 🐛</p>
+            <p><strong>The Sentry Team</strong></p>
+            <p style="margin-top: 20px; font-size: 12px; color: #A0AEC0;">
+                This email was sent because you claimed a Hackweek organization.<br>
+                If you didn't perform this action, please contact our support team immediately.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

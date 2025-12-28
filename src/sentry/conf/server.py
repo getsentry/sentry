@@ -741,6 +741,28 @@ SOCIAL_AUTH_FORCE_POST_DISCONNECT = True
 SILO_DEVSERVER = os.environ.get("SENTRY_SILO_DEVSERVER", False)
 
 # Which silo this instance runs as (CONTROL|REGION|MONOLITH|None) are the expected values
+# ==================
+# SentryNew Settings
+# ==================
+# Control whether SentryNew organizations are automatically cleaned up
+SENTRYNEW_CLEANUP_ENABLED = True
+
+# Use soft delete (mark as pending) vs hard delete (immediate removal)
+# Soft delete is safer and allows recovery if needed
+SENTRYNEW_SOFT_DELETE = True
+
+# Hours before an unclaimed SentryNew org is deleted
+SENTRYNEW_CLEANUP_AFTER_HOURS = 1
+
+# Maximum number of organizations to process in one cleanup run
+SENTRYNEW_CLEANUP_BATCH_SIZE = 20
+
+# Maximum deletion retry attempts before giving up
+SENTRYNEW_MAX_DELETION_RETRIES = 3
+
+# Enable debug logging for SentryNew operations
+SENTRYNEW_DEBUG = DEBUG
+
 SILO_MODE = os.environ.get("SENTRY_SILO_MODE", None)
 
 # This supersedes SENTRY_SINGLE_TENANT and SENTRY_SELF_HOSTED.

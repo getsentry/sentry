@@ -5,6 +5,31 @@ import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 import type {PartnershipAgreementProps} from 'sentry/types/hooks';
 
+import SentryNewPartnershipAgreement from './sentryNewClaimFixed';
+
+// Adapter component to handle prop mismatch
+function SentryNewAdapter({
+  organizationSlug,
+  onSubmitSuccess,
+}: {
+  organizationSlug: string | undefined;
+  onSubmitSuccess?: () => void;
+}) {
+  // Create a minimal organization object for the SentryNew component
+  const organization = {
+    slug: organizationSlug || '',
+    name: organizationSlug || '', // Use slug as fallback name
+    id: '', // Will work without ID for claiming
+  } as any;
+
+  return (
+    <SentryNewPartnershipAgreement
+      organization={organization}
+      onSubmitSuccess={onSubmitSuccess}
+    />
+  );
+}
+
 export default function PartnershipAgreement({
   partnerDisplayName,
   agreements,
@@ -18,6 +43,17 @@ export default function PartnershipAgreement({
     <ExternalLink href="https://sentry.io/privacy/">privacy policy</ExternalLink>
   );
 
+  // Handle evaluation organizations (sentrynew)
+  if (agreements.includes('evaluation' as any)) {
+    return (
+      <SentryNewAdapter
+        organizationSlug={organizationSlug}
+        onSubmitSuccess={onSubmitSuccess}
+      />
+    );
+  }
+
+  // Handle standard partnership agreements
   return (
     <NarrowLayout>
       <Form

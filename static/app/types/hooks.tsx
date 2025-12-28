@@ -154,7 +154,7 @@ type MonitorCreatedCallback = (organization: Organization) => void;
 
 type CronsOnboardingPanelProps = {children: React.ReactNode};
 
-export type ParntershipAgreementType = 'standard' | 'partner_presence';
+export type ParntershipAgreementType = 'standard' | 'partner_presence' | 'evaluation';
 export type PartnershipAgreementProps = {
   agreements: ParntershipAgreementType[];
   partnerDisplayName: string;

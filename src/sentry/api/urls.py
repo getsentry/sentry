@@ -12,6 +12,7 @@ from sentry.api.endpoints.organization_auth_token_details import (
     OrganizationAuthTokenDetailsEndpoint,
 )
 from sentry.api.endpoints.organization_auth_tokens import OrganizationAuthTokensEndpoint
+from sentry.api.endpoints.organization_claim_sentrynew import OrganizationClaimSentryNewEndpoint
 from sentry.api.endpoints.organization_events_root_cause_analysis import (
     OrganizationEventsRootCauseAnalysisEndpoint,
 )
@@ -37,6 +38,7 @@ from sentry.api.endpoints.organization_sampling_effective_sample_rate import (
 from sentry.api.endpoints.organization_sampling_project_span_counts import (
     OrganizationSamplingProjectSpanCountsEndpoint,
 )
+from sentry.api.endpoints.organization_sentrynew_status import OrganizationSentryNewStatusEndpoint
 from sentry.api.endpoints.organization_stats_summary import OrganizationStatsSummaryEndpoint
 from sentry.api.endpoints.organization_trace_item_attributes import (
     OrganizationTraceItemAttributesEndpoint,
@@ -1353,6 +1355,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/$",
         OrganizationDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-details",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^/]+)/claim-sentrynew/$",
+        OrganizationClaimSentryNewEndpoint.as_view(),
+        name="sentry-api-0-organization-claim-sentrynew",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^/]+)/sentrynew-status/$",
+        OrganizationSentryNewStatusEndpoint.as_view(),
+        name="sentry-api-0-organization-sentrynew-status",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?:issues|groups)/",

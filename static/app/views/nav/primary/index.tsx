@@ -29,6 +29,7 @@ import {
 } from 'sentry/views/nav/primary/components';
 import {PrimaryNavigationHelp} from 'sentry/views/nav/primary/help';
 import {PrimaryNavigationOnboarding} from 'sentry/views/nav/primary/onboarding';
+import {PrimaryNavigationSentryNewClaim} from 'sentry/views/nav/primary/sentryNewClaim';
 import {PrimaryNavigationServiceIncidents} from 'sentry/views/nav/primary/serviceIncidents';
 import {useActivateNavGroupOnHover} from 'sentry/views/nav/primary/useActivateNavGroupOnHover';
 import {PrimaryNavigationWhatsNew} from 'sentry/views/nav/primary/whatsNew/whatsNew';
@@ -214,6 +215,7 @@ export function PrimaryNavigationItems() {
       <SidebarFooter>
         <ErrorBoundary customComponent={null}>
           <Hook name="sidebar:seer-config-reminder" organization={organization} />
+          <PrimaryNavigationSentryNewClaim />
         </ErrorBoundary>
         <PrimaryNavigationHelp />
         <ErrorBoundary customComponent={null}>

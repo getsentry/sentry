@@ -16,6 +16,7 @@ import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {CursorHandler} from 'sentry/components/pagination';
 import QueryCount from 'sentry/components/queryCount';
+import SentryNewClaimBanner from 'sentry/components/sentryNewClaimBanner';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
@@ -871,6 +872,7 @@ function IssueListOverview({
       <StyledBody>
         <StyledMain>
           <IssuesDataConsentBanner source="issues" />
+          <SentryNewClaimBanner organization={organization} />
           <IssueListFilters
             query={query}
             sort={sort}
