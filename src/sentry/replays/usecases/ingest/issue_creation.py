@@ -134,7 +134,13 @@ def _make_contexts(replay_id, replay_event):
     if replay_event.get("trace_ids"):
         if len(replay_event["trace_ids"]) > 0:
             trace_id = replay_event["trace_ids"][0]
-            trace_id_hex = UUID(trace_id).hex
+            # Handle both UUID objects and strings
+            if isinstance(trace_id, UUID):
+                trace_id_hex = trace_id.hex
+            elif isinstance(trace_id, str):
+                trace_id_hex = UUID(trace_id).hex
+            else:
+                trace_id_hex = str(trace_id)
             # there could in theory be multiple traces, but generally
             # lets just use the first one. can adjust if this is not ideal
             trace_context = {"trace_id": trace_id_hex}

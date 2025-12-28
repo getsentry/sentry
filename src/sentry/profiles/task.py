@@ -991,7 +991,13 @@ def get_debug_file_id(profile: Profile) -> str | None:
         return None
 
     try:
-        return UUID(debug_file_id).hex
+        # Handle both UUID objects and strings
+        if isinstance(debug_file_id, UUID):
+            return debug_file_id.hex
+        elif isinstance(debug_file_id, str):
+            return UUID(debug_file_id).hex
+        else:
+            return str(debug_file_id)
     except ValueError:
         return None
 

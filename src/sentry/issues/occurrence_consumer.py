@@ -203,8 +203,17 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                 except Exception:
                     logger.exception("Failed to validate assignee for occurrence")
 
+            # Handle UUID fields that might be either UUID objects or strings
+            occurrence_id = payload["id"]
+            if isinstance(occurrence_id, UUID):
+                occurrence_id = occurrence_id.hex
+            elif isinstance(occurrence_id, str):
+                occurrence_id = UUID(occurrence_id).hex
+            else:
+                occurrence_id = str(occurrence_id)
+
             occurrence_data = {
-                "id": UUID(payload["id"]).hex,
+                "id": occurrence_id,
                 "project_id": payload["project_id"],
                 "fingerprint": payload["fingerprint"],
                 "issue_title": payload["issue_title"],
@@ -221,7 +230,14 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
             process_occurrence_data(occurrence_data)
 
             if payload.get("event_id"):
-                occurrence_data["event_id"] = UUID(payload["event_id"]).hex
+                event_id = payload["event_id"]
+                if isinstance(event_id, UUID):
+                    event_id = event_id.hex
+                elif isinstance(event_id, str):
+                    event_id = UUID(event_id).hex
+                else:
+                    event_id = str(event_id)
+                occurrence_data["event_id"] = event_id
 
             if payload.get("culprit"):
                 occurrence_data["culprit"] = payload["culprit"]

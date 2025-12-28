@@ -98,7 +98,13 @@ def _get_replay_id_mappings(
         identity_map = {}
         for replay_id in column_value:
             # raises ValueError if invalid. Strips '-'
-            replay_id = uuid.UUID(hex=replay_id, version=4).hex
+            # Handle both UUID objects and strings
+            if isinstance(replay_id, uuid.UUID):
+                replay_id = replay_id.hex
+            elif isinstance(replay_id, str):
+                replay_id = uuid.UUID(hex=replay_id, version=4).hex
+            else:
+                replay_id = str(replay_id)
             identity_map[replay_id] = [replay_id]
         return identity_map
 
