@@ -792,45 +792,41 @@ def _get_recommended_event(
             fallback_event = events[0].for_group(group)
 
         trace_ids = list({e.trace_id for e in events if e.trace_id})
-        if len(trace_ids) == 0:
-            w_start, w_end = w_start - w_size, w_start
-            continue
-        elif len(trace_ids) == 1:
-            query = f"trace:{trace_ids[0]}"
-        else:
-            query = f"trace:[{','.join(trace_ids)}]"
 
-        # Query EAP to get the span count of each trace.
-        # Extend the time range by +-1 day to account for min/max trace start/end times.
-        spans_start = w_start - timedelta(days=1)
-        spans_end = w_end + timedelta(days=1)
+        if len(trace_ids) > 0:
+            # Query EAP to get the span count of each trace.
+            # Extend the time range by +-1 day to account for min/max trace start/end times.
+            spans_start = w_start - timedelta(days=1)
+            spans_end = w_end + timedelta(days=1)
 
-        result = execute_table_query(
-            org_id=organization.id,
-            dataset="spans",
-            per_page=len(trace_ids),
-            fields=["trace", "count()"],
-            query=query,
-            project_ids=[group.project.id],
-            start=spans_start.isoformat(),
-            end=spans_end.isoformat(),
-        )
+            result = execute_table_query(
+                org_id=organization.id,
+                dataset="spans",
+                per_page=len(trace_ids),
+                fields=["trace", "count()"],
+                query=f"trace:[{','.join(trace_ids)}]",
+                project_ids=[group.project.id],
+                start=spans_start.isoformat(),
+                end=spans_end.isoformat(),
+            )
 
-        if not result or not result.get("data"):
-            w_start, w_end = w_start - w_size, w_start
-            continue
+            if result and result.get("data"):
+                # Return the first event with a span count greater than 0.
+                traces_with_spans = {
+                    item["trace"]
+                    for item in result["data"]
+                    if item.get("trace") and item.get("count()", 0) > 0
+                }
 
-        # Return the first event with a span count greater than 0.
-        traces_with_spans: set[str] = set()
-        for item in result["data"]:
-            if item.get("trace") and item["count()"] > 0:
-                traces_with_spans.add(item["trace"])
+                for e in events:
+                    if e.trace_id in traces_with_spans:
+                        return e.for_group(group)
 
-        for e in events:
-            if e.trace_id in traces_with_spans:
-                return e.for_group(group)
+        if w_start == start:
+            break
 
-        w_start, w_end = w_start - w_size, w_start
+        w_end = w_start
+        w_start = max(w_start - w_size, start)
 
     logger.warning(
         "_get_recommended_event: No event with a span found",
