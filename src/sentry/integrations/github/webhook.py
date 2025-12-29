@@ -157,7 +157,9 @@ class GitHubWebhook(SCMWebhook, ABC):
                     extra={"event_type": self.event_type.value, "error": str(e)},
                 )
                 metrics.incr(
-                    "github.webhook.processor.error", tags={"event_type": self.event_type.value}
+                    "github.webhook.processor.error",
+                    tags={"event_type": self.event_type.value},
+                    sample_rate=1.0,
                 )
                 continue
 
