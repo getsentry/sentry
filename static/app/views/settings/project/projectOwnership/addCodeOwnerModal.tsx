@@ -248,7 +248,7 @@ function LinkCodeOwners({
   return (
     <Fragment>
       <div>{t('Install a GitHub or GitLab integration to use this feature.')}</div>
-      <Flex justify="center" style={{paddingTop: space(2)}}>
+      <Flex justify="center" paddingTop="xl">
         <LinkButton priority="primary" size="sm" to={baseUrl}>
           Setup Integration
         </LinkButton>
