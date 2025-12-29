@@ -58,7 +58,7 @@ class PreprodArtifactApiRerunStatusChecksEvent(analytics.Event):
     project_id: int
     user_id: int | None = None
     artifact_id: str
-    check_type: str
+    check_types: list[str]
 
 
 @analytics.eventclass("preprod_artifact.api.admin_get_info")

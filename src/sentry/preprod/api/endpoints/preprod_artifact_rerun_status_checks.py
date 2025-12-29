@@ -39,12 +39,26 @@ class PreprodArtifactRerunStatusChecksEndpoint(PreprodArtifactEndpoint):
         re-running the full analysis pipeline. Useful for recovering from
         transient GitHub API errors.
         """
+        check_types = request.data.get("check_types", ["size"])
 
-        check_type = request.data.get("check_type", "size")
-
-        if check_type != "size":
+        if not isinstance(check_types, list):
             return Response(
-                {"error": f"Invalid check_type: {check_type}. Only 'size' is currently supported."},
+                {"error": "check_types must be an array"},
+                status=400,
+            )
+
+        if not check_types:
+            return Response(
+                {"error": "check_types must contain at least one check type"},
+                status=400,
+            )
+
+        invalid_types = [ct for ct in check_types if ct != "size"]
+        if invalid_types:
+            return Response(
+                {
+                    "error": f"Invalid check_types: {invalid_types}. Only 'size' is currently supported."
+                },
                 status=400,
             )
 
@@ -60,26 +74,32 @@ class PreprodArtifactRerunStatusChecksEndpoint(PreprodArtifactEndpoint):
                 project_id=project.id,
                 user_id=request.user.id,
                 artifact_id=str(head_artifact.id),
-                check_type=check_type,
+                check_types=check_types,
             )
         )
 
-        try:
-            create_preprod_status_check_task.delay(preprod_artifact_id=head_artifact.id)
-        except Exception:
-            logger.exception(
-                "preprod_artifact.rerun_status_checks.task_error",
-                extra={
-                    "artifact_id": head_artifact.id,
-                    "user_id": request.user.id,
-                    "organization_id": head_artifact.project.organization_id,
-                    "project_id": head_artifact.project.id,
-                    "check_type": check_type,
-                },
-            )
+        failed_types = []
+        for check_type in check_types:
+            try:
+                create_preprod_status_check_task.delay(preprod_artifact_id=head_artifact.id)
+            except Exception:
+                logger.exception(
+                    "preprod_artifact.rerun_status_checks.task_error",
+                    extra={
+                        "artifact_id": head_artifact.id,
+                        "user_id": request.user.id,
+                        "organization_id": head_artifact.project.organization_id,
+                        "project_id": head_artifact.project.id,
+                        "check_type": check_type,
+                    },
+                )
+                failed_types.append(check_type)
+
+        if failed_types:
             return Response(
                 {
-                    "error": f"Failed to queue status check task for artifact {head_artifact.id}",
+                    "error": f"Failed to queue status checks for artifact {head_artifact.id}",
+                    "failed_check_types": failed_types,
                 },
                 status=500,
             )
@@ -91,7 +111,7 @@ class PreprodArtifactRerunStatusChecksEndpoint(PreprodArtifactEndpoint):
                 "user_id": request.user.id,
                 "organization_id": head_artifact.project.organization_id,
                 "project_id": head_artifact.project.id,
-                "check_type": check_type,
+                "check_types": check_types,
             },
         )
 
@@ -100,7 +120,7 @@ class PreprodArtifactRerunStatusChecksEndpoint(PreprodArtifactEndpoint):
                 "success": True,
                 "artifact_id": str(head_artifact.id),
                 "message": f"Status check rerun initiated for artifact {head_artifact.id}",
-                "check_type": check_type,
+                "check_types": check_types,
             },
             status=202,
         )

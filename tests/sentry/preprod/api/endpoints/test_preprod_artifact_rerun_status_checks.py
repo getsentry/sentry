@@ -14,8 +14,8 @@ class PreprodArtifactRerunStatusChecksTest(APITestCase):
         self.project = self.create_project(organization=self.organization)
         self.login_as(user=self.user)
 
-    def test_rerun_status_checks_success(self):
-        """Test successful status check rerun"""
+    def test_rerun_status_checks_success_default(self):
+        """Test successful status check rerun with default check_types"""
         commit_comparison = self.create_commit_comparison(
             organization=self.organization,
             provider="github",
@@ -44,13 +44,12 @@ class PreprodArtifactRerunStatusChecksTest(APITestCase):
 
             assert response.data["success"] is True
             assert response.data["artifact_id"] == str(artifact.id)
-            assert response.data["check_type"] == "size"
+            assert response.data["check_types"] == ["size"]
             assert "Status check rerun initiated" in response.data["message"]
-
             mock_task.delay.assert_called_once_with(preprod_artifact_id=artifact.id)
 
-    def test_rerun_status_checks_with_check_type(self):
-        """Test status check rerun with explicit check_type"""
+    def test_rerun_status_checks_with_explicit_check_types(self):
+        """Test status check rerun with explicit check_types array"""
         commit_comparison = self.create_commit_comparison(
             organization=self.organization,
             provider="github",
@@ -73,15 +72,15 @@ class PreprodArtifactRerunStatusChecksTest(APITestCase):
                 self.organization.slug,
                 self.project.slug,
                 artifact.id,
-                check_type="size",
+                check_types=["size"],
                 status_code=202,
             )
 
-            assert response.data["check_type"] == "size"
+            assert response.data["check_types"] == ["size"]
             mock_task.delay.assert_called_once_with(preprod_artifact_id=artifact.id)
 
-    def test_rerun_status_checks_invalid_check_type(self):
-        """Test error when invalid check_type provided"""
+    def test_rerun_status_checks_not_an_array(self):
+        """Test error when check_types is not an array"""
         commit_comparison = self.create_commit_comparison(
             organization=self.organization,
             provider="github",
@@ -101,11 +100,65 @@ class PreprodArtifactRerunStatusChecksTest(APITestCase):
             self.organization.slug,
             self.project.slug,
             artifact.id,
-            check_type="invalid",
+            check_types="size",
             status_code=400,
         )
 
-        assert "Invalid check_type" in response.data["error"]
+        assert "check_types must be an array" in response.data["error"]
+
+    def test_rerun_status_checks_empty_array(self):
+        """Test error when check_types is empty array"""
+        commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            provider="github",
+            head_repo_name="sentry/sentry",
+            head_sha="abc123",
+        )
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_name="test_artifact",
+            app_id="com.test.app",
+            build_version="1.0.0",
+            build_number=1,
+            commit_comparison=commit_comparison,
+        )
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            artifact.id,
+            check_types=[],
+            status_code=400,
+        )
+
+        assert "check_types must contain at least one check type" in response.data["error"]
+
+    def test_rerun_status_checks_invalid_check_types(self):
+        """Test error when invalid check_types provided"""
+        commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            provider="github",
+            head_repo_name="sentry/sentry",
+            head_sha="abc123",
+        )
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_name="test_artifact",
+            app_id="com.test.app",
+            build_version="1.0.0",
+            build_number=1,
+            commit_comparison=commit_comparison,
+        )
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            artifact.id,
+            check_types=["invalid", "another_invalid"],
+            status_code=400,
+        )
+
+        assert "Invalid check_types" in response.data["error"]
         assert "only 'size' is currently supported" in response.data["error"].lower()
 
     def test_rerun_status_checks_no_commit_comparison(self):
@@ -117,7 +170,6 @@ class PreprodArtifactRerunStatusChecksTest(APITestCase):
             build_version="1.0.0",
             build_number=1,
             state=PreprodArtifact.ArtifactState.PROCESSED,
-            # No commit_comparison
         )
 
         response = self.get_error_response(
@@ -134,7 +186,7 @@ class PreprodArtifactRerunStatusChecksTest(APITestCase):
         response = self.get_error_response(
             self.organization.slug,
             self.project.slug,
-            999999,  # Non-existent artifact
+            999999,
             status_code=404,
         )
 
@@ -196,7 +248,8 @@ class PreprodArtifactRerunStatusChecksTest(APITestCase):
                 status_code=500,
             )
 
-            assert "Failed to queue status check" in response.data["error"]
+            assert "Failed to queue status checks" in response.data["error"]
+            assert response.data["failed_check_types"] == ["size"]
 
     def test_rerun_status_checks_permission_denied(self):
         """Test permission denied for user without access"""
@@ -236,7 +289,6 @@ class PreprodArtifactRerunStatusChecksTest(APITestCase):
             head_sha="abc123",
         )
 
-        # Test with FAILED state
         artifact = self.create_preprod_artifact(
             project=self.project,
             app_name="test_artifact",
@@ -259,7 +311,6 @@ class PreprodArtifactRerunStatusChecksTest(APITestCase):
 
             assert response.data["success"] is True
 
-        # Test with UPLOADED state
         artifact.state = PreprodArtifact.ArtifactState.UPLOADED
         artifact.save()
 
