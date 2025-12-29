@@ -5,7 +5,7 @@ import hmac
 import inspect
 import logging
 from abc import ABC
-from collections.abc import Mapping, MutableMapping
+from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import timezone
 from typing import Any, Protocol
 
@@ -46,6 +46,7 @@ from sentry.models.organizationcontributors import (
 )
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization.model import RpcOrganizationIntegration
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.plugins.providers.integration_repository import (
     RepoExistsError,
@@ -139,17 +140,23 @@ class GitHubWebhook(SCMWebhook, ABC):
     # _handle() is needed by _call() in the base class.
     # subclasses can now just add their function to the WEBHOOK_EVENT_PROCESSORS tuple
     # without needing to implement _handle()
-    # XXX: The call of self._handle() is called with organization and repo as kwargs.
-    # We may want to make it more explicit in the future.
     def _handle(
         self,
         integration: RpcIntegration,
         event: Mapping[str, Any],
+        organization: Organization,
+        repo: Repository,
         **kwargs: Any,
     ) -> None:
         for processor in self.WEBHOOK_EVENT_PROCESSORS:
             try:
-                processor(event_type=self.event_type.value, event=event, **kwargs)
+                processor(
+                    event_type=self.event_type.value,
+                    event=event,
+                    organization=organization,
+                    repo=repo,
+                    **kwargs,
+                )
             except Exception as e:
                 # Continue processing other processors even if one fails.
                 logger.exception(
@@ -329,7 +336,9 @@ class InstallationEventWebhook(GitHubWebhook):
             org_integrations = result.organization_integrations
 
             if integration is not None:
-                self._handle(integration, event, org_integrations=org_integrations)
+                self._handle_organization_deletion(
+                    integration, event, org_integrations=org_integrations
+                )
             else:
                 # It seems possible for the GH or GHE app to be installed on their
                 # end, but the integration to not exist. Possibly from deleting in
@@ -345,13 +354,13 @@ class InstallationEventWebhook(GitHubWebhook):
                 )
                 logger.error("Installation is missing.")
 
-    def _handle(
+    def _handle_organization_deletion(
         self,
         integration: RpcIntegration,
         event: Mapping[str, Any],
-        **kwargs: Any,
+        org_integrations: Sequence[RpcOrganizationIntegration],
     ) -> None:
-        org_ids = {oi.organization_id for oi in kwargs.get("org_integrations", [])}
+        org_ids = [oi.organization_id for oi in org_integrations]
 
         logger.info(
             "InstallationEventWebhook._handle_delete",
@@ -399,12 +408,11 @@ class PushEventWebhook(GitHubWebhook):
         self,
         integration: RpcIntegration,
         event: Mapping[str, Any],
+        organization: Organization,
+        repo: Repository,
         **kwargs: Any,
     ) -> None:
         authors = {}
-        if not ((organization := kwargs.get("organization")) and (repo := kwargs.get("repo"))):
-            raise ValueError("Missing organization and repo")
-
         client = integration.get_installation(organization_id=organization.id).get_client()
         gh_username_cache: MutableMapping[str, str | None] = {}
 
@@ -578,7 +586,14 @@ class IssuesEventWebhook(GitHubWebhook):
     # Inbound sync because we are handling assignment and status changes.
     EVENT_TYPE = IntegrationWebhookEventType.INBOUND_SYNC
 
-    def _handle(self, integration: RpcIntegration, event: Mapping[str, Any], **kwargs: Any) -> None:
+    def _handle(
+        self,
+        integration: RpcIntegration,
+        event: Mapping[str, Any],
+        organization: Organization,
+        repo: Repository,
+        **kwargs: Any,
+    ) -> None:
         """
         Handle GitHub issue events, particularly assignment and status changes.
         """
@@ -760,6 +775,8 @@ class PullRequestEventWebhook(GitHubWebhook):
         self,
         integration: RpcIntegration,
         event: Mapping[str, Any],
+        organization: Organization,
+        repo: Repository,
         **kwargs: Any,
     ) -> None:
         pull_request = event["pull_request"]
@@ -786,9 +803,6 @@ class PullRequestEventWebhook(GitHubWebhook):
         merge_commit_sha = pull_request["merge_commit_sha"] if pull_request["merged"] else None
 
         author_email = "{}@localhost".format(user["login"][:65])
-
-        if not ((organization := kwargs.get("organization")) and (repo := kwargs.get("repo"))):
-            raise ValueError("Missing organization and repo")
 
         try:
             commit_author = CommitAuthor.objects.get(
@@ -825,7 +839,7 @@ class PullRequestEventWebhook(GitHubWebhook):
 
         author.preload_users()
         try:
-            pr, created = PullRequest.objects.update_or_create(
+            _, created = PullRequest.objects.update_or_create(
                 organization_id=organization.id,
                 repository_id=repo.id,
                 key=number,
@@ -922,7 +936,7 @@ class PullRequestEventWebhook(GitHubWebhook):
         except IntegrityError:
             pass
 
-        super()._handle(integration, event, **kwargs)
+        super()._handle(integration, event, organization, repo, **kwargs)
 
 
 class PullRequestReviewEventWebhook(GitHubWebhook):

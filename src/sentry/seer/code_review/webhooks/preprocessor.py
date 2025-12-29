@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
 from sentry.models.organization import Organization
+from sentry.models.repository import Repository
 from sentry.seer.code_review.webhooks.types import EventType
 from sentry.utils import metrics
 
@@ -21,7 +22,12 @@ METRICS_PREFIX = "seer.code_review.webhook"
 
 
 def preprocess_other_webhook_event(
-    *, event_type: str, event: Mapping[str, Any], organization: Organization, **kwargs: Any
+    *,
+    event_type: str,
+    event: Mapping[str, Any],
+    organization: Organization,
+    repo: Repository,
+    **kwargs: Any,
 ) -> None:
     """
     Each webhook event type may implement its own preprocessor.
@@ -52,6 +58,10 @@ def preprocess_other_webhook_event(
     )
 
 
+# Type check to ensure the function matches WebhookProcessor protocol
+_only_for_type_checking: WebhookProcessor = preprocess_other_webhook_event
+
+
 EVENT_TYPE_TO_PREPROCESSOR = {
     EventType.CHECK_RUN: preprocess_check_run_event,
     EventType.ISSUE_COMMENT: preprocess_other_webhook_event,
@@ -61,7 +71,14 @@ EVENT_TYPE_TO_PREPROCESSOR = {
 }
 
 
-def preprocess_webhook_event(*, event_type: str, event: Mapping[str, Any], **kwargs: Any) -> None:
+def preprocess_webhook_event(
+    *,
+    event_type: str,
+    event: Mapping[str, Any],
+    organization: Organization,
+    repo: Repository,
+    **kwargs: Any,
+) -> None:
     """
     Preprocess GitHub webhook events.
 
@@ -83,8 +100,8 @@ def preprocess_webhook_event(*, event_type: str, event: Mapping[str, Any], **kwa
         )
         return
 
-    preprocessor(event_type=event_type, event=event, **kwargs)
+    preprocessor(event_type=event_type, event=event, organization=organization, **kwargs)
 
 
 # Type check to ensure the function matches WebhookProcessor protocol
-_: WebhookProcessor = preprocess_webhook_event
+_type_checked_preprocess_webhook_event: WebhookProcessor = preprocess_webhook_event
