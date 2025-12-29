@@ -22,7 +22,7 @@ export function useUpdateProjectSeerPreferences(project: Project) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: [makeProjectSeerPreferencesQueryKey(organization.slug, project.slug)],
+        queryKey: makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
       });
     },
   });

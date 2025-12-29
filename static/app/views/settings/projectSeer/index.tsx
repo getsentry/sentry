@@ -14,7 +14,10 @@ import {
 } from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
-import {useCodingAgentIntegrations} from 'sentry/components/events/autofix/useAutofix';
+import {
+  useCodingAgentIntegrations,
+  type CodingAgentIntegration,
+} from 'sentry/components/events/autofix/useAutofix';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -104,12 +107,6 @@ const autofixAutomationToggleField = {
   }),
 } satisfies FieldObject;
 
-interface CursorIntegration {
-  id: string;
-  name: string;
-  provider: string;
-}
-
 function CodingAgentSettings({
   preference,
   handleAutoCreatePrChange,
@@ -119,7 +116,7 @@ function CodingAgentSettings({
   cursorIntegrations,
 }: {
   canWriteProject: boolean;
-  cursorIntegrations: CursorIntegration[];
+  cursorIntegrations: CodingAgentIntegration[];
   handleAutoCreatePrChange: (value: boolean) => void;
   handleIntegrationChange: (integrationId: number) => void;
   preference: ProjectSeerPreferences | null | undefined;
@@ -310,9 +307,10 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
             addErrorMessage(t('Failed to update auto-open PR setting'));
             // Refetch to reset form state to backend value
             queryClient.invalidateQueries({
-              queryKey: [
-                makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
-              ],
+              queryKey: makeProjectSeerPreferencesQueryKey(
+                organization.slug,
+                project.slug
+              ),
             });
           },
         }
@@ -355,9 +353,10 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
               addErrorMessage(t('Failed to update Cursor handoff setting'));
               // Refetch to reset form state to backend value
               queryClient.invalidateQueries({
-                queryKey: [
-                  makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
-                ],
+                queryKey: makeProjectSeerPreferencesQueryKey(
+                  organization.slug,
+                  project.slug
+                ),
               });
             },
           }
@@ -376,9 +375,10 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
               addErrorMessage(t('Failed to update Cursor handoff setting'));
               // Refetch to reset form state to backend value
               queryClient.invalidateQueries({
-                queryKey: [
-                  makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
-                ],
+                queryKey: makeProjectSeerPreferencesQueryKey(
+                  organization.slug,
+                  project.slug
+                ),
               });
             },
           }

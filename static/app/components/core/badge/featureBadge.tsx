@@ -2,8 +2,6 @@ import styled from '@emotion/styled';
 
 import {Tooltip, type TooltipProps} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 
 import {Badge, type BadgeProps} from './badge';
 
@@ -50,12 +48,4 @@ const ChonkStyledBadge = styled(Badge)`
   text-transform: capitalize;
 `;
 
-const StyledBadge = withChonk(
-  styled(Badge)`
-    margin: 0;
-    padding: 0 ${space(0.75)};
-    height: ${space(2)};
-    vertical-align: middle;
-  `,
-  ChonkStyledBadge
-);
+const StyledBadge = ChonkStyledBadge;

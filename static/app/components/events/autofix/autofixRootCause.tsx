@@ -22,6 +22,7 @@ import {
   makeAutofixQueryKey,
   useCodingAgentIntegrations,
   useLaunchCodingAgent,
+  type CodingAgentIntegration,
 } from 'sentry/components/events/autofix/useAutofix';
 import {formatRootCauseWithEvent} from 'sentry/components/events/autofix/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -246,12 +247,6 @@ function CopyRootCauseButton({
     </Button>
   );
 }
-
-type CodingAgentIntegration = {
-  id: string;
-  name: string;
-  provider: string;
-};
 
 function SolutionActionButton({
   cursorIntegrations,
