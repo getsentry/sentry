@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Type-level tests for tct function type safety.
  * These tests verify that the TypeScript compiler correctly enforces
