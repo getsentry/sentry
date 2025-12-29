@@ -30,7 +30,15 @@ class TraceConnectedIssuesTest(TestCase):
                         AttributeValue(val_int=200),
                         AttributeValue(val_int=300),
                     ],
-                )
+                ),
+                TraceItemColumnValues(
+                    attribute_name="count()",
+                    results=[
+                        AttributeValue(val_double=5.0),
+                        AttributeValue(val_double=3.0),
+                        AttributeValue(val_double=1.0),
+                    ],
+                ),
             ]
         )
         mock_table_rpc.return_value = [mock_response]

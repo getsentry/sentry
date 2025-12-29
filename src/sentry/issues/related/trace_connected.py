@@ -100,7 +100,7 @@ def _trace_connected_issues_eap(
         result = Occurrences.run_table_query(
             params=snuba_params,
             query_string=f"trace:{trace_id}",
-            selected_columns=["group_id"],
+            selected_columns=["group_id", "count()"],
             orderby=None,
             offset=0,
             limit=100,
