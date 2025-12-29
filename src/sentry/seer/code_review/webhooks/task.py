@@ -1,18 +1,22 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from datetime import datetime, timezone
 from typing import Any
 
 from urllib3.exceptions import HTTPError
 
-from sentry.seer.code_review.webhooks import PROCESSORS
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_code_review_tasks
 from sentry.taskworker.retry import Retry
 from sentry.taskworker.state import current_task
 from sentry.utils import metrics
+
+from ..utils import SeerEndpoint, make_seer_request
+from .check_run import process_check_run_task_event
+from .types import EventType
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +27,24 @@ DELAY_BETWEEN_RETRIES = 60  # 1 minute
 RETRYABLE_ERRORS = (HTTPError,)
 
 
+def _call_seer_request(*, event_type: str, event_payload: Mapping[str, Any], **kwargs: Any) -> None:
+    """
+    XXX: This is a placeholder processor to send events to Seer.
+    """
+    assert event_type != EventType.CHECK_RUN
+    assert event_payload is not None
+    make_seer_request(path=SeerEndpoint.SENTRY_REQUEST.value, payload=event_payload)
+
+
+EVENT_TYPE_TO_PROCESSOR = {
+    EventType.CHECK_RUN: process_check_run_task_event,
+    EventType.ISSUE_COMMENT: _call_seer_request,
+    EventType.PULL_REQUEST: _call_seer_request,
+    EventType.PULL_REQUEST_REVIEW: _call_seer_request,
+    EventType.PULL_REQUEST_REVIEW_COMMENT: _call_seer_request,
+}
+
+
 @instrumented_task(
     name="sentry.seer.code_review.tasks.process_github_webhook_event",
     namespace=seer_code_review_tasks,
@@ -30,22 +52,25 @@ RETRYABLE_ERRORS = (HTTPError,)
     silo_mode=SiloMode.REGION,
 )
 def process_github_webhook_event(
-    *, enqueued_at_str: str, organization_id: int | None = None, **kwargs: Any
+    *, enqueued_at_str: str, event_type: str, event_payload: Mapping[str, Any], **kwargs: Any
 ) -> None:
     """
-    Process a webhook event.
+    Process GitHub webhook event by forwarding to Seer if applicable.
 
     Args:
-        organization_id: The organization ID (TO BE DEPRECATED)
         enqueued_at_str: The timestamp when the task was enqueued
+        event_type: The type of the webhook event
+        event_payload: The payload of the webhook event
         **kwargs: Parameters to pass to webhook handler functions
     """
     status = "success"
     should_record_latency = True
     try:
-        # XXX: We may be able to add mapping from webhook event to the right processor.
-        for processor in PROCESSORS:
-            processor(kwargs=kwargs)
+        event_type_enum = EventType.from_string(event_type)
+        event_processor = EVENT_TYPE_TO_PROCESSOR.get(event_type_enum)
+        if event_processor is None:
+            raise ValueError(f"No processor found for event type: {event_type}")
+        event_processor(event_type=event_type, event_payload=event_payload, **kwargs)
     except Exception as e:
         status = e.__class__.__name__
         # Retryable errors are automatically retried by taskworker.

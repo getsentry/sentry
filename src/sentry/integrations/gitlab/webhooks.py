@@ -126,7 +126,7 @@ class MergeEventWebhook(GitlabWebhook):
 
     @property
     def event_type(self) -> IntegrationWebhookEventType:
-        return IntegrationWebhookEventType.PULL_REQUEST
+        return IntegrationWebhookEventType.MERGE_REQUEST
 
     def __call__(self, event: Mapping[str, Any], **kwargs):
         if not (
