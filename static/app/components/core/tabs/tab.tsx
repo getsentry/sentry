@@ -1,4 +1,3 @@
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaTabProps} from '@react-aria/tabs';
 import {useTab} from '@react-aria/tabs';
@@ -8,8 +7,6 @@ import type {Node, Orientation} from '@react-types/shared';
 
 import {Link} from 'sentry/components/core/link';
 import {Tooltip, type TooltipProps} from 'sentry/components/core/tooltip';
-import {space} from 'sentry/styles/space';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 
 import type {BaseTabProps} from './tab.chonk';
 import {
@@ -17,7 +14,6 @@ import {
   ChonkStyledTabSelectionIndicator,
   ChonkStyledTabWrap,
 } from './tab.chonk';
-import {tabsShouldForwardProp} from './utils';
 
 interface TabProps extends AriaTabProps {
   item: Node<any>;
@@ -179,39 +175,7 @@ export function Tab({
   );
 }
 
-const TabWrap = withChonk(
-  styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
-    overflowing: boolean;
-    selected: boolean;
-  }>`
-    color: ${p => (p.selected ? p.theme.activeText : p.theme.tokens.content.primary)};
-    white-space: nowrap;
-    cursor: pointer;
-
-    &:hover {
-      color: ${p => (p.selected ? p.theme.activeText : p.theme.tokens.content.primary)};
-    }
-
-    &:focus {
-      outline: none;
-    }
-
-    &[aria-disabled],
-    &[aria-disabled]:hover {
-      color: ${p => p.theme.subText};
-      pointer-events: none;
-      cursor: default;
-    }
-
-    ${p =>
-      p.overflowing &&
-      css`
-        opacity: 0;
-        pointer-events: none;
-      `}
-  `,
-  ChonkStyledTabWrap
-);
+const TabWrap = ChonkStyledTabWrap;
 
 const TabLink = styled(Link)<{
   orientation: Orientation;
@@ -250,39 +214,4 @@ const TabInnerWrap = styled('span')<{
     })}
 `;
 
-const TabSelectionIndicator = withChonk(
-  styled('div')<{
-    orientation: Orientation;
-    selected: boolean;
-  }>`
-    position: absolute;
-    border-radius: 2px;
-    pointer-events: none;
-    background: ${p => (p.selected ? p.theme.active : 'transparent')};
-    transition: background 0.1s ease-out;
-
-    li[aria-disabled='true'] & {
-      background: ${p => (p.selected ? p.theme.subText : 'transparent')};
-    }
-
-    ${p =>
-      p.orientation === 'horizontal'
-        ? css`
-            width: calc(100% - ${space(2)});
-            height: 3px;
-
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-          `
-        : css`
-            width: 3px;
-            height: 50%;
-
-            left: 0;
-            top: 50%;
-            transform: translateY(-50%);
-          `};
-  `,
-  ChonkStyledTabSelectionIndicator
-);
+const TabSelectionIndicator = ChonkStyledTabSelectionIndicator;
