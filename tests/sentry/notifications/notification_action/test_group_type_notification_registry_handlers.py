@@ -92,7 +92,7 @@ class TestMetricAlertRegistryInvoker(BaseWorkflowTest):
             execute_via_group_type_registry(invocation)
 =======
             execute_via_group_type_registry(
-                self.event_data, self.action, self.detector, notification_uuid=str(uuid.uuid4())
+                self.event_data, self.action, self.detector, str(uuid.uuid4())
             )
 >>>>>>> 9511567f9cf (tests)
             self.activity.send_notification.assert_called_once_with()
@@ -114,11 +114,15 @@ class TestMetricAlertRegistryInvoker(BaseWorkflowTest):
 =======
         notification_uuid = str(uuid.uuid4())
         execute_via_group_type_registry(
-            self.event_data, self.action, self.detector, notification_uuid=notification_uuid
+            self.event_data, self.action, self.detector, notification_uuid
         )
         mock_execute_metric_alert_handler.assert_called_once_with(
+<<<<<<< HEAD
             self.event_data, self.action, self.detector, notification_uuid=notification_uuid
 >>>>>>> 9511567f9cf (tests)
+=======
+            self.event_data, self.action, self.detector, notification_uuid
+>>>>>>> 80f720e8db7 (cleanup)
         )
         execute_via_group_type_registry(invocation)
         mock_execute_metric_alert_handler.assert_called_once_with(invocation)
@@ -148,11 +152,15 @@ class TestGroupTypeNotificationRegistryHandler(BaseWorkflowTest):
             detector=self.detector,
 =======
         execute_via_group_type_registry(
-            self.event_data, self.action, self.detector, notification_uuid=str(uuid.uuid4())
+            self.event_data, self.action, self.detector, str(uuid.uuid4())
         )
         mock_execute_via_issue_alert_handler.assert_called_once_with(
+<<<<<<< HEAD
             self.event_data, self.action, self.detector, notification_uuid=ANY
 >>>>>>> 9511567f9cf (tests)
+=======
+            self.event_data, self.action, self.detector, ANY
+>>>>>>> 80f720e8db7 (cleanup)
         )
         execute_via_group_type_registry(invocation)
         mock_execute_via_issue_alert_handler.assert_called_once_with(invocation)

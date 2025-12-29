@@ -23,8 +23,13 @@ class MetricAlertRegistryHandler(LegacyRegistryHandler):
     @override
     def handle_workflow_action(invocation: ActionInvocation) -> None:
         try:
+<<<<<<< HEAD
             handler = metric_alert_handler_registry.get(invocation.action.type)
             handler.invoke_legacy_registry(invocation)
+=======
+            handler = metric_alert_handler_registry.get(action.type)
+            handler.invoke_legacy_registry(job, action, detector, notification_uuid)
+>>>>>>> 80f720e8db7 (cleanup)
         except NoRegistrationExistsError:
             logger.exception(
                 "No metric alert handler found for action type: %s",

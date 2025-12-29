@@ -61,5 +61,15 @@ class TicketingActionHandler(IntegrationActionHandler, ABC):
 
     @staticmethod
     @override
+<<<<<<< HEAD
     def execute(invocation: ActionInvocation) -> None:
         execute_via_issue_alert_handler(invocation)
+=======
+    def execute(
+        job: WorkflowEventData,
+        action: Action,
+        detector: Detector,
+        notification_uuid: str,
+    ) -> None:
+        execute_via_issue_alert_handler(job, action, detector, notification_uuid)
+>>>>>>> 80f720e8db7 (cleanup)

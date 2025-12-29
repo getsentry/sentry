@@ -90,10 +90,7 @@ class TestAction(TestCase):
             assert invocation.detector == mock_detector
 =======
             mock_handler.execute.assert_called_once_with(
-                self.mock_event,
-                self.action,
-                mock_get_detector.return_value,
-                notification_uuid=notification_uuid,
+                self.mock_event, self.action, mock_get_detector.return_value, notification_uuid
             )
 >>>>>>> 9511567f9cf (tests)
 

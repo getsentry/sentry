@@ -134,12 +134,16 @@ class Action(DefaultFieldsModel, JSONConfigBase):
             sample_rate=1.0,
         ):
             handler = self.get_handler()
+<<<<<<< HEAD
             invocation = ActionInvocation(
                 event_data=event_data,
                 action=self,
                 detector=detector,
             )
             handler.execute(invocation)
+=======
+            handler.execute(event_data, self, detector, notification_uuid)
+>>>>>>> 80f720e8db7 (cleanup)
 
         metrics.incr(
             "workflow_engine.action.trigger",
