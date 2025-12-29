@@ -1,5 +1,6 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
+import type {Location} from 'history';
 
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import Feature from 'sentry/components/acl/feature';
@@ -15,11 +16,14 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import Projects from 'sentry/utils/projects';
+import {useLocation} from 'sentry/utils/useLocation';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import FilterBar from 'sentry/views/alerts/filterBar';
 import AlertHeader from 'sentry/views/alerts/list/header';
 import Onboarding from 'sentry/views/alerts/list/onboarding';
@@ -31,7 +35,9 @@ import AlertListRow from './row';
 const DOCS_URL =
   'https://docs.sentry.io/workflow/alerts-notifications/alerts/?_ga=2.21848383.580096147.1592364314-1444595810.1582160976';
 
-type Props = RouteComponentProps & {
+type Props = {
+  location: Location;
+  navigate: ReactRouter3Navigate;
   organization: Organization;
 };
 
@@ -56,7 +62,7 @@ class IncidentsList extends DeprecatedAsyncComponent<
   getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization, location} = this.props;
     const {query} = location;
-    const status = getQueryStatus(query.status);
+    const status = getQueryStatus(query.status ?? '');
 
     return [
       [
@@ -66,7 +72,7 @@ class IncidentsList extends DeprecatedAsyncComponent<
           query: {
             ...query,
             status: status === 'all' ? undefined : status,
-            team: getTeamParams(query.team),
+            team: getTeamParams(query.team ?? undefined),
             expand: ['original_alert_rule'],
           },
         },
@@ -136,22 +142,18 @@ class IncidentsList extends DeprecatedAsyncComponent<
   }
 
   handleChangeSearch = (title: string) => {
-    const {router, location} = this.props;
+    const {navigate, location} = this.props;
     const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
-    router.push({
+    navigate({
       pathname: location.pathname,
-      query: {
-        ...currentQuery,
-        title,
-      },
+      query: {...currentQuery, title},
     });
   };
 
   handleChangeFilter = (activeFilters: string[]) => {
-    const {router, location} = this.props;
+    const {navigate, location} = this.props;
     const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
-
-    router.push({
+    navigate({
       pathname: location.pathname,
       query: {
         ...currentQuery,
@@ -162,10 +164,9 @@ class IncidentsList extends DeprecatedAsyncComponent<
   };
 
   handleChangeStatus = (value: string): void => {
-    const {router, location} = this.props;
+    const {navigate, location} = this.props;
     const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
-
-    router.push({
+    navigate({
       pathname: location.pathname,
       query: {
         ...currentQuery,
@@ -289,10 +290,14 @@ class IncidentsList extends DeprecatedAsyncComponent<
   }
 }
 
-function IncidentsListContainer(props: Props) {
+export default function IncidentsListContainer() {
+  const organization = useOrganization();
+  const location = useLocation();
+  const navigate = useNavigate();
+
   useEffect(() => {
     trackAnalytics('alert_stream.viewed', {
-      organization: props.organization,
+      organization,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -315,7 +320,11 @@ function IncidentsListContainer(props: Props) {
       hookName="feature-disabled:alerts-page"
       renderDisabled={renderDisabled}
     >
-      <IncidentsList {...props} />
+      <IncidentsList
+        organization={organization}
+        location={location}
+        navigate={navigate}
+      />
     </Feature>
   );
 }
@@ -335,5 +344,3 @@ const StyledAlert = styled(Alert)`
 const EmptyStateAction = styled('p')`
   font-size: ${p => p.theme.fontSize.lg};
 `;
-
-export default IncidentsListContainer;

@@ -41,6 +41,8 @@ import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {type GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
+import {FileDiffViewer} from 'sentry/views/seerExplorer/fileDiffViewer';
+import type {ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
 
 interface AssignedEntity {
   email: string | null;
@@ -66,6 +68,7 @@ interface ClusterSummary {
   code_area_tags?: string[];
   error_type?: string;
   error_type_tags?: string[];
+  explorer_run_id?: number;
   impact?: string;
   location?: string;
   service_tags?: string[];
@@ -82,6 +85,28 @@ interface ClusterStats {
   lastSeen: string | null;
   totalEvents: number;
   totalUsers: number;
+}
+
+interface SeerExplorerRunResponse {
+  session: {
+    blocks: Array<{
+      id: string;
+      message: {
+        content: string;
+        role: 'user' | 'assistant' | 'tool_use';
+      };
+      timestamp: string;
+      merged_file_patches?: ExplorerFilePatch[];
+    }>;
+    status: 'processing' | 'completed' | 'error' | 'awaiting_user_input';
+    updated_at: string;
+    pending_user_input?: {
+      data?: {
+        patches?: ExplorerFilePatch[];
+      };
+      input_type?: string;
+    } | null;
+  } | null;
 }
 
 function useClusterStats(groupIds: number[]): ClusterStats {
@@ -168,6 +193,18 @@ function useClusterEventsStats(groupIds: number[]) {
     {
       staleTime: 60000,
       enabled: groupIds.length > 0,
+    }
+  );
+}
+
+function useSeerExplorerRun(runId: number | undefined) {
+  const organization = useOrganization();
+
+  return useApiQuery<SeerExplorerRunResponse>(
+    [`/organizations/${organization.slug}/seer/explorer-chat/${runId}/`],
+    {
+      staleTime: 60000,
+      enabled: runId !== undefined && runId > 0,
     }
   );
 }
@@ -339,6 +376,68 @@ function ClusterStackTrace({groupId}: ClusterStackTraceProps) {
   }
 
   return <StackTraceContent {...commonProps} expandFirstFrame hideIcon />;
+}
+
+interface SuggestedCodeChangeProps {
+  runId: number;
+}
+
+function SuggestedCodeChange({runId}: SuggestedCodeChangeProps) {
+  const {data: explorerData, isPending} = useSeerExplorerRun(runId);
+
+  const filePatches = useMemo(() => {
+    if (!explorerData?.session) {
+      return [];
+    }
+
+    const patches: ExplorerFilePatch[] = [];
+
+    // First, check pending_user_input for file change approvals (code changes awaiting approval)
+    if (
+      explorerData.session.pending_user_input?.input_type === 'file_change_approval' &&
+      explorerData.session.pending_user_input.data?.patches
+    ) {
+      patches.push(...explorerData.session.pending_user_input.data.patches);
+    }
+
+    // Also collect any merged file patches from blocks
+    if (explorerData.session.blocks) {
+      for (const block of explorerData.session.blocks) {
+        if (block.merged_file_patches) {
+          patches.push(...block.merged_file_patches);
+        }
+      }
+    }
+
+    return patches;
+  }, [explorerData]);
+
+  if (isPending) {
+    return <Placeholder height="100px" />;
+  }
+
+  if (filePatches.length === 0) {
+    return (
+      <Text size="sm" variant="muted">
+        {t('No code changes suggested for this issue.')}
+      </Text>
+    );
+  }
+
+  return (
+    <CodeChangesContainer>
+      {filePatches.map((filePatch, index) => (
+        <FileDiffViewer
+          key={`${filePatch.repo_name}-${filePatch.patch.path}-${index}`}
+          patch={filePatch.patch}
+          repoName={filePatch.repo_name}
+          showBorder
+          collapsible
+          defaultExpanded={index === 0}
+        />
+      ))}
+    </CodeChangesContainer>
+  );
 }
 
 interface DiscoverFacetTag {
@@ -742,6 +841,15 @@ function ClusterDetailCard({cluster}: {cluster: ClusterSummary}) {
               <Disclosure.Title>{t('Aggregate Tags')}</Disclosure.Title>
               <Disclosure.Content>
                 <DenseTagFacets groupIds={cluster.group_ids} />
+              </Disclosure.Content>
+            </Disclosure>
+          )}
+
+          {cluster.explorer_run_id && (
+            <Disclosure size="sm">
+              <Disclosure.Title>{t('Suggested Code Change')}</Disclosure.Title>
+              <Disclosure.Content>
+                <SuggestedCodeChange runId={cluster.explorer_run_id} />
               </Disclosure.Content>
             </Disclosure>
           )}
@@ -1163,6 +1271,12 @@ const TagPctCell = styled('div')`
   align-items: center;
   justify-content: flex-start;
   min-width: 0;
+`;
+
+const CodeChangesContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.md};
 `;
 
 export default TopIssues;
