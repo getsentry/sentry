@@ -11,6 +11,7 @@ resources:
     Design Tokens explained: https://atlassian.design/tokens/design-tokens
 ---
 
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import color from 'color';
 
@@ -40,16 +41,15 @@ Colors have been organized into separate scales for specific use cases.
 
 For consistency, token scales and `variant` properties have been standardized with the following terminology.
 
-| Keyword       | Description                                                                                                         |
-| ------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `accent`      | The call-to-action colour for interactive elements.                                                                 |
-| `info`        | Semantically charged, informing users of important facts.                                                           |
-| `promotion`   | Semantically charged, encouraging users to invest in Sentry.                                                        |
-| `warning`     | Semantically charged, alerting users of a potential issue.                                                          |
-| `danger`      | Semantically charged, alerting users of a issue.                                                                    |
-| `success`     | Semantically charged, informing users of a desired end-state.                                                       |
-| `transparent` | Can be visually equivalent alternatives to related tokens or the name of a style variant.                           |
-| `chonky`      | A style variant for elements that are visually protruding or depressed relative to the surface the element sits on. |
+| Keyword     | Description                                                   |
+| ----------- | ------------------------------------------------------------- |
+| `neutral`   | Neutral is the subtle, grayscale variant                      |
+| `accent`    | The call-to-action colour for interactive elements.           |
+| `info`      | Semantically charged, informing users of important facts.     |
+| `promotion` | Semantically charged, encouraging users to invest in Sentry.  |
+| `warning`   | Semantically charged, alerting users of a potential issue.    |
+| `danger`    | Semantically charged, alerting users of a issue.              |
+| `success`   | Semantically charged, informing users of a desired end-state. |
 
 # Size
 
@@ -150,7 +150,7 @@ export function Radius() {
             boxSizing: 'border-box',
             width: '48px',
             height: '48px',
-            background: color(theme.tokens.border.accent).alpha(0.2).string(),
+            background: color(theme.tokens.border.accent.vibrant).alpha(0.2).string(),
           }}
           border="accent"
           radius={token}
@@ -164,8 +164,8 @@ export function FontSize() {
   const theme = useTheme();
   return (
     <Storybook.TokenReference
-      scale="fontSize"
-      tokens={theme.fontSize}
+      scale="font.size"
+      tokens={theme.font.size}
       renderToken={({token}) => (
         <Text size={token} variant="accent">
           Aa
@@ -178,14 +178,25 @@ export function FontSize() {
 export function FontWeight() {
   const theme = useTheme();
   return (
-    <Storybook.TokenReference
-      scale="fontWeight"
-      tokens={theme.fontWeight}
-      renderToken={({value}) => (
-        <Text size="lg" style={{fontWeight: value}} variant="accent">
-          {value}
-        </Text>
-      )}
-    />
+    <Fragment>
+      <Storybook.TokenReference
+        scale="font.weight.sans"
+        tokens={theme.font.weight.sans}
+        renderToken={({value}) => (
+          <Text size="lg" style={{fontWeight: value}} variant="accent">
+            {value}
+          </Text>
+        )}
+      />
+      <Storybook.TokenReference
+        scale="font.weight.mono"
+        tokens={theme.font.weight.mono}
+        renderToken={({value}) => (
+          <Text size="lg" style={{fontWeight: value}} variant="accent">
+            {value}
+          </Text>
+        )}
+      />
+    </Fragment>
   );
 }
