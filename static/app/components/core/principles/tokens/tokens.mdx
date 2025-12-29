@@ -1,0 +1,191 @@
+---
+title: Tokens
+description: Tokens are the smallest unit of a Design System. They represent discrete design decisions in a platform-agnostic way.
+status: in-progress
+resources:
+  figma: https://www.figma.com/design/97XKAiOW0Rg8Rk1hb02R4E/%F0%9F%90%A6-Primitives?node-id=446-34701&p=f&t=secYuPMqzV9RoH8F-0
+  js: https://github.com/getsentry/design-engineering/tree/main/packages/scraps/src/tokens
+  reference:
+    DTCG Glossary: https://www.designtokens.org/glossary/
+    Design Tokens Format Module: https://www.designtokens.org/tr/third-editors-draft/format/
+    Design Tokens explained: https://atlassian.design/tokens/design-tokens
+---
+
+import {useTheme} from '@emotion/react';
+import color from 'color';
+
+import {Container, Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
+import * as Storybook from 'sentry/stories';
+
+# Color
+
+## Categories
+
+Colors have been organized into separate scales for specific use cases.
+
+| Category     | Description                                                                                            |
+| ------------ | ------------------------------------------------------------------------------------------------------ |
+| `background` | Painting an elements background.                                                                       |
+| `content`    | Painting text and icons which need to stand out the most.                                              |
+| `graphics`   | Painting icons and other graphical elements which don’t need to stand out as much as `content` tokens. |
+| `borders`    | Painting borders of containers or visual diagrams.                                                     |
+| `shadows`    | Painting shadows of containers.                                                                        |
+| `controls`   | Painting interactive elements and all their states.                                                    |
+| `syntax`     | Painting `<code/>` elements that depend on PrismJS.                                                    |
+| `focus`      | Painting `:focus` or validation states.                                                                |
+| `dataviz`    | Painting chart data.                                                                                   |
+
+## Variants
+
+For consistency, token scales and `variant` properties have been standardized with the following terminology.
+
+| Keyword       | Description                                                                                                         |
+| ------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `accent`      | The call-to-action colour for interactive elements.                                                                 |
+| `info`        | Semantically charged, informing users of important facts.                                                           |
+| `promotion`   | Semantically charged, encouraging users to invest in Sentry.                                                        |
+| `warning`     | Semantically charged, alerting users of a potential issue.                                                          |
+| `danger`      | Semantically charged, alerting users of a issue.                                                                    |
+| `success`     | Semantically charged, informing users of a desired end-state.                                                       |
+| `transparent` | Can be visually equivalent alternatives to related tokens or the name of a style variant.                           |
+| `chonky`      | A style variant for elements that are visually protruding or depressed relative to the surface the element sits on. |
+
+# Size
+
+Size based tokens are based on a `4px` grid.
+
+## Space
+
+Space values are used for layout components such as [`<Container/>`](/stories/layout/container), [`<Flex/>`](/stories/layout/flex), [`<Grid/>`](/stories/layout/grid), as well as CSS properties like `gap` and `padding`.
+
+<Space />
+
+## Radius
+
+Radius values define the rounded corners of [`<Container />`](/stories/layout/container) and [`<Flex />`](/stories/layout/flex) components using the CSS property `border-radius`.
+
+<Radius />
+
+## Border Width
+
+Border Width values define the thickness of borders using the CSS properties `border-width` and `outline-width`.
+
+```
+TBD
+```
+
+## Shadow Offset
+
+Shadow Offset values define the distance of shadows and borders for raised interactive elements.
+
+```
+TBD
+```
+
+# Typography
+
+Typography tokens are used with the [`<Text />`](/stories/typography/text) and [`<Heading />`](/stories/typography/heading) components to define Sentry's information hierarchy.
+
+## Font Size
+
+<FontSize />
+
+## Font Weight
+
+<FontWeight />
+
+## Font Family
+
+```
+TBD
+```
+
+## Line Height
+
+```
+TBD
+```
+
+export function Space() {
+  const theme = useTheme();
+  return (
+    <Storybook.TokenReference
+      scale="space"
+      tokens={theme.space}
+      renderToken={({value}) => (
+        <Flex
+          align="center"
+          justify="center"
+          as="div"
+          width={value}
+          height="16px"
+          borderLeft="accent"
+          borderRight="accent"
+          style={{boxSizing: 'border-box'}}
+        >
+          <Container
+            as="div"
+            width="100%"
+            height="1px"
+            borderTop="accent"
+            style={{boxSizing: 'border-box'}}
+          />
+        </Flex>
+      )}
+    />
+  );
+}
+
+export function Radius() {
+  const theme = useTheme();
+  return (
+    <Storybook.TokenReference
+      scale="radius"
+      tokens={theme.radius}
+      renderToken={({token}) => (
+        <Container
+          as="div"
+          style={{
+            boxSizing: 'border-box',
+            width: '48px',
+            height: '48px',
+            background: color(theme.tokens.border.accent).alpha(0.2).string(),
+          }}
+          border="accent"
+          radius={token}
+        />
+      )}
+    />
+  );
+}
+
+export function FontSize() {
+  const theme = useTheme();
+  return (
+    <Storybook.TokenReference
+      scale="fontSize"
+      tokens={theme.fontSize}
+      renderToken={({token}) => (
+        <Text size={token} variant="accent">
+          Aa
+        </Text>
+      )}
+    />
+  );
+}
+
+export function FontWeight() {
+  const theme = useTheme();
+  return (
+    <Storybook.TokenReference
+      scale="fontWeight"
+      tokens={theme.fontWeight}
+      renderToken={({value}) => (
+        <Text size="lg" style={{fontWeight: value}} variant="accent">
+          {value}
+        </Text>
+      )}
+    />
+  );
+}
