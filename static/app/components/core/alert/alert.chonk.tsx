@@ -3,19 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {AlertProps} from 'sentry/components/core/alert';
-import type {ChonkPropMapping} from 'sentry/utils/theme/withChonk';
 import {unreachable} from 'sentry/utils/unreachable';
-
-export const chonkAlertPropMapping: ChonkPropMapping<
-  AlertProps,
-  ChonkAlertProps
-> = props => {
-  return {
-    ...props,
-    type:
-      props.type === 'muted' ? 'subtle' : props.type === 'error' ? 'danger' : props.type,
-  };
-};
 
 interface ChonkAlertProps extends Omit<AlertProps, 'type'> {
   type: 'subtle' | 'info' | 'warning' | 'success' | 'danger';
@@ -172,7 +160,7 @@ export const IconWrapper = styled('div')<{type: AlertProps['type']}>`
   color: ${p =>
     ['info', 'error'].includes(p.type)
       ? p.theme.colors.white
-      : p.type === 'muted'
+      : p.type === 'subtle'
         ? p.theme.tokens.content.primary
         : p.theme.colors.black};
 `;

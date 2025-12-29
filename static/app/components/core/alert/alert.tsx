@@ -17,7 +17,7 @@ import {unreachable} from 'sentry/utils/unreachable';
 import * as ChonkAlert from './alert.chonk';
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
-  type: 'muted' | 'info' | 'warning' | 'success' | 'error';
+  type: 'subtle' | 'info' | 'warning' | 'success' | 'danger';
   defaultExpanded?: boolean;
   expand?: React.ReactNode;
   handleExpandChange?: (isExpanded: boolean) => void;
@@ -125,7 +125,7 @@ export function Alert({
 
 function getAlertColors(theme: Theme, type: NonNullable<AlertProps['type']>) {
   switch (type) {
-    case 'muted':
+    case 'subtle':
       return {
         background: theme.colors.gray200,
         backgroundLight: theme.backgroundSecondary,
@@ -157,7 +157,7 @@ function getAlertColors(theme: Theme, type: NonNullable<AlertProps['type']>) {
         borderHover: theme.colors.green400,
         color: theme.colors.green500,
       };
-    case 'error':
+    case 'danger':
       return {
         background: theme.colors.red400,
         backgroundLight: theme.colors.red100,
@@ -235,11 +235,7 @@ ${p =>
     `}
 `;
 
-const AlertContainer = withChonk(
-  AlertPanel,
-  ChonkAlert.AlertPanel,
-  ChonkAlert.chonkAlertPropMapping
-);
+const AlertContainer = withChonk(AlertPanel, ChonkAlert.AlertPanel);
 
 const IconWrapper = ChonkAlert.IconWrapper;
 
@@ -257,10 +253,10 @@ function AlertIcon({type}: {type: AlertProps['type']}): React.ReactNode {
       return <IconWarning />;
     case 'success':
       return <IconCheckmark />;
-    case 'error':
+    case 'danger':
       return <IconNot />;
     case 'info':
-    case 'muted':
+    case 'subtle':
       return <IconInfo />;
     default:
       unreachable(type);
