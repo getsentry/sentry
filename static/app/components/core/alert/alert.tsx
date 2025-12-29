@@ -88,7 +88,7 @@ export function Alert({
         )}
         <Message>{children}</Message>
         {!!trailingItems && (
-          <TrailingItems showIcon={!!showIcon} onClick={e => e.stopPropagation()}>
+          <TrailingItems onClick={e => e.stopPropagation()}>
             {trailingItems}
           </TrailingItems>
         )}
@@ -241,72 +241,15 @@ const AlertContainer = withChonk(
   ChonkAlert.chonkAlertPropMapping
 );
 
-const IconWrapper = withChonk(
-  styled('div')<{type: AlertProps['type']}>`
-    display: flex;
-    align-items: center;
-    height: calc(
-      ${p => p.theme.font.size.md} * ${p => p.theme.font.lineHeight.comfortable}
-    );
-  `,
-  ChonkAlert.IconWrapper
-);
+const IconWrapper = ChonkAlert.IconWrapper;
 
-const Message = withChonk(
-  styled('span')`
-    position: relative;
-    line-height: ${p => p.theme.font.lineHeight.comfortable};
-  `,
-  ChonkAlert.Message
-);
+const Message = ChonkAlert.Message;
 
-const TrailingItems = withChonk(
-  styled('div')<{showIcon: boolean}>`
-    height: calc(
-      ${p => p.theme.font.size.md} * ${p => p.theme.font.lineHeight.comfortable}
-    );
-    display: grid;
-    grid-auto-flow: column;
-    grid-template-rows: 100%;
-    align-items: center;
-    gap: ${space(1)};
+const TrailingItems = ChonkAlert.TrailingItems;
 
-    @media (max-width: ${p => p.theme.breakpoints.sm}) {
-      /* In mobile, TrailingItems should wrap to a second row and be vertically aligned
-    with Message. When there is a leading icon, Message is in the second grid column.
-    Otherwise it's in the first grid column. */
-      grid-row: 2;
-      grid-column: ${p => (p.showIcon ? 2 : 1)} / -1;
-      justify-items: start;
-      margin: ${space(0.5)} 0;
-    }
-  `,
-  ChonkAlert.TrailingItems
-);
+const ExpandIconWrap = ChonkAlert.ExpandIconWrap;
 
-const ExpandIconWrap = withChonk(
-  styled('div')`
-    display: flex;
-    align-items: center;
-    margin-left: ${space(0.5)};
-  `,
-  ChonkAlert.ExpandIconWrap
-);
-
-const ExpandContainer = withChonk(
-  styled('div')<{showIcon: boolean; showTrailingItems: boolean}>`
-    grid-row: 2;
-    /* ExpandContainer should be vertically aligned with Message. When there is a leading icon,
-  Message is in the second grid column. Otherwise it's in the first column. */
-    grid-column: ${p => (p.showIcon ? 2 : 1)} / -1;
-    cursor: auto;
-
-    @media (max-width: ${p => p.theme.breakpoints.sm}) {
-      grid-row: ${p => (p.showTrailingItems ? 3 : 2)};
-    }
-  `,
-  ChonkAlert.ExpandContainer
-);
+const ExpandContainer = ChonkAlert.ExpandContainer;
 
 function AlertIcon({type}: {type: AlertProps['type']}): React.ReactNode {
   switch (type) {
