@@ -208,7 +208,7 @@ const generateThemePrismVariables = (
 const generateButtonTheme = (
   colors: Colors,
   alias: Aliases,
-  tokens: ReturnType<typeof generateChonkTokens>
+  tokens: ReturnType<typeof generateTokens>
 ): ButtonColors => ({
   default: {
     // all alias-based, already derived from new theme
@@ -319,7 +319,7 @@ const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
 });
 
 const generateLevelTheme = (
-  tokens: ReturnType<typeof generateChonkTokens>,
+  tokens: ReturnType<typeof generateTokens>,
   mode: 'light' | 'dark'
 ): LevelColors => ({
   sample: tokens.graphics.accent,
@@ -971,7 +971,7 @@ function makeChartColorPalette<T extends ChartColorPalette>(
 }
 
 // @TODO(jonasbadalic): eventually, we should port component usage to these values
-function generateChonkTokens(colorScheme: typeof lightColors) {
+function generateTokens(colorScheme: typeof lightColors) {
   return {
     content: {
       primary: colorScheme.gray800,
@@ -1221,7 +1221,7 @@ const darkShadows = {
 };
 
 const generateAliases = (
-  tokens: ReturnType<typeof generateChonkTokens>,
+  tokens: ReturnType<typeof generateTokens>,
   colors: typeof lightColors
 ) => ({
   /**
@@ -1356,11 +1356,11 @@ const generateAliases = (
   },
 });
 
-const lightTokens = generateChonkTokens(lightColors);
-const darkTokens = generateChonkTokens(darkColors);
+const lightTokens = generateTokens(lightColors);
+const darkTokens = generateTokens(darkColors);
 
 const lightAliases = generateAliases(lightTokens, lightColors);
-const darkAliases = generateAliases(generateChonkTokens(darkColors), darkColors);
+const darkAliases = generateAliases(generateTokens(darkColors), darkColors);
 
 const deprecatedColorMappings = (colors: Colors) => ({
   /** @deprecated */
