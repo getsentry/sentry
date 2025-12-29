@@ -71,27 +71,27 @@ export function TracesTable({tracesTableResult}: TracesTableProps) {
     <Fragment>
       <StyledPanel>
         <TracePanelContent>
-          <StyledPanelHeader align="left" lightText radius="md 0 0 0">
+          <StyledPanelHeader justify="start" lightText radius="md 0 0 0">
             {t('Trace ID')}
           </StyledPanelHeader>
 
-          <StyledPanelHeader align="left" lightText>
+          <StyledPanelHeader justify="start" lightText>
             {t('Trace Root')}
           </StyledPanelHeader>
 
-          <StyledPanelHeader align="right" lightText>
+          <StyledPanelHeader justify="end" lightText>
             {query ? t('Matching Spans') : t('Total Spans')}
           </StyledPanelHeader>
 
-          <StyledPanelHeader align="left" lightText>
+          <StyledPanelHeader justify="start" lightText>
             {t('Timeline')}
           </StyledPanelHeader>
 
-          <StyledPanelHeader align="right" lightText>
+          <StyledPanelHeader justify="end" lightText>
             {t('Root Duration')}
           </StyledPanelHeader>
 
-          <StyledPanelHeader align="right" lightText radius="0 md 0 0">
+          <StyledPanelHeader justify="end" lightText radius="0 md 0 0">
             <Flex gap="xs">
               {t('Timestamp')}
               <IconArrow size="xs" direction="down" />

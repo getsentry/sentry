@@ -14,19 +14,17 @@ export const StyledPanel = styled(Panel)`
 `;
 
 interface StyledPanelHeaderProps extends ComponentProps<typeof PanelHeader> {
-  align: 'left' | 'right';
+  justify: ComponentProps<typeof Flex>['justify'];
   children?: React.ReactNode;
   radius?: ComponentProps<typeof Flex>['radius'];
 }
 
 export function StyledPanelHeader({
   children,
-  align,
+  justify,
   radius,
   ...props
 }: StyledPanelHeaderProps) {
-  const justify = align === 'left' ? 'start' : 'end';
-
   return (
     <Flex justify={justify} radius={radius ? radius : '0'}>
       {flexProps => (
