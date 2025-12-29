@@ -31,14 +31,16 @@ const ARTIFACT_TYPE_LABELS: Record<BuildDetailsArtifactType, string> = {
   [BuildDetailsArtifactType.APK]: 'apk',
 };
 
+// Note: Query building is handled by custom logic in getSeriesRequest.
+// This serves as the initial template for new widgets.
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
-  fields: ['max(max_install_size)'],
+  fields: [],
   columns: [],
   fieldAliases: [],
-  aggregates: ['max(max_install_size)'],
+  aggregates: [],
   conditions: '',
-  orderby: '-max(max_install_size)',
+  orderby: '',
 };
 
 const DEFAULT_FIELD: QueryFieldValue = {
@@ -123,6 +125,7 @@ export const MobileAppSizeConfig: DatasetConfig<AppSizeResponse[], TableData> = 
     let branch = '';
     let buildConfig = '';
     let artifactType = '';
+    let sizeType = 'install';
 
     if (widgetQuery.conditions) {
       const params = new URLSearchParams(widgetQuery.conditions);
@@ -130,6 +133,7 @@ export const MobileAppSizeConfig: DatasetConfig<AppSizeResponse[], TableData> = 
       branch = params.get('git_head_ref') ?? '';
       buildConfig = params.get('build_configuration_name') ?? '';
       artifactType = params.get('artifact_type') ?? '';
+      sizeType = params.get('size_type') ?? 'install';
     }
 
     return data.map(response => {
@@ -160,9 +164,9 @@ export const MobileAppSizeConfig: DatasetConfig<AppSizeResponse[], TableData> = 
         parts.push(buildConfig);
       }
 
-      const displayLabel = parts.length > 0 ? parts.join(' : ') : 'App Size';
-      const aggregate = widgetQuery.aggregates[0] || 'value';
-      const seriesName = `${displayLabel} : ${aggregate}`;
+      const sizeLabel = sizeType === 'download' ? 'Download Size' : 'Install Size';
+      const baseLabel = parts.length > 0 ? parts.join(' : ') : 'App Size';
+      const seriesName = `${baseLabel} : ${sizeLabel}`;
 
       return {
         seriesName,
