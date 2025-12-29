@@ -68,17 +68,17 @@ export function SpanTable({trace}: {trace: TraceResult}) {
     <SpanTablePanelItem span={6} overflow>
       <StyledPanel>
         <SpanPanelContent>
-          <StyledPanelHeader align="left" lightText>
+          <StyledPanelHeader justify="start" lightText>
             {t('Span ID')}
           </StyledPanelHeader>
-          <StyledPanelHeader align="left" lightText>
+          <StyledPanelHeader justify="start" lightText>
             {t('Span Description')}
           </StyledPanelHeader>
-          <StyledPanelHeader align="right" lightText />
-          <StyledPanelHeader align="right" lightText>
+          <StyledPanelHeader justify="end" lightText />
+          <StyledPanelHeader justify="end" lightText>
             {t('Span Duration')}
           </StyledPanelHeader>
-          <StyledPanelHeader align="right" lightText>
+          <StyledPanelHeader justify="end" lightText>
             {t('Timestamp')}
           </StyledPanelHeader>
           {isPending && (
