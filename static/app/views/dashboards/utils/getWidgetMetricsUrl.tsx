@@ -14,6 +14,7 @@ import type {
 import {defaultMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
 import {getMetricsUrl, makeMetricsPathname} from 'sentry/views/explore/metrics/utils';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
+import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -43,11 +44,11 @@ export function getWidgetMetricsUrl(
     const defaultQuery = defaultMetricQuery();
 
     // Build aggregate fields (visualizations + group bys)
-    const aggregateFields = [
+    const aggregateFields: AggregateField[] = [
       // Convert aggregates to VisualizeFunction objects
       ...query.aggregates.map(agg => new VisualizeFunction(agg, {chartType})),
-      // Group by columns are added as-is (they're already strings)
-      ...query.columns.map(col => col),
+      // Convert columns to GroupBy objects
+      ...query.columns.map((col): GroupBy => ({groupBy: col})),
     ];
 
     // Parse sorts from orderby
@@ -68,7 +69,7 @@ export function getWidgetMetricsUrl(
         fields: defaultQuery.queryParams.fields,
         sortBys: defaultQuery.queryParams.sortBys,
         aggregateCursor: '',
-        aggregateFields: aggregateFields as readonly AggregateField[],
+        aggregateFields,
         aggregateSortBys,
       }),
     };
