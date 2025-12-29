@@ -3,11 +3,13 @@ from __future__ import annotations
 import logging
 import secrets
 from datetime import timedelta
+from typing import TypeVar, cast
 
-from django.db.models import IntegerField, QuerySet, Sum
+from django.db.models import IntegerField, Sum
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.preprod.models import InstallablePreprodArtifact, PreprodArtifact
 from sentry.utils.http import absolute_uri
 
@@ -19,15 +21,21 @@ def is_installable_artifact(artifact: PreprodArtifact) -> bool:
     return artifact.installable_app_file_id is not None and artifact.build_number is not None
 
 
-def annotate_download_count(
-    queryset: QuerySet[PreprodArtifact],
-) -> QuerySet[PreprodArtifact]:
-    return queryset.annotate(
-        download_count=Coalesce(
-            Sum("installablepreprodartifact__download_count"),
-            0,
-            output_field=IntegerField(),
-        )
+PreprodArtifactQuerySet = TypeVar(
+    "PreprodArtifactQuerySet", bound=BaseQuerySet[PreprodArtifact, PreprodArtifact]
+)
+
+
+def annotate_download_count(queryset: PreprodArtifactQuerySet) -> PreprodArtifactQuerySet:
+    return cast(
+        PreprodArtifactQuerySet,
+        queryset.annotate(
+            download_count=Coalesce(
+                Sum("installablepreprodartifact__download_count"),
+                0,
+                output_field=IntegerField(),
+            )
+        ),
     )
 
 
