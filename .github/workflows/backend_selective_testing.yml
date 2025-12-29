@@ -38,10 +38,10 @@ jobs:
 
       # TODO: Gcloud
       - name: Download coverage database
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           path: .coverage
-          name: pycoverage-sqlite-combined-20529759656
+          name: 4972973279
           run-id: 20529759656
 
       - name: Get changed files
