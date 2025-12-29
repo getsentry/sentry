@@ -97,9 +97,7 @@ Typography tokens are used with the [`<Text />`](/stories/typography/text) and [
 
 ## Font Family
 
-```
-TBD
-```
+<FontFamily />
 
 ## Line Height
 
@@ -198,5 +196,26 @@ export function FontWeight() {
         )}
       />
     </Fragment>
+  );
+}
+
+export function FontFamily() {
+  const theme = useTheme();
+  return (
+    <Storybook.TokenReference
+      scale="font.family"
+      tokens={theme.font.family}
+      renderToken={({value, token}) =>
+        token === 'sans' ? (
+          <Text size="lg" variant="accent">
+            Rubik
+          </Text>
+        ) : (
+          <Text size="lg" monospace variant="accent">
+            Roboto Mono
+          </Text>
+        )
+      }
+    />
   );
 }
