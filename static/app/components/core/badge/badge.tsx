@@ -87,8 +87,4 @@ const StyledBadge = styled('span')<BadgeProps>`
   position: relative;
 `;
 
-const BadgeComponent = withChonk(
-  StyledBadge,
-  ChonkBadge.ChonkBadge,
-  ChonkBadge.chonkBadgePropMapping
-);
+const BadgeComponent = withChonk(StyledBadge, ChonkBadge.ChonkBadge);
