@@ -165,7 +165,7 @@ class OrganizationPreprodListBuildsEndpoint(OrganizationEndpoint):
                     detail=f"Unsupported platform: {platform}. Supported platforms are: ios, android, macos"
                 )
 
-        queryset = annotate_download_count(queryset).order_by("-date_added")
+        annotated_queryset = annotate_download_count(queryset).order_by("-date_added")
 
         def transform_results(results: list[PreprodArtifact]) -> dict[str, Any]:
             build_details_list = []
@@ -180,7 +180,7 @@ class OrganizationPreprodListBuildsEndpoint(OrganizationEndpoint):
 
         return self.paginate(
             request=request,
-            queryset=queryset,
+            queryset=annotated_queryset,
             order_by="-date_added",
             on_results=transform_results,
             paginator_cls=OffsetPaginator,

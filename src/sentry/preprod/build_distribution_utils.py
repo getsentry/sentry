@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import secrets
 from datetime import timedelta
-from typing import TypeVar, cast
+from typing import TypeVar
 
 from django.db.models import IntegerField, Sum
 from django.db.models.functions import Coalesce
@@ -27,15 +27,12 @@ PreprodArtifactQuerySet = TypeVar(
 
 
 def annotate_download_count(queryset: PreprodArtifactQuerySet) -> PreprodArtifactQuerySet:
-    return cast(
-        PreprodArtifactQuerySet,
-        queryset.annotate(
-            download_count=Coalesce(
-                Sum("installablepreprodartifact__download_count"),
-                0,
-                output_field=IntegerField(),
-            )
-        ),
+    return queryset.annotate(
+        download_count=Coalesce(
+            Sum("installablepreprodartifact__download_count"),
+            0,
+            output_field=IntegerField(),
+        )
     )
 
 
