@@ -311,7 +311,7 @@ function PageLayout(props: Props) {
                     metricsCardinality={metricsCardinality}
                   />
                   <StyledBody fillSpace={props.fillSpace} hasError={defined(error)}>
-                    {defined(error) && <StyledAlert type="error">{error}</StyledAlert>}
+                    {defined(error) && <StyledAlert type="danger">{error}</StyledAlert>}
                     <TransactionSummaryContext
                       value={{
                         eventView,

@@ -102,7 +102,7 @@ function App() {
 
     data?.problems?.forEach?.((problem: any) => {
       const {id, message, url} = problem;
-      const type = problem.severity === 'critical' ? 'error' : 'warning';
+      const type = problem.severity === 'critical' ? 'danger' : 'warning';
 
       AlertStore.addAlert({id, message, type, url, opaque: true});
     });

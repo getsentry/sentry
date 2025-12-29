@@ -101,7 +101,7 @@ export default function AutomationBuilder() {
           }
         />
         {(mutationErrors as any)?.actionFilters?.all && (
-          <StyledAlert type="error">
+          <StyledAlert type="danger">
             {(mutationErrors as any).actionFilters.all}
           </StyledAlert>
         )}

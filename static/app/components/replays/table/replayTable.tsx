@@ -90,7 +90,7 @@ export default function ReplayTable({
         />
 
         <SimpleTable.Empty>
-          <Alert type="error">
+          <Alert type="danger">
             {t('Sorry, the list of replays could not be loaded. ')}
             {getErrorMessage(error)}
           </Alert>

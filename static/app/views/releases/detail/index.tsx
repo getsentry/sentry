@@ -149,7 +149,7 @@ function ReleasesDetail({
         <SentryDocumentTitle title={pageTitle}>
           <Layout.Page>
             <Alert.Container>
-              <Alert type="error">
+              <Alert type="danger">
                 {possiblyWrongProject
                   ? t('This release may not be in your selected project.')
                   : t('There was an error loading the release details')}
@@ -265,7 +265,7 @@ function ReleasesDetailContainer() {
     return (
       <Layout.Page withPadding>
         <Alert.Container>
-          <Alert type="error">{t('This release could not be found.')}</Alert>
+          <Alert type="danger">{t('This release could not be found.')}</Alert>
         </Alert.Container>
       </Layout.Page>
     );

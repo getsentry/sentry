@@ -284,7 +284,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
     if (incompatibleRule.conditionIndices || incompatibleRule.filterIndices) {
       return (
         <Alert.Container>
-          <Alert type="error">
+          <Alert type="danger">
             {tct(
               'The conditions in this alert rule conflict and might not be working properly. [link:Edit alert rule]',
               {

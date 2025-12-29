@@ -507,7 +507,7 @@ function AutofixSolutionDisplay({
   if (!solution || solution.length === 0) {
     return (
       <Alert.Container>
-        <Alert type="error">{t('No solution available.')}</Alert>
+        <Alert type="danger">{t('No solution available.')}</Alert>
       </Alert.Container>
     );
   }

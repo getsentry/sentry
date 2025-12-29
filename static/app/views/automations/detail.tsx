@@ -78,7 +78,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
           <DetailLayout.Main>
             <DisabledAlert automation={automation} />
             {automation.enabled && warning && (
-              <Alert type={warning.color === 'warning' ? 'warning' : 'error'}>
+              <Alert type={warning.color === 'warning' ? 'warning' : 'danger'}>
                 {warning.message}
               </Alert>
             )}

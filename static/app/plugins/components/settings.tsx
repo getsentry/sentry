@@ -198,7 +198,7 @@ class PluginSettings<
     if (this.state.state === FormState.ERROR && !this.state.fieldList) {
       return (
         <Alert.Container>
-          <Alert type="error" showIcon={false}>
+          <Alert type="danger" showIcon={false}>
             {tct(
               'An unknown error occurred. Need help with this? [link:Contact support]',
               {
@@ -225,7 +225,7 @@ class PluginSettings<
       >
         <Stack>
           {this.state.errors.__all__ && (
-            <Alert type="error" showIcon={false}>
+            <Alert type="danger" showIcon={false}>
               <ul>
                 <li>{this.state.errors.__all__}</li>
               </ul>

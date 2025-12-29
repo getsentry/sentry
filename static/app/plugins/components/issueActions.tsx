@@ -545,14 +545,14 @@ class IssueActions extends PluginComponentBase<Props, State> {
         errors.push(<p key={name}>{error.errors[name]}</p>);
       }
       return (
-        <Alert type="error" showIcon={false}>
+        <Alert type="danger" showIcon={false}>
           {errors}
         </Alert>
       );
     }
     if (error.message) {
       return (
-        <Alert type="error" showIcon={false}>
+        <Alert type="danger" showIcon={false}>
           {error.message}
         </Alert>
       );

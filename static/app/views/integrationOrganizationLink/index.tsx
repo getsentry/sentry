@@ -272,7 +272,7 @@ export default function IntegrationOrganizationLink() {
       <Fragment>
         {selectedOrgSlug && organization && !hasAccess && (
           <Alert.Container>
-            <Alert type="error">
+            <Alert type="danger">
               <p>
                 {tct(
                   `You do not have permission to install integrations in

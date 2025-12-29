@@ -136,7 +136,7 @@ function AddBillingDetails({
         editButtonLabel={t('Cancel')}
       >
         {state.submitError && (
-          <ErrorAlert type="error">
+          <ErrorAlert type="danger">
             {t('There was an error submitting billing details. Please try again.')}
           </ErrorAlert>
         )}

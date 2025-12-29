@@ -26,17 +26,17 @@ type PageAlertSetter = (
 ) => void;
 
 const PageErrorContext = createContext<{
-  setPageError: PageAlertSetter;
+  setPageDanger: PageAlertSetter;
   setPageInfo: PageAlertSetter;
-  setPageMuted: PageAlertSetter;
+  setPageSubtle: PageAlertSetter;
   setPageSuccess: PageAlertSetter;
   setPageWarning: PageAlertSetter;
   pageAlert?: PageAlertOptions;
 }>({
   pageAlert: undefined,
-  setPageError: (_: React.ReactNode | undefined) => {},
+  setPageDanger: (_: React.ReactNode | undefined) => {},
   setPageInfo: (_: React.ReactNode | undefined) => {},
-  setPageMuted: (_: React.ReactNode | undefined) => {},
+  setPageSubtle: (_: React.ReactNode | undefined) => {},
   setPageSuccess: (_: React.ReactNode | undefined) => {},
   setPageWarning: (_: React.ReactNode | undefined) => {},
 });
@@ -48,8 +48,8 @@ export function PageAlertProvider({children}: {children: React.ReactNode}) {
     setPageAlert({message, type: 'info', ...options});
   }, []);
 
-  const setPageMuted: PageAlertSetter = useCallback((message, options) => {
-    setPageAlert({message, type: 'muted', ...options});
+  const setPageSubtle: PageAlertSetter = useCallback((message, options) => {
+    setPageAlert({message, type: 'subtle', ...options});
   }, []);
 
   const setPageSuccess: PageAlertSetter = useCallback((message, options) => {
@@ -60,8 +60,8 @@ export function PageAlertProvider({children}: {children: React.ReactNode}) {
     setPageAlert({message, type: 'warning', ...options});
   }, []);
 
-  const setPageError: PageAlertSetter = useCallback((message, options) => {
-    setPageAlert({message, type: 'error', ...options});
+  const setPageDanger: PageAlertSetter = useCallback((message, options) => {
+    setPageAlert({message, type: 'danger', ...options});
   }, []);
 
   return (
@@ -69,10 +69,10 @@ export function PageAlertProvider({children}: {children: React.ReactNode}) {
       value={{
         pageAlert,
         setPageInfo,
-        setPageMuted,
+        setPageSubtle,
         setPageSuccess,
         setPageWarning,
-        setPageError,
+        setPageDanger,
       }}
     >
       {children}

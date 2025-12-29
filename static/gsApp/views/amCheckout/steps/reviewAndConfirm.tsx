@@ -321,7 +321,7 @@ function ReviewAndConfirmBody({
       />
       {cardActionError && (
         <Alert.Container>
-          <Alert type="error" showIcon={false}>
+          <Alert type="danger" showIcon={false}>
             {cardActionError}
           </Alert>
         </Alert.Container>

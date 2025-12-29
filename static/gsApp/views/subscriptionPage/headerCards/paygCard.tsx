@@ -143,7 +143,7 @@ function PaygCard({
           ? [
               <Flex key="payg-form" direction="column" gap="xl" width="100%">
                 {error && (
-                  <Alert type="error" key="error">
+                  <Alert type="danger" key="error">
                     {error}
                   </Alert>
                 )}

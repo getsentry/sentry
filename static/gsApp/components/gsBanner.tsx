@@ -181,7 +181,7 @@ function NoticeModal({
     }
   };
 
-  const alertType = whichModal === ModalType.PAST_DUE ? 'error' : 'warning';
+  const alertType = whichModal === ModalType.PAST_DUE ? 'danger' : 'warning';
 
   let subText: React.ReactNode;
   let body: React.ReactNode;
@@ -955,7 +955,7 @@ class GSBanner extends Component<Props, State> {
         <Alert.Container>
           <Alert
             system
-            type="error"
+            type="danger"
             data-test-id="banner-alert-past-due"
             trailingItems={
               <Flex align="center" height="100%">

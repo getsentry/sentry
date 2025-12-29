@@ -836,7 +836,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
   renderError() {
     return (
       <Alert.Container>
-        <Alert type="error">
+        <Alert type="danger">
           {t(
             'Unable to access this alert rule -- check to make sure you have the correct permissions'
           )}
@@ -912,7 +912,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
       <AlertLink.Container>
         <AlertLink
           openInNewTab
-          type="error"
+          type="danger"
           trailingItems={<IconNot color="red300" />}
           href={makeAlertsPathname({
             path: `/rules/${project.slug}/${duplicateRuleId}/details/`,
@@ -1303,7 +1303,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                           disabled={disabled}
                           error={
                             this.hasError('conditions') && (
-                              <Alert type="error" showIcon={false}>
+                              <Alert type="danger" showIcon={false}>
                                 {detailedError?.conditions![0]}
                                 {(detailedError?.conditions![0] || '').startsWith(
                                   'You may not exceed'
@@ -1385,7 +1385,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                           disabled={disabled}
                           error={
                             this.hasError('filters') && (
-                              <Alert type="error" showIcon={false}>
+                              <Alert type="danger" showIcon={false}>
                                 {detailedError?.filters![0]}
                               </Alert>
                             )
@@ -1429,7 +1429,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                           disabled={disabled}
                           error={
                             this.hasError('actions') && (
-                              <Alert type="error" showIcon={false}>
+                              <Alert type="danger" showIcon={false}>
                                 {detailedError?.actions![0]}
                               </Alert>
                             )

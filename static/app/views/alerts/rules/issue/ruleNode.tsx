@@ -461,7 +461,7 @@ function RuleNode({
     if (data.id === IssueAlertConditionType.EVENT_FREQUENCY_PERCENT) {
       if (!project.platform || !releaseHealth.includes(project.platform)) {
         return (
-          <FooterAlert type="error">
+          <FooterAlert type="danger">
             {tct(
               "This project doesn't support sessions. [link:View supported platforms]",
               {
@@ -541,7 +541,7 @@ function RuleNode({
       return null;
     }
     return (
-      <FooterAlert type="error">
+      <FooterAlert type="danger">
         {t(
           'The conditions highlighted in red are in conflict. They may prevent the alert from ever being triggered.'
         )}

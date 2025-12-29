@@ -19,7 +19,7 @@ function LoadingError({
   return (
     <Alert.Container>
       <Alert
-        type="error"
+        type="danger"
         data-test-id="loading-error"
         className={className}
         trailingItems={

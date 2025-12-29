@@ -27,7 +27,7 @@ function ConfirmDelete({message, confirmInput, ...props}: Props) {
       renderMessage={({disableConfirmButton, confirm: triggerConfirm}) => (
         <Fragment>
           <Alert.Container>
-            <Alert type="error" showIcon={false}>
+            <Alert type="danger" showIcon={false}>
               {message}
             </Alert>
           </Alert.Container>

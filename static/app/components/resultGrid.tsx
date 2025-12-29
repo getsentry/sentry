@@ -269,7 +269,7 @@ function ResultGrid(props: Props) {
   const renderError = () => (
     <tr>
       <td colSpan={columns.length}>
-        <Alert type="error" showIcon={false}>
+        <Alert type="danger" showIcon={false}>
           Something bad happened :(
         </Alert>
       </td>

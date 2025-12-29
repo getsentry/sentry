@@ -242,7 +242,7 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
   );
 
   return (
-    <TrialAlert system type="muted" trailingItems={actions}>
+    <TrialAlert system type="subtle" trailingItems={actions}>
       <React.Fragment>
         {alertHeader && (
           <Heading>

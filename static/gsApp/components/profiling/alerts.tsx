@@ -107,7 +107,7 @@ interface GraceAlertProps {
   children: React.ReactNode;
   dismiss: undefined | (() => void);
   disableAction?: boolean;
-  type?: 'error';
+  type?: 'danger';
 }
 
 function GraceAlert({children, action, dismiss, type, disableAction}: GraceAlertProps) {
@@ -129,7 +129,7 @@ function GraceAlert({children, action, dismiss, type, disableAction}: GraceAlert
       icon={type ? <IconWarning /> : dismiss ? <IconInfo /> : <IconWarning />}
       system
       trailingItems={trailingItems}
-      type={type ? type : dismiss ? 'info' : 'error'}
+      type={type ? type : dismiss ? 'info' : 'danger'}
     >
       {children}
     </Alert>

@@ -47,11 +47,11 @@ const checkStatusToIndicatorStatus: Record<
   StatusIndicatorProps['status']
 > = {
   [CheckInStatus.OK]: 'success',
-  [CheckInStatus.ERROR]: 'error',
-  [CheckInStatus.IN_PROGRESS]: 'muted',
+  [CheckInStatus.ERROR]: 'danger',
+  [CheckInStatus.IN_PROGRESS]: 'subtle',
   [CheckInStatus.MISSED]: 'warning',
-  [CheckInStatus.TIMEOUT]: 'error',
-  [CheckInStatus.UNKNOWN]: 'muted',
+  [CheckInStatus.TIMEOUT]: 'danger',
+  [CheckInStatus.UNKNOWN]: 'subtle',
 };
 
 const emptyCell = '\u2014';

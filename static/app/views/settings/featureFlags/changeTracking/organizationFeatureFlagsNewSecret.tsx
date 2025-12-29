@@ -83,7 +83,7 @@ function OrganizationFeatureFlagsNewSecret() {
 
       {error && (
         <Alert.Container>
-          <Alert type="error" showIcon>
+          <Alert type="danger" showIcon>
             {error}
           </Alert>
         </Alert.Container>

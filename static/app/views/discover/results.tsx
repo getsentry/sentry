@@ -591,7 +591,7 @@ export class Results extends Component<Props, State> {
     }
     return (
       <Alert.Container>
-        <Alert type="error">{error}</Alert>
+        <Alert type="danger">{error}</Alert>
       </Alert.Container>
     );
   }

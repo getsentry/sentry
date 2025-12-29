@@ -32,7 +32,7 @@ function AddBillingInformation({
 
   return (
     <Flex direction="column" gap="xl">
-      {billingDetailsError && <Alert type="error">{billingDetailsError.message}</Alert>}
+      {billingDetailsError && <Alert type="danger">{billingDetailsError.message}</Alert>}
       <StepHeader
         isActive
         isCompleted={false}

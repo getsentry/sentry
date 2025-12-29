@@ -9,7 +9,7 @@ export function ErrorAlert() {
   const {error} = useInviteMembersContext();
   return error ? (
     <Alert.Container>
-      <Alert type="error">{error}</Alert>
+      <Alert type="danger">{error}</Alert>
     </Alert.Container>
   ) : null;
 }

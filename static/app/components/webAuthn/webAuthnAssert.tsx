@@ -182,7 +182,7 @@ function AuthenticatorError({error, triggerWebAuthn}: AuthenticatorErrorProps) {
 
   return (
     <Container>
-      <Alert type="error" trailingItems={retry}>
+      <Alert type="danger" trailingItems={retry}>
         {errorMessages[error]}
       </Alert>
     </Container>

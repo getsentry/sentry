@@ -151,7 +151,7 @@ function CancelSubscriptionForm() {
   if (!canCancelPlan) {
     return (
       <Alert.Container>
-        <Alert type="error">{t('Your plan is not eligible to be cancelled.')}</Alert>
+        <Alert type="danger">{t('Your plan is not eligible to be cancelled.')}</Alert>
       </Alert.Container>
     );
   }
@@ -160,7 +160,7 @@ function CancelSubscriptionForm() {
     return (
       <Fragment>
         <Alert.Container>
-          <Alert type="error">
+          <Alert type="danger">
             {tct(
               `Upon cancellation your account will be downgraded to a free plan which is limited to a single user.
             Your account currently has [count] [teamMembers: other team member(s)] using Sentry that would lose

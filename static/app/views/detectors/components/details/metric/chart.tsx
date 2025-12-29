@@ -487,7 +487,7 @@ export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChar
     return (
       <ChartContainer overflow="hidden">
         {errorMessage && (
-          <Alert system type="error">
+          <Alert system type="danger">
             {errorMessage}
           </Alert>
         )}

@@ -190,7 +190,7 @@ function CreditCardFormInner({
     >
       {error && (
         <Alert.Container>
-          <Alert type="error" showIcon={false}>
+          <Alert type="danger" showIcon={false}>
             <AlertContent>
               {error}
               {errorRetry && (

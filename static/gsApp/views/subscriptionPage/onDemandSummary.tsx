@@ -254,7 +254,7 @@ class OnDemandSummary extends Component<Props, State> {
         )}
 
         {/* TODO(TS): Type says error might be an object */}
-        {error && <PanelAlert type="error">{error as React.ReactNode}</PanelAlert>}
+        {error && <PanelAlert type="danger">{error as React.ReactNode}</PanelAlert>}
         <StyledPanelBody isCheckoutStep={isCheckoutStep}>
           {this.renderOnDemandInput()}
         </StyledPanelBody>

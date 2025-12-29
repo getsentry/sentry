@@ -57,7 +57,7 @@ function UnsubscribeBody({orgSlug, issueId, signature}: BodyProps) {
   if (isError) {
     return (
       <Alert.Container>
-        <Alert type="error" showIcon={false}>
+        <Alert type="danger" showIcon={false}>
           {t('There was an error loading unsubscribe data. Your link may have expired.')}
         </Alert>
       </Alert.Container>

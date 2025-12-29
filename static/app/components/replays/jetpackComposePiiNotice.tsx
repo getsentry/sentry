@@ -19,7 +19,7 @@ export function JetpackComposePiiNotice() {
   return (
     <Alert.Container>
       <Alert
-        type="error"
+        type="danger"
         trailingItems={
           <Button
             aria-label={t('Dismiss')}

@@ -515,7 +515,7 @@ function AutofixRootCauseDisplay({
   if (!cause) {
     return (
       <Alert.Container>
-        <Alert type="error">{t('No root cause available.')}</Alert>
+        <Alert type="danger">{t('No root cause available.')}</Alert>
       </Alert.Container>
     );
   }

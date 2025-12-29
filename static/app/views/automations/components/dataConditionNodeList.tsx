@@ -171,7 +171,9 @@ export default function DataConditionNodeList({
       {conflictingConditions &&
         ((handlerGroup === DataConditionHandlerGroupType.ACTION_FILTER &&
           conflictingConditions.size > 0) ||
-          conflictingConditions.size > 1) && <Alert type="error">{conflictReason}</Alert>}
+          conflictingConditions.size > 1) && (
+          <Alert type="danger">{conflictReason}</Alert>
+        )}
       {/* Only show dropdown if there are available options */}
       {options.length > 0 && (
         <StyledSelectControl

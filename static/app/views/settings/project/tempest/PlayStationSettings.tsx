@@ -95,7 +95,7 @@ export default function PlayStationSettings({organization, project}: Props) {
     <Fragment>
       {credentialErrors && credentialErrors?.length > 0 && (
         <Alert.Container>
-          <Alert type="error">
+          <Alert type="danger">
             {t('There was a problem with following credentials:')}
             <List symbol="bullet">
               {credentialErrors.map(credential => (

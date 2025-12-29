@@ -93,7 +93,7 @@ function IntegrationRepos(props: Props) {
     <Fragment>
       {integrationReposErrorStatus === 400 && (
         <Alert.Container>
-          <Alert type="error">
+          <Alert type="danger">
             {t(
               'We were unable to fetch repositories for this integration. Try again later. If this error continues, please reconnect this integration by uninstalling and then reinstalling.'
             )}

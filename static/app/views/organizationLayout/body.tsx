@@ -55,7 +55,7 @@ function DeletionPending({organization}: OrganizationProps) {
       AlertStore.addAlert({
         message:
           'We were unable to restore this organization. Please try again or contact support.',
-        type: 'error',
+        type: 'danger',
       });
     }
   };

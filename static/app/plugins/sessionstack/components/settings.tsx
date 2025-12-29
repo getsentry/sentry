@@ -51,7 +51,7 @@ class Settings extends DefaultSettings<Props, State> {
     if (this.state.state === FormState.ERROR && !this.state.fieldList) {
       return (
         <Alert.Container>
-          <Alert type="error" showIcon={false}>
+          <Alert type="danger" showIcon={false}>
             An unknown error occurred. Need help with this?{' '}
             <a href="https://sentry.io/support/">Contact support</a>
           </Alert>
@@ -71,7 +71,7 @@ class Settings extends DefaultSettings<Props, State> {
     return (
       <Form onSubmit={this.onSubmit} submitDisabled={isSaving || !hasChanges}>
         {this.state.errors.__all__ && (
-          <Alert type="error" showIcon={false}>
+          <Alert type="danger" showIcon={false}>
             <ul>
               <li>{this.state.errors.__all__}</li>
             </ul>

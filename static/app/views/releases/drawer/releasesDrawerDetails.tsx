@@ -307,7 +307,7 @@ export function ReleasesDrawerDetails({
           />
         ) : (
           <EventDrawerBody>
-            <Alert type="error" showIcon={false}>
+            <Alert type="danger" showIcon={false}>
               {project || isMetaError ? t('Release not found') : t('Project not found')}
             </Alert>
           </EventDrawerBody>

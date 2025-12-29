@@ -93,7 +93,7 @@ function StoryDetail() {
       ) : story.isError ? (
         <VerticalScroll>
           <Alert.Container>
-            <Alert type="error">
+            <Alert type="danger">
               <strong>{story.error.name}:</strong> {story.error.message}
             </Alert>
           </Alert.Container>

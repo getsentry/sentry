@@ -115,7 +115,7 @@ function SetupInstructions({
 }) {
   if (showSnippet === Output.DATA && visibleTab === 'details') {
     return (
-      <NoMarginAlert type="muted" system data-test-id="network-setup-steps">
+      <NoMarginAlert type="subtle" system data-test-id="network-setup-steps">
         {tct(
           'You can capture additional headers by adding them to the [requestConfig] and [responseConfig] lists in your SDK config.',
           {

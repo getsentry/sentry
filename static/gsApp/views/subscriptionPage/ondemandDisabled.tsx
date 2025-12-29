@@ -45,7 +45,7 @@ function OnDemandDisabled({subscription}: Props) {
   }
 
   return (
-    <Alert type="error" data-test-id="ondemand-disabled-alert" showIcon={false}>
+    <Alert type="danger" data-test-id="ondemand-disabled-alert" showIcon={false}>
       <span>
         {tct(
           "[budgetTerm] billing is disabled for your organization due to an unpaid [lowerCaseBudgetTerm] invoice. This may impact your organization's ability to accept data into Sentry. [docs_link:Learn more about this process].",

@@ -78,7 +78,7 @@ export default function ExternalIssueList({group, event, project}: Props) {
         ) : (
           <AlertLink.Container>
             <AlertLink
-              type="muted"
+              type="subtle"
               to={`/settings/${organization.slug}/integrations/?category=issue%20tracking`}
             >
               {t('Track this issue in Jira, GitHub, etc.')}

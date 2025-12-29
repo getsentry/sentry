@@ -170,7 +170,7 @@ export function SizeCompareSelectionContent({
       </InputGroup>
 
       {buildsQuery.isLoading && <LoadingIndicator />}
-      {buildsQuery.isError && <Alert type="error">{buildsQuery.error?.message}</Alert>}
+      {buildsQuery.isError && <Alert type="danger">{buildsQuery.error?.message}</Alert>}
       {buildsQuery.data && (
         <Stack gap="md">
           {buildsQuery.data.builds.map(build => {

@@ -65,7 +65,7 @@ export default function BuildComparison() {
 
   if (headBuildDetailsQuery.isError || !headBuildDetailsQuery.data) {
     return (
-      <Alert type="error">
+      <Alert type="danger">
         {headBuildDetailsQuery.error?.message || t('Failed to load build details')}
       </Alert>
     );

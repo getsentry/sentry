@@ -65,7 +65,7 @@ export function EditExistingDetectorForm({detector}: {detector: Detector}) {
     case 'issue_stream':
       return (
         <Alert.Container>
-          <Alert type="error">{t('Issue stream monitors can not be edited.')}</Alert>
+          <Alert type="danger">{t('Issue stream monitors can not be edited.')}</Alert>
         </Alert.Container>
       );
     default:

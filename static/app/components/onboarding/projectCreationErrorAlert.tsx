@@ -24,7 +24,7 @@ export function ProjectCreationErrorAlert({error}: Props) {
 
   return (
     <Alert.Container>
-      <Alert type="error" showIcon={false}>
+      <Alert type="danger" showIcon={false}>
         {Object.keys(response).map(key => (
           <div key={key}>
             <strong>{keyToErrorText?.[key] ?? startCase(key)}</strong>:{' '}

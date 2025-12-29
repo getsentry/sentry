@@ -42,7 +42,7 @@ function RegisterForm({authConfig}: Props) {
     >
       {error && (
         <Alert.Container>
-          <Alert type="error" showIcon={false}>
+          <Alert type="danger" showIcon={false}>
             {error}
           </Alert>
         </Alert.Container>
