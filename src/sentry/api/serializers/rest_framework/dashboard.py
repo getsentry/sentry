@@ -582,6 +582,11 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                                     }
                                 }
                             )
+            preferred_polarity = thresholds.get("preferred_polarity")
+            if preferred_polarity is not None and preferred_polarity not in ("+", "-", ""):
+                raise serializers.ValidationError(
+                    {"thresholds": {"preferred_polarity": "Must be '+', '-', or empty string."}}
+                )
         if len(all_columns) > 0:
             field_cardinality = check_field_cardinality(
                 list(all_columns), self.context["organization"], max_cardinality_allowed
