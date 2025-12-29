@@ -11,7 +11,6 @@ import type {
   BaseMetricQuery,
   TraceMetric,
 } from 'sentry/views/explore/metrics/metricQuery';
-import {defaultMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
 import {getMetricsUrl, makeMetricsPathname} from 'sentry/views/explore/metrics/utils';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
@@ -28,54 +27,53 @@ export function getWidgetMetricsUrl(
   selection: PageFilters,
   organization: Organization
 ): string {
-  // Extract trace metric from the first query's first aggregate
   const traceMetric = extractTraceMetricFromWidget(widget);
 
-  if (!traceMetric?.name) {
+  if (!traceMetric?.name || !widget.queries[0]?.aggregates) {
     // If we can't extract a valid trace metric, return a basic metrics URL
     return makeMetricsPathname({organizationSlug: organization.slug, path: '/'});
   }
 
-  // Map widget display type to chart type
   const chartType = getChartTypeFromDisplayType(widget.displayType);
 
-  // Build metric queries for each widget query
-  const metricQueries: BaseMetricQuery[] = widget.queries.map(query => {
-    const defaultQuery = defaultMetricQuery();
+  const metricQueries: BaseMetricQuery[] = widget.queries[0].aggregates.flatMap(
+    aggregate => {
+      // For each aggregate, create a metric query for each widget query
+      return widget.queries.map(query => {
+        const queryString =
+          applyDashboardFilters(query.conditions, dashboardFilters) ?? '';
 
-    // Build aggregate fields (visualizations + group bys)
-    const aggregateFields: AggregateField[] = [
-      // Convert aggregates to VisualizeFunction objects
-      ...query.aggregates.map(agg => new VisualizeFunction(agg, {chartType})),
-      // Convert columns to GroupBy objects
-      ...query.columns.map((col): GroupBy => ({groupBy: col})),
-    ];
+        const groupByFields: GroupBy[] = query.columns.map(
+          (col): GroupBy => ({groupBy: col})
+        );
 
-    // Parse sorts from orderby
-    const aggregateSortBys: Sort[] = query.orderby
-      ? decodeSorts(query.orderby)
-      : [...defaultQuery.queryParams.aggregateSortBys];
+        const aggregateSortBys: Sort[] = query.orderby ? decodeSorts(query.orderby) : [];
 
-    // Apply dashboard filters to the query conditions
-    const queryString = applyDashboardFilters(query.conditions, dashboardFilters) ?? '';
+        const aggregateFields: AggregateField[] = [
+          new VisualizeFunction(aggregate, {chartType}),
+          ...groupByFields,
+        ];
 
-    return {
-      metric: traceMetric,
-      queryParams: new ReadableQueryParams({
-        extrapolate: true,
-        mode: Mode.AGGREGATE,
-        query: queryString,
-        cursor: '',
-        fields: defaultQuery.queryParams.fields,
-        sortBys: defaultQuery.queryParams.sortBys,
-        aggregateCursor: '',
-        aggregateFields,
-        aggregateSortBys,
-      }),
-    };
-  });
+        return {
+          metric: traceMetric,
+          queryParams: new ReadableQueryParams({
+            extrapolate: true,
+            mode: Mode.AGGREGATE,
+            query: queryString,
+            aggregateCursor: '',
+            aggregateFields,
+            aggregateSortBys,
 
-  // Generate the metrics URL using the shared utility
+            // These fields are not currently used for metrics
+            fields: [],
+            sortBys: [],
+            cursor: '',
+          }),
+        };
+      });
+    }
+  );
+
   return getMetricsUrl({
     organization,
     selection,
@@ -103,16 +101,12 @@ function extractTraceMetricFromWidget(widget: Widget): TraceMetric | null {
     return null;
   }
 
-  // Arguments: [value, metric_name, metric_type, unit]
   const name = parsedFunction.arguments[1] ?? '';
   const type = parsedFunction.arguments[2] ?? '';
 
   return {name, type};
 }
 
-/**
- * Maps dashboard DisplayType to metrics ChartType
- */
 function getChartTypeFromDisplayType(displayType: DisplayType): ChartType {
   switch (displayType) {
     case DisplayType.LINE:
