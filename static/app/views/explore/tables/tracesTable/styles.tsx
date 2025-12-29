@@ -16,20 +16,22 @@ export const StyledPanel = styled(Panel)`
 interface StyledPanelHeaderProps extends ComponentProps<typeof PanelHeader> {
   justify: ComponentProps<typeof Flex>['justify'];
   children?: React.ReactNode;
+  lightText?: boolean;
   radius?: ComponentProps<typeof Flex>['radius'];
 }
 
 export function StyledPanelHeader({
   children,
   justify,
-  radius,
+  radius = '0',
+  lightText = false,
   ...props
 }: StyledPanelHeaderProps) {
   return (
-    <Flex justify={justify} radius={radius ? radius : '0'}>
+    <Flex justify={justify} radius={radius}>
       {flexProps => (
         <Text as="div" wrap="nowrap">
-          <PanelHeader lightText {...flexProps} {...props}>
+          <PanelHeader lightText={lightText} {...flexProps} {...props}>
             {children}
           </PanelHeader>
         </Text>
