@@ -85,7 +85,10 @@ class OrganizationPreprodListBuildsEndpoint(OrganizationEndpoint):
             raise ParseError(detail="Invalid date range")
 
         queryset = (
-            PreprodArtifact.objects.select_related("project")
+            PreprodArtifact.objects.select_related(
+                "project", "build_configuration", "commit_comparison"
+            )
+            .prefetch_related("preprodartifactsizemetrics_set")
             .filter(project_id__in=project_ids)
             .order_by("-date_added")
         )
