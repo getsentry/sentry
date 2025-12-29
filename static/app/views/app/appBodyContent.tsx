@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {Outlet} from 'react-router-dom';
 
 import SystemAlerts from 'sentry/views/app/systemAlerts';
 
@@ -19,5 +20,16 @@ export function AppBodyContent({children}: AppContentProps) {
       <SystemAlerts className="messages-container" />
       {children}
     </Fragment>
+  );
+}
+
+/**
+ * Route component version that renders children via Outlet.
+ */
+export function AppBodyContentRoute() {
+  return (
+    <AppBodyContent>
+      <Outlet />
+    </AppBodyContent>
   );
 }
