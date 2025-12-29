@@ -1,6 +1,5 @@
 import pytest
 from django.db import router
-from django.db.transaction import get_connection
 
 from sentry import deletions
 from sentry.constants import ObjectStatus
@@ -17,7 +16,6 @@ from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.workflow_engine.models import Action
@@ -94,30 +92,11 @@ class TestSentryAppInstallationDeletionTask(TestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             assert not ServiceHook.objects.filter(pk=hook.id).exists()
 
-    def test_soft_deletes_installation(self) -> None:
-        deletions.exec_sync(self.install)
-
-        with pytest.raises(SentryAppInstallation.DoesNotExist):
-            SentryAppInstallation.objects.get(pk=self.install.id)
-
-        # The QuerySet will automatically NOT include deleted installs, so we
-        # use a raw sql query to ensure it still exists.
-        c = get_connection(router.db_for_write(SentryAppInstallation)).cursor()
-        c.execute(
-            "SELECT COUNT(1) "
-            "FROM sentry_sentryappinstallation "
-            "WHERE id = %s AND date_deleted IS NOT NULL",
-            [self.install.id],
-        )
-
-        assert c.fetchone()[0] == 1
-
-    @override_options({"sentry-apps.hard-delete": True})
     def test_hard_deletes_installation(self) -> None:
         deletions.exec_sync(self.install)
 
         with pytest.raises(SentryAppInstallation.DoesNotExist):
-            SentryAppInstallation.with_deleted.get(pk=self.install.id)
+            SentryAppInstallation.objects.get(pk=self.install.id)
 
     def test_disables_actions(self) -> None:
         action = self.create_action(
