@@ -310,9 +310,10 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
             addErrorMessage(t('Failed to update auto-open PR setting'));
             // Refetch to reset form state to backend value
             queryClient.invalidateQueries({
-              queryKey: [
-                makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
-              ],
+              queryKey: makeProjectSeerPreferencesQueryKey(
+                organization.slug,
+                project.slug
+              ),
             });
           },
         }
@@ -355,9 +356,10 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
               addErrorMessage(t('Failed to update Cursor handoff setting'));
               // Refetch to reset form state to backend value
               queryClient.invalidateQueries({
-                queryKey: [
-                  makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
-                ],
+                queryKey: makeProjectSeerPreferencesQueryKey(
+                  organization.slug,
+                  project.slug
+                ),
               });
             },
           }
@@ -376,9 +378,10 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
               addErrorMessage(t('Failed to update Cursor handoff setting'));
               // Refetch to reset form state to backend value
               queryClient.invalidateQueries({
-                queryKey: [
-                  makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
-                ],
+                queryKey: makeProjectSeerPreferencesQueryKey(
+                  organization.slug,
+                  project.slug
+                ),
               });
             },
           }
