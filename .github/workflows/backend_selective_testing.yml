@@ -36,13 +36,42 @@ jobs:
         with:
           mode: backend-ci
 
-      # TODO: Gcloud
-      - name: Download coverage database
-        uses: actions/download-artifact@v7
+      # Download coverage artifact from a previous workflow run
+      # actions/download-artifact doesn't support cross-run downloads, so we use alternatives
+
+      # Option 1: Use dawidd6/action-download-artifact (supports cross-run downloads)
+      - name: Download coverage database from run 20529759656
+        uses: dawidd6/action-download-artifact@v6
+        continue-on-error: true
+        id: download-coverage
         with:
+          run_id: 20529759656
+          name: pycoverage-sqlite-combined-20529759656
           path: .coverage
-          artifact-ids: 4972973279
-          run-id: 20529759656
+          github_token: ${{ github.token }}
+
+      # Option 2: Fallback to manual download using gh CLI
+      - name: Manual download of coverage artifact
+        if: steps.download-coverage.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Downloading artifact 4972973279 (pycoverage-sqlite-combined-20529759656)..."
+
+          # Download the artifact zip
+          gh api \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/getsentry/sentry/actions/artifacts/4972973279/zip \
+            > coverage.zip
+
+          # Extract to .coverage directory
+          mkdir -p .coverage
+          unzip -q coverage.zip -d .coverage
+          rm coverage.zip
+
+          echo "Coverage artifact downloaded successfully"
+          ls -la .coverage
 
       - name: Get changed files
         id: changed-files
