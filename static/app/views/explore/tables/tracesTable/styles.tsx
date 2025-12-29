@@ -3,6 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -12,9 +13,6 @@ export const StyledPanel = styled(Panel)`
   margin-bottom: 0px;
 `;
 
-const StyledFlex = styled(Flex)`
-  white-space: nowrap;
-`;
 interface StyledPanelHeaderProps extends ComponentProps<typeof PanelHeader> {
   align: 'left' | 'right';
   children?: React.ReactNode;
@@ -30,13 +28,15 @@ export function StyledPanelHeader({
   const justify = align === 'left' ? 'start' : 'end';
 
   return (
-    <StyledFlex justify={justify} radius={radius ? radius : '0'}>
+    <Flex justify={justify} radius={radius ? radius : '0'}>
       {flexProps => (
-        <PanelHeader lightText {...flexProps} {...props}>
-          {children}
-        </PanelHeader>
+        <Text wrap="nowrap">
+          <PanelHeader lightText {...flexProps} {...props}>
+            {children}
+          </PanelHeader>
+        </Text>
       )}
-    </StyledFlex>
+    </Flex>
   );
 }
 
