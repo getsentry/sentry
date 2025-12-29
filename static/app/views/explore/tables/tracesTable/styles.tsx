@@ -17,7 +17,7 @@ const StyledFlex = styled(Flex)`
 `;
 interface StyledPanelHeaderProps extends ComponentProps<typeof PanelHeader> {
   align: 'left' | 'right';
-  children: React.ReactNode;
+  children?: React.ReactNode;
   radius?: ComponentProps<typeof Flex>['radius'];
 }
 
