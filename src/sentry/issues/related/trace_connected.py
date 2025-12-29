@@ -107,13 +107,14 @@ def _trace_connected_issues_eap(
             referrer=Referrer.API_ISSUES_RELATED_ISSUES.value,
             config=SearchResolverConfig(),
         )
-        return list(
-            {
-                int(row.get("group_id"))
-                for row in result["data"]
-                if row.get("group_id") and int(row.get("group_id")) != exclude_group_id
-            }
-        )
+        group_ids: set[int] = set()
+        for row in result["data"]:
+            group_id = row.get("group_id")
+            if group_id is not None:
+                gid = int(group_id)
+                if gid != exclude_group_id:
+                    group_ids.add(gid)
+        return list(group_ids)
     except Exception:
         logger.exception(
             "Fetching trace connected issues from EAP failed",
