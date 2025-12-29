@@ -652,6 +652,7 @@ export type KnownSentryApiUrls =
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/plugins/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/plugins/$pluginId/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprod-artifact/rerun-analysis/$headArtifactId/'
+  | '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprod-artifact/rerun-status-checks/$headArtifactId/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/$headArtifactId/build-details/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/$headArtifactId/delete/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/$headArtifactId/install-details/'
