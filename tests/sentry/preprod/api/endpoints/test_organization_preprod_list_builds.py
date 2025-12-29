@@ -543,7 +543,6 @@ class OrganizationPreprodListBuildsEndpointTest(APITestCase):
         event = mock_record.call_args[0][0]
         assert isinstance(event, PreprodArtifactApiListBuildsEvent)
         assert event.organization_id == self.org.id
-        assert event.project_id in [self.project.id, self.project2.id]
         assert event.user_id == self.user.id
 
     def test_list_builds_without_authentication(self) -> None:

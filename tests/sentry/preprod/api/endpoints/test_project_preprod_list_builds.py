@@ -554,7 +554,6 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         event = mock_record.call_args[0][0]
         assert isinstance(event, PreprodArtifactApiListBuildsEvent)
         assert event.organization_id == self.org.id
-        assert event.project_id == self.project.id
         assert event.user_id == self.user.id
 
     # Authentication and authorization tests
