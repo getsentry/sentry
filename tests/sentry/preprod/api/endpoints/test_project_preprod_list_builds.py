@@ -554,7 +554,6 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         event = mock_record.call_args[0][0]
         assert isinstance(event, PreprodArtifactApiListBuildsEvent)
         assert event.organization_id == self.org.id
-        assert event.project_id == self.project.id
         assert event.user_id == self.user.id
 
     # Authentication and authorization tests
@@ -663,3 +662,105 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         assert no_commit_build is not None
         assert no_commit_build["vcs_info"]["head_sha"] is None
         assert no_commit_build["vcs_info"]["pr_number"] is None
+
+    def test_list_builds_filter_app_id_exact_case_sensitive_match(self) -> None:
+        """App ID filter uses case-sensitive exact match (no partial matches, no case variants)."""
+        url = self._get_url()
+
+        response = self.client.get(
+            f"{url}?app_id=COM.EXAMPLE.APP",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+        assert response.status_code == 200
+        assert len(response.json()["builds"]) == 0
+
+        response = self.client.get(
+            f"{url}?app_id=com.example",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+        assert response.status_code == 200
+        assert len(response.json()["builds"]) == 0
+
+    def test_list_builds_filter_build_configuration_exact_case_sensitive_match(self) -> None:
+        """
+        Build configuration filter uses case-sensitive exact match.
+        This prevents selecting incomparable builds with different case variants.
+        """
+        config_release = self.create_preprod_build_configuration(
+            name="Release", project=self.project
+        )
+        config_release_upper = self.create_preprod_build_configuration(
+            name="RELEASE", project=self.project
+        )
+        config_release_prod = self.create_preprod_build_configuration(
+            name="ReleaseProduction", project=self.project
+        )
+
+        self.create_preprod_artifact(
+            project=self.project,
+            file_id=self.file.id,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            app_id="com.example.release",
+            app_name="ReleaseApp",
+            build_version="1.0.0",
+            build_number=200,
+            build_configuration=config_release,
+            installable_app_file_id=1250,
+        )
+        self.create_preprod_artifact(
+            project=self.project,
+            file_id=self.file.id,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            app_id="com.example.release.upper",
+            app_name="ReleaseUpperApp",
+            build_version="1.0.0",
+            build_number=201,
+            build_configuration=config_release_upper,
+            installable_app_file_id=1251,
+        )
+        self.create_preprod_artifact(
+            project=self.project,
+            file_id=self.file.id,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            app_id="com.example.releaseprod",
+            app_name="ReleaseProdApp",
+            build_version="1.0.0",
+            build_number=202,
+            build_configuration=config_release_prod,
+            installable_app_file_id=1252,
+        )
+
+        url = self._get_url()
+
+        response = self.client.get(
+            f"{url}?build_configuration=Release",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert len(resp_data["builds"]) == 1
+        assert resp_data["builds"][0]["app_info"]["build_configuration"] == "Release"
+
+        response = self.client.get(
+            f"{url}?build_configuration=RELEASE",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+        assert response.status_code == 200
+        assert len(response.json()["builds"]) == 1
+        assert response.json()["builds"][0]["app_info"]["build_configuration"] == "RELEASE"
+
+        response = self.client.get(
+            f"{url}?build_configuration=Release",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+        assert response.status_code == 200
+        matched_configs = {b["app_info"]["build_configuration"] for b in response.json()["builds"]}
+        assert matched_configs == {"Release"}

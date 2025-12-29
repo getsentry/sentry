@@ -6,13 +6,13 @@ import {TextArea} from 'sentry/components/core/textarea';
 import {space} from 'sentry/styles/space';
 import type {FormSize, StrictCSSObject, Theme} from 'sentry/utils/theme';
 
-export interface InputStyleProps {
+interface InputStyleProps {
   leadingWidth?: number;
   size?: FormSize;
   trailingWidth?: number;
 }
 
-export const InputItemsWrap = styled('div')`
+const InputItemsWrap = styled('div')`
   display: grid;
   grid-auto-flow: column;
   align-items: center;

@@ -1,61 +1,13 @@
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, Function
 
-from sentry.search.eap import constants
-from sentry.search.eap.columns import (
-    AggregateDefinition,
-    AttributeArgumentDefinition,
-    ColumnDefinitions,
-    ResolvedAttribute,
-)
-from sentry.search.eap.common_columns import COMMON_COLUMNS
-
-OCCURRENCES_ALWAYS_PRESENT_ATTRIBUTES = [
-    AttributeKey(name="group_id", type=AttributeKey.Type.TYPE_INT),
-]
-
-
-OCCURRENCE_COLUMNS = {
-    column.public_alias: column
-    for column in (
-        COMMON_COLUMNS
-        + [
-            ResolvedAttribute(
-                public_alias="id",
-                internal_name="sentry.item_id",
-                search_type="string",
-            ),
-            ResolvedAttribute(
-                public_alias="group_id",
-                internal_name="group_id",
-                search_type="integer",
-            ),
-        ]
-    )
-}
+from sentry.search.eap.columns import ColumnDefinitions
+from sentry.search.eap.occurrences.aggregates import OCCURRENCE_AGGREGATE_DEFINITIONS
+from sentry.search.eap.occurrences.attributes import OCCURRENCE_ATTRIBUTE_DEFINITIONS
 
 OCCURRENCE_DEFINITIONS = ColumnDefinitions(
-    aggregates={
-        "avg": AggregateDefinition(
-            internal_function=Function.FUNCTION_AVG,
-            default_search_type="duration",
-            arguments=[
-                AttributeArgumentDefinition(
-                    attribute_types={
-                        "duration",
-                        "number",
-                        "percentage",
-                        "integer",
-                        "currency",
-                        *constants.SIZE_TYPE,
-                        *constants.DURATION_TYPE,
-                    },
-                )
-            ],
-        ),
-    },  # c.f. SPAN_AGGREGATE_DEFINITIONS when we're ready.
+    aggregates=OCCURRENCE_AGGREGATE_DEFINITIONS,
     formulas={},
-    columns=OCCURRENCE_COLUMNS,
+    columns=OCCURRENCE_ATTRIBUTE_DEFINITIONS,
     contexts={},
     trace_item_type=TraceItemType.TRACE_ITEM_TYPE_OCCURRENCE,
     filter_aliases={},

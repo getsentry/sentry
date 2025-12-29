@@ -22,18 +22,14 @@ from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import WebVitalsGroup
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.group import Group
-from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import EventsResponse, SnubaParams
-from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
-    bulk_set_project_preferences,
     get_autofix_repos_from_project_code_mappings,
 )
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
-from sentry.seer.models import SeerRepoDefinition
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.services import eventstore
@@ -578,61 +574,6 @@ def get_all_tags_overview(group: Group) -> dict[str, Any] | None:
     return {
         "tags_overview": all_tags,
     }
-
-
-def onboarding_seer_settings_update(
-    organization_id: int,
-    is_rca_enabled: bool,
-    is_auto_open_prs_enabled: bool,
-    project_repo_dict: dict[int, list[SeerRepoDefinition]],
-) -> None:
-    """
-    Update Seer settings for new orgs that are onboarding to the seat-based Seer tier.
-    """
-    # Get organization and list of projects
-    organization = Organization.objects.get(id=organization_id)
-
-    # Set the default automation tuning for the org
-    if is_rca_enabled:
-        rca_default_tuning = AutofixAutomationTuningSettings.MEDIUM
-    else:
-        rca_default_tuning = AutofixAutomationTuningSettings.OFF
-    organization.update_option("sentry:default_autofix_automation_tuning", rca_default_tuning)
-
-    # Set the default stopping point and auto open PRs for the org
-    if is_auto_open_prs_enabled:
-        stopping_point = AutofixStoppingPoint.OPEN_PR
-        organization.update_option("sentry:auto_open_prs", True)
-    else:
-        stopping_point = AutofixStoppingPoint.CODE_CHANGES
-        organization.update_option("sentry:auto_open_prs", False)
-
-    # Update preferences for each project with its repositories
-    preferences_to_set = []
-    for project_id, repositories in project_repo_dict.items():
-        preferences_to_set.append(
-            {
-                "organization_id": organization_id,
-                "project_id": project_id,
-                "repositories": [repo.dict() for repo in repositories],
-                "automated_run_stopping_point": stopping_point,
-            }
-        )
-
-    # Call Seer API to set preferences
-    if preferences_to_set:
-        bulk_set_project_preferences(organization_id, preferences_to_set)
-
-    logger.info(
-        "onboarding_seer_settings_update for new org completed",
-        extra={
-            "organization_id": organization_id,
-            "default_autofix_automation_tuning": rca_default_tuning,
-            "auto_open_prs": is_auto_open_prs_enabled,
-            "org_slug": organization.slug,
-            "num_projects": len(project_repo_dict),
-        },
-    )
 
 
 def trigger_autofix(

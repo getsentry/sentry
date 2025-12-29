@@ -1,6 +1,7 @@
-import {useTheme, type Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 
-import type {ColorOrAlias, IconSize} from 'sentry/utils/theme';
+import type {ColorOrAlias, ContentVariant, IconSize} from 'sentry/utils/theme';
 
 import {useIconDefaults} from './useIconDefaults';
 
@@ -19,13 +20,13 @@ export interface SVGIconProps extends React.SVGAttributes<SVGSVGElement> {
   legacySize?: string;
   ref?: React.Ref<SVGSVGElement>;
   size?: IconSize;
-  variant?: keyof Theme['tokens']['content'];
+  variant?: ContentVariant;
 }
 
 export function SvgIcon(props: SVGIconProps) {
   const theme = useTheme();
   const iconProps = useIconDefaults(props);
-  const size = iconProps.legacySize ?? theme.iconSizes[iconProps.size ?? 'sm'];
+  const size = iconProps.legacySize ?? ICON_SIZES[iconProps.size ?? 'sm'];
 
   const {
     variant: _variant,
@@ -74,3 +75,21 @@ const ICON_DIRECTION_TO_ROTATION_ANGLE = {
 } as const;
 
 SvgIcon.ICON_DIRECTION_TO_ROTATION_ANGLE = ICON_DIRECTION_TO_ROTATION_ANGLE;
+
+/**
+ * @TODO(jonasbadalic): There are other icons that either already use or should use this size map.
+ * Our icon implementation is specialized for SVGs, but this is not always the case for other icons that
+ * might be img or div elements, and we should instead provide a container implementation that implements
+ * a common icon size interface and handles the resolution. With some small changes to the types, this
+ * could be achieved via a small wrapper around the Container component.
+ */
+const ICON_SIZES: Record<IconSize, string> = {
+  xs: '12px',
+  sm: '14px',
+  md: '18px',
+  lg: '24px',
+  xl: '32px',
+  '2xl': '72px',
+} as const;
+
+SvgIcon.ICON_SIZES = ICON_SIZES;

@@ -16,11 +16,15 @@ import {color} from 'sentry/utils/theme/scraps/color';
 import {breakpoints, radius, size, space} from 'sentry/utils/theme/scraps/size';
 import {typography} from 'sentry/utils/theme/scraps/typography';
 
-type SimpleMotionName = 'smooth' | 'snap' | 'enter' | 'exit';
-
-type PhysicsMotionName = 'spring';
-
-type MotionDuration = 'fast' | 'moderate' | 'slow';
+import type {
+  AlertVariant,
+  ButtonVariant,
+  FormSize,
+  LevelVariant,
+  MotionDuration,
+  MotionEasing,
+  TagVariant,
+} from './types';
 
 type MotionDefinition = Record<MotionDuration, string>;
 
@@ -30,7 +34,10 @@ const motionDurations: Record<MotionDuration, number> = {
   slow: 240,
 };
 
-const motionCurves: Record<SimpleMotionName, [number, number, number, number]> = {
+const motionCurves: Record<
+  Exclude<MotionEasing, keyof typeof motionTransitions>,
+  [number, number, number, number]
+> = {
   smooth: [0.72, 0, 0.16, 1],
   snap: [0.8, -0.4, 0.5, 1],
   enter: [0.24, 1, 0.32, 1],
@@ -65,7 +72,7 @@ const motionCurveWithDuration = (
   return [motion, framerMotion];
 };
 
-const motionTransitions: Record<PhysicsMotionName, Record<MotionDuration, Transition>> = {
+const motionTransitions: Record<'spring', Record<MotionDuration, Transition>> = {
   spring: {
     fast: {
       type: 'spring',
@@ -143,9 +150,8 @@ function generateMotion() {
   };
 }
 
-type Alert = 'muted' | 'info' | 'warning' | 'success' | 'error';
 type AlertColors = Record<
-  Alert,
+  AlertVariant,
   {
     background: string;
     backgroundLight: string;
@@ -199,11 +205,15 @@ const generateThemePrismVariables = (
     ...prismColors,
   });
 
-const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColors => ({
+const generateButtonTheme = (
+  colors: Colors,
+  alias: Aliases,
+  tokens: ReturnType<typeof generateChonkTokens>
+): ButtonColors => ({
   default: {
     // all alias-based, already derived from new theme
-    color: alias.textColor,
-    colorActive: alias.textColor,
+    color: tokens.content.primary,
+    colorActive: tokens.content.primary,
     background: alias.background,
     backgroundActive: alias.hover,
     border: alias.border,
@@ -257,8 +267,8 @@ const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColors => ({
     focusShadow: 'transparent',
   },
   transparent: {
-    color: alias.textColor,
-    colorActive: alias.textColor,
+    color: tokens.content.primary,
+    colorActive: tokens.content.primary,
     background: 'transparent',
     backgroundActive: 'transparent',
     border: 'transparent',
@@ -378,17 +388,8 @@ const generateTagTheme = (colors: Colors): TagColors => ({
 
 type Colors = typeof lightColors;
 
-type Tag =
-  | 'default'
-  | 'promotion'
-  | 'highlight'
-  | 'warning'
-  | 'success'
-  | 'error'
-  | 'info';
-
 type TagColors = Record<
-  Tag,
+  TagVariant,
   {
     background: string;
     border: string;
@@ -396,14 +397,10 @@ type TagColors = Record<
   }
 >;
 
-// @TODO: is this loose coupling enough?
-type Level = 'sample' | 'info' | 'warning' | 'error' | 'fatal' | 'default' | 'unknown';
-type LevelColors = Record<Level, string>;
+type LevelColors = Record<LevelVariant, string>;
 
-// @TODO(jonasbadalic): Disabled is not a button variant, it's a state
-type Button = 'default' | 'primary' | 'danger' | 'link' | 'disabled' | 'transparent';
 type ButtonColors = Record<
-  Button,
+  ButtonVariant,
   {
     background: string;
     backgroundActive: string;
@@ -417,31 +414,11 @@ type ButtonColors = Record<
   }
 >;
 
-type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
-
-/**
- * Unless you are implementing a new component in the `sentry/components/core`
- * directory, use `ComponentProps['size']` instead.
- * @internal
- */
-export type FormSize = 'xs' | 'sm' | 'md';
-
-export type Space = keyof typeof space;
-
-const iconSizes: Record<Size, string> = {
-  xs: '12px',
-  sm: '14px',
-  md: '18px',
-  lg: '24px',
-  xl: '32px',
-  '2xl': '72px',
-} as const;
-
 const legacyTypography = {
   fontSize: typography.font.size,
   fontWeight: {
-    normal: typography.font.weight.regular,
-    bold: typography.font.weight.medium,
+    normal: typography.font.weight.sans.regular,
+    bold: typography.font.weight.sans.medium,
   },
   text: {
     family: typography.font.family.sans,
@@ -519,9 +496,6 @@ const commonTheme = {
   size,
   motion: generateMotion(),
 
-  // Icons
-  iconSizes,
-
   // Try to keep these ordered plz
   zIndex: {
     // Generic z-index when you hope your component is isolated and
@@ -596,8 +570,12 @@ const commonTheme = {
 };
 
 export type Color = keyof ReturnType<typeof deprecatedColorMappings>;
-export type IconSize = keyof typeof iconSizes;
 type Aliases = typeof lightAliases;
+/**
+ * Do not use this type. Use direct colors access via theme.colors or encapsulate
+ * colors into human readable variants that signify the color's purpose.
+ * @deprecated
+ */
 export type ColorOrAlias = keyof Aliases | Color;
 export interface SentryTheme extends Omit<typeof lightThemeDefinition, 'chart'> {
   chart: {
@@ -1247,29 +1225,14 @@ const generateAliases = (
   colors: typeof lightColors
 ) => ({
   /**
-   * Primary text color
-   */
-  textColor: tokens.content.primary,
-
-  /**
    * Text that should not have as much emphasis
    */
   subText: tokens.content.muted,
 
   /**
-   * Background for the main content area of a page?
-   */
-  bodyBackground: tokens.background.secondary,
-
-  /**
    * Primary background color
    */
   background: tokens.background.primary,
-
-  /**
-   * Elevated background color
-   */
-  backgroundElevated: tokens.background.primary,
 
   /**
    * Secondary background color used as a slight contrast against primary background
@@ -1303,31 +1266,24 @@ const generateAliases = (
    */
   success: tokens.content.success,
   successText: tokens.content.success,
-  // @TODO(jonasbadalic): should this reference a chonk color?
-  successFocus: tokens.border.success, // Not being used
 
   /**
    * A color that denotes an error, or something that is wrong
    */
   error: tokens.content.danger,
   errorText: tokens.content.danger,
-  errorFocus: tokens.border.danger,
 
   /**
    * A color that denotes danger, for dangerous actions like deletion
    */
   danger: tokens.content.danger,
   dangerText: tokens.content.danger,
-  // @TODO(jonasbadalic): should this reference a chonk color?
-  dangerFocus: tokens.border.danger, // Not being used
 
   /**
    * A color that denotes a warning
    */
   warning: tokens.content.warning,
   warningText: tokens.content.warning,
-  // @TODO(jonasbadalic): should this reference a chonk color?
-  warningFocus: tokens.border.warning, // Not being used
 
   /**
    * A color that indicates something is disabled where user can not interact or use
@@ -1365,11 +1321,6 @@ const generateAliases = (
   linkColor: tokens.component.link.accent.default,
   linkHoverColor: tokens.component.link.accent.hover,
   linkUnderline: tokens.component.link.accent.default,
-
-  /**
-   * Form placeholder text color
-   */
-  formPlaceholder: colors.gray300,
 
   /**
    * Default Progressbar color
@@ -1422,45 +1373,6 @@ const deprecatedColorMappings = (colors: Colors) => ({
   },
 
   /** @deprecated */
-  get lightModeBlack() {
-    return colors.black;
-  },
-  /** @deprecated */
-  get lightModeWhite() {
-    return colors.white;
-  },
-
-  /** @deprecated */
-  get surface100() {
-    return colors.surface200;
-  },
-  /** @deprecated */
-  get surface200() {
-    return colors.surface300;
-  },
-  /** @deprecated */
-  get surface300() {
-    return colors.surface400;
-  },
-  /** @deprecated */
-  get surface400() {
-    return colors.surface500;
-  },
-  /** @deprecated */
-  get surface500() {
-    return colors.surface500;
-  },
-
-  /** @deprecated */
-  get translucentSurface100() {
-    return colors.surface100;
-  },
-  /** @deprecated */
-  get translucentSurface200() {
-    return colors.surface200;
-  },
-
-  /** @deprecated */
   get gray500() {
     return colors.gray800;
   },
@@ -1478,15 +1390,6 @@ const deprecatedColorMappings = (colors: Colors) => ({
   },
   /** @deprecated */
   get gray100() {
-    return colors.gray100;
-  },
-
-  /** @deprecated */
-  get translucentGray200() {
-    return colors.gray200;
-  },
-  /** @deprecated */
-  get translucentGray100() {
     return colors.gray100;
   },
 
@@ -1611,7 +1514,7 @@ const lightThemeDefinition = {
   // @TODO: these colors need to be ported
   ...generateThemeUtils(deprecatedColorMappings(lightColors), lightAliases),
   alert: generateAlertTheme(lightColors, lightAliases),
-  button: generateButtonTheme(lightColors, lightAliases),
+  button: generateButtonTheme(lightColors, lightAliases, lightTokens),
   tag: generateTagTheme(lightColors),
   level: generateLevelTheme(lightTokens, 'light'),
 
@@ -1627,7 +1530,7 @@ const lightThemeDefinition = {
   ),
   prismDarkVariables: generateThemePrismVariables(
     prismDark,
-    darkAliases.backgroundElevated
+    darkTokens.background.primary
   ),
 
   colors: lightColors,
@@ -1660,7 +1563,7 @@ export const darkTheme: SentryTheme = {
   // @TODO: these colors need to be ported
   ...generateThemeUtils(deprecatedColorMappings(darkColors), darkAliases),
   alert: generateAlertTheme(darkColors, darkAliases),
-  button: generateButtonTheme(darkColors, darkAliases),
+  button: generateButtonTheme(darkColors, darkAliases, darkTokens),
   tag: generateTagTheme(darkColors),
   level: generateLevelTheme(darkTokens, 'dark'),
 
@@ -1673,7 +1576,7 @@ export const darkTheme: SentryTheme = {
   prismVariables: generateThemePrismVariables(prismDark, darkAliases.backgroundSecondary),
   prismDarkVariables: generateThemePrismVariables(
     prismDark,
-    darkAliases.backgroundElevated
+    darkTokens.background.primary
   ),
 
   colors: darkColors,

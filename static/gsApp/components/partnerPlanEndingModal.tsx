@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import partnerMigrationHero from 'getsentry-images/partnership/plan-ending.svg';
 import moment from 'moment-timezone';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
@@ -86,7 +88,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
     ? [
         t('Unlimited users'),
         t('Event volume controls'),
-        t('SSO via Google and Github'),
+        t('SSO via Google and GitHub'),
         t('Third party integrations'),
         t('Extended data retention'),
         t('Custom alerts'),
@@ -132,7 +134,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
             )}
           </p>
         </PartnerPlanHeading>
-        <PathWrapper>
+        <Flex justify="between">
           <PathContainer>
             <SubHeading>{tct(`New Plan on [endDate]`, {endDate})}</SubHeading>
             <PathHeading>{t('Developer')}</PathHeading>
@@ -148,7 +150,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
               {rightColumnItems.map(UpgradeItem)}
             </Bullets>
           </PathContainer>
-        </PathWrapper>
+        </Flex>
         <div style={{display: 'block'}}>
           <StyledButtonBar>
             <Button data-test-id="maybe-later" priority="default" onClick={closeModal}>
@@ -157,7 +159,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
             {hasBillingAccess ? (
               <LinkButton
                 size="md"
-                to={`/settings/${organization.slug}/billing/checkout/?referrer=partner_plan_ending_modal`}
+                to={`/checkout/${organization.slug}/?referrer=partner_plan_ending_modal`}
                 aria-label="Upgrade Now"
                 priority="primary"
                 onClick={() =>
@@ -199,11 +201,6 @@ const PartnerPlanHeading = styled('div')`
   h2 {
     font-size: 1.5em;
   }
-`;
-
-const PathWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
 `;
 
 const PathContainer = styled('div')`

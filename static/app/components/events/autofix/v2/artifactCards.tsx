@@ -610,7 +610,7 @@ export function TriageCard({data, group, organization}: TriageCardProps) {
                 <CommitRow commit={commit} />
                 {typedData.suspect_commit?.description && (
                   <Container padding="lg" paddingTop="0">
-                    <Text size="sm" as="div" variant="muted">
+                    <Text size="sm" variant="muted">
                       <StyledMarkedText
                         text={typedData.suspect_commit.description}
                         inline
@@ -656,7 +656,7 @@ export function TriageCard({data, group, organization}: TriageCardProps) {
                         paddingBottom="lg"
                         paddingLeft="xs"
                       >
-                        <Text size="sm" as="div" variant="muted">
+                        <Text size="sm" variant="muted">
                           <StyledMarkedText
                             text={typedData.suggested_assignee.why}
                             inline
@@ -668,7 +668,7 @@ export function TriageCard({data, group, organization}: TriageCardProps) {
 
                     <Flex justify="end">
                       {hasAssigneeMatch ? (
-                        <Button size="xs" onClick={handleAssign} disabled={isAssigning}>
+                        <Button size="sm" onClick={handleAssign} disabled={isAssigning}>
                           {isAssigning
                             ? t('Assigning...')
                             : t(
@@ -709,58 +709,12 @@ interface CodeChangesCardProps {
 }
 
 /**
- * Merge consecutive patches to the same file into a single unified diff.
- * This is needed because the Explorer may create multiple patches for the same file.
- */
-function mergeFilePatches(patches: ExplorerFilePatch[]): ExplorerFilePatch[] {
-  const patchesByFile = new Map<string, ExplorerFilePatch[]>();
-
-  // Group patches by repo + file path
-  for (const patch of patches) {
-    const key = `${patch.repo_name}:${patch.patch.path}`;
-    const existing = patchesByFile.get(key) || [];
-    existing.push(patch);
-    patchesByFile.set(key, existing);
-  }
-
-  // Merge patches for each file
-  const merged: ExplorerFilePatch[] = [];
-  for (const [, filePatches] of patchesByFile) {
-    const firstPatch = filePatches[0];
-    if (!firstPatch) {
-      continue;
-    }
-
-    if (filePatches.length === 1) {
-      merged.push(firstPatch);
-    } else {
-      // Merge hunks from multiple patches
-      const mergedHunks = filePatches.flatMap(p => p.patch.hunks);
-
-      merged.push({
-        repo_name: firstPatch.repo_name,
-        patch: {
-          ...firstPatch.patch,
-          hunks: mergedHunks,
-          added: filePatches.reduce((sum, p) => sum + p.patch.added, 0),
-          removed: filePatches.reduce((sum, p) => sum + p.patch.removed, 0),
-        },
-      });
-    }
-  }
-
-  return merged;
-}
-
-/**
  * Code Changes card showing file diffs.
  */
 export function CodeChangesCard({patches, prStates, onCreatePR}: CodeChangesCardProps) {
-  const mergedPatches = mergeFilePatches(patches);
-
   // Group by repo
   const patchesByRepo = new Map<string, ExplorerFilePatch[]>();
-  for (const patch of mergedPatches) {
+  for (const patch of patches) {
     const existing = patchesByRepo.get(patch.repo_name) || [];
     existing.push(patch);
     patchesByRepo.set(patch.repo_name, existing);
@@ -778,12 +732,12 @@ export function CodeChangesCard({patches, prStates, onCreatePR}: CodeChangesCard
             <RepoHeader>
               <RepoName>{repoName}</RepoName>
               {hasPR ? (
-                <PRLink href={prState.pr_url} target="_blank" rel="noopener noreferrer">
+                <a href={prState.pr_url} target="_blank" rel="noopener noreferrer">
                   {t('View PR #%s', prState.pr_number)}
-                </PRLink>
+                </a>
               ) : onCreatePR ? (
                 <Button
-                  size="xs"
+                  size="sm"
                   onClick={() => onCreatePR(repoName)}
                   disabled={isCreatingPR}
                 >
@@ -792,11 +746,17 @@ export function CodeChangesCard({patches, prStates, onCreatePR}: CodeChangesCard
               ) : null}
             </RepoHeader>
 
-            {repoPatches.map((patch, index) => (
-              <DiffViewContainer key={`${patch.patch.path}-${index}`}>
-                <FileDiffViewer patch={patch.patch} showBorder />
-              </DiffViewContainer>
-            ))}
+            <Flex direction="column" gap="sm">
+              {repoPatches.map((patch, index) => (
+                <FileDiffViewer
+                  patch={patch.patch}
+                  showBorder
+                  collapsible
+                  defaultExpanded={repoPatches.length > 1 ? false : true}
+                  key={`${patch.patch.path}-${index}`}
+                />
+              ))}
+            </Flex>
           </RepoSection>
         );
       })}
@@ -869,11 +829,11 @@ const TreeValue = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   word-break: break-word;
   grid-column: span 1;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const TreeKey = styled(TreeValue)`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const ImpactTreeKey = styled(TreeKey)`
@@ -911,18 +871,6 @@ const RepoHeader = styled('div')`
   align-items: center;
   justify-content: space-between;
   margin-bottom: ${p => p.theme.space.xl};
-`;
-
-const PRLink = styled('a')`
-  font-size: ${p => p.theme.fontSize.sm};
-`;
-
-const DiffViewContainer = styled('div')`
-  margin-top: ${p => p.theme.space.md};
-
-  &:not(:last-child) {
-    margin-bottom: ${p => p.theme.space.xl};
-  }
 `;
 
 const AnimatedCard = styled(motion.div)`

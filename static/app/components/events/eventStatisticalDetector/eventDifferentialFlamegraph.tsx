@@ -433,7 +433,7 @@ const DifferentialFlamegraphFunctionColorIndicator = styled('div')`
   display: inline-block;
   border: 1px solid ${p => p.theme.border};
   margin-right: ${space(0.25)};
-  background-color: ${p => p.theme.green300};
+  background-color: ${p => p.theme.colors.green400};
 `;
 
 const RIGHT_ALIGN_PLACEHOLDER_STYLES: React.CSSProperties = {

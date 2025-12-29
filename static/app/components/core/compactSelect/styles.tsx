@@ -48,7 +48,7 @@ export const ListWrap = styled('ul')`
 
 export const ListLabel = styled('p')`
   display: inline-block;
-  font-weight: ${p => p.theme.font.weight.medium};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: ${p => p.theme.font.size.xs};
   color: ${p => p.theme.subText};
   text-transform: uppercase;
@@ -94,7 +94,7 @@ export const SectionHeader = styled('div')`
 
 export const SectionTitle = styled('p')`
   display: inline-block;
-  font-weight: ${p => p.theme.font.weight.medium};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: ${p => p.theme.font.size.xs};
   color: ${p => p.theme.subText};
   text-transform: uppercase;
@@ -107,7 +107,7 @@ export const SectionTitle = styled('p')`
 export const SectionToggleButton = styled(Button)<{visible: boolean}>`
   padding: 0 ${space(0.5)};
   margin: 0 -${space(0.5)} 0 ${space(2)};
-  font-weight: ${p => p.theme.font.weight.regular};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.subText};
   transition: opacity 0.1s;
@@ -168,6 +168,7 @@ export const EmptyMessage = styled('p')`
 
   /* Message should only be displayed when _all_ preceding lists are empty */
   display: block;
+  div:has(ul:not(:empty)) ~ &,
   ul:not(:empty) ~ & {
     display: none;
   }

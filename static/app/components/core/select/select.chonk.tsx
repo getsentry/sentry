@@ -96,7 +96,7 @@ export const getChonkStylesConfig = ({
     menu: provided => ({
       ...provided,
       zIndex: theme.zIndex.dropdown,
-      background: theme.backgroundElevated,
+      background: theme.tokens.background.primary,
       borderRadius: theme.radius.md,
       border: `1px solid ${theme.border}`,
       boxShadow: 'none',
@@ -141,7 +141,7 @@ export const getChonkStylesConfig = ({
       ...(state.isMulti && {
         maxHeight: 'inherit',
         overflowY: 'auto',
-        scrollbarColor: `${theme.purple200} ${theme.tokens.background.primary}`,
+        scrollbarColor: `${theme.colors.blue200} ${theme.tokens.background.primary}`,
       }),
     }),
     input: provided => ({
@@ -287,14 +287,14 @@ export const ChonkCheckWrap = styled('div')<{
       ? css`
           padding: 1px;
           border: solid 1px ${p.theme.border};
-          background: ${p.theme.backgroundElevated};
+          background: ${p.theme.tokens.background.primary};
           border-radius: 2px;
           height: 1em;
           margin-top: 2px;
           ${p.isSelected &&
           css`
-            background: ${p.theme.purple300};
-            border-color: ${p.theme.purple300};
+            background: ${p.theme.colors.blue400};
+            border-color: ${p.theme.colors.blue400};
           `}
         `
       : css`

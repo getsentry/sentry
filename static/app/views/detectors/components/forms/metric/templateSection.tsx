@@ -1,10 +1,11 @@
 import {useContext, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
 import {Heading} from 'sentry/components/core/text/heading';
-import DropdownButton from 'sentry/components/dropdownButton';
 import FormContext from 'sentry/components/forms/formContext';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {t} from 'sentry/locale';
@@ -121,10 +122,9 @@ export function TemplateSection() {
         <CompactSelect
           options={templateOptions}
           value={currentTemplateValue}
-          trigger={(triggerProps, isOpen) => {
+          trigger={triggerProps => {
             return (
               <StyledTriggerButton
-                isOpen={isOpen}
                 {...triggerProps}
                 data-test-id="template-selector"
                 aria-label={selectedOptionLabel || t('Choose a template (optional)')}
@@ -166,6 +166,6 @@ export function TemplateSection() {
   );
 }
 
-const StyledTriggerButton = styled(DropdownButton)`
+const StyledTriggerButton = styled(SelectTrigger.Button)`
   min-width: 425px;
 `;

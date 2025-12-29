@@ -722,7 +722,7 @@ class TestSeerRunStateCodeChanges(TestCase):
                     id="block-1",
                     message=Message(role="assistant", content="Fixed"),
                     timestamp="2024-01-01T00:00:00Z",
-                    file_patches=[
+                    merged_file_patches=[
                         ExplorerFilePatch(
                             repo_name="owner/repo",
                             patch=FilePatch(path="file.py", type="M", added=10, removed=5),
@@ -747,7 +747,7 @@ class TestSeerRunStateCodeChanges(TestCase):
                     id="block-1",
                     message=Message(role="assistant", content="Fixed"),
                     timestamp="2024-01-01T00:00:00Z",
-                    file_patches=[
+                    merged_file_patches=[
                         ExplorerFilePatch(
                             repo_name="owner/repo",
                             patch=FilePatch(path="file.py", type="M", added=10, removed=5),
@@ -771,8 +771,8 @@ class TestSeerRunStateCodeChanges(TestCase):
         assert has_changes is True
         assert is_synced is True
 
-    def test_get_file_patches_by_repo(self):
-        """Test get_file_patches_by_repo groups patches correctly"""
+    def test_get_diffs_by_repo(self):
+        """Test get_diffs_by_repo groups merged patches correctly"""
         state = SeerRunState(
             run_id=123,
             blocks=[
@@ -780,7 +780,7 @@ class TestSeerRunStateCodeChanges(TestCase):
                     id="block-1",
                     message=Message(role="assistant", content="Fixed"),
                     timestamp="2024-01-01T00:00:00Z",
-                    file_patches=[
+                    merged_file_patches=[
                         ExplorerFilePatch(
                             repo_name="owner/repo1",
                             patch=FilePatch(path="file1.py", type="M", added=10, removed=5),
@@ -800,7 +800,46 @@ class TestSeerRunStateCodeChanges(TestCase):
             updated_at="2024-01-01T00:00:00Z",
         )
 
-        result = state.get_file_patches_by_repo()
+        result = state.get_diffs_by_repo()
         assert len(result) == 2
         assert len(result["owner/repo1"]) == 2
         assert len(result["owner/repo2"]) == 1
+
+    def test_get_diffs_by_repo_latest_patch_wins(self):
+        """Test get_diffs_by_repo returns latest merged patch per file"""
+        state = SeerRunState(
+            run_id=123,
+            blocks=[
+                MemoryBlock(
+                    id="block-1",
+                    message=Message(role="assistant", content="First edit"),
+                    timestamp="2024-01-01T00:00:00Z",
+                    merged_file_patches=[
+                        ExplorerFilePatch(
+                            repo_name="owner/repo1",
+                            patch=FilePatch(path="file1.py", type="M", added=10, removed=5),
+                        ),
+                    ],
+                ),
+                MemoryBlock(
+                    id="block-2",
+                    message=Message(role="assistant", content="Second edit"),
+                    timestamp="2024-01-01T00:01:00Z",
+                    merged_file_patches=[
+                        ExplorerFilePatch(
+                            repo_name="owner/repo1",
+                            patch=FilePatch(path="file1.py", type="A", added=100, removed=0),
+                        ),
+                    ],
+                ),
+            ],
+            status="completed",
+            updated_at="2024-01-01T00:01:00Z",
+        )
+
+        result = state.get_diffs_by_repo()
+        # Should only have one patch for file1.py (the latest one)
+        assert len(result) == 1
+        assert len(result["owner/repo1"]) == 1
+        assert result["owner/repo1"][0].patch.type == "A"
+        assert result["owner/repo1"][0].patch.added == 100

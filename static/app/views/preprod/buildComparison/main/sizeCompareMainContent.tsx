@@ -1,5 +1,6 @@
 import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {parseAsBoolean, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input/inputGroup';
@@ -21,6 +22,7 @@ import {BuildComparisonMetricCards} from 'sentry/views/preprod/buildComparison/m
 import {InsightComparisonSection} from 'sentry/views/preprod/buildComparison/main/insightComparisonSection';
 import {SizeCompareItemDiffTable} from 'sentry/views/preprod/buildComparison/main/sizeCompareItemDiffTable';
 import {SizeCompareSelectedBuilds} from 'sentry/views/preprod/buildComparison/main/sizeCompareSelectedBuilds';
+import {TreemapDiffSection} from 'sentry/views/preprod/buildComparison/main/treemapDiffSection';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
 import {
@@ -47,7 +49,10 @@ export function SizeCompareMainContent() {
   const navigate = useNavigate();
   const theme = useTheme();
   const [isFilesExpanded, setIsFilesExpanded] = useState(true);
-  const [hideSmallChanges, setHideSmallChanges] = useState(true);
+  const [hideSmallChanges, setHideSmallChanges] = useQueryState(
+    'hideSmallChanges',
+    parseAsBoolean.withDefault(true)
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const {baseArtifactId, headArtifactId, projectId} = useParams<{
     baseArtifactId: string;
@@ -313,12 +318,18 @@ export function SizeCompareMainContent() {
               <SizeCompareItemDiffTable
                 diffItems={filteredDiffItems}
                 originalItemCount={comparisonDataQuery.data?.diff_items.length ?? 0}
-                disableHideSmallChanges={() => setHideSmallChanges(!hideSmallChanges)}
+                disableHideSmallChanges={() => setHideSmallChanges(false)}
               />
             </Stack>
           )}
         </Flex>
       </Container>
+
+      {/* Treemap Diff Section */}
+      {comparisonDataQuery.data?.diff_items &&
+        comparisonDataQuery.data.diff_items.length > 0 && (
+          <TreemapDiffSection diffItems={comparisonDataQuery.data.diff_items} />
+        )}
     </Flex>
   );
 }

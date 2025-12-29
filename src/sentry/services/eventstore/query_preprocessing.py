@@ -1,5 +1,5 @@
 from collections import defaultdict
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -7,6 +7,7 @@ import sentry_sdk
 from django.core.cache import cache
 from django.db.models import Q, QuerySet
 
+from sentry.models.environment import Environment
 from sentry.models.groupredirect import GroupRedirect
 
 """
@@ -107,3 +108,7 @@ def get_all_merged_group_ids(
         span.set_data("returned_group_id_len", len(output_set))
 
     return output_set
+
+
+def translate_environment_ids_to_names(environment_ids: Sequence[int]) -> set[str]:
+    return set(Environment.objects.filter(id__in=environment_ids).values_list("name", flat=True))

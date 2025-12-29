@@ -23,6 +23,7 @@ import {TwoColumnWidgetGrid} from 'sentry/views/insights/pages/agents/components
 import ToolUsageWidget from 'sentry/views/insights/pages/agents/components/toolCallsWidget';
 import ToolErrorsWidget from 'sentry/views/insights/pages/agents/components/toolErrorsWidget';
 import {ToolsTable} from 'sentry/views/insights/pages/agents/components/toolsTable';
+import {useAgentMonitoringTrackPageView} from 'sentry/views/insights/pages/agents/hooks/useAgentMonitoringTrackPageView';
 import {useAgentSpanSearchProps} from 'sentry/views/insights/pages/agents/hooks/useAgentSpanSearchProps';
 import {useShowAgentOnboarding} from 'sentry/views/insights/pages/agents/hooks/useShowAgentOnboarding';
 import {Onboarding} from 'sentry/views/insights/pages/agents/onboarding';
@@ -38,6 +39,8 @@ function AgentToolsLandingPage({datePageFilterProps}: AgentToolsLandingPageProps
   useDefaultToAllProjects();
 
   const agentSpanSearchProps = useAgentSpanSearchProps();
+
+  useAgentMonitoringTrackPageView();
 
   return (
     <SearchQueryBuilderProvider {...agentSpanSearchProps.provider}>

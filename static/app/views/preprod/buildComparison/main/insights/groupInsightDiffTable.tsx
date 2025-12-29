@@ -11,7 +11,6 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {
   DiffTableChangeAmountCell,
   DiffTableHeader,
@@ -21,6 +20,7 @@ import {
   type DiffTableSort,
 } from 'sentry/views/preprod/buildComparison/main/diffTable';
 import type {DiffItem, DiffType} from 'sentry/views/preprod/types/appSizeTypes';
+import {formattedSizeDiff} from 'sentry/views/preprod/utils/labelUtils';
 
 const tableHeaders = [
   {
@@ -237,7 +237,7 @@ export function GroupInsightItemDiffTable({
                   </Tooltip>
                 </SimpleTable.RowCell>
                 <DiffTableChangeAmountCell changeType={groupDiffItem.type}>
-                  {`${groupDiffItem.size_diff > 0 ? '+' : '-'}${formatBytesBase10(Math.abs(groupDiffItem.size_diff))}`}
+                  {formattedSizeDiff(groupDiffItem.size_diff)}
                 </DiffTableChangeAmountCell>
               </SimpleTable.Row>
               {groupDiffItem.diff_items?.map(diffItem => {
@@ -253,7 +253,7 @@ export function GroupInsightItemDiffTable({
                       <Text variant="muted">{diffItem.path ?? ''}</Text>
                     </SimpleTable.RowCell>
                     <DiffTableChangeAmountCell changeType={diffItem.type}>
-                      {`${diffItem.size_diff > 0 ? '+' : '-'}${formatBytesBase10(Math.abs(diffItem.size_diff))}`}
+                      {formattedSizeDiff(diffItem.size_diff)}
                     </DiffTableChangeAmountCell>
                   </SimpleTable.Row>
                 );

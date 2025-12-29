@@ -10,6 +10,7 @@ import {IconClock, IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
+import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
 
 import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
 import {AddOnCategory, OnDemandBudgetMode} from 'getsentry/types';
@@ -19,7 +20,6 @@ import {
   normalizeMetricHistory,
   supportsPayg,
 } from 'getsentry/utils/billing';
-import useSeerOnboardingCheck from 'getsentry/views/seerAutomation/onboarding/hooks/useSeerOnboardingCheck';
 import BilledSeats from 'getsentry/views/subscriptionPage/usageOverview/components/billedSeats';
 import {
   DataCategoryUsageBreakdownInfo,
@@ -31,7 +31,10 @@ import {
   SetupCta,
   UpgradeCta,
 } from 'getsentry/views/subscriptionPage/usageOverview/components/cta';
-import {USAGE_OVERVIEW_PANEL_HEADER_HEIGHT} from 'getsentry/views/subscriptionPage/usageOverview/constants';
+import {
+  USAGE_OVERVIEW_PANEL_HEADER_HEIGHT,
+  USAGE_OVERVIEW_PANEL_REFERRER,
+} from 'getsentry/views/subscriptionPage/usageOverview/constants';
 import type {BreakdownPanelProps} from 'getsentry/views/subscriptionPage/usageOverview/types';
 
 function PanelHeader({
@@ -108,10 +111,15 @@ function PanelHeader({
       </Flex>
       {productLink && (
         <LinkButton
-          to={productLink}
+          to={`${productLink}?referrer=${USAGE_OVERVIEW_PANEL_REFERRER}`}
           icon={<IconSettings />}
           aria-label={t('Configure %s', displayName)}
           title={tct('Configure [productName]', {productName: displayName})}
+          analyticsEventName="Subscription Settings: Product Link Clicked"
+          analyticsEventKey="subscription_settings.product_link_clicked"
+          analyticsParams={{
+            product: selectedProduct,
+          }}
         />
       )}
     </Flex>
@@ -136,8 +144,10 @@ function ProductBreakdownPanel({
   // TODO(billing): if we ever show the setup state for other products, this will need refactoring
   // maybe a billing hook for setup checks
   const shouldCheckSetup = selectedProduct === AddOnCategory.SEER && isEnabled;
-  const {data: setupCheck, isLoading: setupCheckLoading} =
-    useSeerOnboardingCheck(shouldCheckSetup);
+  const {data: setupCheck, isLoading: setupCheckLoading} = useSeerOnboardingCheck({
+    enabled: shouldCheckSetup,
+    staleTime: 60_000,
+  });
   const setupRequired =
     shouldCheckSetup && !setupCheckLoading && !setupCheck?.isSeerConfigured;
 

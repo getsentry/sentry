@@ -37,7 +37,7 @@ function getTextColor({
  * Returns the appropriate vertical padding based on the size prop. To be used
  * as top/bottom padding/margin in InnerWrap
  */
-const getVerticalPadding = (size: FormSize) => {
+const getVerticalPadding = (size?: FormSize) => {
   switch (size) {
     case 'xs':
       return space(0.5);
@@ -58,7 +58,7 @@ export const ChonkInnerWrap = styled('div', {
   disabled: boolean;
   isFocused: boolean;
   priority: Priority;
-  size: FormSize;
+  size?: FormSize;
 }>`
   display: flex;
   position: relative;
@@ -96,14 +96,14 @@ export const ChonkInnerWrap = styled('div', {
       z-index: 1;
       /* Background to hide the previous item's divider */
       ::before {
-        background: ${p.theme.backgroundElevated};
+        background: ${p.theme.tokens.background.primary};
       }
     `}
 `;
 
 export const ChonkContentWrap = styled('div')<{
   isFocused: boolean;
-  size: FormSize;
+  size?: FormSize;
 }>`
   position: relative;
   width: 100%;
@@ -116,7 +116,7 @@ export const ChonkContentWrap = styled('div')<{
 
 export const ChonkLeadingItems = styled('div')<{
   disabled: boolean;
-  size: FormSize;
+  size?: FormSize;
 }>`
   display: flex;
   gap: ${space(1)};

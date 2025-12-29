@@ -93,13 +93,6 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'archive',
-        groups: ['product'],
-        keywords: ['box', 'storage', 'old', 'save'],
-        name: 'Archive',
-        defaultProps: {},
-      },
-      {
         id: 'support',
         groups: ['product'],
         keywords: ['microphone', 'help'],
@@ -309,7 +302,7 @@ const SECTIONS: TSection[] = [
         id: 'github',
         groups: ['logo'],
         keywords: ['git', 'repository', 'code', 'microsoft'],
-        name: 'Github',
+        name: 'GitHub',
         defaultProps: {},
       },
       {
@@ -366,13 +359,6 @@ const SECTIONS: TSection[] = [
         groups: ['logo'],
         keywords: ['deploy', 'hosting', 'frontend'],
         name: 'Vercel',
-        defaultProps: {},
-      },
-      {
-        id: 'teamwork',
-        groups: ['logo'],
-        keywords: ['project', 'collaboration', 'management'],
-        name: 'Teamwork',
         defaultProps: {},
       },
       {
@@ -946,13 +932,6 @@ const SECTIONS: TSection[] = [
         },
       },
       {
-        id: 'archive',
-        groups: ['product'],
-        keywords: [],
-        name: 'Archive',
-        defaultProps: {},
-      },
-      {
         id: 'play',
         groups: ['action'],
         keywords: ['video', 'audio', 'unpause'],
@@ -1449,13 +1428,6 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'laptop',
-        groups: ['device'],
-        keywords: ['computer', 'macbook', 'notebook', 'portable'],
-        name: 'Laptop',
-        defaultProps: {},
-      },
-      {
         id: 'mobile',
         groups: ['device'],
         keywords: ['phone', 'iphone', 'smartphone', 'cell'],
@@ -1543,12 +1515,6 @@ export default function IconsStories() {
       .map((name): TIcon => ({id: name, name})),
   };
 
-  const allIcons: TIcon[] = SECTIONS.flatMap(section => section.icons);
-
-  const variants = Object.keys(theme.tokens.content);
-  const shuffled = [...allIcons].sort(() => Math.random() - 0.5);
-  const picked = shuffled.slice(0, variants.length);
-
   return (
     <Fragment>
       <Text as="p" density="comfortable" size="md" variant="primary">
@@ -1581,29 +1547,25 @@ export default function IconsStories() {
       <Text as="p" density="comfortable" size="md" variant="primary">
         Just like other Core components, Icons support a set of variants that control the
         color of the icon. The full list of variants is{' '}
-        {variants.map((v, idx) => (
+        {Object.keys(theme.tokens.content).map((v, idx) => (
           <Fragment key={v}>
             <InlineCode>{v}</InlineCode>
-            {idx < variants.length - 1 ? ', ' : ''}
+            {idx < Object.keys(theme.tokens.content).length - 1 ? ', ' : ''}
           </Fragment>
         ))}
         .
       </Text>
       <Flex direction="row" gap="md" justify="between" width="100%">
-        {picked
-          .map((icon, idx) => {
-            const variant = variants[idx % variants.length]!;
-            const IconComponent = (Icons as any)[`Icon${icon.name}`];
-            return (
-              <Stack key={idx} align="center" gap="xs">
-                <IconComponent size="md" variant={variant} />
-                <Text as="span" size="xs" align="center">
-                  {variant}
-                </Text>
-              </Stack>
-            );
-          })
-          .filter(Boolean)}
+        {Object.keys(theme.tokens.content).map(v => (
+          <Stack key={v} align="center" gap="md">
+            <Icons.IconSentry size="md" variant={v as any} />
+            <InlineCode>
+              <Text size="xs" monospace>
+                {v}
+              </Text>
+            </InlineCode>
+          </Stack>
+        ))}
       </Flex>
       {SECTIONS.map(section => (
         <CoreSection searchTerm={searchTerm} key={section.id} section={section} />

@@ -10,10 +10,12 @@ import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {hasLogsOnReplays} from 'sentry/views/explore/logs/hasLogsOnReplays';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
@@ -22,15 +24,18 @@ function getReplayTabs({
   organization,
   areAiFeaturesAllowed,
   replayRecord,
+  project,
 }: {
   areAiFeaturesAllowed: boolean;
   isVideoReplay: boolean;
   organization: Organization;
+  project?: Project | null;
   replayRecord?: ReplayRecord | null;
 }): Record<TabKey, ReactNode> {
   const hasAiSummary =
     organization.features.includes('replay-ai-summaries') && areAiFeaturesAllowed;
   const hasMobileSummary = organization.features.includes('replay-ai-summaries-mobile');
+  const hasLogs = hasLogsOnReplays(organization, project, replayRecord);
 
   return {
     [TabKey.AI]:
@@ -54,7 +59,7 @@ function getReplayTabs({
       ) : null,
     [TabKey.BREADCRUMBS]: t('Breadcrumbs'),
     [TabKey.CONSOLE]: t('Console'),
-    [TabKey.LOGS]: hasLogsOnReplays(organization, replayRecord) ? t('Logs') : null,
+    [TabKey.LOGS]: hasLogs ? t('Logs') : null,
     [TabKey.NETWORK]: t('Network'),
     [TabKey.ERRORS]: t('Errors'),
     [TabKey.TRACE]: t('Trace'),
@@ -74,13 +79,23 @@ type Props = {
 export default function FocusTabs({isVideoReplay}: Props) {
   const organization = useOrganization();
   const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
-  const {getActiveTab, setActiveTab} = useActiveReplayTab({isVideoReplay});
+  const {getActiveTab, setActiveTab} = useActiveReplayTab({
+    isVideoReplay,
+  });
   const activeTab = getActiveTab();
   const replay = useReplayReader();
   const replayRecord = replay?.getReplay();
 
+  const project = useProjectFromId({project_id: replayRecord?.project_id});
+
   const tabs = Object.entries(
-    getReplayTabs({isVideoReplay, organization, areAiFeaturesAllowed, replayRecord})
+    getReplayTabs({
+      isVideoReplay,
+      organization,
+      areAiFeaturesAllowed,
+      replayRecord,
+      project,
+    })
   ).filter(([_, v]) => v !== null);
 
   useEffect(() => {
@@ -112,7 +127,7 @@ export default function FocusTabs({isVideoReplay}: Props) {
           });
         }}
       >
-        <TabList hideBorder>
+        <TabList>
           {tabs.map(([tab, label]) => (
             <TabList.Item
               key={tab}

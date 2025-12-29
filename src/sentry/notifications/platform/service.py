@@ -7,7 +7,6 @@ from typing import Any, Final, get_type_hints
 
 import sentry_sdk
 
-from sentry import features, options
 from sentry.models.organization import Organization
 from sentry.notifications.platform.metrics import (
     NotificationEventLifecycleMetric,
@@ -15,7 +14,9 @@ from sentry.notifications.platform.metrics import (
 )
 from sentry.notifications.platform.provider import NotificationProvider
 from sentry.notifications.platform.registry import provider_registry, template_registry
+from sentry.notifications.platform.rollout import NotificationRolloutService
 from sentry.notifications.platform.target import NotificationTargetDto
+from sentry.notifications.platform.templates.types import NotificationTemplateSource
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
@@ -28,7 +29,6 @@ from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import notifications_tasks
-from sentry.utils.options import sample_modulo
 from sentry.utils.registry import NoRegistrationExistsError
 
 logger = logging.getLogger(__name__)
@@ -43,26 +43,10 @@ class NotificationService[T: NotificationData]:
         self.data: Final[T] = data
 
     @staticmethod
-    def has_access(organization: Organization | RpcOrganization, source: str) -> bool:
-        if not features.has("organizations:notification-platform", organization):
-            return False
-
-        option_key = f"notifications.platform-rate.{source}"
-        try:
-            options.get(option_key)
-        except options.UnknownOption:
-            logger.warning(
-                "notification.platform.has_access.unknown_option",
-                extra={
-                    "organization_id": organization.id,
-                    "source": source,
-                    "option_key": option_key,
-                },
-            )
-            return False
-
-        modulo_result = sample_modulo(option_key, organization.id)
-        return modulo_result
+    def has_access(
+        organization: Organization | RpcOrganization, source: NotificationTemplateSource
+    ) -> bool:
+        return NotificationRolloutService(organization=organization).should_notify(source=source)
 
     def notify_target(self, *, target: NotificationTarget) -> None:
         """

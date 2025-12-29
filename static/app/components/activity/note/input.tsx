@@ -159,7 +159,7 @@ function NoteInput({
   return (
     <NoteInputForm data-test-id="note-input-form" noValidate onSubmit={handleSubmit}>
       <Tabs>
-        <TabList variant="floating" hideBorder>
+        <TabList variant="floating">
           <TabList.Item key="edit">{existingItem ? t('Edit') : t('Write')}</TabList.Item>
           <TabList.Item key="preview">{t('Preview')}</TabList.Item>
         </TabList>
@@ -266,7 +266,7 @@ const getNoteInputErrorStyles = (p: {theme: Theme; error?: string}) => {
       height: 0;
       border-top: 7px solid transparent;
       border-bottom: 7px solid transparent;
-      border-right: 7px solid ${p.theme.red300};
+      border-right: 7px solid ${p.theme.colors.red400};
       position: absolute;
       left: -7px;
       top: 12px;

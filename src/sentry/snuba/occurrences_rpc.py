@@ -10,10 +10,10 @@ from sentry.search.eap.types import AdditionalQueries, EAPResponse, SearchResolv
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.snuba import rpc_dataset_common
 
-logger = logging.getLogger("sentry.snuba.occurrences_rpc")
+logger = logging.getLogger(__name__)
 
 
-class OccurrencesRPC(rpc_dataset_common.RPCBase):
+class Occurrences(rpc_dataset_common.RPCBase):
     DEFINITIONS = OCCURRENCE_DEFINITIONS
 
     @classmethod

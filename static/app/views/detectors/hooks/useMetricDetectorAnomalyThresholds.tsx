@@ -105,7 +105,7 @@ export function useMetricDetectorAnomalyThresholds({
       }
     });
 
-    const lineColor = theme.red300;
+    const lineColor = theme.colors.red400;
 
     return [
       LineSeries({

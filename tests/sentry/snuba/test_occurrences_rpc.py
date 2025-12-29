@@ -1,4 +1,11 @@
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, IntArray
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
+    AttributeAggregation,
+    AttributeKey,
+    AttributeValue,
+    ExtrapolationMode,
+    Function,
+    IntArray,
+)
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
 from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
@@ -56,3 +63,15 @@ class OccurrencesRPCTest(TestCase):
             name="group_id", type=AttributeKey.Type.TYPE_INT
         )
         assert virtual_context is None
+
+    def test_count_aggregate(self) -> None:
+        resolved_column, virtual_context = self.resolver.resolve_column("count()")
+        assert resolved_column.proto_definition == AttributeAggregation(
+            aggregate=Function.FUNCTION_COUNT,
+            key=AttributeKey(name="sentry.project_id", type=AttributeKey.Type.TYPE_INT),
+            label="count()",
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
+        )
+        assert virtual_context is None
+        assert resolved_column.public_alias == "count()"
+        assert resolved_column.search_type == "integer"

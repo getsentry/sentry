@@ -197,12 +197,7 @@ export enum IssueType {
 
 // Update this if adding an issue type that you don't want to show up in search!
 export const VISIBLE_ISSUE_TYPES = Object.values(IssueType).filter(
-  type =>
-    ![
-      IssueType.LLM_DETECTED_EXPERIMENTAL,
-      IssueType.PREPROD_STATIC,
-      IssueType.PREPROD_DELTA,
-    ].includes(type)
+  type => ![IssueType.LLM_DETECTED_EXPERIMENTAL].includes(type)
 );
 
 export enum IssueTitle {

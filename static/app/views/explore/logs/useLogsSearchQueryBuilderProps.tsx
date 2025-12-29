@@ -69,6 +69,7 @@ export function useLogsSearchQueryBuilderProps({
     caseInsensitive,
     onCaseInsensitiveClick: setCaseInsensitive,
     replaceRawSearchKeys: hasRawSearchReplacement ? ['message'] : undefined,
+    matchKeySuggestions: [{key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/}],
   };
 
   const searchQueryBuilderProviderProps = useTraceItemSearchQueryBuilderProps(

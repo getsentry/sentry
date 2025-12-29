@@ -10,10 +10,12 @@ import sentry_sdk
 from django.db import router, transaction
 from django.utils import timezone
 
+from sentry import features
 from sentry.constants import DataCategory
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.preprod.eap.write import produce_preprod_size_metric_to_eap
 from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactSizeComparison,
@@ -46,7 +48,9 @@ logger = logging.getLogger(__name__)
 @instrumented_task(
     name="sentry.preprod.tasks.assemble_preprod_artifact",
     retry=Retry(times=3),
-    namespace=attachments_tasks,
+    namespace=preprod_tasks,
+    # TODO(EME-242): Remove once inflight tasks done.
+    alias_namespace=attachments_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.REGION,
 )
@@ -469,6 +473,36 @@ def _assemble_preprod_artifact_size_analysis(
         metrics_committed_successfully = True
         size_metrics_updated = metrics_in_transaction
 
+        try:
+            organization = preprod_artifact.project.organization
+            if features.has("organizations:preprod-size-metrics-eap-write", organization):
+                for size_metric in size_metrics_updated:
+                    produce_preprod_size_metric_to_eap(
+                        size_metric=size_metric,
+                        organization_id=org_id,
+                        project_id=project.id,
+                    )
+                logger.info(
+                    "Successfully wrote preprod size metrics to EAP",
+                    extra={
+                        "preprod_artifact_id": preprod_artifact.id,
+                        "size_metrics_ids": [m.id for m in size_metrics_updated],
+                        "organization_id": org_id,
+                        "project_id": project.id,
+                    },
+                )
+        except Exception as eap_error:
+            logger.exception(
+                "Failed to write preprod size metrics to EAP",
+                extra={
+                    "preprod_artifact_id": preprod_artifact.id,
+                    "size_metrics_ids": [m.id for m in size_metrics_updated],
+                    "organization_id": org_id,
+                    "project_id": project.id,
+                    "error": str(eap_error),
+                },
+            )
+
         if size_analysis_results.analysis_duration is not None:
             with transaction.atomic(router.db_for_write(PreprodArtifact)):
                 preprod_artifact.refresh_from_db()
@@ -606,7 +640,9 @@ def _assemble_preprod_artifact_size_analysis(
 
 @instrumented_task(
     name="sentry.preprod.tasks.assemble_preprod_artifact_size_analysis",
-    namespace=attachments_tasks,
+    namespace=preprod_tasks,
+    # TODO(EME-242): Remove once inflight tasks done.
+    alias_namespace=attachments_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.REGION,
 )
@@ -693,7 +729,9 @@ def _assemble_preprod_artifact_installable_app(
 
 @instrumented_task(
     name="sentry.preprod.tasks.assemble_preprod_artifact_installable_app",
-    namespace=attachments_tasks,
+    namespace=preprod_tasks,
+    # TODO(EME-242): Remove once inflight tasks done.
+    alias_namespace=attachments_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.REGION,
 )
