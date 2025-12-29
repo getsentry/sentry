@@ -35,7 +35,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -480,16 +479,8 @@ export function EventGraph({
       <Grid columns="auto 1fr" {...styleProps}>
         {showSummary ? (
           <SummaryContainer>
-            <GraphButton
-              disabled
-              isActive={visibleSeries === EventGraphSeries.EVENT}
-              label={t('Events')}
-            />
-            <GraphButton
-              disabled
-              isActive={visibleSeries === EventGraphSeries.USER}
-              label={t('Users')}
-            />
+            <GraphButton disabled label={t('Events')} />
+            <GraphButton disabled label={t('Users')} />
           </SummaryContainer>
         ) : (
           <div />
@@ -507,14 +498,12 @@ export function EventGraph({
         <SummaryContainer>
           <GraphButton
             onClick={() => setVisibleSeries(EventGraphSeries.EVENT)}
-            isActive={visibleSeries === EventGraphSeries.EVENT}
             disabled={visibleSeries === EventGraphSeries.EVENT}
             label={tn('Event', 'Events', eventCount)}
             count={String(eventCount)}
           />
           <GraphButton
             onClick={() => setVisibleSeries(EventGraphSeries.USER)}
-            isActive={visibleSeries === EventGraphSeries.USER}
             disabled={visibleSeries === EventGraphSeries.USER}
             label={tn('User', 'Users', userCount)}
             count={String(userCount)}
@@ -592,23 +581,17 @@ export function EventGraph({
 }
 
 function GraphButton({
-  isActive,
   label,
   count,
   ...props
 }: {
-  isActive: boolean;
   label: string;
   count?: string;
 } & Partial<ButtonProps>) {
   const textVariant = undefined;
 
   return (
-    <CalloutButton
-      isActive={isActive}
-      aria-label={`${t('Toggle graph series')} - ${label}`}
-      {...props}
-    >
+    <CalloutButton aria-label={`${t('Toggle graph series')} - ${label}`} {...props}>
       <Flex direction="column" gap="xs">
         <Text size="sm" variant={textVariant}>
           {label}
@@ -627,27 +610,10 @@ function SummaryContainer(props: FlexProps) {
   );
 }
 
-const CalloutButton = withChonk(
-  styled(Button)<{isActive: boolean}>`
-    cursor: ${p => (p.isActive ? 'initial' : 'pointer')};
-    border: 1px solid ${p => (p.isActive ? p.theme.colors.blue100 : 'transparent')};
-    background: ${p => (p.isActive ? p.theme.colors.blue100 : 'transparent')};
-    padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
-    box-shadow: none;
-    height: unset;
-    overflow: hidden;
-    &:disabled {
-      opacity: 1;
-    }
-    &:hover {
-      border: 1px solid ${p => (p.isActive ? p.theme.colors.blue100 : 'transparent')};
-    }
-  `,
-  styled(Button)<never>`
-    height: unset;
-    padding: ${space(0.5)} ${space(1.5)};
-  `
-);
+const CalloutButton = styled(Button)`
+  height: unset;
+  padding: ${space(0.5)} ${space(1.5)};
+`;
 
 const ChartContainer = styled('div')`
   position: relative;
