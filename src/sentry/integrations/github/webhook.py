@@ -139,12 +139,13 @@ class GitHubWebhook(SCMWebhook, ABC):
     # _handle() is needed by _call() in the base class.
     # subclasses can now just add their function to the WEBHOOK_EVENT_PROCESSORS tuple
     # without needing to implement _handle()
-    # XXX: Fix the signature in a follow-up.
+    # XXX: The call of self._handle() is called with organization and repo as kwargs.
+    # We may want to make it more explicit in the future.
     def _handle(
         self,
         integration: RpcIntegration,
         event: Mapping[str, Any],
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         for processor in self.WEBHOOK_EVENT_PROCESSORS:
             try:
@@ -297,7 +298,7 @@ class InstallationEventWebhook(GitHubWebhook):
 
     EVENT_TYPE = IntegrationWebhookEventType.INSTALLATION
 
-    def __call__(self, event: Mapping[str, Any], **kwargs) -> None:
+    def __call__(self, event: Mapping[str, Any], **kwargs: Any) -> None:
         installation = event["installation"]
 
         if not installation:
@@ -346,7 +347,7 @@ class InstallationEventWebhook(GitHubWebhook):
         self,
         integration: RpcIntegration,
         event: Mapping[str, Any],
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         org_ids = {oi.organization_id for oi in kwargs.get("org_integrations", [])}
 
@@ -396,7 +397,7 @@ class PushEventWebhook(GitHubWebhook):
         self,
         integration: RpcIntegration,
         event: Mapping[str, Any],
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         authors = {}
         if not ((organization := kwargs.get("organization")) and (repo := kwargs.get("repo"))):
@@ -757,7 +758,7 @@ class PullRequestEventWebhook(GitHubWebhook):
         self,
         integration: RpcIntegration,
         event: Mapping[str, Any],
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         pull_request = event["pull_request"]
         number = pull_request["number"]
