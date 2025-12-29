@@ -75,19 +75,14 @@ type FormatArg = ComponentMap | React.ReactNode;
 // Check if string is a literal (not a variable)
 type IsStringLiteral<T> = T extends string ? (string extends T ? false : true) : false;
 
-// Helper to continue extraction after bracket content
-type ExtractAfterBracket<S extends string> = S extends `${infer _Before}]${infer Rest}`
-  ? Rest
-  : '';
-
 // Recursively extract all shortcode names from template string
 // Handles both [name] and [name:value] patterns, including nested shortcodes
 type ExtractShortcodes<S extends string> =
-  S extends `${infer _Before}[${infer Name}]${infer Rest}`
-    ? Name | ExtractShortcodes<Rest>
-    : S extends `${infer _Before}[${infer Name}:${infer Content}`
-      ? Name | ExtractShortcodes<`${Content}${ExtractAfterBracket<Content>}`>
-      : never;
+  S extends `${infer _Before}[${infer Content}]${infer Rest}`
+    ? Content extends `${infer Name}:${infer Value}`
+      ? Name | ExtractShortcodes<`${Value}]${Rest}`> // Add back ] for nested brackets
+      : Content | ExtractShortcodes<Rest> // No colon, use whole content as name
+    : never;
 
 // Built-in shortcodes that have default implementations
 type BuiltInShortcodes = 'code' | 'link' | 'strong' | 'break' | 'bold' | 'italic' | 'em';
@@ -509,6 +504,20 @@ function ngettext(singular: string, plural: string, ...args: FormatArg[]): strin
  * These can be used without providing components, or can be overridden by passing
  * custom components with the same key.
  */
+
+// Overload 1: Built-in shortcodes only - components optional
+function gettextComponentTemplate<T extends string>(
+  template: CustomShortcodes<T> extends never ? T : never,
+  components?: Partial<Record<BuiltInShortcodes, React.ReactNode>>
+): React.JSX.Element;
+
+// Overload 2: Custom shortcodes present - components required
+function gettextComponentTemplate<T extends string>(
+  template: T,
+  components: ComponentMapFor<T>
+): React.JSX.Element;
+
+// Implementation
 function gettextComponentTemplate<T extends string>(
   template: T,
   components?: ComponentMapFor<T>
@@ -529,14 +538,31 @@ function gettextComponentTemplate<T extends string>(
  * Before: tctCode('Install [code:package]', {...})
  * After:  tct('Install [code:package]', {...})
  */
-export function tctCode<T extends string>(template: T, components?: ComponentMapFor<T>) {
+
+// Overload 1: Built-in shortcodes only - components optional
+export function tctCode<T extends string>(
+  template: CustomShortcodes<T> extends never ? T : never,
+  components?: Partial<Record<BuiltInShortcodes, React.ReactNode>>
+): React.JSX.Element;
+
+// Overload 2: Custom shortcodes present - components required
+export function tctCode<T extends string>(
+  template: T,
+  components: ComponentMapFor<T>
+): React.JSX.Element;
+
+// Implementation
+export function tctCode<T extends string>(
+  template: T,
+  components?: ComponentMapFor<T>
+): React.JSX.Element {
   if (process.env.NODE_ENV === 'development') {
     // eslint-disable-next-line no-console
     console.warn(
       'tctCode is deprecated. Use tct() instead - [code] is now a built-in shortcode.'
     );
   }
-  return gettextComponentTemplate(template, components);
+  return gettextComponentTemplate(template, components as any);
 }
 
 /**
