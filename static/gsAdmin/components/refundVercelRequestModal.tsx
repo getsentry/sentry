@@ -39,7 +39,7 @@ function RefundVercelRequestModal({
       reason,
     };
 
-    api.request(`/_admin/${orgSlug}/refund-vercel/`, {
+    api.request(`/customers/${orgSlug}/refund-vercel/`, {
       method: 'POST',
       data,
       success: () => {

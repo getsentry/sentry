@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {Outlet} from 'react-router-dom';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -11,13 +12,16 @@ import {IconSentry, IconSliders} from 'sentry/icons';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
 import {space} from 'sentry/styles/space';
 import localStorage from 'sentry/utils/localStorage';
-// eslint-disable-next-line no-restricted-imports -- @TODO(jonasbadalic): Remove theme import
-import {darkTheme, lightTheme} from 'sentry/utils/theme';
+// eslint-disable-next-line no-restricted-imports
+import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 import SystemAlerts from 'sentry/views/app/systemAlerts';
 
 import GlobalStyles from 'admin/globalStyles';
 
-const themes = {darkTheme, lightTheme};
+const themes = {
+  darkTheme,
+  lightTheme,
+};
 
 type ThemeName = keyof typeof themes;
 
@@ -31,18 +35,10 @@ const useToggleTheme = () => {
     localStorage.setItem('getsentryAdminTheme', newThemeName);
   };
 
-  return [
-    themeName === 'darkTheme',
-    themes[themeName] ?? lightTheme,
-    toggleTheme,
-  ] as const;
+  return [themeName === 'darkTheme', themes[themeName], toggleTheme] as const;
 };
 
-type Props = {
-  children: React.ReactNode;
-};
-
-function Layout({children}: Props) {
+export default function Layout() {
   const [isDark, theme, toggleTheme] = useToggleTheme();
 
   return (
@@ -101,7 +97,9 @@ function Layout({children}: Props) {
               </ThemeToggle>
             </div>
           </Sidebar>
-          <Content>{children}</Content>
+          <Content>
+            <Outlet />
+          </Content>
         </AppContainer>
       </ScrapsProviders>
     </ThemeProvider>
@@ -134,7 +132,7 @@ const Sidebar = styled('section')`
   width: var(--sidebarWidth);
   padding: ${space(3)} 0;
   gap: ${space(3)};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border-right: 1px solid ${p => p.theme.border};
 
   > * {
@@ -147,7 +145,7 @@ const Logo = styled(Link)`
   align-items: center;
   gap: ${space(1)};
   text-transform: uppercase;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.xl};
   font-weight: bold;
 `;
@@ -173,7 +171,7 @@ const NavLink = styled(ListLink)`
   --activeIndicatorWidth: ${space(0.5)};
 
   padding: ${space(0.25)} 0;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   display: flex;
   align-items: center;
   gap: ${space(1)};
@@ -197,5 +195,3 @@ const NavLink = styled(ListLink)`
     color: ${p => p.theme.active};
   }
 `;
-
-export default Layout;

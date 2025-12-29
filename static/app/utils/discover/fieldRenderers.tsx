@@ -3,6 +3,7 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import partial from 'lodash/partial';
+import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
 import {Tag} from 'sentry/components/core/badge/tag';
@@ -58,7 +59,6 @@ import toPercent from 'sentry/utils/number/toPercent';
 import Projects from 'sentry/utils/projects';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {isUrl} from 'sentry/utils/string/isUrl';
-import {hasDrillDownFlowsFeature} from 'sentry/views/dashboards/hooks/useHasDrillDownFlows';
 import {
   DashboardFilterKeys,
   type DashboardFilters,
@@ -422,6 +422,8 @@ const DownloadCount = styled('span')`
 const RightAlignedContainer = styled('span')`
   margin-left: auto;
   margin-right: 0;
+  display: block;
+  text-align: right;
 `;
 
 /**
@@ -919,6 +921,18 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       );
     },
   },
+  'opportunity_score(measurements.score.total)': {
+    sortField: 'opportunity_score(measurements.score.total)',
+    renderFunc: data => {
+      const score = data['opportunity_score(measurements.score.total)'];
+      if (typeof score !== 'number') {
+        return <Container>{emptyValue}</Container>;
+      }
+      return (
+        <RightAlignedContainer>{Math.round(score * 10000) / 100}</RightAlignedContainer>
+      );
+    },
+  },
   'browser.name': {
     sortField: 'browser.name',
     renderFunc: data => {
@@ -1321,7 +1335,7 @@ const RectangleRelativeOpsBreakdown = styled(RowRectangle)`
 `;
 
 const OtherRelativeOpsBreakdown = styled(RectangleRelativeOpsBreakdown)`
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.colors.gray100};
 `;
 
 const StyledLink = styled(Link)`
@@ -1396,16 +1410,17 @@ function wrapFieldRendererInDashboardLink(
   dashboardFilters: DashboardFilters | undefined = undefined
 ): FieldFormatterRenderFunctionPartial {
   return function (data, baggage) {
-    const {organization} = baggage;
+    const {organization, location} = baggage;
     const value = data[field];
     const dashboardUrl = getDashboardUrl(
       field,
       value,
       organization,
+      location,
       widget,
       dashboardFilters
     );
-    if (hasDrillDownFlowsFeature(organization) && dashboardUrl) {
+    if (dashboardUrl) {
       return <Link to={dashboardUrl}>{renderer(data, baggage)}</Link>;
     }
     return renderer(data, baggage);
@@ -1416,6 +1431,7 @@ function getDashboardUrl(
   field: string,
   value: any,
   organization: Organization,
+  location: Location,
   widget: Widget | undefined = undefined,
   dashboardFilters: DashboardFilters | undefined = undefined
 ) {
@@ -1427,7 +1443,11 @@ function getDashboardUrl(
     if (dashboardLink && dashboardLink.dashboardId !== '-1') {
       const newTemporaryFilters: GlobalFilter[] = [
         ...(dashboardFilters[DashboardFilterKeys.GLOBAL_FILTER] ?? []),
-      ].filter(filter => Boolean(filter.value));
+      ].filter(
+        filter =>
+          Boolean(filter.value) &&
+          !(filter.tag.key === field && filter.dataset === widget.widgetType)
+      );
 
       // Format the value as a proper filter condition string
       const mutableSearch = new MutableSearch('');
@@ -1437,10 +1457,23 @@ function getDashboardUrl(
         dataset: widget.widgetType,
         tag: {key: field, name: field, kind: FieldKind.TAG},
         value: formattedValue,
+        isTemporary: true,
       });
+
+      // Preserve project, environment, and time range query params
+      const filterParams = pick(location.query, [
+        'release',
+        'environment',
+        'project',
+        'statsPeriod',
+        'start',
+        'end',
+      ]);
+
       const url = `/organizations/${organization.slug}/dashboard/${dashboardLink.dashboardId}/?${qs.stringify(
         {
-          [DashboardFilterKeys.TEMPORARY_FILTERS]: newTemporaryFilters.map(filter =>
+          ...filterParams,
+          [DashboardFilterKeys.GLOBAL_FILTER]: newTemporaryFilters.map(filter =>
             JSON.stringify(filter)
           ),
         }

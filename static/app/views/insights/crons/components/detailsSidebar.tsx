@@ -207,7 +207,7 @@ const MonitorSlug = styled('button')`
   background: transparent;
   border: none;
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 

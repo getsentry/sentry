@@ -38,7 +38,6 @@ const getRow = (row: Subscription) => [
             </span>
           )}
         </small>
-        {row.isGracePeriod && <Tag type="warning">Grace Period</Tag>}
         {row.usageExceeded && <Tag type="warning">Capacity Limit</Tag>}
         {row.isSuspended && (
           <Tooltip title={row.suspensionReason}>
@@ -144,13 +143,6 @@ function CustomerGrid(props: Props) {
         },
         managed: {
           name: 'Managed',
-          options: [
-            ['0', 'No'],
-            ['1', 'Yes'],
-          ],
-        },
-        gracePeriod: {
-          name: 'Grace Period',
           options: [
             ['0', 'No'],
             ['1', 'Yes'],

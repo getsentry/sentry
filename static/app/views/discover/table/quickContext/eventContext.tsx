@@ -206,7 +206,7 @@ const StackTraceWrapper = styled('div')`
     margin-bottom: 0;
     border: 0;
   }
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const HttpStatusWrapper = styled('span')`

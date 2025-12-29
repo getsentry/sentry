@@ -19,7 +19,7 @@ from snuba_sdk import Column, Function
 from sentry import constants, features, options
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.serializers.models.event import EventTag, get_tags_with_meta
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -483,24 +483,21 @@ def is_root(item: SnubaTransaction) -> bool:
     return item.get("root", "0") == "1"
 
 
-def child_sort_key(item: TraceEvent) -> list[int | str]:
+def child_sort_key(item: TraceEvent) -> tuple[int, int, str, str]:
     if item.fetched_nodestore and item.nodestore_event is not None:
-        return [
+        return (
             item.nodestore_event.data["start_timestamp"],
             item.nodestore_event.data["timestamp"],
-        ]
-    elif item.span_serialized:
-        return [
+            item.event["transaction"],
+            item.event["id"],
+        )
+    else:
+        return (
             item.event["precise.start_ts"],
             item.event["precise.finish_ts"],
             item.event["transaction"],
             item.event["id"],
-        ]
-    else:
-        return [
-            item.event["transaction"],
-            item.event["id"],
-        ]
+        )
 
 
 def count_performance_issues(
@@ -734,7 +731,7 @@ def pad_span_id(span: str | None) -> str:
     return span.rjust(16, "0")
 
 
-class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
+class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -1448,7 +1445,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
 
 
 @region_silo_endpoint
-class OrganizationEventsTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationEventsTraceMetaEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

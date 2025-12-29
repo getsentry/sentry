@@ -206,3 +206,7 @@ export function updateVisualizeYAxis(
     chartType: undefined,
   });
 }
+
+export function isEmptyTraceMetric(traceMetric: TraceMetric): boolean {
+  return traceMetric.name === '';
+}

@@ -28,7 +28,6 @@ describe('RootNode', () => {
       expect(rootNode.expanded).toBe(true);
       expect(rootNode.errors).toBeInstanceOf(Set);
       expect(rootNode.occurrences).toBeInstanceOf(Set);
-      expect(rootNode.profiles).toBeInstanceOf(Set);
       expect(rootNode.canShowDetails).toBe(false);
     });
   });
@@ -38,7 +37,7 @@ describe('RootNode', () => {
       const extra = createMockExtra();
       const rootNode = new RootNode(null, null, extra);
 
-      expect(rootNode.pathToNode()).toStrictEqual([]);
+      expect(rootNode.type).toBe('root');
     });
   });
 
@@ -74,7 +73,7 @@ describe('RootNode', () => {
 
       const color = rootNode.makeBarColor(theme);
 
-      expect(color).toBe('#865189');
+      expect(color).toBe('#C81792');
     });
   });
 

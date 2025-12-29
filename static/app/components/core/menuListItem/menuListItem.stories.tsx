@@ -6,7 +6,7 @@ import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
 export default Storybook.story('MenuListItem', (story, APIReference) => {
-  APIReference(documentation.props.MenuListItem);
+  APIReference(documentation.props?.MenuListItem);
 
   story('focused', () => {
     return <SizeVariants isFocused />;
@@ -38,7 +38,7 @@ export default Storybook.story('MenuListItem', (story, APIReference) => {
 const Container = styled('div')`
   margin-top: ${space(0.5)};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const leadingItems: React.ComponentProps<typeof MenuListItem>['leadingItems'] = state => {

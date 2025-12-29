@@ -159,6 +159,50 @@ Sentry.init({
           ],
         },
         {
+          type: 'conditional',
+          condition: params.isPerformanceSelected,
+          content: [
+            {
+              type: 'text',
+              text: tct(
+                'To enable tracing for server-side requests, you need to explicitly define a [serverEntryLink:server entry point] in your application and wrap your request handler with [code:wrapFetchWithSentry].',
+                {
+                  code: <code />,
+                  serverEntryLink: (
+                    <ExternalLink href="https://tanstack.com/start/latest/docs/framework/react/guide/server-entry-point" />
+                  ),
+                }
+              ),
+            },
+            {
+              type: 'text',
+              text: tct('Create a [code:src/server.ts] file in your project:', {
+                code: <code />,
+              }),
+            },
+            {
+              type: 'code',
+              tabs: [
+                {
+                  label: 'TypeScript',
+                  language: 'typescript',
+                  filename: 'src/server.ts',
+                  code: `import { wrapFetchWithSentry } from "@sentry/tanstackstart-react";
+import handler, { createServerEntry } from "@tanstack/react-start/server-entry";
+
+export default createServerEntry(
+  wrapFetchWithSentry({
+    fetch(request: Request) {
+      return handler.fetch(request);
+    },
+  })
+);`,
+                },
+              ],
+            },
+          ],
+        },
+        {
           type: 'text',
           text: tct(
             'For production monitoring, you need to move the Sentry server config file to your build output. Since [hostingLink:TanStack Start is designed to work with any hosting provider], the exact location will depend on where your build artifacts are deployed (for example, [code:/dist], [code:.output/server] or a platform-specific directory).',
@@ -285,6 +329,28 @@ const route = createRoute({
             },
           ],
         },
+      ],
+    },
+    {
+      title: t('Upload Source Maps (Optional)'),
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            "The stack traces in your Sentry errors probably won't look like your actual code. To fix this, upload your source maps to Sentry. Since TanStack Start uses Vite, you can use the Sentry Vite plugin to automatically upload source maps. Follow the [link:Vite source maps guide] to set this up.",
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/vite/" />
+              ),
+            }
+          ),
+        },
+      ],
+      collapsible: true,
+    },
+    {
+      title: t('Avoid Ad Blockers With Tunneling (Optional)'),
+      content: [
         {
           type: 'text',
           text: tct(
@@ -313,6 +379,7 @@ const route = createRoute({
           ],
         },
       ],
+      collapsible: true,
     },
   ],
   verify: params => [

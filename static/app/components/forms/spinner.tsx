@@ -16,7 +16,7 @@ const Spinner = styled('div')`
   height: 18px;
   border-radius: 50%;
   border: 2px solid ${p => p.theme.border};
-  border-left-color: ${p => p.theme.purple300};
+  border-left-color: ${p => p.theme.colors.blue400};
   margin-left: auto;
 `;
 

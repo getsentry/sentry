@@ -3,16 +3,10 @@ Tests for custom tool utilities.
 """
 
 import pytest
+from pydantic import BaseModel, Field
 
 from sentry.seer.explorer.custom_tool_utils import (
-    ArrayType,
-    BooleanType,
-    EnumType,
-    ExplorerParamType,
     ExplorerTool,
-    ExplorerToolParam,
-    IntegerType,
-    StringType,
     call_custom_tool,
     extract_tool_schema,
 )
@@ -20,147 +14,107 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import create_test_regions, region_silo_test
 
 
+# Pydantic models for tool parameters
+class CustomToolParams(BaseModel):
+    message: str = Field(description="Message to repeat")
+    count: int = Field(default=1, description="Number of times")
+
+
+class ToolWithDefaultParams(BaseModel):
+    value: str = Field(description="Value")
+    suffix: str = Field(default="!", description="Suffix")
+
+
+class EmptyParams(BaseModel):
+    pass
+
+
+class GetUserInfoParams(BaseModel):
+    user_id: int = Field(description="User ID")
+
+
+class SearchLogsParams(BaseModel):
+    query: str = Field(description="Search query")
+    limit: int | None = Field(default=None, description="Result limit")
+    include_archived: bool | None = Field(default=None, description="Include archived")
+
+
+class ProcessItemsParams(BaseModel):
+    items: list[str] = Field(description="Items to process")
+    priorities: list[int] = Field(description="Priorities")
+
+
 # Test helper tool classes (defined in module scope so they can be imported by call_custom_tool)
-class TestCustomTool(ExplorerTool):
+class SampleCustomTool(ExplorerTool[CustomToolParams]):
+    params_model = CustomToolParams
+
     @classmethod
-    def get_description(cls):
+    def get_description(cls) -> str:
         return "A test tool"
 
     @classmethod
-    def get_params(cls):
-        return [
-            ExplorerToolParam(name="message", description="Message to repeat", type=StringType()),
-            ExplorerToolParam(
-                name="count", description="Number of times", type=IntegerType(), required=False
-            ),
-        ]
+    def execute(cls, organization, params: CustomToolParams) -> str:
+        return params.message * params.count
+
+
+class SampleToolWithDefault(ExplorerTool[ToolWithDefaultParams]):
+    params_model = ToolWithDefaultParams
 
     @classmethod
-    def execute(cls, organization, **kwargs):
-        message = kwargs["message"]
-        count = kwargs.get("count", 1)
-        return message * count
-
-
-class TestToolWithDefault(ExplorerTool):
-    @classmethod
-    def get_description(cls):
+    def get_description(cls) -> str:
         return "Test tool with default parameter"
 
     @classmethod
-    def get_params(cls):
-        return [
-            ExplorerToolParam(name="value", description="Value", type=StringType()),
-            ExplorerToolParam(
-                name="suffix", description="Suffix", type=StringType(), required=False
-            ),
-        ]
+    def execute(cls, organization, params: ToolWithDefaultParams) -> str:
+        return params.value + params.suffix
+
+
+class BadTool(ExplorerTool[EmptyParams]):
+    params_model = EmptyParams
 
     @classmethod
-    def execute(cls, organization, **kwargs):
-        value = kwargs["value"]
-        suffix = kwargs.get("suffix", "!")
-        return value + suffix
-
-
-class BadTool(ExplorerTool):
-    @classmethod
-    def get_description(cls):
+    def get_description(cls) -> str:
         return "Tool that returns wrong type"
 
     @classmethod
-    def get_params(cls):
-        return []
+    def execute(cls, organization, params: EmptyParams) -> str:
+        return 123  # type: ignore[return-value]  # Returns wrong type to test runtime validation
+
+
+class GetUserInfoTool(ExplorerTool[GetUserInfoParams]):
+    params_model = GetUserInfoParams
 
     @classmethod
-    def execute(cls, organization, **kwargs):
-        return 123  # Returns wrong type to test runtime validation
-
-
-class GetUserInfoTool(ExplorerTool):
-    @classmethod
-    def get_description(cls):
+    def get_description(cls) -> str:
         return "Fetches user information"
 
     @classmethod
-    def get_params(cls):
-        return [
-            ExplorerToolParam(name="user_id", description="User ID", type=IntegerType()),
-        ]
+    def execute(cls, organization, params: GetUserInfoParams) -> str:
+        return f"User {params.user_id}"
+
+
+class SearchLogsTool(ExplorerTool[SearchLogsParams]):
+    params_model = SearchLogsParams
 
     @classmethod
-    def execute(cls, organization, **kwargs):
-        return f"User {kwargs['user_id']}"
-
-
-class SearchLogsTool(ExplorerTool):
-    @classmethod
-    def get_description(cls):
+    def get_description(cls) -> str:
         return "Search application logs"
 
     @classmethod
-    def get_params(cls):
-        return [
-            ExplorerToolParam(name="query", description="Search query", type=StringType()),
-            ExplorerToolParam(
-                name="limit", description="Result limit", type=IntegerType(), required=False
-            ),
-            ExplorerToolParam(
-                name="include_archived",
-                description="Include archived",
-                type=BooleanType(),
-                required=False,
-            ),
-        ]
+    def execute(cls, organization, params: SearchLogsParams) -> str:
+        return f"Found logs for: {params.query}"
+
+
+class ProcessItemsTool(ExplorerTool[ProcessItemsParams]):
+    params_model = ProcessItemsParams
 
     @classmethod
-    def execute(cls, organization, **kwargs):
-        return f"Found logs for: {kwargs['query']}"
-
-
-class ProcessItemsTool(ExplorerTool):
-    @classmethod
-    def get_description(cls):
+    def get_description(cls) -> str:
         return "Process a list of items"
 
     @classmethod
-    def get_params(cls):
-        return [
-            ExplorerToolParam(
-                name="items",
-                description="Items to process",
-                type=ArrayType(item_type=ExplorerParamType.STRING),
-            ),
-            ExplorerToolParam(
-                name="priorities",
-                description="Priorities",
-                type=ArrayType(item_type=ExplorerParamType.INTEGER),
-            ),
-        ]
-
-    @classmethod
-    def execute(cls, organization, **kwargs):
+    def execute(cls, organization, params: ProcessItemsParams) -> str:
         return "Processed"
-
-
-class ToolWithEnum(ExplorerTool):
-    @classmethod
-    def get_description(cls):
-        return "Tool with enum parameter"
-
-    @classmethod
-    def get_params(cls):
-        return [
-            ExplorerToolParam(
-                name="unit",
-                description="Temperature unit",
-                type=EnumType(values=["celsius", "fahrenheit"]),
-            ),
-        ]
-
-    @classmethod
-    def execute(cls, organization, **kwargs):
-        return kwargs["unit"]
 
 
 @region_silo_test
@@ -174,17 +128,15 @@ class CustomToolUtilsTest(TestCase):
         """Test validation fails for nested classes."""
 
         class OuterClass:
-            class NestedTool(ExplorerTool):
+            class NestedTool(ExplorerTool[EmptyParams]):
+                params_model = EmptyParams
+
                 @classmethod
-                def get_description(cls):
+                def get_description(cls) -> str:
                     return "Nested tool"
 
                 @classmethod
-                def get_params(cls):
-                    return []
-
-                @classmethod
-                def execute(cls, organization, **kwargs):
+                def execute(cls, organization, params: EmptyParams) -> str:
                     return "test"
 
         with pytest.raises(ValueError) as cm:
@@ -198,10 +150,9 @@ class CustomToolUtilsTest(TestCase):
         assert schema.name == "GetUserInfoTool"
         assert "GetUserInfoTool" in schema.module_path
         assert schema.description == "Fetches user information"
-        assert len(schema.parameters) == 1
-        assert schema.parameters[0]["name"] == "user_id"
-        assert schema.parameters[0]["type"] == "integer"
-        assert schema.required == ["user_id"]
+        assert schema.param_schema is not None
+        assert "properties" in schema.param_schema
+        assert "user_id" in schema.param_schema["properties"]
 
     def test_extract_tool_schema_with_optional_params(self):
         """Test extracting schema with optional parameters."""
@@ -209,34 +160,29 @@ class CustomToolUtilsTest(TestCase):
 
         assert schema.name == "SearchLogsTool"
         assert schema.description == "Search application logs"
-        assert len(schema.parameters) == 3
-        assert schema.required == ["query"]  # Only required param
-
-        # Check parameter types
-        param_types = {p["name"]: p["type"] for p in schema.parameters}
-        assert param_types["query"] == "string"
-        assert param_types["limit"] == "integer"
-        assert param_types["include_archived"] == "boolean"
+        assert schema.param_schema is not None
+        properties = schema.param_schema["properties"]
+        assert "query" in properties
+        assert "limit" in properties
+        assert "include_archived" in properties
+        # Only query is required
+        assert schema.param_schema.get("required") == ["query"]
 
     def test_extract_tool_schema_with_list_params(self):
         """Test extracting schema with list parameters."""
         schema = extract_tool_schema(ProcessItemsTool)
 
-        assert len(schema.parameters) == 2
+        assert schema.param_schema is not None
+        properties = schema.param_schema["properties"]
 
         # Check list types
-        items_param = next(p for p in schema.parameters if p["name"] == "items")
-        assert items_param["type"] == "array"
-        assert items_param["items"]["type"] == "string"
-
-        priorities_param = next(p for p in schema.parameters if p["name"] == "priorities")
-        assert priorities_param["type"] == "array"
-        assert priorities_param["items"]["type"] == "integer"
+        assert properties["items"]["type"] == "array"
+        assert properties["priorities"]["type"] == "array"
 
     def test_call_custom_tool_success(self):
         """Test calling a custom tool successfully."""
         # Use test tool from this test module
-        module_path = "tests.sentry.seer.explorer.test_custom_tool_utils.TestCustomTool"
+        module_path = "tests.sentry.seer.explorer.test_custom_tool_utils.SampleCustomTool"
 
         # Call via the utility function
         result = call_custom_tool(
@@ -250,7 +196,7 @@ class CustomToolUtilsTest(TestCase):
 
     def test_call_custom_tool_with_optional_param(self):
         """Test calling a custom tool with default parameter."""
-        module_path = "tests.sentry.seer.explorer.test_custom_tool_utils.TestToolWithDefault"
+        module_path = "tests.sentry.seer.explorer.test_custom_tool_utils.SampleToolWithDefault"
         result = call_custom_tool(
             module_path=module_path,
             allowed_prefixes=("sentry.", "tests.sentry."),
@@ -290,12 +236,17 @@ class CustomToolUtilsTest(TestCase):
             )
         assert "must return str" in str(cm.value)
 
-    def test_tool_with_enum(self):
-        """Test that EnumType is converted correctly."""
-        schema = extract_tool_schema(ToolWithEnum)
+    def test_tool_without_params_model_raises(self):
+        """Test that a tool without params_model raises an error at class definition time."""
+        with pytest.raises(TypeError) as cm:
+            # This should raise when the class is defined, not when extract_tool_schema is called
+            class NoParamsTool(ExplorerTool[BaseModel]):
+                @classmethod
+                def get_description(cls) -> str:
+                    return "Tool without params_model"
 
-        assert len(schema.parameters) == 1
-        unit_param = schema.parameters[0]
-        assert unit_param["name"] == "unit"
-        assert unit_param["type"] == "string"
-        assert unit_param["enum"] == ["celsius", "fahrenheit"]
+                @classmethod
+                def execute(cls, organization, params: BaseModel) -> str:
+                    return "test"
+
+        assert "must define a params_model" in str(cm.value)

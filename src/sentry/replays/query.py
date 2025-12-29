@@ -145,7 +145,7 @@ def query_replay_id_by_prefix(
 
         query = Query(
             match=Entity("replays"),
-            select=[Column("replay_id")],
+            select=[Column("replay_id"), Column("timestamp")],
             where=[
                 Condition(Column("project_id"), Op.IN, project_ids),
                 Condition(
@@ -162,6 +162,7 @@ def query_replay_id_by_prefix(
                 Condition(Column("timestamp"), Op.GTE, window_start),
                 Condition(Column("timestamp"), Op.LT, window_end),
             ],
+            orderby=[OrderBy(Column("timestamp"), Direction.DESC)],
             granularity=Granularity(3600),
             limit=Limit(1),
         )

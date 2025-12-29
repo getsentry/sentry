@@ -105,8 +105,8 @@ const ShowMore = styled('div')<{disableBorder: boolean}>`
       border-left: 1px solid ${p.theme.border};
       border-right: 1px solid ${p.theme.border};
       border-bottom: 1px solid ${p.theme.border};
-      border-bottom-left-radius: ${p.theme.borderRadius};
-      border-bottom-right-radius: ${p.theme.borderRadius};
+      border-bottom-left-radius: ${p.theme.radius.md};
+      border-bottom-right-radius: ${p.theme.radius.md};
       margin-bottom: ${space(2)};
     `}
 `;

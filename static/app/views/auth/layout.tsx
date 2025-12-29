@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {Link} from 'sentry/components/core/link';
@@ -9,7 +10,10 @@ import {AppBodyContent} from 'sentry/views/app/appBodyContent';
 
 const BODY_CLASSES = ['narrow'];
 
-function Layout({children}: any) {
+/**
+ * Content component for auth-style layout.
+ */
+export function AuthLayoutContent({children}: {children: React.ReactNode}) {
   useEffect(() => {
     document.body.classList.add(...BODY_CLASSES);
     return () => document.body.classList.remove(...BODY_CLASSES);
@@ -32,6 +36,17 @@ function Layout({children}: any) {
   );
 }
 
+/**
+ * Route component version that renders children via Outlet.
+ */
+export default function AuthLayoutRoute() {
+  return (
+    <AuthLayoutContent>
+      <Outlet />
+    </AuthLayoutContent>
+  );
+}
+
 const AuthContainer = styled('div')`
   display: flex;
   align-items: flex-start;
@@ -50,7 +65,7 @@ const AuthSidebar = styled('div')`
   justify-content: center;
   align-items: flex-start;
   padding: ${space(3)};
-  border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
   margin: -1px;
   margin-right: 0;
   background: #564f64;
@@ -75,5 +90,3 @@ const SentryButton = styled(
     color: #fff;
   }
 `;
-
-export default Layout;

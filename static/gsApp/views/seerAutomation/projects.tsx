@@ -1,17 +1,10 @@
-import Feature from 'sentry/components/acl/feature';
-import {NoAccess} from 'sentry/components/noAccess';
-import useOrganization from 'sentry/utils/useOrganization';
+import SeerProjectTable from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTable';
+import SeerSettingsPageWrapper from 'getsentry/views/seerAutomation/components/seerSettingsPageWrapper';
 
 export default function SeerAutomationProjects() {
-  const organization = useOrganization();
-
   return (
-    <Feature
-      features={['seer-settings-gtm']}
-      organization={organization}
-      renderDisabled={NoAccess}
-    >
-      <div>SeerAutomationProjects</div>
-    </Feature>
+    <SeerSettingsPageWrapper>
+      <SeerProjectTable />
+    </SeerSettingsPageWrapper>
   );
 }

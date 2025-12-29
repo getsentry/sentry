@@ -65,7 +65,6 @@ describe('SpansTabContent', () => {
         'gen-ai-features',
         'gen-ai-explore-traces',
         'gen-ai-explore-traces-consent-ui',
-        'search-query-builder-case-insensitivity',
         'traces-page-cross-event-querying',
       ],
     },
@@ -104,9 +103,11 @@ describe('SpansTabContent', () => {
       body: {},
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
+      url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
-      body: {},
+      body: {
+        timeSeries: [],
+      },
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/traces/`,
@@ -296,10 +297,12 @@ describe('SpansTabContent', () => {
         method: 'GET',
         body: {},
       });
-      const eventsStatsMock = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/events-stats/`,
+      const eventsTimeSeriesMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-timeseries/`,
         method: 'GET',
-        body: {},
+        body: {
+          timeSeries: [],
+        },
       });
 
       render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
@@ -323,8 +326,8 @@ describe('SpansTabContent', () => {
       );
 
       await waitFor(() =>
-        expect(eventsStatsMock).toHaveBeenCalledWith(
-          `/organizations/${organization.slug}/events-stats/`,
+        expect(eventsTimeSeriesMock).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/events-timeseries/`,
           expect.objectContaining({
             query: expect.objectContaining({caseInsensitive: 1}),
           })
@@ -542,6 +545,11 @@ describe('SpansTabContent', () => {
           JSON.stringify([{query: '', type: 'spans'}])
         )
       );
+
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'trace.explorer.cross_event_added',
+        expect.objectContaining({type: 'spans'})
+      );
     });
 
     it('disables dropdown when there are 2 cross events', () => {
@@ -567,6 +575,101 @@ describe('SpansTabContent', () => {
       expect(
         screen.getByRole('button', {name: 'Add a cross event query'})
       ).toBeDisabled();
+    });
+
+    it('adds a cross event search bar when cross event added', async () => {
+      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization,
+        additionalWrapper: Wrapper,
+      });
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Add a cross event query'})
+      );
+
+      expect(screen.getByRole('menuitemradio', {name: 'Logs'})).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Logs'}));
+
+      expect(
+        screen.getByPlaceholderText('Search for logs, users, tags, and more')
+      ).toBeInTheDocument();
+    });
+
+    it('can remove a cross event query', async () => {
+      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization,
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {crossEvents: JSON.stringify([{query: '', type: 'logs'}])},
+          },
+        },
+      });
+
+      expect(
+        await screen.findByPlaceholderText('Search for logs, users, tags, and more')
+      ).toBeInTheDocument();
+
+      await userEvent.click(screen.getByLabelText('Remove cross event search for logs'));
+
+      expect(
+        screen.queryByPlaceholderText('Search for logs, users, tags, and more')
+      ).not.toBeInTheDocument();
+
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'trace.explorer.cross_event_removed',
+        expect.objectContaining({type: 'logs'})
+      );
+    });
+
+    it('changes the cross event search bar when dataset changed', async () => {
+      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization,
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {crossEvents: JSON.stringify([{query: '', type: 'logs'}])},
+          },
+        },
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: /Logs/}));
+      await userEvent.click(screen.getByRole('option', {name: 'Metrics'}));
+
+      expect(
+        screen.getByPlaceholderText('Search for metrics, users, tags, and more')
+      ).toBeInTheDocument();
+
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'trace.explorer.cross_event_changed',
+        expect.objectContaining({new_type: 'metrics', old_type: 'logs'})
+      );
+    });
+
+    it('renders disabled cross event search bar when the limit is reached', () => {
+      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization,
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {
+              crossEvents: JSON.stringify([
+                {query: '', type: 'spans'},
+                {query: '', type: 'logs'},
+                {query: '', type: 'metrics'},
+              ]),
+            },
+          },
+        },
+      });
+
+      expect(screen.getAllByTestId('search-query-builder').pop()).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
   });
 });

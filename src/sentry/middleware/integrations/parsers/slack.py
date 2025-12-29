@@ -334,7 +334,9 @@ class SlackRequestParser(BaseRequestParser):
             drf_request: Request = SlackDMEndpoint().initialize_request(self.request)
             slack_request = self.view_class.slack_request_class(drf_request)
             self.response_url = slack_request.response_url
-            self.action_option = SlackActionEndpoint.get_action_option(slack_request=slack_request)
+            self.action_option, self.action_id = SlackActionEndpoint.get_action_option(
+                slack_request=slack_request
+            )
             # All actions other than those below are sent to every region
             if self.action_option not in ACTIONS_ENDPOINT_ALL_SILOS_ACTIONS:
                 return (

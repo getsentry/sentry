@@ -32,7 +32,7 @@ function ProductTrialTag({trial, type, showTrialEnded = false}: ProductTrialTagP
 
   if (!trial.isStarted) {
     return (
-      <Tag icon={<IconBusiness gradient />} type={type ?? 'promotion'}>
+      <Tag icon={<IconBusiness />} type={type ?? 'promotion'}>
         {t('Trial available')}
       </Tag>
     );

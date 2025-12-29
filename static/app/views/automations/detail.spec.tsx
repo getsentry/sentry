@@ -117,7 +117,7 @@ describe('AutomationDetail', () => {
       );
     });
 
-    expect(screen.getByText('Enable')).toBeInTheDocument();
+    expect(screen.getAllByText('Enable')).toHaveLength(2);
   });
 
   describe('Action warnings', () => {

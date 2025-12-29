@@ -1,0 +1,42 @@
+{% extends "sentry/bases/modal.html" %}
+{% load crispy_forms_tags %}
+{% load sentry_assets %}
+{% load i18n %}
+
+{% block css %}
+  <style>
+    .form-help {
+      color: #666;
+      font-size: 0.9em;
+      margin-top: 0.25em;
+    }
+  </style>
+{% endblock %}
+
+{% block wrapperclass %} narrow auth {% endblock %}
+{% block modal_header_signout %} {% endblock %}
+
+{% block title %} {% trans "Perforce Setup" %} | {{ block.super }} {% endblock %}
+
+{% block main %}
+<h3>{% trans "Configure P4 Core Connection" %}</h3>
+  <p>{% trans "Enter your Perforce server credentials to connect Sentry with your P4 Core server." %}</p>
+  <p>{% trans "See the" %} <a href="https://docs.sentry.io/organization/integrations/source-code-mgmt/perforce/" target="_blank">{% trans "docs" %}</a> {% trans "for more information." %}</p>
+
+  <form action="" method="post" class="form-stacked">
+    {% csrf_token %}
+    <input type="hidden" name="provider" value="perforce" />
+
+    {{ form|as_crispy_errors }}
+
+    {% for field in form %}
+    {{ field|as_crispy_field }}
+    {% endfor %}
+
+    <fieldset class="form-actions clearfix">
+      <div class="pull-right">
+        <button type="submit" class="btn btn-primary" name="save_config">{% trans "Continue" %}</button>
+      </div>
+    </fieldset>
+  </form>
+{% endblock %}

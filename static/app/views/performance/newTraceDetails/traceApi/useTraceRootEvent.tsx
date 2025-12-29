@@ -11,13 +11,7 @@ import {
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {getRepresentativeTraceEvent} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
-import {
-  isEAPError,
-  isTraceError,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled';
 
 type Params = {
   logs: OurLogsResponseItem[] | undefined;
@@ -34,28 +28,20 @@ export function useTraceRootEvent({
   logs,
   traceId,
 }: Params): TraceRootEventQueryResults {
-  const rep = getRepresentativeTraceEvent(tree, logs);
+  const rep = tree.findRepresentativeTraceNode({logs});
   const organization = useOrganization();
 
-  // TODO: This is a bit of a mess, we won't need all of this once we switch to EAP only
   const treeIsLoading = tree.type === 'loading';
-  const hasOnlyLogs = !!(tree.type === 'empty' && logs && logs.length > 0);
-  const enabledBase =
-    !treeIsLoading && (tree.type === 'trace' || hasOnlyLogs) && !!rep?.event && !!traceId;
 
-  const isRepEventError =
-    rep.event && OurLogKnownFieldKey.PROJECT_ID in rep.event
-      ? false
-      : isTraceError(rep.event) || isEAPError(rep.event);
+  const enabledBase = !treeIsLoading && !!rep?.event;
 
-  const isEAPTraceEnabled = useIsEAPTraceEnabled();
-  const isEAPQueryEnabled =
-    !isRepEventError && // Errors are not supported in EAP yet
-    (isEAPTraceEnabled || (!treeIsLoading && hasOnlyLogs));
+  const isRepLog = rep?.dataset === TraceItemDataset.LOGS;
+  const isEAPQueryEnabled = !!(isRepLog || rep?.event?.isEAPEvent);
 
+  const projectSlug = rep?.event?.projectSlug;
   const legacyRootEvent = useApiQuery<EventTransaction>(
     [
-      `/organizations/${organization.slug}/events/${rep?.event?.project_slug}:${rep?.event?.event_id}/`,
+      `/organizations/${organization.slug}/events/${projectSlug}:${rep?.event?.id}/`,
       {
         query: {
           referrer: 'trace-details-summary',
@@ -65,32 +51,27 @@ export function useTraceRootEvent({
     {
       // 10 minutes
       staleTime: 1000 * 60 * 10,
-      enabled: enabledBase && !isEAPQueryEnabled,
+      enabled: enabledBase && !isEAPQueryEnabled && !!projectSlug && !!rep?.event?.id,
     }
   );
 
-  const projectId = rep.event
+  const projectId = rep?.event
     ? OurLogKnownFieldKey.PROJECT_ID in rep.event
       ? rep.event[OurLogKnownFieldKey.PROJECT_ID]
-      : rep.event.project_id
+      : rep.event.projectId
     : '';
-  const eventId = rep.event
-    ? OurLogKnownFieldKey.ID in rep.event
+  const eventId = rep?.event
+    ? OurLogKnownFieldKey.PROJECT_ID in rep.event
       ? rep.event[OurLogKnownFieldKey.ID]
-      : rep.event.event_id
+      : rep.event.id
     : '';
-
-  const itemTypes = {
-    log: TraceItemDataset.LOGS,
-    span: TraceItemDataset.SPANS,
-    uptime_check: TraceItemDataset.UPTIME_RESULTS,
-  };
+  const dataset = rep?.dataset ?? TraceItemDataset.SPANS;
 
   const rootEvent = useTraceItemDetails({
     traceItemId: String(eventId),
     projectId: String(projectId),
     traceId,
-    traceItemType: itemTypes[rep.type],
+    traceItemType: dataset,
     referrer: 'api.explore.log-item-details',
     enabled: enabledBase && isEAPQueryEnabled,
   });

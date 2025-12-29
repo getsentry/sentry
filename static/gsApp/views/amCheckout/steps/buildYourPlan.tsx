@@ -4,8 +4,6 @@ import moment from 'moment-timezone';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Flex, Stack} from 'sentry/components/core/layout';
-import {Heading} from 'sentry/components/core/text';
-import {IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
@@ -41,7 +39,9 @@ interface PlanSubstepProps extends BaseSubstepProps {
   checkoutTier?: PlanTier;
 }
 
-interface AdditionalProductsSubstepProps extends BaseSubstepProps {}
+interface AdditionalProductsSubstepProps extends BaseSubstepProps {
+  subscription: Subscription;
+}
 
 function PlanSubstep({
   billingConfig,
@@ -55,7 +55,8 @@ function PlanSubstep({
     // TODO(isabella): Remove this once Developer is surfaced
     const plans = billingConfig.planList.filter(
       ({contractInterval, id}) =>
-        contractInterval === activePlan.contractInterval && id !== billingConfig.freePlan
+        contractInterval === activePlan.contractInterval &&
+        !id.includes(billingConfig.freePlan)
     );
 
     if (plans.length === 0) {
@@ -137,22 +138,16 @@ function AdditionalProductsSubstep({
   activePlan,
   formData,
   onUpdate,
+  subscription,
 }: AdditionalProductsSubstepProps) {
   return (
     <Flex direction="column" gap="xl" paddingTop="3xl">
-      <Flex align="center" gap="lg">
-        <Flex paddingLeft="lg">
-          <IconSeer variant="waiting" size="lg" />
-        </Flex>
-        {/* TODO(isabella): The heading and icon should be pushed to the child component (ProductSelect) */}
-        <Heading as="h2">{t('Detect and fix issues faster with our AI agent')}</Heading>
-      </Flex>
       <Flex direction="column" gap="xl">
         <ProductSelect
           activePlan={activePlan}
           formData={formData}
           onUpdate={onUpdate}
-          isNewCheckout
+          subscription={subscription}
         />
       </Flex>
     </Flex>
@@ -199,6 +194,7 @@ function BuildYourPlan({
             activePlan={activePlan}
             formData={formData}
             onUpdate={onUpdate}
+            subscription={subscription}
           />
         </Fragment>
       )}

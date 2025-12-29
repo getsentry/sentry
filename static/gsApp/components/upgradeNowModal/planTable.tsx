@@ -46,7 +46,7 @@ function PlanTable({organization, previewData, reservations, subscription}: Prop
             abbr
           )}
           next={formatReservedWithUnits(
-            reservations.reservedErrors,
+            reservations.reservedErrors ?? null,
             DataCategory.ERRORS,
             abbr
           )}
@@ -61,7 +61,7 @@ function PlanTable({organization, previewData, reservations, subscription}: Prop
             abbr
           )}
           next={formatReservedWithUnits(
-            reservations.reservedTransactions,
+            reservations.reservedTransactions ?? null,
             DataCategory.TRANSACTIONS,
             abbr
           )}
@@ -83,7 +83,7 @@ function PlanTable({organization, previewData, reservations, subscription}: Prop
             abbr
           )}
           next={formatReservedWithUnits(
-            reservations.reservedAttachments,
+            reservations.reservedAttachments ?? null,
             DataCategory.ATTACHMENTS,
             abbr
           )}

@@ -85,6 +85,7 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         except SeerPermissionError as e:
             raise PermissionDenied(e.message) from e
         except ValueError:
+            logger.exception("Error getting Explorer run state")
             return Response({"session": None}, status=404)
 
     def post(
@@ -112,7 +113,12 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         on_page_context = validated_data.get("on_page_context")
 
         try:
-            client = SeerExplorerClient(organization, request.user, is_interactive=True)
+            client = SeerExplorerClient(
+                organization,
+                request.user,
+                is_interactive=True,
+                enable_coding=True,
+            )
             if run_id:
                 # Continue existing conversation
                 result_run_id = client.continue_run(

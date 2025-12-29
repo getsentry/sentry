@@ -1,7 +1,5 @@
-import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
-
 import {debossedBackground} from 'sentry/components/core/chonk';
-import type {StrictCSSObject} from 'sentry/utils/theme';
+import type {StrictCSSObject, Theme} from 'sentry/utils/theme';
 
 import type {InputStylesProps} from './input';
 
@@ -10,7 +8,7 @@ export const chonkInputStyles = ({
   monospace,
   readOnly,
   size = 'md',
-}: InputStylesProps & {theme: DO_NOT_USE_ChonkTheme}): StrictCSSObject => {
+}: InputStylesProps & {theme: Theme}): StrictCSSObject => {
   const boxShadow = `0px 1px 0px 0px ${theme.tokens.border.primary} inset`;
 
   return {
@@ -20,15 +18,23 @@ export const chonkInputStyles = ({
     ...debossedBackground(theme),
     boxShadow,
     border: `1px solid ${theme.tokens.border.primary}`,
-    fontWeight: theme.fontWeight.normal,
+    fontFamily: theme.font.family[monospace ? 'mono' : 'sans'],
+    fontWeight: theme.font.weight[monospace ? 'mono' : 'sans'].regular,
     resize: 'vertical',
     transition: `border ${theme.motion.smooth.fast}, box-shadow ${theme.motion.smooth.fast}`,
-    ...(monospace ? {fontFamily: theme.text.familyMono} : {}),
     ...(readOnly ? {cursor: 'default'} : {}),
 
-    ...theme.form[size],
-    ...theme.formPadding[size],
-    ...theme.formRadius[size],
+    fontSize: theme.form[size].fontSize,
+    height: theme.form[size].height,
+    lineHeight: theme.form[size].lineHeight,
+    minHeight: theme.form[size].minHeight,
+
+    paddingBottom: theme.form[size].paddingBottom,
+    paddingLeft: theme.form[size].paddingLeft,
+    paddingRight: theme.form[size].paddingRight,
+    paddingTop: theme.form[size].paddingTop,
+
+    borderRadius: theme.form[size].borderRadius,
 
     '&::placeholder': {
       color: theme.tokens.content.muted,

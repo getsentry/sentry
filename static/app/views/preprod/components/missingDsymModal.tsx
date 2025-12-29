@@ -58,13 +58,13 @@ const BinaryList = styled(Stack)`
   overflow-y: auto;
   padding: ${space(2)};
   background: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.border};
 `;
 
 const BinaryItem = styled('div')`
   padding: ${space(1)} ${space(1.5)};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.border};
 
   code {

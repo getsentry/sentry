@@ -1,8 +1,7 @@
 import {useLayoutEffect, useRef, useState} from 'react';
 
 import {requestAnimationTimeout} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {TraceScheduler} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceScheduler';
 import {
   VirtualizedList,
@@ -11,13 +10,13 @@ import {
 
 export interface VirtualizedRow {
   index: number;
-  item: TraceTreeNode<TraceTree.NodeValue>;
+  item: BaseNode;
   key: number;
   style: React.CSSProperties;
 }
 interface UseVirtualizedListProps {
   container: HTMLElement | null;
-  items: ReadonlyArray<TraceTreeNode<TraceTree.NodeValue>>;
+  items: readonly BaseNode[];
   manager: VirtualizedViewManager;
   render: (item: VirtualizedRow) => React.ReactNode;
   scheduler: TraceScheduler;
@@ -61,7 +60,7 @@ export const useVirtualizedList = (
 
   const renderRef = useRef<(item: VirtualizedRow) => React.ReactNode>(props.render);
   renderRef.current = props.render;
-  const itemsRef = useRef<ReadonlyArray<TraceTreeNode<TraceTree.NodeValue>>>(props.items);
+  const itemsRef = useRef<readonly BaseNode[]>(props.items);
   itemsRef.current = props.items;
   const managerRef = useRef<VirtualizedViewManager>(props.manager);
   managerRef.current = props.manager;
@@ -268,7 +267,7 @@ function findRenderedItems({
   render,
   manager,
 }: {
-  items: ReadonlyArray<TraceTreeNode<TraceTree.NodeValue>>;
+  items: readonly BaseNode[];
   manager: VirtualizedViewManager;
   overscroll: number;
   render: (arg: VirtualizedRow) => React.ReactNode;
@@ -352,7 +351,7 @@ function findOptimisticStartIndex({
   scrollTop,
   viewport,
 }: {
-  items: ReadonlyArray<TraceTreeNode<TraceTree.NodeValue>>;
+  items: readonly BaseNode[];
   overscroll: number;
   rowHeight: number;
   scrollTop: number;

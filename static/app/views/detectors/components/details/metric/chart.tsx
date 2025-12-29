@@ -1,14 +1,15 @@
 import {useMemo} from 'react';
 import {type Theme} from '@emotion/react';
-import styled from '@emotion/styled';
 import type {YAXisComponentOption} from 'echarts';
 
+import Feature from 'sentry/components/acl/feature';
 import {AreaChart, type AreaChartProps} from 'sentry/components/charts/areaChart';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {Alert} from 'sentry/components/core/alert';
-import {Flex} from 'sentry/components/core/layout';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Container, Flex} from 'sentry/components/core/layout';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
@@ -16,22 +17,28 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {GroupOpenPeriod} from 'sentry/types/group';
 import type {MetricDetector, SnubaQuery} from 'sentry/types/workflowEngine/detectors';
+import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   buildDetectorZoomQuery,
   computeZoomRangeMs,
 } from 'sentry/views/detectors/components/details/common/buildDetectorZoomQuery';
+import {getDetectorOpenInDestination} from 'sentry/views/detectors/components/details/metric/getDetectorOpenInDestination';
 import {useDetectorChartAxisBounds} from 'sentry/views/detectors/components/details/metric/utils/useDetectorChartAxisBounds';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
+import {useFilteredAnomalyThresholdSeries} from 'sentry/views/detectors/hooks/useFilteredAnomalyThresholdSeries';
 import {
   useIncidentMarkers,
   type IncidentPeriod,
 } from 'sentry/views/detectors/hooks/useIncidentMarkers';
+import {useMetricDetectorAnomalyThresholds} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalyThresholds';
 import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
 import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/useMetricDetectorThresholdSeries';
+import {useMetricTimestamps} from 'sentry/views/detectors/hooks/useMetricTimestamps';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {getDetectorChartFormatters} from 'sentry/views/detectors/utils/detectorChartFormatting';
 
@@ -45,7 +52,8 @@ function incidentSeriesTooltip(ctx: IncidentTooltipContext) {
   const endTime = ctx.period.end
     ? defaultFormatAxisLabel(ctx.period.end, true, false, true, false)
     : '-';
-  const color = ctx.period.priority === 'high' ? ctx.theme.red300 : ctx.theme.yellow300;
+  const color =
+    ctx.period.priority === 'high' ? ctx.theme.colors.red400 : ctx.theme.colors.yellow400;
   const priorityLabel = ctx.period.priority === 'high' ? t('Critical') : t('Warning');
 
   const priorityDot = `<span style="display:inline-block;width:10px;height:8px;border-radius:100%;background:${color};margin-right:6px;vertical-align:middle;"></span>`;
@@ -62,7 +70,8 @@ function incidentSeriesTooltip(ctx: IncidentTooltipContext) {
 
 function incidentMarklineTooltip(ctx: IncidentTooltipContext) {
   const time = defaultFormatAxisLabel(ctx.period.start, true, false, true, false);
-  const color = ctx.period.priority === 'high' ? ctx.theme.red300 : ctx.theme.yellow300;
+  const color =
+    ctx.period.priority === 'high' ? ctx.theme.colors.red400 : ctx.theme.colors.yellow400;
   const priorityLabel = ctx.period.priority === 'high' ? t('Critical') : t('Warning');
   const priorityDot = `<span style="display:inline-block;width:10px;height:8px;border-radius:100%;background:${color};margin-right:6px;vertical-align:middle;"></span>`;
   return [
@@ -156,6 +165,7 @@ export function useMetricDetectorChart({
 }: UseMetricDetectorChartProps): UseMetricDetectorChartResult {
   const navigate = useNavigate();
   const location = useLocation();
+
   const detectionType = detector.config.detectionType;
   const comparisonDelta =
     detectionType === 'percent' ? detector.config.comparisonDelta : undefined;
@@ -169,7 +179,7 @@ export function useMetricDetectorChart({
     extrapolationMode: snubaQuery.extrapolationMode,
     aggregate,
     interval: snubaQuery.timeWindow,
-    query: snubaQuery.query,
+    query: datasetConfig.toSnubaQueryString(snubaQuery),
     environment: snubaQuery.environment,
     projectId: detector.projectId,
     eventTypes: snubaQuery.eventTypes,
@@ -179,6 +189,8 @@ export function useMetricDetectorChart({
     end,
   });
 
+  const metricTimestamps = useMetricTimestamps(series);
+
   const {maxValue: thresholdMaxValue, additionalSeries: thresholdAdditionalSeries} =
     useMetricDetectorThresholdSeries({
       conditions: detector.conditionGroup?.conditions,
@@ -186,6 +198,19 @@ export function useMetricDetectorChart({
       aggregate,
       comparisonSeries,
     });
+
+  const {anomalyThresholdSeries} = useMetricDetectorAnomalyThresholds({
+    detectorId: detector.id,
+    detectionType,
+    startTimestamp: metricTimestamps.start,
+    endTimestamp: metricTimestamps.end,
+    series,
+  });
+
+  const filteredAnomalyThresholdSeries = useFilteredAnomalyThresholdSeries({
+    anomalyThresholdSeries,
+    detector,
+  });
 
   const incidentPeriods = useMemo(() => {
     return openPeriods.flatMap<IncidentPeriod>(period => [
@@ -227,13 +252,17 @@ export function useMetricDetectorChart({
   const {maxValue, minValue} = useDetectorChartAxisBounds({series, thresholdMaxValue});
 
   const additionalSeries = useMemo(() => {
-    const baseSeries = [...thresholdAdditionalSeries];
+    const baseSeries = [...thresholdAdditionalSeries, ...filteredAnomalyThresholdSeries];
 
     // Line series not working well with the custom series type
     baseSeries.push(openPeriodMarkerResult.incidentMarkerSeries as any);
 
     return baseSeries;
-  }, [thresholdAdditionalSeries, openPeriodMarkerResult.incidentMarkerSeries]);
+  }, [
+    thresholdAdditionalSeries,
+    filteredAnomalyThresholdSeries,
+    openPeriodMarkerResult.incidentMarkerSeries,
+  ]);
 
   const yAxes = useMemo(() => {
     const {formatYAxisLabel, outputType} = getDetectorChartFormatters({
@@ -348,9 +377,85 @@ export function useMetricDetectorChart({
   };
 }
 
+interface OpenInButtonProps {
+  detector: MetricDetector;
+}
+
+function OpenInButton({detector}: OpenInButtonProps) {
+  const organization = useOrganization();
+  const location = useLocation();
+  const snubaQuery = detector.dataSources[0]?.queryObj?.snubaQuery;
+
+  if (!snubaQuery) {
+    return null;
+  }
+
+  const destination = getDetectorOpenInDestination({
+    detectorName: detector.name,
+    organization,
+    projectId: detector.projectId,
+    snubaQuery,
+    statsPeriod: decodeScalar(location.query.statsPeriod),
+    start: decodeScalar(location.query.start),
+    end: decodeScalar(location.query.end),
+  });
+
+  if (!destination?.to) {
+    return null;
+  }
+
+  return (
+    <Feature features="visibility-explore-view">
+      <LinkButton size="xs" to={destination.to}>
+        {destination.buttonText}
+      </LinkButton>
+    </Feature>
+  );
+}
+
+function ChartContainer({
+  children,
+  overflow,
+}: {
+  children: React.ReactNode;
+  overflow?: 'hidden';
+}) {
+  return (
+    <Container border="muted" radius="md" overflow={overflow}>
+      {children}
+    </Container>
+  );
+}
+
+function ChartBody({children}: {children: React.ReactNode}) {
+  return <Container padding="lg">{children}</Container>;
+}
+
+function ChartFooter({detector}: {detector: MetricDetector}) {
+  return (
+    <Flex justify="end" padding="lg" borderTop="muted">
+      <OpenInButton detector={detector} />
+    </Flex>
+  );
+}
+
 export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChartProps) {
   const location = useLocation();
+  const organization = useOrganization();
   const dateParams = normalizeDateTimeParams(location.query);
+  const snubaQuery = detector.dataSources[0]?.queryObj?.snubaQuery;
+
+  const destination =
+    snubaQuery &&
+    getDetectorOpenInDestination({
+      detectorName: detector.name,
+      organization,
+      projectId: detector.projectId,
+      snubaQuery,
+      statsPeriod: decodeScalar(location.query.statsPeriod),
+      start: decodeScalar(location.query.start),
+      end: decodeScalar(location.query.end),
+    });
 
   const {data: openPeriods = []} = useOpenPeriods({
     detectorId: detector.id,
@@ -366,47 +471,45 @@ export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChar
 
   if (isLoading) {
     return (
-      <Flex height={CHART_HEIGHT} justify="center" align="center">
-        <Placeholder height={`${CHART_HEIGHT}px`} />
-      </Flex>
+      <ChartContainer>
+        <ChartBody>
+          <Flex height={CHART_HEIGHT} justify="center" align="center">
+            <Placeholder height={`${CHART_HEIGHT}px`} />
+          </Flex>
+        </ChartBody>
+        {destination && <ChartFooter detector={detector} />}
+      </ChartContainer>
     );
   }
   if (error || !chartProps) {
     const errorMessage =
       typeof error?.responseJSON?.detail === 'string' ? error.responseJSON.detail : null;
     return (
-      <ChartContainer style={{overflow: 'hidden'}}>
+      <ChartContainer overflow="hidden">
         {errorMessage && (
           <Alert system type="error">
             {errorMessage}
           </Alert>
         )}
-        <ChartContainerBody>
+        <ChartBody>
           <Flex justify="center" align="center">
             <ErrorPanel height={`${CHART_HEIGHT - 45}px`}>
               <IconWarning color="gray300" size="lg" />
               <div>{t('Error loading chart data')}</div>
             </ErrorPanel>
           </Flex>
-        </ChartContainerBody>
+        </ChartBody>
+        {destination && <ChartFooter detector={detector} />}
       </ChartContainer>
     );
   }
 
   return (
     <ChartContainer>
-      <ChartContainerBody>
+      <ChartBody>
         <AreaChart {...chartProps} />
-      </ChartContainerBody>
+      </ChartBody>
+      {destination && <ChartFooter detector={detector} />}
     </ChartContainer>
   );
 }
-
-const ChartContainer = styled('div')`
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-`;
-
-const ChartContainerBody = styled('div')`
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.lg} ${p => p.theme.space.xs};
-`;

@@ -136,14 +136,14 @@ const Subheader = styled('h2')`
 `;
 
 const Header = styled('h1')`
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: bold;
   margin: ${space(1.5)} 0;
 `;
 
 const CTAPanel = styled('div')`
   background: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   display: flex;
   justify-content: space-between;
   padding: ${space(2)};

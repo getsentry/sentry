@@ -95,7 +95,6 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
     return null;
   }
 
-  const FilterBar = theme.isChonk ? PageFilterBar : StyledPageFilterBar;
   const searchBarEnabled = issueTypeConfig.header.filterBar.searchBar?.enabled !== false;
 
   return (
@@ -122,7 +121,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                 columns={{xs: '1fr', md: 'auto minmax(100px, 1fr) auto'}}
                 rows={`minmax(${theme.form.md.height}, auto)`}
               >
-                <FilterBar>
+                <PageFilterBar>
                   <EnvironmentSelector group={group} event={event} project={project} />
                   <TimeRangeSelector
                     menuTitle={t('Filter Time Range')}
@@ -174,7 +173,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                       },
                     }}
                   />
-                </FilterBar>
+                </PageFilterBar>
                 {searchBarEnabled && (
                   <EventSearch
                     group={group}
@@ -274,10 +273,6 @@ const DetailsContainer = styled('div')<{
   }
 `;
 
-const StyledPageFilterBar = styled(PageFilterBar)`
-  background: ${p => p.theme.tokens.background.primary};
-`;
-
 const GraphSection = styled('div')`
   display: flex;
   gap: ${p => p.theme.space.sm};
@@ -287,17 +282,17 @@ const GraphSection = styled('div')`
   }
 
   & > * {
-    background: ${p => p.theme.background};
-    border-radius: ${p => p.theme.borderRadius};
+    background: ${p => p.theme.tokens.background.primary};
+    border-radius: ${p => p.theme.radius.md};
     border: 1px solid ${p => p.theme.translucentBorder};
   }
 `;
 
 const OccurrenceSummarySection = styled(OccurrenceSummary)`
   white-space: unset;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   padding: ${p => p.theme.space.lg};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.translucentBorder};
 `;
 

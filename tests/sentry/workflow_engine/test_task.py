@@ -9,6 +9,7 @@ from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.handlers.workflow import workflow_status_update_handler
@@ -137,6 +138,7 @@ class TestProcessWorkflowActivity(TestCase):
         self.activity.save()
         self.detector = self.create_detector(type=MetricIssue.slug)
 
+    @override_options({"workflow_engine.evaluation_log_sample_rate": 1.0})
     @mock.patch("sentry.workflow_engine.tasks.workflows.logger")
     def test_process_workflow_activity__no_workflows(self, mock_logger) -> None:
         with mock.patch(
@@ -166,6 +168,7 @@ class TestProcessWorkflowActivity(TestCase):
                 },
             )
 
+    @override_options({"workflow_engine.evaluation_log_sample_rate": 1.0})
     @mock.patch(
         "sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers",
         return_value=(set(), {}),
@@ -246,6 +249,7 @@ class TestProcessWorkflowActivity(TestCase):
 
         mock_filter_actions.assert_called_once_with({self.action_group}, expected_event_data)
 
+    @override_options({"workflow_engine.evaluation_log_sample_rate": 1.0})
     @mock.patch("sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers")
     @mock.patch("sentry.workflow_engine.tasks.workflows.logger")
     def test_process_workflow_activity__success_logs(

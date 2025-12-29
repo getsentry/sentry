@@ -152,7 +152,8 @@ export function GroupBySelector({
 
   // EAP types render their attribute type rather than field/tag/measurement
   const isEAPType =
-    widgetType && [WidgetType.SPANS, WidgetType.LOGS].includes(widgetType);
+    widgetType &&
+    [WidgetType.SPANS, WidgetType.LOGS, WidgetType.TRACEMETRICS].includes(widgetType);
   const renderTagOverride = isEAPType
     ? (_kind: FieldValueKind, _label: string, meta: FieldValue['meta']) => {
         if (!('dataType' in meta)) {
@@ -295,9 +296,9 @@ const SortableQueryFields = styled('div')`
 
 const Ghost = styled('div')`
   position: absolute;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   padding: ${space(0.5)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
   opacity: 0.8;
   cursor: grabbing;

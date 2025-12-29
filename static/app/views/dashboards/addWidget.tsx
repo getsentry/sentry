@@ -92,7 +92,7 @@ const InnerWrapper = styled('div')<{onClick?: () => void}>`
   width: 100%;
   height: 110px;
   border: 2px dashed ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   display: flex;
   align-items: center;
   justify-content: center;

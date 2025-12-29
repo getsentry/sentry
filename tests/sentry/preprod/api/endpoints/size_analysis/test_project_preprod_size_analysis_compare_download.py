@@ -31,28 +31,28 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpointTest(TestCase):
             type="application/json",
         )
 
-        self.head_artifact = PreprodArtifact.objects.create(
+        self.head_artifact = self.create_preprod_artifact(
             project=self.project,
             artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
             state=PreprodArtifact.ArtifactState.PROCESSED,
         )
-        self.base_artifact = PreprodArtifact.objects.create(
+        self.base_artifact = self.create_preprod_artifact(
             project=self.project,
             artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
             state=PreprodArtifact.ArtifactState.PROCESSED,
         )
 
-        self.head_size_metrics = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=self.head_artifact,
+        self.head_size_metrics = self.create_preprod_artifact_size_metrics(
+            self.head_artifact,
             analysis_file_id=self.head_file.id,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             identifier="main",
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
         )
-        self.base_size_metrics = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=self.base_artifact,
+        self.base_size_metrics = self.create_preprod_artifact_size_metrics(
+            self.base_artifact,
             analysis_file_id=self.base_file.id,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             identifier="main",
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
         )
@@ -74,8 +74,8 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpointTest(TestCase):
         )
 
     def test_download_size_analysis_comparison_success(self) -> None:
-        PreprodArtifactSizeComparison.objects.create(
-            organization_id=self.organization.id,
+        self.create_preprod_artifact_size_comparison(
+            organization=self.organization,
             head_size_analysis=self.head_size_metrics,
             base_size_analysis=self.base_size_metrics,
             file_id=self.comparison_file.id,
@@ -99,8 +99,8 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpointTest(TestCase):
 
     def test_download_size_analysis_comparison_no_file_id(self) -> None:
         # Create a comparison without a file_id
-        PreprodArtifactSizeComparison.objects.create(
-            organization_id=self.organization.id,
+        self.create_preprod_artifact_size_comparison(
+            organization=self.organization,
             head_size_analysis=self.head_size_metrics,
             base_size_analysis=self.base_size_metrics,
             file_id=None,
@@ -115,8 +115,8 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpointTest(TestCase):
 
     def test_download_size_analysis_comparison_file_not_found(self) -> None:
         # Create a comparison with a non-existent file_id
-        PreprodArtifactSizeComparison.objects.create(
-            organization_id=self.organization.id,
+        self.create_preprod_artifact_size_comparison(
+            organization=self.organization,
             head_size_analysis=self.head_size_metrics,
             base_size_analysis=self.base_size_metrics,
             file_id=999999,  # Non-existent file ID
@@ -136,8 +136,8 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpointTest(TestCase):
         )
         failing_file.delete()
 
-        PreprodArtifactSizeComparison.objects.create(
-            organization_id=self.organization.id,
+        self.create_preprod_artifact_size_comparison(
+            organization=self.organization,
             head_size_analysis=self.head_size_metrics,
             base_size_analysis=self.base_size_metrics,
             file_id=failing_file.id,

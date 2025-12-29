@@ -51,7 +51,7 @@ type Options = {
   period?: string | null;
   project?: readonly number[];
   query?: string;
-  queryExtras?: Record<string, string | boolean | number>;
+  queryExtras?: Record<string, string | boolean | number | string[]>;
   referrer?: string;
   sampling?: SamplingMode;
   start?: DateString;

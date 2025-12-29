@@ -126,7 +126,7 @@ const NumericCell = styled(Cell)`
 const DescriptionCell = styled(Cell)`
   text-align: left;
   overflow: visible;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const ExpanderCell = styled(Cell)`
@@ -140,13 +140,13 @@ const TitleWrapper = styled('div')`
   align-items: center;
   position: relative;
   z-index: 1;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 
   input {
     width: ${space(2)};
     height: ${space(2)};
     flex-shrink: 0;
-    background-color: ${p => p.theme.background};
+    background-color: ${p => p.theme.tokens.background.primary};
     margin-right: ${space(1)} !important;
 
     &:checked:after {
@@ -179,14 +179,14 @@ const ChartTableRow = styled('label')<{
     !p.isLoading &&
     css`
       ${Cell}, ${NumericCell}, ${DescriptionCell}, ${TitleWrapper}, ${ExpanderCell} {
-        background-color: ${p.theme.bodyBackground};
+        background-color: ${p.theme.tokens.background.secondary};
       }
     `}
 
   &:hover {
     cursor: pointer;
     ${Cell}, ${NumericCell}, ${DescriptionCell}, ${ExpanderCell}, ${TitleWrapper} {
-      ${p => !p.isLoading && `background-color: ${p.theme.bodyBackground}`}
+      ${p => !p.isLoading && `background-color: ${p.theme.tokens.background.secondary}`}
     }
   }
 

@@ -51,6 +51,10 @@ export function useStoryBookFiles() {
 }
 
 async function importStory(filename: string): Promise<StoryDescriptor> {
+  if (!filename) {
+    throw new Error(`Filename is required, got ${filename}`);
+  }
+
   if (filename.endsWith('.mdx')) {
     const story = await mdxContext(filename.replace(/^app\//, './'));
     return {

@@ -134,7 +134,7 @@ const CollapsedProjects = styled('div')`
 `;
 
 const AvatarStyle = (p: any) => css`
-  border: 2px solid ${p.theme.background};
+  border: 2px solid ${p.theme.tokens.background.primary};
   margin-right: -8px;
   cursor: default;
 
@@ -156,12 +156,12 @@ const CollapsedBadge = styled('div')<{fontSize: number; size: number}>`
   position: relative;
   text-align: center;
   font-weight: ${p => p.theme.fontWeight.bold};
-  background-color: ${p => p.theme.gray200};
+  background-color: ${p => p.theme.colors.gray200};
   color: ${p => p.theme.subText};
   font-size: ${p => p.fontSize}px;
   width: ${p => p.size}px;
   height: ${p => p.size}px;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   ${AvatarStyle}
 `;
 
@@ -200,7 +200,7 @@ export const TraceBreakdownContainer = styled('div')<{hoveredIndex?: number}>`
   display: flex;
   min-width: 200px;
   height: 15px;
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.colors.gray100};
   ${p => `--hoveredSlice-${p.hoveredIndex ?? -1}-translateY: translateY(-3px)`};
 `;
 
@@ -321,7 +321,7 @@ export function SpanBreakdownSliceRenderer({
   const stylingSliceName = getStylingSliceName(sliceName, sliceSecondaryName);
   const sliceColor = stylingSliceName
     ? pickBarColor(stylingSliceName, theme)
-    : theme.gray100;
+    : theme.colors.gray100;
 
   const sliceWidth =
     sliceNumberWidth === undefined

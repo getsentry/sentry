@@ -379,16 +379,7 @@ export const withLoggingOnboarding: Set<PlatformKey> = new Set([
 ]);
 
 // List of platforms that do not have logging support. We make use of this list in the product to not provide any Logging
-export const withoutLoggingSupport: Set<PlatformKey> = new Set([
-  'cocoa-objc',
-  'cocoa-swift',
-  'elixir',
-  'dotnet',
-  'php-symfony',
-  'unity',
-  'unreal',
-  'native',
-]);
+export const withoutLoggingSupport: Set<PlatformKey> = new Set(['elixir']);
 
 // List of platforms that have metrics onboarding checklist content
 export const withMetricsOnboarding: Set<PlatformKey> = new Set([
@@ -421,6 +412,9 @@ export const withMetricsOnboarding: Set<PlatformKey> = new Set([
   'node-hono',
   'node-koa',
   'node-nestjs',
+  'php',
+  'php-laravel',
+  'php-symfony',
   'python',
   'python-aiohttp',
   'python-asgi',
@@ -451,6 +445,7 @@ export const limitedMetricsSupportPrefixes: Set<string> = new Set([
   'javascript',
   'node',
   'python',
+  'php',
 ]);
 
 export const profiling: PlatformKey[] = [
@@ -773,14 +768,7 @@ export const featureFlagDrawerPlatforms: readonly PlatformKey[] = platformKeys.f
 );
 
 export const agentMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
-  'javascript-astro',
-  'javascript-nextjs',
-  'javascript-nuxt',
-  'javascript-react-router',
-  'javascript-remix',
-  'javascript-solidstart',
-  'javascript-sveltekit',
-  'javascript-tanstackstart-react',
+  ...platformKeys.filter(id => id.startsWith('javascript')),
   ...platformKeys.filter(id => id.startsWith('node')),
   ...platformKeys.filter(id => id.startsWith('python')),
 ]);

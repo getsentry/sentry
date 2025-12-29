@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import {getAppSizeCategoryInfo} from 'sentry/views/preprod/components/visualizations/appSizeTheme';
+import {getAppSizeCategoryInfo} from 'sentry/views/preprod/components/visualizations/appSizeTreemapTheme';
 import {TreemapType, type TreemapElement} from 'sentry/views/preprod/types/appSizeTypes';
 
 interface AppSizeLegendProps {
@@ -249,12 +249,14 @@ const MeasurementContainer = styled('div')`
   position: absolute;
   top: 0;
   left: 0;
+  right: 0;
   visibility: hidden;
   pointer-events: none;
   display: flex;
   gap: ${p => p.theme.space.xs};
   flex-wrap: nowrap;
   white-space: nowrap;
+  overflow: hidden;
 `;
 
 const LegendItem = styled('div')<{isActive: boolean}>`
@@ -263,7 +265,7 @@ const LegendItem = styled('div')<{isActive: boolean}>`
   gap: ${p => p.theme.space.xs};
   cursor: pointer;
   padding: ${p => p.theme.space.xs};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   opacity: ${p => (p.isActive ? 1 : 0.4)};
   flex-shrink: 0;
   transition:
@@ -271,7 +273,7 @@ const LegendItem = styled('div')<{isActive: boolean}>`
     background-color 0.2s ease;
 
   &:hover {
-    background-color: ${p => p.theme.surface100};
+    background-color: ${p => p.theme.colors.surface200};
     opacity: ${p => (p.isActive ? 1 : 0.6)};
   }
 `;
@@ -287,7 +289,7 @@ const LegendDot = styled('div')<{isActive: boolean}>`
 
 const LegendLabel = styled('span')`
   font-size: 12px;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-weight: 400;
 `;
 
@@ -298,7 +300,7 @@ const MoreContainer = styled('div')`
 
 const MoreLabel = styled('span')`
   font-size: 12px;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-weight: 500;
   white-space: nowrap;
 `;
@@ -308,9 +310,9 @@ const MoreDropdown = styled('div')`
   top: 100%;
   right: 0;
   margin-top: 2px;
-  background: ${p => p.theme.backgroundElevated};
+  background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   padding: ${p => p.theme.space.xs};
   display: flex;

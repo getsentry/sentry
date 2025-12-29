@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
@@ -331,12 +333,12 @@ function ArchiveActions({
           />
         )}
         menuTitle={
-          <MenuWrapper>
+          <Flex justify="between" align="center">
             {t('Archive')}
             <StyledExternalLink href="https://docs.sentry.io/product/issues/states-triage/#archive">
               {t('Read the docs')}
             </StyledExternalLink>
-          </MenuWrapper>
+          </Flex>
         }
         items={dropdownItems}
         isDisabled={disabled}
@@ -349,19 +351,13 @@ export default ArchiveActions;
 
 const ArchiveButton = styled(Button)`
   box-shadow: none;
-  border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
 `;
 
 const DropdownTrigger = styled(Button)`
   box-shadow: none;
-  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+  border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
   border-left: none;
-`;
-
-const MenuWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 `;
 
 const StyledExternalLink = styled(ExternalLink)`

@@ -33,8 +33,6 @@ export function GroupPreviewHovercard({
       displayTimeout={200}
       delay={100}
       position={shouldShowPositionTop ? 'top' : 'right'}
-      tipBorderColor="border"
-      tipColor="background"
       hide={shouldNotPreview || hide}
       body={<div onClick={handleStackTracePreviewClick}>{body}</div>}
       containerDisplayMode="inline"
@@ -55,7 +53,8 @@ const StyledHovercardWithBodyClass = styled(HovercardWithBodyClass)`
   max-height: 300px;
   overflow-y: auto;
   overscroll-behavior: contain;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const StyledHovercard = styled(Hovercard)<{hide?: boolean}>`

@@ -643,6 +643,86 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         updated_detector = update_validator.save()
         assert updated_detector.name == new_name
 
+    def test_update_data_source_marks_query_as_user_updated_when_snapshot_exists(self) -> None:
+        detector = self.create_static_detector()
+
+        data_source = DataSource.objects.get(detector=detector)
+        query_subscription = QuerySubscription.objects.get(id=data_source.source_id)
+        snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query.id)
+
+        snuba_query.query_snapshot = {
+            "type": snuba_query.type,
+            "dataset": snuba_query.dataset,
+            "query": snuba_query.query,
+            "aggregate": snuba_query.aggregate,
+        }
+        snuba_query.save()
+
+        updated_query = "transaction.duration:>200"
+        update_data = {
+            **self.valid_data,
+            "id": detector.id,
+            "projectId": self.project.id,
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.ERROR.value,
+                    "dataset": Dataset.Events.value,
+                    "query": updated_query,  # change the query
+                    "aggregate": "count()",
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
+                }
+            ],
+        }
+
+        update_validator = MetricIssueDetectorValidator(
+            instance=detector, data=update_data, context=self.context, partial=True
+        )
+        assert update_validator.is_valid(), update_validator.errors
+        update_validator.save()
+
+        snuba_query.refresh_from_db()
+        assert snuba_query.query_snapshot is not None
+        assert snuba_query.query_snapshot.get("user_updated") is True
+
+    def test_update_data_source_does_not_mark_user_updated_when_no_snapshot(self) -> None:
+        detector = self.create_static_detector()
+
+        data_source = DataSource.objects.get(detector=detector)
+        query_subscription = QuerySubscription.objects.get(id=data_source.source_id)
+        snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query.id)
+
+        snuba_query.query_snapshot = None
+        snuba_query.save()
+
+        updated_query = "transaction.duration:>200"
+        update_data = {
+            **self.valid_data,
+            "id": detector.id,
+            "projectId": self.project.id,
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.ERROR.value,
+                    "dataset": Dataset.Events.value,
+                    "query": updated_query,  # change the query
+                    "aggregate": "count()",
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
+                }
+            ],
+        }
+
+        update_validator = MetricIssueDetectorValidator(
+            instance=detector, data=update_data, context=self.context, partial=True
+        )
+        assert update_validator.is_valid(), update_validator.errors
+        update_validator.save()
+
+        snuba_query.refresh_from_db()
+        assert snuba_query.query_snapshot is None
+
     @mock.patch("sentry.seer.anomaly_detection.delete_rule.delete_rule_in_seer")
     @mock.patch(
         "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"

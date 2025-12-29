@@ -67,7 +67,7 @@ const IconContainer = styled('div')`
 const BorderOverlay = styled('div')`
   position: absolute;
   inset: 0;
-  border: 1px solid ${p => p.theme.translucentGray100};
+  border: 1px solid ${p => p.theme.colors.gray100};
   border-radius: 3px;
   pointer-events: none;
 `;

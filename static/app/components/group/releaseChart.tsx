@@ -76,7 +76,7 @@ export function getGroupReleaseChartMarkers(
       name: t('First seen'),
       value: bucketStart ?? firstSeenX,
       displayValue: firstSeenX,
-      color: theme.pink300,
+      color: theme.colors.pink400,
     });
   }
 
@@ -85,7 +85,7 @@ export function getGroupReleaseChartMarkers(
       name: t('Last seen'),
       value: lastSeenX,
       displayValue: lastSeenX,
-      color: theme.green300,
+      color: theme.colors.green400,
     });
   }
 
@@ -121,7 +121,7 @@ export function getGroupReleaseChartMarkers(
       symbolSize: 8,
       itemStyle: {
         color: marker.color,
-        borderColor: theme.background,
+        borderColor: theme.tokens.background.primary,
       },
     })),
   };
@@ -193,7 +193,7 @@ function GroupReleaseChart(props: Props) {
           showTimeInTooltip
           showMarkLineLabel
           height={42}
-          colors={environment ? undefined : [theme.purple300, theme.purple300]}
+          colors={environment ? undefined : [theme.colors.blue400, theme.colors.blue400]}
           series={series}
           grid={{
             top: 6,

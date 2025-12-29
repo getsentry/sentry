@@ -12,10 +12,17 @@ from sentry import options
 from sentry.constants import DATA_ROOT
 from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
-from sentry.grouping.variants import BaseVariant, ComponentVariant
+from sentry.grouping.variants import BaseVariant
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
+from sentry.seer.autofix.utils import (
+    AutofixStoppingPoint,
+    is_seer_seat_based_tier_enabled,
+    set_project_seer_preference,
+)
+from sentry.seer.models import SeerProjectPreference
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
@@ -31,10 +38,9 @@ FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT = 20
 # platforms getting sent to Seer during ingest.
 SEER_INELIGIBLE_EVENT_PLATFORMS = frozenset(["other"])  # We don't know what's in the event
 # Event platforms corresponding to project platforms which were backfilled before we started
-# blocking events with more than `MAX_FRAME_COUNT` frames from being sent to Seer (which we do to
-# prevent possible over-grouping). Ultimately we want a more unified solution, but for now, we're
-# just not going to apply the filter to events from these platforms.
-EVENT_PLATFORMS_BYPASSING_FRAME_COUNT_CHECK = frozenset(
+# filtering stacktraces by length. To keep new events matching with existing data, we bypass
+# length checks for these platforms (their stacktraces will be truncated instead).
+EVENT_PLATFORMS_BYPASSING_STACKTRACE_LENGTH_CHECK = frozenset(
     [
         "go",
         "javascript",
@@ -337,10 +343,10 @@ def stacktrace_exceeds_limits(
     """
     Check if a stacktrace exceeds length limits for Seer similarity analysis.
 
-    This checks both frame count and token count limits to determine if the stacktrace
-    is too long to send to Seer. Different platforms have different filtering behaviors:
-    - Platforms in EVENT_PLATFORMS_BYPASSING_FRAME_COUNT_CHECK bypass all checks
-    - Other platforms are checked against MAX_FRAME_COUNT and max_token_count limits
+    For platforms that bypass length checks (to maintain consistency with backfilled data),
+    all stacktraces pass through. For other platforms, we use a two-step approach:
+    1. First check raw string length - if shorter than token limit, pass immediately
+    2. Only if string is long enough to potentially exceed limit, run expensive token count
     """
     platform: str = event.platform or "unknown"
     shared_tags = {"referrer": referrer.value, "platform": platform}
@@ -351,23 +357,18 @@ def stacktrace_exceeds_limits(
     # is using it for grouping (in which case none of the below conditions should apply), but still
     # worth checking that we have enough information to answer the question just in case
     if (
-        # Fingerprint, checksum, fallback variants
-        not isinstance(contributing_variant, ComponentVariant)
-        # Security violations, log-message-based grouping
-        or contributing_variant.variant_name == "default"
-        # Any ComponentVariant will have this, but this reassures mypy
-        or not contributing_component
-        # Exception-message-based grouping
-        or not hasattr(contributing_component, "frame_counts")
+        # Should always have it, but this reassures mypy
+        not contributing_component
+        # Filter out events that don't use stacktrace-based grouping
+        or "stacktrace" not in contributing_variant.key
     ):
         # We don't bother to collect a metric on this outcome, because we shouldn't have called the
         # function in the first place
         return False
 
-    # Certain platforms were backfilled before we added this filter, so to keep new events matching
-    # with the existing data, we turn off the filter for them (instead their stacktraces will be
-    # truncated)
-    if platform in EVENT_PLATFORMS_BYPASSING_FRAME_COUNT_CHECK:
+    # Certain platforms were backfilled before we added length filtering, so to keep new events
+    # matching with existing data, we bypass the filter for them (their stacktraces will be truncated)
+    if platform in EVENT_PLATFORMS_BYPASSING_STACKTRACE_LENGTH_CHECK:
         metrics.incr(
             "grouping.similarity.stacktrace_length_filter",
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
@@ -376,22 +377,28 @@ def stacktrace_exceeds_limits(
         report_token_count_metric(event, variants, "bypass")
         return False
 
+    max_token_count = options.get("seer.similarity.max_token_count")
+
     stacktrace_type = "in_app" if contributing_variant.variant_name == "app" else "system"
-    key = f"{stacktrace_type}_contributing_frames"
     shared_tags["stacktrace_type"] = stacktrace_type
 
-    if contributing_component.frame_counts[key] > MAX_FRAME_COUNT:
+    # raw string length check
+    stacktrace_text = event.data.get("stacktrace_string")
+    if stacktrace_text is None:
+        stacktrace_text = get_stacktrace_string(get_grouping_info_from_variants_legacy(variants))
+
+    string_length = len(stacktrace_text)
+    if string_length < max_token_count:
         metrics.incr(
             "grouping.similarity.stacktrace_length_filter",
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={**shared_tags, "outcome": "block_frames"},
+            tags={**shared_tags, "outcome": "pass_string_length"},
         )
-        report_token_count_metric(event, variants, "block_frames")
-        return True
+        report_token_count_metric(event, variants, "pass_string_length")
+        return False
 
-    # For platforms that filter by frame count, also check token count
+    # String is long enough that it might exceed token limit - run actual token count
     token_count = get_token_count(event, variants, platform)
-    max_token_count = options.get("seer.similarity.max_token_count")
 
     if token_count > max_token_count:
         metrics.incr(
@@ -502,25 +509,59 @@ def project_is_seer_eligible(project: Project) -> bool:
 def set_default_project_autofix_automation_tuning(
     organization: Organization, project: Project
 ) -> None:
-    org_default_autofix_automation_tuning = organization.get_option(
-        "sentry:default_autofix_automation_tuning"
-    )
-    if org_default_autofix_automation_tuning and org_default_autofix_automation_tuning != "off":
+    """Called once at project creation time to set the initial autofix automation tuning."""
+    org_default = organization.get_option("sentry:default_autofix_automation_tuning")
+
+    if org_default == AutofixAutomationTuningSettings.OFF:
+        # Explicit "off" is always respected, regardless of feature flag
         project.update_option(
-            "sentry:default_autofix_automation_tuning", org_default_autofix_automation_tuning
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.OFF
         )
+    elif is_seer_seat_based_tier_enabled(organization):
+        # Feature flag ON overrides everything except explicit "off"
+        project.update_option(
+            "sentry:autofix_automation_tuning",
+            AutofixAutomationTuningSettings.MEDIUM,
+        )
+    elif org_default:
+        # Feature flag OFF, use org's explicit value
+        project.update_option("sentry:autofix_automation_tuning", org_default)
 
 
 def set_default_project_seer_scanner_automation(
     organization: Organization, project: Project
 ) -> None:
-    org_default_seer_scanner_automation = organization.get_option(
-        "sentry:default_seer_scanner_automation"
+    """Called once at project creation time to set the initial seer scanner automation."""
+    if is_seer_seat_based_tier_enabled(organization):
+        # Feature flag ON always sets scanner to True
+        project.update_option("sentry:seer_scanner_automation", True)
+    else:
+        # Feature flag OFF, use org's explicit value if set
+        org_default = organization.get_option("sentry:default_seer_scanner_automation")
+        if org_default is not None:
+            project.update_option("sentry:seer_scanner_automation", org_default)
+
+
+def set_default_project_auto_open_prs(organization: Organization, project: Project) -> None:
+    """Called once at project creation time to set the initial auto open PRs."""
+    if not is_seer_seat_based_tier_enabled(organization):
+        return
+
+    stopping_point = AutofixStoppingPoint.CODE_CHANGES
+    if organization.get_option("sentry:auto_open_prs"):
+        stopping_point = AutofixStoppingPoint.OPEN_PR
+
+    # We need to make an API call to Seer to set this preference
+    preference = SeerProjectPreference(
+        organization_id=organization.id,
+        project_id=project.id,
+        repositories=[],
+        automated_run_stopping_point=stopping_point,
     )
-    if org_default_seer_scanner_automation:
-        project.update_option(
-            "sentry:default_seer_scanner_automation", org_default_seer_scanner_automation
-        )
+    try:
+        set_project_seer_preference(preference)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
 
 
 def report_token_count_metric(

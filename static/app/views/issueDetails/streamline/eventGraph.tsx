@@ -35,7 +35,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -356,8 +355,8 @@ export function EventGraph({
 
   const series = useMemo((): BarChartSeries[] => {
     const seriesData: BarChartSeries[] = [];
-    const translucentGray300 = Color(theme.gray300).alpha(0.5).string();
-    const lightGray300 = Color(theme.gray300).alpha(0.2).string();
+    const translucentGray300 = Color(theme.colors.gray400).alpha(0.5).string();
+    const lightGray300 = Color(theme.colors.gray400).alpha(0.2).string();
 
     if (visibleSeries === EventGraphSeries.USER) {
       if (isUnfilteredStatsEnabled) {
@@ -365,7 +364,7 @@ export function EventGraph({
           seriesName: t('Total users'),
           itemStyle: {
             borderRadius: [2, 2, 0, 0],
-            borderColor: theme.translucentGray200,
+            borderColor: theme.colors.gray200,
             color: lightGray300,
           },
           barGap: '-100%', // Makes bars overlap completely
@@ -378,8 +377,8 @@ export function EventGraph({
         seriesName: isUnfilteredStatsEnabled ? t('Matching users') : t('Users'),
         itemStyle: {
           borderRadius: [2, 2, 0, 0],
-          borderColor: theme.translucentGray200,
-          color: isUnfilteredStatsEnabled ? theme.purple300 : translucentGray300,
+          borderColor: theme.colors.gray200,
+          color: isUnfilteredStatsEnabled ? theme.colors.blue400 : translucentGray300,
         },
         data: userSeries,
         animation: false,
@@ -391,7 +390,7 @@ export function EventGraph({
           seriesName: t('Total events'),
           itemStyle: {
             borderRadius: [2, 2, 0, 0],
-            borderColor: theme.translucentGray200,
+            borderColor: theme.colors.gray200,
             color: lightGray300,
           },
           barGap: '-100%', // Makes bars overlap completely
@@ -404,8 +403,8 @@ export function EventGraph({
         seriesName: isUnfilteredStatsEnabled ? t('Matching events') : t('Events'),
         itemStyle: {
           borderRadius: [2, 2, 0, 0],
-          borderColor: theme.translucentGray200,
-          color: isUnfilteredStatsEnabled ? theme.purple300 : translucentGray300,
+          borderColor: theme.colors.gray200,
+          color: isUnfilteredStatsEnabled ? theme.colors.blue400 : translucentGray300,
         },
         data: eventSeries,
         animation: false,
@@ -452,7 +451,7 @@ export function EventGraph({
     data: flagSeries.type === 'line' ? ['Feature Flags', 'Releases'] : ['Releases'],
     selected: legendSelected,
     zlevel: 10,
-    inactiveColor: theme.isChonk ? theme.tokens.content.muted : theme.gray200,
+    inactiveColor: theme.tokens.content.muted,
   });
 
   const onLegendSelectChanged = useMemo(
@@ -480,16 +479,8 @@ export function EventGraph({
       <Grid columns="auto 1fr" {...styleProps}>
         {showSummary ? (
           <SummaryContainer>
-            <GraphButton
-              disabled
-              isActive={visibleSeries === EventGraphSeries.EVENT}
-              label={t('Events')}
-            />
-            <GraphButton
-              disabled
-              isActive={visibleSeries === EventGraphSeries.USER}
-              label={t('Users')}
-            />
+            <GraphButton disabled label={t('Events')} />
+            <GraphButton disabled label={t('Users')} />
           </SummaryContainer>
         ) : (
           <div />
@@ -507,14 +498,12 @@ export function EventGraph({
         <SummaryContainer>
           <GraphButton
             onClick={() => setVisibleSeries(EventGraphSeries.EVENT)}
-            isActive={visibleSeries === EventGraphSeries.EVENT}
             disabled={visibleSeries === EventGraphSeries.EVENT}
             label={tn('Event', 'Events', eventCount)}
             count={String(eventCount)}
           />
           <GraphButton
             onClick={() => setVisibleSeries(EventGraphSeries.USER)}
-            isActive={visibleSeries === EventGraphSeries.USER}
             disabled={visibleSeries === EventGraphSeries.USER}
             label={tn('User', 'Users', userCount)}
             count={String(userCount)}
@@ -592,24 +581,17 @@ export function EventGraph({
 }
 
 function GraphButton({
-  isActive,
   label,
   count,
   ...props
 }: {
-  isActive: boolean;
   label: string;
   count?: string;
 } & Partial<ButtonProps>) {
-  const theme = useTheme();
-  const textVariant = theme.isChonk ? undefined : props.disabled ? 'accent' : 'muted';
+  const textVariant = undefined;
 
   return (
-    <CalloutButton
-      isActive={isActive}
-      aria-label={`${t('Toggle graph series')} - ${label}`}
-      {...props}
-    >
+    <CalloutButton aria-label={`${t('Toggle graph series')} - ${label}`} {...props}>
       <Flex direction="column" gap="xs">
         <Text size="sm" variant={textVariant}>
           {label}
@@ -623,39 +605,15 @@ function GraphButton({
 }
 
 function SummaryContainer(props: FlexProps) {
-  const theme = useTheme();
   return (
-    <Flex
-      padding="lg xs lg lg"
-      direction="column"
-      gap={theme.isChonk ? 'sm' : 'xs'}
-      radius="md"
-      {...props}
-    />
+    <Flex padding="lg xs lg lg" direction="column" gap="sm" radius="md" {...props} />
   );
 }
 
-const CalloutButton = withChonk(
-  styled(Button)<{isActive: boolean}>`
-    cursor: ${p => (p.isActive ? 'initial' : 'pointer')};
-    border: 1px solid ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
-    background: ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
-    padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
-    box-shadow: none;
-    height: unset;
-    overflow: hidden;
-    &:disabled {
-      opacity: 1;
-    }
-    &:hover {
-      border: 1px solid ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
-    }
-  `,
-  styled(Button)<never>`
-    height: unset;
-    padding: ${space(0.5)} ${space(1.5)};
-  `
-);
+const CalloutButton = styled(Button)`
+  height: unset;
+  padding: ${space(0.5)} ${space(1.5)};
+`;
 
 const ChartContainer = styled('div')`
   position: relative;

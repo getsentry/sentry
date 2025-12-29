@@ -37,7 +37,7 @@ def fetch_issue_summary(group: Group) -> dict[str, Any] | None:
     from sentry import quotas
     from sentry.constants import DataCategory
 
-    has_budget: bool = quotas.backend.has_available_reserved_budget(
+    has_budget: bool = quotas.backend.check_seer_quota(
         org_id=group.organization.id, data_category=DataCategory.SEER_SCANNER
     )
     if not has_budget:

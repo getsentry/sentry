@@ -8,7 +8,10 @@ resources:
 
 import * as Storybook from 'sentry/stories';
 
-import {SlideOverPanelPlayground} from 'sentry/stories/playground/slideOverPanel';
+import {
+  SlideOverPanelPlayground,
+  SlideOverPanelSkeletonPlayground,
+} from 'sentry/stories/playground/slideOverPanel';
 
 import SlideOverDocumentation from '!!type-loader!@sentry/scraps/slideOverPanel';
 
@@ -25,14 +28,69 @@ The `SlideOverPanel` component is a panel that can appear on the right, left, or
 ## Basic Usage
 
 ```jsx
-<Button onClick={() => setIsPanelOpen(true)}>Open Panel</Button>
+<Button onClick={() => setIsPanelOpen(true)}>Open Panel</Button>;
 
-<SlideOverPanel collapsed={!isPanelOpen} slidePosition="right">
-  <Container border="primary" height="100%" padding="md">
-    <Button onClick={() => setIsPanelOpen(false)}>Close Panel</Button>
-  </Container>
-</SlideOverPanel>
+{
+  isPanelOpen && (
+    <SlideOverPanel position="right">
+      <Container border="primary" height="100%" padding="md">
+        <Button onClick={() => setIsPanelOpen(false)}>Close Panel</Button>
+      </Container>
+    </SlideOverPanel>
+  );
+}
 ```
 
-> [!NOTE]
-> To enable exit animations, you'll need to wrap `<SlideOverPanel />` in an `<AnimatePresence />` component, and render the panel conditionally (e.g., `{isPanelOpen &&}`) instead of using the `collapsed` prop.
+## Skeleton UI
+
+`SlideOverPanel` defers rendering its contents. When the panel is rendered, it will open immediately, and its contents will render in a subsequent pass. This means the panel can respond immediately to user input even if the contents of the panel are expensive to render. This is much better UX, and improves INP.
+
+In the example below, you can see that the panel contents take a very long time to render, but the panel opens right away, and can be closed while the content is still rendering.
+
+<Storybook.Demo>
+  <SlideOverPanelSkeletonPlayground />
+</Storybook.Demo>
+
+<br />
+
+By default, the panel is empty while the contents render. If the contents are very expensive to render, we recommend providing a skeleton UI.
+
+To enable a loading skeleton, pass a render prop as the children to `SlideOverPanel`, and conditionally render a skeleton based on the `isOpening` prop.
+
+```jsx
+<Button onClick={() => setIsPanelOpen(true)}>Open Panel</Button>
+
+{isPanelOpen && (
+  <SlideOverPanel position="right">
+    {(options: {isOpening: boolean}) => {
+      return options.isOpening ? (
+        <SkeletonPanelContents onClick={closePanel} />
+      ) : (
+        <PanelContents onClick={closePanel} />
+      );
+    }}
+  </SlideOverPanel>
+)}
+```
+
+## Animating Panel Close
+
+Generally, we recommend not animating the panel on close, and simply removing it from the UI. In cases where you need to animate closing it (e.g., if it's coordinated with another animation), please wrap the panel in `<AnimatePresence>`.
+
+```jsx
+<Button onClick={() => setIsPanelOpen(true)}>Open Panel</Button>
+
+<AnimatePresence>
+  {isPanelOpen && (
+    <SlideOverPanel position="right">
+      {(options: {isOpening: boolean}) => {
+        return options.isOpening ? (
+          <SkeletonPanelContents onClick={closePanel} />
+        ) : (
+          <PanelContents onClick={closePanel} />
+        );
+      }}
+    </SlideOverPanel>
+  )}
+</AnimatePresence>
+```

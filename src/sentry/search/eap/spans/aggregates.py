@@ -180,7 +180,7 @@ def resolve_bounded_sample(args: ResolvedArguments) -> tuple[AttributeKey, Trace
     return (attribute, filter)
 
 
-SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
+SPAN_AGGREGATE_DEFINITIONS = {
     "count_op": ConditionalAggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
         default_search_type="integer",
@@ -455,9 +455,6 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
         processor=lambda x: x > 0,
         extrapolation_mode_override=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
     ),
-}
-
-SPAN_AGGREGATE_DEFINITIONS = {
     "sum": AggregateDefinition(
         internal_function=Function.FUNCTION_SUM,
         default_search_type="duration",

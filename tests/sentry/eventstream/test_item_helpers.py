@@ -22,7 +22,7 @@ class ItemHelpersTest(TestCase):
         )
         return group_event
 
-    def test_encode_attributes_basic(self):
+    def test_encode_attributes_basic(self) -> None:
         event_data = {
             "string_field": "test",
             "int_field": 123,
@@ -42,7 +42,7 @@ class ItemHelpersTest(TestCase):
         assert result["float_field"] == AnyValue(double_value=45.67)
         assert result["bool_field"] == AnyValue(bool_value=True)
 
-    def test_encode_attributes_with_ignore_fields(self):
+    def test_encode_attributes_with_ignore_fields(self) -> None:
         event_data = {
             "keep_field": "value1",
             "ignore_field": "value2",
@@ -60,7 +60,7 @@ class ItemHelpersTest(TestCase):
         assert "another_keep" in result
         assert "ignore_field" not in result
 
-    def test_encode_attributes_with_multiple_ignore_fields(self):
+    def test_encode_attributes_with_multiple_ignore_fields(self) -> None:
         event_data = {
             "field1": "value1",
             "field2": "value2",
@@ -78,7 +78,7 @@ class ItemHelpersTest(TestCase):
         assert "field2" in result
         assert "field3" not in result
 
-    def test_encode_attributes_with_group_id(self):
+    def test_encode_attributes_with_group_id(self) -> None:
         event_data = {"field": "value", "tags": []}
 
         event = self.create_group_event(event_data)
@@ -87,7 +87,7 @@ class ItemHelpersTest(TestCase):
         assert result["group_id"] == AnyValue(int_value=event.group.id)
         assert result["field"] == AnyValue(string_value="value")
 
-    def test_encode_attributes_without_group_id(self):
+    def test_encode_attributes_without_group_id(self) -> None:
         event_data = {"field": "value", "tags": []}
 
         event = Event(
@@ -101,7 +101,7 @@ class ItemHelpersTest(TestCase):
         assert "group_id" not in result
         assert result["field"] == AnyValue(string_value="value")
 
-    def test_encode_attributes_with_tags(self):
+    def test_encode_attributes_with_tags(self) -> None:
         event_data = {
             "field": "value",
             "tags": [
@@ -122,8 +122,17 @@ class ItemHelpersTest(TestCase):
         assert result["tags[environment]"] == AnyValue(string_value="production")
         assert result["tags[release]"] == AnyValue(string_value="1.0.0")
         assert result["tags[level]"] == AnyValue(string_value="error")
+        assert result["tag_keys"] == AnyValue(
+            array_value=ArrayValue(
+                values=[
+                    AnyValue(string_value="tags[environment]"),
+                    AnyValue(string_value="tags[level]"),
+                    AnyValue(string_value="tags[release]"),
+                ]
+            )
+        )
 
-    def test_encode_attributes_with_empty_tags(self):
+    def test_encode_attributes_with_empty_tags(self) -> None:
         event_data = {"field": "value", "tags": []}
 
         event = Event(
@@ -137,8 +146,9 @@ class ItemHelpersTest(TestCase):
         assert result["field"] == AnyValue(string_value="value")
         # No tags[] keys should be present
         assert not any(key.startswith("tags[") for key in result.keys())
+        assert result["tag_keys"] == AnyValue(array_value=ArrayValue(values=[]))
 
-    def test_encode_attributes_with_integer_tag_values(self):
+    def test_encode_attributes_with_integer_tag_values(self) -> None:
         event_data = {
             "field": "value",
             "tags": [
@@ -154,7 +164,7 @@ class ItemHelpersTest(TestCase):
         assert result["tags[string_tag]"] == AnyValue(string_value="value")
         assert result["group_id"] == AnyValue(int_value=event.group.id)
 
-    def test_encode_attributes_empty_event_data(self):
+    def test_encode_attributes_empty_event_data(self) -> None:
         event_data: dict[str, Any] = {"tags": []}
 
         event = Event(
@@ -166,10 +176,10 @@ class ItemHelpersTest(TestCase):
 
         # "tags" field itself gets encoded as a non-scalar value in the loop
         # Then tags are processed separately, but empty list adds no tag attributes
-        assert len(result) == 1
+        assert len(result) == 2
         assert result["tags"] == AnyValue(array_value=ArrayValue(values=[]))
 
-    def test_encode_attributes_with_complex_types(self):
+    def test_encode_attributes_with_complex_types(self) -> None:
         event_data = {
             "list_field": [1, 2, 3],
             "dict_field": {"nested": "value"},
@@ -201,7 +211,63 @@ class ItemHelpersTest(TestCase):
             )
         )
 
-    def test_serialize_event_data_as_item_basic(self):
+    def test_encode_attributes_with_none_tags(self) -> None:
+        """Test that encode_attributes handles None tags gracefully."""
+        event_data = {
+            "field": "value",
+            "tags": None,
+        }
+
+        event = Event(
+            event_id="a" * 32,
+            data=event_data,
+            project_id=self.project.id,
+        )
+
+        result = encode_attributes(event, event_data)
+
+        assert result["field"] == AnyValue(string_value="value")
+        # No tags[] keys should be present when tags is None
+        assert not any(key.startswith("tags[") for key in result.keys())
+        # tag_keys should still be present with an empty array
+        assert result["tag_keys"] == AnyValue(array_value=ArrayValue(values=[]))
+
+    def test_encode_attributes_with_none_elements_in_tags(self) -> None:
+        """Test that encode_attributes handles tags list containing None values."""
+        event_data = {
+            "field": "value",
+            "tags": [
+                ("tag1", "value1"),
+                None,
+                ("tag2", None),
+                ("tag3", "value3"),
+            ],
+        }
+
+        event = Event(
+            event_id="a" * 32,
+            data=event_data,
+            project_id=self.project.id,
+        )
+
+        result = encode_attributes(event, event_data)
+
+        assert result["field"] == AnyValue(string_value="value")
+        assert result["tags[tag1]"] == AnyValue(string_value="value1")
+        assert result["tags[tag3]"] == AnyValue(string_value="value3")
+        # tag2 has None value, so it should be skipped
+        assert "tags[tag2]" not in result
+
+        assert result["tag_keys"] == AnyValue(
+            array_value=ArrayValue(
+                values=[
+                    AnyValue(string_value="tags[tag1]"),
+                    AnyValue(string_value="tags[tag3]"),
+                ]
+            )
+        )
+
+    def test_serialize_event_data_as_item_basic(self) -> None:
         project = self.create_project()
 
         event_data = {
@@ -226,7 +292,7 @@ class ItemHelpersTest(TestCase):
         # Check that received field is not set (protobuf optional field)
         assert not result.HasField("received")
 
-    def test_serialize_event_data_as_item_with_received(self):
+    def test_serialize_event_data_as_item_with_received(self) -> None:
         project = self.create_project()
 
         event_data = {
@@ -247,7 +313,7 @@ class ItemHelpersTest(TestCase):
         assert result.HasField("received")
         assert result.received.seconds == 1234567900
 
-    def test_serialize_event_data_as_item_with_custom_retention_days(self):
+    def test_serialize_event_data_as_item_with_custom_retention_days(self) -> None:
         project = self.create_project()
 
         event_data = {
@@ -268,7 +334,7 @@ class ItemHelpersTest(TestCase):
 
         assert result.retention_days == 30
 
-    def test_serialize_event_data_as_item_ignores_specified_fields(self):
+    def test_serialize_event_data_as_item_ignores_specified_fields(self) -> None:
         project = self.create_project()
 
         event_data = {
@@ -295,7 +361,7 @@ class ItemHelpersTest(TestCase):
         # tags should be encoded with tags[] prefix
         assert result.attributes["tags[level]"] == AnyValue(string_value="info")
 
-    def test_serialize_event_data_as_item_with_multiple_attributes(self):
+    def test_serialize_event_data_as_item_with_multiple_attributes(self) -> None:
         project = self.create_project()
 
         event_data = {

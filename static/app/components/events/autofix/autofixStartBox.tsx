@@ -111,7 +111,7 @@ export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
               }}
             />
             <StartTextRow>
-              <IconSeer variant="waiting" color="textColor" size="xl" />
+              <IconSeer animation="waiting" variant="primary" size="xl" />
             </StartTextRow>
           </AutofixStartText>
           <InputWrapper onSubmit={handleSubmit}>
@@ -187,9 +187,13 @@ const ScaleContainer = styled('div')`
 const Container = styled('div')`
   position: relative;
   width: 100%;
-  border-radius: ${p => p.theme.borderRadius};
-  background: ${p => p.theme.background}
-    linear-gradient(135deg, ${p => p.theme.pink400}08, ${p => p.theme.pink400}20);
+  border-radius: ${p => p.theme.radius.md};
+  background: ${p => p.theme.tokens.background.primary}
+    linear-gradient(
+      135deg,
+      ${p => p.theme.colors.pink500}08,
+      ${p => p.theme.colors.pink500}20
+    );
   overflow: visible;
   padding: ${space(0.5)};
   border: 1px solid ${p => p.theme.border};
@@ -234,7 +238,7 @@ const InputWrapper = styled('form')`
 
 const StyledInput = styled(TextArea)`
   resize: none;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 
   border-color: ${p => p.theme.innerBorder};
   &:hover {
@@ -248,6 +252,6 @@ const StyledButton = styled(Button)`
 
 const DropdownTrigger = styled(Button)`
   box-shadow: none;
-  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+  border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
   border-left: none;
 `;

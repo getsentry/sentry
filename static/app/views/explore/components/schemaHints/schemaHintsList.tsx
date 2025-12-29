@@ -116,6 +116,7 @@ const FILTER_KEY_SECTIONS: Record<SchemaHintsSources, FilterKeySection[]> = {
   [SchemaHintsSources.EXPLORE]: SPANS_FILTER_KEY_SECTIONS,
   [SchemaHintsSources.LOGS]: LOGS_FILTER_KEY_SECTIONS,
   [SchemaHintsSources.AI_GENERATIONS]: SPANS_FILTER_KEY_SECTIONS,
+  [SchemaHintsSources.CONVERSATIONS]: SPANS_FILTER_KEY_SECTIONS,
 };
 
 function getFilterKeySections(source: SchemaHintsSources) {
@@ -511,7 +512,7 @@ const HintTextContainer = styled('div')`
 
 const HintName = styled('span')`
   font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const HintOperator = styled('span')`
@@ -521,5 +522,5 @@ const HintOperator = styled('span')`
 
 const HintValue = styled('span')`
   font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.purple400};
+  color: ${p => p.theme.colors.blue500};
 `;

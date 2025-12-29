@@ -188,7 +188,7 @@ function UsageLog({location, subscription}: Props) {
                     colorConfig={{
                       icon: index === 0 ? theme.active : theme.gray300,
                       iconBorder: index === 0 ? theme.active : theme.gray300,
-                      title: theme.textColor,
+                      title: theme.tokens.content.primary,
                     }}
                     icon={<IconCircleFill />}
                     title={formatEntryTitle(entry.event)}

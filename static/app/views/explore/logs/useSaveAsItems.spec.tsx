@@ -4,7 +4,7 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as modal from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -104,7 +104,7 @@ describe('useSaveAsItems', () => {
   });
 
   it('should open save query modal when save as new query is clicked', () => {
-    const {result} = renderHook(
+    const {result} = renderHookWithProviders(
       () =>
         useSaveAsItems({
           visualizes: [new VisualizeFunction('count()')],
@@ -114,7 +114,7 @@ describe('useSaveAsItems', () => {
           search: new MutableSearch('message:"test error"'),
           sortBys: [{field: 'timestamp', kind: 'desc'}],
         }),
-      {wrapper: createWrapper()}
+      {additionalWrapper: createWrapper()}
     );
 
     const saveAsItems = result.current;
@@ -162,7 +162,7 @@ describe('useSaveAsItems', () => {
       })
     );
 
-    const {result} = renderHook(
+    const {result} = renderHookWithProviders(
       () =>
         useSaveAsItems({
           visualizes: [new VisualizeFunction('count()')],
@@ -172,7 +172,7 @@ describe('useSaveAsItems', () => {
           search: new MutableSearch('message:"test"'),
           sortBys: [{field: 'timestamp', kind: 'desc'}],
         }),
-      {wrapper: createWrapper()}
+      {additionalWrapper: createWrapper()}
     );
 
     await waitFor(() => {
@@ -194,7 +194,7 @@ describe('useSaveAsItems', () => {
       })
     );
 
-    const {result} = renderHook(
+    const {result} = renderHookWithProviders(
       () =>
         useSaveAsItems({
           visualizes: [new VisualizeFunction('count()')],
@@ -204,7 +204,7 @@ describe('useSaveAsItems', () => {
           search: new MutableSearch('message:"test"'),
           sortBys: [{field: 'timestamp', kind: 'desc'}],
         }),
-      {wrapper: createWrapper()}
+      {additionalWrapper: createWrapper()}
     );
 
     const saveAsItems = result.current;
@@ -214,17 +214,19 @@ describe('useSaveAsItems', () => {
   });
 
   it('should call saveQuery with correct parameters when modal saves', async () => {
-    const {result} = renderHook(
+    const {result} = renderHookWithProviders(
       () =>
         useSaveAsItems({
           visualizes: [new VisualizeFunction('count()')],
           groupBys: ['message.template'],
+          // Note: useSaveQuery uses the value returned by useChartInterval()
+          // not the interval passed in as options.
           interval: '5m',
           mode: Mode.AGGREGATE,
           search: new MutableSearch('message:"test error"'),
           sortBys: [{field: 'timestamp', kind: 'desc'}],
         }),
-      {wrapper: createWrapper()}
+      {additionalWrapper: createWrapper()}
     );
 
     const saveAsItems = result.current;
@@ -257,7 +259,7 @@ describe('useSaveAsItems', () => {
             end: '2024-01-01T01:00:00.000Z',
             range: '1h',
             environment: ['production'],
-            interval: '5m',
+            interval: '1m',
             query: [
               {
                 fields: ['timestamp', 'message', 'user.email'],

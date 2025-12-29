@@ -40,10 +40,7 @@ import {usePersistedLogsPageParams} from 'sentry/views/explore/contexts/logs/log
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useLogAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
-import {
-  ChartIntervalUnspecifiedStrategy,
-  useChartInterval,
-} from 'sentry/views/explore/hooks/useChartInterval';
+import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
   HiddenColumnEditorLogFields,
   HiddenLogSearchFields,
@@ -116,9 +113,7 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
 
   const columnEditorButtonRef = useRef<HTMLButtonElement>(null);
   // always use the smallest interval possible (the most bars)
-  const [interval] = useChartInterval({
-    unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
-  });
+  const [interval] = useChartInterval();
   const visualizes = useQueryParamsVisualizes();
 
   const [sidebarOpen, setSidebarOpen] = useState(mode === Mode.AGGREGATE);
@@ -367,7 +362,7 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
           </LogsGraphContainer>
           <LogsTableActionsContainer>
             <Tabs value={tableTab} onChange={setTableTab} size="sm">
-              <TabList hideBorder variant="floating">
+              <TabList variant="floating">
                 <TabList.Item key="logs">{t('Logs')}</TabList.Item>
                 <TabList.Item key="aggregates">{t('Aggregates')}</TabList.Item>
               </TabList>

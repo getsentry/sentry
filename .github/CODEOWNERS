@@ -153,7 +153,6 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 
 ## Issue Detection Lower Priority
 # Located here so they do not take precedence over rules below.
-/src/sentry/middleware/reporting_endpoint.py             @getsentry/issue-detection-backend
 /src/sentry/tasks/post_process.py                        @getsentry/issue-detection-backend
 ## Issue Detection Lower Priority
 
@@ -315,6 +314,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 ## Flags
 /src/sentry/flags/                                              @getsentry/replay-backend
 /tests/sentry/flags/                                            @getsentry/replay-backend
+/static/app/components/featureFlags/                            @getsentry/replay-frontend
 /static/app/components/events/featureFlags/                     @getsentry/replay-frontend
 /static/app/views/issueDetails/groupDistributionsDrawer.tsx     @getsentry/replay-frontend
 /static/app/views/issueDetails/groupFeatureFlags/               @getsentry/replay-frontend
@@ -397,6 +397,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/notifications/                                           @getsentry/alerts-notifications @getsentry/ecosystem
 /src/sentry/notifications/models/                                    @getsentry/ecosystem
 /src/sentry/notifications/notifications/                             @getsentry/ecosystem
+/src/sentry/notifications/platform/                                  @getsentry/ecosystem
 /src/sentry/pipeline/                                                @getsentry/ecosystem
 /src/sentry/plugins/                                                 @getsentry/ecosystem
 /src/sentry/shared_integrations/                                     @getsentry/ecosystem
@@ -519,7 +520,8 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/app/views/settings/dynamicSampling/                                      @getsentry/telemetry-experience
 /static/app/views/onboarding*                                                    @getsentry/telemetry-experience
 /static/app/views/projectInstall/                                                @getsentry/telemetry-experience
-/static/app/views/insights/agents/                                               @getsentry/telemetry-experience
+/static/app/views/insights/pages/agents/                                         @getsentry/telemetry-experience
+/static/app/views/insights/pages/mcp/                                            @getsentry/telemetry-experience
 /static/app/views/insights/pages/platform/                                       @getsentry/telemetry-experience
 ## End of Telemetry Experience
 
@@ -527,6 +529,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/app/components/events/autofix/                      @getsentry/machine-learning-ai
 /static/app/views/seerExplorer/                             @getsentry/machine-learning-ai
 /src/sentry/seer/                                           @getsentry/machine-learning-ai
+/tests/sentry/seer/                                         @getsentry/machine-learning-ai
 ## End of ML & AI
 
 ## Issues
@@ -579,7 +582,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/tasks/merge.py                                  @getsentry/issue-detection-backend
 /src/sentry/tasks/unmerge.py                                @getsentry/issue-detection-backend
 /src/sentry/tasks/weekly_escalating_forecast.py             @getsentry/issue-detection-backend
-/src/sentry/tasks/llm_issue_detection.py                    @getsentry/issue-detection-backend
+/src/sentry/tasks/llm_issue_detection/                      @getsentry/issue-detection-backend
 /static/app/components/events/contexts/                     @getsentry/issue-workflow
 /static/app/components/events/eventTags/                    @getsentry/issue-workflow
 /static/app/components/events/highlights/                   @getsentry/issue-workflow
@@ -654,6 +657,9 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/integrations/github/tasks/pr_comment.py                     @getsentry/ecosystem
 /src/sentry/data_secrecy/                                               @getsentry/ecosystem
 /tests/sentry/data_secrecy/                                             @getsentry/ecosystem
+/static/app/views/settings/organizationDataForwarding/                  @getsentry/ecosystem
+/static/app/views/settings/organizationIntegrations/                    @getsentry/ecosystem
+/static/app/views/settings/organizationDeveloperSettings/               @getsentry/ecosystem
 ## End of Ecosystem
 
 
@@ -692,6 +698,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/app/stories/                                  @getsentry/design-engineering
 /static/.cursor/BUGBOT.md                             @getsentry/design-engineering
 /static/CLAUDE.md                                     @getsentry/design-engineering
+/static/AGENTS.md                                     @getsentry/design-engineering
 /scripts/analyze-styled.ts                            @getsentry/design-engineering
 ## End of Frontend Platform
 
@@ -703,6 +710,12 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/app/views/prevent/                                @getsentry/prevent
 /static/app/views/nav/secondary/sections/prevent/         @getsentry/prevent
 # End of Prevent
+
+# Coding Workflows
+/src/sentry/integrations/api/endpoints/organization_repository_settings.py   @getsentry/coding-workflows
+/src/sentry/seer/code_review/                                                @getsentry/coding-workflows
+/tests/sentry/seer/code_review/                                              @getsentry/coding-workflows
+# End of Coding Workflows
 
 # Conduit
 /src/sentry/conduit/                                  @getsentry/sre-infrastructure-engineering

@@ -209,7 +209,7 @@ function SidebarChartsContainer({
         interval: 0.2,
         axisLabel: {
           formatter: (value: number) => `${formatFloat(value, 1)}`,
-          color: theme.chartLabel,
+          color: theme.tokens.content.muted,
         },
         ...axisLineConfig,
       },
@@ -221,7 +221,7 @@ function SidebarChartsContainer({
         max: 1.0,
         axisLabel: {
           formatter: (value: number) => formatPercentage(value, 0),
-          color: theme.chartLabel,
+          color: theme.tokens.content.muted,
         },
         ...axisLineConfig,
       },

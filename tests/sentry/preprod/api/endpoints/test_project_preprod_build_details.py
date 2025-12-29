@@ -1,6 +1,5 @@
 from django.urls import reverse
 
-from sentry.models.commitcomparison import CommitComparison
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.testutils.cases import APITestCase
 
@@ -18,8 +17,8 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
 
         self.file = self.create_file(name="test_artifact.apk", type="application/octet-stream")
 
-        commit_comparison = CommitComparison.objects.create(
-            organization_id=self.org.id,
+        commit_comparison = self.create_commit_comparison(
+            organization=self.org,
             head_sha="1234567890098765432112345678900987654321",
             base_sha="9876543210012345678998765432100123456789",
             provider="github",
@@ -30,10 +29,9 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
             pr_number=123,
         )
 
-        self.preprod_artifact = PreprodArtifact.objects.create(
+        self.preprod_artifact = self.create_preprod_artifact(
             project=self.project,
             file_id=self.file.id,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
             artifact_type=PreprodArtifact.ArtifactType.APK,
             app_id="com.example.app",
             app_name="TestApp",
@@ -130,9 +128,9 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
 
     def test_size_info_pending(self) -> None:
         """Test that pending size analysis returns SizeInfoPending."""
-        PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=self.preprod_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        self.create_preprod_artifact_size_metrics(
+            self.preprod_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
         )
 
@@ -150,9 +148,9 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
 
     def test_size_info_processing(self) -> None:
         """Test that processing size analysis returns SizeInfoProcessing."""
-        PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=self.preprod_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        self.create_preprod_artifact_size_metrics(
+            self.preprod_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING,
         )
 
@@ -173,9 +171,9 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
 
     def test_size_info_completed(self) -> None:
         """Test that completed size analysis returns SizeInfoComplete with data."""
-        PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=self.preprod_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        self.create_preprod_artifact_size_metrics(
+            self.preprod_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             max_install_size=1024000,
             max_download_size=512000,
@@ -193,11 +191,64 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
         assert resp_data["size_info"]["install_size_bytes"] == 1024000
         assert resp_data["size_info"]["download_size_bytes"] == 512000
 
+    def test_size_info_completed_includes_base_metrics(self) -> None:
+        """Test that completed size analysis includes base_size_metrics when base artifact exists."""
+        assert self.preprod_artifact.commit_comparison is not None
+        base_commit_comparison = self.create_commit_comparison(
+            organization=self.org,
+            head_sha=self.preprod_artifact.commit_comparison.base_sha,
+            base_sha="0000000000000000000000000000000000000000",
+        )
+        base_file = self.create_file(name="base_artifact.apk", type="application/octet-stream")
+        base_artifact = self.create_preprod_artifact(
+            project=self.project,
+            file_id=base_file.id,
+            artifact_type=self.preprod_artifact.artifact_type,
+            app_id=self.preprod_artifact.app_id,
+            app_name=self.preprod_artifact.app_name,
+            build_version="0.9.0",
+            build_number=41,
+            commit_comparison=base_commit_comparison,
+        )
+
+        self.create_preprod_artifact_size_metrics(
+            self.preprod_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            max_install_size=1536000,
+            max_download_size=768000,
+        )
+        self.create_preprod_artifact_size_metrics(
+            base_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            max_install_size=1024000,
+            max_download_size=512000,
+        )
+
+        url = self._get_url()
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["size_info"] is not None
+        assert resp_data["size_info"]["state"] == 2
+        assert len(resp_data["size_info"]["base_size_metrics"]) == 1
+        base_metric = resp_data["size_info"]["base_size_metrics"][0]
+        assert (
+            base_metric["metrics_artifact_type"]
+            == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+        )
+        assert base_metric["install_size_bytes"] == 1024000
+        assert base_metric["download_size_bytes"] == 512000
+
     def test_size_info_failed(self) -> None:
         """Test that failed size analysis returns SizeInfoFailed."""
-        PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=self.preprod_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        self.create_preprod_artifact_size_metrics(
+            self.preprod_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED,
             error_code=1,
             error_message="Analysis failed due to invalid artifact",
@@ -275,3 +326,181 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
         resp_data = response.json()
         assert resp_data["app_info"]["android_app_info"]["has_proguard_mapping"] is False
         assert resp_data["app_info"]["apple_app_info"] is None
+
+    def test_posted_status_checks_success(self) -> None:
+        """Test that successfully posted status checks are returned."""
+        self.preprod_artifact.extras = {
+            "posted_status_checks": {"size": {"success": True, "check_id": "12345"}}
+        }
+        self.preprod_artifact.save()
+
+        url = self._get_url()
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["posted_status_checks"] is not None
+        assert resp_data["posted_status_checks"]["size"]["success"] is True
+        assert resp_data["posted_status_checks"]["size"]["check_id"] == "12345"
+
+    def test_posted_status_checks_failure(self) -> None:
+        """Test that failed status check posts are returned."""
+        self.preprod_artifact.extras = {
+            "posted_status_checks": {"size": {"success": False, "error_type": "api_error"}}
+        }
+        self.preprod_artifact.save()
+
+        url = self._get_url()
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["posted_status_checks"] is not None
+        assert resp_data["posted_status_checks"]["size"]["success"] is False
+        assert resp_data["posted_status_checks"]["size"]["error_type"] == "api_error"
+
+    def test_posted_status_checks_none_when_not_present(self) -> None:
+        """Test that posted_status_checks is None when not in extras."""
+        url = self._get_url()
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["posted_status_checks"] is None
+
+    def test_posted_status_checks_success_without_check_id(self) -> None:
+        """Test that successful status checks without check_id are still exposed."""
+        self.preprod_artifact.extras = {"posted_status_checks": {"size": {"success": True}}}
+        self.preprod_artifact.save()
+
+        url = self._get_url()
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["posted_status_checks"] is not None
+        assert resp_data["posted_status_checks"]["size"]["success"] is True
+        assert resp_data["posted_status_checks"]["size"]["check_id"] is None
+
+    def test_posted_status_checks_with_corrupted_checks_structure(self) -> None:
+        """Test that corrupted posted_status_checks structure doesn't crash."""
+        self.preprod_artifact.extras = {"posted_status_checks": "not_a_dict"}
+        self.preprod_artifact.save()
+
+        url = self._get_url()
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["posted_status_checks"] is None
+
+    def test_posted_status_checks_with_corrupted_size_structure(self) -> None:
+        """Test that corrupted size check structure doesn't crash."""
+        self.preprod_artifact.extras = {"posted_status_checks": {"size": "not_a_dict"}}
+        self.preprod_artifact.save()
+
+        url = self._get_url()
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        # Corrupted size data is skipped, so posted_status_checks should be None
+        assert resp_data["posted_status_checks"] is None
+
+    def test_posted_status_checks_failure_without_error_type(self) -> None:
+        """Test that failed status checks without error_type are still exposed."""
+        self.preprod_artifact.extras = {"posted_status_checks": {"size": {"success": False}}}
+        self.preprod_artifact.save()
+
+        url = self._get_url()
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["posted_status_checks"] is not None
+        assert resp_data["posted_status_checks"]["size"]["success"] is False
+        assert resp_data["posted_status_checks"]["size"]["error_type"] is None
+
+    def test_posted_status_checks_failure_with_invalid_error_type(self) -> None:
+        """Test that failed status checks with invalid error_type are still exposed."""
+        self.preprod_artifact.extras = {
+            "posted_status_checks": {"size": {"success": False, "error_type": "not_valid"}}
+        }
+        self.preprod_artifact.save()
+
+        url = self._get_url()
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["posted_status_checks"] is not None
+        assert resp_data["posted_status_checks"]["size"]["success"] is False
+        assert resp_data["posted_status_checks"]["size"]["error_type"] is None
+
+    def test_base_build_info_when_base_artifact_exists(self) -> None:
+        """Test that base_build_info is included when a base artifact exists."""
+        assert self.preprod_artifact.commit_comparison is not None
+        base_commit_comparison = self.create_commit_comparison(
+            organization=self.org,
+            head_sha=self.preprod_artifact.commit_comparison.base_sha,
+            base_sha="0000000000000000000000000000000000000000",
+        )
+        base_file = self.create_file(name="base_artifact.apk", type="application/octet-stream")
+        base_artifact = self.create_preprod_artifact(
+            project=self.project,
+            file_id=base_file.id,
+            artifact_type=self.preprod_artifact.artifact_type,
+            app_id=self.preprod_artifact.app_id,
+            app_name=self.preprod_artifact.app_name,
+            build_version="0.9.0",
+            build_number=41,
+            commit_comparison=base_commit_comparison,
+        )
+
+        url = self._get_url()
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["base_artifact_id"] == str(base_artifact.id)
+        assert resp_data["base_build_info"] is not None
+        # base_build_info now returns full BuildDetailsAppInfo
+        assert resp_data["base_build_info"]["version"] == "0.9.0"
+        assert resp_data["base_build_info"]["build_number"] == 41
+        assert resp_data["base_build_info"]["app_id"] == base_artifact.app_id
+        assert resp_data["base_build_info"]["name"] == base_artifact.app_name
+        assert resp_data["base_build_info"]["artifact_type"] == base_artifact.artifact_type
+        assert "date_added" in resp_data["base_build_info"]
+        assert "date_built" in resp_data["base_build_info"]
+        assert "is_installable" in resp_data["base_build_info"]
+        assert "platform" in resp_data["base_build_info"]
+
+    def test_base_build_info_none_when_no_base_artifact(self) -> None:
+        """Test that base_build_info is None when no base artifact exists."""
+        url = self._get_url()
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["base_artifact_id"] is None
+        assert resp_data["base_build_info"] is None

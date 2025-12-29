@@ -4,10 +4,10 @@ from rest_framework.request import Request
 from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, control_silo_endpoint
 
 
-@region_silo_endpoint
+@control_silo_endpoint
 class TempestIpsEndpoint(Endpoint):
     owner = ApiOwner.GDX
     publish_status = {

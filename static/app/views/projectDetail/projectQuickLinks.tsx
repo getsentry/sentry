@@ -1,6 +1,5 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
@@ -24,7 +23,6 @@ import {
 import {SidebarSection} from './styles';
 
 type Props = {
-  location: Location;
   organization: Organization;
   project?: Project;
 };
@@ -120,7 +118,7 @@ const QuickLink = styled((p: any) =>
   ${p =>
     p.disabled &&
     css`
-      color: ${p.theme.gray200};
+      color: ${p.theme.colors.gray200};
       cursor: not-allowed;
     `}
 `;

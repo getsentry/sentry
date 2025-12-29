@@ -38,7 +38,7 @@ const UnarchiveButton = styled(Button)`
   &:hover,
   &:focus,
   &:active {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 
