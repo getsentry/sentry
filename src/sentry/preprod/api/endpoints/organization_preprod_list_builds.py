@@ -44,22 +44,26 @@ class OrganizationPreprodListBuildsEndpoint(OrganizationEndpoint):
 
         :pparam string organization_id_or_slug: the id or slug of the organization the
                                           artifacts belong to.
-        :qparam list project: list of project IDs to filter by (query params like ?project=1&project=2)
-        :qparam string app_id: filter by app identifier (e.g., "com.myapp.MyApp")
-        :qparam string state: filter by artifact state (0=uploading, 1=uploaded, 3=processed, 4=failed)
-        :qparam string build_version: filter by build version
-        :qparam string build_configuration: filter by build configuration name
-        :qparam string platform: filter by platform (ios, android, macos)
-        :qparam string release_version: filter by release version (formats: "app_id@version+build_number" or "app_id@version")
-        :qparam string query: general search across app name, app ID, build version, and commit SHA
-        :qparam int per_page: number of results per page (default 25, max 100)
-        :qparam string cursor: cursor for pagination
+        :qparam list project: (optional) list of project IDs to filter by (query params like ?project=1&project=2)
+        :qparam string app_id: (optional) filter by app identifier (e.g., "com.myapp.MyApp")
+        :qparam string state: (optional) filter by artifact state (0=uploading, 1=uploaded, 3=processed, 4=failed)
+        :qparam string build_version: (optional) filter by build version
+        :qparam string build_configuration: (optional) filter by build configuration name
+        :qparam string platform: (optional) filter by platform (ios, android, macos)
+        :qparam string release_version: (optional) filter by release version (formats: "app_id@version+build_number" or "app_id@version")
+        :qparam string query: (optional) general search across app name, app ID, build version, and commit SHA
+        :qparam int per_page: (optional) number of results per page (default 25, max 100)
+        :qparam string cursor: (optional) cursor for pagination
         :auth: required
         """
 
+        if not features.has(
+            "organizations:preprod-frontend-routes", organization, actor=request.user
+        ):
+            return Response({"error": "Feature not enabled"}, status=403)
+
         # Get projects with permission checking
-        req_proj_ids = self.get_requested_project_ids_unchecked(request)
-        projects = self.get_projects(request, organization, project_ids=req_proj_ids)
+        projects = self.get_projects(request, organization)
 
         if not projects:
             raise NoProjects("No projects available")
@@ -70,15 +74,9 @@ class OrganizationPreprodListBuildsEndpoint(OrganizationEndpoint):
         analytics.record(
             PreprodArtifactApiListBuildsEvent(
                 organization_id=organization.id,
-                project_id=project_ids[0],
                 user_id=request.user.id,
             )
         )
-
-        if not features.has(
-            "organizations:preprod-frontend-routes", organization, actor=request.user
-        ):
-            return Response({"error": "Feature not enabled"}, status=403)
 
         validator = PreprodListBuildsValidator(data=request.GET)
         validator.is_valid(raise_exception=True)
@@ -89,9 +87,15 @@ class OrganizationPreprodListBuildsEndpoint(OrganizationEndpoint):
         except InvalidParams:
             raise ParseError(detail="Invalid date range")
 
-        queryset = PreprodArtifact.objects.filter(project_id__in=project_ids)
+        queryset = (
+            PreprodArtifact.objects.select_related("project")
+            .filter(project_id__in=project_ids)
+            .order_by("-date_added")
+        )
 
-        release_version_parsed = False
+        if start and end:
+            queryset = queryset.filter(date_added__gte=start, date_added__lte=end)
+
         release_version = params.get("release_version")
         if release_version:
             parsed_version = parse_release_version(release_version)
@@ -100,9 +104,7 @@ class OrganizationPreprodListBuildsEndpoint(OrganizationEndpoint):
                     app_id__icontains=parsed_version.app_id,
                     build_version__icontains=parsed_version.build_version,
                 )
-                release_version_parsed = True
-
-        if not release_version_parsed:
+        else:
             app_id = params.get("app_id")
             if app_id:
                 queryset = queryset.filter(app_id__exact=app_id)
@@ -146,7 +148,6 @@ class OrganizationPreprodListBuildsEndpoint(OrganizationEndpoint):
 
         platform = params.get("platform")
         if platform:
-            # For now, macos artifacts are also XCARCHIVE type
             if platform.lower() == "ios" or platform.lower() == "macos":
                 queryset = queryset.filter(artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE)
             elif platform.lower() == "android":
@@ -156,11 +157,10 @@ class OrganizationPreprodListBuildsEndpoint(OrganizationEndpoint):
                         PreprodArtifact.ArtifactType.APK,
                     ]
                 )
-
-        queryset = queryset.order_by("-date_added")
-
-        if start and end:
-            queryset = queryset.filter(date_added__gte=start, date_added__lte=end)
+            else:
+                raise ParseError(
+                    detail=f"Unsupported platform: {platform}. Supported platforms are: ios, android, macos"
+                )
 
         def transform_results(results: list[PreprodArtifact]) -> dict[str, Any]:
             build_details_list = []

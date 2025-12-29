@@ -61,7 +61,6 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
         analytics.record(
             PreprodArtifactApiListBuildsEvent(
                 organization_id=project.organization_id,
-                project_id=project.id,
                 user_id=request.user.id,
             )
         )
