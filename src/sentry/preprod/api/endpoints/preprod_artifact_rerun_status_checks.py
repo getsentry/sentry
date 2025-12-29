@@ -54,7 +54,7 @@ class PreprodArtifactRerunStatusChecksEndpoint(PreprodArtifactEndpoint):
             )
 
         SUPPORTED_CHECK_TYPES = {"size"}
-        supported_types = list(set(ct for ct in check_types if ct in SUPPORTED_CHECK_TYPES))
+        supported_types = list({ct for ct in check_types if ct in SUPPORTED_CHECK_TYPES})
         if not supported_types:
             return Response(
                 {"error": "No supported check types provided. Currently only 'size' is supported."},
