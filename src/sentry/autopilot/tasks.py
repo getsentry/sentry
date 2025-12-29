@@ -86,18 +86,20 @@ def run_sdk_update_detector_for_organization(organization: Organization):
 
     # Build datastructure of the latest version of each SDK in use for each
     # project we have events for.
-    latest_sdks = chain.from_iterable(
-        [
-            {
-                "projectId": str(project_id),
-                "sdkName": sdk_name,
-                "sdkVersion": max((s["sdk.version"] for s in sdks), key=version.parse),
-            }
-            for sdk_name, sdks in groupby(
-                sorted(sdks_used, key=lambda x: x["sdk.name"]), key=lambda x: x["sdk.name"]
-            )
-        ]
-        for project_id, sdks_used in groupby(nonempty_sdks, key=lambda x: x["project.id"])
+    latest_sdks = list(
+        chain.from_iterable(
+            [
+                {
+                    "projectId": str(project_id),
+                    "sdkName": sdk_name,
+                    "sdkVersion": max((s["sdk.version"] for s in sdks), key=version.parse),
+                }
+                for sdk_name, sdks in groupby(
+                    sorted(sdks_used, key=lambda x: x["sdk.name"]), key=lambda x: x["sdk.name"]
+                )
+            ]
+            for project_id, sdks_used in groupby(nonempty_sdks, key=lambda x: x["project.id"])
+        )
     )
 
     # Determine if each SDK needs an update for each project
