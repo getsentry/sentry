@@ -155,6 +155,8 @@ def compare_size_analysis(
         base_download_size=base_size_analysis.max_download_size,
     )
 
+    # Placeholder
+
     # Compare insights only if we're not skipping the comparison
     insight_diff_items = []
     if not skip_diff_item_comparison:

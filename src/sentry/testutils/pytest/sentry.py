@@ -18,6 +18,7 @@ from django.conf import settings
 
 from sentry.runner.importer import install_plugin_apps
 from sentry.silo.base import SiloMode
+from sentry.testutils.pytest.selective_testing import filter_items_by_coverage
 from sentry.testutils.region import TestEnvRegionDirectory
 from sentry.testutils.silo import monkey_patch_single_process_silo_mode_state
 from sentry.types import region
@@ -399,6 +400,43 @@ def _shuffle(items: list[pytest.Item], r: random.Random) -> None:
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     """After collection, we need to select tests based on group and group strategy"""
 
+    initial_discard = []
+
+    # Selective testing based on coverage data
+    if os.environ.get("SELECTIVE_TESTING_ENABLED"):
+        changed_files_str = os.environ.get("CHANGED_FILES", "")
+        coverage_db_path = os.environ.get("COVERAGE_DB_PATH", ".coverage.combined")
+
+        if changed_files_str:
+            # Parse changed files from comma-separated string
+            changed_files = [f.strip() for f in changed_files_str.split(",") if f.strip()]
+
+            config.get_terminal_writer().line(
+                f"Selective testing enabled for {len(changed_files)} changed file(s)"
+            )
+
+            # Filter tests using coverage data
+            selected_items, discarded_items, affected_test_files = filter_items_by_coverage(
+                items, changed_files, coverage_db_path
+            )
+
+            if affected_test_files is not None:
+                config.get_terminal_writer().line(
+                    f"Found {len(affected_test_files)} affected test file(s) from coverage data"
+                )
+                config.get_terminal_writer().line(
+                    f"Selected {len(selected_items)}/{len(items)} tests based on coverage"
+                )
+
+                # Update items with filtered list
+                items[:] = selected_items
+                initial_discard = discarded_items
+            else:
+                config.get_terminal_writer().line(
+                    "Warning: Could not load coverage data, running all tests"
+                )
+
+    # Existing grouping logic (unchanged)
     total_groups = int(os.environ.get("TOTAL_TEST_GROUPS", 1))
     current_group = int(os.environ.get("TEST_GROUP", 0))
     grouping_strategy = os.environ.get("TEST_GROUP_STRATEGY", "scope")
@@ -431,9 +469,12 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
         config.get_terminal_writer().line(f"SENTRY_SHUFFLE_TESTS_SEED: {seed}")
         _shuffle(items, random.Random(seed))
 
+    # Combine discards from both selective testing and grouping
+    all_discarded = initial_discard + discard
+
     # This only needs to be done if there are items to be de-selected
-    if len(discard) > 0:
-        config.hook.pytest_deselected(items=discard)
+    if len(all_discarded) > 0:
+        config.hook.pytest_deselected(items=all_discarded)
 
 
 def pytest_xdist_setupnodes() -> None:

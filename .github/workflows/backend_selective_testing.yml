@@ -1,0 +1,83 @@
+name: backend - selective
+
+on:
+  pull_request:
+
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  backend-test-selective:
+    name: backend test (selective)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      id-token: write
+      actions: read # used for DIM metadata
+    strategy:
+      fail-fast: false
+      matrix:
+        instance:
+          [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
+
+    env:
+      MATRIX_INSTANCE_TOTAL: 22
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          mode: backend-ci
+
+      # TODO: Gcloud
+      - name: Download coverage database
+        uses: actions/download-artifact@v4
+        with:
+          name: pycoverage-sqlite-combined-20529759656
+          path: .coverage
+          run-id: 20529759656
+
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@24d32ffd492484c1d75e0c0b894501ddb9d30d62
+
+      - name: List all changed files
+        env:
+          ALL_CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
+        run: |
+          for file in ${ALL_CHANGED_FILES}; do
+              echo "$file was changed"
+          done
+
+      - name: Run backend tests (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
+        id: run_backend_tests
+        run: make test-python-ci
+        env:
+          SELECTIVE_TESTING_ENABLED: true
+          CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
+          COVERAGE_DB_PATH: .coverage
+
+      - name: Inspect failure
+        if: failure()
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
+
+    #   - name: Collect test data
+    #     uses: ./.github/actions/collect-test-data
+    #     if: ${{ !cancelled() }}
+    #     with:
+    #       artifact_path: .artifacts/pytest.json # TODO
+    #       gcs_bucket: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}
+    #       gcp_project_id: ${{ secrets.COLLECT_TEST_DATA_GCP_PROJECT_ID }}
+    #       workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
+    #       service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
+    #       matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}
