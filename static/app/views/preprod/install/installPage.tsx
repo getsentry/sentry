@@ -1,9 +1,14 @@
+import {Heading} from '@sentry/scraps/text';
+
+import {Container, Flex} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {BuildVcsInfo} from 'sentry/views/preprod/components/buildVcsInfo';
 import {InstallDetailsContent} from 'sentry/views/preprod/components/installDetailsContent';
 import {BuildInstallHeader} from 'sentry/views/preprod/install/buildInstallHeader';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -35,12 +40,29 @@ export default function InstallPage() {
 
         <Layout.Body>
           <UrlParamBatchProvider>
-            <Layout.Main>
-              <InstallDetailsContent
-                projectId={projectId}
-                artifactId={artifactId}
-                size="lg"
-              />
+            <Layout.Main width="full-constrained">
+              <Flex direction="column" gap="xl">
+                <Container border="primary" radius="lg" overflow="hidden">
+                  <Container background="secondary" borderBottom="primary" padding="xl">
+                    <Flex justify="center" align="center" width="100%">
+                      <Heading as="h2">{t('Download Build')}</Heading>
+                    </Flex>
+                  </Container>
+                  <Container padding="2xl">
+                    <InstallDetailsContent
+                      projectId={projectId}
+                      artifactId={artifactId}
+                      size="lg"
+                    />
+                  </Container>
+                </Container>
+                {buildDetailsQuery.data && (
+                  <BuildVcsInfo
+                    buildDetailsData={buildDetailsQuery.data}
+                    projectId={projectId}
+                  />
+                )}
+              </Flex>
             </Layout.Main>
           </UrlParamBatchProvider>
         </Layout.Body>

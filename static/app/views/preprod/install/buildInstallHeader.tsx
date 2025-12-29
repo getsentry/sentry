@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -46,11 +47,12 @@ export function BuildInstallHeader(props: BuildInstallHeaderProps) {
     return (
       <Layout.HeaderContent>
         <Flex direction="column" gap="sm">
-          <Flex align="center" gap="sm">
-            <Placeholder width="140px" height="16px" />
-          </Flex>
           <Layout.Title>
-            <Placeholder width="220px" height="1em" />
+            <Flex align="center" gap="sm" minHeight="1lh">
+              <Placeholder width="24px" height="24px" />
+              <Placeholder width="140px" height="1em" />
+              <Placeholder width="120px" height="1em" />
+            </Flex>
           </Layout.Title>
           <Flex gap="lg" wrap="wrap" align="center">
             <Placeholder width="120px" height="16px" />
@@ -77,24 +79,23 @@ export function BuildInstallHeader(props: BuildInstallHeaderProps) {
   return (
     <Layout.HeaderContent>
       <Flex direction="column" gap="sm">
-        <Flex align="center" gap="sm">
-          {appInfo.app_icon_id && appInfo.name ? (
-            <AppIcon
-              appName={appInfo.name}
-              appIconId={appInfo.app_icon_id}
-              projectId={projectId}
-            />
-          ) : null}
-          {appInfo.name ? (
-            <Text bold size="md">
-              {appInfo.name}
-            </Text>
-          ) : null}
-        </Flex>
         <Layout.Title>
-          <Flex align="center" gap="sm" minHeight="1lh">
+          <Flex align="center" gap="xs" minHeight="1lh">
+            {appInfo.app_icon_id && appInfo.name ? (
+              <AppIcon
+                appName={appInfo.name}
+                appIconId={appInfo.app_icon_id}
+                projectId={projectId}
+              />
+            ) : null}
+            {appInfo.name ? <span>{appInfo.name}</span> : null}
             {versionTitle ? (
-              <Version version={versionTitle} anchor={false} truncate />
+              <Fragment>
+                <Text as="span" size="md" variant="muted">
+                  -
+                </Text>
+                <Version version={versionTitle} anchor={false} truncate />
+              </Fragment>
             ) : (
               <Placeholder width="30ch" height="1em" />
             )}
