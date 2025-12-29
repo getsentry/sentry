@@ -265,7 +265,9 @@ def transform_preprod_artifact_to_build_details(
     size_metrics_list = list(artifact.preprodartifactsizemetrics_set.all())
 
     base_size_metrics_list: list[PreprodArtifactSizeMetrics] = []
-    base_artifact = artifact.get_base_artifact_for_commit().first()
+    base_artifact = (
+        artifact.get_base_artifact_for_commit().select_related("build_configuration").first()
+    )
     base_build_info = None
     if base_artifact:
         base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
