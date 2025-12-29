@@ -1,11 +1,18 @@
 import {IncidentFixture} from 'sentry-fixture/incident';
 import {IncidentStatsFixture} from 'sentry-fixture/incidentStats';
 import {MetricRuleFixture} from 'sentry-fixture/metricRule';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -23,23 +30,19 @@ describe('IncidentsList', () => {
   }
 
   const renderComponent = ({orgOverride}: Props = {}) => {
-    const {organization, routerProps, router} = initializeOrg({
-      organization: {features: ['incidents'], ...orgOverride},
+    const organization = OrganizationFixture({
+      features: ['incidents'],
+      ...orgOverride,
     });
 
-    return {
-      component: render(
-        <AlertsContainer>
-          <IncidentsList {...routerProps} organization={organization} />
-        </AlertsContainer>,
-        {
-          deprecatedRouterMocks: true,
-          organization,
-          router,
-        }
-      ),
-      router,
-    };
+    const {router} = render(
+      <AlertsContainer>
+        <IncidentsList />
+      </AlertsContainer>,
+      {organization}
+    );
+
+    return {router};
   };
 
   beforeEach(() => {
@@ -180,13 +183,13 @@ describe('IncidentsList', () => {
 
     await selectEvent.select(await screen.findByText('Status'), 'Active');
 
-    expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: {
+    await waitFor(() => {
+      expect(router.location.query).toEqual(
+        expect.objectContaining({
           status: 'open',
-        },
-      })
-    );
+        })
+      );
+    });
   });
 
   it('disables the new alert button for those without alert:write', async () => {
@@ -219,13 +222,13 @@ describe('IncidentsList', () => {
     const testQuery = 'test name';
     await userEvent.type(input, `${testQuery}{enter}`);
 
-    expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: {
+    await waitFor(() => {
+      expect(router.location.query).toEqual(
+        expect.objectContaining({
           title: testQuery,
-        },
-      })
-    );
+        })
+      );
+    });
   });
 
   it('displays owner from alert rule', async () => {
