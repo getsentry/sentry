@@ -1,8 +1,9 @@
-import {Fragment, lazy, useMemo} from 'react';
+import {Fragment, lazy, useEffect, useMemo} from 'react';
 import {createPortal} from 'react-dom';
 import createCache from '@emotion/cache';
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 
+import printConsoleBanner from 'sentry/bootstrap/printConsoleBanner';
 import {NODE_ENV} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -60,6 +61,11 @@ export function ThemeAndStyleProvider({children}: Props) {
   useHotkeys(themeToggleHotkey);
 
   const theme = config.theme === 'dark' ? darkTheme : lightTheme;
+  useEffect(() => {
+    if (NODE_ENV !== 'development') {
+      printConsoleBanner(theme.colors.blue400, theme.text.familyMono);
+    }
+  }, [theme]);
 
   return (
     <ThemeProvider theme={theme}>
