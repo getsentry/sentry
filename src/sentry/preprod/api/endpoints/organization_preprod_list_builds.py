@@ -42,7 +42,7 @@ class OrganizationPreprodListBuildsEndpoint(OrganizationEndpoint):
 
         List preprod builds for an organization with optional filtering by projects and pagination.
 
-        :pparam string organization_id_or_slug: the id or slug of the organization the
+        :pparam string organization_id_or_slug: (required) the id or slug of the organization the
                                           artifacts belong to.
         :qparam list project: (optional) list of project IDs to filter by (query params like ?project=1&project=2)
         :qparam string app_id: (optional) filter by app identifier (e.g., "com.myapp.MyApp")
@@ -62,15 +62,12 @@ class OrganizationPreprodListBuildsEndpoint(OrganizationEndpoint):
         ):
             return Response({"error": "Feature not enabled"}, status=403)
 
-        # Get projects with permission checking
         projects = self.get_projects(request, organization)
-
         if not projects:
             raise NoProjects("No projects available")
 
         project_ids = [p.id for p in projects]
 
-        # Record analytics once for the first project
         analytics.record(
             PreprodArtifactApiListBuildsEvent(
                 organization_id=organization.id,
