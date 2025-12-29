@@ -41,7 +41,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: .coverage
-          artifact-id: 4972973279
+          artifact-ids: 4972973279
           run-id: 20529759656
 
       - name: Get changed files
