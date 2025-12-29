@@ -1,6 +1,7 @@
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {ChonkPropMapping} from 'sentry/utils/theme/withChonk';
 import {unreachable} from 'sentry/utils/unreachable';
 
 import type {BadgeProps} from './badge';
@@ -8,7 +9,7 @@ import type {BadgeProps} from './badge';
 type FeatureBadgeType = 'alpha' | 'beta' | 'new' | 'experimental';
 interface ChonkBadgeProps extends Omit<BadgeProps, 'type'> {
   type:
-    | 'internal'
+    | 'default'
     | 'info'
     | 'success'
     | 'warning'
@@ -17,6 +18,16 @@ interface ChonkBadgeProps extends Omit<BadgeProps, 'type'> {
     | 'promotion'
     | FeatureBadgeType;
 }
+
+export const chonkBadgePropMapping: ChonkPropMapping<
+  BadgeProps,
+  ChonkBadgeProps
+> = props => {
+  return {
+    ...props,
+    type: props.type === 'internal' ? 'default' : props.type,
+  };
+};
 
 export function ChonkBadge(props: ChonkBadgeProps) {
   return <StyledChonkBadge {...props} />;
@@ -58,12 +69,13 @@ function makeChonkBadgeTheme(p: ChonkBadgeProps, theme: Theme): React.CSSPropert
         color: theme.colors.gray500,
         background: theme.colors.gray100,
       };
-    case 'internal':
+    // End feature badge variants
+    case 'default':
       return {
         color: theme.colors.gray500,
         background: theme.colors.gray100,
       };
-    // End feature badge variants
+
     // Highlight maps to info badge for now, but the highlight variant should be removed
     case 'highlight':
     case 'info':

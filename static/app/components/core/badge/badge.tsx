@@ -1,90 +1,96 @@
-import type {CSSProperties} from 'react';
-import type {useTheme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import {unreachable} from 'sentry/utils/unreachable';
 
-import * as ChonkBadge from './badge.chonk';
-
-function makeBadgeTheme(
-  props: BadgeProps,
-  theme: ReturnType<typeof useTheme>
-): CSSProperties {
-  switch (props.type) {
-    case 'alpha':
-      return {
-        background: `linear-gradient(90deg, ${theme.colors.pink400}, ${theme.colors.yellow400})`,
-        color: theme.white,
-      };
-    case 'beta':
-      return {
-        background: `linear-gradient(90deg, ${theme.colors.blue400}, ${theme.colors.pink400})`,
-        color: theme.white,
-      };
-    // @TODO(jonasbadalic) default, experimental and internal all look the same and should be consolidated
-    case 'default':
-    case 'experimental':
-    case 'internal':
-      return {
-        background: theme.colors.gray100,
-        color: theme.colors.gray800,
-      };
-    case 'new':
-      return {
-        background: `linear-gradient(90deg, ${theme.colors.blue400}, ${theme.colors.green400})`,
-        color: theme.white,
-      };
-    case 'warning':
-      return {
-        background: theme.colors.yellow400,
-        color: theme.colors.gray800,
-      };
-    default:
-      unreachable(props.type);
-      throw new TypeError(`Unsupported badge type: ${props.type}`);
-  }
-}
-
-type BadgeType =
-  | 'alpha'
-  | 'beta'
-  | 'new'
-  | 'warning'
-  // @TODO(jonasbadalic) "default" is bad API decision.
-  // @TODO(jonasbadalic) default, experimental and internal all look the same...
-  | 'experimental'
-  | 'internal'
-  | 'default';
+type FeatureBadgeType = 'alpha' | 'beta' | 'new' | 'experimental' | 'internal';
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   children: React.ReactNode;
-  type: BadgeType;
+  type:
+    | 'default'
+    | 'internal'
+    | 'info'
+    | 'success'
+    | 'warning'
+    | 'danger'
+    | 'highlight'
+    | 'promotion'
+    | FeatureBadgeType;
 }
 
-export function Badge({children, ...props}: BadgeProps) {
-  return <BadgeComponent {...props}>{children}</BadgeComponent>;
-}
-
-const StyledBadge = styled('span')<BadgeProps>`
+export const Badge = styled('span')<BadgeProps>`
   ${p => ({...makeBadgeTheme(p, p.theme)})};
+  border-radius: ${p => p.theme.radius.sm};
+  font-size: ${p => p.theme.font.size.sm};
 
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  line-height: initial;
   height: 20px;
-  min-width: 20px;
-  line-height: 20px;
-  border-radius: 20px;
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  font-size: ${p => p.theme.font.size.xs};
-  padding: 0 ${space(0.75)};
-  transition: background ${p => p.theme.motion.snap.fast};
-
-  /* @TODO(jonasbadalic) why are these needed? */
-  margin-left: ${space(0.5)};
-  position: relative;
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.xs};
 `;
 
-const BadgeComponent = withChonk(StyledBadge, ChonkBadge.ChonkBadge);
+function makeBadgeTheme(p: BadgeProps, theme: Theme): React.CSSProperties {
+  switch (p.type) {
+    // @TODO(jonasbadalic) these should use feature badge variants
+    case 'alpha':
+      return {
+        color: theme.colors.black,
+        background: theme.colors.chonk.pink400,
+      };
+    case 'beta':
+      return {
+        color: theme.colors.black,
+        background: theme.colors.chonk.yellow400,
+      };
+    case 'new':
+      return {
+        color: theme.colors.black,
+        background: theme.colors.chonk.green400,
+      };
+    case 'experimental':
+      return {
+        color: theme.colors.gray500,
+        background: theme.colors.gray100,
+      };
+    case 'default':
+    case 'internal':
+      return {
+        color: theme.colors.gray500,
+        background: theme.colors.gray100,
+      };
+    // End feature badge variants
+    // Highlight maps to info badge for now, but the highlight variant should be removed
+    case 'highlight':
+    case 'info':
+      return {
+        color: theme.tokens.content.accent,
+        background: theme.colors.blue100,
+      };
+    case 'promotion':
+      return {
+        color: theme.tokens.content.promotion,
+        background: theme.colors.pink100,
+      };
+    case 'danger':
+      return {
+        color: theme.tokens.content.danger,
+        background: theme.colors.red100,
+      };
+    case 'warning':
+      return {
+        color: theme.tokens.content.warning,
+        background: theme.colors.yellow100,
+      };
+    case 'success':
+      return {
+        color: theme.tokens.content.success,
+        background: theme.colors.green100,
+      };
+    default:
+      unreachable(p.type);
+      throw new TypeError(`Unsupported badge type: ${p.type}`);
+  }
+}
