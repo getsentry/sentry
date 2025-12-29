@@ -60,13 +60,13 @@ export function getResolutionDescription(params: ResolutionDescriptionParams): s
   if (params.detectionType === 'static') {
     if (params.conditionType === DataConditionType.GREATER) {
       return t(
-        'Issue will be resolved when the query value is less than %s%s.',
+        'Issue will be resolved when the query value is below or equal to %s%s.',
         threshold,
         suffix
       );
     }
     return t(
-      'Issue will be resolved when the query value is more than %s%s.',
+      'Issue will be resolved when the query value is above or equal to %s%s.',
       threshold,
       suffix
     );
