@@ -25,7 +25,6 @@ import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
 import {TimelineScaleContextProvider} from 'sentry/utils/replays/hooks/useTimelineScale';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -273,11 +272,8 @@ const StyledAlert = styled(Alert)`
   margin: ${space(1)} 0;
 `;
 
-const ContainedLinkButton = withChonk(
-  LinkButton,
-  styled(LinkButton)`
-    position: absolute;
-    right: 0;
-    top: 3px;
-  `
-);
+const ContainedLinkButton = styled(LinkButton)`
+  position: absolute;
+  right: 0;
+  top: 3px;
+`;

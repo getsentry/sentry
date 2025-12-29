@@ -19,7 +19,6 @@ import type {GroupStatusResolution, ResolvedStatusDetails} from 'sentry/types/gr
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
@@ -381,27 +380,9 @@ function ResolveActions({
 
 export default ResolveActions;
 
-const ResolveButton = withChonk(
-  styled(Button)<{priority?: 'primary'}>`
-    box-shadow: none;
-    ${p =>
-      p.priority === 'primary' &&
-      css`
-        &::after {
-          content: '';
-          position: absolute;
-          top: -1px;
-          bottom: -1px;
-          right: -1px;
-          border-right: solid 1px currentColor;
-          opacity: 0.25;
-        }
-      `}
-  `,
-  styled(Button)`
-    box-shadow: none;
-  `
-);
+const ResolveButton = styled(Button)`
+  box-shadow: none;
+`;
 
 const DropdownTrigger = styled(Button)`
   box-shadow: none;

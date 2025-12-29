@@ -19,7 +19,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -374,40 +373,22 @@ const ActionButtonsGroup = styled('div')`
   gap: ${p => p.theme.space.xs};
 `;
 
-const ChevronButton = withChonk(
-  styled(Button)<{expanded: boolean}>`
-    display: none;
+const ChevronButton = styled(Button)<{expanded: boolean}>`
+  display: none;
 
-    @media (min-width: ${p => p.theme.breakpoints.md}) {
-      display: block;
-    }
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    display: inline-flex;
+  }
 
-    ${p =>
-      p.expanded &&
-      css`
-        margin-left: -13px;
+  ${p =>
+    p.expanded &&
+    css`
+      margin-left: -13px;
+
+      &::after {
         border-left-color: ${p.theme.tokens.background.primary};
         border-top-left-radius: 0px;
         border-bottom-left-radius: 0px;
-      `}
-  `,
-  styled(Button)<{expanded: boolean}>`
-    display: none;
-
-    @media (min-width: ${p => p.theme.breakpoints.md}) {
-      display: inline-flex;
-    }
-
-    ${p =>
-      p.expanded &&
-      css`
-        margin-left: -13px;
-
-        &::after {
-          border-left-color: ${p.theme.tokens.background.primary};
-          border-top-left-radius: 0px;
-          border-bottom-left-radius: 0px;
-        }
-      `}
-  `
-);
+      }
+    `}
+`;

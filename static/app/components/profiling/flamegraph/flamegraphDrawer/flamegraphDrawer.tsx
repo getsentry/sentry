@@ -22,7 +22,6 @@ import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hook
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -223,7 +222,6 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
             <Tooltip title={t('Table left')} skipWrapper>
               <StyledButton
                 priority="transparent"
-                active={flamegraphPreferences.layout === 'table left'}
                 onClick={onTableLeftClick}
                 title={t('Table left')}
                 aria-label={t('Table left')}
@@ -234,7 +232,6 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
             <Tooltip title={t('Table bottom')} skipWrapper>
               <StyledButton
                 priority="transparent"
-                active={flamegraphPreferences.layout === 'table bottom'}
                 onClick={onTableBottomClick}
                 title={t('Table bottom')}
                 aria-label={t('Table bottom')}
@@ -245,7 +242,6 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
             <Tooltip title={t('Table right')} skipWrapper>
               <StyledButton
                 priority="transparent"
-                active={flamegraphPreferences.layout === 'table right'}
                 onClick={onTableRightClick}
                 title={t('Table right')}
                 aria-label={t('Table right')}
@@ -415,22 +411,7 @@ export const ProfilingDetailsListItem = styled('li')<{
   }
 `;
 
-const StyledButton = withChonk(
-  styled(Button)<{active: boolean}>`
-    opacity: ${p => (p.active ? 0.7 : 0.5)};
-    padding: ${space(0.5)} ${space(0.5)};
-    background-color: transparent;
-
-    display: flex !important;
-    align-items: center;
-    justify-content: center;
-
-    &:hover {
-      opacity: ${p => (p.active ? 0.6 : 0.5)};
-    }
-  `,
-  Button
-);
+const StyledButton = Button;
 
 const LayoutSelectionContainer = styled('div')`
   display: flex;
