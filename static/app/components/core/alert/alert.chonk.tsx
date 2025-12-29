@@ -5,11 +5,7 @@ import styled from '@emotion/styled';
 import type {AlertProps} from 'sentry/components/core/alert';
 import {unreachable} from 'sentry/utils/unreachable';
 
-interface ChonkAlertProps extends Omit<AlertProps, 'type'> {
-  type: 'subtle' | 'info' | 'warning' | 'success' | 'danger';
-}
-
-export const AlertPanel = styled('div')<ChonkAlertProps>`
+export const AlertPanel = styled('div')<AlertProps>`
   position: relative;
   display: grid;
   grid-template-columns: ${p => getAlertGridLayout(p)};
@@ -29,12 +25,12 @@ export const AlertPanel = styled('div')<ChonkAlertProps>`
   }
 `;
 
-function getAlertGridLayout(p: ChonkAlertProps) {
+function getAlertGridLayout(p: AlertProps) {
   return `1fr ${p.trailingItems ? 'auto' : ''} ${p.expand ? 'min-content' : ''}`;
 }
 
-function makeChonkAlertTheme(props: ChonkAlertProps, theme: Theme): SerializedStyles {
-  const tokens = getChonkAlertTokens(props.type, theme);
+function makeChonkAlertTheme(props: AlertProps, theme: Theme): SerializedStyles {
+  const tokens = getChonkAlertTokens(props.variant, theme);
   return css`
     ${generateAlertBackground(props, tokens, theme)};
     border-color: ${tokens.border};
@@ -46,8 +42,8 @@ function makeChonkAlertTheme(props: ChonkAlertProps, theme: Theme): SerializedSt
   `;
 }
 
-function getChonkAlertTokens(type: ChonkAlertProps['type'], theme: Theme) {
-  switch (type) {
+function getChonkAlertTokens(variant: AlertProps['variant'], theme: Theme) {
+  switch (variant) {
     case 'info':
       return {
         background: theme.colors.blue100,
@@ -79,14 +75,14 @@ function getChonkAlertTokens(type: ChonkAlertProps['type'], theme: Theme) {
         border: theme.tokens.border.primary,
       };
     default:
-      unreachable(type);
+      unreachable(variant);
   }
 
-  throw new TypeError(`Invalid alert type, got ${type}`);
+  throw new TypeError(`Invalid alert variant, got ${variant}`);
 }
 
 function generateAlertBackground(
-  props: ChonkAlertProps,
+  props: AlertProps,
   tokens: ReturnType<typeof getChonkAlertTokens>,
   theme: Theme
 ) {
@@ -148,7 +144,7 @@ export const Message = styled('div')`
   padding-block: ${p => p.theme.space.xs};
 `;
 
-export const IconWrapper = styled('div')<{type: AlertProps['type']}>`
+export const IconWrapper = styled('div')<{variant: AlertProps['variant']}>`
   position: absolute;
   top: ${p => p.theme.space.lg};
   left: ${p => p.theme.space.lg};
@@ -158,9 +154,9 @@ export const IconWrapper = styled('div')<{type: AlertProps['type']}>`
   align-items: center;
   justify-content: center;
   color: ${p =>
-    ['info', 'error'].includes(p.type)
+    ['info', 'danger'].includes(p.variant)
       ? p.theme.colors.white
-      : p.type === 'subtle'
+      : p.variant === 'subtle'
         ? p.theme.tokens.content.primary
         : p.theme.colors.black};
 `;
