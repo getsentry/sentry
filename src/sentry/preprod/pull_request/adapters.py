@@ -9,6 +9,7 @@ from sentry.preprod.api.models.project_preprod_build_details_models import (
     BuildDetailsApiResponse,
     transform_preprod_artifact_to_build_details,
 )
+from sentry.preprod.build_distribution_utils import annotate_download_count
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.pull_request.types import (
     PullRequestAuthor,
@@ -135,10 +136,12 @@ class PullRequestDataAdapter:
 
         # Query for preprod artifacts with matching head_sha, prefetching related objects to avoid N+1
         artifacts = list(
-            PreprodArtifact.objects.filter(
-                commit_comparison__head_sha=head_sha,
-                commit_comparison__organization_id=organization_id,
-            ).select_related("commit_comparison", "build_configuration")
+            annotate_download_count(
+                PreprodArtifact.objects.filter(
+                    commit_comparison__head_sha=head_sha,
+                    commit_comparison__organization_id=organization_id,
+                ).select_related("commit_comparison", "build_configuration")
+            )
         )
 
         if not artifacts:
