@@ -12,25 +12,25 @@ export function Level({level, searchTerm = ''}: Props) {
   switch (level) {
     case BreadcrumbLevelType.FATAL:
       return (
-        <Tag type="error">
+        <Tag variant="danger">
           <Highlight text={searchTerm}>{t('Fatal')}</Highlight>
         </Tag>
       );
     case BreadcrumbLevelType.ERROR:
       return (
-        <Tag type="error">
+        <Tag variant="danger">
           <Highlight text={searchTerm}>{t('Error')}</Highlight>
         </Tag>
       );
     case BreadcrumbLevelType.INFO:
       return (
-        <Tag type="info">
+        <Tag variant="info">
           <Highlight text={searchTerm}>{t('Info')}</Highlight>
         </Tag>
       );
     case BreadcrumbLevelType.WARNING:
       return (
-        <Tag type="warning">
+        <Tag variant="warning">
           <Highlight text={searchTerm}>{t('Warning')}</Highlight>
         </Tag>
       );

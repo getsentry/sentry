@@ -412,7 +412,7 @@ function SubtotalSummary({
                       bounce: 0.1,
                     }}
                   >
-                    <Tag icon={<IconSentry size="xs" />} type="info">
+                    <Tag icon={<IconSentry size="xs" />} variant="info">
                       <Text size="xs">{t('Default Amount')}</Text>
                     </Tag>
                   </motion.div>

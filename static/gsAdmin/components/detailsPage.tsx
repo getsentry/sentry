@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
+import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Panel from 'sentry/components/panels/panel';
@@ -61,7 +61,7 @@ export type BadgeItem = {
   /**
    * Tag type
    */
-  level?: React.ComponentProps<typeof Tag>['type'];
+  level?: TagProps['variant'];
   /**
    * If set to false will hide the badge
    */
@@ -139,7 +139,7 @@ function DetailsPage({
               .filter(badge => badge.visible !== false)
               .map(badge => (
                 <Tooltip key={badge.name} disabled={!badge.help} title={badge.help}>
-                  <Tag type={badge.level}>{badge.name}</Tag>
+                  <Tag variant={badge.level}>{badge.name}</Tag>
                 </Tooltip>
               ))}
           </NameWithBadges>,

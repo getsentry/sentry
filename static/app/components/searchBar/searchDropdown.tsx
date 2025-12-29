@@ -298,18 +298,18 @@ type KindTagProps = {
 
 function KindTag({kind, deprecated}: KindTagProps) {
   if (deprecated) {
-    return <Tag type="error">deprecated</Tag>;
+    return <Tag variant="danger">deprecated</Tag>;
   }
 
   switch (kind) {
     case FieldKind.FUNCTION:
     case FieldKind.NUMERIC_METRICS:
-      return <Tag type="success">f(x)</Tag>;
+      return <Tag variant="success">f(x)</Tag>;
     case FieldKind.MEASUREMENT:
     case FieldKind.BREAKDOWN:
-      return <Tag type="highlight">field</Tag>;
+      return <Tag variant="info">field</Tag>;
     case FieldKind.TAG:
-      return <Tag type="warning">{kind}</Tag>;
+      return <Tag variant="warning">{kind}</Tag>;
     default:
       return <Tag>{kind}</Tag>;
   }

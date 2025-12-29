@@ -12,7 +12,7 @@ function Status({status, ...props}: Props) {
   switch (status) {
     case CandidateDownloadStatus.OK: {
       return (
-        <Tag type="success" {...props}>
+        <Tag variant="success" {...props}>
           {t('Ok')}
         </Tag>
       );
@@ -20,7 +20,7 @@ function Status({status, ...props}: Props) {
     case CandidateDownloadStatus.ERROR:
     case CandidateDownloadStatus.MALFORMED: {
       return (
-        <Tag type="error" {...props}>
+        <Tag variant="danger" {...props}>
           {t('Failed')}
         </Tag>
       );
@@ -30,21 +30,21 @@ function Status({status, ...props}: Props) {
     }
     case CandidateDownloadStatus.NO_PERMISSION: {
       return (
-        <Tag type="highlight" {...props}>
+        <Tag variant="info" {...props}>
           {t('Permissions')}
         </Tag>
       );
     }
     case CandidateDownloadStatus.DELETED: {
       return (
-        <Tag type="success" {...props}>
+        <Tag variant="success" {...props}>
           {t('Deleted')}
         </Tag>
       );
     }
     case CandidateDownloadStatus.UNAPPLIED: {
       return (
-        <Tag type="warning" {...props}>
+        <Tag variant="warning" {...props}>
           {t('Unapplied')}
         </Tag>
       );

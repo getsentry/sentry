@@ -111,7 +111,7 @@ function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) 
                     bounce: 0.1,
                   }}
                 >
-                  <DefaultAmountTag icon={<IconSentry />} type="info">
+                  <DefaultAmountTag icon={<IconSentry />} variant="info">
                     {t('Default Amount')}
                   </DefaultAmountTag>
                 </motion.div>
