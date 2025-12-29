@@ -78,7 +78,7 @@ class GitHubCheckRunEvent(BaseModel):
         extra = "allow"  # Allow additional fields from GitHub (Pydantic v1 syntax)
 
 
-def preprocess_check_run_event(
+def handle_check_run_event(
     *, event_type: str, event: Mapping[str, Any], organization: Organization, **kwargs: Any
 ) -> None:
     """
@@ -130,7 +130,7 @@ def preprocess_check_run_event(
         return
 
     # Import here to avoid circular dependency with webhook_task
-    from ..webhook_task import process_github_webhook_event
+    from .task import process_github_webhook_event
 
     # Scheduling the work as a task allows us to retry the request if it fails.
     process_github_webhook_event.delay(
@@ -156,11 +156,11 @@ def _validate_github_check_run_event(event: Mapping[str, Any]) -> GitHubCheckRun
     return validated_event
 
 
-def process_check_run_event(
+def process_check_run_task_event(
     *, event_type: str, event_payload: Mapping[str, Any], **kwargs: Any
 ) -> None:
     """
-    Process check_run webhook events.
+    Process check_run task events.
 
     Only processes events with event_type='check_run'.
     This allows the task to be shared by multiple webhook types without conflicts.

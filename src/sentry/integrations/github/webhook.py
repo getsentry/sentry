@@ -55,7 +55,9 @@ from sentry.plugins.providers.integration_repository import (
     get_integration_repository_provider,
 )
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
-from sentry.seer.code_review.webhooks import code_review_webhook_processor
+from sentry.seer.code_review.webhooks.handlers import (
+    handle_webhook_event as code_review_handle_webhook_event,
+)
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.organization_contributors import assign_seat_to_organization_contributor
 from sentry.users.services.user.service import user_service
@@ -978,7 +980,7 @@ class CheckRunEventWebhook(GitHubWebhook):
     """
 
     EVENT_TYPE = IntegrationWebhookEventType.CI_CHECK
-    WEBHOOK_EVENT_PROCESSORS = (code_review_webhook_processor,)
+    WEBHOOK_EVENT_PROCESSORS = (code_review_handle_webhook_event,)
 
 
 class IssueCommentEventWebhook(GitHubWebhook):

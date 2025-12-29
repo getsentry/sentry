@@ -14,14 +14,14 @@ if TYPE_CHECKING:
     from sentry.integrations.github.webhook import WebhookProcessor
 
 from ..utils import _transform_webhook_to_codegen_request
-from .check_run import preprocess_check_run_event
+from .check_run import handle_check_run_event
 
 logger = logging.getLogger(__name__)
 
 METRICS_PREFIX = "seer.code_review.webhook"
 
 
-def preprocess_other_webhook_event(
+def handle_other_webhook_event(
     *,
     event_type: str,
     event: Mapping[str, Any],
@@ -30,10 +30,10 @@ def preprocess_other_webhook_event(
     **kwargs: Any,
 ) -> None:
     """
-    Each webhook event type may implement its own preprocessor.
-    This is a generic preprocessor for non-PR-related events (e.g., issue_comment on regular issues).
+    Each webhook event type may implement its own handler.
+    This is a generic handler for non-PR-related events (e.g., issue_comment on regular issues).
     """
-    from ..webhook_task import process_github_webhook_event
+    from .task import process_github_webhook_event
 
     event_type_enum = EventType.from_string(event_type)
     transformed_event = _transform_webhook_to_codegen_request(
@@ -58,16 +58,16 @@ def preprocess_other_webhook_event(
     )
 
 
-EVENT_TYPE_TO_PREPROCESSOR: dict[EventType, WebhookProcessor] = {
-    EventType.CHECK_RUN: preprocess_check_run_event,
-    EventType.ISSUE_COMMENT: preprocess_other_webhook_event,
-    EventType.PULL_REQUEST: preprocess_other_webhook_event,
-    EventType.PULL_REQUEST_REVIEW: preprocess_other_webhook_event,
-    EventType.PULL_REQUEST_REVIEW_COMMENT: preprocess_other_webhook_event,
+EVENT_TYPE_TO_handler: dict[EventType, WebhookProcessor] = {
+    EventType.CHECK_RUN: handle_check_run_event,
+    EventType.ISSUE_COMMENT: handle_other_webhook_event,
+    EventType.PULL_REQUEST: handle_other_webhook_event,
+    EventType.PULL_REQUEST_REVIEW: handle_other_webhook_event,
+    EventType.PULL_REQUEST_REVIEW_COMMENT: handle_other_webhook_event,
 }
 
 
-def preprocess_webhook_event(
+def handle_webhook_event(
     *,
     event_type: str,
     event: Mapping[str, Any],
@@ -76,7 +76,7 @@ def preprocess_webhook_event(
     **kwargs: Any,
 ) -> None:
     """
-    Preprocess GitHub webhook events.
+    Handle GitHub webhook events.
 
     Args:
         event_type: The type of the webhook event (as string)
@@ -86,17 +86,17 @@ def preprocess_webhook_event(
         **kwargs: Additional keyword arguments including integration
     """
     event_type_enum = EventType.from_string(event_type)
-    preprocessor = EVENT_TYPE_TO_PREPROCESSOR.get(event_type_enum)
-    if preprocessor is None:
+    handler = EVENT_TYPE_TO_handler.get(event_type_enum)
+    if handler is None:
         logger.warning(
-            "github.webhook.preprocessor.not_found",
+            "github.webhook.handler.not_found",
             extra={"event_type": event_type},
         )
         return
 
-    preprocessor(event_type=event_type, event=event, organization=organization, repo=repo, **kwargs)
+    handler(event_type=event_type, event=event, organization=organization, repo=repo, **kwargs)
 
 
 # Type checks to ensure the functions match WebhookProcessor protocol
-_type_checked_preprocess_other_webhook_event: WebhookProcessor = preprocess_other_webhook_event
-_type_checked_preprocess_check_run_event: WebhookProcessor = preprocess_check_run_event
+_type_checked_handle_other_webhook_event: WebhookProcessor = handle_other_webhook_event
+_type_checked_handle_check_run_event: WebhookProcessor = handle_check_run_event
