@@ -293,9 +293,10 @@ def transform_preprod_artifact_to_build_details(
     size_info = to_size_info(size_metrics_list, base_size_metrics_list)
 
     app_info = create_build_details_app_info(artifact)
+    is_installable = app_info.is_installable
     distribution_info = DistributionInfo(
-        is_installable=app_info.is_installable,
-        download_count=get_download_count_for_artifact(artifact),
+        is_installable=is_installable,
+        download_count=(get_download_count_for_artifact(artifact) if is_installable else 0),
         release_notes=(artifact.extras.get("release_notes") if artifact.extras else None),
     )
 
