@@ -28,7 +28,10 @@ from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.github.utils import should_create_or_increment_contributor_seat
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.pipeline import ensure_integration
-from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.services.integration.model import (
+    RpcIntegration,
+    RpcOrganizationIntegration,
+)
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.services.repository.service import repository_service
 from sentry.integrations.source_code_management.webhook import SCMWebhook
@@ -46,7 +49,6 @@ from sentry.models.organizationcontributors import (
 )
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
-from sentry.organizations.services.organization.model import RpcOrganizationIntegration
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.plugins.providers.integration_repository import (
     RepoExistsError,
@@ -68,7 +70,15 @@ logger = logging.getLogger("sentry.webhooks")
 
 
 class WebhookProcessor(Protocol):
-    def __call__(self, *, event_type: str, event: Mapping[str, Any], **kwargs: Any) -> None: ...
+    def __call__(
+        self,
+        *,
+        event_type: str,
+        event: Mapping[str, Any],
+        organization: Organization,
+        repo: Repository,
+        **kwargs: Any,
+    ) -> None: ...
 
 
 def get_github_external_id(event: Mapping[str, Any], host: str | None = None) -> str | None:

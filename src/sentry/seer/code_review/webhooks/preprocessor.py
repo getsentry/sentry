@@ -58,11 +58,7 @@ def preprocess_other_webhook_event(
     )
 
 
-# Type check to ensure the function matches WebhookProcessor protocol
-_only_for_type_checking: WebhookProcessor = preprocess_other_webhook_event
-
-
-EVENT_TYPE_TO_PREPROCESSOR = {
+EVENT_TYPE_TO_PREPROCESSOR: dict[EventType, WebhookProcessor] = {
     EventType.CHECK_RUN: preprocess_check_run_event,
     EventType.ISSUE_COMMENT: preprocess_other_webhook_event,
     EventType.PULL_REQUEST: preprocess_other_webhook_event,
@@ -85,23 +81,22 @@ def preprocess_webhook_event(
     Args:
         event_type: The type of the webhook event (as string)
         event: The webhook event payload
-        **kwargs: Additional keyword arguments including organization (Organization), repo, integration
+        organization: The Sentry organization that the webhook event belongs to
+        repo: The repository that the webhook event is for
+        **kwargs: Additional keyword arguments including integration
     """
-    organization = kwargs.get("organization")
-    assert organization is not None
-
     event_type_enum = EventType.from_string(event_type)
     preprocessor = EVENT_TYPE_TO_PREPROCESSOR.get(event_type_enum)
     if preprocessor is None:
-        # This should not happen, but we report to Sentry without blocking a release
         logger.warning(
             "github.webhook.preprocessor.not_found",
             extra={"event_type": event_type},
         )
         return
 
-    preprocessor(event_type=event_type, event=event, organization=organization, **kwargs)
+    preprocessor(event_type=event_type, event=event, organization=organization, repo=repo, **kwargs)
 
 
-# Type check to ensure the function matches WebhookProcessor protocol
-_type_checked_preprocess_webhook_event: WebhookProcessor = preprocess_webhook_event
+# Type checks to ensure the functions match WebhookProcessor protocol
+_type_checked_preprocess_other_webhook_event: WebhookProcessor = preprocess_other_webhook_event
+_type_checked_preprocess_check_run_event: WebhookProcessor = preprocess_check_run_event
