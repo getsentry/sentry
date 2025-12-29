@@ -79,7 +79,7 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
         except InvalidParams:
             raise ParseError(detail="Invalid date range")
 
-        queryset = PreprodArtifact.objects.filter(project=project)
+        queryset = PreprodArtifact.objects.select_related("project").filter(project=project)
 
         release_version_parsed = False
         release_version = params.get("release_version")
