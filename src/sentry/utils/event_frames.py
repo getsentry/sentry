@@ -232,7 +232,7 @@ def find_stack_frames(
                 threads = None
             thread = get_crashing_thread(threads)
             if thread is not None:
-                frames = get_path(thread, "stacktrace", "frames") or []
+                frames = get_path(thread, "stacktrace", "frames", filter=True) or []
         for frame in frames or ():
             consume_frame(frame)
 
