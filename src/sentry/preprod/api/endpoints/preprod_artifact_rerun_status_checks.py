@@ -53,12 +53,11 @@ class PreprodArtifactRerunStatusChecksEndpoint(PreprodArtifactEndpoint):
                 status=400,
             )
 
-        invalid_types = [ct for ct in check_types if ct != "size"]
-        if invalid_types:
+        SUPPORTED_CHECK_TYPES = {"size"}
+        supported_types = list(set(ct for ct in check_types if ct in SUPPORTED_CHECK_TYPES))
+        if not supported_types:
             return Response(
-                {
-                    "error": f"Invalid check_types: {invalid_types}. Only 'size' is currently supported."
-                },
+                {"error": "No supported check types provided. Currently only 'size' is supported."},
                 status=400,
             )
 
@@ -74,14 +73,18 @@ class PreprodArtifactRerunStatusChecksEndpoint(PreprodArtifactEndpoint):
                 project_id=project.id,
                 user_id=request.user.id,
                 artifact_id=str(head_artifact.id),
-                check_types=check_types,
+                check_types=supported_types,
             )
         )
 
         failed_types = []
-        for check_type in check_types:
+        for check_type in supported_types:
             try:
-                create_preprod_status_check_task.delay(preprod_artifact_id=head_artifact.id)
+                match check_type:
+                    case "size":
+                        create_preprod_status_check_task.delay(preprod_artifact_id=head_artifact.id)
+                    case _:
+                        continue
             except Exception:
                 logger.exception(
                     "preprod_artifact.rerun_status_checks.task_error",
@@ -111,7 +114,7 @@ class PreprodArtifactRerunStatusChecksEndpoint(PreprodArtifactEndpoint):
                 "user_id": request.user.id,
                 "organization_id": head_artifact.project.organization_id,
                 "project_id": head_artifact.project.id,
-                "check_types": check_types,
+                "check_types": supported_types,
             },
         )
 
@@ -120,7 +123,7 @@ class PreprodArtifactRerunStatusChecksEndpoint(PreprodArtifactEndpoint):
                 "success": True,
                 "artifact_id": str(head_artifact.id),
                 "message": f"Status check rerun initiated for artifact {head_artifact.id}",
-                "check_types": check_types,
+                "check_types": supported_types,
             },
             status=202,
         )
