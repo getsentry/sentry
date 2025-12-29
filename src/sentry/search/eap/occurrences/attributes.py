@@ -16,6 +16,11 @@ OCCURRENCE_ATTRIBUTE_DEFINITIONS = {
                 internal_name="group_id",
                 search_type="integer",
             ),
+            ResolvedAttribute(
+                public_alias="level",
+                internal_name="level",
+                search_type="string",
+            ),
         ]
     )
 }
