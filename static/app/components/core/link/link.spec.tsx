@@ -16,8 +16,6 @@ describe('Link', () => {
 
       expect(screen.getByText('Link')).toBeEnabled();
       expect(screen.getByText('Link')).not.toHaveAttribute('href');
-      expect(screen.getByText('Link')).toHaveAttribute('aria-disabled', 'true');
-      expect(screen.getByText('Link')).toHaveAttribute('role', 'link');
     });
 
     it('renders links with LocationDescriptor to prop render as <a> with no href', () => {
@@ -29,8 +27,6 @@ describe('Link', () => {
 
       expect(screen.getByText('Link')).toBeEnabled();
       expect(screen.getByText('Link')).not.toHaveAttribute('href');
-      expect(screen.getByText('Link')).toHaveAttribute('aria-disabled', 'true');
-      expect(screen.getByText('Link')).toHaveAttribute('role', 'link');
     });
   });
 

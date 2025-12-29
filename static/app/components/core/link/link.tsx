@@ -68,7 +68,7 @@ export const Link = styled((props: LinkProps) => {
     // [object Object]" when "to" prop is a LocationDescriptor object. Have to create a
     // new object here, as we can't delete the "to" prop as it is a required prop.
     const {to: _to, ...restProps} = props;
-    return <Anchor aria-disabled="true" role="link" {...restProps} />;
+    return <Anchor {...restProps} />;
   }
 
   return <Component {...behavior()} />;
