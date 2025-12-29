@@ -175,10 +175,12 @@ class WidgetLegendSelectionState {
   }
 
   formatLegendDefaultQuery(widget: Widget) {
-    const shouldUnselect =
+    const shouldHideReleasesByDefault =
       this.widgetRequiresLegendUnselection(widget) &&
       !this.shouldShowReleaseByDefault(widget);
-    return shouldUnselect ? `${widget.id}${WIDGET_ID_DELIMITER}Releases` : undefined;
+    return shouldHideReleasesByDefault
+      ? `${widget.id}${WIDGET_ID_DELIMITER}Releases`
+      : undefined;
   }
 
   // going from selected to query param
