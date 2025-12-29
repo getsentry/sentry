@@ -2,6 +2,8 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -69,27 +71,33 @@ export function TracesTable({tracesTableResult}: TracesTableProps) {
     <Fragment>
       <StyledPanel>
         <TracePanelContent>
-          <StyledPanelHeader align="left" lightText>
+          <StyledPanelHeader align="left" lightText radius="md 0 0 0">
             {t('Trace ID')}
           </StyledPanelHeader>
+
           <StyledPanelHeader align="left" lightText>
             {t('Trace Root')}
           </StyledPanelHeader>
+
           <StyledPanelHeader align="right" lightText>
             {query ? t('Matching Spans') : t('Total Spans')}
           </StyledPanelHeader>
+
           <StyledPanelHeader align="left" lightText>
             {t('Timeline')}
           </StyledPanelHeader>
+
           <StyledPanelHeader align="right" lightText>
             {t('Root Duration')}
           </StyledPanelHeader>
-          <StyledPanelHeader align="right" lightText>
-            <Header>
+
+          <StyledPanelHeader align="right" lightText radius="0 md 0 0">
+            <Flex gap="xs">
               {t('Timestamp')}
               <IconArrow size="xs" direction="down" />
-            </Header>
+            </Flex>
           </StyledPanelHeader>
+
           {isPending && (
             <StyledPanelItem span={6} overflow>
               <LoadingIndicator />
@@ -290,11 +298,6 @@ function Breakdown({trace}: {trace: TraceResult}) {
     </BreakdownPanelItem>
   );
 }
-
-const Header = styled('span')`
-  display: flex;
-  gap: ${space(0.5)};
-`;
 
 const StyledButton = styled(Button)`
   margin-right: ${space(0.5)};
