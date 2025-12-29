@@ -105,6 +105,10 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
         "title": "Web Vitals",
     },
     {
+        "prebuilt_id": PrebuiltDashboardId.WEB_VITALS_SUMMARY,
+        "title": "Web Vitals Page Summary",
+    },
+    {
         "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS,
         "title": "Mobile Vitals",
     },
