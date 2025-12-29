@@ -105,3 +105,24 @@ export function getRepoUrl(
   const baseUrl = getBaseUrl(vcsInfo.provider, repoName);
   return baseUrl || null;
 }
+
+export function getCheckRunUrl(
+  vcsInfo: VcsInfo,
+  checkId: string | null | undefined
+): string | null {
+  if (!vcsInfo.provider || !checkId || !vcsInfo.head_repo_name) {
+    return null;
+  }
+
+  const baseUrl = getBaseUrl(vcsInfo.provider, vcsInfo.head_repo_name);
+  if (!baseUrl) {
+    return null;
+  }
+
+  switch (vcsInfo.provider) {
+    case 'github':
+      return `${baseUrl}/runs/${checkId}`;
+    default:
+      return null;
+  }
+}
