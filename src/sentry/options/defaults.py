@@ -3853,7 +3853,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Disable paranoia for sentry apps
+# Manual option for hard deleting sentry apps and installations.
 register(
     "sentry-apps.hard-delete",
     type=Bool,
