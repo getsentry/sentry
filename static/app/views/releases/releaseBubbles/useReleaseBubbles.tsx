@@ -447,7 +447,24 @@ export function useReleaseBubbles({
     (e: ReactEchartsRef | null) => {
       chartRef.current = e;
 
-      const echartsInstance = e?.getEchartsInstance?.();
+      // Early return if ref is null (component unmounting)
+      if (!e) {
+        return;
+      }
+
+      // Safely get the ECharts instance, returning early if not available
+      let echartsInstance;
+      try {
+        echartsInstance = e.getEchartsInstance?.();
+      } catch (error) {
+        // If getEchartsInstance fails (e.g., DOM element is null), just return
+        return;
+      }
+
+      if (!echartsInstance) {
+        return;
+      }
+
       const highlightedBuckets = new Set();
 
       const handleMouseMove = (params: ElementEvent) => {
@@ -628,11 +645,15 @@ export function useReleaseBubbles({
           return;
         }
 
-        echartsInstance.off('mouseover', handleMouseOver);
-        echartsInstance.off('mouseout', handleMouseOut);
-        echartsInstance.off('globalout', handleGlobalOut);
-        echartsInstance.off('legendselectchanged', handleLegendSelectChanged);
-        echartsInstance.getZr().off('mousemove', handleMouseMove);
+        try {
+          echartsInstance.off('mouseover', handleMouseOver);
+          echartsInstance.off('mouseout', handleMouseOut);
+          echartsInstance.off('globalout', handleGlobalOut);
+          echartsInstance.off('legendselectchanged', handleLegendSelectChanged);
+          echartsInstance.getZr().off('mousemove', handleMouseMove);
+        } catch (error) {
+          // Silently handle cleanup errors if the instance is already disposed
+        }
       };
     },
     [
