@@ -265,7 +265,6 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         mock_futures = [mock.Mock()]
         mock_activate_downstream_actions.return_value = {"some_key": (mock_callback, mock_futures)}
 
-<<<<<<< HEAD
         invocation = ActionInvocation(
             event_data=self.event_data,
             action=self.action,
@@ -273,11 +272,6 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         )
 
         self.handler.invoke_legacy_registry(invocation)
-=======
-        self.handler.invoke_legacy_registry(
-            self.event_data, self.action, self.detector, notification_uuid=str(uuid.uuid4())
-        )
->>>>>>> 9511567f9cf (tests)
 
         # Verify activate_downstream_actions called with correct args
         mock_activate_downstream_actions.assert_called_once_with(

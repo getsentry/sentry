@@ -1,6 +1,5 @@
 import uuid
 from unittest import mock
-from unittest.mock import ANY
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
@@ -37,18 +36,12 @@ class TestNotificationActionHandler(MetricAlertHandlerBase):
         self.action.trigger(self.event_data, notification_uuid=notification_uuid)
 
         mock_registry_get.assert_called_once_with(ErrorGroupType.slug)
-<<<<<<< HEAD
         assert mock_handler.handle_workflow_action.call_count == 1
         invocation = mock_handler.handle_workflow_action.call_args[0][0]
         assert isinstance(invocation, ActionInvocation)
         assert invocation.event_data == self.event_data
         assert invocation.action == self.action
         assert invocation.detector == self.detector
-=======
-        mock_handler.handle_workflow_action.assert_called_once_with(
-            self.event_data, self.action, self.detector, notification_uuid
-        )
->>>>>>> 9511567f9cf (tests)
 
     @mock.patch(
         "sentry.notifications.notification_action.registry.group_type_notification_registry.get"
@@ -80,18 +73,12 @@ class TestNotificationActionHandler(MetricAlertHandlerBase):
         self.action.trigger(self.event_data, notification_uuid=str(uuid.uuid4()))
 
         mock_registry_get.assert_called_once_with(MetricIssue.slug)
-<<<<<<< HEAD
         assert mock_handler.handle_workflow_action.call_count == 1
         invocation = mock_handler.handle_workflow_action.call_args[0][0]
         assert isinstance(invocation, ActionInvocation)
         assert invocation.event_data == self.event_data
         assert invocation.action == self.action
         assert invocation.detector == self.detector
-=======
-        mock_handler.handle_workflow_action.assert_called_once_with(
-            self.event_data, self.action, self.detector, ANY
-        )
->>>>>>> 9511567f9cf (tests)
 
     @mock.patch("sentry.notifications.notification_action.utils.execute_via_issue_alert_handler")
     @mock.patch(

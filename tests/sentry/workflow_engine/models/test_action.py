@@ -81,18 +81,12 @@ class TestAction(TestCase):
         with patch.object(self.action, "get_handler", return_value=mock_handler):
             self.action.trigger(self.mock_event, notification_uuid=notification_uuid)
 
-<<<<<<< HEAD
             assert mock_handler.execute.call_count == 1
             invocation = mock_handler.execute.call_args[0][0]
             assert isinstance(invocation, ActionInvocation)
             assert invocation.event_data == self.mock_event
             assert invocation.action == self.action
             assert invocation.detector == mock_detector
-=======
-            mock_handler.execute.assert_called_once_with(
-                self.mock_event, self.action, mock_get_detector.return_value, notification_uuid
-            )
->>>>>>> 9511567f9cf (tests)
 
     @patch("sentry.workflow_engine.processors.detector.get_detector_from_event_data")
     def test_trigger_with_failing_handler(self, mock_get_detector: MagicMock) -> None:

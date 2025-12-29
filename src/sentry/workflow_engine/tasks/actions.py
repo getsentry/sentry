@@ -25,7 +25,7 @@ logger = log_context.get_logger(__name__)
 def build_trigger_action_task_params(
     action: Action,
     event_data: WorkflowEventData,
-    workflow_uuid_map: dict[int, str] | None = None,
+    workflow_uuid_map: dict[int, str],
 ) -> dict[str, object]:
     """
     Build parameters for trigger_action task invocation.
@@ -33,7 +33,7 @@ def build_trigger_action_task_params(
     Args:
         action: The action to trigger.
         event_data: The event data to use for the action.
-        workflow_uuid_map: Optional mapping of workflow_id to notification_uuid.
+        workflow_uuid_map: Mapping of workflow_id to notification_uuid.
     """
     event_id = None
     activity_id = None
@@ -45,9 +45,12 @@ def build_trigger_action_task_params(
     elif isinstance(event_data.event, Activity):
         activity_id = event_data.event.id
 
+    # workflow_id is annotated in the queryset by filter_recently_fired_workflow_actions
+    workflow_id = getattr(action, "workflow_id", None)
+
     task_params = {
         "action_id": action.id,
-        "workflow_id": getattr(action, "workflow_id", None),
+        "workflow_id": workflow_id,
         "event_id": event_id,
         "activity_id": activity_id,
         "group_id": event_data.event.group_id,
@@ -58,11 +61,8 @@ def build_trigger_action_task_params(
     }
 
     # Add notification_uuid if available from workflow_uuid_map
-    # workflow_id is annotated in the queryset by filter_recently_fired_workflow_actions
-    if workflow_uuid_map:
-        workflow_id = getattr(action, "workflow_id", None)
-        if workflow_id is not None and workflow_id in workflow_uuid_map:
-            task_params["notification_uuid"] = workflow_uuid_map[workflow_id]
+    if workflow_id is not None and workflow_id in workflow_uuid_map:
+        task_params["notification_uuid"] = workflow_uuid_map[workflow_id]
 
     return task_params
 

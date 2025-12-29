@@ -192,7 +192,7 @@ def get_unique_active_actions(
 def fire_actions(
     actions: BaseQuerySet[Action],
     event_data: WorkflowEventData,
-    workflow_uuid_map: dict[int, str] | None = None,
+    workflow_uuid_map: dict[int, str],
 ) -> None:
     deduped_actions = get_unique_active_actions(actions)
 

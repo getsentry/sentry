@@ -298,18 +298,12 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         )
 
         with pytest.raises(ValueError):
-<<<<<<< HEAD
             invocation = ActionInvocation(
                 event_data=self.event_data,
                 action=self.action,
                 detector=self.detector,
             )
             self.handler.invoke_legacy_registry(invocation)
-=======
-            self.handler.invoke_legacy_registry(
-                self.event_data, self.action, self.detector, notification_uuid=str(uuid.uuid4())
-            )
->>>>>>> 9511567f9cf (tests)
 
     def test_get_incident_status(self) -> None:
         # Initial priority is high -> incident is critical
@@ -429,18 +423,12 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
 
     @mock.patch.object(TestHandler, "send_alert")
     def test_invoke_legacy_registry(self, mock_send_alert: mock.MagicMock) -> None:
-<<<<<<< HEAD
         invocation = ActionInvocation(
             event_data=self.event_data,
             action=self.action,
             detector=self.detector,
         )
         self.handler.invoke_legacy_registry(invocation)
-=======
-        self.handler.invoke_legacy_registry(
-            self.event_data, self.action, self.detector, notification_uuid=str(uuid.uuid4())
-        )
->>>>>>> 9511567f9cf (tests)
 
         assert mock_send_alert.call_count == 1
 
@@ -517,21 +505,12 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             group=self.group,
         )
 
-<<<<<<< HEAD
         invocation = ActionInvocation(
             event_data=event_data_with_activity,
             action=self.action,
             detector=self.detector,
         )
         self.handler.invoke_legacy_registry(invocation)
-=======
-        self.handler.invoke_legacy_registry(
-            event_data_with_activity,
-            self.action,
-            self.detector,
-            notification_uuid=str(uuid.uuid4()),
-        )
->>>>>>> 9511567f9cf (tests)
 
         assert mock_send_alert.call_count == 1
 
@@ -598,21 +577,12 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             group=self.group,
         )
 
-<<<<<<< HEAD
         invocation = ActionInvocation(
             event_data=event_data_with_activity,
             action=self.action,
             detector=self.detector,
         )
         self.handler.invoke_legacy_registry(invocation)
-=======
-        self.handler.invoke_legacy_registry(
-            event_data_with_activity,
-            self.action,
-            self.detector,
-            notification_uuid=str(uuid.uuid4()),
-        )
->>>>>>> 9511567f9cf (tests)
 
         assert mock_send_alert.call_count == 1
 
@@ -674,18 +644,10 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         )
 
         with pytest.raises(ValueError, match="Activity data is required for alert context"):
-<<<<<<< HEAD
             invocation = ActionInvocation(
                 event_data=event_data_with_activity,
                 action=self.action,
                 detector=self.detector,
-=======
-            self.handler.invoke_legacy_registry(
-                event_data_with_activity,
-                self.action,
-                self.detector,
-                notification_uuid=str(uuid.uuid4()),
->>>>>>> 9511567f9cf (tests)
             )
             self.handler.invoke_legacy_registry(invocation)
 
@@ -708,17 +670,9 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         with pytest.raises(
             TypeError
         ):  # MetricIssueEvidenceData will raise TypeError for missing args
-<<<<<<< HEAD
             invocation = ActionInvocation(
                 event_data=event_data_with_activity,
                 action=self.action,
                 detector=self.detector,
-=======
-            self.handler.invoke_legacy_registry(
-                event_data_with_activity,
-                self.action,
-                self.detector,
-                notification_uuid=str(uuid.uuid4()),
->>>>>>> 9511567f9cf (tests)
             )
             self.handler.invoke_legacy_registry(invocation)

@@ -19,13 +19,8 @@ class IssueAlertRegistryHandler(LegacyRegistryHandler):
     @override
     def handle_workflow_action(invocation: ActionInvocation) -> None:
         try:
-<<<<<<< HEAD
             handler = issue_alert_handler_registry.get(invocation.action.type)
             handler.invoke_legacy_registry(invocation)
-=======
-            handler = issue_alert_handler_registry.get(action.type)
-            handler.invoke_legacy_registry(job, action, detector, notification_uuid)
->>>>>>> 80f720e8db7 (cleanup)
         except NoRegistrationExistsError:
             logger.exception(
                 "No issue alert handler found for action type: %s",

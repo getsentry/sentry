@@ -14,7 +14,6 @@ class TestBuildTriggerActionTaskParams(TestCase):
         self.group = self.create_group(project=self.project)
 
     def test_build_trigger_action_task_params_basic(self) -> None:
-        """Test basic parameter building without workflow_uuid_map"""
         mock_group_event = Mock(spec=GroupEvent)
         mock_group_event.event_id = "event-123"
         mock_group_event.occurrence_id = "occurrence-456"
@@ -26,7 +25,7 @@ class TestBuildTriggerActionTaskParams(TestCase):
         # Annotate workflow_id on action as the queryset would
         setattr(action, "workflow_id", 42)
 
-        params = build_trigger_action_task_params(action, event_data)
+        params = build_trigger_action_task_params(action, event_data, {})
 
         assert params["action_id"] == 1
         assert params["workflow_id"] == 42
@@ -36,7 +35,6 @@ class TestBuildTriggerActionTaskParams(TestCase):
         assert "notification_uuid" not in params
 
     def test_build_trigger_action_task_params_with_workflow_uuid_map(self) -> None:
-        """Test that notification_uuid is added when workflow_id is in workflow_uuid_map"""
         mock_group_event = Mock(spec=GroupEvent)
         mock_group_event.event_id = "event-123"
         mock_group_event.occurrence_id = "occurrence-456"
@@ -58,7 +56,6 @@ class TestBuildTriggerActionTaskParams(TestCase):
         assert params["notification_uuid"] == expected_notification_uuid
 
     def test_build_trigger_action_task_params_workflow_not_in_map(self) -> None:
-        """Test that notification_uuid is not added when workflow_id is not in workflow_uuid_map"""
         mock_group_event = Mock(spec=GroupEvent)
         mock_group_event.event_id = "event-123"
         mock_group_event.occurrence_id = "occurrence-456"
@@ -80,7 +77,6 @@ class TestBuildTriggerActionTaskParams(TestCase):
         assert "notification_uuid" not in params
 
     def test_build_trigger_action_task_params_no_workflow_id(self) -> None:
-        """Test that notification_uuid is not added when action has no workflow_id"""
         mock_group_event = Mock(spec=GroupEvent)
         mock_group_event.event_id = "event-123"
         mock_group_event.occurrence_id = "occurrence-456"

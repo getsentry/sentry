@@ -40,15 +40,5 @@ class PagerdutyActionHandler(IntegrationActionHandler):
 
     @staticmethod
     @override
-<<<<<<< HEAD
     def execute(invocation: ActionInvocation) -> None:
         execute_via_group_type_registry(invocation)
-=======
-    def execute(
-        job: WorkflowEventData,
-        action: Action,
-        detector: Detector,
-        notification_uuid: str,
-    ) -> None:
-        execute_via_group_type_registry(job, action, detector, notification_uuid)
->>>>>>> 80f720e8db7 (cleanup)

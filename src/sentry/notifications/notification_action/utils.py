@@ -52,36 +52,21 @@ def execute_via_group_type_registry(invocation: ActionInvocation) -> None:
             invocation.event_data.event.type in BaseMetricAlertHandler.ACTIVITIES_TO_INVOKE_ON
             and invocation.event_data.group.type == MetricIssue.type_id
         ):
-<<<<<<< HEAD
             return execute_via_metric_alert_handler(invocation)
         return invocation.event_data.event.send_notification()
 
     try:
         handler = group_type_notification_registry.get(invocation.detector.type)
         handler.handle_workflow_action(invocation)
-=======
-            return execute_via_metric_alert_handler(event_data, action, detector, notification_uuid)
-        return event_data.event.send_notification()
-
-    try:
-        handler = group_type_notification_registry.get(detector.type)
-        handler.handle_workflow_action(event_data, action, detector, notification_uuid)
->>>>>>> 80f720e8db7 (cleanup)
     except NoRegistrationExistsError:
         # If the grouptype is not registered, we can just use the issue alert handler
         # This is so that notifications will still be sent for that group type if we forget to register a handler
         # Most grouptypes are sent to issue alert handlers
         logger.warning(
             "group_type_notification_registry.get.NoRegistrationExistsError",
-<<<<<<< HEAD
             extra={"detector_id": invocation.detector.id, "action_id": invocation.action.id},
         )
         return execute_via_issue_alert_handler(invocation)
-=======
-            extra={"detector_id": detector.id, "action_id": action.id},
-        )
-        return execute_via_issue_alert_handler(event_data, action, detector, notification_uuid)
->>>>>>> 80f720e8db7 (cleanup)
     except Exception:
         logger.exception(
             "Error executing via group type registry",
@@ -96,13 +81,8 @@ def execute_via_issue_alert_handler(invocation: ActionInvocation) -> None:
     ensure that the same thread is used for the notification action.
     """
     try:
-<<<<<<< HEAD
         handler = issue_alert_handler_registry.get(invocation.action.type)
         handler.invoke_legacy_registry(invocation)
-=======
-        handler = issue_alert_handler_registry.get(action.type)
-        handler.invoke_legacy_registry(job, action, detector, notification_uuid)
->>>>>>> 80f720e8db7 (cleanup)
     except NoRegistrationExistsError:
         logger.exception(
             "No notification handler found for action type: %s",
@@ -123,13 +103,8 @@ def execute_via_metric_alert_handler(invocation: ActionInvocation) -> None:
     This exists so that all metric alert resolution actions can use the same handler as metric alerts
     """
     try:
-<<<<<<< HEAD
         handler = metric_alert_handler_registry.get(invocation.action.type)
         handler.invoke_legacy_registry(invocation)
-=======
-        handler = metric_alert_handler_registry.get(action.type)
-        handler.invoke_legacy_registry(job, action, detector, notification_uuid)
->>>>>>> 80f720e8db7 (cleanup)
     except NoRegistrationExistsError:
         logger.exception(
             "No notification handler found for action type: %s",
