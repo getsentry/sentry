@@ -138,12 +138,9 @@ class BuildDetailsApiResponse(BaseModel):
     state: PreprodArtifact.ArtifactState
     app_info: BuildDetailsAppInfo
     vcs_info: BuildDetailsVcsInfo
-<<<<<<< HEAD
     project_id: int
     project_slug: str
-=======
     distribution_info: DistributionInfo
->>>>>>> c8d8db26ccb (add distribution_info to buildDetails api)
     size_info: SizeInfo | None = None
     posted_status_checks: PostedStatusChecks | None = None
     base_artifact_id: str | None = None
@@ -322,12 +319,9 @@ def transform_preprod_artifact_to_build_details(
         state=artifact.state,
         app_info=app_info,
         vcs_info=vcs_info,
-<<<<<<< HEAD
         project_id=artifact.project.id,
         project_slug=artifact.project.slug,
-=======
         distribution_info=distribution_info,
->>>>>>> c8d8db26ccb (add distribution_info to buildDetails api)
         size_info=size_info,
         posted_status_checks=posted_status_checks,
         base_artifact_id=base_artifact.id if base_artifact else None,
