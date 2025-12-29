@@ -27,7 +27,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.slug import SentrySlugField
-from sentry.db.models.paranoia import ParanoidManager, ParanoidModel
+from sentry.db.models.manager.base import BaseManager
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.apiscopes import HasApiScopes
@@ -68,7 +68,7 @@ def track_response_code(status, integration_slug, webhook_event):
     )
 
 
-class SentryAppManager(ParanoidManager["SentryApp"]):
+class SentryAppManager(BaseManager["SentryApp"]):
     def get_alertable_sentry_apps(self, organization_id: int) -> QuerySet:
         return self.filter(
             installations__organization_id=organization_id,
@@ -87,7 +87,7 @@ class SentryAppManager(ParanoidManager["SentryApp"]):
 
 
 @control_silo_model
-class SentryApp(ParanoidModel, HasApiScopes, Model):
+class SentryApp(HasApiScopes, Model):
     __relocation_scope__ = RelocationScope.Global
 
     application = models.OneToOneField(

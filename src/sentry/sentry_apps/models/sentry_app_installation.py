@@ -15,8 +15,8 @@ from sentry.backup.scopes import RelocationScope
 from sentry.constants import SentryAppInstallationStatus
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, control_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.db.models.paranoia import ParanoidManager, ParanoidModel
 from sentry.hybridcloud.models.outbox import ControlOutbox, ControlOutboxBase, outbox_context
 from sentry.hybridcloud.outbox.base import ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
@@ -38,7 +38,7 @@ def default_uuid() -> str:
     return str(uuid.uuid4())
 
 
-class SentryAppInstallationForProviderManager(ParanoidManager["SentryAppInstallation"]):
+class SentryAppInstallationForProviderManager(BaseManager["SentryAppInstallation"]):
     def get_organization_filter_kwargs(self, organization_ids: list[int]):
         return {
             "organization_id__in": organization_ids,
@@ -65,7 +65,7 @@ class SentryAppInstallationForProviderManager(ParanoidManager["SentryAppInstalla
 
 
 @control_silo_model
-class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
+class SentryAppInstallation(ReplicatedControlModel):
     __relocation_scope__ = RelocationScope.Global
     category = OutboxCategory.SENTRY_APP_INSTALLATION_UPDATE
 
