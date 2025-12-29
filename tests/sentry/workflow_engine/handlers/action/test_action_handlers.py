@@ -46,7 +46,7 @@ class TestNotificationActionHandler(MetricAlertHandlerBase):
         assert invocation.detector == self.detector
 =======
         mock_handler.handle_workflow_action.assert_called_once_with(
-            self.event_data, self.action, self.detector, notification_uuid=notification_uuid
+            self.event_data, self.action, self.detector, notification_uuid
         )
 >>>>>>> 9511567f9cf (tests)
 
@@ -89,7 +89,7 @@ class TestNotificationActionHandler(MetricAlertHandlerBase):
         assert invocation.detector == self.detector
 =======
         mock_handler.handle_workflow_action.assert_called_once_with(
-            self.event_data, self.action, self.detector, notification_uuid=ANY
+            self.event_data, self.action, self.detector, ANY
         )
 >>>>>>> 9511567f9cf (tests)
 
