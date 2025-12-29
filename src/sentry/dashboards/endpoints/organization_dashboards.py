@@ -105,6 +105,10 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
         "title": "Web Vitals",
     },
     {
+        "prebuilt_id": PrebuiltDashboardId.WEB_VITALS_SUMMARY,
+        "title": "Web Vitals Page Summary",
+    },
+    {
         "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS,
         "title": "Mobile Vitals",
     },
@@ -136,6 +140,10 @@ def sync_prebuilt_dashboards(organization: Organization) -> None:
             dashboard
             for dashboard in PREBUILT_DASHBOARDS
             if dashboard["prebuilt_id"] in enabled_prebuilt_dashboard_ids
+            or features.has(
+                "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
+                organization,
+            )
         ]
 
         saved_prebuilt_dashboards = Dashboard.objects.filter(

@@ -1,3 +1,4 @@
+import {Outlet} from 'react-router-dom';
 import {useProfiler} from '@sentry/react';
 
 import {Container} from '@sentry/scraps/layout';
@@ -40,7 +41,7 @@ interface Props {
  * Ensures the current organization is loaded. A loading indicator will be
  * rendered while loading the organization.
  */
-function OrganizationContainer({children}: Props) {
+export function OrganizationContainer({children}: Props) {
   const {loading, error, errorType} = useLegacyStore(OrganizationStore);
 
   if (loading) {
@@ -90,4 +91,13 @@ function OrganizationContainer({children}: Props) {
   return children;
 }
 
-export default OrganizationContainer;
+/**
+ * Route component version of OrganizationContainer that uses <Outlet />.
+ */
+export default function OrganizationContainerRoute() {
+  return (
+    <OrganizationContainer>
+      <Outlet />
+    </OrganizationContainer>
+  );
+}

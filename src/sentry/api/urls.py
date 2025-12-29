@@ -2650,6 +2650,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         OrganizationObjectstoreEndpoint.as_view(),
         name="sentry-api-0-organization-objectstore",
     ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprod/app-size-stats/$",
+        preprod_urls.OrganizationPreprodAppSizeStatsEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-app-size-stats",
+    ),
 ]
 
 PROJECT_URLS: list[URLPattern | URLResolver] = [
