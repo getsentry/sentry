@@ -23,6 +23,7 @@ from .preprod_artifact_rerun_analysis import (
     PreprodArtifactAdminRerunAnalysisEndpoint,
     PreprodArtifactRerunAnalysisEndpoint,
 )
+from .preprod_artifact_rerun_status_checks import PreprodArtifactRerunStatusChecksEndpoint
 from .project_installable_preprod_artifact_download import (
     ProjectInstallablePreprodArtifactDownloadEndpoint,
 )
@@ -111,6 +112,11 @@ preprod_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprod-artifact/rerun-analysis/(?P<head_artifact_id>[^/]+)/$",
         PreprodArtifactRerunAnalysisEndpoint.as_view(),
         name="sentry-api-0-preprod-artifact-rerun-analysis",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprod-artifact/rerun-status-checks/(?P<head_artifact_id>[^/]+)/$",
+        PreprodArtifactRerunStatusChecksEndpoint.as_view(),
+        name="sentry-api-0-preprod-artifact-rerun-status-checks",
     ),
     # PR page
     re_path(
