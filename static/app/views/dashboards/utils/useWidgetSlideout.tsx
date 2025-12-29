@@ -7,9 +7,7 @@ import {PageOverviewWebVitalsDetailPanel} from 'sentry/views/insights/browser/we
 import {WebVitalsDetailPanel} from 'sentry/views/insights/browser/webVitals/components/webVitalsDetailPanel';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 
-function getSlideoutComponent(widget: Widget): React.ReactNode | null {
-  // We assume the slideout id (if it exists) is always on the first query
-  const slideOutId = widget.queries[0]?.slideOutId;
+function getSlideoutComponent(slideOutId: SlideoutId): React.ReactNode | null {
   switch (slideOutId) {
     case SlideoutId.LCP:
     case SlideoutId.FCP:
@@ -40,7 +38,7 @@ export function useWidgetSlideout(widget: Widget) {
   // We assume the slideout id (if it exists) is always on the first query
   const slideOutId = widget.queries[0]?.slideOutId;
 
-  const component = getSlideoutComponent(widget);
+  const component = slideOutId ? getSlideoutComponent(slideOutId) : null;
 
   const {openDrawer} = useDrawer();
 
