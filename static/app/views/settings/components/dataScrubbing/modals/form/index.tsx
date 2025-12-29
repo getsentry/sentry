@@ -258,7 +258,7 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
         <SourceGroup>
           {dataset === AllowedDataScrubbingDatasets.DEFAULT ? (
             <Fragment>
-              <ToggleWrapper>
+              <Flex justify="end">
                 {displayEventId ? (
                   <Toggle priority="link" onClick={this.handleToggleEventId}>
                     {t('Hide event ID field')}
@@ -270,7 +270,7 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
                     <IconChevron direction="down" size="xs" />
                   </Toggle>
                 )}
-              </ToggleWrapper>
+              </Flex>
               <SourceGroup isExpanded={displayEventId}>
                 {displayEventId && (
                   <EventIdField onUpdateEventId={onUpdateEventId} eventId={eventId} />
@@ -423,7 +423,7 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
             </FieldGroup>
           )}
         </FieldContainer>
-        <ToggleWrapper>
+        <Flex justify="end">
           {displayEventId ? (
             <Toggle priority="link" onClick={this.handleToggleEventId}>
               {t('Hide event ID field')}
@@ -435,7 +435,7 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
               <IconChevron direction="down" size="xs" />
             </Toggle>
           )}
-        </ToggleWrapper>
+        </Flex>
         <SourceGroup isExpanded={displayEventId}>
           {displayEventId && (
             <EventIdField onUpdateEventId={onUpdateEventId} eventId={eventId} />
@@ -490,11 +490,6 @@ const DatasetRadioField = styled(RadioField)`
   #dataset {
     flex-direction: row;
   }
-`;
-
-const ToggleWrapper = styled('div')`
-  display: flex;
-  justify-content: flex-end;
 `;
 
 const Toggle = styled(Button)`

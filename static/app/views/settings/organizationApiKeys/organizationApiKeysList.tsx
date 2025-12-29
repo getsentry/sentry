@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import Confirm from 'sentry/components/confirm';
 import {AlertLink} from 'sentry/components/core/alert/alertLink';
@@ -90,15 +91,15 @@ function OrganizationApiKeysList({
         {keys?.map(({id, key, label}) => {
           return (
             <Fragment key={key}>
-              <Cell>
+              <Flex align="center">
                 <Link to={`/settings/${organization.slug}/api-keys/${id}/`}>{label}</Link>
-              </Cell>
+              </Flex>
 
               <TextCopyInput size="md" monospace>
                 {key}
               </TextCopyInput>
 
-              <Cell>
+              <Flex align="center">
                 <Confirm
                   onConfirm={() => onRemove(id)}
                   message={t('Are you sure you want to remove this API key?')}
@@ -107,7 +108,7 @@ function OrganizationApiKeysList({
                     {t('Remove API Key')}
                   </Button>
                 </Confirm>
-              </Cell>
+              </Flex>
             </Fragment>
           );
         })}
@@ -115,10 +116,5 @@ function OrganizationApiKeysList({
     </div>
   );
 }
-
-const Cell = styled('div')`
-  display: flex;
-  align-items: center;
-`;
 
 export default OrganizationApiKeysList;

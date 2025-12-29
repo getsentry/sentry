@@ -4,6 +4,8 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -97,12 +99,12 @@ export function PolicyRow({
         <Fragment>
           <Header>
             {curPolicy.slug === policy.slug ? (
-              <PolicyHeader>
+              <Flex justify="between" align="center">
                 <h5>{curPolicy.name}</h5>
                 <Button size="sm" onClick={showPolicy}>
                   {t('Download')}
                 </Button>
-              </PolicyHeader>
+              </Flex>
             ) : (
               <div style={{textAlign: 'center'}}>
                 {tct("You must first agree to Sentry's [policy]", {
@@ -253,12 +255,6 @@ const PolicyTitle = styled('h6')`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     font-size: ${p => p.theme.fontSize.lg};
   }
-`;
-
-const PolicyHeader = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
 `;
 
 const PolicyActions = styled('div')`
