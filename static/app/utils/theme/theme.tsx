@@ -294,7 +294,7 @@ const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
     borderHover: colors.green400,
     color: colors.green500,
   },
-  muted: {
+  subtle: {
     background: colors.gray200,
     backgroundLight: alias.backgroundSecondary,
     border: alias.border,
@@ -308,7 +308,7 @@ const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
     borderHover: colors.yellow400,
     color: colors.yellow500,
   },
-  error: {
+  danger: {
     background: colors.red400,
     backgroundLight: colors.red100,
     border: colors.red200,
