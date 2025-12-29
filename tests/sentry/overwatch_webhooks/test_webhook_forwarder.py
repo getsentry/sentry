@@ -154,7 +154,7 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
             )
             mock_enqueue.assert_not_called()
 
-    @override_options({"overwatch.enabled-regions": ["us"], "github.webhook.pull-request": True})
+    @override_options({"overwatch.enabled-regions": ["us"]})
     def test_forward_if_applicable_successful_forwarding(self):
         organization = self.create_organization(name="Test Org", slug="test-org", region="us")
         self.create_organization_integration(
@@ -182,7 +182,7 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
             assert call_args.webhook_body == event
             assert call_args.app_id == 987654
 
-    @override_options({"overwatch.enabled-regions": ["us"], "github.webhook.pull-request": True})
+    @override_options({"overwatch.enabled-regions": ["us"]})
     def test_forward_if_applicable_multiple_organizations(self):
         for i in range(3):
             org = self.create_organization(name=f"Org {i+1}", slug=f"org-{i+1}", region="us")
@@ -228,7 +228,7 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
                 assert isinstance(call_args, WebhookDetails)
                 assert call_args.webhook_body == event
 
-    @override_options({"overwatch.enabled-regions": ["us"], "github.webhook.pull-request": True})
+    @override_options({"overwatch.enabled-regions": ["us"]})
     def test_forward_if_applicable_preserves_webhook_body_data(self):
         organization = self.create_organization(name="Test Org", slug="test-org", region="us")
         self.create_organization_integration(
@@ -266,12 +266,7 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
             assert call_args.webhook_body["commits"][0]["id"] == "abc123"
 
     @responses.activate
-    @override_options(
-        {
-            "overwatch.enabled-regions": ["us", "de"],
-            "github.webhook.pull-request": True,
-        }
-    )
+    @override_options({"overwatch.enabled-regions": ["us", "de"]})
     @override_settings(
         OVERWATCH_REGION_URLS={
             "us": "https://us.example.com/api",
@@ -365,12 +360,7 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
         }
 
     @responses.activate
-    @override_options(
-        {
-            "overwatch.enabled-regions": ["us"],
-            "github.webhook.pull-request": True,
-        }
-    )
+    @override_options({"overwatch.enabled-regions": ["us"]})
     @override_settings(
         OVERWATCH_REGION_URLS={"us": "https://us.example.com/api"},
         OVERWATCH_WEBHOOK_SECRET="test-secret",
@@ -434,62 +424,37 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
             "request_type": DEFAULT_REQUEST_TYPE,
         }
 
-    def test_installation_events_always_included(self):
-        """Installation events should always be forwarded regardless of options."""
+    def test_default_events_included(self):
+        """Test that default events should always be forwarded."""
         events = get_github_events_to_forward_overwatch()
+        assert GithubWebhookType.PULL_REQUEST in events
+        assert GithubWebhookType.PULL_REQUEST_REVIEW in events
+        assert GithubWebhookType.PULL_REQUEST_REVIEW_COMMENT in events
+        assert GithubWebhookType.ISSUE_COMMENT in events
+        # These are always forwarded
         assert GithubWebhookType.INSTALLATION in events
         assert GithubWebhookType.INSTALLATION_REPOSITORIES in events
+        assert len(events) == 5
 
-    @override_options({"github.webhook.issue-comment": False})
-    def test_disabling_issue_comment_webhook(self):
-        """Test that disabling issue-comment option excludes it from forwarding."""
+    @override_options(
+        {
+            "github.webhook.issue-comment": False,
+            "github.webhook.pr": False,
+            "github.webhook.pr-review": False,
+            "github.webhook.pr-review-comment": False,
+        }
+    )
+    def test_disabling_options_excludes_events(self):
+        """Test that disabling options excludes events from forwarding."""
         events = get_github_events_to_forward_overwatch()
         assert GithubWebhookType.ISSUE_COMMENT not in events
-        # Installation events still included
+        assert GithubWebhookType.PULL_REQUEST not in events
+        assert GithubWebhookType.PULL_REQUEST_REVIEW not in events
+        assert GithubWebhookType.PULL_REQUEST_REVIEW_COMMENT not in events
+        # These are always forwarded
         assert GithubWebhookType.INSTALLATION in events
         assert GithubWebhookType.INSTALLATION_REPOSITORIES in events
-
-    @override_options(
-        {
-            "github.webhook.pull-request": False,
-            "github.webhook.issue-comment": True,
-        }
-    )
-    def test_disabling_pull_request_webhook(self):
-        """Test that disabling pull-request option excludes it from forwarding."""
-        events = get_github_events_to_forward_overwatch()
-        assert GithubWebhookType.PULL_REQUEST not in events
-        # Other events still included
-        assert GithubWebhookType.INSTALLATION in events
-        assert GithubWebhookType.ISSUE_COMMENT in events
-
-    @override_options(
-        {
-            "github.webhook.pr-review-comment": False,
-            "github.webhook.pull-request": True,
-        }
-    )
-    def test_disabling_pull_request_review_comment_webhook(self):
-        """Test that disabling pull-request-review-comment option excludes it from forwarding."""
-        events = get_github_events_to_forward_overwatch()
-        assert GithubWebhookType.PULL_REQUEST_REVIEW_COMMENT not in events
-        # Other events still included
-        assert GithubWebhookType.INSTALLATION in events
-        assert GithubWebhookType.PULL_REQUEST in events
-
-    @override_options(
-        {
-            "github.webhook.pr-review": False,
-            "github.webhook.pull-request": True,
-        }
-    )
-    def test_disabling_pull_request_review_webhook(self):
-        """Test that disabling pull-request-review option excludes it from forwarding."""
-        events = get_github_events_to_forward_overwatch()
-        assert GithubWebhookType.PULL_REQUEST_REVIEW not in events
-        # Other events still included
-        assert GithubWebhookType.INSTALLATION in events
-        assert GithubWebhookType.PULL_REQUEST in events
+        assert len(events) == 5
 
     @override_options(
         {
@@ -512,34 +477,3 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
                 event, headers={GITHUB_WEBHOOK_TYPE_HEADER_KEY: "issue_comment"}
             )
             mock_enqueue.assert_not_called()
-
-    @override_options(
-        {
-            "overwatch.enabled-regions": ["us"],
-            "github.webhook.pull-request": False,
-            "github.webhook.issue-comment": True,
-        }
-    )
-    def test_forward_if_applicable_with_mixed_webhook_settings(self):
-        """Test that only enabled webhook types are forwarded."""
-        organization = self.create_organization(name="Test Org", slug="test-org", region="us")
-        self.create_organization_integration(
-            integration=self.integration,
-            organization_id=organization.id,
-        )
-
-        # Test disabled webhook type
-        pr_event = {"action": "opened", "number": 123}
-        with patch.object(OverwatchWebhookPublisher, "enqueue_webhook") as mock_enqueue:
-            self.forwarder.forward_if_applicable(
-                pr_event, headers={GITHUB_WEBHOOK_TYPE_HEADER_KEY: "pull_request"}
-            )
-            mock_enqueue.assert_not_called()
-
-        # Test enabled webhook type
-        comment_event = {"action": "created", "comment": {"body": "test"}}
-        with patch.object(OverwatchWebhookPublisher, "enqueue_webhook") as mock_enqueue:
-            self.forwarder.forward_if_applicable(
-                comment_event, headers={GITHUB_WEBHOOK_TYPE_HEADER_KEY: "issue_comment"}
-            )
-            mock_enqueue.assert_called_once()
