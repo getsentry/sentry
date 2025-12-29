@@ -1,3 +1,8 @@
+"""
+The main function here is called by the Celery task to process the webhook event.
+It routes to the appropriate event-specific processor based on the event type.
+"""
+
 from __future__ import annotations
 
 import logging
