@@ -6,6 +6,6 @@ export function useHasDrillDownFlows() {
   return hasDrillDownFlowsFeature(organization);
 }
 
-export function hasDrillDownFlowsFeature(organization: Organization) {
+function hasDrillDownFlowsFeature(organization: Organization) {
   return organization.features.includes('dashboards-drilldown-flow');
 }
