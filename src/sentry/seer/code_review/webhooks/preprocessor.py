@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
@@ -13,6 +14,8 @@ if TYPE_CHECKING:
 
 from ..utils import _transform_webhook_to_codegen_request
 from .check_run import preprocess_check_run_event
+
+logger = logging.getLogger(__name__)
 
 METRICS_PREFIX = "seer.code_review.webhook"
 
@@ -73,6 +76,11 @@ def preprocess_webhook_event(*, event_type: str, event: Mapping[str, Any], **kwa
     event_type_enum = EventType.from_string(event_type)
     preprocessor = EVENT_TYPE_TO_PREPROCESSOR.get(event_type_enum)
     if preprocessor is None:
+        # This should not happen, but we report to Sentry without blocking a release
+        logger.warning(
+            "github.webhook.preprocessor.not_found",
+            extra={"event_type": event_type},
+        )
         return
 
     preprocessor(event_type=event_type, event=event, **kwargs)
