@@ -5,6 +5,7 @@ import type {Platform} from './sharedTypes';
 
 export interface BuildDetailsApiResponse {
   app_info: BuildDetailsAppInfo;
+  distribution_info?: DistributionInfo;
   id: string;
   state: BuildDetailsState;
   vcs_info: BuildDetailsVcsInfo;
@@ -47,6 +48,12 @@ export interface BuildDetailsVcsInfo {
   head_sha?: string | null;
   pr_number?: number | null;
   provider?: string | null;
+}
+
+export interface DistributionInfo {
+  download_count: number;
+  is_installable: boolean;
+  release_notes?: string | null;
 }
 
 export interface BuildDetailsSizeInfoSizeMetric {

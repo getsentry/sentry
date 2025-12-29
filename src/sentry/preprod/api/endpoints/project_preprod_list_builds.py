@@ -22,6 +22,7 @@ from sentry.preprod.api.models.project_preprod_build_details_models import (
     transform_preprod_artifact_to_build_details,
 )
 from sentry.preprod.api.validators import PreprodListBuildsValidator
+from sentry.preprod.build_distribution_utils import annotate_download_count
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.utils import parse_release_version
 
@@ -153,10 +154,10 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
                     ]
                 )
 
-        queryset = queryset.order_by("-date_added")
-
         if start and end:
             queryset = queryset.filter(date_added__gte=start, date_added__lte=end)
+
+        queryset = annotate_download_count(queryset).order_by("-date_added")
 
         def transform_results(results: list[PreprodArtifact]) -> dict[str, Any]:
             build_details_list = []
