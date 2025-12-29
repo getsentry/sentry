@@ -59,7 +59,6 @@ import toPercent from 'sentry/utils/number/toPercent';
 import Projects from 'sentry/utils/projects';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {isUrl} from 'sentry/utils/string/isUrl';
-import {hasDrillDownFlowsFeature} from 'sentry/views/dashboards/hooks/useHasDrillDownFlows';
 import {
   DashboardFilterKeys,
   type DashboardFilters,
@@ -1421,7 +1420,7 @@ function wrapFieldRendererInDashboardLink(
       widget,
       dashboardFilters
     );
-    if (hasDrillDownFlowsFeature(organization) && dashboardUrl) {
+    if (dashboardUrl) {
       return <Link to={dashboardUrl}>{renderer(data, baggage)}</Link>;
     }
     return renderer(data, baggage);
