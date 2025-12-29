@@ -88,12 +88,17 @@ def encode_attributes(
     format_tag_key = lambda key: f"tags[{key}]"
 
     tag_keys = set()
-    for key, value in event_data["tags"]:
-        if value is None:
-            continue
-        formatted_key = format_tag_key(key)
-        attributes[formatted_key] = _encode_value(value)
-        tag_keys.add(formatted_key)
+    tags = event_data.get("tags")
+    if tags is not None:
+        for tag in tags:
+            if tag is None:
+                continue
+            key, value = tag
+            if value is None:
+                continue
+            formatted_key = format_tag_key(key)
+            attributes[formatted_key] = _encode_value(value)
+            tag_keys.add(formatted_key)
 
     attributes["tag_keys"] = _encode_value(sorted(tag_keys))
 

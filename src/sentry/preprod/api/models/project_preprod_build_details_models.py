@@ -129,6 +129,8 @@ class BuildDetailsApiResponse(BaseModel):
     state: PreprodArtifact.ArtifactState
     app_info: BuildDetailsAppInfo
     vcs_info: BuildDetailsVcsInfo
+    project_id: int
+    project_slug: str
     size_info: SizeInfo | None = None
     posted_status_checks: PostedStatusChecks | None = None
     base_artifact_id: str | None = None
@@ -260,13 +262,12 @@ def transform_preprod_artifact_to_build_details(
     artifact: PreprodArtifact,
 ) -> BuildDetailsApiResponse:
 
-    size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
-        preprod_artifact=artifact,
-    )
-    size_metrics_list = list(size_metrics_qs)
+    size_metrics_list = list(artifact.preprodartifactsizemetrics_set.all())
 
     base_size_metrics_list: list[PreprodArtifactSizeMetrics] = []
-    base_artifact = artifact.get_base_artifact_for_commit().first()
+    base_artifact = (
+        artifact.get_base_artifact_for_commit().select_related("build_configuration").first()
+    )
     base_build_info = None
     if base_artifact:
         base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
@@ -302,6 +303,8 @@ def transform_preprod_artifact_to_build_details(
         state=artifact.state,
         app_info=app_info,
         vcs_info=vcs_info,
+        project_id=artifact.project.id,
+        project_slug=artifact.project.slug,
         size_info=size_info,
         posted_status_checks=posted_status_checks,
         base_artifact_id=base_artifact.id if base_artifact else None,
