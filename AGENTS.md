@@ -34,6 +34,17 @@ sentry/
 > - **Backend testing patterns**: `tests/AGENTS.md`
 > - **Frontend patterns**: `static/AGENTS.md`
 
+### Context-Aware Loading
+
+Cursor is configured to automatically load relevant AGENTS.md files based on the file being edited (via `.cursor/rules/*.mdc`). This provides context-specific guidance without token bloat:
+
+- Editing `src/**/*.py` → Loads `src/AGENTS.md` (backend patterns)
+- Editing `tests/**/*.py` → Loads `tests/AGENTS.md` (testing patterns)
+- Editing `static/**/*.{ts,tsx,js,jsx}` → Loads `static/AGENTS.md` (frontend patterns)
+- Always loads this file (`AGENTS.md`) for general Sentry context
+
+**Note**: These `.mdc` files only _reference_ AGENTS.md files—they don't duplicate content. All actual guidance should be added to the appropriate AGENTS.md file, not to Cursor rules.
+
 ## Backend
 
 For backend development patterns, commands, security guidelines, and architecture, see `src/AGENTS.md`.

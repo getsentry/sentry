@@ -1,0 +1,7 @@
+---
+globs:
+  - 'src/**/*.py'
+  - '!src/**/tests/**'
+---
+
+@file:src/AGENTS.md
