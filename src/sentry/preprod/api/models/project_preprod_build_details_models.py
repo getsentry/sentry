@@ -262,10 +262,7 @@ def transform_preprod_artifact_to_build_details(
     artifact: PreprodArtifact,
 ) -> BuildDetailsApiResponse:
 
-    size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
-        preprod_artifact=artifact,
-    )
-    size_metrics_list = list(size_metrics_qs)
+    size_metrics_list = list(artifact.preprodartifactsizemetrics_set.all())
 
     base_size_metrics_list: list[PreprodArtifactSizeMetrics] = []
     base_artifact = artifact.get_base_artifact_for_commit().first()
