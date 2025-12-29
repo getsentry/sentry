@@ -37,7 +37,7 @@ def handle_other_webhook_event(
 
     event_type_enum = EventType.from_string(event_type)
     transformed_event = _transform_webhook_to_codegen_request(
-        event_type_enum, dict(event), organization.id
+        event_type_enum, dict(event), organization.id, repo
     )
 
     if transformed_event is None:

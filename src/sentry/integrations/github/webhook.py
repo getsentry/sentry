@@ -588,7 +588,9 @@ class PushEventWebhook(GitHubWebhook):
                 pass
 
         languages.discard(None)
-        repo.languages = list(set(repo.languages or []).union(languages))
+        repo.languages = list(
+            set(repo.languages or []).union({lang for lang in languages if lang is not None})
+        )
         repo.save()
 
 

@@ -6,6 +6,7 @@ import orjson
 from django.conf import settings
 from urllib3.exceptions import HTTPError
 
+from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 
@@ -55,8 +56,12 @@ def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:
         return response.data
 
 
+# XXX: Do a thorough review of this function and make sure it's correct.
 def _transform_webhook_to_codegen_request(
-    event_type: str, event_payload: Mapping[str, Any], organization_id: int
+    event_type: str,
+    event_payload: Mapping[str, Any],
+    organization_id: int,
+    repo: Repository,
 ) -> dict[str, Any] | None:
     """
     Transform a GitHub webhook payload into CodecovTaskRequest format for Seer.
@@ -73,14 +78,9 @@ def _transform_webhook_to_codegen_request(
     Raises:
         ValueError: If required fields are missing from the webhook payload
     """
-    # Extract repository information
-    repository = event_payload.get("repository")
-    if not repository:
-        raise ValueError("Missing repository in webhook payload")
-
     # Determine request_type based on event_type
     # For now, we only support pr-review for these webhook types
-    request_type: Literal["pr-review", "unit-tests", "pr-closed"] = "pr-review"
+    request_type: Literal["pr-review", "pr-closed"] = "pr-review"
 
     # Extract pull request number
     # Different event types have PR info in different locations
@@ -98,9 +98,9 @@ def _transform_webhook_to_codegen_request(
     # Build RepoDefinition
     repo_definition = {
         "provider": "github",  # All GitHub webhooks use "github" provider
-        "owner": repository["owner"]["login"],
-        "name": repository["name"],
-        "external_id": str(repository["id"]),
+        "owner": repo.owner,
+        "name": repo.name,
+        "external_id": repo.external_id,
     }
 
     # Build CodegenBaseRequest (minimal required fields)
@@ -114,7 +114,7 @@ def _transform_webhook_to_codegen_request(
     # Build CodecovTaskRequest
     return {
         "data": codegen_request,
-        "external_owner_id": str(repository["id"]),
+        "external_owner_id": repo.external_id,
         "request_type": request_type,
         "organization_id": organization_id,
     }
