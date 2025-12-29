@@ -33,7 +33,6 @@ class PreprodArtifactApiGetBuildDetailsEvent(analytics.Event):
 @analytics.eventclass("preprod_artifact.api.list_builds")
 class PreprodArtifactApiListBuildsEvent(analytics.Event):
     organization_id: int
-    project_id: int
     user_id: int | None = None
 
 
