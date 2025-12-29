@@ -8,7 +8,7 @@ type FeatureBadgeType = 'alpha' | 'beta' | 'new' | 'experimental' | 'internal';
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   children: React.ReactNode;
   variant:
-    | 'default'
+    | 'muted'
     | 'internal'
     | 'info'
     | 'success'
@@ -55,7 +55,11 @@ function makeBadgeTheme(p: BadgeProps, theme: Theme): React.CSSProperties {
         color: theme.colors.gray500,
         background: theme.colors.gray100,
       };
-    case 'default':
+    case 'muted':
+      return {
+        color: theme.colors.gray500,
+        background: theme.colors.gray100,
+      };
     case 'internal':
       return {
         color: theme.colors.gray500,

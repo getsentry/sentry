@@ -62,7 +62,7 @@ export function CommitsFilesSection({
         <TabList.Item key="commits" textValue={t('Commits')}>
           <Flex>
             <span>{t('Commits')}</span>
-            <Badge variant="default">
+            <Badge variant="muted">
               {isLoadingMeta
                 ? '-'
                 : isMetaError
@@ -74,7 +74,7 @@ export function CommitsFilesSection({
         <TabList.Item key="files" textValue={t('File Changes')}>
           <Flex>
             <span>{t('File Changes')}</span>
-            <Badge variant="default">
+            <Badge variant="muted">
               {isLoadingMeta
                 ? '-'
                 : isMetaError

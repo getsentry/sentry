@@ -36,7 +36,7 @@ function SettingsNavBadge({badge}: {badge: string | number | null | ReactElement
     );
   }
   if (typeof badge === 'string' || typeof badge === 'number') {
-    return <StyledBadge variant="default">{badge}</StyledBadge>;
+    return <StyledBadge variant="muted">{badge}</StyledBadge>;
   }
 
   return badge;

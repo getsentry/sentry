@@ -91,7 +91,7 @@ export function ProjectPageFilterTrigger({
         {desynced && <DesyncedFilterIndicator role="presentation" />}
       </TriggerLabelWrap>
       {remainingCount > 0 && (
-        <StyledBadge variant="default">{`+${remainingCount}`}</StyledBadge>
+        <StyledBadge variant="muted">{`+${remainingCount}`}</StyledBadge>
       )}
     </SelectTrigger.Button>
   );

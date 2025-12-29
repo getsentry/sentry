@@ -107,7 +107,7 @@ function GroupHeaderTabs({
         to={{pathname: `${baseUrl}activity/`, query: queryParams}}
       >
         {t('Activity')}
-        <IconBadge variant="default">
+        <IconBadge variant="muted">
           {group.numComments}
           <IconChat size="xs" />
         </IconBadge>
@@ -119,7 +119,7 @@ function GroupHeaderTabs({
         disabled={disabledTabs.includes(Tab.USER_FEEDBACK)}
         to={{pathname: `${baseUrl}feedback/`, query: queryParams}}
       >
-        {t('User Feedback')} <Badge variant="default">{group.userReportCount}</Badge>
+        {t('User Feedback')} <Badge variant="muted">{group.userReportCount}</Badge>
       </TabList.Item>
       <TabList.Item
         key={Tab.ATTACHMENTS}

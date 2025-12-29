@@ -11,6 +11,8 @@ resources:
 
 import {useState} from 'react';
 
+import {Badge} from 'sentry/components/core/badge';
+
 import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
 import {DeployBadge} from 'sentry/components/core/badge/deployBadge';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
@@ -35,6 +37,7 @@ The `FeatureBadge` component should be used to annotate new features as they mov
   <FeatureBadge type="beta" />
   <FeatureBadge type="new" />
   <FeatureBadge type="experimental" />
+  <Badge variant="muted">Muted</Badge>
 </Storybook.Demo>
 ```jsx import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 
