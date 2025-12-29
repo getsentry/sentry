@@ -43,6 +43,6 @@ export const Separator = styled(
       p.orientation === 'horizontal' ? 'border-bottom' : 'border-left',
       p.border ?? 'primary',
       p.theme,
-      getBorder} !important`
+      (...args) => `${getBorder(...args)} !important`
     )};
 `;
