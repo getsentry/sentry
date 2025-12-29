@@ -26,7 +26,7 @@ describe('getDetectorResolutionDescription', () => {
       });
 
       expect(result).toBe(
-        'Issue will be resolved when the query value is less than 100%.'
+        'Issue will be resolved when the query value is below or equal to 100%.'
       );
     });
 
@@ -40,7 +40,7 @@ describe('getDetectorResolutionDescription', () => {
       });
 
       expect(result).toBe(
-        'Issue will be resolved when the query value is more than 50ms.'
+        'Issue will be resolved when the query value is above or equal to 50ms.'
       );
     });
 
@@ -54,7 +54,7 @@ describe('getDetectorResolutionDescription', () => {
       });
 
       expect(result).toBe(
-        'Issue will be resolved when the query value is less than 100.'
+        'Issue will be resolved when the query value is below or equal to 100.'
       );
     });
 
@@ -68,7 +68,7 @@ describe('getDetectorResolutionDescription', () => {
       });
 
       expect(result).toBe(
-        'Issue will be resolved when the query value is less than 75%.'
+        'Issue will be resolved when the query value is below or equal to 75%.'
       );
     });
 
@@ -82,7 +82,7 @@ describe('getDetectorResolutionDescription', () => {
       });
 
       expect(result).toBe(
-        'Issue will be resolved when the query value is more than 80ms.'
+        'Issue will be resolved when the query value is above or equal to 80ms.'
       );
     });
   });
