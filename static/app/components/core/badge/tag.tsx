@@ -58,7 +58,7 @@ export function Tag({
   );
 }
 
-export const TagPill = styled('div')<{
+const TagPill = styled('div')<{
   variant?: TagVariant;
 }>`
   ${p => ({...makeTagPillTheme(p.variant, p.theme)})};
