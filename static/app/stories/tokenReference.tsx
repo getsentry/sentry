@@ -68,7 +68,7 @@ function Token({
           justify="center"
           onClick={handleCopy}
         >
-          <Flex width="64px" height="64px" align="center" justify="center">
+          <Flex minWidth="64px" height="64px" align="center" justify="center">
             {children}
           </Flex>
           <Text size="sm" monospace variant="accent">

@@ -101,9 +101,7 @@ Typography tokens are used with the [`<Text />`](/stories/typography/text) and [
 
 ## Line Height
 
-```
-TBD
-```
+<LineHeight />
 
 export function Space() {
   const theme = useTheme();
@@ -205,17 +203,42 @@ export function FontFamily() {
     <Storybook.TokenReference
       scale="font.family"
       tokens={theme.font.family}
-      renderToken={({value, token}) =>
+      renderToken={({token}) =>
         token === 'sans' ? (
-          <Text size="lg" variant="accent">
+          <Text wrap="nowrap" size="lg" variant="accent">
             Rubik
           </Text>
         ) : (
-          <Text size="lg" monospace variant="accent">
+          <Text wrap="nowrap" size="lg" monospace variant="accent">
             Roboto Mono
           </Text>
         )
       }
+    />
+  );
+}
+
+export function LineHeight() {
+  const theme = useTheme();
+  return (
+    <Storybook.TokenReference
+      scale="font.lineHeight"
+      tokens={theme.font.lineHeight}
+      renderToken={({value, token}) => (
+        <Flex
+          align="center"
+          justify="center"
+          as="div"
+          height={typeof value === 'number' ? `${value * 16}px` : value}
+          borderTop="accent"
+          borderBottom="accent"
+          style={{boxSizing: 'border-box'}}
+        >
+          <Text size="md" density={token} variant="accent">
+            Aa
+          </Text>
+        </Flex>
+      )}
     />
   );
 }
