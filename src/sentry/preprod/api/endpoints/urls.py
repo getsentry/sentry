@@ -118,6 +118,7 @@ preprod_project_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprod-artifact/rerun-status-checks/(?P<head_artifact_id>[^/]+)/$",
         PreprodArtifactRerunStatusChecksEndpoint.as_view(),
         name="sentry-api-0-preprod-artifact-rerun-status-checks",
+    ),
 ]
 
 preprod_organization_urlpatterns = [
