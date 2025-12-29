@@ -93,6 +93,7 @@ class OrganizationPreprodListBuildsEndpoint(OrganizationEndpoint):
         if start and end:
             queryset = queryset.filter(date_added__gte=start, date_added__lte=end)
 
+        release_version_parsed = False
         release_version = params.get("release_version")
         if release_version:
             parsed_version = parse_release_version(release_version)
@@ -101,7 +102,9 @@ class OrganizationPreprodListBuildsEndpoint(OrganizationEndpoint):
                     app_id__icontains=parsed_version.app_id,
                     build_version__icontains=parsed_version.build_version,
                 )
-        else:
+                release_version_parsed = True
+
+        if not release_version_parsed:
             app_id = params.get("app_id")
             if app_id:
                 queryset = queryset.filter(app_id__exact=app_id)
