@@ -154,7 +154,7 @@ export function MobileAppSizeFilters() {
 
   // Sync initial query config to widget builder context
   useEffect(() => {
-    if (!hasInitialized.current && (!state.query || state.query.length === 0)) {
+    if (!hasInitialized.current && (!state.query || state.query.every(q => !q))) {
       updateQueries(queryConfigs);
       hasInitialized.current = true;
     }
