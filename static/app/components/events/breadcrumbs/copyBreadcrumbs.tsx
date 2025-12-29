@@ -9,6 +9,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
 
+function escapeMarkdownCell(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\n/g, ' ');
+}
+
 export function formatBreadcrumbsAsMarkdown(crumbs: EnhancedCrumb[]): string {
   if (crumbs.length === 0) {
     return '';
@@ -20,12 +24,10 @@ export function formatBreadcrumbsAsMarkdown(crumbs: EnhancedCrumb[]): string {
   const rows = crumbs.map(crumb => {
     const bc = crumb.breadcrumb;
     const timestamp = bc.timestamp ? new Date(bc.timestamp).toISOString() : '';
-    const type = bc.type ?? '';
+    const type = bc.type;
     const category = bc.category ?? '';
-    const message = (bc.message ?? '').replace(/\|/g, '\\|').replace(/\n/g, ' ');
-    const data = bc.data
-      ? JSON.stringify(bc.data).replace(/\|/g, '\\|').replace(/\n/g, ' ')
-      : '';
+    const message = escapeMarkdownCell(bc.message ?? '');
+    const data = bc.data ? escapeMarkdownCell(JSON.stringify(bc.data)) : '';
 
     return `| ${timestamp} | ${type} | ${category} | ${bc.level} | ${message} | ${data} |`;
   });
