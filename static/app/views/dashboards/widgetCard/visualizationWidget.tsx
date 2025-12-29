@@ -4,7 +4,12 @@ import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
 import {transformLegacySeriesToPlottables} from 'sentry/utils/timeSeries/transformLegacySeriesToPlottables';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
+import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
+import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import type {
+  LegendSelection,
+  TabularColumn,
+} from 'sentry/views/dashboards/widgets/common/types';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 
@@ -13,6 +18,7 @@ import {WidgetCardDataLoader} from './widgetCardDataLoader';
 interface VisualizationWidgetProps {
   selection: PageFilters;
   widget: Widget;
+  widgetLegendState: WidgetLegendSelectionState;
   dashboardFilters?: DashboardFilters;
   onDataFetchStart?: () => void;
   onDataFetched?: (results: {
@@ -38,6 +44,7 @@ export function VisualizationWidget({
   tableItemLimit,
   renderErrorMessage,
   showReleaseAs = 'bubble',
+  widgetLegendState,
 }: VisualizationWidgetProps) {
   const {releases: releasesWithDate} = useReleaseStats(selection, {
     enabled: showReleaseAs !== 'none',
@@ -48,6 +55,24 @@ export function VisualizationWidget({
       timestamp: date,
       version,
     })) ?? [];
+
+  const encodedLegendSelection = widgetLegendState.getWidgetSelectionState(widget);
+  const legendSelection: LegendSelection = Object.fromEntries(
+    Object.entries(encodedLegendSelection).map(([encodedName, value]) => [
+      WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(encodedName, true),
+      value,
+    ])
+  );
+
+  const handleLegendSelectionChange = (selected: LegendSelection) => {
+    const encodedSelection = Object.fromEntries(
+      Object.entries(selected).map(([plainName, value]) => [
+        WidgetLegendNameEncoderDecoder.encodeSeriesNameForLegend(plainName, widget.id),
+        value,
+      ])
+    );
+    widgetLegendState.setWidgetSelectionState(encodedSelection, widget);
+  };
 
   return (
     <WidgetCardDataLoader
@@ -80,6 +105,8 @@ export function VisualizationWidget({
             plottables={plottables}
             releases={releases}
             showReleaseAs={showReleaseAs}
+            legendSelection={legendSelection}
+            onLegendSelectionChange={handleLegendSelectionChange}
           />
         );
       }}
