@@ -343,7 +343,16 @@ const getDefaultWidgets = (organization: Organization) => {
       displayType: DisplayType.LINE,
       widgetType: WidgetType.MOBILE_APP_SIZE,
       interval: '30d',
-      queries: [],
+      queries: [
+        {
+          name: '',
+          conditions: '',
+          fields: [],
+          aggregates: ['max(max_install_size)'],
+          columns: [],
+          orderby: '',
+        },
+      ],
     },
   ];
 

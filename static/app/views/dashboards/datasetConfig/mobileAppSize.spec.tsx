@@ -26,7 +26,7 @@ describe('MobileAppSizeConfig', () => {
 
       const widgetQuery = {
         conditions: 'app_id=com.example.app',
-        aggregates: ['max(max_install_size)'],
+        aggregates: [],
         fields: [],
         columns: [],
         fieldAliases: [],
@@ -66,7 +66,7 @@ describe('MobileAppSizeConfig', () => {
 
       const widgetQuery = {
         conditions: '',
-        aggregates: ['max(max_install_size)'],
+        aggregates: [],
         fields: [],
         columns: [],
         fieldAliases: [],
@@ -97,7 +97,7 @@ describe('MobileAppSizeConfig', () => {
 
       const widgetQuery = {
         conditions: 'app_id=com.example.app&artifact_type=2',
-        aggregates: ['max(max_install_size)'],
+        aggregates: [],
         fields: [],
         columns: [],
         fieldAliases: [],
@@ -113,6 +113,7 @@ describe('MobileAppSizeConfig', () => {
 
       expect(result[0]!.seriesName).toContain('com.example.app');
       expect(result[0]!.seriesName).toContain('apk');
+      expect(result[0]!.seriesName).toContain('max(max_install_size)');
     });
 
     it('includes branch and build config in series name', () => {
@@ -128,7 +129,7 @@ describe('MobileAppSizeConfig', () => {
       const widgetQuery = {
         conditions:
           'app_id=com.example.app&git_head_ref=main&build_configuration_name=Release',
-        aggregates: ['max(max_install_size)'],
+        aggregates: [],
         fields: [],
         columns: [],
         fieldAliases: [],
@@ -145,6 +146,36 @@ describe('MobileAppSizeConfig', () => {
       expect(result[0]!.seriesName).toContain('com.example.app');
       expect(result[0]!.seriesName).toContain('main');
       expect(result[0]!.seriesName).toContain('Release');
+      expect(result[0]!.seriesName).toContain('max(max_install_size)');
+    });
+
+    it('uses correct aggregate for download size', () => {
+      const data: AppSizeResponse[] = [
+        {
+          data: [[1609459200, [{count: 500000}]]],
+          start: 1609459200,
+          end: 1609459200,
+          meta: {fields: {}},
+        },
+      ];
+
+      const widgetQuery = {
+        conditions: 'app_id=com.example.app&size_type=download',
+        aggregates: [],
+        fields: [],
+        columns: [],
+        fieldAliases: [],
+        name: '',
+        orderby: '',
+      };
+
+      const result = MobileAppSizeConfig.transformSeries!(
+        data,
+        widgetQuery,
+        organization
+      );
+
+      expect(result[0]!.seriesName).toBe('com.example.app : max(max_download_size)');
     });
   });
 
@@ -156,7 +187,7 @@ describe('MobileAppSizeConfig', () => {
         queries: [
           {
             conditions: 'app_id=com.example.app',
-            aggregates: ['max(max_install_size)'],
+            aggregates: [],
             fields: [],
             columns: [],
             fieldAliases: [],
@@ -199,7 +230,7 @@ describe('MobileAppSizeConfig', () => {
         queries: [
           {
             conditions: 'app_id=com.example.app&size_type=download',
-            aggregates: ['max(max_download_size)'],
+            aggregates: [],
             fields: [],
             columns: [],
             fieldAliases: [],
@@ -241,7 +272,7 @@ describe('MobileAppSizeConfig', () => {
       const data: AppSizeResponse[] = [];
       const widgetQuery = {
         conditions: '',
-        aggregates: ['max(max_install_size)'],
+        aggregates: [],
         fields: [],
         columns: [],
         fieldAliases: [],

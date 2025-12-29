@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -79,6 +79,7 @@ function buildConditionsString(config: QueryConfig): string {
 export function MobileAppSizeFilters() {
   const organization = useOrganization();
   const {state, dispatch} = useWidgetBuilderContext();
+  const hasInitialized = useRef(false);
   const [queryConfigs, setQueryConfigs] = useState<QueryConfig[]>(() => {
     const queries = state.query || [];
     if (queries.length === 0) {
@@ -150,6 +151,14 @@ export function MobileAppSizeFilters() {
     },
     [dispatch]
   );
+
+  // Sync initial query config to widget builder context
+  useEffect(() => {
+    if (!hasInitialized.current && (!state.query || state.query.length === 0)) {
+      updateQueries(queryConfigs);
+      hasInitialized.current = true;
+    }
+  }, [state.query, queryConfigs, updateQueries]);
 
   const handleQueryChange = useCallback(
     (index: number, updates: Partial<QueryConfig>) => {

@@ -164,9 +164,10 @@ export const MobileAppSizeConfig: DatasetConfig<AppSizeResponse[], TableData> = 
         parts.push(buildConfig);
       }
 
-      const sizeLabel = sizeType === 'download' ? 'Download Size' : 'Install Size';
+      const aggregate =
+        sizeType === 'download' ? 'max(max_download_size)' : 'max(max_install_size)';
       const baseLabel = parts.length > 0 ? parts.join(' : ') : 'App Size';
-      const seriesName = `${baseLabel} : ${sizeLabel}`;
+      const seriesName = `${baseLabel} : ${aggregate}`;
 
       return {
         seriesName,
