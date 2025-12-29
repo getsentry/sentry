@@ -69,7 +69,7 @@ export const onboarding: OnboardingConfig = {
         },
         {
           type: 'text',
-          text: tct('Install [code:sentry-sdk]:', {code: <code />}),
+          text: tct('Install [code:sentry-sdk]:'),
         },
         {
           type: 'code',

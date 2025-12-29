@@ -41,7 +41,7 @@ export const profiling: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Add your DSN to your [code:.env] file:', {code: <code />}),
+          text: tct('Add your DSN to your [code:.env] file:'),
         },
         {
           type: 'code',

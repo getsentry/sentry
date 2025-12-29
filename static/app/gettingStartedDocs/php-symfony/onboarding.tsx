@@ -12,8 +12,7 @@ export const onboarding: OnboardingConfig = {
   introduction: () => (
     <p>
       {tct(
-        'Symfony is supported via the [code:sentry-symfony] package as a native bundle.',
-        {code: <code />}
+        'Symfony is supported via the [code:sentry-symfony] package as a native bundle.'
       )}
     </p>
   ),
@@ -23,9 +22,7 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install the [code:sentry/sentry-symfony] bundle:', {
-            code: <code />,
-          }),
+          text: tct('Install the [code:sentry/sentry-symfony] bundle:'),
         },
         {
           type: 'code',
@@ -42,7 +39,7 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Add your DSN to your [code:.env] file:', {code: <code />}),
+          text: tct('Add your DSN to your [code:.env] file:'),
         },
         {
           type: 'code',
@@ -59,8 +56,7 @@ SENTRY_DSN="${params.dsn.public}"
           alertType: 'warning',
           showIcon: false,
           text: tct(
-            'In order to receive stack trace arguments in your errors, make sure to set [code:zend.exception_ignore_args: Off] in your php.ini',
-            {code: <code />}
+            'In order to receive stack trace arguments in your errors, make sure to set [code:zend.exception_ignore_args: Off] in your php.ini'
           ),
         },
       ],
@@ -111,7 +107,7 @@ SENTRY_DSN="${params.dsn.public}"
           type: 'text',
           text: tct(
             "After you visit the [code:/_sentry-test page], you can view and resolve the recorded error by logging into [sentryLink:sentry.io] and opening your project. Clicking on the error's title will open a page where you can see detailed information and mark it as resolved.",
-            {sentryLink: <ExternalLink href="https://sentry.io" />, code: <code />}
+            {sentryLink: <ExternalLink href="https://sentry.io" />}
           ),
         },
       ],

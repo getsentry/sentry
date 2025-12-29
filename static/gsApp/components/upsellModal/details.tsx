@@ -393,10 +393,9 @@ class Body extends Component<Props, State> {
           getTrialLength(organization)
         )
       : hasPerformance(subscription.planDetails)
-        ? tct('Upgrade to our [strong:Business Plan] today.', {strong: <strong />})
+        ? tct('Upgrade to our [strong:Business Plan] today.')
         : tct(
-            "You're currently on one of our legacy plans. Upgrade to our newer [strong:Performance Plans].",
-            {strong: <strong />}
+            "You're currently on one of our legacy plans. Upgrade to our newer [strong:Performance Plans]."
           );
   }
 

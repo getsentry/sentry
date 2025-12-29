@@ -32,7 +32,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {defaultConfig, InvalidReason} from 'sentry/components/searchSyntax/parser';
-import {t, tct, tctCode} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
@@ -304,7 +304,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 
   get transactionAlertDisabledMessage() {
-    return tctCode(
+    return tct(
       'The transaction dataset is being deprecated. Please use Span alerts instead. Spans are a superset of transactions, you can isolate transactions by using the [code:is_transaction:true] filter. Please read these [FAQLink:FAQs] for more information.',
       {
         FAQLink: (
@@ -593,7 +593,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
         {deprecateTransactionsAlertsWarning && (
           <Alert.Container>
             <Alert type="warning">
-              {tctCode(
+              {tct(
                 'Editing of transaction-based alerts is disabled, as we migrate to the span dataset. To expedite and re-enable edit functionality, use span-based alerts with the [code:is_transaction:true] filter instead. Please read these [FAQLink:FAQs] for more information.',
                 {
                   FAQLink: (

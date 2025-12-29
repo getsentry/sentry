@@ -1,12 +1,12 @@
 import {Alert} from 'sentry/components/core/alert';
 import {ExternalLink, Link} from 'sentry/components/core/link';
-import {tctCode} from 'sentry/locale';
+import {tct} from 'sentry/locale';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetector';
 
-export const TRANSACTIONS_DATASET_DEPRECATION_MESSAGE = tctCode(
+export const TRANSACTIONS_DATASET_DEPRECATION_MESSAGE = tct(
   'The transaction dataset is being deprecated. Please use Span alerts instead. Spans are a superset of transactions, you can isolate transactions by using the [code:is_transaction:true] filter. Please read these [FAQLink:FAQs] for more information.',
   {
     FAQLink: (
@@ -39,8 +39,8 @@ export function MigratedAlertWarning({detector}: {detector: MetricDetector}) {
   return (
     <Alert.Container>
       <Alert type="info">
-        {tctCode(
-          'To match the original behaviour, we’ve migrated this alert from a transaction-based alert to a span-based alert using a special compatibility mode. When you have a moment, please [editLink:edit] the alert updating its thresholds to account for [samplingLink:sampling].',
+        {tct(
+          "To match the original behaviour, we've migrated this alert from a transaction-based alert to a span-based alert using a special compatibility mode. When you have a moment, please [editLink:edit] the alert updating its thresholds to account for [samplingLink:sampling].",
           {
             editLink: <Link to={editLink} disabled={!canEdit} />,
             samplingLink: (

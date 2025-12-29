@@ -21,7 +21,7 @@ import {ExternalLink, Link} from 'sentry/components/core/link';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Placeholder from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
-import {t, tctCode} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
@@ -281,7 +281,7 @@ function WidgetBuilderSlideout({
                     }
                   >
                     {disableTransactionWidget && isEditing
-                      ? tctCode(
+                      ? tct(
                           'Editing of transaction-based widgets is disabled, as we migrate to the span dataset. To expedite and re-enable edit functionality, switch to the [spans] dataset below with the [code:is_transaction:true] filter. Please read these [FAQLink:FAQs] for more information.',
                           {
                             spans: (
@@ -311,7 +311,7 @@ function WidgetBuilderSlideout({
                             ),
                           }
                         )
-                      : tctCode(
+                      : tct(
                           'The transactions dataset is being deprecated. Please use the Spans dataset with the [code:is_transaction:true] filter instead. Please read these [FAQLink:FAQs] for more information.',
                           {
                             FAQLink: (
