@@ -110,7 +110,7 @@ function ReleasesSelectControl({
           <ButtonLabelWrapper>
             {triggerLabel}{' '}
             {activeReleases.length > 1 && (
-              <StyledBadge type="default">{`+${activeReleases.length - 1}`}</StyledBadge>
+              <StyledBadge variant="default">{`+${activeReleases.length - 1}`}</StyledBadge>
             )}
           </ButtonLabelWrapper>
         ),

@@ -103,7 +103,7 @@ export default function MailboxPicker({onChange, value}: Props) {
                   ) : (
                     mailbox.label
                   )}
-                  {display ? <Badge type="default">{display}</Badge> : null}
+                  {display ? <Badge variant="default">{display}</Badge> : null}
                 </Flex>
               </Tooltip>
             </SegmentedControl.Item>

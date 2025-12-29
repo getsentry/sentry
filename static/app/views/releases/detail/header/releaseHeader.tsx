@@ -55,7 +55,7 @@ function ReleaseHeader({
     {
       title: tct('Commits [count]', {
         count: (
-          <NavTabsBadge type="default">
+          <NavTabsBadge variant="default">
             {formatAbbreviatedNumber(commitCount)}
           </NavTabsBadge>
         ),
@@ -66,7 +66,7 @@ function ReleaseHeader({
     {
       title: tct('Files Changed [count]', {
         count: (
-          <NavTabsBadge type="default">
+          <NavTabsBadge variant="default">
             {formatAbbreviatedNumber(commitFilesChanged)}
           </NavTabsBadge>
         ),
@@ -87,7 +87,7 @@ function ReleaseHeader({
           </BadgeWrapper>
         ) : (
           <React.Fragment>
-            <NavTabsBadge type="default">
+            <NavTabsBadge variant="default">
               {formatAbbreviatedNumber(numberOfMobileBuilds)}
             </NavTabsBadge>
             <BadgeWrapper>

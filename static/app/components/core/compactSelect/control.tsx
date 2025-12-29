@@ -437,7 +437,7 @@ export function Control({
       <Fragment>
         <TriggerLabel>{options[0]?.label}</TriggerLabel>
         {options.length > 1 && (
-          <StyledBadge type="default">{`+${options.length - 1}`}</StyledBadge>
+          <StyledBadge variant="default">{`+${options.length - 1}`}</StyledBadge>
         )}
       </Fragment>
     );

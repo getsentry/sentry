@@ -59,7 +59,7 @@ function FilterSelectorTrigger({
       )}
       {isFetching && <StyledLoadingIndicator size={14} />}
       {shouldShowBadge && (
-        <StyledBadge type="default">{`+${activeFilterValues.length - 1}`}</StyledBadge>
+        <StyledBadge variant="default">{`+${activeFilterValues.length - 1}`}</StyledBadge>
       )}
     </ButtonLabelWrapper>
   );

@@ -125,7 +125,7 @@ export default function ErrorCounts({replayErrors}: Props) {
                 />
               );
             })}
-          <Badge aria-label={t('hidden projects')} type="default">
+          <Badge aria-label={t('hidden projects')} variant="default">
             +{extraProjectCount}
           </Badge>
         </StackedProjectBadges>
