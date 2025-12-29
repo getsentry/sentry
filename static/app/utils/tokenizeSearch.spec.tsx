@@ -230,6 +230,33 @@ describe('utils/tokenizeSearch', () => {
           ],
         },
       },
+      {
+        name: 'should handle trailing paren when quoted value contains parens',
+        string: '(key:"value with (parens)")',
+        object: {
+          tokens: [
+            {type: TokenType.OPERATOR, value: '('},
+            {type: TokenType.FILTER, key: 'key', value: 'value with (parens)'},
+            {type: TokenType.OPERATOR, value: ')'},
+          ],
+        },
+      },
+      {
+        name: 'should handle complex SQL-like query in quoted value with grouping parens',
+        string: '(span.category:db description:"SELECT * FROM users WHERE id = func(1)")',
+        object: {
+          tokens: [
+            {type: TokenType.OPERATOR, value: '('},
+            {type: TokenType.FILTER, key: 'span.category', value: 'db'},
+            {
+              type: TokenType.FILTER,
+              key: 'description',
+              value: 'SELECT * FROM users WHERE id = func(1)',
+            },
+            {type: TokenType.OPERATOR, value: ')'},
+          ],
+        },
+      },
     ];
 
     for (const {name, string, object} of cases) {
@@ -650,6 +677,20 @@ describe('utils/tokenizeSearch', () => {
         name: 'handles ends with filter',
         object: new MutableSearch(['message:\uf00dEndsWith\uf00d"test value"']),
         string: 'message:\uf00dEndsWith\uf00d"test value"',
+      },
+      {
+        name: 'should preserve grouping parens when quoted value contains parens',
+        object: new MutableSearch(['(key:"value with (parens)")']),
+        string: '( key:"value with (parens)" )',
+      },
+      {
+        name: 'should preserve complex query with SQL-like quoted value and grouping parens',
+        object: new MutableSearch([
+          '(span.category:db',
+          'description:"SELECT * FROM users WHERE id = func(1)")',
+        ]),
+        string:
+          '( span.category:db description:"SELECT * FROM users WHERE id = func(1)" )',
       },
     ];
 

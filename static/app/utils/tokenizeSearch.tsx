@@ -50,6 +50,19 @@ function isParen(token: Token, character: '(' | ')') {
   );
 }
 
+function hasUnquotedOpenParen(s: string): boolean {
+  let inQuotes = false;
+  for (let i = 0; i < s.length; i++) {
+    const char = s[i];
+    if (char === '"' && (i === 0 || s[i - 1] !== '\\')) {
+      inQuotes = !inQuotes;
+    } else if (char === '(' && !inQuotes) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function isProperlyBracketed(value: string): boolean {
   return /^\[.*\]$/.test(value);
 }
@@ -193,7 +206,7 @@ export class MutableSearch {
       }
 
       let trailingParen = '';
-      if (token.endsWith(')') && !token.includes('(')) {
+      if (token.endsWith(')') && !hasUnquotedOpenParen(token)) {
         const parenMatch = token.match(/\)+$/g);
         if (parenMatch) {
           trailingParen = parenMatch[0];
