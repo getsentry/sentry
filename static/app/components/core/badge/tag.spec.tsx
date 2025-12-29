@@ -5,7 +5,7 @@ import {IconFire} from 'sentry/icons';
 
 describe('Tag', () => {
   it('basic', () => {
-    render(<Tag>Text</Tag>);
+    render(<Tag variant="muted">Text</Tag>);
     expect(screen.getByText('Text')).toBeInTheDocument();
   });
 

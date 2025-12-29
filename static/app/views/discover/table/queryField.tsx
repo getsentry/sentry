@@ -628,7 +628,7 @@ class _QueryField extends Component<Props> {
       default:
         text = kind;
     }
-    return <Tag variant={tagVariant}>{text}</Tag>;
+    return <Tag variant={tagVariant ?? 'muted'}>{text}</Tag>;
   }
 
   render() {

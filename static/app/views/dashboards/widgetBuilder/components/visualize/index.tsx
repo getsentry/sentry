@@ -1018,7 +1018,7 @@ function renderTag(kind: FieldValueKind, label: string, dataType?: string) {
       case 'number':
         return <Tag variant="info">{t('number')}</Tag>;
       default:
-        return <Tag>{dataType}</Tag>;
+        return <Tag variant="muted">{dataType}</Tag>;
     }
   }
   let text: string | undefined, tagVariant: TagProps['variant'] | undefined;
@@ -1053,7 +1053,7 @@ function renderTag(kind: FieldValueKind, label: string, dataType?: string) {
       text = kind;
   }
 
-  return <Tag variant={tagVariant}>{text}</Tag>;
+  return <Tag variant={tagVariant ?? 'muted'}>{text}</Tag>;
 }
 
 export const AggregateCompactSelect = styled(CompactSelect)<{

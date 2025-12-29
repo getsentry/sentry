@@ -139,7 +139,7 @@ function DetailsPage({
               .filter(badge => badge.visible !== false)
               .map(badge => (
                 <Tooltip key={badge.name} disabled={!badge.help} title={badge.help}>
-                  <Tag variant={badge.level}>{badge.name}</Tag>
+                  <Tag variant={badge.level ?? 'muted'}>{badge.name}</Tag>
                 </Tooltip>
               ))}
           </NameWithBadges>,

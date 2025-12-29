@@ -250,7 +250,7 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                   </div>
                 ) : isPaygOnly ? (
                   hasPaygForCategory ? (
-                    <Tag>{t('Available')}</Tag>
+                    <Tag variant="muted">{t('Available')}</Tag>
                   ) : (
                     <Tooltip
                       title={tct('This product is only available with [budgetTerm].', {
@@ -263,7 +263,7 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                           }),
                       })}
                     >
-                      <Tag icon={<IconLock locked size="xs" />}>
+                      <Tag variant="muted" icon={<IconLock locked size="xs" />}>
                         {isXSmallScreen ? (
                           <Text size="xs">
                             {tct('Unlock with [budgetTerm]', {

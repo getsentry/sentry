@@ -10,6 +10,7 @@ import type {TagVariant} from 'sentry/utils/theme';
 import {unreachable} from 'sentry/utils/unreachable';
 
 export interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
+  variant: TagVariant;
   /**
    * Icon on the left side.
    */
@@ -19,17 +20,9 @@ export interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
    */
   onDismiss?: () => void;
   ref?: React.Ref<HTMLDivElement>;
-  variant?: TagVariant;
 }
 
-export function Tag({
-  ref,
-  variant = 'muted',
-  icon,
-  onDismiss,
-  children,
-  ...props
-}: TagProps) {
+export function Tag({ref, variant, icon, onDismiss, children, ...props}: TagProps) {
   return (
     <TagPill variant={variant} data-test-id="tag-background" ref={ref} {...props}>
       {icon && (
@@ -59,7 +52,7 @@ export function Tag({
 }
 
 const TagPill = styled('div')<{
-  variant?: TagVariant;
+  variant: TagVariant;
 }>`
   ${p => ({...makeTagPillTheme(p.variant, p.theme)})};
 
@@ -77,10 +70,7 @@ const TagPill = styled('div')<{
   }
 `;
 
-function makeTagPillTheme(
-  type: TagVariant | undefined,
-  theme: Theme
-): React.CSSProperties {
+function makeTagPillTheme(type: TagVariant, theme: Theme): React.CSSProperties {
   switch (type) {
     case undefined:
     case 'muted':

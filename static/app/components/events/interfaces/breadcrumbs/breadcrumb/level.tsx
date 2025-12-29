@@ -36,7 +36,7 @@ export function Level({level, searchTerm = ''}: Props) {
       );
     default:
       return (
-        <Tag>
+        <Tag variant="muted">
           <Highlight text={searchTerm}>{level || t('Undefined')}</Highlight>
         </Tag>
       );

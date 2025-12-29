@@ -279,14 +279,14 @@ function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) 
                     {isMoreThanIncluded ? (
                       `+ ${price}/${shortInterval}`
                     ) : activePlan.checkoutCategories.includes(category) ? (
-                      <Tag>{t('Included')}</Tag>
+                      <Tag variant="muted">{t('Included')}</Tag>
                     ) : hasPaygProducts ? (
-                      <Tag>{t('Available')}</Tag>
+                      <Tag variant="muted">{t('Available')}</Tag>
                     ) : (
                       <Tooltip
                         title={t('This product is only available with a PAYG budget.')}
                       >
-                        <Tag icon={<IconLock locked size="xs" />}>
+                        <Tag variant="muted" icon={<IconLock locked size="xs" />}>
                           {t('Product not available')}
                         </Tag>
                       </Tooltip>

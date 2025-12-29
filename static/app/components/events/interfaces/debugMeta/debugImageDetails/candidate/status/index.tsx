@@ -26,7 +26,11 @@ function Status({status, ...props}: Props) {
       );
     }
     case CandidateDownloadStatus.NOT_FOUND: {
-      return <Tag {...props}>{t('Not Found')}</Tag>;
+      return (
+        <Tag variant="muted" {...props}>
+          {t('Not Found')}
+        </Tag>
+      );
     }
     case CandidateDownloadStatus.NO_PERMISSION: {
       return (
@@ -54,7 +58,11 @@ function Status({status, ...props}: Props) {
         scope.setLevel('warning');
         Sentry.captureException(new Error('Unknown image candidate download status'));
       });
-      return <Tag {...props}>{t('Unknown')}</Tag>; // This shall not happen
+      return (
+        <Tag variant="muted" {...props}>
+          {t('Unknown')}
+        </Tag>
+      ); // This shall not happen
     }
   }
 }

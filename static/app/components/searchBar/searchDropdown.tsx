@@ -311,7 +311,7 @@ function KindTag({kind, deprecated}: KindTagProps) {
     case FieldKind.TAG:
       return <Tag variant="warning">{kind}</Tag>;
     default:
-      return <Tag>{kind}</Tag>;
+      return <Tag variant="muted">{kind}</Tag>;
   }
 }
 

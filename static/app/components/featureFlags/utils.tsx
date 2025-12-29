@@ -43,7 +43,7 @@ export function getFlagActionLabel(action: string) {
     <ActionLabel>
       <Tag
         variant={
-          action === 'created' ? 'info' : action === 'deleted' ? 'danger' : undefined
+          action === 'created' ? 'info' : action === 'deleted' ? 'danger' : 'muted'
         }
       >
         {capitalized}
