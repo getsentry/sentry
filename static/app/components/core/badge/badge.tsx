@@ -7,7 +7,7 @@ type FeatureBadgeType = 'alpha' | 'beta' | 'new' | 'experimental' | 'internal';
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   children: React.ReactNode;
-  type:
+  variant:
     | 'default'
     | 'internal'
     | 'info'
@@ -33,7 +33,7 @@ export const Badge = styled('span')<BadgeProps>`
 `;
 
 function makeBadgeTheme(p: BadgeProps, theme: Theme): React.CSSProperties {
-  switch (p.type) {
+  switch (p.variant) {
     // @TODO(jonasbadalic) these should use feature badge variants
     case 'alpha':
       return {
@@ -90,7 +90,7 @@ function makeBadgeTheme(p: BadgeProps, theme: Theme): React.CSSProperties {
         background: theme.colors.green100,
       };
     default:
-      unreachable(p.type);
-      throw new TypeError(`Unsupported badge type: ${p.type}`);
+      unreachable(p.variant);
+      throw new TypeError(`Unsupported badge variant: ${p.variant}`);
   }
 }
