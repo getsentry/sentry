@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import inspect
 import logging
-from abc import ABC, abstractmethod
-from collections.abc import Mapping, MutableMapping
+from abc import ABC
+from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import timezone
-from typing import Any
+from typing import Any, Protocol
 
 import orjson
 from dateutil.parser import parse as parse_date
@@ -27,7 +28,10 @@ from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.github.utils import should_create_or_increment_contributor_seat
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.pipeline import ensure_integration
-from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.services.integration.model import (
+    RpcIntegration,
+    RpcOrganizationIntegration,
+)
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.services.repository.service import repository_service
 from sentry.integrations.source_code_management.webhook import SCMWebhook
@@ -51,7 +55,9 @@ from sentry.plugins.providers.integration_repository import (
     get_integration_repository_provider,
 )
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
-from sentry.seer.code_review.webhooks import PREPROCESSORS
+from sentry.seer.code_review.webhooks.handlers import (
+    handle_webhook_event as code_review_handle_webhook_event,
+)
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.organization_contributors import assign_seat_to_organization_contributor
 from sentry.users.services.user.service import user_service
@@ -63,6 +69,18 @@ from .tasks.codecov_account_unlink import codecov_account_unlink
 from .types import IssueEvenntWebhookActionType
 
 logger = logging.getLogger("sentry.webhooks")
+
+
+class WebhookProcessor(Protocol):
+    def __call__(
+        self,
+        *,
+        event_type: str,
+        event: Mapping[str, Any],
+        organization: Organization,
+        repo: Repository,
+        **kwargs: Any,
+    ) -> None: ...
 
 
 def get_github_external_id(event: Mapping[str, Any], host: str | None = None) -> str | None:
@@ -86,18 +104,83 @@ def is_contributor_eligible_for_seat_assignment(user_type: str | None) -> bool:
     return user_type != "Bot"
 
 
+def _handle_pr_webhook_for_autofix_processor(
+    *, event_type: str, event: Mapping[str, Any], **kwargs: Any
+) -> None:
+    """
+    Adapter to make handle_github_pr_webhook_for_autofix work with standard processor signature.
+
+    This extracts the required parameters from the standardized webhook processor format
+    and calls the legacy autofix handler with its expected signature.
+    """
+    pull_request = event.get("pull_request")
+    if not pull_request:
+        return
+
+    action = event.get("action")
+    user = pull_request.get("user")
+    organization = kwargs.get("organization")
+
+    if organization and action and user:
+        # Because we require that the sentry github integration be installed for autofix, we can piggyback
+        # on this webhook for autofix for now. We may move to a separate autofix github integration in the future
+        handle_github_pr_webhook_for_autofix(organization, action, pull_request, user)
+
+
 class GitHubWebhook(SCMWebhook, ABC):
     """
     Base class for GitHub webhooks handled in region silos.
     """
 
+    EVENT_TYPE: IntegrationWebhookEventType
+    # When subclassing, add your webhook event processor here.
+    WEBHOOK_EVENT_PROCESSORS: tuple[WebhookProcessor, ...] = ()
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if not inspect.isabstract(cls) and not hasattr(cls, "EVENT_TYPE"):
+            raise TypeError(f"{cls.__name__} must define EVENT_TYPE class attribute")
+
+    @property
+    def event_type(self) -> IntegrationWebhookEventType:
+        return self.EVENT_TYPE
+
     @property
     def provider(self) -> str:
         return IntegrationProviderSlug.GITHUB.value
 
-    @abstractmethod
-    def _handle(self, integration: RpcIntegration, event: Mapping[str, Any], **kwargs) -> None:
-        pass
+    # _handle() is needed by _call() in the base class.
+    # subclasses can now just add their function to the WEBHOOK_EVENT_PROCESSORS tuple
+    # without needing to implement _handle()
+    def _handle(
+        self,
+        integration: RpcIntegration,
+        event: Mapping[str, Any],
+        organization: Organization,
+        repo: Repository,
+        **kwargs: Any,
+    ) -> None:
+        for processor in self.WEBHOOK_EVENT_PROCESSORS:
+            try:
+                processor(
+                    event_type=self.event_type.value,
+                    event=event,
+                    organization=organization,
+                    repo=repo,
+                    **kwargs,
+                )
+            except Exception as e:
+                # Continue processing other processors even if one fails.
+                logger.exception(
+                    "github.webhook.processor.error",
+                    extra={"event_type": self.event_type.value, "error": str(e)},
+                )
+                metrics.incr(
+                    "github.webhook.processor.error",
+                    tags={"event_type": self.event_type.value},
+                    sample_rate=1.0,
+                )
+                continue
 
     def __call__(self, event: Mapping[str, Any], **kwargs: Any) -> None:
         external_id = get_github_external_id(event=event, host=kwargs.get("host"))
@@ -234,11 +317,9 @@ class InstallationEventWebhook(GitHubWebhook):
     https://developer.github.com/v3/activity/events/types/#installationevent
     """
 
-    @property
-    def event_type(self) -> IntegrationWebhookEventType:
-        return IntegrationWebhookEventType.INSTALLATION
+    EVENT_TYPE = IntegrationWebhookEventType.INSTALLATION
 
-    def __call__(self, event: Mapping[str, Any], **kwargs) -> None:
+    def __call__(self, event: Mapping[str, Any], **kwargs: Any) -> None:
         installation = event["installation"]
 
         if not installation:
@@ -267,7 +348,9 @@ class InstallationEventWebhook(GitHubWebhook):
             org_integrations = result.organization_integrations
 
             if integration is not None:
-                self._handle(integration, event, org_integrations=org_integrations)
+                self._handle_organization_deletion(
+                    integration, event, org_integrations=org_integrations
+                )
             else:
                 # It seems possible for the GH or GHE app to be installed on their
                 # end, but the integration to not exist. Possibly from deleting in
@@ -283,13 +366,13 @@ class InstallationEventWebhook(GitHubWebhook):
                 )
                 logger.error("Installation is missing.")
 
-    def _handle(
+    def _handle_organization_deletion(
         self,
         integration: RpcIntegration,
         event: Mapping[str, Any],
-        **kwargs,
+        org_integrations: Sequence[RpcOrganizationIntegration],
     ) -> None:
-        org_ids = {oi.organization_id for oi in kwargs.get("org_integrations", [])}
+        org_ids = [oi.organization_id for oi in org_integrations]
 
         logger.info(
             "InstallationEventWebhook._handle_delete",
@@ -328,9 +411,7 @@ class InstallationEventWebhook(GitHubWebhook):
 class PushEventWebhook(GitHubWebhook):
     """https://developer.github.com/v3/activity/events/types/#pushevent"""
 
-    @property
-    def event_type(self) -> IntegrationWebhookEventType:
-        return IntegrationWebhookEventType.PUSH
+    EVENT_TYPE = IntegrationWebhookEventType.PUSH
 
     def should_ignore_commit(self, commit: Mapping[str, Any]) -> bool:
         return GitHubRepositoryProvider.should_ignore_commit(commit["message"])
@@ -339,12 +420,11 @@ class PushEventWebhook(GitHubWebhook):
         self,
         integration: RpcIntegration,
         event: Mapping[str, Any],
-        **kwargs,
+        organization: Organization,
+        repo: Repository,
+        **kwargs: Any,
     ) -> None:
         authors = {}
-        if not ((organization := kwargs.get("organization")) and (repo := kwargs.get("repo"))):
-            raise ValueError("Missing organization and repo")
-
         client = integration.get_installation(organization_id=organization.id).get_client()
         gh_username_cache: MutableMapping[str, str | None] = {}
 
@@ -508,18 +588,26 @@ class PushEventWebhook(GitHubWebhook):
                 pass
 
         languages.discard(None)
-        repo.languages = list(set(repo.languages or []).union(languages))
+        repo.languages = list(
+            set(repo.languages or []).union({lang for lang in languages if lang is not None})
+        )
         repo.save()
 
 
 class IssuesEventWebhook(GitHubWebhook):
     """https://developer.github.com/v3/activity/events/types/#issuesevent"""
 
-    @property
-    def event_type(self) -> IntegrationWebhookEventType:
-        return IntegrationWebhookEventType.INBOUND_SYNC
+    # Inbound sync because we are handling assignment and status changes.
+    EVENT_TYPE = IntegrationWebhookEventType.INBOUND_SYNC
 
-    def _handle(self, integration: RpcIntegration, event: Mapping[str, Any], **kwargs: Any) -> None:
+    def _handle(
+        self,
+        integration: RpcIntegration,
+        event: Mapping[str, Any],
+        organization: Organization,
+        repo: Repository,
+        **kwargs: Any,
+    ) -> None:
         """
         Handle GitHub issue events, particularly assignment and status changes.
         """
@@ -694,15 +782,16 @@ class IssuesEventWebhook(GitHubWebhook):
 class PullRequestEventWebhook(GitHubWebhook):
     """https://developer.github.com/v3/activity/events/types/#pullrequestevent"""
 
-    @property
-    def event_type(self) -> IntegrationWebhookEventType:
-        return IntegrationWebhookEventType.PULL_REQUEST
+    EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST
+    WEBHOOK_EVENT_PROCESSORS = (_handle_pr_webhook_for_autofix_processor,)
 
     def _handle(
         self,
         integration: RpcIntegration,
         event: Mapping[str, Any],
-        **kwargs,
+        organization: Organization,
+        repo: Repository,
+        **kwargs: Any,
     ) -> None:
         pull_request = event["pull_request"]
         number = pull_request["number"]
@@ -710,7 +799,6 @@ class PullRequestEventWebhook(GitHubWebhook):
         body = pull_request["body"]
         user = pull_request["user"]
         user_type = user.get("type")
-        action = event["action"]
 
         """
         The value of the merge_commit_sha attribute changes depending on the
@@ -729,9 +817,6 @@ class PullRequestEventWebhook(GitHubWebhook):
         merge_commit_sha = pull_request["merge_commit_sha"] if pull_request["merged"] else None
 
         author_email = "{}@localhost".format(user["login"][:65])
-
-        if not ((organization := kwargs.get("organization")) and (repo := kwargs.get("repo"))):
-            raise ValueError("Missing organization and repo")
 
         try:
             commit_author = CommitAuthor.objects.get(
@@ -768,7 +853,7 @@ class PullRequestEventWebhook(GitHubWebhook):
 
         author.preload_users()
         try:
-            pr, created = PullRequest.objects.update_or_create(
+            _, created = PullRequest.objects.update_or_create(
                 organization_id=organization.id,
                 repository_id=repo.id,
                 key=number,
@@ -865,9 +950,29 @@ class PullRequestEventWebhook(GitHubWebhook):
         except IntegrityError:
             pass
 
-        # Because we require that the sentry github integration be installed for autofix, we can piggyback
-        # on this webhook for autofix for now. We may move to a separate autofix github integration in the future.
-        handle_github_pr_webhook_for_autofix(organization, action, pull_request, user)
+        super()._handle(integration, event, organization, repo, **kwargs)
+
+
+class PullRequestReviewEventWebhook(GitHubWebhook):
+    """
+    Handles GitHub pull_request_review webhook events.
+    https://docs.github.com/en/webhooks/webhook-events-and-payloads#pull_request_review
+    """
+
+    EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST_REVIEW
+    # XXX: Once we port the Overwatch feature, we can add the processor here.
+    WEBHOOK_EVENT_PROCESSORS = ()
+
+
+class PullRequestReviewCommentEventWebhook(GitHubWebhook):
+    """
+    Handles GitHub pull_request_review_comment webhook events.
+    https://docs.github.com/en/webhooks/webhook-events-and-payloads#pull_request_review_comment
+    """
+
+    EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST_REVIEW_COMMENT
+    # XXX: Once we port the Overwatch feature, we can add the processor here.
+    WEBHOOK_EVENT_PROCESSORS = ()
 
 
 class CheckRunEventWebhook(GitHubWebhook):
@@ -876,24 +981,19 @@ class CheckRunEventWebhook(GitHubWebhook):
     https://docs.github.com/en/webhooks/webhook-events-and-payloads#check_run
     """
 
-    # XXX: We will streamline this approach to other webhook handlers in the future.
-    # Add new webhook event processors here.
-    WEBHOOK_EVENT_PROCESSORS = [
-        *PREPROCESSORS,
-    ]
+    EVENT_TYPE = IntegrationWebhookEventType.CI_CHECK
+    WEBHOOK_EVENT_PROCESSORS = (code_review_handle_webhook_event,)
 
-    @property
-    def event_type(self) -> IntegrationWebhookEventType:
-        return IntegrationWebhookEventType.CHECK_RUN
 
-    def _handle(
-        self,
-        integration: RpcIntegration,
-        event: Mapping[str, Any],
-        **kwargs,
-    ) -> None:
-        for processor in self.WEBHOOK_EVENT_PROCESSORS:
-            processor(event=event, **kwargs)
+class IssueCommentEventWebhook(GitHubWebhook):
+    """
+    Handles GitHub issue_comment webhook events.
+    https://docs.github.com/en/webhooks/webhook-events-and-payloads#issue_comment
+    """
+
+    EVENT_TYPE = IntegrationWebhookEventType.ISSUE_COMMENT
+    # XXX: Once we port the Overwatch feature, we can add the processor here.
+    WEBHOOK_EVENT_PROCESSORS = ()
 
 
 @all_silo_endpoint
@@ -911,15 +1011,18 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
 
-    _handlers: dict[str, type[GitHubWebhook]] = {
-        GithubWebhookType.PUSH: PushEventWebhook,
-        GithubWebhookType.PULL_REQUEST: PullRequestEventWebhook,
+    _handlers: dict[GithubWebhookType, type[GitHubWebhook]] = {
+        GithubWebhookType.CHECK_RUN: CheckRunEventWebhook,
         GithubWebhookType.INSTALLATION: InstallationEventWebhook,
         GithubWebhookType.ISSUE: IssuesEventWebhook,
-        GithubWebhookType.CHECK_RUN: CheckRunEventWebhook,
+        GithubWebhookType.ISSUE_COMMENT: IssueCommentEventWebhook,
+        GithubWebhookType.PULL_REQUEST: PullRequestEventWebhook,
+        GithubWebhookType.PULL_REQUEST_REVIEW: PullRequestReviewEventWebhook,
+        GithubWebhookType.PULL_REQUEST_REVIEW_COMMENT: PullRequestReviewCommentEventWebhook,
+        GithubWebhookType.PUSH: PushEventWebhook,
     }
 
-    def get_handler(self, event_type: str) -> type[GitHubWebhook] | None:
+    def get_handler(self, event_type: GithubWebhookType) -> type[GitHubWebhook] | None:
         return self._handlers.get(event_type)
 
     @staticmethod

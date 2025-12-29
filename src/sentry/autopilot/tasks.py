@@ -52,23 +52,23 @@ def run_sdk_update_detector_for_organization(organization: Organization):
         result: Any = discover.query(
             query="has:sdk.version",
             selected_columns=[
-                "project",
                 "project.id",
                 "sdk.name",
                 "sdk.version",
-                "last_seen()",
+                "count()",
             ],
-            orderby=["-project"],
+            orderby=["project.id", "sdk.name", "sdk.version"],
+            limit=1000,
             snuba_params=SnubaParams(
-                start=timezone.now() - timedelta(days=1),
+                start=timezone.now() - timedelta(hours=1),
                 end=timezone.now(),
                 organization=organization,
                 projects=list(projects),
             ),
-            referrer="api.organization-sdk-updates",
+            referrer="autopilot.sdk-update-detector",
         )
 
-    # filter out SDKs with empty sdk.name or sdk.version or invalid version
+    # Filter out SDKs with empty sdk.name or sdk.version or invalid version
     nonempty_sdks = []
     for sdk in result["data"]:
         if not sdk["sdk.name"] or not sdk["sdk.version"]:
@@ -81,24 +81,31 @@ def run_sdk_update_detector_for_organization(organization: Organization):
 
         nonempty_sdks.append(sdk)
 
+    # Sort by project.id to ensure groupby works correctly (groups consecutive elements)
+    nonempty_sdks.sort(key=lambda x: x["project.id"])
+
     # Build datastructure of the latest version of each SDK in use for each
     # project we have events for.
-    latest_sdks = chain.from_iterable(
-        [
-            {
-                "projectId": str(project_id),
-                "sdkName": sdk_name,
-                "sdkVersion": max((s["sdk.version"] for s in sdks), key=version.parse),
-            }
-            for sdk_name, sdks in groupby(
-                sorted(sdks_used, key=lambda x: x["sdk.name"]), key=lambda x: x["sdk.name"]
-            )
-        ]
-        for project_id, sdks_used in groupby(nonempty_sdks, key=lambda x: x["project.id"])
+    latest_sdks = list(
+        chain.from_iterable(
+            [
+                {
+                    "projectId": str(project_id),
+                    "sdkName": sdk_name,
+                    "sdkVersion": max((s["sdk.version"] for s in sdks), key=version.parse),
+                }
+                for sdk_name, sdks in groupby(
+                    sorted(sdks_used, key=lambda x: x["sdk.name"]), key=lambda x: x["sdk.name"]
+                )
+            ]
+            for project_id, sdks_used in groupby(nonempty_sdks, key=lambda x: x["project.id"])
+        )
     )
 
-    # Determine suggested upgrades for each project
+    # Determine if each SDK needs an update for each project
     sdk_versions = get_sdk_versions()
+    logger.warning("sdk_versions: %s", sdk_versions)
+    logger.warning("latest_sdks: %s", latest_sdks)
 
     def needs_update(sdk_name, sdk_version):
         if sdk_name not in sdk_versions:
