@@ -11,7 +11,6 @@ import Panel from 'sentry/components/panels/panel';
 import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/tables/gridEditable/styles';
 import {space} from 'sentry/styles/space';
 import {NumberContainer} from 'sentry/utils/discover/styles';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import {unreachable} from 'sentry/utils/unreachable';
 import {
   TableBody,
@@ -391,43 +390,25 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
   }
 }
 
-export const LogsSidebarCollapseButton = withChonk(
-  styled(Button)<{sidebarOpen: boolean}>`
-    display: none;
+export const LogsSidebarCollapseButton = styled(Button)<{sidebarOpen: boolean}>`
+  display: none;
 
-    ${p =>
-      p.sidebarOpen &&
-      css`
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
+    display: inline-flex;
+  }
+
+  ${p =>
+    p.sidebarOpen &&
+    css`
+      margin-left: -13px;
+
+      &::after {
         border-left-color: ${p.theme.tokens.background.primary};
         border-top-left-radius: 0px;
         border-bottom-left-radius: 0px;
-        margin-left: -13px;
-      `}
-
-    @media (min-width: ${p => p.theme.breakpoints.lg}) {
-      display: block;
-    }
-  `,
-  styled(Button)<{sidebarOpen: boolean}>`
-    display: none;
-
-    @media (min-width: ${p => p.theme.breakpoints.lg}) {
-      display: inline-flex;
-    }
-
-    ${p =>
-      p.sidebarOpen &&
-      css`
-        margin-left: -13px;
-
-        &::after {
-          border-left-color: ${p.theme.tokens.background.primary};
-          border-top-left-radius: 0px;
-          border-bottom-left-radius: 0px;
-        }
-      `}
-  `
-);
+      }
+    `}
+`;
 
 export const FloatingBackToTopContainer = styled('div')<{
   inReplay?: boolean;

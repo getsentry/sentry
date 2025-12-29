@@ -5,7 +5,6 @@ import {Button} from 'sentry/components/core/button';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 
 const ModalHeader = styled('header')`
   display: flex;
@@ -47,27 +46,7 @@ function ChonkCloseButton(p: Omit<ButtonProps, 'aria-label'>) {
   );
 }
 
-const CloseButton = withChonk(
-  styled((p: Omit<ButtonProps, 'aria-label'>) => {
-    return (
-      <Button
-        aria-label={t('Close Modal')}
-        icon={<IconClose size="xs" />}
-        size="zero"
-        {...p}
-      />
-    );
-  })`
-    position: absolute;
-    top: 0;
-    right: 0;
-    transform: translate(50%, -50%);
-    border-radius: 50%;
-    height: 24px;
-    width: 24px;
-  `,
-  ChonkCloseButton
-);
+const CloseButton = ChonkCloseButton;
 
 const ModalBody = styled('section')`
   font-size: ${p => p.theme.fontSize.md};
