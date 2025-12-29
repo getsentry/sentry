@@ -47,7 +47,6 @@ class PreprodArtifactRerunStatusChecksTest(APITestCase):
             assert response.data["check_type"] == "size"
             assert "Status check rerun initiated" in response.data["message"]
 
-            # Verify task was queued
             mock_task.delay.assert_called_once_with(preprod_artifact_id=artifact.id)
 
     def test_rerun_status_checks_with_check_type(self):

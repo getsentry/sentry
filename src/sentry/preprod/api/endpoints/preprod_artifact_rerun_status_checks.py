@@ -40,27 +40,20 @@ class PreprodArtifactRerunStatusChecksEndpoint(PreprodArtifactEndpoint):
         transient GitHub API errors.
         """
 
-        # Get check_type from request body (default to "size")
         check_type = request.data.get("check_type", "size")
 
-        # Validate check_type (currently only "size" is supported)
         if check_type != "size":
             return Response(
                 {"error": f"Invalid check_type: {check_type}. Only 'size' is currently supported."},
                 status=400,
             )
 
-        # Validate that artifact has commit comparison
         if not head_artifact.commit_comparison:
             return Response(
-                {
-                    "error": "Cannot create status check: artifact has no commit comparison. "
-                    "Status checks require Git information (branch, SHA, etc.)."
-                },
+                {"error": "Cannot create status check: artifact has no commit comparison."},
                 status=400,
             )
 
-        # Record analytics
         analytics.record(
             PreprodArtifactApiRerunStatusChecksEvent(
                 organization_id=project.organization_id,
@@ -71,7 +64,6 @@ class PreprodArtifactRerunStatusChecksEndpoint(PreprodArtifactEndpoint):
             )
         )
 
-        # Trigger the status check task (idempotent)
         try:
             create_preprod_status_check_task.delay(preprod_artifact_id=head_artifact.id)
         except Exception:
@@ -87,7 +79,7 @@ class PreprodArtifactRerunStatusChecksEndpoint(PreprodArtifactEndpoint):
             )
             return Response(
                 {
-                    "error": f"Failed to queue status check for artifact {head_artifact.id}",
+                    "error": f"Failed to queue status check task for artifact {head_artifact.id}",
                 },
                 status=500,
             )
@@ -110,5 +102,5 @@ class PreprodArtifactRerunStatusChecksEndpoint(PreprodArtifactEndpoint):
                 "message": f"Status check rerun initiated for artifact {head_artifact.id}",
                 "check_type": check_type,
             },
-            status=202,  # 202 Accepted - task queued
+            status=202,
         )
