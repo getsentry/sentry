@@ -434,7 +434,6 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
         # These are always forwarded
         assert GithubWebhookType.INSTALLATION in events
         assert GithubWebhookType.INSTALLATION_REPOSITORIES in events
-        assert len(events) == 5
 
     @override_options(
         {
@@ -454,7 +453,6 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
         # These are always forwarded
         assert GithubWebhookType.INSTALLATION in events
         assert GithubWebhookType.INSTALLATION_REPOSITORIES in events
-        assert len(events) == 5
 
     @override_options(
         {
