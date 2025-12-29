@@ -154,7 +154,7 @@ export function InstallDetailsContent({
               direction={{xs: 'column', sm: 'row'}}
               align={{xs: 'stretch', sm: 'center'}}
             >
-              <Flex width={{xs: 'full', sm: 'auto'}}>
+              <Flex width={{xs: '100%', sm: 'auto'}}>
                 <Button
                   onClick={() => window.open(installDetails.install_url, '_blank')}
                   priority="primary"
@@ -167,7 +167,7 @@ export function InstallDetailsContent({
               {installDetails.install_url && (
                 <Flex
                   alignSelf={{xs: 'stretch', sm: 'center'}}
-                  width={{xs: 'full', sm: 'auto'}}
+                  width={{xs: '100%', sm: 'auto'}}
                 >
                   <Container display={{xs: 'block', sm: 'none'}} width="100%">
                     <Button
