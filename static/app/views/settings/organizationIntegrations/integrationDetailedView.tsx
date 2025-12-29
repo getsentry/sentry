@@ -143,7 +143,7 @@ export default function IntegrationDetailedView() {
 
     if (!provider?.canAdd && provider?.metadata.aspects.externalInstall) {
       alertList.push({
-        type: 'warning',
+        variant: 'warning',
         text: provider?.metadata.aspects.externalInstall.noticeText,
       });
     }
@@ -340,7 +340,7 @@ export default function IntegrationDetailedView() {
       <Fragment>
         {alertText && (
           <Alert.Container>
-            <Alert type="warning">{alertText}</Alert>
+            <Alert variant="warning">{alertText}</Alert>
           </Alert.Container>
         )}
         <Panel>

@@ -54,7 +54,7 @@ function AddToOrgModal({Header, Body, userId, closeModal}: AddOrRemoveOrgModalPr
           </Fragment>
           {error && (
             <Alert.Container>
-              <Alert type="danger" showIcon={false}>
+              <Alert variant="danger" showIcon={false}>
                 {error}
               </Alert>
             </Alert.Container>
@@ -109,7 +109,7 @@ function RemoveFromOrgModal({
           </Fragment>
           {error && (
             <Alert.Container>
-              <Alert type="danger">{error}</Alert>
+              <Alert variant="danger">{error}</Alert>
             </Alert.Container>
           )}
         </Form>

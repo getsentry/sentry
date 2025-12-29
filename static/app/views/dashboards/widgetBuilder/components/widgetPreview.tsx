@@ -116,7 +116,7 @@ function WidgetPreview({
       showContextMenu={false}
       renderErrorMessage={errorMessage =>
         typeof errorMessage === 'string' && (
-          <PanelAlert type="danger">{errorMessage}</PanelAlert>
+          <PanelAlert variant="danger">{errorMessage}</PanelAlert>
         )
       }
       onLegendSelectChanged={() => {}}

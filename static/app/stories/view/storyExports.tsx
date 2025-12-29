@@ -193,7 +193,7 @@ function StoryUsage() {
         <Storybook.Section>
           <ErrorBoundary
             fallback={
-              <Alert type="danger" showIcon={false}>
+              <Alert variant="danger" showIcon={false}>
                 Problem loading <code>{filename}</code>
               </Alert>
             }

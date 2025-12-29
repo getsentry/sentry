@@ -456,7 +456,7 @@ export function ActionableItems({event, project}: ActionableItemsProps) {
   return (
     <StyledAlert
       defaultExpanded
-      type={hasErrorAlert ? 'danger' : 'warning'}
+      variant={hasErrorAlert ? 'danger' : 'warning'}
       expand={
         <Fragment>
           {Object.keys(errorMessages).map((error, idx) => {

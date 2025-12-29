@@ -116,7 +116,7 @@ export function AddAutofixRepoModalContent({
       </Header>
       <Body>
         {showMaxLimitAlert && (
-          <Alert type="info">
+          <Alert variant="info">
             {t('Seer is currently limited to %s repositories.', maxReposLimit)}
           </Alert>
         )}

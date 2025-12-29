@@ -272,7 +272,7 @@ export default function IntegrationOrganizationLink() {
       <Fragment>
         {selectedOrgSlug && organization && !hasAccess && (
           <Alert.Container>
-            <Alert type="danger">
+            <Alert variant="danger">
               <p>
                 {tct(
                   `You do not have permission to install integrations in
@@ -321,7 +321,7 @@ export default function IntegrationOrganizationLink() {
     if (!installationData) {
       return (
         <Alert.Container>
-          <Alert type="warning">
+          <Alert variant="warning">
             {t(
               'We could not verify the authenticity of the installation request. We recommend restarting the installation process.'
             )}
@@ -357,7 +357,7 @@ export default function IntegrationOrganizationLink() {
 
     return (
       <Alert.Container>
-        <Alert type="info">{alertText}</Alert>
+        <Alert variant="info">{alertText}</Alert>
       </Alert.Container>
     );
   }, [integrationSlug, installationData]);

@@ -151,7 +151,7 @@ export function MonitorProcessingErrors({
 
   return (
     <ScrollableAlert
-      type="danger"
+      variant="danger"
       expand={
         showingMultipleProjects ? (
           <ProjectGroupsList>{accordionErrors}</ProjectGroupsList>

@@ -137,7 +137,7 @@ export default function MonitorDetails() {
             {monitor.status === 'disabled' && (
               <Alert.Container>
                 <Alert
-                  type="subtle"
+                  variant="subtle"
                   trailingItems={
                     <StatusToggleButton
                       monitor={monitor}

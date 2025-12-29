@@ -139,7 +139,7 @@ class Form<
           aria-label={(this.props as any)['aria-label']}
         >
           {isError && !hideErrors && (
-            <Alert type="danger" showIcon={false}>
+            <Alert variant="danger" showIcon={false}>
               {nonFieldErrors ? (
                 <div>
                   <p>

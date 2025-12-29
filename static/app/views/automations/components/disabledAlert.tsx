@@ -53,7 +53,7 @@ export function DisabledAlert({automation}: DisabledAlertProps) {
   return (
     <Alert.Container>
       <Alert
-        type="subtle"
+        variant="subtle"
         trailingItems={
           <Tooltip
             title={canEdit ? undefined : permissionTooltipText}

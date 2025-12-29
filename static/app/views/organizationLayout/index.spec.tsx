@@ -117,7 +117,7 @@ describe('OrganizationLayout', () => {
     AlertStore.addAlert({
       id: 'abc123',
       message: 'Celery workers have not checked in',
-      type: 'danger',
+      variant: 'danger',
       url: '/internal/health/',
     });
 

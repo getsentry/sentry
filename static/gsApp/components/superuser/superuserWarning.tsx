@@ -73,7 +73,7 @@ function SuperuserWarning({organization, className}: Props) {
             {SUPERUSER_MESSAGE} {WARNING_MESSAGE}
           </Fragment>
         ),
-        type: 'danger',
+        variant: 'danger',
         opaque: true,
         neverExpire: true,
         noDuplicates: true,

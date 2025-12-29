@@ -78,7 +78,7 @@ export default function TeamDetails() {
   if (!team || isError) {
     return (
       <Alert.Container>
-        <Alert type="warning" showIcon={false}>
+        <Alert variant="warning" showIcon={false}>
           <div>{t('This team does not exist, or you do not have access to it.')}</div>
         </Alert>
       </Alert.Container>
@@ -125,7 +125,7 @@ export default function TeamDetails() {
         </div>
       ) : (
         <Alert.Container>
-          <Alert type="warning">
+          <Alert variant="warning">
             <Flex justify="between" align="center">
               <div>
                 {tct('You do not have access to the [teamSlug] team.', {

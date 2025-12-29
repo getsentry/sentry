@@ -182,7 +182,7 @@ function AuthenticatorError({error, triggerWebAuthn}: AuthenticatorErrorProps) {
 
   return (
     <Container>
-      <Alert type="danger" trailingItems={retry}>
+      <Alert variant="danger" trailingItems={retry}>
         {errorMessages[error]}
       </Alert>
     </Container>
@@ -192,7 +192,7 @@ function AuthenticatorError({error, triggerWebAuthn}: AuthenticatorErrorProps) {
 function UnsupportedError() {
   return (
     <Container>
-      <Alert type="warning">
+      <Alert variant="warning">
         {t(
           'Your browser does not support WebAuthn (passkey). You need to use a different two-factor method or switch to a browser that supports it (Google Chrome or Microsoft Edge).'
         )}

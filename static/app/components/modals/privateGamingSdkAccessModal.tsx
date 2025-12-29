@@ -195,7 +195,7 @@ export function PrivateGamingSdkAccessModal({
             inline={false}
           />
         )}
-        {requestError && <Alert type="danger">{requestError}</Alert>}
+        {requestError && <Alert variant="danger">{requestError}</Alert>}
       </Body>
       <Footer>
         <ButtonBar>

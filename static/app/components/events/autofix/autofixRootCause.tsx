@@ -515,7 +515,7 @@ function AutofixRootCauseDisplay({
   if (!cause) {
     return (
       <Alert.Container>
-        <Alert type="danger">{t('No root cause available.')}</Alert>
+        <Alert variant="danger">{t('No root cause available.')}</Alert>
       </Alert.Container>
     );
   }
@@ -650,7 +650,7 @@ export function AutofixRootCause(props: AutofixRootCauseProps) {
         <AnimationWrapper key="card" {...cardAnimationProps}>
           <NoCausesPadding>
             <Alert.Container>
-              <Alert type="warning">
+              <Alert variant="warning">
                 {t('No root cause found.\n\n%s', props.terminationReason ?? '')}
               </Alert>
             </Alert.Container>

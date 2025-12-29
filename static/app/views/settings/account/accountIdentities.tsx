@@ -84,7 +84,7 @@ function IdentityItem({identity, onDisconnect}: IdentityItemProps) {
             message={
               <Fragment>
                 <Alert.Container>
-                  <Alert type="danger">
+                  <Alert variant="danger">
                     {tct('Disconnect Your [provider] Identity?', {
                       provider: identity.provider.name,
                     })}

@@ -117,7 +117,7 @@ export function useCreateDetector<T extends Detector = Detector>() {
       });
     },
     onError: _ => {
-      AlertStore.addAlert({type: 'danger', message: t('Unable to create monitor')});
+      AlertStore.addAlert({variant: 'danger', message: t('Unable to create monitor')});
     },
   });
 }
@@ -142,7 +142,7 @@ export function useUpdateDetector<T extends Detector = Detector>() {
       });
     },
     onError: _ => {
-      AlertStore.addAlert({type: 'danger', message: t('Unable to update monitor')});
+      AlertStore.addAlert({variant: 'danger', message: t('Unable to update monitor')});
     },
   });
 }

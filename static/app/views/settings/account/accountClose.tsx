@@ -144,7 +144,7 @@ function AccountClose() {
       </TextBlock>
 
       <Alert.Container>
-        <Alert type="danger">
+        <Alert variant="danger">
           {t('Closing your account is permanent and cannot be undone')}!
         </Alert>
       </Alert.Container>
@@ -152,7 +152,7 @@ function AccountClose() {
       <Panel>
         <PanelHeader>{t('Delete the following organizations')}</PanelHeader>
         <PanelBody>
-          <PanelAlert type="warning">
+          <PanelAlert variant="warning">
             {t('Organizations with checked boxes will be deleted!')}
             <br />
             {t(

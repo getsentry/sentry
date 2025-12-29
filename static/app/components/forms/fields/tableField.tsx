@@ -120,7 +120,7 @@ export default class TableField extends Component<InputFieldProps> {
       return (
         <Fragment>
           <Alert.Container>
-            <Alert type="danger" showIcon={false}>
+            <Alert variant="danger" showIcon={false}>
               <span
                 dangerouslySetInnerHTML={{
                   __html: singleLineRenderer(

@@ -64,7 +64,7 @@ export function ReleasesDrawerFeatureFlagsTable({
 
   if (error) {
     return (
-      <Alert type="danger" showIcon={false}>
+      <Alert variant="danger" showIcon={false}>
         {t('Error fetching feature flags')}
       </Alert>
     );

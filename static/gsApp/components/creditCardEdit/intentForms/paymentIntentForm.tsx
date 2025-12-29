@@ -83,7 +83,7 @@ function StripePaymentIntentForm(props: StripeIntentFormProps) {
 
   return (
     <Flex direction="column" gap="xl">
-      {isError && <Alert type="danger">{errorMessage}</Alert>}
+      {isError && <Alert variant="danger">{errorMessage}</Alert>}
       <InnerIntentForm
         {...props}
         buttonText={props.buttonText}

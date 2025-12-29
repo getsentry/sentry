@@ -136,7 +136,7 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
       </KeyValueTable>
       {monitor.isUpserting && (
         <Alert.Container>
-          <Alert type="subtle" icon={<IconJson />}>
+          <Alert variant="subtle" icon={<IconJson />}>
             {t(
               'This monitor is managed in code and updates automatically with each check-in.'
             )}

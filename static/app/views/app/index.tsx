@@ -102,9 +102,9 @@ function App() {
 
     data?.problems?.forEach?.((problem: any) => {
       const {id, message, url} = problem;
-      const type = problem.severity === 'critical' ? 'danger' : 'warning';
+      const variant = problem.severity === 'critical' ? 'danger' : 'warning';
 
-      AlertStore.addAlert({id, message, type, url, opaque: true});
+      AlertStore.addAlert({id, message, variant, url, opaque: true});
     });
   }, [api, config.isSelfHosted]);
 
@@ -139,7 +139,7 @@ function App() {
 
     // Show system-level alerts
     config.messages.forEach(msg =>
-      AlertStore.addAlert({message: msg.message, type: msg.level, neverExpire: true})
+      AlertStore.addAlert({message: msg.message, variant: msg.level, neverExpire: true})
     );
 
     // The app is running in deploy preview mode

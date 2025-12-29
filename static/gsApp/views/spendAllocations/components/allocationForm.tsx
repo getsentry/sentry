@@ -440,7 +440,7 @@ function AllocationForm({
             (initializedData && allocationVolume < initializedData.consumedQuantity)) && (
             // attempting to increase, but remaining available events have been exhausted (but still under budget)
             // OR attempting to decrease below consumed events
-            <Alert type="danger" showIcon={false}>
+            <Alert variant="danger" showIcon={false}>
               <div>
                 {t(
                   'Cannot apply this change to your current period due to consumed amounts.'
@@ -450,7 +450,7 @@ function AllocationForm({
           )}
           {overBudgetedEvents && (
             // attempting to increase over the total available amount
-            <Alert type="danger" showIcon={false}>
+            <Alert variant="danger" showIcon={false}>
               <div>
                 {t('Cannot allocate more than your subscription Reserved Quota.')}
               </div>
@@ -458,7 +458,7 @@ function AllocationForm({
             </Alert>
           )}
           {!rootAllocation && (
-            <Alert type="danger" showIcon={false}>
+            <Alert variant="danger" showIcon={false}>
               <div>
                 {t(
                   'There is currently no organization-level allocation for this billing metric.'

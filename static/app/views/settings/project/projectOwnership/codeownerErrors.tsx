@@ -161,7 +161,7 @@ export function CodeOwnerErrors({
           <Alert.Container key={id}>
             <Alert
               key={id}
-              type="danger"
+              variant="danger"
               expand={
                 <AlertContentContainer key="container">
                   {errorPairs.map(([type, values]) => (

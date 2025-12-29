@@ -99,7 +99,7 @@ export default function CustomIgnoreDurationModal(props: Props) {
       </Body>
       {dateWarning && (
         <Alert.Container>
-          <Alert type="danger">{t('Please enter a valid date in the future')}</Alert>
+          <Alert variant="danger">{t('Please enter a valid date in the future')}</Alert>
         </Alert.Container>
       )}
       <Footer>

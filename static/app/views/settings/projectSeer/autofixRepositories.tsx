@@ -322,7 +322,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
       </PanelHeader>
 
       {showSaveNotice && (
-        <Alert type="info" system>
+        <Alert variant="info" system>
           {t(
             'Changes will apply on future Seer runs. Hit "Start Over" in the Seer panel to start a new run and use your new selected repositories.'
           )}

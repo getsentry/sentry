@@ -8,7 +8,7 @@ type Props = {
 function NoStackTraceMessage({message}: Props) {
   return (
     <Alert.Container>
-      <Alert type="subtle" showIcon={false}>
+      <Alert variant="subtle" showIcon={false}>
         {message ?? t('No stacktrace found.')}
       </Alert>
     </Alert.Container>

@@ -151,7 +151,7 @@ export default function ActionNodeList({
         value={null}
       />
       {errors[conditionGroupId] && (
-        <Alert type="danger">{errors[conditionGroupId]}</Alert>
+        <Alert variant="danger">{errors[conditionGroupId]}</Alert>
       )}
     </Fragment>
   );

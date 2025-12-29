@@ -321,7 +321,7 @@ function ReviewAndConfirmBody({
       />
       {cardActionError && (
         <Alert.Container>
-          <Alert type="danger" showIcon={false}>
+          <Alert variant="danger" showIcon={false}>
             {cardActionError}
           </Alert>
         </Alert.Container>
@@ -337,7 +337,7 @@ function ReviewAndConfirmBody({
 
 function MigrateNowBody({cardActionError, handleComplete, previewData, submitting}: any) {
   return (
-    <MigrateNowAlert type="info" data-test-id="migrate-now-body">
+    <MigrateNowAlert variant="info" data-test-id="migrate-now-body">
       <MigrateNowAlertContext>
         <div>{t('Why wait? Apply these changes immediately.')}</div>
         <MigrateNowButton

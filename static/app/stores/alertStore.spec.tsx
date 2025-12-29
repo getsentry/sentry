@@ -11,12 +11,12 @@ describe('AlertStore', () => {
     it('should add a new alert with incrementing key', () => {
       AlertStore.addAlert({
         message: 'Bzzzzzzp *crash*',
-        type: 'danger',
+        variant: 'danger',
       });
 
       AlertStore.addAlert({
         message: 'Everything is super',
-        type: 'info',
+        variant: 'info',
       });
 
       expect(AlertStore.getState()).toHaveLength(2);
@@ -28,13 +28,13 @@ describe('AlertStore', () => {
       AlertStore.addAlert({
         id: 'unique-key',
         message: 'Bzzzzzzp *crash*',
-        type: 'danger',
+        variant: 'danger',
         noDuplicates: true,
       });
       AlertStore.addAlert({
         id: 'unique-key',
         message: 'Bzzzzzzp *crash*',
-        type: 'danger',
+        variant: 'danger',
         noDuplicates: true,
       });
 
@@ -45,9 +45,9 @@ describe('AlertStore', () => {
   describe('closeAlert()', () => {
     it('should remove alert', () => {
       const alerts = [
-        {message: 'foo', type: 'danger'},
-        {message: 'bar', type: 'danger'},
-        {message: 'baz', type: 'danger'},
+        {message: 'foo', variant: 'danger'},
+        {message: 'bar', variant: 'danger'},
+        {message: 'baz', variant: 'danger'},
       ] as const;
       for (const alert of alerts) {
         AlertStore.addAlert(alert);
@@ -65,7 +65,7 @@ describe('AlertStore', () => {
         key: 1,
         id: 'test',
         message: 'this is a test',
-        type: 'danger',
+        variant: 'danger',
       } as const;
 
       AlertStore.closeAlert(alert);
@@ -77,7 +77,7 @@ describe('AlertStore', () => {
   it('returns a stable reference from getState', () => {
     AlertStore.addAlert({
       message: 'Bzzzzzzp *crash*',
-      type: 'danger',
+      variant: 'danger',
     });
 
     const state = AlertStore.getState();

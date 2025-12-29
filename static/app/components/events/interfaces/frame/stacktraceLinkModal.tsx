@@ -202,7 +202,7 @@ function StacktraceLinkModal({
       <Body>
         <ModalContainer>
           {error && (
-            <Alert type="danger">
+            <Alert variant="danger">
               {error === 'Could not find repo'
                 ? tct(
                     'We don’t have access to that [provider] repo. To fix this, [link:add your repo.]',

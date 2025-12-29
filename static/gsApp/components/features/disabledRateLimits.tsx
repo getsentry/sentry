@@ -22,7 +22,7 @@ function DisabledAlert({organization, features}: Props) {
   return (
     <PlanFeature {...{organization, features}}>
       {({plan}) => (
-        <StyledPanelAlert type="subtle">
+        <StyledPanelAlert variant="subtle">
           <Container>
             <span>
               {plan === null

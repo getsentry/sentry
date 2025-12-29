@@ -76,7 +76,7 @@ export default function EventDetails() {
 
     return (
       <Alert.Container>
-        <Alert type="danger">{error.message}</Alert>
+        <Alert variant="danger">{error.message}</Alert>
       </Alert.Container>
     );
   }

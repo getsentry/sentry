@@ -8,7 +8,7 @@ import {space} from 'sentry/styles/space';
 function NotFound() {
   return (
     <Alert.Container>
-      <Alert type="danger">
+      <Alert variant="danger">
         <Heading>{t('Page Not Found')}</Heading>
         <p>{t('The page you are looking for was not found.')}</p>
         <p>{t('You may wish to try the following:')}</p>

@@ -34,7 +34,7 @@ function OrganizationStatus({orgStatus}: Props) {
 
   return (
     <Alert.Container>
-      <Alert data-test-id="deletion-status" type="danger">
+      <Alert data-test-id="deletion-status" variant="danger">
         {message}
       </Alert>
     </Alert.Container>

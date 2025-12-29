@@ -184,7 +184,7 @@ class PluginSettings<
       return (
         <div className="m-b-1">
           <Alert.Container>
-            <Alert type="warning" showIcon={false}>
+            <Alert variant="warning" showIcon={false}>
               {data.config_error}
             </Alert>
           </Alert.Container>
@@ -198,7 +198,7 @@ class PluginSettings<
     if (this.state.state === FormState.ERROR && !this.state.fieldList) {
       return (
         <Alert.Container>
-          <Alert type="danger" showIcon={false}>
+          <Alert variant="danger" showIcon={false}>
             {tct(
               'An unknown error occurred. Need help with this? [link:Contact support]',
               {
@@ -225,7 +225,7 @@ class PluginSettings<
       >
         <Stack>
           {this.state.errors.__all__ && (
-            <Alert type="danger" showIcon={false}>
+            <Alert variant="danger" showIcon={false}>
               <ul>
                 <li>{this.state.errors.__all__}</li>
               </ul>

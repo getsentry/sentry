@@ -21,7 +21,7 @@ export function StepsManager() {
   if (!isInstallationPending && !isProviderPending && !provider) {
     Sentry.logger.error('Seer: No valid integration found for Seer onboarding');
     return (
-      <Alert type="danger">{t('No supported SCM integrations are available')}</Alert>
+      <Alert variant="danger">{t('No supported SCM integrations are available')}</Alert>
     );
   }
 

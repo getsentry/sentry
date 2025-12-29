@@ -318,7 +318,7 @@ function ConfirmModal({
       <Body>
         {isError && (
           <Alert.Container>
-            <Alert type="danger" showIcon={false}>
+            <Alert variant="danger" showIcon={false}>
               {errorMessage}
             </Alert>
           </Alert.Container>

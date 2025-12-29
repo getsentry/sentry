@@ -172,7 +172,7 @@ export default function ProjectOwnership() {
       />
       {isCodeownersError && (
         <Alert.Container>
-          <Alert type="danger" showIcon={false}>
+          <Alert variant="danger" showIcon={false}>
             {t(
               "There was an error loading this project's codeowners. If this issue persists, consider importing it again."
             )}
@@ -252,7 +252,7 @@ export default function ProjectOwnership() {
         </Form>
       ) : (
         <Alert.Container>
-          <Alert type="danger" showIcon={false}>
+          <Alert variant="danger" showIcon={false}>
             {t('There was an error issue owner settings.')}
           </Alert>
         </Alert.Container>

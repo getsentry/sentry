@@ -311,7 +311,9 @@ function PageLayout(props: Props) {
                     metricsCardinality={metricsCardinality}
                   />
                   <StyledBody fillSpace={props.fillSpace} hasError={defined(error)}>
-                    {defined(error) && <StyledAlert type="danger">{error}</StyledAlert>}
+                    {defined(error) && (
+                      <StyledAlert variant="danger">{error}</StyledAlert>
+                    )}
                     <TransactionSummaryContext
                       value={{
                         eventView,
@@ -340,7 +342,7 @@ function PageLayout(props: Props) {
 function NoAccess() {
   return (
     <Alert.Container>
-      <Alert type="warning" showIcon={false}>
+      <Alert variant="warning" showIcon={false}>
         {t("You don't have access to this feature")}
       </Alert>
     </Alert.Container>

@@ -42,7 +42,7 @@ export function DetectorDetailsContent({detector, project}: DetectorDetailsConte
     case 'issue_stream':
       return (
         <Alert.Container>
-          <Alert type="danger">
+          <Alert variant="danger">
             {t('Issue stream monitors do not support detail views.')}
           </Alert>
         </Alert.Container>

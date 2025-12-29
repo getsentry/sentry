@@ -190,7 +190,7 @@ function CreditCardFormInner({
     >
       {error && (
         <Alert.Container>
-          <Alert type="danger" showIcon={false}>
+          <Alert variant="danger" showIcon={false}>
             <AlertContent>
               {error}
               {errorRetry && (
@@ -205,7 +205,7 @@ function CreditCardFormInner({
       {loading && <LoadingIndicator />}
       {referrer?.includes('billing-failure') && (
         <Alert.Container>
-          <Alert type="warning" showIcon={false}>
+          <Alert variant="warning" showIcon={false}>
             {t('Your credit card will be charged upon update.')}
           </Alert>
         </Alert.Container>

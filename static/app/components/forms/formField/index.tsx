@@ -142,7 +142,7 @@ interface BaseProps {
   /**
    * The alert type to use when saveOnBlur is false
    */
-  saveMessageAlertType?: AlertProps['type'];
+  saveMessageAlertType?: AlertProps['variant'];
   /**
    * When the field is blurred should it automatically persist its value into
    * the model. Will show a confirm button 'save' otherwise.
@@ -395,7 +395,7 @@ function FormField(props: FormFieldProps) {
 
                 return (
                   <PanelAlert
-                    type={saveMessageAlertType ?? 'info'}
+                    variant={saveMessageAlertType ?? 'info'}
                     trailingItems={
                       <Fragment>
                         <Button onClick={handleCancelField} size="xs">

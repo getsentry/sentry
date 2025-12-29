@@ -9,12 +9,13 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import PanelProvider from 'sentry/utils/panelProvider';
+import type {AlertVariant} from 'sentry/utils/theme';
 import {unreachable} from 'sentry/utils/unreachable';
 
 import * as ChonkAlert from './alert.chonk';
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant: 'subtle' | 'info' | 'warning' | 'success' | 'danger';
+  variant: AlertVariant;
   defaultExpanded?: boolean;
   expand?: React.ReactNode;
   handleExpandChange?: (isExpanded: boolean) => void;

@@ -70,7 +70,7 @@ export function RenameIssueViewModal({
       <Body>
         {isError && (
           <Alert.Container>
-            <Alert type="danger" showIcon={false}>
+            <Alert variant="danger" showIcon={false}>
               {t('Something went wrong. Please try again.')}
             </Alert>
           </Alert.Container>

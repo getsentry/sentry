@@ -156,7 +156,7 @@ export default class UserEmailLog extends Component<Props, State> {
               <tr>
                 <td colSpan={4}>
                   <Alert.Container>
-                    <Alert type="danger" showIcon={false}>
+                    <Alert variant="danger" showIcon={false}>
                       There was a problem loading SendGrid details
                     </Alert>
                   </Alert.Container>

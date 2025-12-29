@@ -16,7 +16,7 @@ type HeadingProps = {
   children: React.ReactNode;
 };
 
-const calloutToAlertType: Record<string, AlertProps['type']> = {
+const calloutToAlertType: Record<string, AlertProps['variant']> = {
   tip: 'subtle',
   note: 'info',
   important: 'success',
@@ -47,7 +47,7 @@ export const storyMdxComponents = {
     const expand = props.isFoldable ? children : undefined;
     return (
       <Alert
-        type={calloutToAlertType[props.type.toLowerCase()] ?? 'subtle'}
+        variant={calloutToAlertType[props.type.toLowerCase()] ?? 'subtle'}
         expand={expand}
         defaultExpanded={!props.defaultFolded}
       >
