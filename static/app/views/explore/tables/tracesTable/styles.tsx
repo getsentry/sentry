@@ -30,7 +30,7 @@ export function StyledPanelHeader({
   return (
     <Flex justify={justify} radius={radius ? radius : '0'}>
       {flexProps => (
-        <Text wrap="nowrap">
+        <Text as="div" wrap="nowrap">
           <PanelHeader lightText {...flexProps} {...props}>
             {children}
           </PanelHeader>
