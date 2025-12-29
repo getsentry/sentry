@@ -95,11 +95,19 @@ def _transform_webhook_to_codegen_request(
         # Not a PR-related event (e.g., issue_comment on regular issues)
         return None
 
+    # Extract owner and repo name from full repository name (format: "owner/repo")
+    repo_name_sections = repo.name.split("/")
+    if len(repo_name_sections) < 2:
+        raise ValueError(f"Invalid repository name format: {repo.name}")
+
+    owner = repo_name_sections[0]
+    repo_name = "/".join(repo_name_sections[1:])
+
     # Build RepoDefinition
     repo_definition = {
         "provider": "github",  # All GitHub webhooks use "github" provider
-        "owner": repo.owner,
-        "name": repo.name,
+        "owner": owner,
+        "name": repo_name,
         "external_id": repo.external_id,
     }
 
