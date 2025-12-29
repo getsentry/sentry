@@ -132,8 +132,8 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
 
             if options.get("sentry-apps.hard-delete"):
                 # actually delete the object. we need to delete all soft-deleted objects before removing ParanoidModel
-                for outbox in self.outboxes_for_update():
-                    outbox.save()  # mimics ControlOutboxProducingModel
+                for update_outbox in self.outboxes_for_update():
+                    update_outbox.save()  # mimics ControlOutboxProducingModel
 
                 return models.Model.delete(self, *args, **kwargs)
 
