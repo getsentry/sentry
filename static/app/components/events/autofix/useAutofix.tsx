@@ -309,15 +309,17 @@ export const useAiAutofix = (
   };
 };
 
+export type CodingAgentIntegration = {
+  id: string;
+  name: string;
+  provider: string;
+};
+
 export function useCodingAgentIntegrations() {
   const organization = useOrganization();
 
   return useApiQuery<{
-    integrations: Array<{
-      id: string;
-      name: string;
-      provider: string;
-    }>;
+    integrations: CodingAgentIntegration[];
   }>([`/organizations/${organization.slug}/integrations/coding-agents/`], {
     staleTime: 5 * 60 * 1000,
   });
