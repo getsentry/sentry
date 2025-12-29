@@ -6,7 +6,6 @@ from unittest import mock
 import pytest
 from django.utils import timezone
 
-from sentry import options
 from sentry.exceptions import InvalidSearchQuery
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
@@ -1903,9 +1902,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         assert bulk_raw_query_mock.called
 
     def test_pre_and_post_filtering(self) -> None:
-        prev_max_pre = options.get("snuba.search.max-pre-snuba-candidates")
-        options.set("snuba.search.max-pre-snuba-candidates", 1)
-        try:
+        with self.options({"snuba.search.max-pre-snuba-candidates": 1}):
             # normal queries work as expected
             results = self.make_query(search_filter_query="foo")
             assert set(results) == {self.group1}
@@ -1919,8 +1916,6 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
             # too many candidates, skip pre-filter, requires >1 postfilter queries
             results = self.make_query()
             assert set(results) == {self.group1, self.group2}
-        finally:
-            options.set("snuba.search.max-pre-snuba-candidates", prev_max_pre)
 
     def test_too_many_candidates_with_selective_postgres_filter(self) -> None:
         """
@@ -1971,17 +1966,12 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
                 assert all(g in {self.group2, assigned_group} for g in results.results)
 
     def test_optimizer_enabled(self) -> None:
-        prev_optimizer_enabled = options.get("snuba.search.pre-snuba-candidates-optimizer")
-        options.set("snuba.search.pre-snuba-candidates-optimizer", True)
-
-        try:
+        with self.options({"snuba.search.pre-snuba-candidates-optimizer": True}):
             results = self.make_query(
                 search_filter_query="server:example.com",
                 environments=[self.environments["production"]],
             )
             assert set(results) == {self.group1}
-        finally:
-            options.set("snuba.search.pre-snuba-candidates-optimizer", prev_optimizer_enabled)
 
     def test_search_out_of_range(self) -> None:
         the_date = datetime(2000, 1, 1, 0, 0, 0, tzinfo=UTC)
