@@ -3,6 +3,8 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {addTeamToProject} from 'sentry/actionCreators/projects';
 import {Button} from 'sentry/components/core/button';
@@ -25,11 +27,6 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
 
-const UnassignedWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
 const StyledIconUser = styled(IconUser)`
   margin-left: ${space(0.25)};
   margin-right: ${space(1)};
@@ -40,10 +37,10 @@ const StyledIconUser = styled(IconUser)`
 const unassignedOption = {
   value: null,
   label: (
-    <UnassignedWrapper>
+    <Flex align="center">
       <StyledIconUser size="md" />
       {t('Unassigned')}
-    </UnassignedWrapper>
+    </Flex>
   ),
   searchKey: 'unassigned',
   actor: null,
