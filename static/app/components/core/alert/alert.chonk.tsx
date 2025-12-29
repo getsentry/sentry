@@ -68,7 +68,7 @@ function getChonkAlertTokens(variant: AlertProps['variant'], theme: Theme) {
         iconBackground: theme.colors.chonk.green400,
         border: theme.tokens.border.success,
       };
-    case 'subtle':
+    case 'muted':
       return {
         background: theme.colors.surface500,
         iconBackground: theme.colors.surface500,
@@ -156,7 +156,7 @@ export const IconWrapper = styled('div')<{variant: AlertProps['variant']}>`
   color: ${p =>
     ['info', 'danger'].includes(p.variant)
       ? p.theme.colors.white
-      : p.variant === 'subtle'
+      : p.variant === 'muted'
         ? p.theme.tokens.content.primary
         : p.theme.colors.black};
 `;

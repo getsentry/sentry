@@ -301,7 +301,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
               <DetectorExtraDetails.LastModified detector={detector} />
             </DetectorExtraDetails>
             {dataSource.queryObj.isUpserting && (
-              <Alert variant="subtle" icon={<IconJson />}>
+              <Alert variant="muted" icon={<IconJson />}>
                 {t(
                   'This monitor is managed in code and updates automatically with each check-in.'
                 )}

@@ -34,7 +34,7 @@ export function DisabledAlert({detector, message}: DisabledAlertProps) {
   return (
     <Alert.Container>
       <Alert
-        variant="subtle"
+        variant="muted"
         trailingItems={
           <Button
             size="xs"

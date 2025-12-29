@@ -96,7 +96,7 @@ export type TagVariant =
 /**
  * Alert/status color scheme.
  */
-export type AlertVariant = 'subtle' | 'info' | 'warning' | 'success' | 'danger';
+export type AlertVariant = 'muted' | 'info' | 'warning' | 'success' | 'danger';
 
 /**
  * Error/event severity level.

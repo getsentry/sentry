@@ -37,7 +37,7 @@ const DOCUMENTATION_URL = 'https://www.notion.so/sentry/aae9a918b5814fe0918d8e7a
 function SuperuserAccessCategory() {
   return (
     <Fragment>
-      <Alert variant="subtle" showIcon={false}>
+      <Alert variant="muted" showIcon={false}>
         For more information on these categories, please{' '}
         <ExternalLink href={DOCUMENTATION_URL}>see this Notion document</ExternalLink>.
       </Alert>

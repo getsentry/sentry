@@ -130,7 +130,7 @@ function AlertIcon({variant}: {variant: AlertProps['variant']}): React.ReactNode
     case 'danger':
       return <IconNot />;
     case 'info':
-    case 'subtle':
+    case 'muted':
       return <IconInfo />;
     default:
       unreachable(variant);

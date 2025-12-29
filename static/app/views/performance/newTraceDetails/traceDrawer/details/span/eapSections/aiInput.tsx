@@ -299,7 +299,7 @@ function MessagesArrayRenderer({
 
   const truncationAlert = isTruncated ? (
     <Container paddingBottom="lg">
-      <Alert variant="subtle">
+      <Alert variant="muted">
         {tct(
           'Due to [link:size limitations], the oldest messages got dropped from the history.',
           {

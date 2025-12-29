@@ -501,7 +501,7 @@ function MonitorForm({
         <InputGroup>
           {monitor?.config.alert_rule_id && (
             <AlertLink
-              variant="subtle"
+              variant="muted"
               to={makeAlertsPathname({
                 path: `/rules/${monitor.project.slug}/${monitor.config.alert_rule_id}/`,
                 organization,

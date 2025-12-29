@@ -80,7 +80,7 @@ export function StreamlinedExternalIssueList({
   if (!hasLinkedIssuesOrIntegrations) {
     return (
       <AlertLink
-        variant="subtle"
+        variant="muted"
         to={`/settings/${organization.slug}/integrations/?category=issue%20tracking`}
       >
         {t('Track this issue in Jira, GitHub, etc.')}

@@ -377,7 +377,7 @@ const PlatformCard = styled(
     `background: ${p.theme.alert.info.backgroundLight};`}
 
   &:hover {
-    background: ${p => p.theme.alert.subtle.backgroundLight};
+    background: ${p => p.theme.alert.muted.backgroundLight};
   }
 
   h3 {

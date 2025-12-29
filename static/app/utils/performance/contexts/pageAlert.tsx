@@ -47,7 +47,7 @@ export function PageAlertProvider({children}: {children: React.ReactNode}) {
   }, []);
 
   const setPageSubtle: PageAlertSetter = useCallback((message, options) => {
-    setPageAlert({message, variant: 'subtle', ...options});
+    setPageAlert({message, variant: 'muted', ...options});
   }, []);
 
   const setPageSuccess: PageAlertSetter = useCallback((message, options) => {
