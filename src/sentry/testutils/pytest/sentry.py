@@ -419,6 +419,9 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
             selected_items, discarded_items, affected_test_files = filter_items_by_coverage(
                 items, changed_files, coverage_db_path
             )
+            config.get_terminal_writer().line(f"Selected items: {selected_items}")
+            config.get_terminal_writer().line(f"Discarded items: {discarded_items}")
+            config.get_terminal_writer().line(f"Affected test files: {affected_test_files}")
 
             if affected_test_files is not None:
                 config.get_terminal_writer().line(
