@@ -90,7 +90,6 @@ class OrganizationPreprodListBuildsEndpoint(OrganizationEndpoint):
             )
             .prefetch_related("preprodartifactsizemetrics_set")
             .filter(project_id__in=project_ids)
-            .order_by("-date_added")
         )
 
         if start and end:
@@ -165,6 +164,10 @@ class OrganizationPreprodListBuildsEndpoint(OrganizationEndpoint):
                     detail=f"Unsupported platform: {platform}. Supported platforms are: ios, android, macos"
                 )
 
+        annotated_queryset = queryset.annotate_download_count().order_by(  # type: ignore[attr-defined]  # mypy doesn't know about PreprodArtifactQuerySet
+            "-date_added"
+        )
+
         def transform_results(results: list[PreprodArtifact]) -> dict[str, Any]:
             build_details_list = []
             for artifact in results:
@@ -178,7 +181,7 @@ class OrganizationPreprodListBuildsEndpoint(OrganizationEndpoint):
 
         return self.paginate(
             request=request,
-            queryset=queryset,
+            queryset=annotated_queryset,
             order_by="-date_added",
             on_results=transform_results,
             paginator_cls=OffsetPaginator,

@@ -6,7 +6,10 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field
 
-from sentry.preprod.build_distribution_utils import is_installable_artifact
+from sentry.preprod.build_distribution_utils import (
+    get_download_count_for_artifact,
+    is_installable_artifact,
+)
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.vcs.status_checks.size.tasks import StatusCheckErrorType
 
@@ -36,6 +39,7 @@ class BuildDetailsAppInfo(BaseModel):
     date_built: str | None = None
     artifact_type: PreprodArtifact.ArtifactType | None = None
     platform: Platform | None = None
+    # Deprecated, use distribution_info.is_installable instead
     is_installable: bool
     build_configuration: str | None = None
     app_icon_id: str | None = None
@@ -52,6 +56,12 @@ class BuildDetailsVcsInfo(BaseModel):
     head_ref: str | None = None
     base_ref: str | None = None
     pr_number: int | None = None
+
+
+class DistributionInfo(BaseModel):
+    is_installable: bool
+    download_count: int
+    release_notes: str | None = None
 
 
 class StatusCheckResultSuccess(BaseModel):
@@ -131,6 +141,7 @@ class BuildDetailsApiResponse(BaseModel):
     vcs_info: BuildDetailsVcsInfo
     project_id: int
     project_slug: str
+    distribution_info: DistributionInfo
     size_info: SizeInfo | None = None
     posted_status_checks: PostedStatusChecks | None = None
     base_artifact_id: str | None = None
@@ -280,6 +291,12 @@ def transform_preprod_artifact_to_build_details(
     size_info = to_size_info(size_metrics_list, base_size_metrics_list)
 
     app_info = create_build_details_app_info(artifact)
+    is_installable = app_info.is_installable
+    distribution_info = DistributionInfo(
+        is_installable=is_installable,
+        download_count=(get_download_count_for_artifact(artifact) if is_installable else 0),
+        release_notes=(artifact.extras.get("release_notes") if artifact.extras else None),
+    )
 
     vcs_info = BuildDetailsVcsInfo(
         head_sha=(artifact.commit_comparison.head_sha if artifact.commit_comparison else None),
@@ -305,6 +322,7 @@ def transform_preprod_artifact_to_build_details(
         vcs_info=vcs_info,
         project_id=artifact.project.id,
         project_slug=artifact.project.slug,
+        distribution_info=distribution_info,
         size_info=size_info,
         posted_status_checks=posted_status_checks,
         base_artifact_id=base_artifact.id if base_artifact else None,
