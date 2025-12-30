@@ -12,17 +12,20 @@ from fixtures.github import (
     CHECK_RUN_COMPLETED_EVENT_EXAMPLE,
     CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE,
 )
+from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.seer.code_review.utils import ClientError
+from sentry.seer.code_review.webhooks.check_run import GitHubCheckRunAction
 from sentry.seer.code_review.webhooks.task import (
     DELAY_BETWEEN_RETRIES,
     MAX_RETRIES,
     PREFIX,
     process_github_webhook_event,
 )
-from sentry.seer.code_review.webhooks.types import EventType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.github import GitHubWebhookTestCase
+
+CODE_REVIEW_FEATURES = {"organizations:gen-ai-features", "organizations:code-review-beta"}
 
 
 class CheckRunEventWebhookTest(GitHubWebhookTestCase):
@@ -32,7 +35,9 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
         """Enable all required options for code review to work."""
         self.organization.update_option("sentry:enable_pr_review_test_generation", True)
 
-    def _send_check_run_event(self, event_data: bytes | str) -> HttpResponseBase:
+    def _send_check_run_event(
+        self, github_event: GithubWebhookType, event_data: bytes | str
+    ) -> HttpResponseBase:
         """Helper to send check_run event with Pydantic validation."""
         self.event_dict = (
             orjson.loads(event_data) if isinstance(event_data, (bytes, str)) else event_data
@@ -46,37 +51,45 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
             external_id=repo_id,
             integration_id=integration.id,
         )
-        response = self.send_github_webhook_event("check_run", event_data)
+        response = self.send_github_webhook_event(github_event, event_data)
         assert response.status_code == 204
         return response
 
     @patch("sentry.seer.code_review.webhooks.task.process_github_webhook_event")
-    @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
+    @with_feature(CODE_REVIEW_FEATURES)
     def test_base_case(self, mock_task: MagicMock) -> None:
         """Test that rerequested action enqueues task with correct parameters."""
         self._enable_code_review()
-        self._send_check_run_event(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
+        self._send_check_run_event(
+            GithubWebhookType.CHECK_RUN,
+            CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE,
+        )
 
         mock_task.delay.assert_called_once()
         call_kwargs = mock_task.delay.call_args[1]
-        assert call_kwargs["event_type"] == "ci_check"
+        assert call_kwargs["github_event"] == GithubWebhookType.CHECK_RUN
         assert (
             call_kwargs["event_payload"]["original_run_id"]
             == self.event_dict["check_run"]["external_id"]
         )
-        assert call_kwargs["action"] == "rerequested"
+
+        assert call_kwargs["action"] == GitHubCheckRunAction.REREQUESTED.value
         assert call_kwargs["html_url"] == self.event_dict["check_run"]["html_url"]
         assert "enqueued_at_str" in call_kwargs
         assert isinstance(call_kwargs["enqueued_at_str"], str)
 
     @patch("sentry.seer.code_review.webhooks.task.process_github_webhook_event")
+    @with_feature(CODE_REVIEW_FEATURES)
     def test_check_run_skips_when_ai_features_disabled(self, mock_task: MagicMock) -> None:
         """Test that the handler returns early when AI features are not enabled (even though the option is enabled)."""
-        self._send_check_run_event(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
+        self._send_check_run_event(
+            GithubWebhookType.CHECK_RUN,
+            CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE,
+        )
         mock_task.delay.assert_not_called()
 
     @patch("sentry.seer.code_review.webhooks.task.process_github_webhook_event")
-    @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
+    @with_feature(CODE_REVIEW_FEATURES)
     def test_check_run_fails_when_action_missing(self, mock_task: MagicMock) -> None:
         """Test that missing action field is handled gracefully without KeyError."""
         self._enable_code_review()
@@ -84,13 +97,16 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
         del event_without_action["action"]
 
         with patch("sentry.seer.code_review.webhooks.check_run.logger") as mock_logger:
-            self._send_check_run_event(orjson.dumps(event_without_action))
+            self._send_check_run_event(
+                GithubWebhookType.CHECK_RUN,
+                orjson.dumps(event_without_action),
+            )
             mock_task.delay.assert_not_called()
             mock_logger.error.assert_called_once()
             assert "github.webhook.check_run.missing-action" in str(mock_logger.error.call_args)
 
     @patch("sentry.seer.code_review.webhooks.task.process_github_webhook_event")
-    @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
+    @with_feature(CODE_REVIEW_FEATURES)
     def test_check_run_fails_when_external_id_missing(self, mock_task: MagicMock) -> None:
         """Test that missing external_id is handled gracefully."""
         self._enable_code_review()
@@ -98,7 +114,10 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
         del event_without_external_id["check_run"]["external_id"]
 
         with patch("sentry.seer.code_review.webhooks.check_run.logger") as mock_logger:
-            self._send_check_run_event(orjson.dumps(event_without_external_id))
+            self._send_check_run_event(
+                GithubWebhookType.CHECK_RUN,
+                orjson.dumps(event_without_external_id),
+            )
             mock_task.delay.assert_not_called()
             mock_logger.exception.assert_called_once()
             assert (
@@ -106,7 +125,7 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
             )
 
     @patch("sentry.seer.code_review.webhooks.task.process_github_webhook_event")
-    @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
+    @with_feature(CODE_REVIEW_FEATURES)
     def test_check_run_fails_when_external_id_not_numeric(self, mock_task: MagicMock) -> None:
         """Test that non-numeric external_id is handled gracefully."""
         self._enable_code_review()
@@ -114,7 +133,10 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
         event_with_invalid_external_id["check_run"]["external_id"] = "not-a-number"
 
         with patch("sentry.seer.code_review.webhooks.check_run.logger") as mock_logger:
-            self._send_check_run_event(orjson.dumps(event_with_invalid_external_id))
+            self._send_check_run_event(
+                GithubWebhookType.CHECK_RUN,
+                orjson.dumps(event_with_invalid_external_id),
+            )
             mock_task.delay.assert_not_called()
             mock_logger.exception.assert_called_once()
             assert (
@@ -122,15 +144,18 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
             )
 
     @patch("sentry.seer.code_review.webhooks.task.process_github_webhook_event")
-    @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
+    @with_feature(CODE_REVIEW_FEATURES)
     def test_check_run_enqueues_task_for_processing(self, mock_task: MagicMock) -> None:
         """Test that webhook successfully enqueues task for async processing."""
         self._enable_code_review()
-        self._send_check_run_event(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
+        self._send_check_run_event(
+            GithubWebhookType.CHECK_RUN,
+            CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE,
+        )
 
         mock_task.delay.assert_called_once()
         call_kwargs = mock_task.delay.call_args[1]
-        assert call_kwargs["event_type"] == "ci_check"
+        assert call_kwargs["github_event"] == GithubWebhookType.CHECK_RUN
         assert (
             call_kwargs["event_payload"]["original_run_id"]
             == self.event_dict["check_run"]["external_id"]
@@ -138,7 +163,10 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
 
     def test_check_run_without_integration_returns_204(self) -> None:
         """Test that check_run events without integration return 204."""
-        response = self.send_github_webhook_event("check_run", CHECK_RUN_COMPLETED_EVENT_EXAMPLE)
+        response = self.send_github_webhook_event(
+            GithubWebhookType.CHECK_RUN,
+            CHECK_RUN_COMPLETED_EVENT_EXAMPLE,
+        )
         assert response.status_code == 204
 
     @patch("sentry.seer.code_review.webhooks.task.process_github_webhook_event")
@@ -148,17 +176,25 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
     ) -> None:
         """Test that task is not enqueued when code-review-beta flag is off."""
         self._enable_code_review()
-        self._send_check_run_event(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
+        self._send_check_run_event(
+            GithubWebhookType.CHECK_RUN,
+            CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE,
+        )
         mock_task.delay.assert_not_called()
 
-    @patch("sentry.seer.code_review.webhooks.task.process_github_webhook_event")
-    @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
-    def test_check_run_skips_when_hide_ai_features_enabled(self, mock_task: MagicMock) -> None:
+    @patch("sentry.seer.code_review.utils.make_seer_request")
+    @with_feature(CODE_REVIEW_FEATURES)
+    def test_check_run_skips_when_hide_ai_features_enabled(
+        self, mock_make_seer_request: MagicMock
+    ) -> None:
         """Test that task is not enqueued when hide_ai_features option is True."""
         self._enable_code_review()
         self.organization.update_option("sentry:hide_ai_features", True)
-        self._send_check_run_event(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
-        mock_task.delay.assert_not_called()
+        self._send_check_run_event(
+            GithubWebhookType.CHECK_RUN,
+            CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE,
+        )
+        mock_make_seer_request.assert_not_called()
 
 
 class ProcessGitHubWebhookEventTest(TestCase):
@@ -223,7 +259,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         with pytest.raises(HTTPError):
             process_github_webhook_event._func(
-                event_type=EventType.CHECK_RUN,
+                github_event=GithubWebhookType.CHECK_RUN,
                 event_payload={"original_run_id": self.original_run_id},
                 enqueued_at_str=self.enqueued_at_str,
             )
@@ -249,7 +285,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         with pytest.raises(HTTPError):
             process_github_webhook_event._func(
-                event_type=EventType.CHECK_RUN,
+                github_event=GithubWebhookType.CHECK_RUN,
                 event_payload={"original_run_id": self.original_run_id},
                 enqueued_at_str=self.enqueued_at_str,
             )
@@ -275,7 +311,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         with pytest.raises(HTTPError):
             process_github_webhook_event._func(
-                event_type=EventType.CHECK_RUN,
+                github_event=GithubWebhookType.CHECK_RUN,
                 event_payload={"original_run_id": self.original_run_id},
                 enqueued_at_str=self.enqueued_at_str,
             )
@@ -299,7 +335,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         with pytest.raises(ClientError):
             process_github_webhook_event._func(
-                event_type=EventType.CHECK_RUN,
+                github_event=GithubWebhookType.CHECK_RUN,
                 event_payload={"original_run_id": self.original_run_id},
                 enqueued_at_str=self.enqueued_at_str,
             )
@@ -328,7 +364,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         with pytest.raises(MaxRetryError):
             process_github_webhook_event._func(
-                event_type=EventType.CHECK_RUN,
+                github_event=GithubWebhookType.CHECK_RUN,
                 event_payload={"original_run_id": self.original_run_id},
                 enqueued_at_str=self.enqueued_at_str,
             )
@@ -356,7 +392,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         with pytest.raises(TimeoutError):
             process_github_webhook_event._func(
-                event_type=EventType.CHECK_RUN,
+                github_event=GithubWebhookType.CHECK_RUN,
                 event_payload={"original_run_id": self.original_run_id},
                 enqueued_at_str=self.enqueued_at_str,
             )
@@ -384,7 +420,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         with pytest.raises(SSLError):
             process_github_webhook_event._func(
-                event_type=EventType.CHECK_RUN,
+                github_event=GithubWebhookType.CHECK_RUN,
                 event_payload={"original_run_id": self.original_run_id},
                 enqueued_at_str=self.enqueued_at_str,
             )
@@ -412,7 +448,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         with pytest.raises(NewConnectionError):
             process_github_webhook_event._func(
-                event_type=EventType.CHECK_RUN,
+                github_event=GithubWebhookType.CHECK_RUN,
                 event_payload={"original_run_id": self.original_run_id},
                 enqueued_at_str=self.enqueued_at_str,
             )
@@ -440,7 +476,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         with pytest.raises(TimeoutError):
             process_github_webhook_event._func(
-                event_type=EventType.CHECK_RUN,
+                github_event=GithubWebhookType.CHECK_RUN,
                 event_payload={"original_run_id": self.original_run_id},
                 enqueued_at_str=self.enqueued_at_str,
             )
@@ -469,7 +505,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
         # Unexpected exceptions are not retried
         with pytest.raises(ValueError, match="Invalid JSON format"):
             process_github_webhook_event._func(
-                event_type=EventType.CHECK_RUN,
+                github_event=GithubWebhookType.CHECK_RUN,
                 event_payload={"original_run_id": self.original_run_id},
                 enqueued_at_str=self.enqueued_at_str,
             )
@@ -494,7 +530,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_request.return_value = self._mock_response(200, b"{}")
 
         process_github_webhook_event._func(
-            event_type=EventType.CHECK_RUN,
+            github_event=GithubWebhookType.CHECK_RUN,
             event_payload={"original_run_id": self.original_run_id},
             enqueued_at_str=self.enqueued_at_str,
         )
@@ -531,7 +567,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
             try:
                 process_github_webhook_event._func(
-                    event_type=EventType.CHECK_RUN,
+                    github_event=GithubWebhookType.CHECK_RUN,
                     event_payload={"original_run_id": self.original_run_id},
                     enqueued_at_str=enqueued_at_str,
                 )
@@ -561,8 +597,6 @@ class ProcessGitHubWebhookEventTest(TestCase):
         self, mock_metrics: MagicMock, mock_request: MagicMock
     ) -> None:
         """Test that PR-related events are sent to the sentry-request endpoint."""
-        import orjson
-
         mock_request.return_value = self._mock_response(200, b'{"run_id": 123}')
 
         event_payload = {
@@ -583,49 +617,9 @@ class ProcessGitHubWebhookEventTest(TestCase):
         }
 
         process_github_webhook_event._func(
-            event_type=EventType.PULL_REQUEST,
+            github_event=GithubWebhookType.PULL_REQUEST,
             event_payload=event_payload,
             enqueued_at_str=self.enqueued_at_str,
         )
 
-        mock_request.assert_called_once()
-        call_args = mock_request.call_args
-        assert call_args[1]["path"] == "/v1/automation/sentry-request"
-        assert call_args[1]["body"] == orjson.dumps(event_payload)
-
-    @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
-    @patch("sentry.seer.code_review.webhooks.task.metrics")
-    def test_check_run_and_pr_events_processed_separately(
-        self, mock_metrics: MagicMock, mock_request: MagicMock
-    ) -> None:
-        """Test that CHECK_RUN events use rerun endpoint while PR events use sentry-request."""
-        mock_request.return_value = self._mock_response(200, b"{}")
-
-        process_github_webhook_event._func(
-            event_type=EventType.CHECK_RUN,
-            event_payload={"original_run_id": self.original_run_id},
-            enqueued_at_str=self.enqueued_at_str,
-        )
-
-        assert mock_request.call_count == 1
-        check_run_call = mock_request.call_args
-        assert check_run_call[1]["path"] == "/v1/automation/codegen/pr-review/rerun"
-
-        mock_request.reset_mock()
-
-        event_payload = {
-            "data": {"repo": {}, "pr_id": 123},
-            "external_owner_id": "456",
-            "request_type": "pr-review",
-            "organization_id": 789,
-        }
-
-        process_github_webhook_event._func(
-            event_type=EventType.PULL_REQUEST,
-            event_payload=event_payload,
-            enqueued_at_str=self.enqueued_at_str,
-        )
-
-        assert mock_request.call_count == 1
-        pr_call = mock_request.call_args
-        assert pr_call[1]["path"] == "/v1/automation/sentry-request"
+        mock_request.assert_not_called()

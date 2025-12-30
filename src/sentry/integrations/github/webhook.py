@@ -71,11 +71,15 @@ from .types import IssueEvenntWebhookActionType
 logger = logging.getLogger("sentry.webhooks")
 
 
+# Functions that process webhook events need to have this signature.
+# This is used to type check the webhook processors.
 class WebhookProcessor(Protocol):
     def __call__(
         self,
         *,
-        event_type: str,
+        # This comes from the X-GitHub-Event header
+        github_event: GithubWebhookType,
+        # This comes from the webhook payload
         event: Mapping[str, Any],
         organization: Organization,
         repo: Repository,
@@ -105,7 +109,12 @@ def is_contributor_eligible_for_seat_assignment(user_type: str | None) -> bool:
 
 
 def _handle_pr_webhook_for_autofix_processor(
-    *, event_type: str, event: Mapping[str, Any], **kwargs: Any
+    *,
+    github_event: GithubWebhookType,
+    event: Mapping[str, Any],
+    organization: Organization,
+    repo: Repository,
+    **kwargs: Any,
 ) -> None:
     """
     Adapter to make handle_github_pr_webhook_for_autofix work with standard processor signature.
@@ -119,7 +128,6 @@ def _handle_pr_webhook_for_autofix_processor(
 
     action = event.get("action")
     user = pull_request.get("user")
-    organization = kwargs.get("organization")
 
     if organization and action and user:
         # Because we require that the sentry github integration be installed for autofix, we can piggyback
@@ -154,6 +162,7 @@ class GitHubWebhook(SCMWebhook, ABC):
     # without needing to implement _handle()
     def _handle(
         self,
+        github_event: GithubWebhookType,
         integration: RpcIntegration,
         event: Mapping[str, Any],
         organization: Organization,
@@ -163,7 +172,7 @@ class GitHubWebhook(SCMWebhook, ABC):
         for processor in self.WEBHOOK_EVENT_PROCESSORS:
             try:
                 processor(
-                    event_type=self.event_type.value,
+                    github_event=github_event,
                     event=event,
                     organization=organization,
                     repo=repo,
@@ -183,6 +192,7 @@ class GitHubWebhook(SCMWebhook, ABC):
                 continue
 
     def __call__(self, event: Mapping[str, Any], **kwargs: Any) -> None:
+        github_event = kwargs["github_event"]
         external_id = get_github_external_id(event=event, host=kwargs.get("host"))
 
         result = integration_service.organization_contexts(
@@ -254,6 +264,7 @@ class GitHubWebhook(SCMWebhook, ABC):
             for repo in repos.exclude(status=ObjectStatus.HIDDEN):
                 self.update_repo_data(repo, event)
                 self._handle(
+                    github_event=github_event,
                     integration=integration,
                     event=event,
                     organization=orgs[repo.organization_id],
@@ -418,6 +429,7 @@ class PushEventWebhook(GitHubWebhook):
 
     def _handle(
         self,
+        github_event: GithubWebhookType,
         integration: RpcIntegration,
         event: Mapping[str, Any],
         organization: Organization,
@@ -602,6 +614,7 @@ class IssuesEventWebhook(GitHubWebhook):
 
     def _handle(
         self,
+        github_event: GithubWebhookType,
         integration: RpcIntegration,
         event: Mapping[str, Any],
         organization: Organization,
@@ -787,6 +800,7 @@ class PullRequestEventWebhook(GitHubWebhook):
 
     def _handle(
         self,
+        github_event: GithubWebhookType,
         integration: RpcIntegration,
         event: Mapping[str, Any],
         organization: Organization,
@@ -950,7 +964,14 @@ class PullRequestEventWebhook(GitHubWebhook):
         except IntegrityError:
             pass
 
-        super()._handle(integration, event, organization, repo, **kwargs)
+        super()._handle(
+            github_event=github_event,
+            integration=integration,
+            event=event,
+            organization=organization,
+            repo=repo,
+            **kwargs,
+        )
 
 
 class PullRequestReviewEventWebhook(GitHubWebhook):
@@ -1072,7 +1093,8 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
             return HttpResponse(status=400)
 
         try:
-            handler = self.get_handler(request.META["HTTP_X_GITHUB_EVENT"])
+            github_event = request.META["HTTP_X_GITHUB_EVENT"]
+            handler = self.get_handler(github_event)
         except KeyError:
             logger.exception("github.webhook.missing-event", extra=self.get_logging_data())
             logger.exception("Missing Github event in webhook.")
@@ -1081,7 +1103,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         if not handler:
             logger.info(
                 "github.webhook.missing-handler",
-                extra={"event_type": request.META["HTTP_X_GITHUB_EVENT"]},
+                extra={"event_type": github_event},
             )
             return HttpResponse(status=204)
 
@@ -1112,5 +1134,5 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
             domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
             provider_key=event_handler.provider,
         ).capture():
-            event_handler(event)
+            event_handler(event, github_event=github_event)
         return HttpResponse(status=204)

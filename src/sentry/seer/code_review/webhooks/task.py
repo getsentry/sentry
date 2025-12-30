@@ -7,6 +7,7 @@ from typing import Any
 
 from urllib3.exceptions import HTTPError
 
+from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_code_review_tasks
@@ -16,7 +17,6 @@ from sentry.utils import metrics
 
 from ..utils import SeerEndpoint, make_seer_request
 from .check_run import process_check_run_task_event
-from .types import EventType
 
 logger = logging.getLogger(__name__)
 
@@ -27,22 +27,18 @@ DELAY_BETWEEN_RETRIES = 60  # 1 minute
 RETRYABLE_ERRORS = (HTTPError,)
 
 
-def _call_seer_request(*, event_type: str, event_payload: Mapping[str, Any], **kwargs: Any) -> None:
+def _call_seer_request(
+    *, github_event: GithubWebhookType, event_payload: Mapping[str, Any], **kwargs: Any
+) -> None:
     """
     XXX: This is a placeholder processor to send events to Seer.
     """
-    assert event_type != EventType.CHECK_RUN
-    assert event_payload is not None
+    assert github_event != GithubWebhookType.CHECK_RUN
+    # XXX: Add checking options to prevent sending events to Seer by mistake.
     make_seer_request(path=SeerEndpoint.SENTRY_REQUEST.value, payload=event_payload)
 
 
-EVENT_TYPE_TO_PROCESSOR = {
-    EventType.CHECK_RUN: process_check_run_task_event,
-    EventType.ISSUE_COMMENT: _call_seer_request,
-    EventType.PULL_REQUEST: _call_seer_request,
-    EventType.PULL_REQUEST_REVIEW: _call_seer_request,
-    EventType.PULL_REQUEST_REVIEW_COMMENT: _call_seer_request,
-}
+EVENT_TYPE_TO_PROCESSOR = {GithubWebhookType.CHECK_RUN: process_check_run_task_event}
 
 
 @instrumented_task(
@@ -52,25 +48,31 @@ EVENT_TYPE_TO_PROCESSOR = {
     silo_mode=SiloMode.REGION,
 )
 def process_github_webhook_event(
-    *, enqueued_at_str: str, event_type: str, event_payload: Mapping[str, Any], **kwargs: Any
+    *,
+    enqueued_at_str: str,
+    github_event: GithubWebhookType,
+    event_payload: Mapping[str, Any],
+    **kwargs: Any,
 ) -> None:
     """
     Process GitHub webhook event by forwarding to Seer if applicable.
 
     Args:
         enqueued_at_str: The timestamp when the task was enqueued
-        event_type: The type of the webhook event
+        github_event: The GitHub webhook event type from X-GitHub-Event header (e.g., "check_run", "pull_request")
         event_payload: The payload of the webhook event
         **kwargs: Parameters to pass to webhook handler functions
     """
     status = "success"
     should_record_latency = True
     try:
-        event_type_enum = EventType.from_string(event_type)
-        event_processor = EVENT_TYPE_TO_PROCESSOR.get(event_type_enum)
-        if event_processor is None:
-            raise ValueError(f"No processor found for event type: {event_type}")
-        event_processor(event_type=event_type, event_payload=event_payload, **kwargs)
+        event_processor = EVENT_TYPE_TO_PROCESSOR.get(github_event)
+        if event_processor:
+            event_processor(event_payload=event_payload, **kwargs)
+        else:
+            # XXX: Uncomment this when we are ready to send events to Seer.
+            # _call_seer_request(github_event=github_event, event_payload=event_payload, **kwargs)
+            pass
     except Exception as e:
         status = e.__class__.__name__
         # Retryable errors are automatically retried by taskworker.
