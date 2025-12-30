@@ -14,6 +14,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCheckmark, IconCommit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
 import {InstallAppButton} from 'sentry/views/preprod/components/installAppButton';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
@@ -23,10 +24,13 @@ import {
   getPlatformIconFromPlatform,
 } from 'sentry/views/preprod/utils/labelUtils';
 
+import {PreprodBuildsDisplay} from './preprodBuildsDisplay';
+
 interface PreprodBuildsTableProps {
   builds: BuildDetailsApiResponse[];
   isLoading: boolean;
   organizationSlug: string;
+  display?: PreprodBuildsDisplay;
   error?: boolean;
   hasSearchQuery?: boolean;
   onRowClick?: (build: BuildDetailsApiResponse) => void;
@@ -36,6 +40,7 @@ interface PreprodBuildsTableProps {
 
 export function PreprodBuildsTable({
   builds,
+  display = PreprodBuildsDisplay.SIZE,
   isLoading,
   error,
   pageLinks,
@@ -44,14 +49,26 @@ export function PreprodBuildsTable({
   hasSearchQuery,
   showProjectColumn = false,
 }: PreprodBuildsTableProps) {
+  const isDistributionDisplay = display === PreprodBuildsDisplay.DISTRIBUTION;
+  const visibleBuilds = useMemo(
+    () =>
+      isDistributionDisplay
+        ? builds.filter(build => build.distribution_info?.is_installable)
+        : builds,
+    [builds, isDistributionDisplay]
+  );
+
   const hasMultiplePlatforms = useMemo(() => {
-    const platforms = new Set(builds.map(b => b.app_info?.platform).filter(Boolean));
+    const platforms = new Set(
+      visibleBuilds.map(b => b.app_info?.platform).filter(Boolean)
+    );
     return platforms.size > 1;
-  }, [builds]);
+  }, [visibleBuilds]);
 
   const labels = useMemo(
-    () => getLabels(builds[0]?.app_info?.platform ?? undefined, hasMultiplePlatforms),
-    [builds, hasMultiplePlatforms]
+    () =>
+      getLabels(visibleBuilds[0]?.app_info?.platform ?? undefined, hasMultiplePlatforms),
+    [visibleBuilds, hasMultiplePlatforms]
   );
 
   const header = (
@@ -61,22 +78,31 @@ export function PreprodBuildsTable({
         <SimpleTable.HeaderCell>{t('Project')}</SimpleTable.HeaderCell>
       )}
       <SimpleTable.HeaderCell>{t('Build')}</SimpleTable.HeaderCell>
-      <SimpleTable.HeaderCell>
-        {labels.installSizeLabelTooltip ? (
-          <Tooltip title={labels.installSizeLabelTooltip}>
-            <span>{labels.installSizeLabel}</span>
-          </Tooltip>
-        ) : (
-          labels.installSizeLabel
-        )}
-      </SimpleTable.HeaderCell>
-      <SimpleTable.HeaderCell>{labels.downloadSizeLabel}</SimpleTable.HeaderCell>
+      {isDistributionDisplay ? (
+        <SimpleTable.HeaderCell>{t('Download Count')}</SimpleTable.HeaderCell>
+      ) : (
+        <Fragment>
+          <SimpleTable.HeaderCell>
+            {labels.installSizeLabelTooltip ? (
+              <Tooltip title={labels.installSizeLabelTooltip}>
+                <span>{labels.installSizeLabel}</span>
+              </Tooltip>
+            ) : (
+              labels.installSizeLabel
+            )}
+          </SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{labels.downloadSizeLabel}</SimpleTable.HeaderCell>
+        </Fragment>
+      )}
       <SimpleTable.HeaderCell>{t('Created')}</SimpleTable.HeaderCell>
     </SimpleTable.Header>
   );
 
   const renderBuildRow = (build: BuildDetailsApiResponse) => {
-    const linkUrl = `/organizations/${organizationSlug}/preprod/${build.project_id}/${build.id}`;
+    const linkUrl = isDistributionDisplay
+      ? `/organizations/${organizationSlug}/preprod/${build.project_id}/${build.id}/install/`
+      : `/organizations/${organizationSlug}/preprod/${build.project_id}/${build.id}`;
+    const downloadCount = build.distribution_info?.download_count ?? 0;
 
     return (
       <SimpleTable.Row key={build.id}>
@@ -97,7 +123,7 @@ export function PreprodBuildsTable({
                     </Text>
                   </Container>
                   <Feature features="organizations:preprod-build-distribution">
-                    {build.app_info.is_installable && (
+                    {build.distribution_info?.is_installable && (
                       <InstallAppButton
                         projectId={build.project_slug}
                         artifactId={build.id}
@@ -176,13 +202,21 @@ export function PreprodBuildsTable({
             </Flex>
           </SimpleTable.RowCell>
 
-          <SimpleTable.RowCell>
-            <Text>{formattedPrimaryMetricInstallSize(build.size_info)}</Text>
-          </SimpleTable.RowCell>
+          {isDistributionDisplay ? (
+            <SimpleTable.RowCell>
+              <Text>{formatNumberWithDynamicDecimalPoints(downloadCount, 0)}</Text>
+            </SimpleTable.RowCell>
+          ) : (
+            <Fragment>
+              <SimpleTable.RowCell>
+                <Text>{formattedPrimaryMetricInstallSize(build.size_info)}</Text>
+              </SimpleTable.RowCell>
 
-          <SimpleTable.RowCell>
-            <Text>{formattedPrimaryMetricDownloadSize(build.size_info)}</Text>
-          </SimpleTable.RowCell>
+              <SimpleTable.RowCell>
+                <Text>{formattedPrimaryMetricDownloadSize(build.size_info)}</Text>
+              </SimpleTable.RowCell>
+            </Fragment>
+          )}
 
           <SimpleTable.RowCell>
             {build.app_info?.date_added ? (
@@ -205,7 +239,7 @@ export function PreprodBuildsTable({
     );
   } else if (error) {
     tableContent = <SimpleTable.Empty>{t('Error loading builds')}</SimpleTable.Empty>;
-  } else if (builds.length === 0) {
+  } else if (visibleBuilds.length === 0) {
     tableContent = (
       <SimpleTable.Empty>
         <Text as="p">
@@ -222,12 +256,14 @@ export function PreprodBuildsTable({
       </SimpleTable.Empty>
     );
   } else {
-    tableContent = <Fragment>{builds.map(build => renderBuildRow(build))}</Fragment>;
+    tableContent = (
+      <Fragment>{visibleBuilds.map(build => renderBuildRow(build))}</Fragment>
+    );
   }
 
   return (
     <Fragment>
-      <SimpleTableWithColumns showProjectColumn={showProjectColumn}>
+      <SimpleTableWithColumns showProjectColumn={showProjectColumn} display={display}>
         {header}
         {tableContent}
       </SimpleTableWithColumns>
@@ -236,15 +272,24 @@ export function PreprodBuildsTable({
   );
 }
 
-const SimpleTableWithColumns = styled(SimpleTable)<{showProjectColumn?: boolean}>`
+const SimpleTableWithColumns = styled(SimpleTable)<{
+  display?: PreprodBuildsDisplay;
+  showProjectColumn?: boolean;
+}>`
   overflow-x: auto;
   overflow-y: auto;
   grid-template-columns: ${p =>
     p.showProjectColumn
-      ? `minmax(250px, 2fr) minmax(120px, 1fr) minmax(250px, 2fr) minmax(100px, 1fr)
+      ? p.display === PreprodBuildsDisplay.DISTRIBUTION
+        ? `minmax(250px, 2fr) minmax(120px, 1fr) minmax(250px, 2fr) minmax(120px, 1fr)
+    minmax(80px, 120px)`
+        : `minmax(250px, 2fr) minmax(120px, 1fr) minmax(250px, 2fr) minmax(100px, 1fr)
     minmax(100px, 1fr) minmax(80px, 120px)`
-      : `minmax(250px, 2fr) minmax(250px, 2fr) minmax(100px, 1fr) minmax(100px, 1fr)
-    minmax(80px, 120px)`};
+      : p.display === PreprodBuildsDisplay.DISTRIBUTION
+        ? `minmax(250px, 2fr) minmax(250px, 2fr) minmax(120px, 1fr)
+    minmax(80px, 120px)`
+        : `minmax(250px, 2fr) minmax(250px, 2fr) minmax(100px, 1fr)
+    minmax(100px, 1fr) minmax(80px, 120px)`};
 `;
 
 const FullRowLink = styled(Link)`
