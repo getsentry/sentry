@@ -671,7 +671,7 @@ function MenuItem(props: {
 function ComponentTag({el}: {el: TraceElement}) {
   if (isCoreComponent(el)) {
     return (
-      <Tag type="success">
+      <Tag variant="success">
         <Text size="sm" monospace>
           CORE
         </Text>
@@ -681,7 +681,7 @@ function ComponentTag({el}: {el: TraceElement}) {
 
   if (isViewComponent(el)) {
     return (
-      <Tag type="highlight">
+      <Tag variant="info">
         <Text size="sm" monospace>
           VIEW
         </Text>
@@ -690,7 +690,7 @@ function ComponentTag({el}: {el: TraceElement}) {
   }
 
   return (
-    <Tag type="warning">
+    <Tag variant="warning">
       <Text size="sm" monospace>
         SHARED
       </Text>

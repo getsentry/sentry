@@ -225,7 +225,7 @@ function DeprecatedLine({
           <DefaultLineTagWrapper>
             <RepeatsIndicator timesRepeated={timesRepeated} />
             {organization?.features.includes('anr-analyze-frames') && anrCulprit ? (
-              <Tag type="warning" onClick={scrollToSuspectRootCause}>
+              <Tag variant="warning" onClick={scrollToSuspectRootCause}>
                 {t('Suspect Frame')}
               </Tag>
             ) : null}
@@ -315,7 +315,7 @@ function DeprecatedLine({
                 </SourceMapDebuggerModalButton>
               </Fragment>
             ) : null}
-            {data.inApp ? <Tag type="info">{t('In App')}</Tag> : null}
+            {data.inApp ? <Tag variant="info">{t('In App')}</Tag> : null}
             {isExpandable ? (
               <ToggleContextButton
                 data-test-id={`toggle-button-${isExpanded ? 'expanded' : 'collapsed'}`}

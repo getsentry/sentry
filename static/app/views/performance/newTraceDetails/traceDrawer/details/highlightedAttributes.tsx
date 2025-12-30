@@ -307,7 +307,7 @@ function HighlightedTools({
                 : tn('Used %s time', 'Used %s times', usageCount)
             }
           >
-            <Tag key={tool} type={usedTools.has(tool) ? 'info' : 'default'}>
+            <Tag key={tool} variant={usedTools.has(tool) ? 'info' : 'muted'}>
               {tool}
             </Tag>
           </Tooltip>

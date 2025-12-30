@@ -114,7 +114,7 @@ export function TestSuiteDropdown() {
               <TriggerLabel>{label}</TriggerLabel>
             </TriggerLabelWrap>
             {remainingCount > 0 && (
-              <StyledBadge type="default">{`+${remainingCount}`}</StyledBadge>
+              <StyledBadge variant="muted">{`+${remainingCount}`}</StyledBadge>
             )}
           </SelectTrigger.Button>
         );

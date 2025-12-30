@@ -73,7 +73,7 @@ function SuperuserWarning({organization, className}: Props) {
             {SUPERUSER_MESSAGE} {WARNING_MESSAGE}
           </Fragment>
         ),
-        type: 'error',
+        variant: 'danger',
         opaque: true,
         neverExpire: true,
         noDuplicates: true,
@@ -86,7 +86,7 @@ function SuperuserWarning({organization, className}: Props) {
   }
 
   return (
-    <StyledBadge type="warning" className={className}>
+    <StyledBadge variant="warning" className={className}>
       <Tooltip
         isHoverable
         title={

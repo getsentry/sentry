@@ -315,7 +315,7 @@ const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
     borderHover: colors.yellow400,
     color: colors.yellow500,
   },
-  error: {
+  danger: {
     background: colors.red400,
     backgroundLight: colors.red100,
     border: colors.red200,
@@ -341,7 +341,7 @@ const generateLevelTheme = (tokens: Tokens, mode: 'light' | 'dark'): LevelColors
 });
 
 const generateTagTheme = (colors: Colors): TagColors => ({
-  default: {
+  muted: {
     background: colors.surface500,
     border: colors.gray200,
     color: colors.gray500,
@@ -351,12 +351,6 @@ const generateTagTheme = (colors: Colors): TagColors => ({
     background: colors.pink100,
     border: colors.pink100,
     color: colors.pink500,
-  },
-
-  highlight: {
-    background: colors.blue100,
-    border: colors.blue100,
-    color: colors.blue500,
   },
 
   warning: {
@@ -371,7 +365,7 @@ const generateTagTheme = (colors: Colors): TagColors => ({
     color: colors.green500,
   },
 
-  error: {
+  danger: {
     background: colors.red100,
     border: colors.red100,
     color: colors.red500,

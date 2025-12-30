@@ -5,13 +5,22 @@ import type {Platform} from './sharedTypes';
 
 export interface BuildDetailsApiResponse {
   app_info: BuildDetailsAppInfo;
+  distribution_info: BuildDetailsDistributionInfo;
   id: string;
+  project_id: number;
+  project_slug: string;
   state: BuildDetailsState;
   vcs_info: BuildDetailsVcsInfo;
   size_info?: BuildDetailsSizeInfo;
   posted_status_checks?: PostedStatusChecks | null;
   base_artifact_id?: string | null;
   base_build_info?: BuildDetailsAppInfo | null;
+}
+
+interface BuildDetailsDistributionInfo {
+  is_installable: boolean;
+  download_count: number;
+  release_notes: string | null;
 }
 
 export interface BuildDetailsAppInfo {
