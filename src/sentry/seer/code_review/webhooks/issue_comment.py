@@ -9,6 +9,7 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
+from sentry import options
 from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
@@ -50,13 +51,12 @@ def _add_eyes_reaction_to_comment(
     repo: Repository,
     comment_id: str,
 ) -> None:
-    tags = {"repo": repo.name}
     extra = {"organization_id": organization.id, "repo": repo.name, "comment_id": comment_id}
 
     if integration is None:
         metrics.incr(
             Metrics.ERROR.value,
-            tags={**tags, "error_status": ErrorStatus.MISSING_INTEGRATION.value},
+            tags={"error_status": ErrorStatus.MISSING_INTEGRATION.value},
         )
         logger.warning(
             Log.MISSING_INTEGRATION.value,
@@ -69,12 +69,12 @@ def _add_eyes_reaction_to_comment(
         client.create_comment_reaction(repo.name, comment_id, GitHubReaction.EYES)
         metrics.incr(
             Metrics.OUTCOME.value,
-            tags={**tags, "status": "reaction_added"},
+            tags={"status": "reaction_added"},
         )
     except Exception:
         metrics.incr(
             Metrics.ERROR.value,
-            tags={**tags, "error_status": ErrorStatus.REACTION_FAILED.value},
+            tags={"error_status": ErrorStatus.REACTION_FAILED.value},
         )
         logger.exception(
             Log.REACTION_FAILED.value,
@@ -105,7 +105,8 @@ def handle_issue_comment_event(
         return
 
     if comment_id:
-        _add_eyes_reaction_to_comment(integration, organization, repo, str(comment_id))
+        if options.get("github.webhook.issue-comment"):
+            _add_eyes_reaction_to_comment(integration, organization, repo, str(comment_id))
 
     # Import here to avoid circular dependency with handlers
     from .handlers import _schedule_task
