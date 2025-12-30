@@ -129,11 +129,11 @@ export function getProjectOverrideForm({
           <Text>{project.slug}</Text>
         </Flex>
         {projectConfig?.isEnabled ? (
-          <CalmTag type={hasOverrides ? 'warning' : 'success'}>
+          <CalmTag variant={hasOverrides ? 'warning' : 'success'}>
             {hasOverrides ? t('Forwarding with Overrides') : t('Forwarding')}
           </CalmTag>
         ) : (
-          <CalmTag type="error">{t('Disabled')}</CalmTag>
+          <CalmTag variant="danger">{t('Disabled')}</CalmTag>
         )}
       </Flex>
     ),

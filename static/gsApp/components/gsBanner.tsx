@@ -959,7 +959,7 @@ class GSBanner extends Component<Props, State> {
             data-test-id="banner-alert-past-due"
             trailingItems={
               <Flex align="center" height="100%">
-                <Tag type="error">{t('Action Required')}</Tag>
+                <Tag variant="danger">{t('Action Required')}</Tag>
               </Flex>
             }
           >

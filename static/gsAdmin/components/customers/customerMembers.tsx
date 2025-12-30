@@ -31,7 +31,7 @@ const getRow = (row: any) => [
       ) : (
         <span>{row.email}</span>
       )}
-      {row.pending && <Tag type="warning">Invite Pending</Tag>}
+      {row.pending && <Tag variant="warning">Invite Pending</Tag>}
     </UserName>
   </td>,
   <td key="role" style={{textAlign: 'center'}}>

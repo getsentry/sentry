@@ -197,8 +197,8 @@ function EmailRow({
     <EmailItem>
       <EmailTags>
         {email}
-        {!isVerified && <Tag type="warning">{t('Unverified')}</Tag>}
-        {isPrimary && <Tag type="success">{t('Primary')}</Tag>}
+        {!isVerified && <Tag variant="warning">{t('Unverified')}</Tag>}
+        {isPrimary && <Tag variant="success">{t('Primary')}</Tag>}
       </EmailTags>
       <ButtonBar>
         {!isPrimary && isVerified && (

@@ -29,7 +29,7 @@ const getRow = (orgId: string, region: string, row: any) => [
     )}
   </td>,
   <td key="status" style={{textAlign: 'center'}}>
-    <Tag type={row.isPaid ? 'success' : 'warning'}>
+    <Tag variant={row.isPaid ? 'success' : 'warning'}>
       {row.isPaid ? 'paid' : row.failureCode}
     </Tag>
   </td>,

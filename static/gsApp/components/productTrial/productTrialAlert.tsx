@@ -247,7 +247,7 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
         {alertHeader && (
           <Heading>
             <h4>{alertHeader}</h4>
-            <ProductTrialTag trial={trial} type="default" showTrialEnded />
+            <ProductTrialTag trial={trial} variant="muted" showTrialEnded />
           </Heading>
         )}
         {alertText && <div>{alertText}</div>}

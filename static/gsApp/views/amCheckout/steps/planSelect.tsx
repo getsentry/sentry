@@ -107,7 +107,7 @@ function PlanSelect({
   if (showSubscriptionDiscount({activePlan, discountInfo}) && discountInfo) {
     const percent = discountInfo.amount / 100;
     trailingItems = (
-      <Tag type="promotion">
+      <Tag variant="promotion">
         {tct('[durationText] [percent]% off', {
           percent,
           durationText: discountInfo.durationText,
@@ -118,7 +118,7 @@ function PlanSelect({
 
   const getBadge = (plan: Plan): React.ReactNode | undefined => {
     if (plan.id === subscription.plan) {
-      return <Tag type="info">{t('Current plan')}</Tag>;
+      return <Tag variant="info">{t('Current plan')}</Tag>;
     }
 
     if (
@@ -129,7 +129,7 @@ function PlanSelect({
       const lastTrialEnd = moment(subscription.lastTrialEnd).utc().fromNow();
       const trialExpired: boolean = getDaysSinceDate(subscription.lastTrialEnd) > 0;
       return (
-        <Tag type="info">
+        <Tag variant="info">
           {subscription.isTrial && !trialExpired
             ? tct('Trial expires [lastTrialEnd]', {lastTrialEnd})
             : t('You trialed this plan')}

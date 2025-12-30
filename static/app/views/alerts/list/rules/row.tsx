@@ -243,7 +243,7 @@ function RuleListRow({
         }
       )}
     >
-      <Tag type="info">{t('Auto Detected')}</Tag>
+      <Tag variant="info">{t('Auto Detected')}</Tag>
     </Tooltip>
   ) : null;
 

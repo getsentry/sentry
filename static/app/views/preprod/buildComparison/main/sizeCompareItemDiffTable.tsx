@@ -176,10 +176,10 @@ export function SizeCompareItemDiffTable({
         {currentDiffItems.map((diffItem, index) => {
           let changeTypeLabel: string;
           let changeTypeIcon: React.ReactNode;
-          let changeTypeTagType: 'success' | 'error' | 'warning';
+          let changeTypeTagType: 'success' | 'danger' | 'warning';
           switch (diffItem.type) {
             case 'added':
-              changeTypeTagType = 'error';
+              changeTypeTagType = 'danger';
               changeTypeLabel = t('Added');
               changeTypeIcon = <IconAdd />;
               break;
@@ -198,7 +198,7 @@ export function SizeCompareItemDiffTable({
           return (
             <SimpleTable.Row key={startIndex + index}>
               <SimpleTable.RowCell>
-                <Tag icon={changeTypeIcon} type={changeTypeTagType}>
+                <Tag icon={changeTypeIcon} variant={changeTypeTagType}>
                   {changeTypeLabel}
                 </Tag>
               </SimpleTable.RowCell>

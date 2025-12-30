@@ -63,7 +63,7 @@ function AlertListRow({incident, projectsLoaded, projects, organization}: Props)
         {incident.status === IncidentStatus.CLOSED ? (
           <Duration seconds={duration} />
         ) : (
-          <Tag type="warning">{t('Still Active')}</Tag>
+          <Tag variant="warning">{t('Still Active')}</Tag>
         )}
       </NoWrapNumeric>
 

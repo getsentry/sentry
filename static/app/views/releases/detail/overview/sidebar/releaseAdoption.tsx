@@ -252,7 +252,9 @@ function ReleaseAdoption({
             {adoptionStageLabel && !multipleEnvironments ? (
               <div>
                 <Tooltip title={adoptionStageLabel.tooltipTitle} isHoverable>
-                  <Tag type={adoptionStageLabel.type}>{adoptionStageLabel.name}</Tag>
+                  <Tag variant={adoptionStageLabel.variant}>
+                    {adoptionStageLabel.name}
+                  </Tag>
                 </Tooltip>
                 <AdoptionEnvironment>
                   {tct(`in [environment]`, {environment})}

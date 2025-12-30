@@ -154,7 +154,7 @@ export default function DocIntegrationDetails() {
         <DetailLabel title="Name">{data.name}</DetailLabel>
         <DetailLabel title="Slug">{data.slug}</DetailLabel>
         <DetailLabel title="Status">
-          <Tag type={data.isDraft === true ? 'warning' : 'success'}>
+          <Tag variant={data.isDraft === true ? 'warning' : 'success'}>
             {data.isDraft === false ? 'published' : 'draft'}
           </Tag>
         </DetailLabel>
@@ -170,7 +170,7 @@ export default function DocIntegrationDetails() {
           {data.features?.map((feature: any) => (
             <div key={feature.featureGate}>
               {
-                <Tag type="warning">
+                <Tag variant="warning">
                   {feature.featureGate.replace(/(^integrations-)/, '')}
                 </Tag>
               }

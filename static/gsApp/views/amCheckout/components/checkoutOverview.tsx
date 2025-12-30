@@ -129,7 +129,7 @@ class CheckoutOverview extends Component<Props> {
             }
           </div>
           {eventBucket.price === 0 ? (
-            <Tag>{t('included')}</Tag>
+            <Tag variant="muted">{t('included')}</Tag>
           ) : (
             <DetailPrice>{`${price}/${this.shortInterval}`}</DetailPrice>
           )}
@@ -210,7 +210,7 @@ class CheckoutOverview extends Component<Props> {
         <div>
           <DetailTitle>{title}</DetailTitle>
         </div>
-        <Tag>{t('enabled')}</Tag>
+        <Tag variant="muted">{t('enabled')}</Tag>
         <OnDemandDetailItems>{details}</OnDemandDetailItems>
       </OnDemandDetailItem>
     );

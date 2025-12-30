@@ -334,7 +334,7 @@ export function SourceMapsDetails({bundleId, project}: Props) {
                         title={data.dist ? undefined : t('No distribution set')}
                         skipWrapper
                       >
-                        <StyledTag type={data.dist ? 'info' : undefined}>
+                        <StyledTag variant={data.dist ? 'info' : 'muted'}>
                           {data.dist ?? t('none')}
                         </StyledTag>
                       </Tooltip>

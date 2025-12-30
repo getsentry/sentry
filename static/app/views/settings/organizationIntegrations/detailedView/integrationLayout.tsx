@@ -66,7 +66,9 @@ function TopSection({
           </Flex>
           <Flex align="center">
             {tags.map(feature => (
-              <StyledTag key={feature}>{startCase(feature)}</StyledTag>
+              <StyledTag key={feature} variant="muted">
+                {startCase(feature)}
+              </StyledTag>
             ))}
           </Flex>
         </NameContainer>

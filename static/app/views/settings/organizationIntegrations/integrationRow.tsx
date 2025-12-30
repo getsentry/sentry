@@ -110,10 +110,7 @@ function IntegrationRow(props: Props) {
         </TitleContainer>
         <TagsContainer>
           {categories?.map(category => (
-            <Tag
-              key={category}
-              type={category === publishStatus ? 'highlight' : 'default'}
-            >
+            <Tag key={category} variant={category === publishStatus ? 'info' : 'muted'}>
               {category === 'api' ? 'API' : startCase(category)}
             </Tag>
           ))}

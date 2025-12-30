@@ -100,7 +100,7 @@ function TestPerformanceBody({
         filterBy="flakyTests"
         extra={
           flakyTestsChange ? (
-            <Tag type={flakyTestsChange > 0 ? 'error' : 'success'}>
+            <Tag variant={flakyTestsChange > 0 ? 'danger' : 'success'}>
               {formatPercentRate(flakyTestsChange, {minimumValue: 0.01})}
             </Tag>
           ) : undefined
@@ -116,7 +116,7 @@ function TestPerformanceBody({
         }
         extra={
           averageFlakeRateChange ? (
-            <Tag type={averageFlakeRateChange > 0 ? 'error' : 'success'}>
+            <Tag variant={averageFlakeRateChange > 0 ? 'danger' : 'success'}>
               {formatPercentRate(averageFlakeRateChange, {minimumValue: 0.01})}
             </Tag>
           ) : undefined
@@ -129,7 +129,7 @@ function TestPerformanceBody({
         filterBy="failedTests"
         extra={
           cumulativeFailuresChange ? (
-            <Tag type={cumulativeFailuresChange > 0 ? 'error' : 'success'}>
+            <Tag variant={cumulativeFailuresChange > 0 ? 'danger' : 'success'}>
               {formatPercentRate(cumulativeFailuresChange, {minimumValue: 0.01})}
             </Tag>
           ) : undefined
@@ -142,7 +142,7 @@ function TestPerformanceBody({
         filterBy="skippedTests"
         extra={
           skippedTestsChange ? (
-            <Tag type={skippedTestsChange > 0 ? 'error' : 'success'}>
+            <Tag variant={skippedTestsChange > 0 ? 'danger' : 'success'}>
               {formatPercentRate(skippedTestsChange, {minimumValue: 0.01})}
             </Tag>
           ) : undefined

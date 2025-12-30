@@ -134,7 +134,9 @@ function ReleaseCardProjectRow({
                     },
                   }}
                 >
-                  <Tag type={adoptionStageLabel.type}>{adoptionStageLabel.name}</Tag>
+                  <Tag variant={adoptionStageLabel.variant}>
+                    {adoptionStageLabel.name}
+                  </Tag>
                 </Link>
               </Tooltip>
             ) : (

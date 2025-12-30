@@ -32,7 +32,7 @@ const getRow = (doc: DocIntegration) => [
     {doc.popularity}
   </td>,
   <td key="status" style={{textAlign: 'right'}}>
-    <Tag type={doc.isDraft === true ? 'warning' : 'success'}>
+    <Tag variant={doc.isDraft === true ? 'warning' : 'success'}>
       {doc.isDraft === false ? 'published' : 'draft'}
     </Tag>
   </td>,

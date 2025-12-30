@@ -75,7 +75,7 @@ function PlanSubstep({
     ) {
       // TODO(checkout v3): Replace with custom badge
       const copy = t('Current');
-      return <Tag type="default">{copy}</Tag>;
+      return <Tag variant="muted">{copy}</Tag>;
     }
 
     if (
@@ -86,7 +86,7 @@ function PlanSubstep({
       const lastTrialEnd = moment(subscription.lastTrialEnd).utc().fromNow();
       const trialExpired: boolean = getDaysSinceDate(subscription.lastTrialEnd) > 0;
       return (
-        <Tag type="warning">
+        <Tag variant="warning">
           {subscription.isTrial && !trialExpired
             ? tct('Trial expires [lastTrialEnd]', {lastTrialEnd})
             : t('You trialed this plan')}

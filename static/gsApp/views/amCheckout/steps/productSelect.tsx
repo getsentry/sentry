@@ -166,7 +166,7 @@ function ProductSelect({
                       <Flex align="center" gap="md">
                         {formattedMonthlyBudget && (
                           <Tag
-                            type="promotion"
+                            variant="promotion"
                             data-test-id="product-option-feature-credits"
                           >
                             {tct('Includes [includedBudget]/mo in credits', {

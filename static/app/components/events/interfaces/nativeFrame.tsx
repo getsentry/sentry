@@ -432,7 +432,7 @@ function NativeFrame({
               </ErrorBoundary>
             )}
             <TypeCell>
-              {frame.inApp ? <Tag type="info">{t('In App')}</Tag> : null}
+              {frame.inApp ? <Tag variant="info">{t('In App')}</Tag> : null}
             </TypeCell>
           </Flex>
           <ExpandCell>

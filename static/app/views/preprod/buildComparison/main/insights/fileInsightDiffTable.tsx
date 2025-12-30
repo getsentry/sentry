@@ -157,7 +157,7 @@ export function FileInsightItemDiffTable({fileDiffItems}: FileInsightItemDiffTab
             <Fragment key={rowIndex}>
               <SimpleTable.Row key={rowIndex}>
                 <SimpleTable.RowCell>
-                  <Tag icon={fileDiffItemChange.icon} type={fileDiffItemChange.type}>
+                  <Tag icon={fileDiffItemChange.icon} variant={fileDiffItemChange.type}>
                     {fileDiffItemChange.label}
                   </Tag>
                 </SimpleTable.RowCell>

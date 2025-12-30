@@ -204,7 +204,7 @@ export function GroupInsightItemDiffTable({
             <Fragment key={rowIndex}>
               <SimpleTable.Row key={rowIndex}>
                 <SimpleTable.RowCell>
-                  <Tag icon={groupDiffItemChange.icon} type={groupDiffItemChange.type}>
+                  <Tag icon={groupDiffItemChange.icon} variant={groupDiffItemChange.type}>
                     {groupDiffItemChange.label}
                   </Tag>
                 </SimpleTable.RowCell>
@@ -245,7 +245,7 @@ export function GroupInsightItemDiffTable({
                 return (
                   <SimpleTable.Row key={++rowIndex}>
                     <SimpleTable.RowCell>
-                      <Tag icon={diffItemChange.icon} type={diffItemChange.type}>
+                      <Tag icon={diffItemChange.icon} variant={diffItemChange.type}>
                         {diffItemChange.label}
                       </Tag>
                     </SimpleTable.RowCell>

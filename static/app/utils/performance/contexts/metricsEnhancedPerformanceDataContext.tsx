@@ -126,7 +126,11 @@ export function MEPTag() {
 
   const tagText = isMetricsData ? 'processed' : 'indexed';
 
-  return <Tag data-test-id="has-metrics-data-tag">{tagText}</Tag>;
+  return (
+    <Tag variant="muted" data-test-id="has-metrics-data-tag">
+      {tagText}
+    </Tag>
+  );
 }
 
 type ExtractionStatus = 'extracted' | 'not-extracted' | null;

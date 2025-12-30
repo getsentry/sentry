@@ -74,11 +74,11 @@ function PanelHeader({
         (paygBudgets?.budgets[billedCategory] ?? 0) > 0));
 
   const status = activeProductTrial ? (
-    <Tag type="promotion" icon={<IconClock />}>
+    <Tag variant="promotion" icon={<IconClock />}>
       {tn('Trial - %s day left', 'Trial - %s days left', trialDaysLeft)}
     </Tag>
   ) : usageExceeded ? (
-    <Tag type="error" icon={<IconWarning />}>
+    <Tag variant="danger" icon={<IconWarning />}>
       {hasPaygAvailable
         ? tct('[budgetTerm] limit reached', {
             budgetTerm: displayBudgetName(subscription.planDetails, {title: true}),
@@ -104,7 +104,7 @@ function PanelHeader({
         {!isInline && <Heading as="h3">{displayName}</Heading>}
         {status}
         {setupRequired && (
-          <Tag type="warning" icon={<IconWarning />}>
+          <Tag variant="warning" icon={<IconWarning />}>
             {t('Action required')}
           </Tag>
         )}

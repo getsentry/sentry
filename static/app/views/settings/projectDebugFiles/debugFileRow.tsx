@@ -72,7 +72,7 @@ function DebugFileRow({
             <FeatureTags>
               {features.map(feature => (
                 <Tooltip key={feature} title={getFeatureTooltip(feature)} skipWrapper>
-                  <StyledTag>{feature}</StyledTag>
+                  <StyledTag variant="muted">{feature}</StyledTag>
                 </Tooltip>
               ))}
             </FeatureTags>

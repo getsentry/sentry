@@ -60,7 +60,10 @@ function InviteRequestRow({
             </Description>
           )
         ) : (
-          <Tag title={t('This user has asked to join your organization.')}>
+          <Tag
+            variant="muted"
+            title={t('This user has asked to join your organization.')}
+          >
             {t('Join request')}
           </Tag>
         )}

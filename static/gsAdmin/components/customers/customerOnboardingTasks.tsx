@@ -1,6 +1,6 @@
 import moment from 'moment-timezone';
 
-import {Tag} from 'sentry/components/core/badge/tag';
+import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import {getOnboardingTasks} from 'sentry/components/onboardingWizard/taskConfig';
 import {IconCheckmark, IconClock, IconNot} from 'sentry/icons';
 
@@ -14,11 +14,11 @@ type Status = 'complete' | 'pending' | 'skipped';
 
 type StatusTag = {
   icon: React.ReactNode;
-  tagType: React.ComponentProps<typeof Tag>['type'];
+  tagType: TagProps['variant'];
 };
 
 const tagPriority: Record<Status, StatusTag> = {
-  pending: {icon: <IconClock size="xs" />, tagType: 'default'},
+  pending: {icon: <IconClock size="xs" />, tagType: 'muted'},
   skipped: {icon: <IconNot size="xs" />, tagType: 'warning'},
   complete: {icon: <IconCheckmark size="xs" />, tagType: 'success'},
 };
@@ -56,7 +56,7 @@ function CustomerOnboardingTasks({orgId, ...props}: Props) {
         return [
           <td key="task">{onboardingTask.title}</td>,
           <td key="status">
-            <Tag icon={icon} type={tagType}>
+            <Tag icon={icon} variant={tagType}>
               {status}
             </Tag>
           </td>,

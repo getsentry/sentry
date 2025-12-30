@@ -18,7 +18,7 @@ const getRow = (row: any) => [
     <strong>
       <Link to={`/_admin/promocodes/${row.code}/`}>{row.code}</Link>
     </strong>
-    {row.status === 'active' ? null : <Tag type="error">{titleCase(row.status)}</Tag>}
+    {row.status === 'active' ? null : <Tag variant="danger">{titleCase(row.status)}</Tag>}
     <br />
     {row.campaign ? <small>{row.campaign}</small> : null}
   </td>,

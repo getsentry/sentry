@@ -66,15 +66,17 @@ export function InsightDiffRow({
                 <Heading as="h3">{config.name}</Heading>
                 <Flex align="center" gap="xs">
                   {statusCounts.new > 0 && (
-                    <Tag type="promotion">{t('New (%s)', statusCounts.new)}</Tag>
+                    <Tag variant="promotion">{t('New (%s)', statusCounts.new)}</Tag>
                   )}
                   {statusCounts.unresolved > 0 && (
-                    <Tag type="warning">
+                    <Tag variant="warning">
                       {t('Unresolved (%s)', statusCounts.unresolved)}
                     </Tag>
                   )}
                   {statusCounts.resolved > 0 && (
-                    <Tag type="success">{t('Resolved (%s)', statusCounts.resolved)}</Tag>
+                    <Tag variant="success">
+                      {t('Resolved (%s)', statusCounts.resolved)}
+                    </Tag>
                   )}
                 </Flex>
               </Flex>

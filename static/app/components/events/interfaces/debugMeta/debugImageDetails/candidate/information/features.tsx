@@ -33,7 +33,9 @@ function Features({download}: Props) {
 
         return (
           <Tooltip key={label} title={isDisabled ? undefined : description} skipWrapper>
-            <StyledTag disabled={isDisabled}>{label}</StyledTag>
+            <StyledTag disabled={isDisabled} variant="muted">
+              {label}
+            </StyledTag>
           </Tooltip>
         );
       })}

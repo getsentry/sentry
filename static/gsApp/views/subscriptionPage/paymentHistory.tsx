@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import moment from 'moment-timezone';
 
-import {Tag} from 'sentry/components/core/badge/tag';
+import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
@@ -158,7 +158,7 @@ function ReceiptGrid({
           ? ReceiptStatus.CLOSED
           : ReceiptStatus.AWAITING_PAYMENT;
     let icon = <IconWarning />;
-    let tagType = 'warning';
+    let tagType: TagProps['variant'] = 'warning';
 
     switch (status) {
       case ReceiptStatus.PAID:
@@ -167,7 +167,7 @@ function ReceiptGrid({
         break;
       case ReceiptStatus.CLOSED:
         icon = <IconClose />;
-        tagType = 'error';
+        tagType = 'danger';
         break;
       case ReceiptStatus.REFUNDED:
         icon = <IconTimer />;
@@ -180,7 +180,7 @@ function ReceiptGrid({
     }
 
     return (
-      <Tag icon={icon} type={tagType as any}>
+      <Tag icon={icon} variant={tagType}>
         {capitalize(status.replace('_', ' '))}
       </Tag>
     );

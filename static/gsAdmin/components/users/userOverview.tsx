@@ -92,7 +92,9 @@ function UserOverview({
           <DetailLabel title="Staff" yesNo={user.isStaff} />
           <DetailLabel title="Permissions">
             {Array.from(user.permissions).map(p => (
-              <Tag key={p}>{p}</Tag>
+              <Tag key={p} variant="muted">
+                {p}
+              </Tag>
             ))}
           </DetailLabel>
         </DetailList>

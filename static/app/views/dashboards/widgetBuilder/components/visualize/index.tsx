@@ -1011,49 +1011,49 @@ function renderTag(kind: FieldValueKind, label: string, dataType?: string) {
       case 'boolean':
       case 'date':
       case 'string':
-        return <Tag type="highlight">{t('string')}</Tag>;
+        return <Tag variant="info">{t('string')}</Tag>;
       case 'duration':
       case 'integer':
       case 'percentage':
       case 'number':
-        return <Tag type="success">{t('number')}</Tag>;
+        return <Tag variant="success">{t('number')}</Tag>;
       default:
-        return <Tag>{dataType}</Tag>;
+        return <Tag variant="muted">{dataType}</Tag>;
     }
   }
-  let text: string | undefined, tagType: TagProps['type'] | undefined;
+  let text: string | undefined, tagVariant: TagProps['variant'] | undefined;
 
   switch (kind) {
     case FieldValueKind.FUNCTION:
       text = 'f(x)';
-      tagType = 'warning';
+      tagVariant = 'warning';
       break;
     case FieldValueKind.CUSTOM_MEASUREMENT:
     case FieldValueKind.MEASUREMENT:
       text = 'field';
-      tagType = 'highlight';
+      tagVariant = 'info';
       break;
     case FieldValueKind.BREAKDOWN:
       text = 'field';
-      tagType = 'highlight';
+      tagVariant = 'info';
       break;
     case FieldValueKind.TAG:
       text = kind;
-      tagType = 'warning';
+      tagVariant = 'warning';
       break;
     case FieldValueKind.NUMERIC_METRICS:
       text = 'f(x)';
-      tagType = 'warning';
+      tagVariant = 'warning';
       break;
     case FieldValueKind.FIELD:
       text = DEPRECATED_FIELDS.includes(label) ? 'deprecated' : 'field';
-      tagType = 'highlight';
+      tagVariant = 'info';
       break;
     default:
       text = kind;
   }
 
-  return <Tag type={tagType}>{text}</Tag>;
+  return <Tag variant={tagVariant ?? 'muted'}>{text}</Tag>;
 }
 
 export const AggregateCompactSelect = styled(CompactSelect)<{
