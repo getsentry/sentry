@@ -17,6 +17,7 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import PreprodBuildsSearchBar from 'sentry/views/preprod/components/preprodBuildsSearchBar';
+import {usePreprodBuildsAnalytics} from 'sentry/views/preprod/hooks/usePreprodBuildsAnalytics';
 import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
 
 type Props = {
@@ -100,14 +101,29 @@ export default function MobileBuilds({organization, selectedProjectIds}: Props) 
     [location, navigate]
   );
 
+  const builds = buildsData?.builds ?? [];
+  const buildsTotalCount = Number(buildsData?.pagination?.total_count ?? 0);
+  const pageLinks = getResponseHeader?.('Link') ?? undefined;
+  const hasSearchQuery = !!searchQuery?.trim();
+  const showProjectColumn = selectedProjectIds.length > 1;
+  usePreprodBuildsAnalytics({
+    builds,
+    buildsTotalCount,
+    cursor,
+    display: activeDisplay,
+    enabled: selectedProjectIds.length > 0,
+    error: !!buildsError,
+    isLoading: isLoadingBuilds,
+    pageSource: 'releases_mobile_builds_tab',
+    perPage: buildsQueryParams.per_page,
+    projectCount: selectedProjectIds.length,
+    searchQuery,
+  });
+
   if (selectedProjectIds.length === 0) {
     return <LoadingIndicator />;
   }
 
-  const builds = buildsData?.builds ?? [];
-  const pageLinks = getResponseHeader?.('Link') ?? undefined;
-  const hasSearchQuery = !!searchQuery?.trim();
-  const showProjectColumn = selectedProjectIds.length > 1;
   return (
     <Stack gap="xl">
       <Flex

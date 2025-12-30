@@ -8,6 +8,13 @@ type BasePreprodBuildEvent = {
   project_type?: string | null;
 };
 
+type BuildListPageSource =
+  | 'preprod_builds_list'
+  | 'releases_mobile_builds_tab'
+  | 'releases_details_preprod_builds';
+
+type BuildListDisplay = 'size' | 'distribution';
+
 export type PreprodBuildEventParameters = {
   'preprod.builds.compare.go_to_build_details': BasePreprodBuildEvent & {
     slot?: 'head' | 'base';
@@ -28,6 +35,19 @@ export type PreprodBuildEventParameters = {
   'preprod.builds.install_modal.opened': BasePreprodBuildEvent & {
     source: 'build_details_sidebar' | 'builds_table';
   };
+  'preprod.builds.list.metadata': BasePreprodBuildEvent & {
+    builds_page_count: number;
+    builds_total_count: number;
+    datetime_selection: string;
+    display: BuildListDisplay;
+    has_search_query: boolean;
+    is_empty: boolean;
+    page_source: BuildListPageSource;
+    per_page: number;
+    project_count: number;
+    query_status: 'success' | 'error';
+    cursor?: string | null;
+  };
   'preprod.builds.release.build_row_clicked': BasePreprodBuildEvent;
   'preprod.releases.mobile-builds.tab-clicked': {
     organization: Organization;
@@ -37,6 +57,7 @@ export type PreprodBuildEventParameters = {
 type PreprodBuildAnalyticsKey = keyof PreprodBuildEventParameters;
 
 export const preprodBuildEventMap: Record<PreprodBuildAnalyticsKey, string | null> = {
+  'preprod.builds.list.metadata': 'Preprod Builds: List Metadata',
   'preprod.builds.release.build_row_clicked': 'Preprod Builds: Release Build Row Clicked',
   'preprod.builds.details.open_insights_sidebar':
     'Preprod Build Details: Insights Sidebar Opened',

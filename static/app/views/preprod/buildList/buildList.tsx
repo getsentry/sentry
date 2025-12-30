@@ -13,6 +13,7 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {usePreprodBuildsAnalytics} from 'sentry/views/preprod/hooks/usePreprodBuildsAnalytics';
 import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
 
 export default function BuildList() {
@@ -54,6 +55,19 @@ export default function BuildList() {
 
   const builds = buildsData?.builds || [];
   const pageLinks = getResponseHeader?.('Link') || null;
+  const buildsTotalCount = Number(buildsData?.pagination?.total_count ?? 0);
+
+  usePreprodBuildsAnalytics({
+    builds,
+    buildsTotalCount,
+    cursor,
+    display: 'size',
+    error: !!error,
+    isLoading,
+    pageSource: 'preprod_builds_list',
+    perPage: queryParams.per_page,
+    projectCount: 1,
+  });
 
   return (
     <SentryDocumentTitle title="Build list">
