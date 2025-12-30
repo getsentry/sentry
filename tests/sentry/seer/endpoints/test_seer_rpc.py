@@ -1537,6 +1537,27 @@ class TestSeerRpcMethods(APITestCase):
         assert "features" in result
         assert isinstance(result["features"], list)
 
+    def test_get_organization_features_with_enabled_feature(self) -> None:
+        """Test that enabled features appear in results"""
+        # Enable a specific feature with api_expose=True
+        with self.feature({"organizations:ai-insights-generations-page": True}):
+            result = get_organization_features(org_id=self.organization.id)
+
+            assert result["organization_id"] == self.organization.id
+            assert isinstance(result["features"], list)
+            # The feature should be in the list (without "organizations:" prefix)
+            assert "ai-insights-generations-page" in result["features"]
+
+    def test_get_organization_features_with_disabled_feature(self) -> None:
+        """Test that disabled features do not appear in results"""
+        with self.feature({"organizations:ai-insights-generations-page": False}):
+            result = get_organization_features(org_id=self.organization.id)
+
+            assert result["organization_id"] == self.organization.id
+            assert isinstance(result["features"], list)
+            # The feature should NOT be in the list when disabled
+            assert "ai-insights-generations-page" not in result["features"]
+
     def test_get_organization_options_empty(self) -> None:
         """Test getting options for org with no options set"""
         result = get_organization_options(org_id=self.organization.id)
