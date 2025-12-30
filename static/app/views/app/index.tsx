@@ -144,11 +144,7 @@ function App() {
         variant:
           // These are django message level tags that need to be mapped to our alert variant types.
           // See client config in ./src/sentry/web/client_config.py
-          msg.level === 'error'
-            ? 'danger'
-            : msg.level === 'debug'
-              ? 'warning'
-              : msg.level,
+          msg.level === 'error' ? 'danger' : msg.level === 'debug' ? 'muted' : msg.level,
         neverExpire: true,
       })
     );
