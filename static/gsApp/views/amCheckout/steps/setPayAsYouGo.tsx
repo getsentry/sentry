@@ -270,6 +270,7 @@ function SetPayAsYouGo({
                   }}
                 >
                   <SuggestedAmountTag
+                    variant="muted"
                     icon={
                       currentBudget === suggestedBudgetForPlan ? (
                         <IconSentry />
