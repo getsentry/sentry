@@ -6233,6 +6233,74 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         ]
         assert meta["dataset"] == "spans"
 
+    def test_count_if_between(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                    duration=299,
+                ),
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                    duration=300,
+                ),
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                    duration=399,
+                ),
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                    duration=400,
+                ),
+                self.create_span(
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "invalid_argument"},
+                    },
+                    start_ts=self.ten_mins_ago,
+                    duration=200,
+                ),
+            ],
+            is_eap=True,
+        )
+        response = self.do_request(
+            {
+                "field": ["count_if(span.duration,between,300,399)"],
+                "query": "",
+                "orderby": "count_if(span.duration,between,300,399)",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "count_if(span.duration,between,300,399)": 2,
+            },
+        ]
+        assert meta["dataset"] == "spans"
+
+    def test_count_if_numeric_between_raises_with_second_value_less_than_first(self) -> None:
+        response = self.do_request(
+            {
+                "field": ["count_if(span.duration,between,300,299)"],
+                "query": "",
+                "orderby": "count_if(span.duration,between,300,299)",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+        assert response.status_code == 400, response.content
+        assert "Invalid Parameter " in response.data["detail"].title()
+
     def test_count_if_numeric_raises_invalid_search_query_with_bad_value(self) -> None:
         response = self.do_request(
             {

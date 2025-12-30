@@ -36,6 +36,39 @@ def count_processor(count_value: int | None) -> int:
         return count_value
 
 
+def resolve_attribute_value(attribute: AttributeKey, value: str) -> AttributeValue:
+    attr_value = None
+
+    try:
+        if attribute.type == AttributeKey.TYPE_DOUBLE:
+            attr_value = AttributeValue(val_double=float(value))
+        elif attribute.type == AttributeKey.TYPE_FLOAT:
+            attr_value = AttributeValue(val_float=float(value))
+        elif attribute.type == AttributeKey.TYPE_INT:
+            attr_value = AttributeValue(val_int=int(value))
+        else:
+            value = unquote_literal(value)
+            attr_value = AttributeValue(val_str=value)
+
+    except ValueError:
+        expected_type = "string"
+        if attribute.type in [AttributeKey.TYPE_FLOAT, AttributeKey.TYPE_DOUBLE]:
+            expected_type = "number"
+        if attribute.type == AttributeKey.TYPE_INT:
+            expected_type = "integer"
+        raise InvalidSearchQuery(f"Invalid parameter '{value}'. Must be of type {expected_type}.")
+
+    if attribute.type == AttributeKey.TYPE_BOOLEAN:
+        lower_value = value.lower()
+        if lower_value not in ["true", "false"]:
+            raise InvalidSearchQuery(
+                f"Invalid parameter {value}. Must be one of {["true", "false"]}"
+            )
+        attr_value = AttributeValue(val_bool=value == "true")
+
+    return attr_value
+
+
 SPANS_ALWAYS_PRESENT_ATTRIBUTES = [
     AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_DOUBLE),
 ]
@@ -67,39 +100,45 @@ def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, 
         value, str
     ), "Value must be a String"  # This should always be a string. Assertion to deal with typing errors.
 
-    try:
-        if key.type == AttributeKey.TYPE_DOUBLE:
-            attr_value = AttributeValue(val_double=float(value))
-        elif key.type == AttributeKey.TYPE_FLOAT:
-            attr_value = AttributeValue(val_float=float(value))
-        elif key.type == AttributeKey.TYPE_INT:
-            attr_value = AttributeValue(val_int=int(value))
-        else:
-            value = unquote_literal(value)
-            attr_value = AttributeValue(val_str=value)
-    except ValueError:
-        expected_type = "string"
-        if key.type in [AttributeKey.TYPE_FLOAT, AttributeKey.TYPE_DOUBLE]:
-            expected_type = "number"
-        if key.type == AttributeKey.TYPE_INT:
-            expected_type = "integer"
-        raise InvalidSearchQuery(f"Invalid parameter '{value}'. Must be of type {expected_type}.")
+    attr_value = resolve_attribute_value(key, value)
 
-    if key.type == AttributeKey.TYPE_BOOLEAN:
-        lower_value = value.lower()
-        if lower_value not in ["true", "false"]:
-            raise InvalidSearchQuery(
-                f"Invalid parameter {value}. Must be one of {["true", "false"]}"
+    if operator == "between":
+        value2 = args[
+            4
+        ]  # This is already be validated to be a number in the `BaseArgumentDefinition.validator`
+
+        if float(value2) <= float(value):
+            raise InvalidSearchQuery(f"Invalid parameter {value2}. Must be greater than {value}")
+
+        attr_value2 = resolve_attribute_value(key, value2)
+        trace_filter = TraceItemFilter(
+            and_filter=AndFilter(
+                filters=[
+                    TraceItemFilter(
+                        comparison_filter=ComparisonFilter(
+                            key=key,
+                            op=ComparisonFilter.OP_GREATER_THAN_OR_EQUALS,
+                            value=attr_value,
+                        )
+                    ),
+                    TraceItemFilter(
+                        comparison_filter=ComparisonFilter(
+                            key=key,
+                            op=ComparisonFilter.OP_LESS_THAN_OR_EQUALS,
+                            value=attr_value2,
+                        )
+                    ),
+                ]
             )
-        attr_value = AttributeValue(val_bool=value == "true")
-
-    trace_filter = TraceItemFilter(
-        comparison_filter=ComparisonFilter(
-            key=key,
-            op=constants.LITERAL_OPERATOR_MAP[operator],
-            value=attr_value,
         )
-    )
+    else:
+        trace_filter = TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=key,
+                op=constants.LITERAL_OPERATOR_MAP[operator],
+                value=attr_value,
+            )
+        )
     return (aggregate_key, trace_filter)
 
 
@@ -228,10 +267,14 @@ SPAN_AGGREGATE_DEFINITIONS = {
                         "greaterOrEquals",
                         "less",
                         "greater",
+                        "between",
                     ]
                 ),
             ),
             ValueArgumentDefinition(argument_types={"string"}),
+            ValueArgumentDefinition(
+                argument_types={"string"}, default_arg="0.0", validator=number_validator
+            ),  # Second value is only for between, so it must be a number
         ],
         aggregate_resolver=resolve_key_eq_value_filter,
     ),
