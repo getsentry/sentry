@@ -10,8 +10,6 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getConsoleExtensions} from 'sentry/components/onboarding/gettingStartedDoc/utils/consoleExtensions';
 import {t, tct} from 'sentry/locale';
 
-type Params = DocsParams;
-
 const getVerifySnippet = () => `
 #include "SentrySubsystem.h"
 
@@ -25,7 +23,7 @@ void Verify()
     SentrySubsystem->CaptureMessage(TEXT("Capture message"));
 }`;
 
-const getSettingsConfigureSnippet = (params: Params) => `
+const getSettingsConfigureSnippet = (params: DocsParams) => `
 #include "SentrySubsystem.h"
 
 FConfigureSettingsDelegate OnConfigureSettings;
@@ -63,7 +61,7 @@ void UMyGameInstance::ConfigureSentrySettings(USentrySettings* Settings)
 USentrySubsystem* SentrySubsystem = GEngine->GetEngineSubsystem<USentrySubsystem>();
 SentrySubsystem->InitializeWithSettings(OnConfigureSettings);`;
 
-const getCrashReporterConfigSnippet = (params: Params) => `
+const getCrashReporterConfigSnippet = (params: DocsParams) => `
 [CrashReportClient]
 CrashReportClientVersion=1.0
 DataRouterUrl="${params.dsn.unreal}"`;
