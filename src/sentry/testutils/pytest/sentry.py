@@ -404,10 +404,11 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
 
     # Selective testing based on coverage data
     if os.environ.get("SELECTIVE_TESTING_ENABLED"):
-        changed_files_str = os.environ.get("CHANGED_FILES", "")
+        changed_files_str = os.environ.get("CHANGED_FILES", None)
+        # TODO
         coverage_db_path = os.environ.get("COVERAGE_DB_PATH", ".coverage.combined")
 
-        if changed_files_str:
+        if changed_files_str is not None:
             # Parse changed files from space-separated string
             changed_files = [f.strip() for f in changed_files_str.split(" ") if f.strip()]
 
@@ -419,13 +420,9 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
             config.get_terminal_writer().line(
                 f"Filtering tests using coverage data from {coverage_db_path}"
             )
-            config.get_terminal_writer().line(f"Changed files: {changed_files}")
             selected_items, discarded_items, affected_test_files = filter_items_by_coverage(
-                items, changed_files, coverage_db_path
+                config, items, changed_files, coverage_db_path
             )
-            config.get_terminal_writer().line(f"Selected items: {selected_items}")
-            config.get_terminal_writer().line(f"Discarded items: {discarded_items}")
-            config.get_terminal_writer().line(f"Affected test files: {affected_test_files}")
 
             if affected_test_files is not None:
                 config.get_terminal_writer().line(
@@ -438,10 +435,6 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
                 # Update items with filtered list
                 items[:] = selected_items
                 initial_discard = discarded_items
-            else:
-                config.get_terminal_writer().line(
-                    "Warning: Could not load coverage data, running all tests"
-                )
 
     # Existing grouping logic (unchanged)
     total_groups = int(os.environ.get("TOTAL_TEST_GROUPS", 1))

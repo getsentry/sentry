@@ -1,49 +1,40 @@
-# flake8: noqa: S002
-
 from __future__ import annotations
 
 import os
 import sqlite3
-import sys
+
+from sentry.testutils import pytest
+
+PYTEST_IGNORED_FILES = [
+    # the pytest code itself is not part of the test suite but will be referenced by most tests
+    "sentry/testutils/pytest/sentry.py",
+]
 
 
-def _file_executed(bitblob: bytes) -> bool:
-    """
-    Returns True if any line in the file was executed (bitblob has any bits set).
-    """
-    return any(b != 0 for b in bitblob)
+def filter_items_by_coverage(
+    config: pytest.Config,
+    items: list[pytest.Item],
+    changed_files: list[str],
+    coverage_db_path: str,
+) -> tuple[list[pytest.Item], list[pytest.Item], set[str]]:
+    if not os.path.exists(coverage_db_path):
+        raise ValueError(f"Coverage database not found at {coverage_db_path}")
 
-
-def get_affected_tests_from_coverage(db_path: str, source_files: list[str]) -> set[str] | None:
-    """
-    Query the coverage database to find which tests executed code in the given source files.
-
-    Args:
-        db_path: Path to the .coverage SQLite database
-        source_files: List of source file paths that have changed
-
-    Returns:
-        Set of test file paths (e.g., 'tests/sentry/api/test_foo.py'),
-        or None if the database doesn't exist or there's an error.
-    """
-    if not os.path.exists(db_path):
-        return None
-
+    affected_test_files = set()
     try:
-        conn = sqlite3.connect(db_path)
+        conn = sqlite3.connect(coverage_db_path)
         cur = conn.cursor()
 
         test_contexts = set()
 
-        for file_path in source_files:
-            if file_path.endswith("sentry/testutils/pytest/sentry.py"):
+        for file_path in changed_files:
+            if any(file_path.endswith(ignored_file) for ignored_file in PYTEST_IGNORED_FILES):
                 continue
+
             cleaned_file_path = file_path
             if cleaned_file_path.startswith("/src"):
                 cleaned_file_path = cleaned_file_path[len("/src") :]
-            # Query for test contexts that executed this file
 
-            print(f"Querying coverage database for {cleaned_file_path}")
             cur.execute(
                 """
                 SELECT c.context, lb.numbits
@@ -56,52 +47,25 @@ def get_affected_tests_from_coverage(db_path: str, source_files: list[str]) -> s
                 (f"%{cleaned_file_path}",),
             )
 
-            contexts = cur.fetchall()
-            print(contexts)
-            print(f"Found {len(contexts)} contexts for {cleaned_file_path}")
-            for context, bitblob in contexts:
-                if _file_executed(bytes(bitblob)):
-                    print(f"Found executed context: {context}")
+            for context, bitblob in cur.fetchall():
+                # Check if test was executed
+                if any(b != 0 for b in bytes(bitblob)):
                     test_contexts.add(context)
 
         conn.close()
 
         # Extract test file paths from contexts
-        # Context format: 'tests/foo/bar.py::TestClass::test_function'
+        # Context format: 'tests/foo/bar.py::TestClass::test_function|run'
         test_files = set()
         for context in test_contexts:
             test_file = context.split("::", 1)[0]
             test_files.add(test_file)
 
-        return test_files
-
     except (sqlite3.Error, Exception) as e:
-        # Log the error but don't fail the test run
+        raise ValueError(f"Could not query coverage database: {e}")
 
-        print(f"Warning: Could not query coverage database: {e}", file=sys.stderr)
-        return None
-
-
-def filter_items_by_coverage(items, changed_files: list[str], coverage_db_path: str):
-    """
-    Filter pytest items to only include tests affected by the changed files.
-
-    Args:
-        items: List of pytest.Item objects to filter
-        changed_files: List of source files that have changed
-        coverage_db_path: Path to the coverage database
-
-    Returns:
-        Tuple of (selected_items, discarded_items, affected_test_files)
-        where affected_test_files is the set of test files found in coverage data,
-        or None if coverage data could not be loaded.
-    """
-    affected_test_files = get_affected_tests_from_coverage(coverage_db_path, changed_files)
-    print(f"Affected test files: {affected_test_files}")
-
-    if affected_test_files is None:
-        # Could not load coverage data, return all items as selected
-        return list(items), [], None
+    config.get_terminal_writer().line(f"Found {len(affected_test_files)} affected test files")
+    config.get_terminal_writer().line(f"Affected test files: {affected_test_files}")
 
     # Filter items to only include tests from affected files
     selected_items = []
@@ -115,4 +79,4 @@ def filter_items_by_coverage(items, changed_files: list[str], coverage_db_path: 
         else:
             discarded_items.append(item)
 
-    return selected_items, discarded_items, affected_test_files
+    return selected_items, discarded_items
