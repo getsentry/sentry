@@ -238,6 +238,7 @@ class WritePreprodBuildDistributionToEAPTest(TestCase):
         assert attrs["build_version"].string_value == "1.2.3"
         assert attrs["build_number"].int_value == 100
         assert attrs["main_binary_identifier"].string_value == "com.example.MainBinary"
+        assert artifact.date_built is not None
         assert attrs["artifact_date_built"].int_value == int(artifact.date_built.timestamp())
         assert attrs["build_configuration_name"].string_value == "Release"
 
