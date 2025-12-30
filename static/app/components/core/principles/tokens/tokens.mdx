@@ -18,6 +18,8 @@ import color from 'color';
 import {Container, Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import * as Storybook from 'sentry/stories';
+// eslint-disable-next-line @sentry/scraps/no-token-import -- temporary until theme.borderWidth is exposed
+import {size} from 'sentry/utils/theme/scraps/tokens/size';
 
 # Color
 
@@ -71,17 +73,13 @@ Radius values define the rounded corners of [`<Container />`](/stories/layout/co
 
 Border Width values define the thickness of borders using the CSS properties `border-width` and `outline-width`.
 
-```
-TBD
-```
+<BorderWidth />
 
 ## Shadow Offset
 
 Shadow Offset values define the distance of shadows and borders for raised interactive elements.
 
-```
-TBD
-```
+<ShadowOffset />
 
 # Typography
 
@@ -238,6 +236,51 @@ export function LineHeight() {
             Aa
           </Text>
         </Flex>
+      )}
+    />
+  );
+}
+
+export function BorderWidth() {
+  const theme = useTheme();
+  return (
+    <Storybook.TokenReference
+      scale="border"
+      tokens={size.border}
+      renderToken={({value}) => (
+        <Container
+          as="div"
+          style={{
+            boxSizing: 'border-box',
+            width: '48px',
+            height: value,
+            background: theme.tokens.border.accent.vibrant,
+          }}
+        />
+      )}
+    />
+  );
+}
+
+export function ShadowOffset() {
+  const theme = useTheme();
+  return (
+    <Storybook.TokenReference
+      scale="shadow"
+      tokens={size.shadow}
+      renderToken={({value}) => (
+        <Container
+          as="div"
+          style={{
+            boxSizing: 'border-box',
+            width: '32px',
+            height: '32px',
+            background: theme.tokens.background.primary,
+            boxShadow: `0 ${value} 0 0 ${theme.tokens.border.accent.vibrant}`,
+          }}
+          border="accent"
+          radius="xs"
+        />
       )}
     />
   );
