@@ -115,7 +115,7 @@ function SearchComboBox<T extends SearchItem>(props: SearchComboBoxProps<T>) {
         </InputGroup.LeadingItems>
         <InputGroup.Input ref={inputRef} nativeSize={nativeSize} {...nativeProps} />
         <InputGroup.TrailingItems>
-          <Badge type="internal">/</Badge>
+          <Badge variant="internal">/</Badge>
         </InputGroup.TrailingItems>
       </InputGroup>
       {state.isOpen && (
