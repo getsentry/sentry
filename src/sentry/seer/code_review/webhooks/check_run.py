@@ -17,12 +17,12 @@ from typing import Any
 
 from pydantic import BaseModel, Field, ValidationError  # noqa: F401
 
+from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.organization import Organization
 from sentry.utils import metrics
 
 from ..permissions import has_code_review_enabled
 from ..utils import SeerEndpoint, make_seer_request
-from .types import EventType
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +92,7 @@ def handle_check_run_event(
         organization: The Sentry organization that the webhook event belongs to
         **kwargs: Additional keyword arguments
     """
-    if event_type != EventType.CHECK_RUN:
+    if event_type != GithubWebhookType.CHECK_RUN:
         return
 
     action = event.get("action")
@@ -134,7 +134,7 @@ def handle_check_run_event(
 
     # Scheduling the work as a task allows us to retry the request if it fails.
     process_github_webhook_event.delay(
-        event_type=EventType.CHECK_RUN,
+        event_type=GithubWebhookType.CHECK_RUN,
         # A reduced payload is enough for the task to process.
         event_payload={"original_run_id": validated_event.check_run.external_id},
         action=validated_event.action,
@@ -162,10 +162,10 @@ def process_check_run_task_event(
     """
     Process check_run task events.
 
-    Only processes events with event_type='check_run'.
+    Only processes events with event_type=GithubWebhookType.CHECK_RUN.
     This allows the task to be shared by multiple webhook types without conflicts.
     """
-    if event_type != EventType.CHECK_RUN:
+    if event_type != GithubWebhookType.CHECK_RUN:
         return
 
     original_run_id = event_payload["original_run_id"]
