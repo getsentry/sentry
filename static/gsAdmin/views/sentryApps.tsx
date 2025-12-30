@@ -29,9 +29,11 @@ const getRow = (row: any) => [
   <td key="status" style={{textAlign: 'right'}}>
     <Tag
       variant={
-        row.status in {unpublished: 'danger', internal: 'warning'}
-          ? row.status
-          : 'success'
+        row.status === 'unpublished'
+          ? 'danger'
+          : row.status === 'internal'
+            ? 'warning'
+            : 'success'
       }
     >
       {row.status}
