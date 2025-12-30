@@ -48,7 +48,7 @@ function StoryLayout() {
       {isMDXStory(story) ? <MDXStoryTitle story={story} /> : null}
       <StoryGrid>
         <StoryContainer>
-          <Flex flexGrow={1}>
+          <Flex flexGrow={1} minWidth={0}>
             <StoryTabPanels />
           </Flex>
           <ErrorBoundary>
@@ -265,6 +265,7 @@ function StoryModuleExports(props: {
 const StoryContainer = styled('div')`
   max-width: 580px;
   width: 100%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space['3xl']};
