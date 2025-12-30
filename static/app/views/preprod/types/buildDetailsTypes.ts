@@ -7,6 +7,8 @@ export interface BuildDetailsApiResponse {
   app_info: BuildDetailsAppInfo;
   distribution_info: BuildDetailsDistributionInfo;
   id: string;
+  project_id: number;
+  project_slug: string;
   state: BuildDetailsState;
   vcs_info: BuildDetailsVcsInfo;
   size_info?: BuildDetailsSizeInfo;

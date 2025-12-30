@@ -529,7 +529,7 @@ describe('ReleasesList', () => {
     PageFiltersStore.updateProjects([Number(mobileProject.id)], null);
 
     const buildsMock = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${mobileProject.slug}/preprodartifacts/list-builds/`,
+      url: `/organizations/${organization.slug}/preprodartifacts/list-builds/`,
       body: {builds: []},
     });
 
@@ -546,7 +546,7 @@ describe('ReleasesList', () => {
     expect(await screen.findByText(/No mobile builds found/)).toBeInTheDocument();
 
     expect(buildsMock).toHaveBeenCalledWith(
-      `/projects/${organization.slug}/${mobileProject.slug}/preprodartifacts/list-builds/`,
+      `/organizations/${organization.slug}/preprodartifacts/list-builds/`,
       expect.objectContaining({
         query: expect.objectContaining({per_page: 25, statsPeriod: '7d'}),
       })
@@ -565,11 +565,13 @@ describe('ReleasesList', () => {
     PageFiltersStore.updateProjects([Number(mobileProject.id)], null);
 
     const buildsMock = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${mobileProject.slug}/preprodartifacts/list-builds/`,
+      url: `/organizations/${organization.slug}/preprodartifacts/list-builds/`,
       body: {
         builds: [
           {
             id: 'build-id',
+            project_id: 13,
+            project_slug: 'mobile-project-2',
             state: 1,
             app_info: {
               app_id: 'com.example.app',
@@ -608,7 +610,7 @@ describe('ReleasesList', () => {
 
     await waitFor(() =>
       expect(buildsMock).toHaveBeenCalledWith(
-        `/projects/${organization.slug}/${mobileProject.slug}/preprodartifacts/list-builds/`,
+        `/organizations/${organization.slug}/preprodartifacts/list-builds/`,
         expect.objectContaining({
           query: expect.objectContaining({
             per_page: 25,
@@ -632,7 +634,7 @@ describe('ReleasesList', () => {
     // Wait for the API call with the complete search query
     await waitFor(() =>
       expect(buildsMock).toHaveBeenCalledWith(
-        `/projects/${organization.slug}/${mobileProject.slug}/preprodartifacts/list-builds/`,
+        `/organizations/${organization.slug}/preprodartifacts/list-builds/`,
         expect.objectContaining({
           query: expect.objectContaining({
             per_page: 25,
@@ -656,7 +658,7 @@ describe('ReleasesList', () => {
     PageFiltersStore.updateProjects([Number(mobileProject.id)], null);
 
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${mobileProject.slug}/preprodartifacts/list-builds/`,
+      url: `/organizations/${organization.slug}/preprodartifacts/list-builds/`,
       body: {builds: []},
     });
 
