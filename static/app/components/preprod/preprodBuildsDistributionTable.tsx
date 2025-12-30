@@ -53,6 +53,7 @@ export function PreprodBuildsDistributionTable({
         <PreprodBuildsCommonRowCells
           build={build}
           showInteraction={!isRowDisabled}
+          showInstallabilityIndicator
           showProjectColumn={showProjectColumn}
         />
         <DownloadCountRowCell build={build} />
@@ -107,6 +108,6 @@ const DisabledRow = styled(SimpleTable.Row)`
   [role='cell'] {
     color: ${p => p.theme.subText};
     cursor: not-allowed;
-    opacity: 0.4;
+    opacity: 0.5;
   }
 `;
