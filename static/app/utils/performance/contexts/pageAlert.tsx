@@ -26,7 +26,7 @@ type PageAlertSetter = (
 const PageErrorContext = createContext<{
   setPageDanger: PageAlertSetter;
   setPageInfo: PageAlertSetter;
-  setPageSubtle: PageAlertSetter;
+  setPageMuted: PageAlertSetter;
   setPageSuccess: PageAlertSetter;
   setPageWarning: PageAlertSetter;
   pageAlert?: PageAlertOptions;
@@ -34,7 +34,7 @@ const PageErrorContext = createContext<{
   pageAlert: undefined,
   setPageDanger: (_: React.ReactNode | undefined) => {},
   setPageInfo: (_: React.ReactNode | undefined) => {},
-  setPageSubtle: (_: React.ReactNode | undefined) => {},
+  setPageMuted: (_: React.ReactNode | undefined) => {},
   setPageSuccess: (_: React.ReactNode | undefined) => {},
   setPageWarning: (_: React.ReactNode | undefined) => {},
 });
@@ -46,7 +46,7 @@ export function PageAlertProvider({children}: {children: React.ReactNode}) {
     setPageAlert({message, variant: 'info', ...options});
   }, []);
 
-  const setPageSubtle: PageAlertSetter = useCallback((message, options) => {
+  const setPageMuted: PageAlertSetter = useCallback((message, options) => {
     setPageAlert({message, variant: 'muted', ...options});
   }, []);
 
@@ -67,7 +67,7 @@ export function PageAlertProvider({children}: {children: React.ReactNode}) {
       value={{
         pageAlert,
         setPageInfo,
-        setPageSubtle,
+        setPageMuted,
         setPageSuccess,
         setPageWarning,
         setPageDanger,
