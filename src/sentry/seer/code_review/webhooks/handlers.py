@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 METRICS_PREFIX = "seer.code_review.webhook"
 
 
-def _forward_to_seer(
+def _schedule_task(
     event_type: str, event: Mapping[str, Any], organization: Organization, repo: Repository
 ) -> None:
     """Transform and forward a webhook event to Seer for processing."""
@@ -64,7 +64,7 @@ def handle_other_webhook_event(
     if not has_code_review_enabled(organization):
         return
 
-    _forward_to_seer(event_type, event, organization, repo)
+    _schedule_task(event_type, event, organization, repo)
 
 
 EVENT_TYPE_TO_handler: dict[EventType, WebhookProcessor] = {

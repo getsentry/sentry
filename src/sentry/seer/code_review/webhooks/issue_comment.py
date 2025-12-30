@@ -4,11 +4,11 @@ Handler for GitHub issue_comment webhook events.
 
 from __future__ import annotations
 
+import enum
 import logging
 from collections.abc import Mapping
 from typing import Any
 
-from sentry import features
 from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
@@ -18,6 +18,22 @@ from sentry.utils import metrics
 from ..permissions import has_code_review_enabled
 
 logger = logging.getLogger(__name__)
+
+
+class ErrorStatus(enum.StrEnum):
+    MISSING_INTEGRATION = "missing_integration"
+    REACTION_FAILED = "reaction_failed"
+
+
+class Log(enum.StrEnum):
+    MISSING_INTEGRATION = "github.webhook.issue_comment.missing-integration"
+    REACTION_FAILED = "github.webhook.issue_comment.reaction-failed"
+
+
+class Metrics(enum.StrEnum):
+    ERROR = "seer.code_review.webhook.issue_comment.error"
+    OUTCOME = "seer.code_review.webhook.issue_comment.outcome"
+
 
 SENTRY_REVIEW_COMMAND = "@sentry review"
 
@@ -34,27 +50,35 @@ def _add_eyes_reaction_to_comment(
     repo: Repository,
     comment_id: str,
 ) -> None:
+    tags = {"repo": repo.name}
+    extra = {"organization_id": organization.id, "repo": repo.name, "comment_id": comment_id}
+
     if integration is None:
-        metrics.incr("seer.code_review.webhook.issue_comment.reaction_missing_integration")
+        metrics.incr(
+            Metrics.ERROR.value,
+            tags={**tags, "error_status": ErrorStatus.MISSING_INTEGRATION.value},
+        )
         logger.warning(
-            "github.webhook.issue_comment.missing_integration",
-            extra={"organization_id": organization.id, "repo": repo.name},
+            Log.MISSING_INTEGRATION.value,
+            extra=extra,
         )
         return
 
     try:
         client = integration.get_installation(organization_id=organization.id).get_client()
         client.create_comment_reaction(repo.name, comment_id, GitHubReaction.EYES)
-        metrics.incr("seer.code_review.webhook.issue_comment.reaction_added")
+        metrics.incr(
+            Metrics.OUTCOME.value,
+            tags={**tags, "status": "reaction_added"},
+        )
     except Exception:
-        metrics.incr("seer.code_review.webhook.issue_comment.reaction_failed")
+        metrics.incr(
+            Metrics.ERROR.value,
+            tags={**tags, "error_status": ErrorStatus.REACTION_FAILED.value},
+        )
         logger.exception(
-            "github.webhook.issue_comment.reaction_failed",
-            extra={
-                "organization_id": organization.id,
-                "repo": repo.name,
-                "comment_id": comment_id,
-            },
+            Log.REACTION_FAILED.value,
+            extra=extra,
         )
 
 
@@ -70,23 +94,20 @@ def handle_issue_comment_event(
     """
     Handle issue_comment webhook events for PR review commands.
     """
-    if not features.has("organizations:code-review-comment-command", organization):
-        return
+    comment = event.get("comment", {})
+    comment_id = comment.get("id")
+    comment_body = comment.get("body")
 
     if not has_code_review_enabled(organization):
         return
 
-    comment = event.get("comment", {})
-    comment_body = comment.get("body")
-
-    if not is_pr_review_command(comment_body):
+    if not is_pr_review_command(comment_body or ""):
         return
 
-    comment_id = comment.get("id")
     if comment_id:
         _add_eyes_reaction_to_comment(integration, organization, repo, str(comment_id))
 
     # Import here to avoid circular dependency with handlers
-    from .handlers import _forward_to_seer
+    from .handlers import _schedule_task
 
-    _forward_to_seer(event_type, event, organization, repo)
+    _schedule_task(event_type, event, organization, repo)

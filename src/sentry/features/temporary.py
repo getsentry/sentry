@@ -72,8 +72,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:route-intent-preloading", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Prevent AI code review to run per commit
     manager.add("organizations:code-review-run-per-commit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable on-demand code review via "@sentry review" comment command
-    manager.add("organizations:code-review-comment-command", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enabled for orgs that participated in the code review beta
     manager.add("organizations:code-review-beta", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables Prevent Test Analytics
