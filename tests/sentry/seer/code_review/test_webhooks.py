@@ -13,6 +13,7 @@ from fixtures.github import (
     CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE,
 )
 from sentry.integrations.github.client import GitHubReaction
+from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.seer.code_review.utils import ClientError
 from sentry.seer.code_review.webhooks.issue_comment import (
     SENTRY_REVIEW_COMMAND,
@@ -38,7 +39,9 @@ class GitHubWebhookHelper(GitHubWebhookTestCase):
         """Enable all required options for code review to work."""
         self.organization.update_option("sentry:enable_pr_review_test_generation", True)
 
-    def _send_webhook_event(self, event_type: str, event_data: bytes | str) -> HttpResponseBase:
+    def _send_webhook_event(
+        self, event_type: GithubWebhookType, event_data: bytes | str
+    ) -> HttpResponseBase:
         """Helper to send a GitHub webhook event."""
         self.event_dict = (
             orjson.loads(event_data) if isinstance(event_data, (bytes, str)) else event_data
@@ -61,7 +64,7 @@ class CheckRunEventWebhookTest(GitHubWebhookHelper):
     """Integration tests for GitHub check_run webhook events."""
 
     def _send_check_run_event(self, event_data: bytes | str) -> HttpResponseBase:
-        return self._send_webhook_event("check_run", event_data)
+        return self._send_webhook_event(GithubWebhookType.CHECK_RUN, event_data)
 
     @patch("sentry.seer.code_review.webhooks.task.process_github_webhook_event")
     @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
@@ -663,7 +666,7 @@ class IssueCommentEventWebhookTest(GitHubWebhookHelper):
     """Integration tests for GitHub issue_comment webhook events."""
 
     def _send_issue_comment_event(self, event_data: bytes | str) -> HttpResponseBase:
-        return self._send_webhook_event("issue_comment", event_data)
+        return self._send_webhook_event(GithubWebhookType.ISSUE_COMMENT, event_data)
 
     def _build_issue_comment_event(
         self, comment_body: str, comment_id: int | None = 123456789
