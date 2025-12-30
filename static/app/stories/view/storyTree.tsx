@@ -32,7 +32,7 @@ export class StoryTreeNode {
     this.label = normalizeFilename(name);
     this.category = inferFileCategory(filesystemPath);
 
-    if (this.category === 'shared') {
+    if (this.category === 'product') {
       const [_app, ...segments] = this.filesystemPath.split('/');
       // Remove the filename from the path
       segments.pop()!;
@@ -364,7 +364,7 @@ export function useStoryHierarchy(): Map<StorySection, StoryHierarchyData> {
   }, [files]);
 }
 
-export function inferFileCategory(path: string): StoryCategory {
+function inferFileCategory(path: string): StoryCategory {
   if (isPrinciplesFile(path)) {
     return 'principles';
   }
@@ -381,12 +381,12 @@ export function inferFileCategory(path: string): StoryCategory {
 }
 
 // New hierarchical inference system
-export interface StoryLocation {
+interface StoryLocation {
   section: StorySection;
   subcategory?: ComponentSubcategory;
 }
 
-export function inferStoryLocation(path: string): StoryLocation {
+function inferStoryLocation(path: string): StoryLocation {
   // Overview section
   if (isOverviewFile(path)) {
     return {section: 'overview'};
@@ -484,18 +484,19 @@ function buildProductTree(files: string[]): StoryTreeNode[] {
     // Build folder hierarchy (all parts except filename)
     for (let i = 0; i < parts.length - 1; i++) {
       const part = parts[i];
+      if (part) {
+        if (!currentNode.children[part]) {
+          // Create intermediate folder node
+          const folderPath = parts.slice(0, i + 1).join('/');
+          currentNode.children[part] = new StoryTreeNode(
+            part,
+            folderPath,
+            file // Keep original file path for routing
+          );
+        }
 
-      if (!currentNode.children[part]) {
-        // Create intermediate folder node
-        const folderPath = parts.slice(0, i + 1).join('/');
-        currentNode.children[part] = new StoryTreeNode(
-          part,
-          folderPath,
-          file // Keep original file path for routing
-        );
+        currentNode = currentNode.children[part];
       }
-
-      currentNode = currentNode.children[part];
     }
 
     // Add the actual story file as leaf node
@@ -553,15 +554,17 @@ function buildComponentTree(
 
     // Create folder node for subcategory
     const label = COMPONENT_SUBCATEGORY_CONFIG[subcategory].label;
-    const folderNode = new StoryTreeNode(label, subcategory, files[0]);
+    if (files[0]) {
+      const folderNode = new StoryTreeNode(label, subcategory, files[0]);
 
-    // Add component stories as children
-    for (const file of files.sort()) {
-      const name = inferComponentName(file);
-      folderNode.children[name] = new StoryTreeNode(formatName(name), 'core', file);
+      // Add component stories as children
+      for (const file of files.sort()) {
+        const name = inferComponentName(file);
+        folderNode.children[name] = new StoryTreeNode(formatName(name), 'core', file);
+      }
+
+      roots.push(folderNode);
     }
-
-    roots.push(folderNode);
   }
 
   return roots;
@@ -573,7 +576,7 @@ interface Props extends React.HTMLAttributes<HTMLDivElement> {
 
 // @TODO (JonasBadalic): Implement treeview pattern navigation
 // https://www.w3.org/WAI/ARIA/apg/patterns/treeview/
-export function StoryTree({nodes, ...htmlProps}: Props) {
+function StoryTree({nodes, ...htmlProps}: Props) {
   return (
     <nav {...htmlProps}>
       <StoryList>
