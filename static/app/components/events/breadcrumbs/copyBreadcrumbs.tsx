@@ -1,6 +1,5 @@
 import {useCallback} from 'react';
 
-import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import type {EnhancedCrumb} from 'sentry/components/events/breadcrumbs/utils';
 import {IconCopy} from 'sentry/icons';
@@ -77,7 +76,7 @@ export function CopyBreadcrumbsDropdown({
   const handleCopyAsMarkdown = useCallback(() => {
     const markdown = formatBreadcrumbsAsMarkdown(breadcrumbs);
     copy(markdown, {
-      successMessage: t('Copied breadcrumbs as Markdown'),
+      successMessage: t('Copied breadcrumbs to clipboard'),
       errorMessage: t('Failed to copy breadcrumbs'),
     });
     trackAnalytics('breadcrumbs.drawer.action', {
@@ -90,7 +89,7 @@ export function CopyBreadcrumbsDropdown({
   const handleCopyAsText = useCallback(() => {
     const text = formatBreadcrumbsAsText(breadcrumbs);
     copy(text, {
-      successMessage: t('Copied breadcrumbs as text'),
+      successMessage: t('Copied breadcrumbs to clipboard'),
       errorMessage: t('Failed to copy breadcrumbs'),
     });
     trackAnalytics('breadcrumbs.drawer.action', {
@@ -103,16 +102,14 @@ export function CopyBreadcrumbsDropdown({
   return (
     <DropdownMenu
       size="xs"
-      trigger={triggerProps => (
-        <Button
-          size="xs"
-          borderless={borderless}
-          icon={<IconCopy />}
-          aria-label={t('Copy Breadcrumbs')}
-          title={t('Copy Breadcrumbs')}
-          {...triggerProps}
-        />
-      )}
+      triggerProps={{
+        title: t('Copy Breadcrumbs'),
+        icon: <IconCopy />,
+        size: 'xs',
+        borderless,
+        showChevron: false,
+      }}
+      menuTitle={t('Copy Breadcrumbs')}
       items={[
         {
           key: 'copy-text',
