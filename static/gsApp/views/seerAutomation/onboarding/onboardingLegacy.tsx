@@ -43,10 +43,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {AddAutofixRepoModalContent} from 'sentry/views/settings/projectSeer/addAutofixRepoModal';
-import {
-  MAX_REPOS_LIMIT,
-  SEER_THRESHOLD_OPTIONS,
-} from 'sentry/views/settings/projectSeer/constants';
+import {SEER_THRESHOLD_OPTIONS} from 'sentry/views/settings/projectSeer/constants';
 
 type ProjectState = {
   isPending: boolean;
@@ -157,7 +154,6 @@ function ProjectRowWithUpdate({
           }
         }}
         isFetchingRepositories={isFetchingRepositories}
-        maxReposLimit={MAX_REPOS_LIMIT}
       />
     ));
   }, [
