@@ -13,7 +13,6 @@ resources:
 
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
-import color from 'color';
 
 import {Container, Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
@@ -192,7 +191,7 @@ export function Radius() {
             boxSizing: 'border-box',
             width: '48px',
             height: '48px',
-            background: color(theme.tokens.border.accent.vibrant).alpha(0.2).string(),
+            background: theme.tokens.background.transparent.accent.muted,
           }}
           border="accent"
           radius={token}
