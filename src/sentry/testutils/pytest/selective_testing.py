@@ -79,4 +79,4 @@ def filter_items_by_coverage(
         else:
             discarded_items.append(item)
 
-    return selected_items, discarded_items
+    return selected_items, discarded_items, affected_test_files

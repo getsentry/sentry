@@ -405,7 +405,7 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     # Selective testing based on coverage data
     if os.environ.get("SELECTIVE_TESTING_ENABLED"):
         changed_files_str = os.environ.get("CHANGED_FILES", None)
-        # TODO
+        # TODO: Remove default value
         coverage_db_path = os.environ.get("COVERAGE_DB_PATH", ".coverage.combined")
 
         if changed_files_str is not None:
