@@ -56,7 +56,7 @@ function AddDataVolume({
       <Flex direction="column" padding="xl" gap="0">
         <RowWithTag>
           <Title>{t('Monthly Reserved Volumes')}</Title>
-          <StyledTag type="promotion">{t('Plan ahead and save 20%')}</StyledTag>
+          <StyledTag variant="promotion">{t('Plan ahead and save 20%')}</StyledTag>
         </RowWithTag>
         <Description>
           {t('Prepay for usage by reserving volumes and save up to 20%')}
