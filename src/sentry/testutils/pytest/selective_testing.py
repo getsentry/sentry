@@ -40,6 +40,8 @@ def get_affected_tests_from_coverage(db_path: str, source_files: list[str]) -> s
             if cleaned_file_path.startswith("/src"):
                 cleaned_file_path = cleaned_file_path[len("/src") :]
             # Query for test contexts that executed this file
+
+            print(f"Querying coverage database for {cleaned_file_path}")
             cur.execute(
                 """
                 SELECT c.context, lb.numbits
@@ -52,8 +54,11 @@ def get_affected_tests_from_coverage(db_path: str, source_files: list[str]) -> s
                 (f"{cleaned_file_path}",),
             )
 
+            print(f"Found {len(cur.fetchall())} contexts for {cleaned_file_path}")
+
             for context, bitblob in cur.fetchall():
                 if _file_executed(bitblob):
+                    print(f"Found executed context: {context}")
                     test_contexts.add(context)
 
         conn.close()
@@ -89,6 +94,7 @@ def filter_items_by_coverage(items, changed_files: list[str], coverage_db_path: 
         or None if coverage data could not be loaded.
     """
     affected_test_files = get_affected_tests_from_coverage(coverage_db_path, changed_files)
+    print(f"Affected test files: {affected_test_files}")
 
     if affected_test_files is None:
         # Could not load coverage data, return all items as selected
