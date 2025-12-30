@@ -67,6 +67,9 @@ class PreprodArtifact(DefaultFieldsModel):
                 (cls.APK, "apk"),
             )
 
+        def to_str(self) -> str:
+            return self.name.lower()
+
     class ErrorCode(IntEnum):
         UNKNOWN = 0
         """The error code is unknown. Try to use a descriptive error code if possible."""
@@ -115,6 +118,11 @@ class PreprodArtifact(DefaultFieldsModel):
     build_version = models.CharField(max_length=255, null=True)
     # E.g. 9999
     build_number = BoundedBigIntegerField(null=True)
+
+    # Version of tooling used to upload/build the artifact, extracted from metadata files
+    cli_version = models.CharField(max_length=255, null=True)
+    fastlane_plugin_version = models.CharField(max_length=255, null=True)
+    gradle_plugin_version = models.CharField(max_length=255, null=True)
 
     # Miscellaneous fields that we don't need columns for, e.g. enqueue/dequeue times, user-agent, etc.
     extras = models.JSONField(null=True)

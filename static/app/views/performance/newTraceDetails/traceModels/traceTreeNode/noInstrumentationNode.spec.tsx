@@ -1,5 +1,5 @@
-import type {Theme} from '@emotion/react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
@@ -195,7 +195,6 @@ describe('NoInstrumentationNode', () => {
 
     it('should include transaction ID in path when closest transaction parent found', () => {
       const extra = createMockExtra();
-      const mockFn = jest.fn();
       const transactionValue = makeTransaction({
         event_id: 'transaction-id',
         'transaction.op': 'navigation',
@@ -208,13 +207,7 @@ describe('NoInstrumentationNode', () => {
       const nextSpanValue = makeSpan({span_id: 'next'});
       const missingInstrValue = createMissingInstrumentationSpan();
 
-      const transactionNode = new TransactionNode(
-        null,
-        transactionValue,
-        extra,
-        mockFn,
-        mockFn
-      );
+      const transactionNode = new TransactionNode(null, transactionValue, extra);
       const spanNode = new SpanNode(transactionNode, spanValue, extra);
       const previousNode = new SpanNode(spanNode, previousSpanValue, extra);
       const nextNode = new SpanNode(spanNode, nextSpanValue, extra);
@@ -243,18 +236,11 @@ describe('NoInstrumentationNode', () => {
       const span2Value = makeSpan({span_id: 'span2', op: 'http.request'});
       const span3Value = makeSpan({span_id: 'span3', op: 'cache.get'});
 
-      const mockFn = jest.fn();
       const previousSpanValue = makeSpan({span_id: 'previous'});
       const nextSpanValue = makeSpan({span_id: 'next'});
       const missingInstrValue = createMissingInstrumentationSpan();
 
-      const transactionNode = new TransactionNode(
-        null,
-        transactionValue,
-        extra,
-        mockFn,
-        mockFn
-      );
+      const transactionNode = new TransactionNode(null, transactionValue, extra);
       const span1Node = new SpanNode(transactionNode, span1Value, extra);
       const span2Node = new SpanNode(span1Node, span2Value, extra);
       const span3Node = new SpanNode(span2Node, span3Value, extra);
@@ -383,11 +369,7 @@ describe('NoInstrumentationNode', () => {
         extra
       );
 
-      const mockTheme: Partial<Theme> = {
-        gray300: '#a0a0a0',
-      };
-
-      expect(node.makeBarColor(mockTheme as Theme)).toBe('#a0a0a0');
+      expect(node.makeBarColor(ThemeFixture())).toBe(ThemeFixture().colors.gray400);
     });
   });
 

@@ -173,7 +173,7 @@ const AutoResizeParent = styled('div')`
   position: absolute;
   inset: 0;
 
-  color: ${p => p.theme.headingColor};
+  color: ${p => p.theme.tokens.content.primary};
 
   container-type: size;
   container-name: auto-resize-parent;

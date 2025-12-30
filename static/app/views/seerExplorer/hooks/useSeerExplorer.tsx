@@ -1,10 +1,10 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {
   setApiQueryData,
   useApiQuery,
   useQueryClient,
-  type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -12,13 +12,22 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import useAsciiSnapshot from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
-import type {Block} from 'sentry/views/seerExplorer/types';
+import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
+import {makeSeerExplorerQueryKey} from 'sentry/views/seerExplorer/utils';
+
+export type PendingUserInput = {
+  data: Record<string, any>;
+  id: string;
+  input_type: 'file_change_approval' | 'ask_user_question';
+};
 
 export type SeerExplorerResponse = {
   session: {
     blocks: Block[];
-    status: 'processing' | 'completed' | 'error';
+    status: 'processing' | 'completed' | 'error' | 'awaiting_user_input';
     updated_at: string;
+    pending_user_input?: PendingUserInput | null;
+    repo_pr_states?: Record<string, RepoPRState>;
     run_id?: number;
   } | null;
 };
@@ -45,11 +54,6 @@ const OPTIMISTIC_ASSISTANT_TEXTS = [
   'Replaying prod...',
   'Scanning the error-waves...',
 ] as const;
-
-const makeSeerExplorerQueryKey = (orgSlug: string, runId?: number): ApiQueryKey => [
-  `/organizations/${orgSlug}/seer/explorer-chat/${runId ? `${runId}/` : ''}`,
-  {},
-];
 
 const makeInitialSeerExplorerData = (): SeerExplorerResponse => ({
   session: null,
@@ -80,11 +84,17 @@ const isPolling = (sessionData: SeerExplorerResponse['session'], runStarted: boo
     return false;
   }
 
+  // Check if any PR is being created
+  const anyPRCreating = Object.values(sessionData?.repo_pr_states ?? {}).some(
+    state => state.pr_creation_status === 'creating'
+  );
+
   return (
     !sessionData ||
     runStarted ||
     sessionData.status === 'processing' ||
-    sessionData.blocks.some(message => message.loading)
+    sessionData.blocks.some(message => message.loading) ||
+    anyPRCreating
   );
 };
 
@@ -110,6 +120,7 @@ export const useSeerExplorer = () => {
     userBlockId: string;
     userQuery: string;
   } | null>(null);
+  const previousPRStatesRef = useRef<Record<string, RepoPRState>>({});
 
   const {data: apiData, isPending} = useApiQuery<SeerExplorerResponse>(
     makeSeerExplorerQueryKey(orgSlug || '', runId || undefined),
@@ -127,10 +138,13 @@ export const useSeerExplorer = () => {
   );
 
   const sendMessage = useCallback(
-    async (query: string, insertIndex?: number) => {
+    async (query: string, insertIndex?: number, explicitRunId?: number | null) => {
       if (!orgSlug) {
         return;
       }
+
+      // explicitRunId: undefined = use current runId, null = force new run, number = use that run
+      const effectiveRunId = explicitRunId === undefined ? runId : explicitRunId;
 
       // Capture a coarse ASCII screenshot of the user's screen for extra context
       const screenshot = captureAsciiSnapshot?.();
@@ -180,7 +194,7 @@ export const useSeerExplorer = () => {
 
       try {
         const response = (await api.requestPromise(
-          `/organizations/${orgSlug}/seer/explorer-chat/${runId ? `${runId}/` : ''}`,
+          `/organizations/${orgSlug}/seer/explorer-chat/${effectiveRunId ? `${effectiveRunId}/` : ''}`,
           {
             method: 'POST',
             data: {
@@ -192,7 +206,7 @@ export const useSeerExplorer = () => {
         )) as SeerExplorerChatResponse;
 
         // Set run ID if this is a new session
-        if (!runId) {
+        if (!effectiveRunId) {
           setRunId(response.run_id);
         }
 
@@ -205,7 +219,7 @@ export const useSeerExplorer = () => {
         setOptimistic(null);
         setApiQueryData<SeerExplorerResponse>(
           queryClient,
-          makeSeerExplorerQueryKey(orgSlug, runId || undefined),
+          makeSeerExplorerQueryKey(orgSlug, effectiveRunId || undefined),
           makeErrorSeerExplorerData(e?.responseJSON?.detail ?? 'An error occurred')
         );
       }
@@ -250,6 +264,76 @@ export const useSeerExplorer = () => {
       setInterruptRequested(false);
     }
   }, [api, orgSlug, runId, interruptRequested]);
+
+  const respondToUserInput = useCallback(
+    async (inputId: string, responseData?: Record<string, any>) => {
+      if (!orgSlug || !runId) {
+        return;
+      }
+
+      setWaitingForResponse(true);
+
+      try {
+        await api.requestPromise(
+          `/organizations/${orgSlug}/seer/explorer-update/${runId}/`,
+          {
+            method: 'POST',
+            data: {
+              payload: {
+                type: 'user_input_response',
+                input_id: inputId,
+                response_data: responseData,
+              },
+            },
+          }
+        );
+
+        // Invalidate queries to fetch fresh data
+        queryClient.invalidateQueries({
+          queryKey: makeSeerExplorerQueryKey(orgSlug, runId),
+        });
+      } catch (e: any) {
+        setWaitingForResponse(false);
+        setApiQueryData<SeerExplorerResponse>(
+          queryClient,
+          makeSeerExplorerQueryKey(orgSlug, runId),
+          makeErrorSeerExplorerData(e?.responseJSON?.detail ?? 'An error occurred')
+        );
+      }
+    },
+    [api, orgSlug, runId, queryClient]
+  );
+
+  const createPR = useCallback(
+    async (repoName?: string) => {
+      if (!orgSlug || !runId) {
+        return;
+      }
+
+      try {
+        await api.requestPromise(
+          `/organizations/${orgSlug}/seer/explorer-update/${runId}/`,
+          {
+            method: 'POST',
+            data: {
+              payload: {
+                type: 'create_pr',
+                repo_name: repoName,
+              },
+            },
+          }
+        );
+
+        // Invalidate queries to trigger polling for status updates
+        queryClient.invalidateQueries({
+          queryKey: makeSeerExplorerQueryKey(orgSlug, runId),
+        });
+      } catch (e: any) {
+        addErrorMessage(e?.responseJSON?.detail ?? 'Failed to create PR');
+      }
+    },
+    [api, orgSlug, runId, queryClient]
+  );
 
   // Always filter messages based on optimistic state and deletedFromIndex before any other processing
   const sessionData = apiData?.session ?? null;
@@ -327,6 +411,28 @@ export const useSeerExplorer = () => {
     }
   }, [apiData?.session?.blocks, optimistic]);
 
+  // Detect PR creation errors and show error messages
+  useEffect(() => {
+    const currentPRStates = sessionData?.repo_pr_states ?? {};
+    const previousPRStates = previousPRStatesRef.current;
+
+    // Check each repo for errors
+    for (const [repoName, currentState] of Object.entries(currentPRStates)) {
+      const previousState = previousPRStates[repoName];
+
+      // Detect transition from 'creating' to 'error'
+      if (
+        previousState?.pr_creation_status === 'creating' &&
+        currentState.pr_creation_status === 'error' &&
+        currentState.pr_creation_error
+      ) {
+        addErrorMessage(currentState.pr_creation_error ?? 'Failed to create PR');
+      }
+    }
+
+    previousPRStatesRef.current = currentPRStates;
+  }, [sessionData?.repo_pr_states]);
+
   if (
     waitingForResponse &&
     filteredSessionData &&
@@ -342,6 +448,13 @@ export const useSeerExplorer = () => {
       setDeletedFromIndex(null);
     }
   }
+
+  // Reset interruptRequested when polling stops after an interrupt was requested
+  useEffect(() => {
+    if (interruptRequested && !isPolling(filteredSessionData, waitingForResponse)) {
+      setInterruptRequested(false);
+    }
+  }, [interruptRequested, filteredSessionData, waitingForResponse]);
 
   /** Resets the hook state. The session isn't actually created until the user sends a message. */
   const startNewSession = useCallback(() => {
@@ -372,6 +485,28 @@ export const useSeerExplorer = () => {
     interruptRequested,
   ]);
 
+  /** Switches to a different run and fetches its latest state. */
+  const switchToRun = useCallback(
+    (newRunId: number) => {
+      // Clear any optimistic state from previous run
+      setOptimistic(null);
+      setDeletedFromIndex(null);
+      setWaitingForResponse(false);
+      setInterruptRequested(false);
+
+      // Set the new run ID
+      setRunId(newRunId);
+
+      // Invalidate the query to force a fresh fetch
+      if (orgSlug) {
+        queryClient.invalidateQueries({
+          queryKey: makeSeerExplorerQueryKey(orgSlug, newRunId),
+        });
+      }
+    },
+    [orgSlug, queryClient, setRunId]
+  );
+
   return {
     sessionData: filteredSessionData,
     isPolling: isPolling(filteredSessionData, waitingForResponse),
@@ -379,11 +514,15 @@ export const useSeerExplorer = () => {
     sendMessage,
     runId,
     setRunId,
+    /** Switches to a different run and fetches its latest state. */
+    switchToRun,
     /** Resets the run id, blocks, and other state. The new session isn't actually created until the user sends a message. */
     startNewSession,
     deleteFromIndex,
     deletedFromIndex,
     interruptRun,
     interruptRequested,
+    respondToUserInput,
+    createPR,
   };
 };

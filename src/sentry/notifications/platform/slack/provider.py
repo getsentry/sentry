@@ -24,6 +24,7 @@ from sentry.notifications.platform.types import (
     NotificationBodyFormattingBlockType,
     NotificationBodyTextBlock,
     NotificationBodyTextBlockType,
+    NotificationCategory,
     NotificationData,
     NotificationProviderKey,
     NotificationRenderedTemplate,
@@ -107,6 +108,16 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
         # TODO(ecosystem): Check for the integration, maybe a feature as well
         # I currently view this as akin to a rollout or feature flag for the registry
         return False
+
+    @classmethod
+    def get_renderer(
+        cls, *, data: NotificationData, category: NotificationCategory
+    ) -> type[NotificationRenderer[SlackRenderable]]:
+        from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
+
+        if category == NotificationCategory.SEER:
+            return SeerSlackRenderer
+        return cls.default_renderer
 
     @classmethod
     def send(cls, *, target: NotificationTarget, renderable: SlackRenderable) -> None:

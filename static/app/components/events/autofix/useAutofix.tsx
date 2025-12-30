@@ -124,7 +124,9 @@ const isPolling = (
 
   if (
     !hasSolutionStep &&
-    ![AutofixStatus.ERROR, AutofixStatus.CANCELLED].includes(autofixData.status)
+    ![AutofixStatus.ERROR, AutofixStatus.CANCELLED, AutofixStatus.COMPLETED].includes(
+      autofixData.status
+    )
   ) {
     // we want to keep polling until we have a solution step because that's a stopping point
     // we need this explicit check in case we get a state for a fraction of a second where the root cause is complete and there is no step after it started
@@ -307,15 +309,17 @@ export const useAiAutofix = (
   };
 };
 
+export type CodingAgentIntegration = {
+  id: string;
+  name: string;
+  provider: string;
+};
+
 export function useCodingAgentIntegrations() {
   const organization = useOrganization();
 
   return useApiQuery<{
-    integrations: Array<{
-      id: string;
-      name: string;
-      provider: string;
-    }>;
+    integrations: CodingAgentIntegration[];
   }>([`/organizations/${organization.slug}/integrations/coding-agents/`], {
     staleTime: 5 * 60 * 1000,
   });

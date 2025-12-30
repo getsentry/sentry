@@ -36,7 +36,7 @@ export default function Legend(
       itemGap: 12,
       align: 'left' as const,
       textStyle: {
-        color: theme.textColor,
+        color: theme.tokens.content.primary,
         verticalAlign: 'top',
         fontSize: 11,
         fontFamily: theme.text.family,
@@ -44,9 +44,9 @@ export default function Legend(
       },
       inactiveColor: theme.subText,
       pageTextStyle: {
-        color: theme.textColor,
+        color: theme.tokens.content.primary,
       },
-      pageIconColor: theme.textColor,
+      pageIconColor: theme.tokens.content.primary,
       pageIconInactiveColor: theme.disabled,
       pageIconSize: 8.75,
       pageIcons: {

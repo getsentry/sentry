@@ -3,11 +3,13 @@ import React from 'react';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
+import {DataCategory} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
@@ -28,6 +30,8 @@ import {
   isAValidSort,
 } from 'sentry/views/insights/http/components/tables/domainsTable';
 import {Referrer} from 'sentry/views/insights/http/referrers';
+import useHasDashboardsPlatformizedHttp from 'sentry/views/insights/http/utils/useHasDashboardsPlatformizedHttp';
+import {PlatformizedHttpOverview} from 'sentry/views/insights/http/views/platformizedOverview';
 import {ModuleName} from 'sentry/views/insights/types';
 
 export function HTTPLandingPage() {
@@ -147,8 +151,21 @@ const DEFAULT_SORT = {
 const DOMAIN_TABLE_ROW_COUNT = 10;
 
 function PageWithProviders() {
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.SPANS],
+  });
+
+  const hasDashboardsPlatformizedHttp = useHasDashboardsPlatformizedHttp();
+  if (hasDashboardsPlatformizedHttp) {
+    return <PlatformizedHttpOverview />;
+  }
+
   return (
-    <ModulePageProviders moduleName="http" analyticEventName="insight.page_loads.http">
+    <ModulePageProviders
+      moduleName="http"
+      analyticEventName="insight.page_loads.http"
+      maxPickableDays={maxPickableDays.maxPickableDays}
+    >
       <HTTPLandingPage />
     </ModulePageProviders>
   );

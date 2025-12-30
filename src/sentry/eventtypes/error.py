@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import MutableMapping
+from collections.abc import Mapping, MutableMapping
 from typing import Any
 
 from sentry.utils.safe import get_path, trim
@@ -72,7 +72,7 @@ class ErrorEvent(BaseEvent):
 
         return rv
 
-    def compute_title(self, metadata: Metadata) -> str:
+    def compute_title(self, metadata: Mapping[str, str | None]) -> str:
         title = metadata.get("type")
         if title is not None:
             value = metadata.get("value")

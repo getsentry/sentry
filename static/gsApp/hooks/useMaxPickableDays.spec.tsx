@@ -11,6 +11,32 @@ import {useMaxPickableDays} from './useMaxPickableDays';
 
 describe('useMaxPickableDays', () => {
   describe('without downsampled-date-page-filter', () => {
+    it('returns 90/90 for transactions', () => {
+      const {result} = renderHookWithProviders(() =>
+        useMaxPickableDays({
+          dataCategories: [DataCategory.TRANSACTIONS],
+        })
+      );
+
+      expect(result.current).toEqual({
+        maxPickableDays: 90,
+        maxUpgradableDays: 90,
+      });
+    });
+
+    it('returns 90/90 for replays', () => {
+      const {result} = renderHookWithProviders(() =>
+        useMaxPickableDays({
+          dataCategories: [DataCategory.REPLAYS],
+        })
+      );
+
+      expect(result.current).toEqual({
+        maxPickableDays: 90,
+        maxUpgradableDays: 90,
+      });
+    });
+
     it('returns 30/90 for spans without flag', () => {
       const {result} = renderHookWithProviders(() =>
         useMaxPickableDays({
@@ -92,6 +118,24 @@ describe('useMaxPickableDays', () => {
         upsellFooter: expect.any(Object),
       });
     });
+
+    it('returns 90/90 for profiles', () => {
+      const {result} = renderHookWithProviders(() =>
+        useMaxPickableDays({
+          dataCategories: [
+            DataCategory.PROFILE_CHUNKS,
+            DataCategory.PROFILE_CHUNKS_UI,
+            DataCategory.PROFILE_DURATION,
+            DataCategory.PROFILE_DURATION_UI,
+          ],
+        })
+      );
+
+      expect(result.current).toEqual({
+        maxPickableDays: 90,
+        maxUpgradableDays: 90,
+      });
+    });
   });
 
   describe('with downsampled-date-page-filter', () => {
@@ -117,7 +161,37 @@ describe('useMaxPickableDays', () => {
       jest.clearAllTimers();
     });
 
-    it('returns 127/127 for spans on 2025/12/31', () => {
+    it('returns 30/90 for transactions', () => {
+      const {result} = renderHookWithProviders(
+        () =>
+          useMaxPickableDays({
+            dataCategories: [DataCategory.TRANSACTIONS],
+          }),
+        {organization}
+      );
+
+      expect(result.current).toEqual({
+        maxPickableDays: 30,
+        maxUpgradableDays: 90,
+      });
+    });
+
+    it('returns 30/90 for replays', () => {
+      const {result} = renderHookWithProviders(
+        () =>
+          useMaxPickableDays({
+            dataCategories: [DataCategory.REPLAYS],
+          }),
+        {organization}
+      );
+
+      expect(result.current).toEqual({
+        maxPickableDays: 30,
+        maxUpgradableDays: 90,
+      });
+    });
+
+    it('returns 121/121 for spans on 2025/12/31', () => {
       jest.useFakeTimers().setSystemTime(new Date(2025, 11, 31));
       const {result} = renderHookWithProviders(
         () =>
@@ -128,8 +202,8 @@ describe('useMaxPickableDays', () => {
       );
 
       expect(result.current).toEqual({
-        maxPickableDays: 127,
-        maxUpgradableDays: 127,
+        maxPickableDays: 121,
+        maxUpgradableDays: 121,
         upsellFooter: expect.any(Object),
       });
     });
@@ -203,6 +277,27 @@ describe('useMaxPickableDays', () => {
         maxPickableDays: 396,
         maxUpgradableDays: 396,
         upsellFooter: expect.any(Object),
+      });
+    });
+
+    it('returns 30/90 for profiles', () => {
+      const {result} = renderHookWithProviders(
+        () =>
+          useMaxPickableDays({
+            dataCategories: [
+              DataCategory.PROFILE_CHUNKS,
+              DataCategory.PROFILE_CHUNKS_UI,
+              DataCategory.PROFILE_DURATION,
+              DataCategory.PROFILE_DURATION_UI,
+            ],
+          }),
+        {organization}
+      );
+
+      expect(result.current).toEqual({
+        maxPickableDays: 30,
+        maxUpgradableDays: 30,
+        defaultPeriod: '24h',
       });
     });
   });

@@ -72,7 +72,9 @@ def fetch_alert_rule(
 
     if features.has("organizations:workflow-engine-rule-serializers", organization):
         try:
-            detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+            detector = Detector.objects.with_type_filters().get(
+                alertruledetector__alert_rule_id=alert_rule.id
+            )
             return Response(
                 serialize(
                     detector,
@@ -161,7 +163,9 @@ def update_alert_rule(
             if features.has("organizations:workflow-engine-rule-serializers", organization):
                 validator.save()
                 try:
-                    detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+                    detector = Detector.objects.with_type_filters().get(
+                        alertruledetector__alert_rule_id=alert_rule.id
+                    )
                     return Response(
                         serialize(
                             detector,

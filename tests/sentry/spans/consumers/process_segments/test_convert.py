@@ -1,3 +1,4 @@
+import copy
 from typing import cast
 
 import orjson
@@ -198,7 +199,7 @@ def test_convert_span_to_item() -> None:
 
 
 def test_convert_falsy_fields() -> None:
-    message: SpanEvent = {**SPAN_KAFKA_MESSAGE}
+    message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
     message["is_segment"] = False
 
     item = convert_span_to_item(cast(CompatibleSpan, message))
@@ -207,28 +208,26 @@ def test_convert_falsy_fields() -> None:
 
 
 def test_convert_span_links_to_json() -> None:
-    message: SpanEvent = {
-        **SPAN_KAFKA_MESSAGE,
-        "links": [
-            # A link with all properties
-            {
-                "trace_id": "d099bf9ad5a143cf8f83a98081d0ed3b",
-                "span_id": "8873a98879faf06d",
-                "sampled": True,
-                "attributes": {
-                    "sentry.link.type": {"type": "string", "value": "parent"},
-                    "sentry.dropped_attributes_count": {"type": "integer", "value": 2},
-                    "parent_depth": {"type": "integer", "value": 17},
-                    "confidence": {"type": "string", "value": "high"},
-                },
+    message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
+    message["links"] = [
+        # A link with all properties
+        {
+            "trace_id": "d099bf9ad5a143cf8f83a98081d0ed3b",
+            "span_id": "8873a98879faf06d",
+            "sampled": True,
+            "attributes": {
+                "sentry.link.type": {"type": "string", "value": "parent"},
+                "sentry.dropped_attributes_count": {"type": "integer", "value": 2},
+                "parent_depth": {"type": "integer", "value": 17},
+                "confidence": {"type": "string", "value": "high"},
             },
-            # A link with missing optional properties
-            {
-                "trace_id": "d099bf9ad5a143cf8f83a98081d0ed3b",
-                "span_id": "873a988879faf06d",
-            },
-        ],
-    }
+        },
+        # A link with missing optional properties
+        {
+            "trace_id": "d099bf9ad5a143cf8f83a98081d0ed3b",
+            "span_id": "873a988879faf06d",
+        },
+    ]
 
     item = convert_span_to_item(cast(CompatibleSpan, message))
 
@@ -241,7 +240,7 @@ def test_convert_renamed_attribute_meta() -> None:
     # precondition: make sure we're testing a renamed field
     assert "sentry.description" in RENAME_ATTRIBUTES
 
-    message: SpanEvent = {**SPAN_KAFKA_MESSAGE}
+    message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
     description_meta = {"": {"err": ["invalid_data"], "val": {"type": "string", "value": True}}}
     message["_meta"]["attributes"]["sentry.description"] = description_meta
 

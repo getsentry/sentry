@@ -23,7 +23,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from sentry import features, quotas, roles
+from sentry import features, options, quotas, roles
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -65,6 +65,12 @@ class PrebuiltDashboardId(IntEnum):
     FRONTEND_SESSION_HEALTH = 1
     BACKEND_QUERIES = 2
     BACKEND_QUERIES_SUMMARY = 3
+    WEB_VITALS = 6
+    WEB_VITALS_SUMMARY = 7
+    MOBILE_VITALS = 8
+    MOBILE_VITALS_APP_STARTS = 9
+    MOBILE_VITALS_SCREEN_LOADS = 10
+    MOBILE_VITALS_SCREEN_RENDERING = 11
 
 
 class PrebuiltDashboard(TypedDict):
@@ -80,6 +86,7 @@ class PrebuiltDashboard(TypedDict):
 # deprecate once this feature is released.
 # Note B: Consider storing all dashboard and widget data in the database instead of relying on matching
 # prebuilt_id on the frontend, if there are issues.
+# Note C: These titles should match the configs in the `PREBUILT_DASHBOARDS` constant in the frontend so that the results returned by the API match the titles in the frontend.
 PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
@@ -87,11 +94,35 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     },
     {
         "prebuilt_id": PrebuiltDashboardId.BACKEND_QUERIES,
-        "title": "Queries Overview",
+        "title": "Queries",
     },
     {
         "prebuilt_id": PrebuiltDashboardId.BACKEND_QUERIES_SUMMARY,
-        "title": "Query Summary",
+        "title": "Query Details",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.WEB_VITALS,
+        "title": "Web Vitals",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.WEB_VITALS_SUMMARY,
+        "title": "Web Vitals Page Summary",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS,
+        "title": "Mobile Vitals",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS_APP_STARTS,
+        "title": "App Starts",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS_SCREEN_LOADS,
+        "title": "Screen Loads",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS_SCREEN_RENDERING,
+        "title": "Screen Rendering",
     },
 ]
 
@@ -99,24 +130,35 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
 def sync_prebuilt_dashboards(organization: Organization) -> None:
     """
     Queries the database to check if prebuilt dashboards have a Dashboard record and
-    creates them if they don't, or deletes them if they should no longer exist.
+    creates them if they don't, updates titles if they've changed, or deletes them
+    if they should no longer exist.
     """
 
     with transaction.atomic(router.db_for_write(Dashboard)):
+        enabled_prebuilt_dashboard_ids = options.get("dashboards.prebuilt-dashboard-ids")
+        enabled_prebuilt_dashboards = [
+            dashboard
+            for dashboard in PREBUILT_DASHBOARDS
+            if dashboard["prebuilt_id"] in enabled_prebuilt_dashboard_ids
+            or features.has(
+                "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
+                organization,
+            )
+        ]
+
         saved_prebuilt_dashboards = Dashboard.objects.filter(
             organization=organization,
             prebuilt_id__isnull=False,
         )
 
-        saved_prebuilt_dashboard_ids = set(
-            saved_prebuilt_dashboards.values_list("prebuilt_id", flat=True)
-        )
+        saved_prebuilt_dashboard_map = {d.prebuilt_id: d for d in saved_prebuilt_dashboards}
 
-        # Create prebuilt dashboards if they don't exist
-        for prebuilt_dashboard in PREBUILT_DASHBOARDS:
+        # Create prebuilt dashboards if they don't exist, or update titles if changed
+        dashboards_to_update: list[Dashboard] = []
+        for prebuilt_dashboard in enabled_prebuilt_dashboards:
             prebuilt_id: PrebuiltDashboardId = prebuilt_dashboard["prebuilt_id"]
 
-            if prebuilt_id not in saved_prebuilt_dashboard_ids:
+            if prebuilt_id not in saved_prebuilt_dashboard_map:
                 # Create new dashboard
                 Dashboard.objects.create(
                     organization=organization,
@@ -124,9 +166,16 @@ def sync_prebuilt_dashboards(organization: Organization) -> None:
                     created_by_id=None,
                     prebuilt_id=prebuilt_id,
                 )
+            elif saved_prebuilt_dashboard_map[prebuilt_id].title != prebuilt_dashboard["title"]:
+                # Update title if changed
+                saved_prebuilt_dashboard_map[prebuilt_id].title = prebuilt_dashboard["title"]
+                dashboards_to_update.append(saved_prebuilt_dashboard_map[prebuilt_id])
+
+        if dashboards_to_update:
+            Dashboard.objects.bulk_update(dashboards_to_update, ["title"])
 
         # Delete old prebuilt dashboards if they should no longer exist
-        prebuilt_ids = [d["prebuilt_id"] for d in PREBUILT_DASHBOARDS]
+        prebuilt_ids = [d["prebuilt_id"] for d in enabled_prebuilt_dashboards]
         Dashboard.objects.filter(
             organization=organization,
             prebuilt_id__isnull=False,
@@ -446,16 +495,6 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         if not features.has("organizations:dashboards-edit", organization, actor=request.user):
             return Response(status=404)
 
-        dashboard_count = Dashboard.objects.filter(
-            organization=organization, prebuilt_id=None
-        ).count()
-        dashboard_limit = quotas.backend.get_dashboard_limit(organization.id)
-        if dashboard_limit >= 0 and dashboard_count >= dashboard_limit:
-            return Response(
-                f"You may not exceed {dashboard_limit} dashboards on your current plan.",
-                status=400,
-            )
-
         serializer = DashboardSerializer(
             data=request.data,
             context={
@@ -469,8 +508,30 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
+        # We need to acquire a lock so that a burst of concurrent create requests doesn't read
+        # stale count data and bypass the dashboard limit for an org.
+        dashboard_create_lock = locks.get(
+            f"dashboard:create:{organization.id}",
+            duration=5,
+            name="dashboard_create",
+        )
+
         try:
-            with transaction.atomic(router.db_for_write(Dashboard)):
+            with (
+                dashboard_create_lock.acquire(),
+                transaction.atomic(router.db_for_write(Dashboard)),
+            ):
+
+                dashboard_count = Dashboard.objects.filter(
+                    organization=organization, prebuilt_id=None
+                ).count()
+                dashboard_limit = quotas.backend.get_dashboard_limit(organization.id)
+                if dashboard_limit >= 0 and dashboard_count >= dashboard_limit:
+                    return Response(
+                        f"You may not exceed {dashboard_limit} dashboards on your current plan.",
+                        status=400,
+                    )
+
                 dashboard = serializer.save()
 
                 if features.has(
@@ -498,3 +559,5 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             request.data["title"] = Dashboard.incremental_title(organization, request.data["title"])
 
             return self.post(request, organization, retry=retry + 1)
+        except UnableToAcquireLock:
+            return Response("Unable to create dashboard, please try again", status=503)

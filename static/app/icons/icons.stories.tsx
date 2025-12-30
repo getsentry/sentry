@@ -1,7 +1,11 @@
-import React, {Fragment, isValidElement, useState} from 'react';
+import React, {Fragment, isValidElement} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import lowerFirst from 'lodash/lowerFirst';
+import {parseAsString, useQueryState} from 'nuqs';
 import {PlatformIcon, platforms} from 'platformicons';
+
+import {InlineCode} from '@sentry/scraps/code';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Input} from 'sentry/components/core/input';
@@ -86,13 +90,6 @@ const SECTIONS: TSection[] = [
         groups: ['product'],
         keywords: ['stack', 'versions', 'deploy', 'deployment'],
         name: 'Releases',
-        defaultProps: {},
-      },
-      {
-        id: 'archive',
-        groups: ['product'],
-        keywords: ['box', 'storage', 'old', 'save'],
-        name: 'Archive',
         defaultProps: {},
       },
       {
@@ -197,14 +194,14 @@ const SECTIONS: TSection[] = [
         groups: ['product', 'seer'],
         keywords: ['seer', 'ai', 'eye', 'pyramid'],
         name: 'Seer',
-        defaultProps: {variant: 'waiting'},
+        defaultProps: {animation: 'waiting'},
       },
       {
         id: 'seer-loading',
         groups: ['product', 'seer'],
         keywords: ['seer', 'ai', 'eye', 'pyramid'],
         name: 'Seer',
-        defaultProps: {variant: 'loading'},
+        defaultProps: {animation: 'loading'},
       },
       {
         id: 'my-projects',
@@ -305,7 +302,7 @@ const SECTIONS: TSection[] = [
         id: 'github',
         groups: ['logo'],
         keywords: ['git', 'repository', 'code', 'microsoft'],
-        name: 'Github',
+        name: 'GitHub',
         defaultProps: {},
       },
       {
@@ -362,13 +359,6 @@ const SECTIONS: TSection[] = [
         groups: ['logo'],
         keywords: ['deploy', 'hosting', 'frontend'],
         name: 'Vercel',
-        defaultProps: {},
-      },
-      {
-        id: 'teamwork',
-        groups: ['logo'],
-        keywords: ['project', 'collaboration', 'management'],
-        name: 'Teamwork',
         defaultProps: {},
       },
       {
@@ -942,13 +932,6 @@ const SECTIONS: TSection[] = [
         },
       },
       {
-        id: 'archive',
-        groups: ['product'],
-        keywords: [],
-        name: 'Archive',
-        defaultProps: {},
-      },
-      {
         id: 'play',
         groups: ['action'],
         keywords: ['video', 'audio', 'unpause'],
@@ -1445,13 +1428,6 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'laptop',
-        groups: ['device'],
-        keywords: ['computer', 'macbook', 'notebook', 'portable'],
-        name: 'Laptop',
-        defaultProps: {},
-      },
-      {
         id: 'mobile',
         groups: ['device'],
         keywords: ['phone', 'iphone', 'smartphone', 'cell'],
@@ -1519,7 +1495,11 @@ const SECTIONS: TSection[] = [
 ];
 
 export default function IconsStories() {
-  const [searchTerm, setSearchTerm] = useState('');
+  const theme = useTheme();
+  const [searchTerm, setSearchTerm] = useQueryState(
+    'search',
+    parseAsString.withDefault('')
+  );
 
   const definedWithPrefix = new Set<string>();
 
@@ -1555,16 +1535,41 @@ export default function IconsStories() {
       <StyledSticky>
         <Flex padding="xl 0" direction="column" gap="lg">
           <Input
+            value={searchTerm}
             placeholder="Search icons by name or keyword"
             onChange={e => setSearchTerm(e.target.value.toLowerCase())}
           />
         </Flex>
       </StyledSticky>
-
+      <Heading as="h5" size="xl" variant="primary">
+        Icon Variants
+      </Heading>
+      <Text as="p" density="comfortable" size="md" variant="primary">
+        Just like other Core components, Icons support a set of variants that control the
+        color of the icon. The full list of variants is{' '}
+        {Object.keys(theme.tokens.content).map((v, idx) => (
+          <Fragment key={v}>
+            <InlineCode>{v}</InlineCode>
+            {idx < Object.keys(theme.tokens.content).length - 1 ? ', ' : ''}
+          </Fragment>
+        ))}
+        .
+      </Text>
+      <Flex direction="row" gap="md" justify="between" width="100%">
+        {Object.keys(theme.tokens.content).map(v => (
+          <Stack key={v} align="center" gap="md">
+            <Icons.IconSentry size="md" variant={v as any} />
+            <InlineCode>
+              <Text size="xs" monospace>
+                {v}
+              </Text>
+            </InlineCode>
+          </Stack>
+        ))}
+      </Flex>
       {SECTIONS.map(section => (
         <CoreSection searchTerm={searchTerm} key={section.id} section={section} />
       ))}
-
       <CoreSection searchTerm={searchTerm} section={unclassifiedSection} />
       <PluginIconsSection searchTerm={searchTerm} />
       <IdentityIconsSection searchTerm={searchTerm} />
@@ -1932,7 +1937,7 @@ function serializeProps(props: Record<string, unknown>) {
 }
 
 const StyledSticky = styled(Sticky)`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   z-index: ${p => p.theme.zIndex.initial};
   top: 52px;
 `;
@@ -1954,7 +1959,7 @@ const Cell = styled('button')`
   gap: ${p => p.theme.space.md};
   align-items: center;
   border: 0;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space.md};
   cursor: pointer;
   text-align: left;

@@ -99,10 +99,12 @@ from sentry.models.projectsdk import EventType, ProjectSDK
 from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
+from sentry.models.repositorysettings import CodeReviewTrigger, RepositorySettings
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
 from sentry.monitors.models import Monitor, ScheduleType
+from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.services.nodestore.django.models import Node
@@ -472,6 +474,9 @@ class ExhaustiveFixtures(Fixtures):
             organization=org, key="sentry:scrape_javascript", value=True
         )
 
+        owner_member = OrganizationMember.objects.get(organization=org, user_id=owner_id)
+        OrganizationMemberReplayAccess.objects.create(organizationmember=owner_member)
+
         # Team
         team = self.create_team(name=f"test_team_in_{slug}", organization=org)
         self.create_team_membership(user=owner, team=team)
@@ -638,6 +643,15 @@ class ExhaustiveFixtures(Fixtures):
         )
         repo.external_id = "https://git.example.com:1234"
         repo.save()
+
+        RepositorySettings.objects.create(
+            repository=repo,
+            enabled_code_review=True,
+            code_review_triggers=[
+                CodeReviewTrigger.ON_NEW_COMMIT,
+                CodeReviewTrigger.ON_READY_FOR_REVIEW,
+            ],
+        )
 
         # Group*
         group = self.create_group(project=project)

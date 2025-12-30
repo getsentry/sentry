@@ -213,8 +213,6 @@ class ProjectUserIssueEndpoint(ProjectEndpoint):
             "organizations:performance-web-vitals-seer-suggestions",
             organization,
             actor=request.user,
-        ) and features.has(
-            "organizations:issue-web-vitals-ingest", organization, actor=request.user
         )
 
     @extend_schema(

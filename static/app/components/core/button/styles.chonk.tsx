@@ -1,9 +1,7 @@
-import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
-
 import type {DO_NOT_USE_ButtonProps as ButtonProps} from 'sentry/components/core/button/types';
 import {chonkFor} from 'sentry/components/core/chonk';
 // eslint-disable-next-line boundaries/element-types
-import type {StrictCSSObject} from 'sentry/utils/theme';
+import type {StrictCSSObject, Theme} from 'sentry/utils/theme';
 
 // @TODO: remove Link type in the future
 type ChonkButtonType =
@@ -45,7 +43,7 @@ const chonkHoverElevation = '1px';
 export function DO_NOT_USE_getChonkButtonStyles(
   p: Pick<ButtonProps, 'priority' | 'busy' | 'disabled' | 'borderless'> & {
     size: NonNullable<ButtonProps['size']>;
-    theme: DO_NOT_USE_ChonkTheme;
+    theme: Theme;
   }
 ): StrictCSSObject {
   const type = chonkPriorityToType(p.priority);
@@ -69,7 +67,7 @@ export function DO_NOT_USE_getChonkButtonStyles(
     alignItems: 'center',
     justifyContent: 'center',
 
-    fontWeight: p.theme.fontWeight.bold,
+    fontWeight: p.theme.font.weight.sans.medium,
 
     opacity: p.busy || p.disabled ? 0.6 : undefined,
 
@@ -85,7 +83,10 @@ export function DO_NOT_USE_getChonkButtonStyles(
 
     background: 'none',
 
-    ...buttonSizes[p.size],
+    height: buttonSizes[p.size].height,
+    minHeight: buttonSizes[p.size].minHeight,
+    fontSize: buttonSizes[p.size].fontSize,
+    lineHeight: buttonSizes[p.size].lineHeight,
 
     '&::before': {
       content: '""',
@@ -256,7 +257,7 @@ export function DO_NOT_USE_getChonkButtonStyles(
   };
 }
 
-function getChonkButtonTheme(type: ChonkButtonType, theme: DO_NOT_USE_ChonkTheme) {
+function getChonkButtonTheme(type: ChonkButtonType, theme: Theme) {
   switch (type) {
     case 'default':
       return {
@@ -301,7 +302,7 @@ function getChonkButtonTheme(type: ChonkButtonType, theme: DO_NOT_USE_ChonkTheme
 
 function getChonkButtonSizeTheme(
   size: ButtonProps['size'],
-  theme: DO_NOT_USE_ChonkTheme
+  theme: Theme
 ): StrictCSSObject {
   switch (size) {
     case 'md':

@@ -785,7 +785,7 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
         return_value=False,
     )
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
-    @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     def test_high_fixability_code_changes(
         self, mock_gen, mock_budget, mock_state, mock_rate, mock_trigger
@@ -811,7 +811,7 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
         return_value=False,
     )
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
-    @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     def test_medium_fixability_solution(
         self, mock_gen, mock_budget, mock_state, mock_rate, mock_trigger
@@ -837,7 +837,7 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
         return_value=False,
     )
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
-    @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     def test_without_feature_flag(self, mock_gen, mock_budget, mock_state, mock_rate, mock_trigger):
         self.project.update_option("sentry:autofix_automation_tuning", "always")
@@ -989,7 +989,7 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
         return_value=False,
     )
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
-    @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     def test_user_preference_limits_high_fixability(
         self, mock_gen, mock_budget, mock_state, mock_rate, mock_fetch, mock_trigger
@@ -1021,7 +1021,7 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
         return_value=False,
     )
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
-    @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     def test_fixability_limits_permissive_user_preference(
         self, mock_gen, mock_budget, mock_state, mock_rate, mock_fetch, mock_trigger
@@ -1053,7 +1053,7 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
         return_value=False,
     )
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
-    @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     def test_no_user_preference_uses_fixability_only(
         self, mock_gen, mock_budget, mock_state, mock_rate, mock_fetch, mock_trigger
@@ -1092,7 +1092,7 @@ class TestRunAutomationAlertEventCount(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task")
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state")
-    @patch("sentry.seer.autofix.issue_summary.quotas.backend.has_available_reserved_budget")
+    @patch("sentry.seer.autofix.issue_summary.quotas.backend.check_seer_quota")
     def test_alert_skips_automation_below_threshold(
         self, mock_budget, mock_state, mock_fixability, mock_trigger
     ):
@@ -1122,7 +1122,7 @@ class TestRunAutomationAlertEventCount(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task")
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state")
-    @patch("sentry.seer.autofix.issue_summary.quotas.backend.has_available_reserved_budget")
+    @patch("sentry.seer.autofix.issue_summary.quotas.backend.check_seer_quota")
     def test_alert_runs_automation_above_threshold(
         self, mock_budget, mock_state, mock_fixability, mock_trigger, mock_rate_limit
     ):
@@ -1182,7 +1182,7 @@ class TestGetAndUpdateGroupFixabilityScore(APITestCase, SnubaTestCase):
         # Verify group was updated with the new score
         self.group.refresh_from_db()
         assert self.group.seer_fixability_score == 0.85
-        mock_generate.assert_called_once_with(self.group)
+        mock_generate.assert_called_once_with(self.group, summary=None)
 
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     def test_force_generate_regenerates_existing_score(self, mock_generate):
@@ -1205,4 +1205,52 @@ class TestGetAndUpdateGroupFixabilityScore(APITestCase, SnubaTestCase):
         # Verify the score was updated
         self.group.refresh_from_db()
         assert self.group.seer_fixability_score == 0.90
-        mock_generate.assert_called_once_with(self.group)
+        mock_generate.assert_called_once_with(self.group, summary=None)
+
+    @patch("sentry.seer.autofix.issue_summary.make_signed_seer_api_request")
+    def test_passes_summary_in_api_payload(self, mock_request):
+        """Test that summary is included in the API payload sent to Seer."""
+        mock_response = Mock()
+        mock_response.status = 200
+        mock_response.data = orjson.dumps(
+            {
+                "group_id": str(self.group.id),
+                "headline": "Test",
+                "whats_wrong": "Something",
+                "trace": "Trace",
+                "possible_cause": "Cause",
+                "scores": {"fixability_score": 0.80},
+            }
+        )
+        mock_request.return_value = mock_response
+
+        summary = {
+            "group_id": self.group.id,
+            "headline": "Test Headline",
+            "whats_wrong": "Test whats wrong",
+            "trace": "Test trace",
+            "possible_cause": "Test cause",
+        }
+
+        result = get_and_update_group_fixability_score(
+            self.group, force_generate=True, summary=summary
+        )
+
+        assert result == 0.80
+        mock_request.assert_called_once()
+        call_args = mock_request.call_args
+        payload = orjson.loads(call_args.kwargs["body"])
+
+        # Verify outer request fields match Seer's GetFixabilityScoreRequest
+        assert payload["group_id"] == self.group.id
+        assert "organization_slug" in payload
+        assert "project_id" in payload
+
+        # Verify summary structure matches Seer's SummarizeIssueResponse
+        assert "summary" in payload
+        summary_payload = payload["summary"]
+        assert summary_payload["group_id"] == self.group.id  # Must match outer group_id
+        assert summary_payload["headline"] == "Test Headline"
+        assert summary_payload["whats_wrong"] == "Test whats wrong"
+        assert summary_payload["trace"] == "Test trace"
+        assert summary_payload["possible_cause"] == "Test cause"

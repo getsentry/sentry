@@ -139,7 +139,6 @@ class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
 
 
 class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest):
-    @with_feature("organizations:issue-metric-issue-post-process-group")
     def test_workflow_engine__workflows(self) -> None:
         """
         This test ensures that the workflow engine is correctly hooked up to tasks/post_process.py.
@@ -152,7 +151,6 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
             self.call_post_process_group(self.group.id)
             mock_process_workflow.assert_called_once()
 
-    @with_feature("organizations:issue-metric-issue-post-process-group")
     def test_workflow_engine__workflows__other_events(self) -> None:
         """
         Ensure that the workflow engine only supports MetricIssue events for now.

@@ -1,6 +1,4 @@
 import {createRef} from 'react';
-import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
-import {useTheme} from '@emotion/react';
 import {ConfigFixture} from 'sentry-fixture/config';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
@@ -10,30 +8,15 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
+import type {Theme} from 'sentry/utils/theme';
 
 import {withChonk} from './withChonk';
 
-function LegacyComponent() {
-  const theme = useTheme();
-  return <div>Legacy: {theme.isChonk ? 'true' : 'false'}</div>;
+function ChonkComponent() {
+  return <div>Chonk: {'true'}</div>;
 }
-function ChonkComponent({theme}: {theme: DO_NOT_USE_ChonkTheme}) {
-  return <div>Chonk: {theme.isChonk ? 'true' : 'false'}</div>;
-}
-
-function LegacyComponentWithRef({ref}: {ref?: React.Ref<HTMLDivElement>}) {
-  const theme = useTheme();
-  return <div ref={ref}>Legacy: {theme.isChonk ? 'true' : 'false'}</div>;
-}
-
-function ChonkComponentWithRef({
-  ref,
-}: {
-  theme: DO_NOT_USE_ChonkTheme;
-  ref?: React.Ref<HTMLDivElement>;
-}) {
-  const theme = useTheme();
-  return <div ref={ref}>Chonk: {theme.isChonk ? 'true' : 'false'}</div>;
+function ChonkComponentWithRef({ref}: {theme: Theme; ref?: React.Ref<HTMLDivElement>}) {
+  return <div ref={ref}>Chonk: {'true'}</div>;
 }
 
 describe('withChonk', () => {
@@ -41,7 +24,7 @@ describe('withChonk', () => {
     ConfigStore.loadInitialData(
       ConfigFixture({
         user: UserFixture({
-          options: {...UserFixture().options, prefersChonkUI: false},
+          options: {...UserFixture().options},
         }),
       })
     );
@@ -52,7 +35,7 @@ describe('withChonk', () => {
     ConfigStore.loadInitialData(
       ConfigFixture({
         user: UserFixture({
-          options: {...UserFixture().options, prefersChonkUI: true},
+          options: {...UserFixture().options},
         }),
       })
     );
@@ -63,7 +46,11 @@ describe('withChonk', () => {
       })
     );
 
-    const Component = withChonk(LegacyComponent, ChonkComponent, props => props);
+    const Component = withChonk(
+      () => <div />,
+      ChonkComponent,
+      props => props
+    );
 
     render(
       <ThemeAndStyleProvider>
@@ -78,7 +65,7 @@ describe('withChonk', () => {
     ConfigStore.loadInitialData(
       ConfigFixture({
         user: UserFixture({
-          options: {...UserFixture().options, prefersChonkUI: true},
+          options: {...UserFixture().options},
         }),
       })
     );
@@ -91,7 +78,7 @@ describe('withChonk', () => {
 
     const ref = createRef<HTMLDivElement>();
     const Component = withChonk(
-      LegacyComponentWithRef,
+      () => <div />,
       ChonkComponentWithRef,
       props => props
     );

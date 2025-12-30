@@ -483,24 +483,21 @@ def is_root(item: SnubaTransaction) -> bool:
     return item.get("root", "0") == "1"
 
 
-def child_sort_key(item: TraceEvent) -> list[int | str]:
+def child_sort_key(item: TraceEvent) -> tuple[int, int, str, str]:
     if item.fetched_nodestore and item.nodestore_event is not None:
-        return [
+        return (
             item.nodestore_event.data["start_timestamp"],
             item.nodestore_event.data["timestamp"],
-        ]
-    elif item.span_serialized:
-        return [
+            item.event["transaction"],
+            item.event["id"],
+        )
+    else:
+        return (
             item.event["precise.start_ts"],
             item.event["precise.finish_ts"],
             item.event["transaction"],
             item.event["id"],
-        ]
-    else:
-        return [
-            item.event["transaction"],
-            item.event["id"],
-        ]
+        )
 
 
 def count_performance_issues(

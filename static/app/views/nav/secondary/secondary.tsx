@@ -13,8 +13,6 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -324,7 +322,7 @@ const Section = styled('div')<{layout: NavLayout}>`
 
 const sectionTitleStyles = (p: {isMobile: boolean; theme: Theme}) => css`
   font-weight: ${p.theme.fontWeight.bold};
-  color: ${p.theme.textColor};
+  color: ${p.theme.tokens.content.primary};
   padding: ${space(0.75)} ${space(1)};
   width: 100%;
   ${p.isMobile &&
@@ -381,14 +379,17 @@ interface ItemProps extends LinkProps {
   layout: NavLayout;
 }
 
-const ChonkItem = chonkStyled(Link)<ItemProps>`
+const ChonkItem = styled(Link)<ItemProps>`
   display: flex;
   gap: ${space(0.75)};
   justify-content: center;
   align-items: center;
   position: relative;
   color: ${p => p.theme.tokens.component.link.muted.default};
-  padding: ${p => (p.layout === NavLayout.MOBILE ? `${space(0.75)} ${space(1.5)} ${space(0.75)} 48px` : `${space(0.75)} ${space(1.5)}`)};
+  padding: ${p =>
+    p.layout === NavLayout.MOBILE
+      ? `${space(0.75)} ${space(1.5)} ${space(0.75)} 48px`
+      : `${space(0.75)} ${space(1.5)}`};
   border-radius: ${p => p.theme.radius[p.layout === NavLayout.MOBILE ? '0' : 'md']};
 
   /* Disable interaction state layer */
@@ -430,56 +431,7 @@ const ChonkItem = chonkStyled(Link)<ItemProps>`
   }
 `;
 
-const StyledNavItem = styled(Link)<ItemProps>`
-  position: relative;
-  display: flex;
-  padding: 4px ${space(1)};
-  height: 34px;
-  align-items: center;
-  color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  line-height: 177.75%;
-  border-radius: ${p => p.theme.borderRadius};
-  gap: ${space(0.75)};
-
-  &:focus-visible {
-    box-shadow: 0 0 0 2px ${p => p.theme.focusBorder};
-    color: currentColor;
-  }
-
-  &[aria-selected='true'] {
-    color: ${p => p.theme.purple400};
-    font-weight: ${p => p.theme.fontWeight.bold};
-
-    &:hover {
-      color: ${p => p.theme.purple400};
-    }
-  }
-
-  &:hover {
-    color: inherit;
-  }
-
-  [data-isl] {
-    transform: translate(0, 0);
-    top: 1px;
-    bottom: 1px;
-    right: 0;
-    left: 0;
-    width: initial;
-    height: initial;
-  }
-
-  ${p =>
-    p.layout === NavLayout.MOBILE &&
-    css`
-      padding: 0 ${space(1.5)} 0 48px;
-      border-radius: 0;
-    `}
-`;
-
-const Item = withChonk(StyledNavItem, ChonkItem);
+const Item = ChonkItem;
 
 const ItemText = styled('span')`
   ${p => p.theme.overflowEllipsis}

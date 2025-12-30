@@ -1192,6 +1192,14 @@ class SnubaTestCase(BaseTestCase):
         )
         assert response.status_code == 200
 
+    def store_eap_items(self, items: Sequence[TraceItem]) -> None:
+        files = {f"eap_items_{i}": item.SerializeToString() for i, item in enumerate(items)}
+        response = requests.post(
+            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
+            files=files,
+        )
+        assert response.status_code == 200
+
     def store_issues(self, issues):
         assert (
             requests.post(
@@ -3268,6 +3276,13 @@ class SpanTestCase(BaseTestCase):
             organization = self.organization
         if project is None:
             project = self.project
+
+        # assumes the span will be stored,
+        # so mark the project has sent a transaction/span
+        if not project.flags.has_transactions:
+            project.flags.has_transactions = True
+            project.save()
+
         if start_ts is None:
             start_ts = datetime.now() - timedelta(minutes=1)
         if extra_data is None:
@@ -3433,6 +3448,13 @@ class OurLogTestCase(BaseTestCase, TraceItemTestCase):
             organization = self.organization
         if project is None:
             project = self.project
+
+        # assumes the log will be stored,
+        # so mark the project has sent a log
+        if not project.flags.has_logs:
+            project.flags.has_logs = True
+            project.save()
+
         if timestamp is None:
             timestamp = datetime.now() - timedelta(minutes=1)
         if attributes is None:
@@ -3508,6 +3530,12 @@ class TraceMetricsTestCase(BaseTestCase, TraceItemTestCase):
         if project is None:
             project = self.project
             assert project is not None
+
+        # assumes the trace metric will be stored,
+        # so mark the project has sent a trace metric
+        if not project.flags.has_trace_metrics:
+            project.flags.has_trace_metrics = True
+            project.save()
 
         if timestamp is None:
             timestamp = datetime.now() - timedelta(minutes=1)
@@ -3585,6 +3613,51 @@ class ProfileFunctionsTestCase(BaseTestCase, TraceItemTestCase):
             organization_id=organization.id,
             project_id=project.id,
             item_type=TraceItemType.TRACE_ITEM_TYPE_PROFILE_FUNCTION,
+            timestamp=timestamp_proto,
+            trace_id=trace_id or uuid4().hex,
+            item_id=item_id.bytes,
+            received=timestamp_proto,
+            retention_days=90,
+            attributes=attributes_proto,
+        )
+
+
+class TraceAttachmentTestCase(BaseTestCase, TraceItemTestCase):
+    def create_trace_attachment(
+        self,
+        organization: Organization | None = None,
+        project: Project | None = None,
+        timestamp: datetime | None = None,
+        trace_id: str | None = None,
+        attributes: dict[str, Any] | None = None,
+    ) -> TraceItem:
+        if organization is None:
+            organization = self.organization
+            assert organization is not None
+
+        if project is None:
+            project = self.project
+            assert project is not None
+
+        if timestamp is None:
+            timestamp = datetime.now() - timedelta(minutes=1)
+            assert timestamp is not None
+
+        timestamp_proto = Timestamp()
+        timestamp_proto.FromDatetime(timestamp)
+
+        item_id = self.random_item_id()
+
+        attributes_proto = {}
+
+        if attributes:
+            for k, v in attributes.items():
+                attributes_proto[k] = scalar_to_any_value(v)
+
+        return TraceItem(
+            organization_id=organization.id,
+            project_id=project.id,
+            item_type=TraceItemType.TRACE_ITEM_TYPE_ATTACHMENT,
             timestamp=timestamp_proto,
             trace_id=trace_id or uuid4().hex,
             item_id=item_id.bytes,
@@ -3859,7 +3932,6 @@ class ReplayEAPTestCase(BaseTestCase):
         breadcrumb_data = {
             "replay_id": replay_id,
             "segment_id": segment_id,
-            "project_id": project.id,
             "category": category,
         }
 

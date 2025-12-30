@@ -1,8 +1,16 @@
-import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type RefCallback,
+} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
+import {Flex} from '@sentry/scraps/layout';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -11,6 +19,7 @@ import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import Placeholder from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
 import {t, tctCode} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -126,9 +135,10 @@ function WidgetBuilderSlideout({
   const isChartWidget = isChartDisplayType(state.displayType);
 
   const showVisualizeSection = state.displayType !== DisplayType.DETAILS;
-
-  const customPreviewRef = useRef<HTMLDivElement>(null);
-  const templatesPreviewRef = useRef<HTMLDivElement>(null);
+  const showQueryFilterBuilder = !(
+    state.dataset === WidgetType.ISSUE && isChartDisplayType(state.displayType)
+  );
+  const showGroupBySelector = isChartWidget && !(state.dataset === WidgetType.ISSUE);
 
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
@@ -136,25 +146,35 @@ function WidgetBuilderSlideout({
     (isChartWidget && state.fields && state.fields.length > 0) ||
     state.displayType === DisplayType.TABLE;
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsPreviewDraggable(!entry!.isIntersecting);
-      },
-      {threshold: 0}
-    );
+  const observer = useMemo(
+    () =>
+      new IntersectionObserver(
+        ([entry]) => {
+          const isIntersecting = entry!.isIntersecting;
+          setIsPreviewDraggable(!isIntersecting);
+        },
+        {threshold: 0}
+      ),
+    [setIsPreviewDraggable]
+  );
 
-    // need two different refs to account for preview when customizing templates
-    if (customPreviewRef.current) {
-      observer.observe(customPreviewRef.current);
-    }
+  const observeForDraggablePreview = useCallback<RefCallback<HTMLDivElement>>(
+    elem => {
+      if (elem) {
+        observer.observe(elem);
+      } else if (!elem) {
+        // According to React documentation and my observations of reality, this
+        // will never happen. According to TypeScript, it might. Better safe
+        // than sorry!
+        observer.disconnect();
+      }
 
-    if (templatesPreviewRef.current) {
-      observer.observe(templatesPreviewRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, [setIsPreviewDraggable, openWidgetTemplates]);
+      return () => {
+        observer.disconnect();
+      };
+    },
+    [observer]
+  );
 
   const widgetLibraryWidgets = getTopNConvertedDefaultWidgets(organization);
 
@@ -203,187 +223,220 @@ function WidgetBuilderSlideout({
         },
       ];
 
+  const header = (
+    <SlideoutHeaderWrapper>
+      <Breadcrumbs crumbs={breadcrumbs} />
+      <CloseButton
+        priority="link"
+        size="zero"
+        borderless
+        aria-label={t('Close Widget Builder')}
+        icon={<IconClose size="sm" />}
+        onClick={onCloseWithModal}
+      >
+        {t('Close')}
+      </CloseButton>
+    </SlideoutHeaderWrapper>
+  );
+
   return (
     <SlideOverPanel
-      collapsed={false}
-      slidePosition="left"
+      position="left"
       data-test-id="widget-slideout"
       transitionProps={animationTransitionSettings}
     >
-      <SlideoutHeaderWrapper>
-        <Breadcrumbs crumbs={breadcrumbs} />
-        <CloseButton
-          priority="link"
-          size="zero"
-          borderless
-          aria-label={t('Close Widget Builder')}
-          icon={<IconClose size="sm" />}
-          onClick={onCloseWithModal}
-        >
-          {t('Close')}
-        </CloseButton>
-      </SlideoutHeaderWrapper>
-      <SlideoutBodyWrapper>
-        {isTransactionsWidget && showTransactionsDeprecationAlert && (
-          <Section>
-            <Alert
-              type="warning"
-              trailingItems={
-                <StyledCloseButton
-                  icon={<IconClose size="sm" />}
-                  aria-label={t('Close')}
-                  onClick={() => {
-                    setShowTransactionsDeprecationAlert(false);
-                  }}
-                  size="zero"
-                  borderless
-                />
-              }
-            >
-              {disableTransactionWidget && isEditing
-                ? tctCode(
-                    'Editing of transaction-based widgets is disabled, as we migrate to the span dataset. To expedite and re-enable edit functionality, switch to the [spans] dataset below with the [code:is_transaction:true] filter. Please read these [FAQLink:FAQs] for more information.',
-                    {
-                      spans: (
-                        <Link
-                          // We need to do this otherwise the dashboard filters will change
-                          to={{
-                            pathname: location.pathname,
-                            query: {
-                              project: location.query.project,
-                              start: location.query.start,
-                              end: location.query.end,
-                              statsPeriod: location.query.statsPeriod,
-                              environment: location.query.environment,
-                              utc: location.query.utc,
-                            },
-                          }}
-                          onClick={() => {
-                            cacheBuilderState(state.dataset ?? WidgetType.ERRORS);
-                            setSegmentSpanBuilderState();
-                          }}
-                        >
-                          {t('spans')}
-                        </Link>
-                      ),
-                      FAQLink: (
-                        <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
-                      ),
+      {({isOpening}) => {
+        if (isOpening) {
+          return (
+            <Fragment>
+              {header}
+              <Flex direction="column" gap="2xl" padding="2xl">
+                <Placeholder height="50px" />
+                <Placeholder height="50px" />
+                <Placeholder height="50px" />
+                <Placeholder height="200px" />
+              </Flex>
+            </Fragment>
+          );
+        }
+
+        return (
+          <Fragment>
+            {header}
+            <SlideoutBodyWrapper>
+              {isTransactionsWidget && showTransactionsDeprecationAlert && (
+                <Section>
+                  <Alert
+                    type="warning"
+                    trailingItems={
+                      <StyledCloseButton
+                        icon={<IconClose size="sm" />}
+                        aria-label={t('Close')}
+                        onClick={() => {
+                          setShowTransactionsDeprecationAlert(false);
+                        }}
+                        size="zero"
+                        borderless
+                      />
                     }
-                  )
-                : tctCode(
-                    'The transactions dataset is being deprecated. Please use the Spans dataset with the [code:is_transaction:true] filter instead. Please read these [FAQLink:FAQs] for more information.',
-                    {
-                      FAQLink: (
-                        <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
-                      ),
-                    }
+                  >
+                    {disableTransactionWidget && isEditing
+                      ? tctCode(
+                          'Editing of transaction-based widgets is disabled, as we migrate to the span dataset. To expedite and re-enable edit functionality, switch to the [spans] dataset below with the [code:is_transaction:true] filter. Please read these [FAQLink:FAQs] for more information.',
+                          {
+                            spans: (
+                              <Link
+                                // We need to do this otherwise the dashboard filters will change
+                                to={{
+                                  pathname: location.pathname,
+                                  query: {
+                                    project: location.query.project,
+                                    start: location.query.start,
+                                    end: location.query.end,
+                                    statsPeriod: location.query.statsPeriod,
+                                    environment: location.query.environment,
+                                    utc: location.query.utc,
+                                  },
+                                }}
+                                onClick={() => {
+                                  cacheBuilderState(state.dataset ?? WidgetType.ERRORS);
+                                  setSegmentSpanBuilderState();
+                                }}
+                              >
+                                {t('spans')}
+                              </Link>
+                            ),
+                            FAQLink: (
+                              <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
+                            ),
+                          }
+                        )
+                      : tctCode(
+                          'The transactions dataset is being deprecated. Please use the Spans dataset with the [code:is_transaction:true] filter instead. Please read these [FAQLink:FAQs] for more information.',
+                          {
+                            FAQLink: (
+                              <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
+                            ),
+                          }
+                        )}
+                  </Alert>
+                </Section>
+              )}
+              {openWidgetTemplates ? (
+                <Fragment>
+                  <div ref={observeForDraggablePreview}>
+                    {isSmallScreen && (
+                      <Section>
+                        <WidgetPreviewContainer
+                          dashboard={dashboard}
+                          dashboardFilters={dashboardFilters}
+                          isWidgetInvalid={isWidgetInvalid}
+                          onDataFetched={onDataFetched}
+                          openWidgetTemplates={openWidgetTemplates}
+                        />
+                      </Section>
+                    )}
+                  </div>
+                  {isSmallScreen && (
+                    <Section>
+                      <WidgetBuilderFilterBar
+                        releases={dashboard.filters?.release ?? []}
+                      />
+                    </Section>
                   )}
-            </Alert>
-          </Section>
-        )}
-        {openWidgetTemplates ? (
-          <Fragment>
-            <div ref={templatesPreviewRef}>
-              {isSmallScreen && (
-                <Section>
-                  <WidgetPreviewContainer
-                    dashboard={dashboard}
-                    dashboardFilters={dashboardFilters}
-                    isWidgetInvalid={isWidgetInvalid}
-                    onDataFetched={onDataFetched}
-                    openWidgetTemplates={openWidgetTemplates}
+                  <WidgetTemplatesList
+                    onSave={onSave}
+                    setOpenWidgetTemplates={setOpenWidgetTemplates}
+                    setIsPreviewDraggable={setIsPreviewDraggable}
+                    setCustomizeFromLibrary={setCustomizeFromLibrary}
                   />
-                </Section>
-              )}
-            </div>
-            {isSmallScreen && (
-              <Section>
-                <WidgetBuilderFilterBar releases={dashboard.filters?.release ?? []} />
-              </Section>
-            )}
-            <WidgetTemplatesList
-              onSave={onSave}
-              setOpenWidgetTemplates={setOpenWidgetTemplates}
-              setIsPreviewDraggable={setIsPreviewDraggable}
-              setCustomizeFromLibrary={setCustomizeFromLibrary}
-            />
-          </Fragment>
-        ) : (
-          <Fragment>
-            <DisableTransactionWidget>
-              <Section>
-                <WidgetBuilderNameAndDescription error={error} setError={setError} />
-              </Section>
-            </DisableTransactionWidget>
-            <Section>
-              <WidgetBuilderDatasetSelector />
-            </Section>
-            <DisableTransactionWidget>
-              <Section>
-                <WidgetBuilderTypeSelector error={error} setError={setError} />
-              </Section>
-              <div ref={customPreviewRef}>
-                {isSmallScreen && (
+                </Fragment>
+              ) : (
+                <Fragment>
+                  <DisableTransactionWidget>
+                    <Section>
+                      <WidgetBuilderNameAndDescription
+                        error={error}
+                        setError={setError}
+                      />
+                    </Section>
+                  </DisableTransactionWidget>
                   <Section>
-                    <WidgetPreviewContainer
-                      dashboard={dashboard}
-                      dashboardFilters={dashboardFilters}
-                      isWidgetInvalid={isWidgetInvalid}
-                      onDataFetched={onDataFetched}
-                      openWidgetTemplates={openWidgetTemplates}
-                    />
+                    <WidgetBuilderDatasetSelector />
                   </Section>
-                )}
-              </div>
-              {isSmallScreen && (
-                <Section>
-                  <WidgetBuilderFilterBar releases={dashboard.filters?.release ?? []} />
-                </Section>
-              )}
-              {showVisualizeSection && (
-                <Section>
-                  <Visualize error={error} setError={setError} />
-                </Section>
-              )}
-              <Section>
-                <WidgetBuilderQueryFilterBuilder
-                  onQueryConditionChange={onQueryConditionChange}
-                  validatedWidgetResponse={validatedWidgetResponse}
-                />
-              </Section>
-              {state.displayType === DisplayType.BIG_NUMBER && (
-                <Section>
-                  <ThresholdsSection
-                    dataType={thresholdMetaState?.dataType}
-                    dataUnit={thresholdMetaState?.dataUnit}
-                    error={error}
+                  <DisableTransactionWidget>
+                    <Section>
+                      <WidgetBuilderTypeSelector error={error} setError={setError} />
+                    </Section>
+                    <div ref={observeForDraggablePreview}>
+                      {isSmallScreen && (
+                        <Section>
+                          <WidgetPreviewContainer
+                            dashboard={dashboard}
+                            dashboardFilters={dashboardFilters}
+                            isWidgetInvalid={isWidgetInvalid}
+                            onDataFetched={onDataFetched}
+                            openWidgetTemplates={openWidgetTemplates}
+                          />
+                        </Section>
+                      )}
+                    </div>
+                    {isSmallScreen && (
+                      <Section>
+                        <WidgetBuilderFilterBar
+                          releases={dashboard.filters?.release ?? []}
+                        />
+                      </Section>
+                    )}
+                    {showVisualizeSection && (
+                      <Section>
+                        <Visualize error={error} setError={setError} />
+                      </Section>
+                    )}
+
+                    {showQueryFilterBuilder && (
+                      <Section>
+                        <WidgetBuilderQueryFilterBuilder
+                          onQueryConditionChange={onQueryConditionChange}
+                          validatedWidgetResponse={validatedWidgetResponse}
+                        />
+                      </Section>
+                    )}
+                    {state.displayType === DisplayType.BIG_NUMBER && (
+                      <Section>
+                        <ThresholdsSection
+                          dataType={thresholdMetaState?.dataType}
+                          dataUnit={thresholdMetaState?.dataUnit}
+                          error={error}
+                          setError={setError}
+                        />
+                      </Section>
+                    )}
+                    {showGroupBySelector && (
+                      <Section>
+                        <WidgetBuilderGroupBySelector
+                          validatedWidgetResponse={validatedWidgetResponse}
+                        />
+                      </Section>
+                    )}
+                    {showSortByStep && (
+                      <Section>
+                        <WidgetBuilderSortBySelector />
+                      </Section>
+                    )}
+                  </DisableTransactionWidget>
+                  <SaveButtonGroup
+                    isEditing={isEditing}
+                    onSave={onSave}
                     setError={setError}
+                    onClose={onCloseWithModal}
                   />
-                </Section>
+                </Fragment>
               )}
-              {isChartWidget && (
-                <Section>
-                  <WidgetBuilderGroupBySelector
-                    validatedWidgetResponse={validatedWidgetResponse}
-                  />
-                </Section>
-              )}
-              {showSortByStep && (
-                <Section>
-                  <WidgetBuilderSortBySelector />
-                </Section>
-              )}
-            </DisableTransactionWidget>
-            <SaveButtonGroup
-              isEditing={isEditing}
-              onSave={onSave}
-              setError={setError}
-              onClose={onCloseWithModal}
-            />
+            </SlideoutBodyWrapper>
           </Fragment>
-        )}
-      </SlideoutBodyWrapper>
+        );
+      }}
     </SlideOverPanel>
   );
 }
@@ -432,7 +485,7 @@ const CloseButton = styled(Button)`
   color: ${p => p.theme.subText};
   height: fit-content;
   &:hover {
-    color: ${p => p.theme.gray400};
+    color: ${p => p.theme.colors.gray500};
   }
   z-index: 100;
 `;
@@ -450,7 +503,7 @@ const SlideoutBreadcrumb = styled('div')`
 `;
 
 const SlideoutBodyWrapper = styled('div')`
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['2xl']};
 `;
 
 const SectionWrapper = styled('div')`

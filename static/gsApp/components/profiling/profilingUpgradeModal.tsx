@@ -132,7 +132,7 @@ const SubheaderPrimary = styled(Subheader)`
 `;
 
 const Header = styled('h1')`
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: bold;
   margin: ${space(1)} 0;
 `;
@@ -249,7 +249,7 @@ function ActionButtons({
         {t('Update Now')}
       </Button>
       <LinkButton
-        to={`/settings/${organization.slug}/billing/checkout/?referrer=profiling_onboard_modal-owner-modal`}
+        to={`/checkout/${organization.slug}/?referrer=profiling_onboard_modal-owner-modal`}
         onClick={onClickManageSubscription}
       >
         {t('Manage Subscription')}

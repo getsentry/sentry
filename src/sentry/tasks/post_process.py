@@ -1150,6 +1150,7 @@ def process_commits(job: PostProcessJob) -> None:
                             IntegrationProviderSlug.GITHUB.value,
                             IntegrationProviderSlug.GITLAB.value,
                             IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+                            IntegrationProviderSlug.PERFORCE.value,
                         ],
                     )
                     has_integrations = len(org_integrations) > 0
@@ -1607,6 +1608,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     from sentry.seer.autofix.utils import (
         is_issue_eligible_for_seer_automation,
         is_seer_scanner_rate_limited,
+        is_seer_seat_based_tier_enabled,
     )
     from sentry.tasks.autofix import (
         generate_issue_summary_only,
@@ -1618,7 +1620,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     group = event.group
 
     # Default behaviour
-    if not features.has("organizations:triage-signals-v0-org", group.organization):
+    if not is_seer_seat_based_tier_enabled(group.organization):
         # Only run on issues with no existing scan
         if group.seer_fixability_score is not None:
             return
@@ -1657,12 +1659,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             # Rate limit check must be last, after cache.add succeeds, to avoid wasting quota
             if is_seer_scanner_rate_limited(group.project, group.organization):
                 return
-            logger.info(
-                "Triage signals V0:group=%s project=%s: generating summary",
-                group.id,
-                group.project.slug,
-                extra={"group_id": group.id, "project_slug": group.project.slug},
-            )
+
             generate_issue_summary_only.delay(group.id)
         else:
             # Event count >= 10: run automation
@@ -1687,16 +1684,17 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             if not cache.add(automation_dispatch_cache_key, True, timeout=300):
                 return  # Another process already dispatched automation
 
+            # Check if project has connected repositories - requirement for new pricing
+            # which triggers Django model loading before apps are ready
+            from sentry.seer.autofix.utils import has_project_connected_repos
+
+            if not has_project_connected_repos(group.organization.id, group.project.id):
+                return
+
             # Check if summary exists in cache
             cache_key = get_issue_summary_cache_key(group.id)
             if cache.get(cache_key) is not None:
                 # Summary exists, run automation directly
-                logger.info(
-                    "Triage signals V0:group=%s project=%s: summary exists, running automation",
-                    group.id,
-                    group.project.slug,
-                    extra={"group_id": group.id, "project_slug": group.project.slug},
-                )
                 run_automation_only_task.delay(group.id)
             else:
                 # Rate limit check before generating summary
@@ -1704,12 +1702,6 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
                     return
 
                 # No summary yet, generate summary + run automation in one go
-                logger.info(
-                    "Triage signals V0:group=%s project=%s: no summary, generating summary + running automation",
-                    group.id,
-                    group.project.slug,
-                    extra={"group_id": group.id, "project_slug": group.project.slug},
-                )
                 generate_summary_and_run_automation.delay(group.id)
 
 

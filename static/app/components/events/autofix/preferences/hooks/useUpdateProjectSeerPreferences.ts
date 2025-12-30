@@ -11,23 +11,18 @@ export function useUpdateProjectSeerPreferences(project: Project) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: ProjectSeerPreferences) => {
-      const payload: ProjectSeerPreferences = {
-        repositories: data.repositories,
-        automated_run_stopping_point: data.automated_run_stopping_point ?? 'root_cause',
-        automation_handoff: data.automation_handoff,
-      };
+    mutationFn: (data: Partial<ProjectSeerPreferences>) => {
       return api.requestPromise(
         `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
         {
           method: 'POST',
-          data: payload,
+          data,
         }
       );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: [makeProjectSeerPreferencesQueryKey(organization.slug, project.slug)],
+        queryKey: makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
       });
     },
   });

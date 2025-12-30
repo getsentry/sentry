@@ -21,7 +21,7 @@ class BaseRerunAnalysisTest(APITestCase):
     def create_artifact_with_metrics(self):
         """Creates an artifact with size metrics and comparisons"""
         main_file = File.objects.create(name="test_artifact.zip", type="application/zip")
-        artifact = PreprodArtifact.objects.create(
+        artifact = self.create_preprod_artifact(
             project=self.project,
             file_id=main_file.id,
             app_name="test_artifact",
@@ -32,25 +32,25 @@ class BaseRerunAnalysisTest(APITestCase):
         )
 
         analysis_file_1 = File.objects.create(name="analysis1.json", type="application/json")
-        size_metric_1 = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=artifact,
+        size_metric_1 = self.create_preprod_artifact_size_metrics(
+            artifact,
             analysis_file_id=analysis_file_1.id,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         )
 
         analysis_file_2 = File.objects.create(name="analysis2.json", type="application/json")
-        size_metric_2 = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=artifact,
+        size_metric_2 = self.create_preprod_artifact_size_metrics(
+            artifact,
             analysis_file_id=analysis_file_2.id,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
             identifier="watch_app",
         )
 
         comparison_file = File.objects.create(name="comparison.json", type="application/json")
-        comparison = PreprodArtifactSizeComparison.objects.create(
+        comparison = self.create_preprod_artifact_size_comparison(
             head_size_analysis=size_metric_1,
             base_size_analysis=size_metric_2,
-            organization_id=self.organization.id,
+            organization=self.organization,
             file_id=comparison_file.id,
         )
 
@@ -99,7 +99,7 @@ class PreprodArtifactRerunAnalysisTest(BaseRerunAnalysisTest):
         assert File.objects.filter(id=main_file.id).exists()
 
     def test_rerun_analysis_with_no_metrics(self):
-        artifact = PreprodArtifact.objects.create(
+        artifact = self.create_preprod_artifact(
             project=self.project,
             app_name="test_artifact",
             app_id="com.test.app",
@@ -119,14 +119,14 @@ class PreprodArtifactRerunAnalysisTest(BaseRerunAnalysisTest):
         self.assert_artifact_reset(artifact)
 
     def test_rerun_analysis_cleans_up_base_comparisons(self):
-        artifact1 = PreprodArtifact.objects.create(
+        artifact1 = self.create_preprod_artifact(
             project=self.project,
             app_name="test_artifact",
             app_id="com.test.app",
             build_version="1.0.0",
             build_number=1,
         )
-        artifact2 = PreprodArtifact.objects.create(
+        artifact2 = self.create_preprod_artifact(
             project=self.project,
             app_name="test_artifact",
             app_id="com.test.app",
@@ -134,18 +134,18 @@ class PreprodArtifactRerunAnalysisTest(BaseRerunAnalysisTest):
             build_number=2,
         )
 
-        size_metric_1 = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=artifact1,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        size_metric_1 = self.create_preprod_artifact_size_metrics(
+            artifact1,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         )
-        size_metric_2 = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=artifact2,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        size_metric_2 = self.create_preprod_artifact_size_metrics(
+            artifact2,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         )
-        comparison = PreprodArtifactSizeComparison.objects.create(
+        comparison = self.create_preprod_artifact_size_comparison(
             head_size_analysis=size_metric_2,
             base_size_analysis=size_metric_1,
-            organization_id=self.organization.id,
+            organization=self.organization,
         )
 
         self.get_success_response(
@@ -187,7 +187,7 @@ class PreprodArtifactAdminRerunAnalysisTest(BaseRerunAnalysisTest):
         assert File.objects.filter(id=main_file.id).exists()
 
     def test_rerun_analysis_with_no_metrics(self):
-        artifact = PreprodArtifact.objects.create(
+        artifact = self.create_preprod_artifact(
             project=self.project,
             app_name="test_artifact",
             app_id="com.test.app",
@@ -208,14 +208,14 @@ class PreprodArtifactAdminRerunAnalysisTest(BaseRerunAnalysisTest):
         self.assert_artifact_reset(artifact)
 
     def test_rerun_analysis_cleans_up_base_comparisons(self):
-        artifact1 = PreprodArtifact.objects.create(
+        artifact1 = self.create_preprod_artifact(
             project=self.project,
             app_name="test_artifact",
             app_id="com.test.app",
             build_version="1.0.0",
             build_number=1,
         )
-        artifact2 = PreprodArtifact.objects.create(
+        artifact2 = self.create_preprod_artifact(
             project=self.project,
             app_name="test_artifact",
             app_id="com.test.app",
@@ -223,18 +223,18 @@ class PreprodArtifactAdminRerunAnalysisTest(BaseRerunAnalysisTest):
             build_number=2,
         )
 
-        size_metric_1 = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=artifact1,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        size_metric_1 = self.create_preprod_artifact_size_metrics(
+            artifact1,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         )
-        size_metric_2 = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=artifact2,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        size_metric_2 = self.create_preprod_artifact_size_metrics(
+            artifact2,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         )
-        comparison = PreprodArtifactSizeComparison.objects.create(
+        comparison = self.create_preprod_artifact_size_comparison(
             head_size_analysis=size_metric_2,
             base_size_analysis=size_metric_1,
-            organization_id=self.organization.id,
+            organization=self.organization,
         )
 
         response = self.get_success_response(preprod_artifact_id=artifact1.id, status_code=200)

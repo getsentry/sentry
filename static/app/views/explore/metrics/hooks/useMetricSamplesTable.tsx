@@ -161,7 +161,7 @@ function useMetricsQueryKey({
       per_page: limit,
       referrer,
       sampling: queryExtras?.samplingMode ?? SAMPLING_MODE.NORMAL,
-      caseInsensitive: queryExtras?.caseInsensitive,
+      caseInsensitive: queryExtras?.caseInsensitive ? '1' : undefined,
       disableAggregateExtrapolation: queryExtras?.disableAggregateExtrapolation
         ? '1'
         : undefined,

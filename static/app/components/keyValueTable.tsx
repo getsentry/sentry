@@ -33,7 +33,7 @@ const commonStyles = ({theme, type}: {type: Props['type']} & {theme: Theme}) => 
   ${theme.overflowEllipsis};
 
   background-color: ${type === 'error'
-    ? theme.red100 + ' !important'
+    ? theme.colors.red100 + ' !important'
     : type === 'warning'
       ? 'var(--background-warning-default, rgba(245, 176, 0, 0.09)) !important'
       : 'inherit'};
@@ -46,7 +46,7 @@ const Key = styled('dt')<{type: Props['type']}>`
   ${commonStyles};
   display: flex;
   align-items: center;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const Value = styled('dd')<{type: Props['type']}>`

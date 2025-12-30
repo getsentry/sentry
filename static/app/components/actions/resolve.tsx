@@ -19,8 +19,6 @@ import type {GroupStatusResolution, ResolvedStatusDetails} from 'sentry/types/gr
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
@@ -340,7 +338,6 @@ function ResolveActions({
         onSelected={(statusDetails: ResolvedStatusDetails) =>
           handleAnotherExistingReleaseResolution(statusDetails)
         }
-        organization={organization}
         projectSlug={projectSlug}
       />
     ));
@@ -383,31 +380,13 @@ function ResolveActions({
 
 export default ResolveActions;
 
-const ResolveButton = withChonk(
-  styled(Button)<{priority?: 'primary'}>`
-    box-shadow: none;
-    ${p =>
-      p.priority === 'primary' &&
-      css`
-        &::after {
-          content: '';
-          position: absolute;
-          top: -1px;
-          bottom: -1px;
-          right: -1px;
-          border-right: solid 1px currentColor;
-          opacity: 0.25;
-        }
-      `}
-  `,
-  chonkStyled(Button)`
-    box-shadow: none;
-`
-);
+const ResolveButton = styled(Button)`
+  box-shadow: none;
+`;
 
 const DropdownTrigger = styled(Button)`
   box-shadow: none;
-  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+  border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
   border-left: none;
 `;
 
@@ -431,7 +410,7 @@ const SetupReleases = styled('div')`
   align-items: center;
   padding: ${space(2)} 0;
   text-align: center;
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
   width: 250px;
   white-space: normal;
   font-weight: ${p => p.theme.fontWeight.normal};

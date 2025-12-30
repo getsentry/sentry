@@ -267,7 +267,14 @@ export function SharedSpendLimitPriceTable({
         if (!addOnInfo) {
           return null;
         }
-        const dataCategories = addOnInfo.dataCategories;
+
+        const canUsePayg = addOnInfo.dataCategories.some(category =>
+          activePlan.onDemandCategories.includes(category)
+        );
+
+        if (!canUsePayg) {
+          return null;
+        }
 
         const reservedBudgetCategory = getReservedBudgetCategoryForAddOn(apiName);
         const includedBudget = reservedBudgetCategory
@@ -282,6 +289,8 @@ export function SharedSpendLimitPriceTable({
             ? displayPrice({cents: includedBudget})
             : undefined,
         });
+
+        const dataCategories = addOnInfo.dataCategories;
 
         return (
           <Flex justify="between" key={apiName} borderTop="primary" padding="md xl">
@@ -347,7 +356,18 @@ function InnerSpendLimitSettings({
   organization,
 }: InnerSpendLimitSettingsProps) {
   const includedAddOns = Object.entries(addOns)
-    .filter(([_, addOn]) => addOn.enabled)
+    .filter(([apiName, addOn]) => {
+      const addOnInfo = activePlan.addOnCategories[apiName as AddOnCategory];
+      if (!addOnInfo) {
+        return false;
+      }
+      return (
+        addOn.enabled &&
+        addOnInfo.dataCategories.some(category =>
+          activePlan.onDemandCategories.includes(category)
+        )
+      );
+    })
     .map(([apiName]) => apiName) as AddOnCategory[];
   const handleUpdate = ({newData}: {newData: PartialSpendLimitUpdate}) => {
     if (onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
@@ -495,10 +515,7 @@ function InnerSpendLimitSettings({
             );
           })}
           {includedAddOns.map((apiName, index) => {
-            const addOnInfo = activePlan.addOnCategories[apiName];
-            if (!addOnInfo) {
-              return null;
-            }
+            const addOnInfo = activePlan.addOnCategories[apiName]!;
             const reservedBudgetCategory = getReservedBudgetCategoryForAddOn(apiName);
             const includedBudget = reservedBudgetCategory
               ? (activePlan.availableReservedBudgetTypes[reservedBudgetCategory]
@@ -721,7 +738,7 @@ const RadioMarker = styled(Container)<{isSelected: boolean}>`
 `;
 
 const InnerContainer = styled(Flex)`
-  border-bottom: ${p => (p.theme.isChonk ? '3px' : '1px')} solid ${p => p.theme.border};
+  border-bottom: 3px solid ${p => p.theme.border};
   overflow: hidden;
 `;
 

@@ -854,7 +854,7 @@ const BlankSpace = styled('div')`
   height: ${p => p.theme.form.md.height};
   min-width: 50px;
   background: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   display: flex;
   align-items: center;
   justify-content: center;

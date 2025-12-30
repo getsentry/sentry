@@ -66,7 +66,7 @@ export const FlexContainer = styled('div')`
 
 export const UserIcon = styled(IconUser)`
   margin-left: ${p => p.theme.space.md};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
 `;
 
 export const IconContainer = styled((props: {children: React.ReactNode}) => {

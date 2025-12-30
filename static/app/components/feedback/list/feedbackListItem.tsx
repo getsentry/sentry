@@ -137,25 +137,25 @@ export default function FeedbackListItem({
 
             {hasComments && (
               <Tooltip title={t('Has Activity')} containerDisplayMode="flex">
-                <IconChat color="gray500" size="sm" />
+                <IconChat color="subText" size="xs" />
               </Tooltip>
             )}
 
             {hasLinkedError && (
               <Tooltip title={t('Linked Error')} containerDisplayMode="flex">
-                <IconFatal color="red400" size="xs" />
+                <IconFatal color="dangerText" size="xs" />
               </Tooltip>
             )}
 
             {hasReplayId && (
               <Tooltip title={t('Linked Replay')} containerDisplayMode="flex">
-                <IconPlay size="xs" />
+                <IconPlay size="xs" color="subText" />
               </Tooltip>
             )}
 
             {hasAttachments && (
               <Tooltip title={t('Has Screenshot')} containerDisplayMode="flex">
-                <IconImage size="xs" />
+                <IconImage size="xs" color="subText" />
               </Tooltip>
             )}
 
@@ -179,15 +179,15 @@ const LinkedFeedbackCard = styled(Link)`
   border: 1px solid transparent;
   border-radius: ${space(0.75)};
 
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
   &[data-selected='true'] {
-    background: ${p => p.theme.purple100};
-    border: 1px solid ${p => p.theme.purple200};
+    background: ${p => p.theme.colors.blue100};
+    border: 1px solid ${p => p.theme.colors.blue200};
     border-radius: ${space(0.75)};
-    color: ${p => p.theme.purple300};
+    color: ${p => p.theme.colors.blue400};
   }
 
   display: grid;
@@ -235,7 +235,7 @@ const DotRow = styled(Row)`
 const UnreadIndicator = styled('div')`
   width: 8px;
   height: 8px;
-  background-color: ${p => p.theme.purple400};
+  background-color: ${p => p.theme.colors.blue500};
   border-radius: 50%;
 `;
 

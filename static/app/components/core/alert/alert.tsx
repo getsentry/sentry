@@ -1,5 +1,5 @@
 import {Fragment, useRef, useState} from 'react';
-import {css, useTheme, type Theme} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 import classNames from 'classnames';
@@ -88,7 +88,7 @@ export function Alert({
         )}
         <Message>{children}</Message>
         {!!trailingItems && (
-          <TrailingItems showIcon={!!showIcon} onClick={e => e.stopPropagation()}>
+          <TrailingItems onClick={e => e.stopPropagation()}>
             {trailingItems}
           </TrailingItems>
         )}
@@ -127,7 +127,7 @@ function getAlertColors(theme: Theme, type: NonNullable<AlertProps['type']>) {
   switch (type) {
     case 'muted':
       return {
-        background: theme.gray200,
+        background: theme.colors.gray200,
         backgroundLight: theme.backgroundSecondary,
         border: theme.border,
         borderHover: theme.border,
@@ -135,35 +135,35 @@ function getAlertColors(theme: Theme, type: NonNullable<AlertProps['type']>) {
       };
     case 'info':
       return {
-        background: theme.blue300,
-        backgroundLight: theme.blue100,
-        border: theme.blue200,
-        borderHover: theme.blue300,
-        color: theme.blue400,
+        background: theme.colors.blue400,
+        backgroundLight: theme.colors.blue100,
+        border: theme.colors.blue200,
+        borderHover: theme.colors.blue400,
+        color: theme.colors.blue500,
       };
     case 'warning':
       return {
-        background: theme.yellow300,
-        backgroundLight: theme.yellow100,
-        border: theme.yellow200,
-        borderHover: theme.yellow300,
-        color: theme.yellow400,
+        background: theme.colors.yellow400,
+        backgroundLight: theme.colors.yellow100,
+        border: theme.colors.yellow200,
+        borderHover: theme.colors.yellow400,
+        color: theme.colors.yellow500,
       };
     case 'success':
       return {
-        background: theme.green300,
-        backgroundLight: theme.green100,
-        border: theme.green200,
-        borderHover: theme.green300,
-        color: theme.green400,
+        background: theme.colors.green400,
+        backgroundLight: theme.colors.green100,
+        border: theme.colors.green200,
+        borderHover: theme.colors.green400,
+        color: theme.colors.green500,
       };
     case 'error':
       return {
-        background: theme.red300,
-        backgroundLight: theme.red100,
-        border: theme.red200,
-        borderHover: theme.red300,
-        color: theme.red400,
+        background: theme.colors.red400,
+        backgroundLight: theme.colors.red100,
+        border: theme.colors.red200,
+        borderHover: theme.colors.red400,
+        color: theme.colors.red500,
       };
     default:
       unreachable(type);
@@ -187,8 +187,8 @@ const AlertPanel = styled('div')<AlertProps & {hovered: boolean}>`
   grid-template-columns: ${p => getAlertGridLayout(p)};
   gap: ${space(1)};
   color: ${p => getAlertColors(p.theme, p.type).color};
-  font-size: ${p => p.theme.fontSize.md};
-  border-radius: ${p => p.theme.borderRadius};
+  font-size: ${p => p.theme.font.size.md};
+  border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => getAlertColors(p.theme, p.type).border};
   padding: ${space(1.5)} ${space(2)};
   background-image: ${p =>
@@ -241,68 +241,15 @@ const AlertContainer = withChonk(
   ChonkAlert.chonkAlertPropMapping
 );
 
-const IconWrapper = withChonk(
-  styled('div')<{type: AlertProps['type']}>`
-    display: flex;
-    align-items: center;
-    height: calc(${p => p.theme.fontSize.md} * ${p => p.theme.text.lineHeightBody});
-  `,
-  ChonkAlert.IconWrapper
-);
+const IconWrapper = ChonkAlert.IconWrapper;
 
-const Message = withChonk(
-  styled('span')`
-    position: relative;
-    line-height: ${p => p.theme.text.lineHeightBody};
-  `,
-  ChonkAlert.Message
-);
+const Message = ChonkAlert.Message;
 
-const TrailingItems = withChonk(
-  styled('div')<{showIcon: boolean}>`
-    height: calc(${p => p.theme.fontSize.md} * ${p => p.theme.text.lineHeightBody});
-    display: grid;
-    grid-auto-flow: column;
-    grid-template-rows: 100%;
-    align-items: center;
-    gap: ${space(1)};
+const TrailingItems = ChonkAlert.TrailingItems;
 
-    @media (max-width: ${p => p.theme.breakpoints.sm}) {
-      /* In mobile, TrailingItems should wrap to a second row and be vertically aligned
-    with Message. When there is a leading icon, Message is in the second grid column.
-    Otherwise it's in the first grid column. */
-      grid-row: 2;
-      grid-column: ${p => (p.showIcon ? 2 : 1)} / -1;
-      justify-items: start;
-      margin: ${space(0.5)} 0;
-    }
-  `,
-  ChonkAlert.TrailingItems
-);
+const ExpandIconWrap = ChonkAlert.ExpandIconWrap;
 
-const ExpandIconWrap = withChonk(
-  styled('div')`
-    display: flex;
-    align-items: center;
-    margin-left: ${space(0.5)};
-  `,
-  ChonkAlert.ExpandIconWrap
-);
-
-const ExpandContainer = withChonk(
-  styled('div')<{showIcon: boolean; showTrailingItems: boolean}>`
-    grid-row: 2;
-    /* ExpandContainer should be vertically aligned with Message. When there is a leading icon,
-  Message is in the second grid column. Otherwise it's in the first column. */
-    grid-column: ${p => (p.showIcon ? 2 : 1)} / -1;
-    cursor: auto;
-
-    @media (max-width: ${p => p.theme.breakpoints.sm}) {
-      grid-row: ${p => (p.showTrailingItems ? 3 : 2)};
-    }
-  `,
-  ChonkAlert.ExpandContainer
-);
+const ExpandContainer = ChonkAlert.ExpandContainer;
 
 function AlertIcon({type}: {type: AlertProps['type']}): React.ReactNode {
   switch (type) {
@@ -334,8 +281,7 @@ const Container = styled('div')`
 Alert.Container = Container;
 
 function AlertButton(props: DistributedOmit<ButtonProps, 'size'>) {
-  const theme = useTheme();
-  return <Button {...props} size={theme.isChonk ? 'zero' : 'sm'} />;
+  return <Button {...props} size="zero" />;
 }
 
 Alert.Button = AlertButton;

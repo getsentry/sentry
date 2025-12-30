@@ -35,15 +35,6 @@ from tests.sentry.tasks.test_assemble import BaseAssembleTest
 
 @thread_leak_allowlist(reason="preprod tasks", issue=97039)
 class AssemblePreprodArtifactTest(BaseAssembleTest):
-    def tearDown(self) -> None:
-        """Clean up assembly status and force garbage collection to close unclosed files"""
-        import gc
-
-        # Force garbage collection to clean up any unclosed file handles
-        gc.collect()
-
-        super().tearDown()
-
     def test_assemble_preprod_artifact_success(self) -> None:
         """Test that assemble_preprod_artifact succeeds with build_configuration"""
         content = b"test preprod artifact content"
@@ -416,7 +407,7 @@ class CreatePreprodArtifactTest(TestCase):
 class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):
     def setUp(self) -> None:
         super().setUp()
-        self.preprod_artifact = PreprodArtifact.objects.create(
+        self.preprod_artifact = self.create_preprod_artifact(
             project=self.project, state=PreprodArtifact.ArtifactState.UPLOADED
         )
 
@@ -493,7 +484,7 @@ class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):
 class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
     def setUp(self) -> None:
         super().setUp()
-        self.preprod_artifact = PreprodArtifact.objects.create(
+        self.preprod_artifact = self.create_preprod_artifact(
             project=self.project, state=PreprodArtifact.ArtifactState.UPLOADED
         )
 
@@ -522,7 +513,7 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
 
     def test_assemble_preprod_artifact_size_analysis_success(self) -> None:
         status, details = self._run_task_and_verify_status(
-            b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": null}'
+            b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": null, "app_components": [{"component_type": 0, "name": "Main App", "app_id": "com.example.app", "path": "/", "download_size": 1000, "install_size": 2000}]}'
         )
 
         assert status == ChunkFileState.OK
@@ -547,14 +538,14 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
 
     def test_assemble_preprod_artifact_size_analysis_update_existing(self) -> None:
         # Create an existing size metrics record
-        existing_size_metrics = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=self.preprod_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        existing_size_metrics = self.create_preprod_artifact_size_metrics(
+            self.preprod_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
         )
 
         status, details = self._run_task_and_verify_status(
-            b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": null}'
+            b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": null, "app_components": [{"component_type": 0, "name": "Main App", "app_id": "com.example.app", "path": "/", "download_size": 1000, "install_size": 2000}]}'
         )
 
         assert status == ChunkFileState.OK
@@ -567,7 +558,8 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
 
         # Verify existing PreprodArtifactSizeMetrics record was updated (not created new)
         size_metrics = PreprodArtifactSizeMetrics.objects.filter(
-            preprod_artifact=self.preprod_artifact
+            preprod_artifact=self.preprod_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         )
         assert len(size_metrics) == 1  # Should still be only 1 record
         assert size_metrics[0].id == existing_size_metrics.id  # Should be the same record
@@ -607,35 +599,264 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
         )
         assert len(size_metrics) == 0
 
+    def test_assemble_preprod_artifact_size_analysis_invalid_json_marks_pending_as_failed(
+        self,
+    ) -> None:
+        """Test that invalid JSON marks existing PENDING metrics as FAILED"""
+        # Create an existing size metrics record in PENDING state
+        existing_size_metrics = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=self.preprod_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+        )
+
+        # Invalid JSON should cause parsing to fail before any metrics are processed
+        # The task will return ERROR since the callback raises an exception
+        status, details = self._run_task_and_verify_status(b"invalid json")
+
+        assert status == ChunkFileState.ERROR
+        assert details is not None
+
+        # Verify the existing PENDING metric was updated to FAILED
+        size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact=self.preprod_artifact
+        )
+        assert len(size_metrics) == 1
+        assert size_metrics[0].id == existing_size_metrics.id
+        assert size_metrics[0].state == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED
+        assert size_metrics[0].error_code == PreprodArtifactSizeMetrics.ErrorCode.PROCESSING_ERROR
+
+    def test_assemble_preprod_artifact_size_analysis_empty_app_components_uses_top_level_sizes(
+        self,
+    ) -> None:
+        """Test that empty app_components falls back to top-level sizes for backwards compatibility"""
+        # Create an existing size metrics record in PENDING state
+        existing_size_metrics = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=self.preprod_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+        )
+
+        # Empty app_components - should fall back to top-level download_size/install_size
+        status, details = self._run_task_and_verify_status(
+            b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": "1.0", "app_components": []}'
+        )
+
+        assert status == ChunkFileState.OK
+        assert details is None
+
+        # Verify the existing PENDING metric was updated to COMPLETED with top-level sizes
+        size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact=self.preprod_artifact
+        )
+        assert len(size_metrics) == 1
+        assert size_metrics[0].id == existing_size_metrics.id
+        assert size_metrics[0].state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+        assert size_metrics[0].max_install_size == 2000
+        assert size_metrics[0].max_download_size == 1000
+
+    def test_assemble_preprod_artifact_size_analysis_null_app_components_uses_top_level_sizes(
+        self,
+    ) -> None:
+        """Test that null app_components falls back to top-level sizes for backwards compatibility"""
+        status, details = self._run_task_and_verify_status(
+            b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": "1.0", "app_components": null}'
+        )
+
+        assert status == ChunkFileState.OK
+        assert details is None
+
+        # Verify a COMPLETED metric was created with top-level sizes
+        size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact=self.preprod_artifact
+        )
+        assert len(size_metrics) == 1
+        assert size_metrics[0].state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+        assert size_metrics[0].max_install_size == 2000
+        assert size_metrics[0].max_download_size == 1000
+
+    def test_assemble_preprod_artifact_size_analysis_multiple_components(self) -> None:
+        status, details = self._run_task_and_verify_status(
+            b'{"analysis_duration": 2.5, "download_size": 5000, "install_size": 10000, "treemap": null, "analysis_version": "1.0", "app_components": [{"component_type": 0, "name": "Main App", "app_id": "com.example.app", "path": "/", "download_size": 3000, "install_size": 6000}, {"component_type": 1, "name": "Watch App", "app_id": "com.example.app.watchkitapp", "path": "/Watch", "download_size": 2000, "install_size": 4000}]}'
+        )
+
+        assert status == ChunkFileState.OK
+        assert details is None
+
+        size_files = File.objects.filter(type="preprod.file")
+        assert len(size_files) == 1
+
+        all_size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact=self.preprod_artifact
+        ).order_by("metrics_artifact_type")
+        assert len(all_size_metrics) == 2
+
+        main_metrics = all_size_metrics[0]
+        assert (
+            main_metrics.metrics_artifact_type
+            == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+        )
+        assert main_metrics.identifier is None
+        assert main_metrics.analysis_file_id == size_files[0].id
+        assert main_metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+        assert main_metrics.max_download_size == 3000
+        assert main_metrics.max_install_size == 6000
+
+        watch_metrics = all_size_metrics[1]
+        assert (
+            watch_metrics.metrics_artifact_type
+            == PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT
+        )
+        assert watch_metrics.identifier == "com.example.app.watchkitapp"
+        assert watch_metrics.analysis_file_id == size_files[0].id
+        assert watch_metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+        assert watch_metrics.max_download_size == 2000
+        assert watch_metrics.max_install_size == 4000
+
+    def test_assemble_preprod_artifact_size_analysis_removes_stale_metrics(self) -> None:
+        status, details = self._run_task_and_verify_status(
+            b'{"analysis_duration": 2.5, "download_size": 5000, "install_size": 10000, "treemap": null, "analysis_version": "1.0", "app_components": [{"component_type": 0, "name": "Main App", "app_id": "com.example.app", "path": "/", "download_size": 3000, "install_size": 6000}, {"component_type": 1, "name": "Watch App", "app_id": "com.example.app.watchkitapp", "path": "/Watch", "download_size": 2000, "install_size": 4000}]}'
+        )
+        assert status == ChunkFileState.OK
+
+        all_size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact=self.preprod_artifact
+        )
+        assert len(all_size_metrics) == 2
+
+        first_analysis_file = File.objects.filter(type="preprod.file").first()
+        assert first_analysis_file is not None
+
+        status, details = self._run_task_and_verify_status(
+            b'{"analysis_duration": 1.5, "download_size": 3500, "install_size": 7000, "treemap": null, "analysis_version": "1.1", "app_components": [{"component_type": 0, "name": "Main App", "app_id": "com.example.app", "path": "/", "download_size": 3500, "install_size": 7000}]}'
+        )
+        assert status == ChunkFileState.OK
+
+        remaining_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact=self.preprod_artifact
+        )
+        assert len(remaining_metrics) == 1
+
+        main_metrics = remaining_metrics[0]
+        assert (
+            main_metrics.metrics_artifact_type
+            == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+        )
+        assert main_metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+        assert main_metrics.max_download_size == 3500
+        assert main_metrics.max_install_size == 7000
+
+        second_analysis_file = (
+            File.objects.filter(type="preprod.file").exclude(id=first_analysis_file.id).first()
+        )
+        assert second_analysis_file is not None
+        assert main_metrics.analysis_file_id == second_analysis_file.id
+
+    def test_assemble_preprod_artifact_size_analysis_writes_to_eap_when_flag_enabled(self) -> None:
+        """Test that size metrics are written to EAP when feature flag is enabled"""
+        with self.feature("organizations:preprod-size-metrics-eap-write"):
+            with patch("sentry.preprod.tasks.produce_preprod_size_metric_to_eap") as mock_eap_write:
+                status, details = self._run_task_and_verify_status(
+                    b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": null, "app_components": [{"component_type": 0, "name": "Main App", "app_id": "com.example.app", "path": "/", "download_size": 1000, "install_size": 2000}]}'
+                )
+
+                assert status == ChunkFileState.OK
+                assert details is None
+
+                # Verify produce_preprod_size_metric_to_eap was called exactly once
+                # We have other integration tests that verify the EAP write itself works
+                assert mock_eap_write.call_count == 1
+
+                call_args = mock_eap_write.call_args
+                assert call_args is not None
+                size_metric = call_args.kwargs["size_metric"]
+                assert size_metric.preprod_artifact_id == self.preprod_artifact.id
+                assert call_args.kwargs["organization_id"] == self.organization.id
+                assert call_args.kwargs["project_id"] == self.project.id
+
+    def test_assemble_preprod_artifact_size_analysis_skips_eap_when_flag_disabled(self) -> None:
+        """Test that size metrics are NOT written to EAP when feature flag is disabled"""
+        with patch("sentry.preprod.tasks.produce_preprod_size_metric_to_eap") as mock_eap_write:
+            status, details = self._run_task_and_verify_status(
+                b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": null, "app_components": [{"component_type": 0, "name": "Main App", "app_id": "com.example.app", "path": "/", "download_size": 1000, "install_size": 2000}]}'
+            )
+
+            assert status == ChunkFileState.OK
+            assert details is None
+
+            # Verify produce_preprod_size_metric_to_eap was NOT called
+            mock_eap_write.assert_not_called()
+
+    def test_assemble_preprod_artifact_size_analysis_eap_write_failure_does_not_fail_task(
+        self,
+    ) -> None:
+        """Test that EAP write failures don't cause the main task to fail"""
+        with self.feature("organizations:preprod-size-metrics-eap-write"):
+            with patch(
+                "sentry.preprod.tasks.produce_preprod_size_metric_to_eap",
+                side_effect=Exception("EAP write failed"),
+            ):
+                status, details = self._run_task_and_verify_status(
+                    b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": null, "app_components": [{"component_type": 0, "name": "Main App", "app_id": "com.example.app", "path": "/", "download_size": 1000, "install_size": 2000}]}'
+                )
+
+                assert status == ChunkFileState.OK
+                assert details is None
+
+                size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+                    preprod_artifact=self.preprod_artifact
+                )
+                assert len(size_metrics) == 1
+                assert (
+                    size_metrics[0].state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+                )
+
+    def test_assemble_preprod_artifact_size_analysis_writes_multiple_metrics_to_eap(self) -> None:
+        """Test that all size metrics (main + components) are written to EAP when flag is enabled"""
+        with self.feature("organizations:preprod-size-metrics-eap-write"):
+            with patch("sentry.preprod.tasks.produce_preprod_size_metric_to_eap") as mock_eap_write:
+                status, details = self._run_task_and_verify_status(
+                    b'{"analysis_duration": 2.5, "download_size": 5000, "install_size": 10000, "treemap": null, "analysis_version": "1.0", "app_components": [{"component_type": 0, "name": "Main App", "app_id": "com.example.app", "path": "/", "download_size": 3000, "install_size": 6000}, {"component_type": 1, "name": "Watch App", "app_id": "com.example.app.watchkitapp", "path": "/Watch", "download_size": 2000, "install_size": 4000}]}'
+                )
+
+                assert status == ChunkFileState.OK
+                assert details is None
+
+                assert mock_eap_write.call_count == 2
+
+                for call in mock_eap_write.call_args_list:
+                    assert call.kwargs["organization_id"] == self.organization.id
+                    assert call.kwargs["project_id"] == self.project.id
+
 
 class DetectExpiredPreprodArtifactsTest(TestCase):
     def test_detect_expired_preprod_artifacts_no_expired(self):
         """Test that no artifacts are marked as expired when none are expired"""
-        recent_artifact = PreprodArtifact.objects.create(
+        recent_artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.UPLOADED,
         )
 
-        recent_size_metric = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=recent_artifact,
+        recent_size_metric = self.create_preprod_artifact_size_metrics(
+            recent_artifact,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         )
 
-        another_artifact = PreprodArtifact.objects.create(
+        another_artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
         )
-        another_size_metric = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=another_artifact,
+        another_size_metric = self.create_preprod_artifact_size_metrics(
+            another_artifact,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         )
 
-        recent_size_comparison = PreprodArtifactSizeComparison.objects.create(
+        recent_size_comparison = self.create_preprod_artifact_size_comparison(
             head_size_analysis=recent_size_metric,
             base_size_analysis=another_size_metric,
-            organization_id=self.organization.id,
+            organization=self.organization,
             state=PreprodArtifactSizeComparison.State.PROCESSING,
         )
 
@@ -655,7 +876,7 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
         current_time = timezone.now()
         old_time = current_time - timedelta(minutes=35)  # 35 minutes ago (expired)
 
-        expired_uploading_artifact = PreprodArtifact.objects.create(
+        expired_uploading_artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.UPLOADING,
         )
@@ -663,7 +884,7 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
             date_updated=old_time
         )
 
-        expired_uploaded_artifact = PreprodArtifact.objects.create(
+        expired_uploaded_artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.UPLOADED,
         )
@@ -671,29 +892,29 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
             date_updated=old_time
         )
 
-        expired_size_metric = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=expired_uploaded_artifact,
+        expired_size_metric = self.create_preprod_artifact_size_metrics(
+            expired_uploaded_artifact,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         )
         PreprodArtifactSizeMetrics.objects.filter(id=expired_size_metric.id).update(
             date_updated=old_time
         )
 
-        another_artifact = PreprodArtifact.objects.create(
+        another_artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
         )
-        another_size_metric = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=another_artifact,
+        another_size_metric = self.create_preprod_artifact_size_metrics(
+            another_artifact,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         )
 
-        expired_size_comparison = PreprodArtifactSizeComparison.objects.create(
+        expired_size_comparison = self.create_preprod_artifact_size_comparison(
             head_size_analysis=expired_size_metric,
             base_size_analysis=another_size_metric,
-            organization_id=self.organization.id,
+            organization=self.organization,
             state=PreprodArtifactSizeComparison.State.PROCESSING,
         )
         PreprodArtifactSizeComparison.objects.filter(id=expired_size_comparison.id).update(
@@ -746,13 +967,13 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
         current_time = timezone.now()
         old_time = current_time - timedelta(minutes=35)
 
-        expired_artifact_1 = PreprodArtifact.objects.create(
+        expired_artifact_1 = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.UPLOADING,
         )
         PreprodArtifact.objects.filter(id=expired_artifact_1.id).update(date_updated=old_time)
 
-        expired_artifact_2 = PreprodArtifact.objects.create(
+        expired_artifact_2 = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.UPLOADED,
         )
@@ -782,43 +1003,43 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
         current_time = timezone.now()
         old_time = current_time - timedelta(minutes=35)  # 35 minutes ago (expired)
 
-        uploading_artifact = PreprodArtifact.objects.create(
+        uploading_artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.UPLOADING,  # Should expire
         )
         PreprodArtifact.objects.filter(id=uploading_artifact.id).update(date_updated=old_time)
 
-        uploaded_artifact = PreprodArtifact.objects.create(
+        uploaded_artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.UPLOADED,  # Should expire
         )
         PreprodArtifact.objects.filter(id=uploaded_artifact.id).update(date_updated=old_time)
 
-        processed_artifact = PreprodArtifact.objects.create(
+        processed_artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,  # Should NOT expire
         )
         PreprodArtifact.objects.filter(id=processed_artifact.id).update(date_updated=old_time)
 
-        failed_artifact = PreprodArtifact.objects.create(
+        failed_artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.FAILED,  # Should NOT expire
         )
         PreprodArtifact.objects.filter(id=failed_artifact.id).update(date_updated=old_time)
 
-        processing_size_metric = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=uploaded_artifact,
+        processing_size_metric = self.create_preprod_artifact_size_metrics(
+            uploaded_artifact,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING,  # Should expire
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         )
         PreprodArtifactSizeMetrics.objects.filter(id=processing_size_metric.id).update(
             date_updated=old_time
         )
 
-        completed_size_metric = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=processed_artifact,
+        completed_size_metric = self.create_preprod_artifact_size_metrics(
+            processed_artifact,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,  # Should NOT expire
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         )
         PreprodArtifactSizeMetrics.objects.filter(id=completed_size_metric.id).update(
             date_updated=old_time
@@ -850,7 +1071,7 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
         just_under_30_min_ago = current_time - timedelta(minutes=29)  # More buffer
         just_over_30_min_ago = current_time - timedelta(minutes=31)  # More buffer
 
-        exactly_30_artifact = PreprodArtifact.objects.create(
+        exactly_30_artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.UPLOADING,  # Test UPLOADING state
         )
@@ -858,7 +1079,7 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
             date_updated=exactly_30_min_ago
         )
 
-        just_under_30_artifact = PreprodArtifact.objects.create(
+        just_under_30_artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.UPLOADED,
         )
@@ -866,7 +1087,7 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
             date_updated=just_under_30_min_ago
         )
 
-        just_over_30_artifact = PreprodArtifact.objects.create(
+        just_over_30_artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.UPLOADING,  # Test UPLOADING state
         )

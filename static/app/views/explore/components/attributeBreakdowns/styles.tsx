@@ -1,18 +1,26 @@
-import {useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {BarSeriesOption} from 'echarts';
 
 import {Button} from '@sentry/scraps/button/button';
+import {ButtonBar} from '@sentry/scraps/button/buttonBar';
+import {Grid} from '@sentry/scraps/layout';
 import {Flex} from '@sentry/scraps/layout/flex';
 
-import BaseChart from 'sentry/components/charts/baseChart';
+import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
 import {Text} from 'sentry/components/core/text';
-import Placeholder from 'sentry/components/placeholder';
+import BaseSearchBar from 'sentry/components/searchBar';
 import {IconSearch, IconTimer, IconWarning} from 'sentry/icons';
+import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconMegaphone} from 'sentry/icons/iconMegaphone';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+
+import {CHART_AXIS_LABEL_FONT_SIZE, CHARTS_COLUMN_COUNT} from './constants';
+import {formatChartXAxisLabel, percentageFormatter} from './utils';
 
 function FeedbackButton() {
   const openForm = useFeedbackForm();
@@ -40,88 +48,6 @@ function FeedbackButton() {
     >
       {t('Feedback')}
     </StyledFeedbackButton>
-  );
-}
-
-function LoadingChart() {
-  const theme = useTheme();
-  const seriesData = useMemo(() => {
-    // Generate a random length between 10 and 40
-    const length = Math.floor(Math.random() * 31) + 10;
-
-    // Generate random values between 10 and 100
-    return Array.from({length}, () => Math.floor(Math.random() * 91) + 10);
-  }, []);
-
-  return (
-    <LoadingChartWrapper>
-      <ChartHeaderWrapper justify="between" align="center" gap="lg">
-        <ChartTitle>
-          <StyledPlaceholder _height={20} _width={80} />
-        </ChartTitle>
-        <Flex gap="sm">
-          <StyledPlaceholder _height={20} _width={40} />
-        </Flex>
-      </ChartHeaderWrapper>
-      <BaseChart
-        autoHeightResize
-        isGroupedByDate={false}
-        tooltip={{
-          show: false,
-        }}
-        grid={{
-          left: 2,
-          right: 8,
-          bottom: 30,
-          containLabel: false,
-        }}
-        xAxis={{
-          show: false,
-        }}
-        yAxis={{
-          show: false,
-        }}
-        series={[
-          {
-            type: 'bar',
-            data: seriesData,
-            itemStyle: {
-              color: theme.backgroundTertiary,
-            },
-            barMaxWidth: 20,
-            animation: false,
-          },
-        ]}
-      />
-    </LoadingChartWrapper>
-  );
-}
-
-function LoadingCharts() {
-  const [showMessage, setShowMessage] = useState(false);
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      setShowMessage(true);
-    }, 10 * 1000); // 10 seconds
-    return () => clearTimeout(timeout);
-  }, []);
-
-  return (
-    <Flex direction="column" gap="2xl">
-      {showMessage && (
-        <Text size="md" variant="muted">
-          {t(
-            'This is taking a bit longer. You can try narrowing the time range to get results faster.'
-          )}
-        </Text>
-      )}
-      <ChartsGrid>
-        {Array.from({length: 9}).map((_, index) => (
-          <LoadingChart key={index} />
-        ))}
-      </ChartsGrid>
-    </Flex>
   );
 }
 
@@ -215,13 +141,6 @@ function EmptySearchState() {
   );
 }
 
-const StyledPlaceholder = styled(Placeholder)<{_height: number; _width: number}>`
-  border-radius: ${p => p.theme.borderRadius};
-  height: ${p => p._height}px;
-  width: ${p => p._width}px;
-  background-color: ${p => p.theme.backgroundTertiary};
-`;
-
 const ChartWrapper = styled('div')`
   display: flex;
   flex-direction: column;
@@ -232,31 +151,8 @@ const ChartWrapper = styled('div')`
   min-width: 0;
 `;
 
-const LoadingChartWrapper = styled(ChartWrapper)`
-  animation: blink-opacity 4s linear infinite;
-
-  @keyframes blink-opacity {
-    0% {
-      opacity: 1;
-    }
-    25% {
-      opacity: 0.5;
-    }
-    50% {
-      opacity: 1;
-    }
-    75% {
-      opacity: 0.5;
-    }
-    100% {
-      opacity: 1;
-    }
-  }
-`;
-
-const ChartsGrid = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+const ChartsGrid = styled(Grid)`
+  grid-template-columns: repeat(${CHARTS_COLUMN_COUNT}, 1fr);
   gap: ${p => p.theme.space.md};
 `;
 
@@ -268,17 +164,156 @@ const ChartHeaderWrapper = styled(Flex)`
 const ChartTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   font-weight: 600;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.colors.gray800};
   ${p => p.theme.overflowEllipsis};
+`;
+
+const PopulationIndicator = styled(Flex)<{color?: string}>`
+  align-items: center;
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: 500;
+  color: ${p => p.color || p.theme.colors.gray500};
+
+  &::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: ${p => p.color || p.theme.colors.gray500};
+    margin-right: ${space(0.5)};
+  }
+`;
+
+const ControlsContainer = styled(Flex)`
+  gap: ${space(0.5)};
+  align-items: center;
+`;
+
+const StyledBaseSearchBar = styled(BaseSearchBar)`
+  flex: 1;
 `;
 
 const StyledFeedbackButton = styled(Button)`
   height: 31px !important;
 `;
 
+const PaginationContainer = styled(Flex)`
+  justify-content: end;
+`;
+
+type PaginationProps = {
+  isNextDisabled: boolean;
+  isPrevDisabled: boolean;
+  onNextClick: () => void;
+  onPrevClick: () => void;
+};
+
+function Pagination({
+  isPrevDisabled,
+  isNextDisabled,
+  onPrevClick,
+  onNextClick,
+}: PaginationProps) {
+  return (
+    <PaginationContainer>
+      <ButtonBar merged gap="0">
+        <Button
+          icon={<IconChevron direction="left" />}
+          aria-label={t('Previous')}
+          size="sm"
+          disabled={isPrevDisabled}
+          onClick={onPrevClick}
+        />
+        <Button
+          icon={<IconChevron direction="right" />}
+          aria-label={t('Next')}
+          size="sm"
+          disabled={isNextDisabled}
+          onClick={onNextClick}
+        />
+      </ButtonBar>
+    </PaginationContainer>
+  );
+}
+
+type ChartProps = {
+  chartRef: React.RefObject<ReactEchartsRef | null>;
+  chartWidth: number;
+  maxSeriesValue: number;
+  series: BarSeriesOption[];
+  tooltip: TooltipOption;
+  xAxisData: string[];
+};
+
+function Chart({
+  xAxisData,
+  maxSeriesValue,
+  series,
+  tooltip,
+  chartWidth,
+  chartRef,
+}: ChartProps) {
+  const theme = useTheme();
+
+  return (
+    <BaseChart
+      ref={chartRef}
+      autoHeightResize
+      isGroupedByDate={false}
+      tooltip={tooltip}
+      grid={{
+        left: 2,
+        right: 8,
+        bottom: 40,
+        containLabel: false,
+      }}
+      xAxis={{
+        show: true,
+        type: 'category',
+        data: xAxisData,
+        truncate: 14,
+        axisLabel:
+          xAxisData.length > 20
+            ? {
+                show: false,
+              }
+            : {
+                hideOverlap: false,
+                showMaxLabel: false,
+                showMinLabel: false,
+                color: theme.tokens.content.muted,
+                interval: 0,
+                fontSize: CHART_AXIS_LABEL_FONT_SIZE,
+                formatter: (value: string) =>
+                  formatChartXAxisLabel(value, xAxisData.length, chartWidth),
+              },
+      }}
+      yAxis={{
+        type: 'value',
+        interval: maxSeriesValue < 1 ? 1 : undefined,
+        axisLabel: {
+          fontSize: 12,
+          formatter: (value: number) => {
+            return percentageFormatter(value);
+          },
+        },
+      }}
+      series={series}
+    />
+  );
+}
+
 export const AttributeBreakdownsComponent = {
   FeedbackButton,
-  LoadingCharts,
   ErrorState,
   EmptySearchState,
+  ChartsGrid,
+  ChartWrapper,
+  Chart,
+  ChartHeaderWrapper,
+  ChartTitle,
+  PopulationIndicator,
+  ControlsContainer,
+  StyledBaseSearchBar,
+  Pagination,
 };

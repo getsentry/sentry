@@ -52,7 +52,6 @@ export type Project = {
   isMember: boolean;
   name: string;
   organization: Organization;
-
   plugins: Plugin[];
   processingIssues: number;
   relayCustomMetricCardinalityLimit: number | null;

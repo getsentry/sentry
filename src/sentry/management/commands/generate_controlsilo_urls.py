@@ -118,11 +118,9 @@ class Command(BaseCommand):
                 continue
 
             silo_limit = view_func.silo_limit
-            if SiloMode.CONTROL not in silo_limit.modes:
-                continue
-
-            simple_pattern = simplify_regex(info.pattern)
-            url_patterns.append(simple_pattern)
+            if len(silo_limit.modes) == 1 and SiloMode.CONTROL in silo_limit.modes:
+                simple_pattern = simplify_regex(info.pattern)
+                url_patterns.append(simple_pattern)
 
         contents = self.render(url_patterns, options["format"])
 

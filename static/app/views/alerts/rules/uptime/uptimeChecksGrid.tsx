@@ -157,7 +157,8 @@ function CheckInBodyCell({
       return <Cell>{httpStatusCode}</Cell>;
     }
     case 'checkStatus': {
-      const color = tickStyle(theme)[checkStatus].labelColor ?? theme.textColor;
+      const color =
+        tickStyle(theme)[checkStatus].labelColor ?? theme.tokens.content.primary;
       const checkStatusReasonLabel = checkStatusReason
         ? reasonToText[checkStatusReason](check)
         : null;

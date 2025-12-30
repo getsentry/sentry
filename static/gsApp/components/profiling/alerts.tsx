@@ -644,10 +644,10 @@ const SDKDeprecationContainer = styled('li')`
 const Dot = styled('span')`
   display: inline-block;
   margin-right: ${space(1)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   width: ${space(0.5)};
   height: ${space(0.5)};
-  background-color: ${p => p.theme.textColor};
+  background-color: ${p => p.theme.tokens.content.primary};
 `;
 
 const AlertBody = styled('div')`

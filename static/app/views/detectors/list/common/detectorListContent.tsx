@@ -7,7 +7,6 @@ import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import DetectorListTable from 'sentry/views/detectors/components/detectorListTable';
-import {useDetectorListSort} from 'sentry/views/detectors/list/common/useDetectorListSort';
 
 interface DetectorListContentProps {
   data: Detector[] | undefined;
@@ -28,7 +27,6 @@ export function DetectorListContent({
 }: DetectorListContentProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const sort = useDetectorListSort();
 
   const hits = getResponseHeader?.('X-Hits') || '';
   const hitsInt = hits ? parseInt(hits, 10) || 0 : 0;
@@ -61,7 +59,6 @@ export function DetectorListContent({
             isPending={isLoading}
             isError={isError}
             isSuccess={isSuccess}
-            sort={sort}
             queryCount={hitsInt > maxHitsInt ? `${maxHits}+` : hits}
             allResultsVisible={allResultsVisible()}
           />

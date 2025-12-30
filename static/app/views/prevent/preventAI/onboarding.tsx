@@ -251,7 +251,7 @@ const StepNumber = styled('div')`
   justify-content: center;
   width: 24px;
   height: 24px;
-  background-color: ${p => p.theme.purple300};
+  background-color: ${p => p.theme.colors.blue400};
   color: ${p => p.theme.white};
   border-radius: 50%;
   font-size: ${p => p.theme.fontSize.md};

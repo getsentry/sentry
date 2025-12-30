@@ -1,13 +1,12 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 
-import PlatformOrIntegration from './gettingStarted';
+import GettingStarted from './gettingStarted';
 
 type ProjectWithBadPlatform = Omit<Project, 'platform'> & {
   platform: string;
@@ -54,20 +53,18 @@ describe('ProjectInstallPlatform', () => {
   it('should render getting started docs for correct platform', async () => {
     const project = ProjectFixture({platform: 'javascript'});
 
-    const {routerProps} = initializeOrg({
-      router: {
-        params: {
-          projectId: project.slug,
-          platform: 'python',
-        },
-      },
-    });
-
     ProjectsStore.loadInitialData([project]);
 
     mockProjectApiResponses([project]);
 
-    render(<PlatformOrIntegration {...routerProps} />);
+    render(<GettingStarted />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/org-slug/projects/${project.slug}/getting-started/`,
+        },
+        route: '/organizations/:orgId/projects/:projectId/getting-started/',
+      },
+    });
 
     expect(
       await screen.findByRole('heading', {

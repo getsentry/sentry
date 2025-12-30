@@ -7,6 +7,8 @@ from sentry.db.models import BoundedIntegerField, FlexibleForeignKey, region_sil
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
+ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD = 2
+
 
 @region_silo_model
 class OrganizationContributors(DefaultFieldsModel):
@@ -21,7 +23,7 @@ class OrganizationContributors(DefaultFieldsModel):
 
     organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
 
-    integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="CASCADE")
+    integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="DO_NOTHING")
 
     external_identifier = models.CharField(max_length=255, db_index=True)
     alias = models.CharField(max_length=255, null=True, blank=True)

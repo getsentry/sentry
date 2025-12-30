@@ -5,8 +5,6 @@ import styled from '@emotion/styled';
 
 import type {InputStylesProps} from 'sentry/components/core/input';
 import {inputStyles} from 'sentry/components/core/input';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 
 export interface TextAreaProps
   extends Omit<
@@ -51,7 +49,7 @@ const StyledTextArea = styled(TextAreaControl, {
   shouldForwardProp: (p: string) => ['autosize', 'maxRows'].includes(p) || isPropValid(p),
 })`
   ${inputStyles};
-  line-height: ${p => p.theme.text.lineHeightBody};
+  line-height: ${p => p.theme.font.lineHeight.comfortable};
   /** Allow react-textarea-autosize to freely control height based on props. */
   ${p =>
     p.autosize &&
@@ -61,21 +59,18 @@ const StyledTextArea = styled(TextAreaControl, {
     `}
 `;
 
-export const TextArea = withChonk(
-  StyledTextArea,
-  chonkStyled(StyledTextArea)`
-    /* re-set height to let it be determined by the rows prop */
-    height: unset;
-    /* this calculation reduces padding to account for the line-height, which ensures text is still correctly centered. */
-    ${({theme, size = 'md'}) => `padding-top: calc(
+export const TextArea = styled(StyledTextArea)`
+  /* re-set height to let it be determined by the rows prop */
+  height: unset;
+  /* this calculation reduces padding to account for the line-height, which ensures text is still correctly centered. */
+  ${({theme, size = 'md'}) => `padding-top: calc(
       (${theme.form[size].height} -
-        (${theme.form[size].fontSize} * ${theme.text.lineHeightBody})
+        (${theme.form[size].fontSize} * ${theme.font.lineHeight.comfortable})
       ) / 2
     )`};
-    ${({theme, size = 'md'}) => `padding-bottom: calc(
+  ${({theme, size = 'md'}) => `padding-bottom: calc(
       (${theme.form[size].height} -
-        (${theme.form[size].fontSize} * ${theme.text.lineHeightBody})
+        (${theme.form[size].fontSize} * ${theme.font.lineHeight.comfortable})
       ) / 2
     )`};
-`
-);
+`;

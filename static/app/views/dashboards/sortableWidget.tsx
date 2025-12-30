@@ -10,6 +10,7 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
+import {useWidgetSlideout} from 'sentry/views/dashboards/utils/useWidgetSlideout';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 
@@ -52,7 +53,9 @@ type Props = {
 
 function SortableWidget(props: Props) {
   const widgetRef = useRef<HTMLDivElement>(null);
-  const [tableWidths, setTableWidths] = useState<number[]>();
+  const [tableWidths, setTableWidths] = useState<number[]>(
+    props.widget.tableWidths ?? []
+  );
   const [queries, setQueries] = useState<WidgetQuery[]>();
   const {
     widget,
@@ -88,6 +91,8 @@ function SortableWidget(props: Props) {
       dashboardPermissions,
       dashboardCreator
     ) && !isPrebuiltDashboard;
+
+  const {hasSlideout, onWidgetClick} = useWidgetSlideout(widget);
 
   const disableTransactionWidget =
     organization.features.includes('discover-saved-queries-deprecation') &&
@@ -125,7 +130,7 @@ function SortableWidget(props: Props) {
     onEdit,
     onDuplicate,
     onSetTransactionsDataset,
-    showContextMenu: !isEmbedded,
+    showContextMenu: !isEmbedded || isPrebuiltDashboard,
     isPreview,
     index,
     dashboardFilters,
@@ -146,7 +151,7 @@ function SortableWidget(props: Props) {
   };
 
   return (
-    <GridWidgetWrapper ref={widgetRef}>
+    <GridWidgetWrapper ref={widgetRef} onClick={onWidgetClick} isClickable={hasSlideout}>
       <DashboardsMEPProvider>
         <LazyRender containerHeight={200} withoutContainer>
           <WidgetCard {...widgetProps} />
@@ -171,6 +176,7 @@ function SortableWidget(props: Props) {
 
 export default SortableWidget;
 
-const GridWidgetWrapper = styled('div')`
+const GridWidgetWrapper = styled('div')<{isClickable: boolean}>`
   height: 100%;
+  cursor: ${p => (p.isClickable ? 'pointer' : 'default')};
 `;

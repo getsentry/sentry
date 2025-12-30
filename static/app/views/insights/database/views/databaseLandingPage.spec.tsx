@@ -1,22 +1,26 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {DatabaseLandingPage} from 'sentry/views/insights/database/views/databaseLandingPage';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useReleaseStats');
 
 describe('DatabaseLandingPage', () => {
   const organization = OrganizationFixture({features: ['insight-modules']});
+
+  const baseRouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/insights/backend/database/`,
+      query: {statsPeriod: '10d'},
+    },
+    route: `/organizations/:orgId/insights/backend/database/`,
+  };
 
   let spanListRequestMock: jest.Mock;
   let spanChartsRequestMock: jest.Mock;
@@ -24,31 +28,6 @@ describe('DatabaseLandingPage', () => {
   ProjectsStore.loadInitialData([
     ProjectFixture({hasInsightsDb: true, firstTransactionEvent: true}),
   ]);
-
-  jest.mocked(usePageFilters).mockReturnValue(
-    PageFilterStateFixture({
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [],
-      },
-    })
-  );
-
-  jest.mocked(useLocation).mockReturnValue({
-    pathname: '',
-    search: '',
-    query: {statsPeriod: '10d'},
-    hash: '',
-    state: undefined,
-    action: 'PUSH',
-    key: '',
-  });
 
   jest.mocked(useReleaseStats).mockReturnValue({
     isLoading: false,
@@ -59,6 +38,12 @@ describe('DatabaseLandingPage', () => {
   });
 
   beforeEach(() => {
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState({
+      projects: [],
+      environments: [],
+      datetime: {period: '10d', start: null, end: null, utc: false},
+    });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
@@ -130,7 +115,10 @@ describe('DatabaseLandingPage', () => {
   it('fetches module data', async () => {
     jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
 
-    render(<DatabaseLandingPage />, {organization, deprecatedRouterMocks: true});
+    render(<DatabaseLandingPage />, {
+      organization,
+      initialRouterConfig: baseRouterConfig,
+    });
 
     expect(spanChartsRequestMock).toHaveBeenNthCalledWith(
       1,
@@ -153,7 +141,7 @@ describe('DatabaseLandingPage', () => {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: ['epm()'],
-          caseInsensitive: 0,
+          caseInsensitive: undefined,
         },
       })
     );
@@ -179,7 +167,7 @@ describe('DatabaseLandingPage', () => {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: ['avg(span.self_time)'],
-          caseInsensitive: 0,
+          caseInsensitive: undefined,
         },
       })
     );
@@ -218,7 +206,10 @@ describe('DatabaseLandingPage', () => {
   it('renders a list of queries', async () => {
     jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
 
-    render(<DatabaseLandingPage />, {organization, deprecatedRouterMocks: true});
+    render(<DatabaseLandingPage />, {
+      organization,
+      initialRouterConfig: baseRouterConfig,
+    });
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
@@ -229,23 +220,22 @@ describe('DatabaseLandingPage', () => {
   });
 
   it('filters by category and action', async () => {
-    jest.mocked(useLocation).mockReturnValue({
-      pathname: '',
-      search: '',
-      query: {
-        statsPeriod: '10d',
-        'span.action': 'SELECT',
-        'span.domain': 'organizations',
-      },
-      hash: '',
-      state: undefined,
-      action: 'PUSH',
-      key: '',
-    });
-
     jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
 
-    render(<DatabaseLandingPage />, {organization, deprecatedRouterMocks: true});
+    render(<DatabaseLandingPage />, {
+      organization,
+      initialRouterConfig: {
+        ...baseRouterConfig,
+        location: {
+          ...baseRouterConfig.location,
+          query: {
+            statsPeriod: '10d',
+            'span.action': 'SELECT',
+            'span.domain': 'organizations',
+          },
+        },
+      },
+    });
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
@@ -270,7 +260,7 @@ describe('DatabaseLandingPage', () => {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: ['epm()'],
-          caseInsensitive: 0,
+          caseInsensitive: undefined,
         },
       })
     );
@@ -296,7 +286,7 @@ describe('DatabaseLandingPage', () => {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: ['avg(span.self_time)'],
-          caseInsensitive: 0,
+          caseInsensitive: undefined,
         },
       })
     );
@@ -331,22 +321,21 @@ describe('DatabaseLandingPage', () => {
   });
 
   it('displays the correct domain label for SQL systems', async () => {
-    jest.mocked(useLocation).mockReturnValue({
-      pathname: '',
-      search: '',
-      query: {
-        statsPeriod: '10d',
-        'span.system': 'postgresql',
-      },
-      hash: '',
-      state: undefined,
-      action: 'PUSH',
-      key: '',
-    });
-
     jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
 
-    render(<DatabaseLandingPage />, {organization, deprecatedRouterMocks: true});
+    render(<DatabaseLandingPage />, {
+      organization,
+      initialRouterConfig: {
+        ...baseRouterConfig,
+        location: {
+          ...baseRouterConfig.location,
+          query: {
+            statsPeriod: '10d',
+            'span.system': 'postgresql',
+          },
+        },
+      },
+    });
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
@@ -355,22 +344,21 @@ describe('DatabaseLandingPage', () => {
   });
 
   it('displays the correct domain label for NoSQL systems', async () => {
-    jest.mocked(useLocation).mockReturnValue({
-      pathname: '',
-      search: '',
-      query: {
-        statsPeriod: '10d',
-        'span.system': 'mongodb',
-      },
-      hash: '',
-      state: undefined,
-      action: 'PUSH',
-      key: '',
-    });
-
     jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
 
-    render(<DatabaseLandingPage />, {organization, deprecatedRouterMocks: true});
+    render(<DatabaseLandingPage />, {
+      organization,
+      initialRouterConfig: {
+        ...baseRouterConfig,
+        location: {
+          ...baseRouterConfig.location,
+          query: {
+            statsPeriod: '10d',
+            'span.system': 'mongodb',
+          },
+        },
+      },
+    });
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 

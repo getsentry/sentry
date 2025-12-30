@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import {useTheme} from '@emotion/react';
 import {addIntegration, getClient} from '@sentry/react';
 
 import useAsyncSDKIntegrationStore from 'sentry/views/app/asyncSDKIntegrationProvider';
@@ -9,6 +10,7 @@ import useAsyncSDKIntegrationStore from 'sentry/views/app/asyncSDKIntegrationPro
  */
 export default function useFeedbackInit() {
   const {setState} = useAsyncSDKIntegrationStore();
+  const theme = useTheme();
 
   useEffect(() => {
     async function init() {
@@ -33,4 +35,29 @@ export default function useFeedbackInit() {
 
     init();
   }, [setState]);
+
+  useEffect(() => {
+    const styleElement = document.createElement('style');
+    styleElement.textContent = `
+      #sentry-feedback {
+        --foreground: ${theme.tokens.content.primary};
+        --background: ${theme.tokens.background.primary};
+        --accent-foreground: ${theme.colors.white};
+        --accent-background: ${theme.colors.chonk.blue400};
+        --success-color: ${theme.tokens.content.success};
+        --error-color: ${theme.tokens.content.danger};
+        --outline: 1px auto ${theme.tokens.border.accent};
+        --interactive-filter: brightness(${theme.type === 'dark' ? '110%' : '95%'});
+        --border: 1px solid ${theme.tokens.border.primary};
+        --button-border-radius: ${theme.form.md.borderRadius};
+        --button-primary-border-radius: ${theme.form.md.borderRadius};
+        --input-border-radius: ${theme.form.md.borderRadius};
+      }
+    `;
+    document.head.appendChild(styleElement);
+
+    return () => {
+      document.head.removeChild(styleElement);
+    };
+  }, [theme]);
 }

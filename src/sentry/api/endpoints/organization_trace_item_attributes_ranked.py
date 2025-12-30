@@ -5,21 +5,26 @@ from typing import Any, cast
 
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import TraceItemAttributeNamesRequest
 from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
     AttributeDistributionsRequest,
     StatsType,
     TraceItemStatsRequest,
 )
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
+from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, ExtrapolationMode
 
-from sentry import features
+from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.endpoints.organization_trace_item_attributes import adjust_start_end_window
+from sentry.api.utils import handle_query_errors
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.search.eap.resolver import SearchResolver
+from sentry.search.eap.spans.attributes import SPANS_STATS_EXCLUDED_ATTRIBUTES
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.eap.utils import can_expose_attribute, translate_internal_to_public_alias
@@ -28,9 +33,12 @@ from sentry.seer.endpoints.compare import compare_distributions
 from sentry.seer.workflows.compare import keyed_rrf_score
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
+from sentry.utils import snuba_rpc
 from sentry.utils.snuba_rpc import trace_item_stats_rpc
 
 logger = logging.getLogger(__name__)
+
+PARALLELIZATION_FACTOR = 2
 
 
 @region_silo_endpoint
@@ -121,75 +129,110 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
             return Response({"rankedAttributes": []})
 
         cohort_1, _, _ = resolver.resolve_query(query_1)
-        cohort_1_request = TraceItemStatsRequest(
-            filter=cohort_1,
-            meta=meta,
-            stats_types=[
-                StatsType(
-                    attribute_distributions=AttributeDistributionsRequest(
-                        max_buckets=75,
-                    )
-                )
-            ],
-        )
-
         cohort_2, _, _ = resolver.resolve_query(query_2)
-        cohort_2_request = TraceItemStatsRequest(
-            filter=cohort_2,
-            meta=meta,
-            stats_types=[
-                StatsType(
-                    attribute_distributions=AttributeDistributionsRequest(
-                        max_buckets=75,
-                    )
-                )
-            ],
+
+        # Fetch attribute names for parallelization
+        adjusted_start_date, adjusted_end_date = adjust_start_end_window(
+            snuba_params.start_date, snuba_params.end_date
         )
+        attrs_snuba_params = snuba_params.copy()
+        attrs_snuba_params.start = adjusted_start_date
+        attrs_snuba_params.end = adjusted_end_date
+        attrs_resolver = SearchResolver(
+            params=attrs_snuba_params, config=resolver_config, definitions=SPAN_DEFINITIONS
+        )
+        attrs_meta = attrs_resolver.resolve_meta(
+            referrer=Referrer.API_SPANS_FREQUENCY_STATS_RPC.value
+        )
+        attrs_meta.trace_item_type = TraceItemType.TRACE_ITEM_TYPE_SPAN
+
+        attr_type = AttributeKey.Type.TYPE_STRING
+        max_attributes = options.get("explore.trace-items.keys.max")
+
+        with handle_query_errors():
+            attrs_request = TraceItemAttributeNamesRequest(
+                meta=attrs_meta,
+                limit=max_attributes,
+                type=attr_type,
+            )
+            attrs_response = snuba_rpc.attribute_names_rpc(attrs_request)
+
+        # Chunk attributes for parallel processing
+        chunked_attributes: defaultdict[int, list[AttributeKey]] = defaultdict(list)
+        for i, attr_proto in enumerate(attrs_response.attributes):
+            if attr_proto.name in SPANS_STATS_EXCLUDED_ATTRIBUTES:
+                continue
+
+            chunked_attributes[i % PARALLELIZATION_FACTOR].append(
+                AttributeKey(name=attr_proto.name, type=AttributeKey.TYPE_STRING)
+            )
+
+        def run_stats_request_with_error_handling(filter, attributes):
+            with handle_query_errors():
+                request = TraceItemStatsRequest(
+                    filter=filter,
+                    meta=meta,
+                    stats_types=[
+                        StatsType(
+                            attribute_distributions=AttributeDistributionsRequest(
+                                max_buckets=75,
+                                attributes=attributes,
+                            )
+                        )
+                    ],
+                )
+                return trace_item_stats_rpc(request)
+
+        def run_table_query_with_error_handling(query_string):
+            with handle_query_errors():
+                return Spans.run_table_query(
+                    params=snuba_params,
+                    query_string=query_string,
+                    selected_columns=["count(span.duration)"],
+                    orderby=None,
+                    config=resolver_config,
+                    offset=0,
+                    limit=1,
+                    sampling_mode=snuba_params.sampling_mode,
+                    referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
+                )
 
         with ThreadPoolExecutor(
             thread_name_prefix=__name__,
-            max_workers=4,
+            max_workers=PARALLELIZATION_FACTOR * 2 + 2,  # 2 cohorts * threads + 2 totals queries
         ) as query_thread_pool:
-            cohort_1_future = query_thread_pool.submit(
-                trace_item_stats_rpc,
-                cohort_1_request,
-            )
-            totals_1_future = query_thread_pool.submit(
-                Spans.run_table_query,
-                params=snuba_params,
-                query_string=query_1,
-                selected_columns=["count(span.duration)"],
-                orderby=None,
-                config=resolver_config,
-                offset=0,
-                limit=1,
-                sampling_mode=snuba_params.sampling_mode,
-                referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
-            )
+            cohort_1_futures = [
+                query_thread_pool.submit(
+                    run_stats_request_with_error_handling, cohort_1, attributes
+                )
+                for attributes in chunked_attributes.values()
+            ]
+            cohort_2_futures = [
+                query_thread_pool.submit(
+                    run_stats_request_with_error_handling, cohort_2, attributes
+                )
+                for attributes in chunked_attributes.values()
+            ]
 
-            cohort_2_future = query_thread_pool.submit(
-                trace_item_stats_rpc,
-                cohort_2_request,
-            )
+            totals_1_future = query_thread_pool.submit(run_table_query_with_error_handling, query_1)
+            totals_2_future = query_thread_pool.submit(run_table_query_with_error_handling, query_2)
 
-            totals_2_future = query_thread_pool.submit(
-                Spans.run_table_query,
-                params=snuba_params,
-                query_string=query_2,
-                selected_columns=["count(span.duration)"],
-                orderby=None,
-                config=resolver_config,
-                offset=0,
-                limit=1,
-                sampling_mode=snuba_params.sampling_mode,
-                referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
-            )
+            # Merge cohort 1 results
+            cohort_1_data = []
+            for future in cohort_1_futures:
+                result = future.result()
+                if result.results:
+                    cohort_1_data.extend(result.results[0].attribute_distributions.attributes)
 
-        cohort_1_data = cohort_1_future.result()
-        cohort_2_data = cohort_2_future.result()
+            # Merge cohort 2 results
+            cohort_2_data = []
+            for future in cohort_2_futures:
+                result = future.result()
+                if result.results:
+                    cohort_2_data.extend(result.results[0].attribute_distributions.attributes)
 
-        totals_1_result = totals_1_future.result()
-        totals_2_result = totals_2_future.result()
+            totals_1_result = totals_1_future.result()
+            totals_2_result = totals_2_future.result()
 
         cohort_1_distribution = []
         cohort_1_distribution_map = defaultdict(list)
@@ -198,7 +241,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
         cohort_2_distribution_map = defaultdict(list)
         processed_cohort_2_buckets = set()
 
-        for attribute in cohort_2_data.results[0].attribute_distributions.attributes:
+        for attribute in cohort_2_data:
             if not can_expose_attribute(attribute.attribute_name, SupportedTraceItemType.SPANS):
                 continue
 
@@ -207,7 +250,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
                     {"label": bucket.label, "value": bucket.value}
                 )
 
-        for attribute in cohort_1_data.results[0].attribute_distributions.attributes:
+        for attribute in cohort_1_data:
             if not can_expose_attribute(attribute.attribute_name, SupportedTraceItemType.SPANS):
                 continue
             for bucket in attribute.buckets:
@@ -287,7 +330,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
         # Create RRR order mapping from compare_distributions results
         # scored_attrs_rrr returns a dict with 'results' key containing list of [attribute_name, score] pairs
         rrr_results = scored_attrs_rrr.get("results", [])
-        rrr_order_map = {attr: i for i, (attr, _) in enumerate(rrr_results)}
+        rrr_order_map = {attr_name: i for i, (attr_name, _) in enumerate(rrr_results)}
 
         ranked_distribution: dict[str, Any] = {
             "rankedAttributes": [],
@@ -300,7 +343,8 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
             "cohort2Total": total_baseline,
         }
 
-        for i, (attr, _) in enumerate(scored_attrs_rrf):
+        for i, scored_attr_tuple in enumerate(scored_attrs_rrf):
+            attr = scored_attr_tuple[0]
 
             public_alias, _, _ = translate_internal_to_public_alias(
                 attr, "string", SupportedTraceItemType.SPANS

@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {CompositeSelect} from 'sentry/components/core/compactSelect/composite';
 import {Flex} from 'sentry/components/core/layout';
 import {REPLAY_TIMESTAMP_OPTIONS} from 'sentry/components/replays/preferences/replayPreferences';
@@ -43,11 +44,11 @@ export default function ReplayPreferenceDropdown({
 
   return (
     <CompositeSelect
+      size="sm"
       disabled={isLoading}
       trigger={triggerProps => (
-        <Button
+        <SelectTrigger.IconButton
           {...triggerProps}
-          size="sm"
           title={t('Settings')}
           aria-label={t('Settings')}
           icon={<IconSettings />}

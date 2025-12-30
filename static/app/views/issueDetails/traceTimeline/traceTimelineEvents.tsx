@@ -226,13 +226,13 @@ const IconNode = styled('div')`
   color: ${p => p.theme.white};
   box-shadow: ${p => p.theme.dropShadowLight};
   user-select: none;
-  background-color: ${p => color(p.theme.red200).alpha(0.3).string()};
+  background-color: ${p => color(p.theme.colors.red200).alpha(0.3).string()};
   margin-left: -8px;
 `;
 
 const PerformanceIconNode = styled(IconNode)`
   background-color: unset;
-  border: 1px solid ${p => p.theme.red300};
+  border: 1px solid ${p => p.theme.colors.red400};
 `;
 
 const CurrentNodeContainer = styled('div')`
@@ -244,7 +244,7 @@ const CurrentNodeContainer = styled('div')`
 `;
 
 const CurrentNodeRing = styled('div')`
-  border: 1px solid ${p => p.theme.red300};
+  border: 1px solid ${p => p.theme.colors.red400};
   height: 24px;
   width: 24px;
   border-radius: 100%;
@@ -273,7 +273,7 @@ const CurrentNodeRing = styled('div')`
 `;
 
 const CurrentIconNode = styled(IconNode)`
-  background-color: ${p => p.theme.red300};
+  background-color: ${p => p.theme.colors.red400};
   width: 12px;
   height: 12px;
   margin-left: -10px;

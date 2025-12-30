@@ -1,6 +1,8 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import type {LineChartProps} from 'sentry/components/charts/lineChart';
@@ -141,7 +143,7 @@ function ReleaseAdoption({
     max: 100,
     axisLabel: {
       formatter: (value: number) => `${value}%`,
-      color: theme.chartLabel,
+      color: theme.tokens.content.muted,
     },
   };
 
@@ -199,7 +201,7 @@ function ReleaseAdoption({
         return label && Object.values(releaseMarkLinesLabels).includes(label)
           ? ''
           : `<span>${formatAbbreviatedNumber(absoluteCount)} <span style="color: ${
-              theme.textColor
+              theme.tokens.content.primary
             };margin-left: ${space(0.5)}">${value}%</span></span>`;
       },
       filter: (_, seriesParam: any) => {
@@ -257,9 +259,9 @@ function ReleaseAdoption({
                 </AdoptionEnvironment>
               </div>
             ) : (
-              <NotAvailableWrapper>
+              <Flex align="center">
                 <NotAvailable />
-              </NotAvailableWrapper>
+              </Flex>
             )}
           </SidebarSection.Content>
         </SidebarSection.Wrap>
@@ -334,11 +336,6 @@ function ReleaseAdoption({
   );
 }
 
-const NotAvailableWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
 const ChartLabel = styled('div')<{top: string}>`
   position: absolute;
   top: ${p => p.top};
@@ -352,7 +349,7 @@ const TooltipWrapper = styled('span')`
 `;
 
 const AdoptionEnvironment = styled('span')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   margin-left: ${space(0.5)};
   font-size: ${p => p.theme.fontSize.sm};
 `;

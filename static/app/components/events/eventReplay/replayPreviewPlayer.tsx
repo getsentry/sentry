@@ -25,8 +25,6 @@ import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
 import {TimelineScaleContextProvider} from 'sentry/utils/replays/hooks/useTimelineScale';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -103,7 +101,10 @@ export default function ReplayPreviewPlayer({
       )}
       <HeaderWrapper>
         <ReplaySessionColumn.Component
-          query={query}
+          to={{
+            pathname: makeReplaysPathname({path: `/${replayId}/`, organization}),
+            query,
+          }}
           replay={replayRecord as ReplayListRecord}
           rowIndex={0}
           columnIndex={0}
@@ -210,7 +211,7 @@ const PlayerBreadcrumbContainer = styled(FluidHeight)`
 
 const PreviewPlayerContainer = styled(FluidHeight)<{isSidebarOpen: boolean}>`
   gap: ${space(2)};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   height: unset;
   overflow: unset;
 
@@ -234,7 +235,7 @@ const PlayerContextContainer = styled(FluidHeight)`
 
 const StaticPanel = styled(FluidHeight)`
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 const ButtonGrid = styled('div')`
   display: flex;
@@ -271,11 +272,8 @@ const StyledAlert = styled(Alert)`
   margin: ${space(1)} 0;
 `;
 
-const ContainedLinkButton = withChonk(
-  LinkButton,
-  chonkStyled(LinkButton)`
-    position: absolute;
-    right: 0;
-    top: 3px;
-  `
-);
+const ContainedLinkButton = styled(LinkButton)`
+  position: absolute;
+  right: 0;
+  top: 3px;
+`;

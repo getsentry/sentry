@@ -69,7 +69,9 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.data == {"run_id": 456}
 
         # Verify client was called correctly
-        mock_client_class.assert_called_once_with(self.organization, ANY, is_interactive=True)
+        mock_client_class.assert_called_once_with(
+            self.organization, ANY, is_interactive=True, enable_coding=True
+        )
         mock_client.start_run.assert_called_once_with(
             prompt="What is this error about?", on_page_context=None
         )
@@ -90,7 +92,9 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.data == {"run_id": 789}
 
         # Verify client was called correctly
-        mock_client_class.assert_called_once_with(self.organization, ANY, is_interactive=True)
+        mock_client_class.assert_called_once_with(
+            self.organization, ANY, is_interactive=True, enable_coding=True
+        )
         mock_client.continue_run.assert_called_once_with(
             run_id=789, prompt="Follow up question", insert_index=2, on_page_context=None
         )
@@ -121,6 +125,7 @@ class CollectUserOrgContextTest(APITestCase):
         assert context["user_id"] == self.user.id
         assert context["user_name"] == self.user.name
         assert context["user_email"] == self.user.email
+        assert context["user_timezone"] is None  # No timezone set by default
 
         # Should have exactly one team
         assert len(context["user_teams"]) == 1
@@ -168,3 +173,16 @@ class CollectUserOrgContextTest(APITestCase):
         # All org projects should still be present
         all_project_slugs = {p["slug"] for p in context["all_org_projects"]}
         assert all_project_slugs == {"project-1", "project-2", "other-project"}
+
+    def test_collect_context_with_timezone(self):
+        """Test context collection includes user's timezone setting"""
+        from sentry.users.services.user_option import user_option_service
+
+        user_option_service.set_option(
+            user_id=self.user.id, key="timezone", value="America/Los_Angeles"
+        )
+
+        context = collect_user_org_context(self.user, self.organization)
+
+        assert context is not None
+        assert context["user_timezone"] == "America/Los_Angeles"

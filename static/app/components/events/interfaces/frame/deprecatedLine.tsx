@@ -1,5 +1,5 @@
 import {Fragment, useMemo, useState} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
@@ -108,7 +108,6 @@ function DeprecatedLine({
   registersMeta,
   components,
 }: Props) {
-  const theme = useTheme();
   const organization = useOrganization();
   const [isHovering, setIsHovering] = useState(false);
   const [isExpanded, setIsExpanded] = useState(initialExpanded ?? false);
@@ -328,9 +327,7 @@ function DeprecatedLine({
                 <IconChevron direction={isExpanded ? 'up' : 'down'} size="sm" />
               </ToggleContextButton>
             ) : (
-              <div
-                style={theme.isChonk ? {width: 26, height: 20} : {width: 20, height: 20}}
-              />
+              <div style={{width: 26, height: 20}} />
             )}
           </DefaultLineTagWrapper>
         </DefaultLine>
@@ -405,8 +402,9 @@ const DefaultLine = styled('div')<{
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: ${p => (p.isSubFrame ? `${p.theme.surface100}` : `${p.theme.surface200}`)};
-  min-height: ${p => (p.theme.isChonk ? '40px' : '38px')};
+  background: ${p =>
+    p.isSubFrame ? `${p.theme.colors.surface200}` : `${p.theme.colors.surface300}`};
+  min-height: 40px;
   word-break: break-word;
   padding: ${space(0.75)} ${space(1.5)};
   font-size: ${p => p.theme.fontSize.sm};
