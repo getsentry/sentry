@@ -2,6 +2,7 @@ import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Link} from 'sentry/components/core/link';
 import Hook from 'sentry/components/hook';
@@ -65,12 +66,31 @@ export function OnboardingWithoutContext() {
   const location = useLocation();
   const navigate = useNavigate();
   const {step: stepId} = useParams<{step: string}>();
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
   const onboardingContext = useOnboardingContext();
   const selectedProjectSlug = onboardingContext.selectedPlatform?.key;
 
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
+
+  // If organization is not available, we cannot proceed with onboarding
+  if (!organization) {
+    return (
+      <OnboardingWrapper data-test-id="targeted-onboarding">
+        <SentryDocumentTitle title={t('Onboarding')} />
+        <Header>
+          <LogoSvg />
+        </Header>
+        <Container hasFooter={false}>
+          <Alert type="error" showIcon>
+            {t(
+              'Unable to load organization. Please check your permissions or contact your organization administrator.'
+            )}
+          </Alert>
+        </Container>
+      </OnboardingWrapper>
+    );
+  }
 
   const projectSlug =
     stepObj && stepObj.id === 'setup-docs' ? selectedProjectSlug : undefined;
