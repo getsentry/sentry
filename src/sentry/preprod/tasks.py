@@ -15,7 +15,10 @@ from sentry.constants import DataCategory
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.preprod.eap.write import produce_preprod_size_metric_to_eap
+from sentry.preprod.eap.write import (
+    produce_preprod_build_distribution_to_eap,
+    produce_preprod_size_metric_to_eap,
+)
 from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactSizeComparison,
@@ -702,6 +705,32 @@ def _assemble_preprod_artifact_installable_app(
     with transaction.atomic(router.db_for_write(PreprodArtifact)):
         preprod_artifact.installable_app_file_id = assemble_result.bundle.id
         preprod_artifact.save(update_fields=["installable_app_file_id", "date_updated"])
+
+    try:
+        organization = preprod_artifact.project.organization
+        if features.has("organizations:preprod-size-metrics-eap-write", organization):
+            produce_preprod_build_distribution_to_eap(
+                artifact=preprod_artifact,
+                organization_id=org_id,
+                project_id=project.id,
+            )
+            logger.info(
+                "Successfully wrote preprod build distribution to EAP",
+                extra={
+                    "preprod_artifact_id": preprod_artifact.id,
+                    "organization_id": org_id,
+                    "project_id": project.id,
+                },
+            )
+    except Exception:
+        logger.exception(
+            "Failed to write preprod build distribution to EAP",
+            extra={
+                "preprod_artifact_id": preprod_artifact.id,
+                "organization_id": org_id,
+                "project_id": project.id,
+            },
+        )
 
     # Ideally we want to report an outcome at most once per
     # preprod_artifact. This isn't yet robust to:
