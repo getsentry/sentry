@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/react';
+
 import {IconBitbucket} from 'sentry/icons/iconBitbucket';
 import {IconGithub} from 'sentry/icons/iconGithub';
 import {IconGitlab} from 'sentry/icons/iconGitlab';
@@ -18,10 +20,14 @@ const PROVIDER_ICONS = {
 };
 
 interface Props extends SVGIconProps {
-  provider: string;
+  provider: keyof typeof PROVIDER_ICONS | (string & {});
 }
 
 export default function RepoProviderIcon({provider, ...props}: Props) {
-  const Icon = PROVIDER_ICONS[provider as keyof typeof PROVIDER_ICONS] ?? IconOpen;
-  return <Icon {...props} />;
+  if (provider in PROVIDER_ICONS) {
+    const Icon = PROVIDER_ICONS[provider as keyof typeof PROVIDER_ICONS];
+    return <Icon {...props} />;
+  }
+  Sentry.logger.error(`Unknown provider in RepoProviderIcon`, {provider});
+  return <IconOpen {...props} />;
 }
