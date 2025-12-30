@@ -56,9 +56,9 @@ def get_affected_tests_from_coverage(db_path: str, source_files: list[str]) -> s
                 (f"%{cleaned_file_path}",),
             )
 
-            print(f"Found {len(cur.fetchall())} contexts for {cleaned_file_path}")
-
-            for context, bitblob in cur.fetchall():
+            contexts = cur.fetchall()
+            print(f"Found {len(contexts)} contexts for {cleaned_file_path}")
+            for context, bitblob in contexts:
                 print(f"Context: {context}")
                 print(f"Bitblob: {bitblob}")
                 if _file_executed(bitblob):
