@@ -69,6 +69,32 @@ class PreprodArtifactRerunStatusChecksTest(APITestCase):
 
         assert "No supported check types" in response.data["error"]
 
+    def test_non_string_check_types(self):
+        commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            provider="github",
+            head_repo_name="sentry/sentry",
+            head_sha="abc123",
+        )
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_name="test_artifact",
+            app_id="com.test.app",
+            build_version="1.0.0",
+            build_number=1,
+            commit_comparison=commit_comparison,
+        )
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            artifact.id,
+            check_types=[{"type": "size"}],
+            status_code=400,
+        )
+
+        assert "All check_types must be strings" in response.data["error"]
+
     def test_no_commit_comparison(self):
         artifact = self.create_preprod_artifact(
             project=self.project,

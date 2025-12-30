@@ -53,6 +53,12 @@ class PreprodArtifactRerunStatusChecksEndpoint(PreprodArtifactEndpoint):
                 status=400,
             )
 
+        if not all(isinstance(ct, str) for ct in check_types):
+            return Response(
+                {"error": "All check_types must be strings"},
+                status=400,
+            )
+
         SUPPORTED_CHECK_TYPES = {"size"}
         supported_types = list({ct for ct in check_types if ct in SUPPORTED_CHECK_TYPES})
         if not supported_types:
