@@ -1,4 +1,6 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
+
 import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {initializeUrlState} from 'sentry/actionCreators/pageFilters';
@@ -6,17 +8,9 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 
-const {organization, router} = initializeOrg({
-  router: {
-    location: {
-      query: {},
-      pathname: '/test',
-    },
-    params: {},
-  },
-});
-
 describe('DatePageFilter', () => {
+  const organization = OrganizationFixture();
+
   beforeEach(() => {
     PageFiltersStore.init();
     OrganizationStore.init();
@@ -35,10 +29,11 @@ describe('DatePageFilter', () => {
   });
 
   it('can change period', async () => {
-    render(<DatePageFilter />, {
-      router,
+    const {router} = render(<DatePageFilter />, {
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        location: {pathname: '/test', query: {}},
+      },
     });
 
     // Open time period dropdown
@@ -51,9 +46,7 @@ describe('DatePageFilter', () => {
     expect(
       screen.getByRole('button', {name: '30D', expanded: false})
     ).toBeInTheDocument();
-    expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({query: {statsPeriod: '30d'}})
-    );
+    expect(router.location.query).toEqual(expect.objectContaining({statsPeriod: '30d'}));
     expect(PageFiltersStore.getState()).toEqual({
       isReady: true,
       shouldPersist: true,
@@ -73,10 +66,11 @@ describe('DatePageFilter', () => {
   });
 
   it('can change absolute range', async () => {
-    render(<DatePageFilter />, {
-      router,
+    const {router} = render(<DatePageFilter />, {
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        location: {pathname: '/test', query: {}},
+      },
     });
 
     // Open time period dropdown
@@ -96,9 +90,10 @@ describe('DatePageFilter', () => {
     expect(
       await screen.findByRole('button', {name: 'Oct 3 – Oct 4', expanded: false})
     ).toBeInTheDocument();
-    expect(router.push).toHaveBeenCalledWith(
+    expect(router.location.query).toEqual(
       expect.objectContaining({
-        query: {start: '2017-10-03T00:00:00', end: '2017-10-04T23:59:59'},
+        start: '2017-10-03T00:00:00',
+        end: '2017-10-04T23:59:59',
       })
     );
     expect(PageFiltersStore.getState()).toEqual({
@@ -129,16 +124,9 @@ describe('DatePageFilter', () => {
   });
 
   it('displays a desynced state message', async () => {
-    const {organization: desyncOrganization, router: desyncRouter} = initializeOrg({
-      router: {
-        location: {
-          // the datetime parameters need to be non-null for desync detection to work
-          query: {statsPeriod: '7d'},
-          pathname: '/test',
-        },
-        params: {},
-      },
-    });
+    const desyncOrganization = OrganizationFixture();
+    // the datetime parameters need to be non-null for desync detection to work
+    const desyncLocation = {pathname: '/test', query: {statsPeriod: '7d'}};
 
     PageFiltersStore.reset();
     initializeUrlState({
@@ -146,13 +134,16 @@ describe('DatePageFilter', () => {
       nonMemberProjects: [],
       organization: desyncOrganization,
       queryParams: {statsPeriod: '14d'},
-      router: desyncRouter,
+      router: RouterFixture({
+        location: desyncLocation,
+      }),
     });
 
     render(<DatePageFilter />, {
-      router: desyncRouter,
       organization: desyncOrganization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        location: desyncLocation,
+      },
     });
 
     // Open menu
