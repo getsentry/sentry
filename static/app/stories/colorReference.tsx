@@ -90,13 +90,14 @@ function ColorToken({
   return (
     <Tooltip
       style={fill ? {flex: 1, minWidth: 0} : undefined}
+      maxWidth={480}
       title={
         <Flex gap="md" align="baseline">
           <Heading as="h4" size="md">
             {scale}
           </Heading>
           <Text>{token}</Text>
-          <Text variant="muted" monospace>
+          <Text variant="muted" monospace wrap="nowrap">
             {value}
           </Text>
         </Flex>
