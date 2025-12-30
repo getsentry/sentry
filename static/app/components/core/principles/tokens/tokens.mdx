@@ -301,12 +301,18 @@ export function LineHeight() {
   );
 }
 
+export function sortByValue(tokens) {
+  return Object.fromEntries(
+    Object.entries(tokens).sort(([, a], [, b]) => parseFloat(a) - parseFloat(b))
+  );
+}
+
 export function BorderWidth() {
   const theme = useTheme();
   return (
     <Storybook.TokenReference
       scale="border"
-      tokens={size.border}
+      tokens={sortByValue(size.border)}
       renderToken={({value}) => (
         <Container
           as="div"
@@ -327,7 +333,7 @@ export function ShadowOffset() {
   return (
     <Storybook.TokenReference
       scale="shadow"
-      tokens={size.shadow}
+      tokens={sortByValue(size.shadow)}
       renderToken={({value}) => (
         <Container
           as="div"
