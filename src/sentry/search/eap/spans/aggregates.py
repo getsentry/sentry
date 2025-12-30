@@ -104,6 +104,9 @@ def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, 
 
     if operator == "between":
         value2 = args[4]
+
+        assert isinstance(value2, str), "Second value must be a String"
+
         # TODO: A bit of a hack here, the default arg is set to an empty string so it's not treated as a required argument.
         # We check against the default arg to determine if the second value is missing.
         if value2 == "":
