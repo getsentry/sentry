@@ -89,6 +89,18 @@ Focus tokens paint focus rings and validation states.
 
 <FocusColors />
 
+## Dataviz
+
+Dataviz tokens paint chart data. The categorical scale provides colors for series data, while the semantic scale provides meaningful colors for outcomes.
+
+### Categorical
+
+<DatavizCategoricalColors />
+
+### Semantic
+
+<DatavizSemanticColors />
+
 # Size
 
 Size based tokens are based on a `4px` grid.
@@ -457,6 +469,7 @@ export function BorderColors() {
       renderToken={({value}) => (
         <Container
           as="div"
+          background="primary"
           style={{
             boxSizing: 'border-box',
             width: '48px',
@@ -570,6 +583,68 @@ export function FocusColors() {
             outlineOffset: '2px',
           }}
           radius="sm"
+        />
+      )}
+    />
+  );
+}
+
+export function DatavizCategoricalColors() {
+  const theme = useTheme();
+  const categorical = theme.tokens.dataviz.categorical;
+  const fullPalette = categorical[categorical.length - 1] ?? [];
+  const tokens = Object.fromEntries(fullPalette.map((value, i) => [String(i), value]));
+  const groups = [{tokens}];
+  return (
+    <Storybook.ColorReference
+      scale="dataviz.categorical"
+      groups={groups}
+      renderToken={({value}) => (
+        <Container
+          as="div"
+          style={{
+            boxSizing: 'border-box',
+            width: '24px',
+            height: '24px',
+            background: value,
+            borderRadius: '50%',
+          }}
+        />
+      )}
+    />
+  );
+}
+
+export function DatavizSemanticColors() {
+  const theme = useTheme();
+  const semantic = theme.tokens.dataviz.semantic;
+  const groups = [
+    {
+      tokens: {
+        neutral: semantic.neutral,
+        accent: semantic.accent,
+        good: semantic.good,
+        meh: semantic.meh,
+        bad: semantic.bad,
+        release: semantic.release,
+        other: semantic.other,
+      },
+    },
+  ];
+  return (
+    <Storybook.ColorReference
+      scale="dataviz.semantic"
+      groups={groups}
+      renderToken={({value}) => (
+        <Container
+          as="div"
+          style={{
+            boxSizing: 'border-box',
+            width: '24px',
+            height: '24px',
+            background: value,
+            borderRadius: '50%',
+          }}
         />
       )}
     />
