@@ -32,6 +32,7 @@ function SearchBar({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [query, setQuery] = useState(queryProp ?? defaultQuery);
+  const isDisabled = !!inputProps.disabled;
 
   // if query prop keeps changing we should treat this as
   // a controlled component and its internal state should be in sync
@@ -89,6 +90,7 @@ function SearchBar({
             <SearchBarTrailingButton
               size="zero"
               borderless
+              disabled={isDisabled}
               onClick={clearSearch}
               icon={<IconClose size="xs" />}
               aria-label={t('Clear')}

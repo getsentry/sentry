@@ -111,9 +111,8 @@ export default function MobileBuilds({organization, selectedProjectIds}: Props) 
   const builds = buildsData?.builds ?? [];
   const pageLinks = getResponseHeader?.('Link') ?? undefined;
   const hasSearchQuery = !!searchQuery?.trim();
-  const shouldShowSearchBar = builds.length > 0 || hasSearchQuery;
   const showProjectColumn = selectedProjectIds.length > 1;
-  const shouldShowFilters = shouldShowSearchBar || shouldShowDisplayToggle;
+  const shouldShowFilters = true;
 
   return (
     <Stack gap="xl">
@@ -124,15 +123,14 @@ export default function MobileBuilds({organization, selectedProjectIds}: Props) 
           gap="md"
           wrap="wrap"
         >
-          {shouldShowSearchBar && (
-            <Container flex="1">
-              <SearchBar
-                placeholder={t('Search by build, SHA, branch name, or pull request')}
-                onSearch={handleSearch}
-                query={searchQuery ?? undefined}
-              />
-            </Container>
-          )}
+          <Container flex="1">
+            <SearchBar
+              placeholder={t('Search by build, SHA, branch name, or pull request')}
+              onSearch={handleSearch}
+              query={searchQuery ?? undefined}
+              disabled={isLoadingBuilds}
+            />
+          </Container>
           {shouldShowDisplayToggle && (
             <Container maxWidth="200px">
               <PreprodBuildsDisplayOptions

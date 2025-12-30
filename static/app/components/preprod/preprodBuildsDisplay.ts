@@ -4,7 +4,7 @@ export enum PreprodBuildsDisplay {
 }
 
 export function getPreprodBuildsDisplay(
-  display: string | string[] | undefined,
+  display: string | string[] | null | undefined,
   isDistributionEnabled: boolean
 ): PreprodBuildsDisplay {
   if (!isDistributionEnabled) {

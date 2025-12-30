@@ -5,6 +5,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
 import {BuildDetailsState} from 'sentry/views/preprod/types/buildDetailsTypes';
+import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 
 const organization = OrganizationFixture({
   features: ['preprod-build-distribution'],
@@ -18,7 +19,7 @@ const baseBuild = {
   app_info: {
     app_id: 'com.example.app',
     name: 'Example App',
-    platform: 'ios',
+    platform: 'ios' as Platform,
     build_number: '1',
     version: '1.0.0',
     date_added: '2024-01-01T00:00:00Z',
@@ -49,7 +50,7 @@ describe('PreprodBuildsTable', () => {
     expect(screen.queryByText('Download Count')).not.toBeInTheDocument();
   });
 
-  it('renders distribution columns and filters non-installable builds', () => {
+  it('renders distribution columns and disables non-installable rows', () => {
     const nonInstallableBuild = {
       ...baseBuild,
       id: 'build-2',
@@ -77,12 +78,15 @@ describe('PreprodBuildsTable', () => {
     expect(screen.getByText('Download Count')).toBeInTheDocument();
     expect(screen.queryByText('Download Size')).not.toBeInTheDocument();
     expect(screen.getByText('1,234')).toBeInTheDocument();
-    expect(screen.queryByText('Non Installable App')).not.toBeInTheDocument();
+    expect(screen.getByText('Non Installable App')).toBeInTheDocument();
 
     const rowLink = screen.getByRole('link', {name: /Example App/});
     expect(rowLink).toHaveAttribute(
       'href',
       `/organizations/${organization.slug}/preprod/1/build-1/install/`
     );
+    expect(
+      screen.queryByRole('link', {name: /Non Installable App/})
+    ).not.toBeInTheDocument();
   });
 });

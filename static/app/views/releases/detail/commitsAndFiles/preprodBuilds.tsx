@@ -127,9 +127,8 @@ export default function PreprodBuilds() {
   const pageLinks = getResponseHeader?.('Link') || null;
 
   const hasSearchQuery = !!urlSearchQuery?.trim();
-  const shouldShowSearchBar = builds.length > 0 || hasSearchQuery;
   const showOnboarding = builds.length === 0 && !hasSearchQuery && !isLoadingBuilds;
-  const shouldShowFilters = shouldShowSearchBar || shouldShowDisplayToggle;
+  const shouldShowFilters = true;
 
   const handleBuildRowClick = useCallback(
     (build: BuildDetailsApiResponse) => {
@@ -161,15 +160,14 @@ export default function PreprodBuilds() {
               gap="md"
               wrap="wrap"
             >
-              {shouldShowSearchBar && (
-                <Container flex="1">
-                  <SearchBar
-                    placeholder={t('Search by build, SHA, branch name, or pull request')}
-                    onChange={handleSearch}
-                    query={localSearchQuery}
-                  />
-                </Container>
-              )}
+              <Container flex="1">
+                <SearchBar
+                  placeholder={t('Search by build, SHA, branch name, or pull request')}
+                  onChange={handleSearch}
+                  query={localSearchQuery}
+                  disabled={isLoadingBuilds}
+                />
+              </Container>
               {shouldShowDisplayToggle && (
                 <Container maxWidth="200px">
                   <PreprodBuildsDisplayOptions
