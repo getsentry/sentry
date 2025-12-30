@@ -93,10 +93,11 @@ function Wrapper({children}: any) {
 }
 
 const HttpSpanVisualizationWrapper = styled('div')`
-  padding: ${p => p.theme.space.xl};
   display: flex;
   align-items: center;
-  gap: ${p => p.theme.space.sm};
+  gap: ${p => p.theme.space.md};
+  height: 100%;
+  padding: ${p => p.theme.space.xl};
 `;
 
 // Takes up 100% of the parent. If within flex context, grows to fill.
