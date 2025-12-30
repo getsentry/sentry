@@ -6,13 +6,12 @@ import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import useRouter from 'sentry/utils/useRouter';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import SettingsBreadcrumb from 'sentry/views/settings/components/settingsBreadcrumb';
 import type {RouteWithName} from 'sentry/views/settings/components/settingsBreadcrumb/types';
 import SettingsHeader from 'sentry/views/settings/components/settingsHeader';
+import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 import SettingsSearch from 'sentry/views/settings/components/settingsSearch';
-import OrganizationSettingsLayout from 'sentry/views/settings/organization/organizationSettingsLayout';
 
 import {hasNewBillingUI} from 'getsentry/utils/billing';
 
@@ -20,14 +19,13 @@ type Props = {
   children: React.ReactNode;
 };
 
-function SubscriptionSettingsLayout(props: Props) {
+export default function SubscriptionSettingsLayout(props: Props) {
   const organization = useOrganization();
   const isNewBillingUI = hasNewBillingUI(organization);
 
   const location = useLocation();
   const params = useParams();
   const routes = useRoutes();
-  const router = useRouter();
   const {children} = props;
   let feedbackSource = location.pathname;
   for (let i = routes.length - 1; i >= 0; i--) {
@@ -38,17 +36,7 @@ function SubscriptionSettingsLayout(props: Props) {
     }
   }
   if (!isNewBillingUI) {
-    return (
-      <OrganizationSettingsLayout
-        {...props}
-        params={params}
-        routes={routes}
-        location={location}
-        router={router}
-        routeParams={params}
-        route={routes[0]!} // XXX: this component doesn't actually use the route prop so i think this is okay to satisfy RouteComponentProps
-      />
-    );
+    return <SettingsLayout>{children}</SettingsLayout>;
   }
 
   return (
@@ -80,8 +68,6 @@ function SubscriptionSettingsLayout(props: Props) {
     </SettingsColumn>
   );
 }
-
-export default SubscriptionSettingsLayout;
 
 const SettingsColumn = styled(Flex)`
   footer {
