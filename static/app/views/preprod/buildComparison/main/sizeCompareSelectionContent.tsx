@@ -123,9 +123,10 @@ export function SizeCompareSelectionContent({
       );
     },
     onError: error => {
-      addErrorMessage(
-        error?.message || t('Failed to trigger comparison. Please try again.')
-      );
+      const errorMessage =
+        error.responseJSON?.detail ??
+        t('Failed to trigger comparison. Please try again.');
+      addErrorMessage(errorMessage);
     },
   });
 

@@ -110,9 +110,8 @@ export function SizeCompareMainContent() {
     },
     onError: error => {
       const errorMessage =
-        (typeof error?.responseJSON?.error === 'string'
-          ? error?.responseJSON.error
-          : null) ?? t('Failed to trigger comparison. Please try again.');
+        error.responseJSON?.detail ??
+        t('Failed to trigger comparison. Please try again.');
       addErrorMessage(errorMessage);
     },
   });
@@ -157,7 +156,8 @@ export function SizeCompareMainContent() {
       <BuildError
         title={t('Size comparison data unavailable')}
         message={
-          sizeComparisonQuery.error?.message || t('Failed to load size comparison data')
+          sizeComparisonQuery.error?.responseJSON?.detail ??
+          t('Failed to load size comparison data')
         }
       />
     );
