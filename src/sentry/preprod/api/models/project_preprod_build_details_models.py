@@ -39,6 +39,7 @@ class BuildDetailsAppInfo(BaseModel):
     date_built: str | None = None
     artifact_type: PreprodArtifact.ArtifactType | None = None
     platform: Platform | None = None
+    # Deprecated, use distribution_info.is_installable instead
     is_installable: bool
     build_configuration: str | None = None
     app_icon_id: str | None = None
