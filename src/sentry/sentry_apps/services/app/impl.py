@@ -122,7 +122,6 @@ class DatabaseBackedAppService(AppService):
             installations__organization_id=organization_id,
             is_alertable=True,
             installations__status=SentryAppInstallationStatus.INSTALLED,
-            installations__date_deleted=None,
         ).distinct("id"):
             if SentryAppComponent.objects.filter(
                 sentry_app_id=app.id, type="alert-rule-action"

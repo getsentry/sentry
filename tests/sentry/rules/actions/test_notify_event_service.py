@@ -2,7 +2,6 @@ from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import responses
-from django.utils import timezone
 from requests.exceptions import HTTPError
 
 from sentry.eventstream.types import EventStreamEventType
@@ -280,7 +279,6 @@ class NotifyEventServiceSentryAppActionTest(NotifyEventServiceActionTest):
         results = rule.get_services()
         assert len(results) == 1
 
-        self.install.date_deleted = timezone.now()
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.install.save()
 

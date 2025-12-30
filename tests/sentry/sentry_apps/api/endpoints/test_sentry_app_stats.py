@@ -40,7 +40,6 @@ class GetSentryAppStatsTest(APITestCase):
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert response.data["totalInstalls"] == 1
-        assert response.data["totalUninstalls"] == 0
         install_epoch = int(
             self.unowned_published_app_install.date_added.replace(
                 microsecond=0, second=0, minute=0
@@ -55,7 +54,6 @@ class GetSentryAppStatsTest(APITestCase):
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert response.data["totalInstalls"] == 0
-        assert response.data["totalUninstalls"] == 0
 
     def test_user_sees_owned_published_stats(self) -> None:
         self.login_as(self.user)
@@ -64,7 +62,6 @@ class GetSentryAppStatsTest(APITestCase):
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert response.data["totalInstalls"] == 1
-        assert response.data["totalUninstalls"] == 0
         install_epoch = int(
             self.published_app_install.date_added.replace(
                 microsecond=0, second=0, minute=0
@@ -87,7 +84,6 @@ class GetSentryAppStatsTest(APITestCase):
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert response.data["totalInstalls"] == 0
-        assert response.data["totalUninstalls"] == 0
 
     def test_user_sees_internal_stats(self) -> None:
         self.login_as(self.user)
@@ -96,7 +92,6 @@ class GetSentryAppStatsTest(APITestCase):
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert response.data["totalInstalls"] == 1
-        assert response.data["totalUninstalls"] == 0
 
     def test_invalid_startend_throws_error(self) -> None:
         self.login_as(self.user)
