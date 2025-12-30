@@ -11,6 +11,7 @@ from sentry.preprod.eap.write import (
     produce_preprod_size_metric_to_eap,
 )
 from sentry.preprod.models import (
+    InstallablePreprodArtifact,
     PreprodArtifact,
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
@@ -201,6 +202,12 @@ class WritePreprodBuildDistributionToEAPTest(TestCase):
             },
         )
 
+        InstallablePreprodArtifact.objects.create(
+            preprod_artifact=artifact,
+            url_path="test-url-path",
+            download_count=42,
+        )
+
         produce_preprod_build_distribution_to_eap(
             artifact=artifact,
             organization_id=self.organization.id,
@@ -244,6 +251,7 @@ class WritePreprodBuildDistributionToEAPTest(TestCase):
         assert attrs["has_proguard_mapping"].bool_value is False
 
         assert attrs["has_installable_file"].bool_value is True
+        assert attrs["download_count"].int_value == 42
 
         assert attrs["git_head_sha"].string_value == "abc123"
         assert attrs["git_base_sha"].string_value == "def456"
@@ -280,6 +288,7 @@ class WritePreprodBuildDistributionToEAPTest(TestCase):
 
         assert attrs["sub_item_type"].string_value == "build_distribution"
         assert attrs["has_installable_file"].bool_value is False
+        assert attrs["download_count"].int_value == 0
 
         assert "codesigning_type" not in attrs
         assert "profile_name" not in attrs

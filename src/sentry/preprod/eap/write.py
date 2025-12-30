@@ -13,7 +13,11 @@ from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem as EAPTraceItem
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.preprod.eap.constants import PREPROD_NAMESPACE
-from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
+from sentry.preprod.models import (
+    InstallablePreprodArtifact,
+    PreprodArtifact,
+    PreprodArtifactSizeMetrics,
+)
 from sentry.search.eap.rpc_utils import anyvalue
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.kafka_config import get_topic_definition
@@ -178,6 +182,9 @@ def produce_preprod_build_distribution_to_eap(
         attributes["has_proguard_mapping"] = artifact.extras.get("has_proguard_mapping")
 
     attributes["has_installable_file"] = artifact.installable_app_file_id is not None
+
+    installable = InstallablePreprodArtifact.objects.filter(preprod_artifact=artifact).first()
+    attributes["download_count"] = installable.download_count if installable else 0
 
     if artifact.commit_comparison is not None:
         commit_comparison = artifact.commit_comparison
