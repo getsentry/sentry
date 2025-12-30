@@ -43,7 +43,7 @@ export default function CrashReportSection({
 
   if (!groupData) {
     return (
-      <Alert type="warning">
+      <Alert variant="warning">
         {tct(
           'Event [id] was linked but not found in this project. The event might have been dropped or the ID may be incorrect.',
           {id: crashReportId}

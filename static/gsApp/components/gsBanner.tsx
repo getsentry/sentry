@@ -108,7 +108,7 @@ function SuspensionModal({Header, Body, Footer, subscription}: SuspensionModalPr
       <Header>{'Action Required'}</Header>
       <Body>
         <Alert.Container>
-          <Alert type="warning">{t('Your account has been suspended')}</Alert>
+          <Alert variant="warning">{t('Your account has been suspended')}</Alert>
         </Alert.Container>
         <p>{t('Your account has been suspended with the following reason:')}</p>
         <ul>
@@ -181,7 +181,7 @@ function NoticeModal({
     }
   };
 
-  const alertType = whichModal === ModalType.PAST_DUE ? 'error' : 'warning';
+  const alertType = whichModal === ModalType.PAST_DUE ? 'danger' : 'warning';
 
   let subText: React.ReactNode;
   let body: React.ReactNode;
@@ -266,7 +266,7 @@ function NoticeModal({
       </Header>
       <Body>
         <Alert.Container>
-          <Alert type={alertType}>{title}</Alert>
+          <Alert variant={alertType}>{title}</Alert>
         </Alert.Container>
         <p>{body}</p>
         {subText && <p>{subText}</p>}
@@ -955,7 +955,7 @@ class GSBanner extends Component<Props, State> {
         <Alert.Container>
           <Alert
             system
-            type="error"
+            variant="danger"
             data-test-id="banner-alert-past-due"
             trailingItems={
               <Flex align="center" height="100%">
@@ -1076,12 +1076,12 @@ class GSBanner extends Component<Props, State> {
 
 export default withPromotions(withApi(withSubscription(GSBanner, {noLoader: true})));
 
-function InvertedAlert(props: Omit<AlertProps, 'system' | 'type'>) {
+function InvertedAlert(props: Omit<AlertProps, 'system' | 'variant'>) {
   const invertedTheme = useInvertedTheme();
 
   return (
     <ThemeProvider theme={invertedTheme}>
-      <Alert system type="info" {...props} />
+      <Alert system variant="info" {...props} />
     </ThemeProvider>
   );
 }
