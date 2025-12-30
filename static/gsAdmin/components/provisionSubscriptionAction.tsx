@@ -19,6 +19,8 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {space} from 'sentry/styles/space';
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import showNewSeer from 'sentry/utils/seer/showNewSeer';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import withApi from 'sentry/utils/withApi';
 
@@ -114,6 +116,7 @@ type Props = {
   onSuccess: () => void;
   orgId: string;
   subscription: Subscription;
+  organization?: Organization;
 };
 
 type ModalProps = ModalRenderProps & Props;
@@ -614,7 +617,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
   };
 
   render() {
-    const {Header, Body, closeModal} = this.props;
+    const {Header, Body, closeModal, organization} = this.props;
     const {data} = this.state;
 
     const isAmEnt = isAmEnterprisePlan(data.plan);
@@ -622,6 +625,11 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     const hasCustomSkuPrices = isAmEnt;
     const hasCustomPrice = hasCustomSkuPrices || !!data.managed; // Refers to ACV
     const selectedPlan = this.state.provisionablePlans[data.plan];
+
+    const isNewSeer = organization ? showNewSeer(organization) : false;
+    const hiddenCategories = isNewSeer
+      ? [DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER]
+      : [DataCategory.SEER_USER];
 
     if (this.state.isLoading) {
       return <LoadingIndicator />;
@@ -827,7 +835,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                     </SectionHeaderDescription>
                     {selectedPlan?.categories.map(category => {
                       const categoryInfo = getCategoryInfoFromPlural(category);
-                      if (!categoryInfo) {
+                      if (!categoryInfo || hiddenCategories.includes(category)) {
                         return null;
                       }
                       const titleName = getPlanCategoryName({
@@ -981,7 +989,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                         </Fragment>
                       );
                     })}
-                    {this.isSettingSeerBudget() && (
+                    {!isNewSeer && this.isSettingSeerBudget() && (
                       <StyledDollarsField
                         label="Seer Budget"
                         name="seerBudget"
@@ -1027,7 +1035,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                 </SectionHeaderDescription>
                 {selectedPlan?.categories.map(category => {
                   const categoryInfo = getCategoryInfoFromPlural(category);
-                  if (!categoryInfo) {
+                  if (!categoryInfo || hiddenCategories.includes(category)) {
                     return null;
                   }
                   const titleName = getPlanCategoryName({
@@ -1169,7 +1177,10 @@ const StyledDollarsAndCentsField = styled(DollarsAndCentsField)`
 
 const Modal = withApi(ProvisionSubscriptionModal);
 
-type Options = Pick<Props, 'orgId' | 'subscription' | 'onSuccess' | 'billingConfig'>;
+type Options = Pick<
+  Props,
+  'orgId' | 'subscription' | 'onSuccess' | 'billingConfig' | 'organization'
+>;
 
 const triggerProvisionSubscription = (opts: Options) =>
   openModal(deps => <Modal {...deps} {...opts} />, {modalCss});

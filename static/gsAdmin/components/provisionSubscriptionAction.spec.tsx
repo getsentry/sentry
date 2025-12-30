@@ -1986,6 +1986,62 @@ describe('provisionSubscriptionAction', () => {
     ).toBeInTheDocument();
   });
 
+  describe('Seer category visibility based on organization features', () => {
+    it('hides Issue Fixes and Issue Scans when organization has new Seer (seat-based)', async () => {
+      const newSeerOrg = OrganizationFixture({
+        features: ['seat-based-seer-enabled'],
+      });
+      const am3Sub = SubscriptionFixture({organization: newSeerOrg, plan: 'am3_f'});
+      triggerProvisionSubscription({
+        subscription: am3Sub,
+        orgId: am3Sub.slug,
+        onSuccess,
+        billingConfig: mockBillingConfig,
+        organization: newSeerOrg,
+      });
+
+      await loadModal();
+
+      await selectEvent.select(
+        await screen.findByRole('textbox', {name: 'Plan'}),
+        'Enterprise (Business) (am3)'
+      );
+
+      expect(screen.queryByLabelText('Reserved Issue Fixes')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Reserved Issue Scans')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Price for Issue Fixes')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Price for Issue Scans')).not.toBeInTheDocument();
+
+      expect(screen.getByLabelText('Reserved Errors')).toBeInTheDocument();
+    });
+
+    it('shows Issue Fixes and Issue Scans when organization has legacy Seer', async () => {
+      const legacySeerOrg = OrganizationFixture({
+        features: ['seer-added'],
+      });
+      const am3Sub = SubscriptionFixture({organization: legacySeerOrg, plan: 'am3_f'});
+      triggerProvisionSubscription({
+        subscription: am3Sub,
+        orgId: am3Sub.slug,
+        onSuccess,
+        billingConfig: mockBillingConfig,
+        organization: legacySeerOrg,
+      });
+
+      await loadModal();
+
+      await selectEvent.select(
+        await screen.findByRole('textbox', {name: 'Plan'}),
+        'Enterprise (Business) (am3)'
+      );
+
+      expect(screen.getByLabelText('Reserved Issue Fixes')).toBeInTheDocument();
+      expect(screen.getByLabelText('Reserved Issue Scans')).toBeInTheDocument();
+      expect(screen.getByLabelText('Price for Issue Fixes')).toBeInTheDocument();
+      expect(screen.getByLabelText('Price for Issue Scans')).toBeInTheDocument();
+    });
+  });
+
   describe('Reserved CPE field validation', () => {
     it('should set reserved to RESERVED_BUDGET_QUOTA when CPE has a valid positive value', async () => {
       const am3Sub = SubscriptionFixture({organization: mockOrg, plan: 'am3_f'});
