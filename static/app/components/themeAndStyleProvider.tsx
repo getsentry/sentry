@@ -1,4 +1,4 @@
-import {Fragment, lazy, useEffect, useMemo} from 'react';
+import {Fragment, lazy, useMemo, useRef} from 'react';
 import {createPortal} from 'react-dom';
 import createCache from '@emotion/cache';
 import {CacheProvider, ThemeProvider} from '@emotion/react';
@@ -61,11 +61,12 @@ export function ThemeAndStyleProvider({children}: Props) {
   useHotkeys(themeToggleHotkey);
 
   const theme = config.theme === 'dark' ? darkTheme : lightTheme;
-  useEffect(() => {
-    if (NODE_ENV !== 'development') {
-      printConsoleBanner(theme.colors.blue400, theme.text.familyMono);
-    }
-  }, [theme]);
+
+  const didPrintBanner = useRef(false);
+  if (!didPrintBanner.current && NODE_ENV !== 'development') {
+    didPrintBanner.current = true;
+    printConsoleBanner(theme.colors.blue400, theme.text.familyMono);
+  }
 
   return (
     <ThemeProvider theme={theme}>
