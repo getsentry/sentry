@@ -237,7 +237,6 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
         selectedRepoIds={selectedRepoIds}
         onSave={handleSaveModalSelections}
         isFetchingRepositories={isFetchingRepositories}
-        maxReposLimit={MAX_REPOS_LIMIT}
       />
     ));
   }, [repositories, selectedRepoIds, handleSaveModalSelections, isFetchingRepositories]);
