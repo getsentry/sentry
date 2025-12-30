@@ -416,6 +416,10 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
             )
 
             # Filter tests using coverage data
+            config.get_terminal_writer().line(
+                f"Filtering tests using coverage data from {coverage_db_path}"
+            )
+            config.get_terminal_writer().line(f"Changed files: {changed_files}")
             selected_items, discarded_items, affected_test_files = filter_items_by_coverage(
                 items, changed_files, coverage_db_path
             )
