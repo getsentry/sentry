@@ -90,6 +90,7 @@ import {
   getWidgetExploreUrl,
   getWidgetTableRowExploreUrlFunction,
 } from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetricsUrl';
 import {
   SESSION_DURATION_ALERT,
   WidgetDescription,
@@ -911,6 +912,10 @@ function OpenButton({
     case WidgetType.LOGS:
       openLabel = t('Open in Explore');
       path = getWidgetExploreUrl(widget, dashboardFilters, selection, organization);
+      break;
+    case WidgetType.TRACEMETRICS:
+      openLabel = t('Open in Metrics');
+      path = getWidgetMetricsUrl(widget, dashboardFilters, selection, organization);
       break;
     case WidgetType.DISCOVER:
     default:
