@@ -6288,7 +6288,20 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         ]
         assert meta["dataset"] == "spans"
 
-    def test_count_if_numeric_between_raises_with_second_value_less_than_first(self) -> None:
+    def test_count_if_between_raises_with_second_value_missing(self) -> None:
+        response = self.do_request(
+            {
+                "field": ["count_if(span.duration,between,300)"],
+                "query": "",
+                "orderby": "count_if(span.duration,between,300)",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+        assert response.status_code == 400, response.content
+        assert "between operator requires two values" in response.data["detail"]
+
+    def test_count_if_between_raises_with_second_value_less_than_first(self) -> None:
         response = self.do_request(
             {
                 "field": ["count_if(span.duration,between,300,299)"],

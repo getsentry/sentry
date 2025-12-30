@@ -103,9 +103,11 @@ def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, 
     attr_value = resolve_attribute_value(key, value)
 
     if operator == "between":
-        value2 = args[
-            4
-        ]  # This is already be validated to be a number in the `BaseArgumentDefinition.validator`
+        value2 = args[4]
+        # TODO: A bit of a hack here, the default arg is set to an empty string so it's not treated as a required argument.
+        # We check against the default arg to determine if the second value is missing.
+        if value2 == "":
+            raise InvalidSearchQuery("between operator requires two values")
 
         if float(value2) <= float(value):
             raise InvalidSearchQuery(f"Invalid parameter {value2}. Must be greater than {value}")
@@ -273,7 +275,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
             ),
             ValueArgumentDefinition(argument_types={"string"}),
             ValueArgumentDefinition(
-                argument_types={"string"}, default_arg="0.0", validator=number_validator
+                argument_types={"string"}, default_arg="", validator=number_validator
             ),  # Second value is only for between, so it must be a number
         ],
         aggregate_resolver=resolve_key_eq_value_filter,
