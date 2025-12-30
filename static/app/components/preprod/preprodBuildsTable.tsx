@@ -44,10 +44,16 @@ export function PreprodBuildsTable({
   hasSearchQuery,
   showProjectColumn = false,
 }: PreprodBuildsTableProps) {
+  const hasMultiplePlatforms = useMemo(() => {
+    const platforms = new Set(builds.map(b => b.app_info?.platform).filter(Boolean));
+    return platforms.size > 1;
+  }, [builds]);
+
   const labels = useMemo(
-    () => getLabels(builds[0]?.app_info?.platform ?? undefined),
-    [builds]
+    () => getLabels(builds[0]?.app_info?.platform ?? undefined, hasMultiplePlatforms),
+    [builds, hasMultiplePlatforms]
   );
+
   const header = (
     <SimpleTable.Header>
       <SimpleTable.HeaderCell>{t('App')}</SimpleTable.HeaderCell>
@@ -55,7 +61,15 @@ export function PreprodBuildsTable({
         <SimpleTable.HeaderCell>{t('Project')}</SimpleTable.HeaderCell>
       )}
       <SimpleTable.HeaderCell>{t('Build')}</SimpleTable.HeaderCell>
-      <SimpleTable.HeaderCell>{labels.installSizeLabel}</SimpleTable.HeaderCell>
+      <SimpleTable.HeaderCell>
+        {labels.installSizeLabelTooltip ? (
+          <Tooltip title={labels.installSizeLabelTooltip}>
+            <span>{labels.installSizeLabel}</span>
+          </Tooltip>
+        ) : (
+          labels.installSizeLabel
+        )}
+      </SimpleTable.HeaderCell>
       <SimpleTable.HeaderCell>{labels.downloadSizeLabel}</SimpleTable.HeaderCell>
       <SimpleTable.HeaderCell>{t('Created')}</SimpleTable.HeaderCell>
     </SimpleTable.Header>
