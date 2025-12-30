@@ -1,4 +1,5 @@
 export {APIReference} from './apiReference';
+export {ColorReference} from './colorReference';
 export {Demo} from './demo';
 export {JSXNode, JSXProperty} from './jsx';
 export {ModuleExports} from './moduleExports';

@@ -321,3 +321,257 @@ export function ShadowOffset() {
     />
   );
 }
+
+export function flattenTokens(obj, prefix = '') {
+  return Object.entries(obj).reduce((result, entry) => {
+    const key = entry[0];
+    const value = entry[1];
+    const path = prefix ? `${prefix}.${key}` : key;
+    if (typeof value === 'string') {
+      result[path] = value;
+    } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      Object.assign(result, flattenTokens(value, path));
+    }
+    return result;
+  }, {});
+}
+
+export function BackgroundColors() {
+  const theme = useTheme();
+  const bg = theme.tokens.background;
+  const groups = [
+    {
+      label: 'surface',
+      tokens: {
+        primary: bg.primary,
+        secondary: bg.secondary,
+        tertiary: bg.tertiary,
+        overlay: bg.overlay,
+      },
+    },
+    {
+      label: 'semantic',
+      tokens: {
+        'accent.vibrant': bg.accent.vibrant,
+        'promotion.vibrant': bg.promotion.vibrant,
+        'danger.vibrant': bg.danger.vibrant,
+        'warning.vibrant': bg.warning.vibrant,
+        'success.vibrant': bg.success.vibrant,
+      },
+    },
+    {
+      label: 'transparent',
+      tokens: flattenTokens(bg.transparent),
+    },
+  ];
+  return (
+    <Storybook.ColorReference
+      scale="background"
+      groups={groups}
+      fill
+      renderToken={({value}) => (
+        <Container
+          as="div"
+          style={{
+            boxSizing: 'border-box',
+            width: '100%',
+            height: '48px',
+            background: value,
+          }}
+          border="muted"
+          radius="sm"
+        />
+      )}
+    />
+  );
+}
+
+export function ContentColors() {
+  const theme = useTheme();
+  const ct = theme.tokens.content;
+  const groups = [
+    {
+      label: 'text',
+      tokens: {
+        primary: ct.primary,
+        secondary: ct.secondary,
+        headings: ct.headings,
+        disabled: ct.disabled,
+      },
+    },
+    {
+      label: 'semantic',
+      tokens: {
+        accent: ct.accent,
+        promotion: ct.promotion,
+        danger: ct.danger,
+        warning: ct.warning,
+        success: ct.success,
+      },
+    },
+    {
+      label: 'onVibrant',
+      tokens: {
+        'onVibrant.light': ct.onVibrant.light,
+        'onVibrant.dark': ct.onVibrant.dark,
+      },
+    },
+  ];
+  return (
+    <Storybook.ColorReference
+      scale="content"
+      groups={groups}
+      renderToken={({value}) => (
+        <Text size="xl" style={{color: value}}>
+          Aa
+        </Text>
+      )}
+    />
+  );
+}
+
+export function BorderColors() {
+  const theme = useTheme();
+  const bd = theme.tokens.border;
+  const groups = [
+    {
+      label: 'base',
+      tokens: {
+        primary: bd.primary,
+        secondary: bd.secondary,
+      },
+    },
+    {label: 'neutral', tokens: flattenTokens(bd.neutral)},
+    {label: 'accent', tokens: flattenTokens(bd.accent)},
+    {label: 'promotion', tokens: flattenTokens(bd.promotion)},
+    {label: 'danger', tokens: flattenTokens(bd.danger)},
+    {label: 'warning', tokens: flattenTokens(bd.warning)},
+    {label: 'success', tokens: flattenTokens(bd.success)},
+    {label: 'onVibrant', tokens: flattenTokens(bd.onVibrant)},
+  ];
+  return (
+    <Storybook.ColorReference
+      scale="border"
+      columns={2}
+      groups={groups}
+      renderToken={({value}) => (
+        <Container
+          as="div"
+          style={{
+            boxSizing: 'border-box',
+            width: '48px',
+            height: '48px',
+            border: `2px solid ${value}`,
+          }}
+          radius="sm"
+        />
+      )}
+    />
+  );
+}
+
+export function GraphicsColors() {
+  const theme = useTheme();
+  const gx = theme.tokens.graphics;
+  const groups = [
+    {label: 'neutral', tokens: flattenTokens(gx.neutral)},
+    {label: 'accent', tokens: flattenTokens(gx.accent)},
+    {label: 'promotion', tokens: flattenTokens(gx.promotion)},
+    {label: 'danger', tokens: flattenTokens(gx.danger)},
+    {label: 'warning', tokens: flattenTokens(gx.warning)},
+    {label: 'success', tokens: flattenTokens(gx.success)},
+  ];
+  return (
+    <Storybook.ColorReference
+      scale="graphics"
+      groups={groups}
+      renderToken={({value}) => (
+        <Container
+          as="div"
+          style={{
+            boxSizing: 'border-box',
+            width: '24px',
+            height: '24px',
+            background: value,
+            borderRadius: '50%',
+          }}
+        />
+      )}
+    />
+  );
+}
+
+export function ShadowColors() {
+  const theme = useTheme();
+  const sh = theme.tokens.shadow;
+  const groups = [
+    {
+      label: 'elevation',
+      tokens: {
+        elevationLow: sh.elevationLow,
+        elevationMedium: sh.elevationMedium,
+      },
+    },
+  ];
+  return (
+    <Storybook.ColorReference
+      scale="shadow"
+      groups={groups}
+      renderToken={({value}) => (
+        <Container
+          as="div"
+          style={{
+            boxSizing: 'border-box',
+            width: '40px',
+            height: '40px',
+            background: theme.tokens.background.primary,
+            boxShadow: `0 4px 8px ${value}`,
+          }}
+          border="muted"
+          radius="sm"
+        />
+      )}
+    />
+  );
+}
+
+export function FocusColors() {
+  const theme = useTheme();
+  const fc = theme.tokens.focus;
+  const groups = [
+    {
+      label: 'states',
+      tokens: {
+        default: fc.default,
+        invalid: fc.invalid,
+      },
+    },
+    {
+      label: 'onVibrant',
+      tokens: {
+        'onVibrant.light': fc.onVibrant.light,
+        'onVibrant.dark': fc.onVibrant.dark,
+      },
+    },
+  ];
+  return (
+    <Storybook.ColorReference
+      scale="focus"
+      groups={groups}
+      renderToken={({value}) => (
+        <Container
+          as="div"
+          style={{
+            boxSizing: 'border-box',
+            width: '40px',
+            height: '40px',
+            background: theme.tokens.background.primary,
+            outline: `2px solid ${value}`,
+            outlineOffset: '2px',
+          }}
+          radius="sm"
+        />
+      )}
+    />
+  );
+}
