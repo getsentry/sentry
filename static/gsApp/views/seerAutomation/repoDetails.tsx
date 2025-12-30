@@ -68,7 +68,7 @@ export default function SeerRepoDetails() {
           repoWithSettings={repoWithSettings}
         />
       ) : (
-        <Alert type="warning">{t('Seer is not supported for this repository.')}</Alert>
+        <Alert variant="warning">{t('Seer is not supported for this repository.')}</Alert>
       )}
     </Fragment>
   );

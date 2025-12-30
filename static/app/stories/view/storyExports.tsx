@@ -99,7 +99,7 @@ function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
               {props.story.exports.frontmatter?.status ? (
                 props.story.exports.frontmatter.status === 'stable' ? null : (
                   <Tag
-                    type={
+                    variant={
                       props.story.exports.frontmatter.status === 'in-progress'
                         ? 'warning'
                         : 'promotion'
@@ -193,7 +193,7 @@ function StoryUsage() {
         <Storybook.Section>
           <ErrorBoundary
             fallback={
-              <Alert type="error" showIcon={false}>
+              <Alert variant="danger" showIcon={false}>
                 Problem loading <code>{filename}</code>
               </Alert>
             }

@@ -52,6 +52,15 @@ class PreprodArtifactApiRerunAnalysisEvent(analytics.Event):
     artifact_id: str
 
 
+@analytics.eventclass("preprod_artifact.api.rerun_status_checks")
+class PreprodArtifactApiRerunStatusChecksEvent(analytics.Event):
+    organization_id: int
+    project_id: int
+    user_id: int | None = None
+    artifact_id: str
+    check_types: list[str]
+
+
 @analytics.eventclass("preprod_artifact.api.admin_get_info")
 class PreprodArtifactApiAdminGetInfoEvent(analytics.Event):
     organization_id: int
@@ -143,6 +152,7 @@ analytics.register(PreprodArtifactApiGetBuildDetailsEvent)
 analytics.register(PreprodArtifactApiListBuildsEvent)
 analytics.register(PreprodArtifactApiInstallDetailsEvent)
 analytics.register(PreprodArtifactApiRerunAnalysisEvent)
+analytics.register(PreprodArtifactApiRerunStatusChecksEvent)
 analytics.register(PreprodArtifactApiAdminGetInfoEvent)
 analytics.register(PreprodArtifactApiAdminBatchDeleteEvent)
 analytics.register(PreprodArtifactApiDeleteEvent)

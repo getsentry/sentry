@@ -66,7 +66,9 @@ function TopSection({
           </Flex>
           <Flex align="center">
             {tags.map(feature => (
-              <StyledTag key={feature}>{startCase(feature)}</StyledTag>
+              <StyledTag key={feature} variant="muted">
+                {startCase(feature)}
+              </StyledTag>
             ))}
           </Flex>
         </NameContainer>
@@ -252,7 +254,7 @@ function InformationCard({
           {permissions}
           {alerts.map((alert, i) => (
             <Alert.Container key={i}>
-              <Alert key={i} type={alert.type}>
+              <Alert key={i} variant={alert.variant}>
                 <span
                   dangerouslySetInnerHTML={{__html: singleLineRenderer(alert.text)}}
                 />

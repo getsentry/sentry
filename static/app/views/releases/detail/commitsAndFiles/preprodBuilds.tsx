@@ -147,7 +147,6 @@ export default function PreprodBuilds() {
             error={!!buildsError}
             pageLinks={pageLinks}
             organizationSlug={organization.slug}
-            projectSlug={projectSlug}
             onRowClick={handleBuildRowClick}
             hasSearchQuery
           />

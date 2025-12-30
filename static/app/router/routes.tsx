@@ -499,7 +499,6 @@ function buildRoutes(): RouteObject[] {
     name: t('Account'),
     component: make(() => import('sentry/views/settings/account/accountSettingsLayout')),
     children: accountSettingsChildren,
-    deprecatedRouteProps: true,
   };
 
   const projectSettingsChildren: SentryRouteObject[] = [
@@ -1271,7 +1270,6 @@ function buildRoutes(): RouteObject[] {
       () => import('sentry/views/settings/organization/organizationSettingsLayout')
     ),
     children: orgSettingsChildren,
-    deprecatedRouteProps: true,
   };
 
   const subscriptionSettingsRoutes = routeHook('routes:subscription-settings');
@@ -2764,7 +2762,6 @@ function buildRoutes(): RouteObject[] {
     path: '/manage/',
     component: make(() => import('sentry/views/admin/adminLayout')),
     children: adminManageChildren,
-    deprecatedRouteProps: true,
   };
 
   const legacyOrganizationRootChildren: SentryRouteObject[] = [

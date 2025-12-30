@@ -2,6 +2,8 @@ import {Fragment, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {APIRequestMethod} from 'sentry/api';
@@ -318,7 +320,7 @@ function AllocationForm({
                   );
                 }}
               />
-              <InputWrapper>
+              <Flex align="center">
                 <FancyInput
                   value={showPrice ? allocationSpend : allocationVolume}
                   placeholder="0"
@@ -336,7 +338,7 @@ function AllocationForm({
                 />
                 &nbsp;
                 {showPrice ? '$' : metricUnit === BigNumUnits.KILO_BYTES && 'KB'}
-              </InputWrapper>
+              </Flex>
               <Button
                 aria-label="increase-allocation"
                 size="sm"
@@ -440,7 +442,7 @@ function AllocationForm({
             (initializedData && allocationVolume < initializedData.consumedQuantity)) && (
             // attempting to increase, but remaining available events have been exhausted (but still under budget)
             // OR attempting to decrease below consumed events
-            <Alert type="error" showIcon={false}>
+            <Alert variant="danger" showIcon={false}>
               <div>
                 {t(
                   'Cannot apply this change to your current period due to consumed amounts.'
@@ -450,7 +452,7 @@ function AllocationForm({
           )}
           {overBudgetedEvents && (
             // attempting to increase over the total available amount
-            <Alert type="error" showIcon={false}>
+            <Alert variant="danger" showIcon={false}>
               <div>
                 {t('Cannot allocate more than your subscription Reserved Quota.')}
               </div>
@@ -458,7 +460,7 @@ function AllocationForm({
             </Alert>
           )}
           {!rootAllocation && (
-            <Alert type="error" showIcon={false}>
+            <Alert variant="danger" showIcon={false}>
               <div>
                 {t(
                   'There is currently no organization-level allocation for this billing metric.'
@@ -494,11 +496,6 @@ const FormBody = styled('form')`
 
 const FormRow = styled(HalvedGrid)`
   padding: ${space(1)} ${space(2)};
-`;
-
-const InputWrapper = styled('div')`
-  display: flex;
-  align-items: center;
 `;
 
 const FancyInput = styled('input')`
