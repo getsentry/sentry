@@ -105,9 +105,9 @@ function normalizeFilename(filename: string) {
 
 export type StoryCategory = 'principles' | 'patterns' | 'core' | 'product';
 
-export type StorySection = 'overview' | StoryCategory;
+type StorySection = 'overview' | StoryCategory;
 
-export type ComponentSubcategory =
+type ComponentSubcategory =
   | 'typography'
   | 'layout'
   | 'buttons'
@@ -219,7 +219,7 @@ export const COMPONENT_SUBCATEGORY_ORDER: ComponentSubcategory[] = [
 ];
 
 // Hierarchical structure for sidebar rendering
-export interface StoryHierarchyData {
+interface StoryHierarchyData {
   stories: StoryTreeNode[];
 }
 
