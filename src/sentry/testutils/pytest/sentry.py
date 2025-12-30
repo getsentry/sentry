@@ -405,8 +405,13 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     # Selective testing based on coverage data
     if os.environ.get("SELECTIVE_TESTING_ENABLED"):
         changed_files_str = os.environ.get("CHANGED_FILES", None)
-        # TODO: Remove default value
-        coverage_db_path = os.environ.get("COVERAGE_DB_PATH", ".coverage.combined")
+
+        coverage_db_path = os.environ.get("COVERAGE_DB_PATH", None)
+        if coverage_db_path is None:
+            raise ValueError("COVERAGE_DB_PATH is not set")
+
+        if not os.path.exists(coverage_db_path):
+            raise ValueError(f"Coverage database not found at {coverage_db_path}")
 
         if changed_files_str is not None:
             # Parse changed files from space-separated string

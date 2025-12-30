@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import sqlite3
 
 from sentry.testutils import pytest
@@ -17,9 +16,6 @@ def filter_items_by_coverage(
     changed_files: list[str],
     coverage_db_path: str,
 ) -> tuple[list[pytest.Item], list[pytest.Item], set[str]]:
-    if not os.path.exists(coverage_db_path):
-        raise ValueError(f"Coverage database not found at {coverage_db_path}")
-
     affected_test_files = set()
     try:
         conn = sqlite3.connect(coverage_db_path)

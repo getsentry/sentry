@@ -1,4 +1,4 @@
-name: backend - selective
+name: backend (selective)
 
 on:
   pull_request:
@@ -10,8 +10,32 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  files-changed:
+    name: detect what files changed
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    # Map a step output to a job output
+    outputs:
+      api_docs: ${{ steps.changes.outputs.api_docs }}
+      backend: ${{ steps.changes.outputs.backend_all }}
+      backend_dependencies: ${{ steps.changes.outputs.backend_dependencies }}
+      backend_api_urls: ${{ steps.changes.outputs.backend_api_urls }}
+      backend_any_type: ${{ steps.changes.outputs.backend_any_type }}
+      migration_lockfile: ${{ steps.changes.outputs.migration_lockfile }}
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Check for backend file changes
+        uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
   backend-test-selective:
-    name: backend test (selective)
+    if: needs.files-changed.outputs.backend == 'true'
+    needs: files-changed
+    name: backend test
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
@@ -35,10 +59,9 @@ jobs:
         with:
           mode: backend-ci
 
+      # TODO: Replace with Gcloud download
       # Download coverage artifact from a previous workflow run
       # actions/download-artifact doesn't support cross-run downloads, so we use alternatives
-
-      # Option 1: Use dawidd6/action-download-artifact (supports cross-run downloads)
       - name: Download coverage database from run 20529759656
         uses: dawidd6/action-download-artifact@v6
         continue-on-error: true
@@ -52,14 +75,6 @@ jobs:
       - name: Get changed files
         id: changed-files
         uses: tj-actions/changed-files@24d32ffd492484c1d75e0c0b894501ddb9d30d62
-
-      - name: List all changed files
-        env:
-          ALL_CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
-        run: |
-          for file in ${ALL_CHANGED_FILES}; do
-              echo "$file was changed"
-          done
 
       - name: Run backend tests (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         id: run_backend_tests
