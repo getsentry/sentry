@@ -70,7 +70,7 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
       <Cell>
         {triggeredActivity.value && (
           <StatusIndicator
-            status={isCritical ? 'error' : 'warning'}
+            status={isCritical ? 'danger' : 'warning'}
             tooltipTitle={t('Status: %s', isCritical ? t('Critical') : t('Warning'))}
           />
         )}

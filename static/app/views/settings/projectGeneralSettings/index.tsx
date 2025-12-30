@@ -366,7 +366,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
             fields.verifySSL,
           ]}
           renderHeader={() => (
-            <PanelAlert type="info">
+            <PanelAlert variant="info">
               <TextBlock noMargin>
                 {tct(
                   'Configure origin URLs which Sentry should accept events from. This is used for communication with clients like [link].',

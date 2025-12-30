@@ -387,7 +387,7 @@ function PendingChanges({subscription}: any) {
   return (
     <Fragment>
       <Alert.Container>
-        <Alert type="info">This account has pending changes to the subscription</Alert>
+        <Alert variant="info">This account has pending changes to the subscription</Alert>
       </Alert.Container>
 
       <List>

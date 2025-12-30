@@ -25,7 +25,7 @@ export function UserSnoozeDeprecationBanner({projectId}: Props) {
 
   return (
     <Alert
-      type="info"
+      variant="info"
       trailingItems={
         <Button
           aria-label="Dismiss banner"

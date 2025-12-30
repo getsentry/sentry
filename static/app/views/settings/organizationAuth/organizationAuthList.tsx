@@ -73,7 +73,7 @@ function OrganizationAuthList({providerList, activeProvider}: Props) {
         <PanelHeader>{t('Choose a provider')}</PanelHeader>
         <PanelBody>
           {!activeProvider && (
-            <PanelAlert type="info">
+            <PanelAlert variant="info">
               {tct(
                 'Get started with Single Sign-on for your organization by selecting a provider. Read more in our [link:SSO documentation].',
                 {
@@ -86,7 +86,7 @@ function OrganizationAuthList({providerList, activeProvider}: Props) {
           )}
 
           {warn2FADisable && (
-            <PanelAlert type="warning">
+            <PanelAlert variant="warning">
               {t('Require 2FA will be disabled if you enable SSO.')}
             </PanelAlert>
           )}

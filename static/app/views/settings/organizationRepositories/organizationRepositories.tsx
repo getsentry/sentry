@@ -26,7 +26,7 @@ function OrganizationRepositories({itemList, onRepositoryChange, organization}: 
     <div>
       <SettingsPageHeader title={t('Repositories')} />
       <AlertLink.Container>
-        <AlertLink type="info" to={`/settings/${organization.slug}/integrations/`}>
+        <AlertLink variant="info" to={`/settings/${organization.slug}/integrations/`}>
           {t(
             'Want to add a repository to start tracking commits? Install or configure your version control integration here.'
           )}

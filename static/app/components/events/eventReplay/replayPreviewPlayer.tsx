@@ -93,7 +93,7 @@ export default function ReplayPreviewPlayer({
   return (
     <PlayerPanel>
       {errorBeforeReplayStart && (
-        <StyledAlert type="warning">
+        <StyledAlert variant="warning">
           {t(
             'For this event, the replay recording started after the error happened, so the replay below shows the user experience after the error.'
           )}

@@ -78,7 +78,7 @@ function DeleteInProgressAlert({
 }) {
   return (
     <Alert
-      type="info"
+      variant="info"
       trailingItems={
         <LinkButton
           size="xs"

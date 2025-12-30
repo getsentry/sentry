@@ -154,7 +154,7 @@ export default function ProjectDataForwarding() {
             <ProjectPermissionAlert project={project} />
 
             <Alert.Container>
-              <Alert type="info">
+              <Alert variant="info">
                 {tct(
                   `Sentry forwards [em:all applicable error events] to the provider, in
                 some cases this may be a significant volume of data.`,

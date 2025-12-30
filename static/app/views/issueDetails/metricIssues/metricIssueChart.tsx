@@ -53,7 +53,7 @@ export function MetricIssueChart({group, project: _project}: MetricIssueChartPro
   if (isDetectorError) {
     return (
       <Container width="100%">
-        <GraphAlert type="error">{getDetectorErrorMessage(detectorError)}</GraphAlert>
+        <GraphAlert variant="danger">{getDetectorErrorMessage(detectorError)}</GraphAlert>
       </Container>
     );
   }
@@ -92,7 +92,7 @@ function MetricIssueChartContent({
   if (chartError) {
     return (
       <Container width="100%">
-        <GraphAlert type="error">
+        <GraphAlert variant="danger">
           {t('Error loading metric monitor: %s', chartError?.message)}
         </GraphAlert>
       </Container>

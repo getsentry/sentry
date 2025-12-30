@@ -33,7 +33,7 @@ export default function SeerAutomationAlert({organization}: SeerAutomationAlertP
   return (
     <Alert.Container>
       <Alert
-        type="info"
+        variant="info"
         trailingItems={
           <Button
             icon={<IconClose />}

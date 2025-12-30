@@ -189,7 +189,7 @@ function AlertBanner(props: Omit<AlertProps, 'type' | 'showIcon'>) {
   return (
     <ModuleLayout.Full>
       <Alert.Container>
-        <Alert {...props} type="info" showIcon />
+        <Alert {...props} variant="info" showIcon />
       </Alert.Container>
     </ModuleLayout.Full>
   );

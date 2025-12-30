@@ -259,7 +259,7 @@ function MonitorForm({
       <StyledList symbol="colored-numeric">
         {monitor?.isUpserting && (
           <Alert.Container>
-            <Alert type="warning">
+            <Alert variant="warning">
               {t(
                 'This monitor is managed in code and updates automatically with each check-in. Changes made here may be overwritten!'
               )}
@@ -501,7 +501,7 @@ function MonitorForm({
         <InputGroup>
           {monitor?.config.alert_rule_id && (
             <AlertLink
-              type="muted"
+              variant="muted"
               to={makeAlertsPathname({
                 path: `/rules/${monitor.project.slug}/${monitor.config.alert_rule_id}/`,
                 organization,

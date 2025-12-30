@@ -82,7 +82,7 @@ export default function SeerSettingsPageWrapper({children}: Props) {
         <SettingsPageTabs />
 
         {canWrite ? null : (
-          <Alert data-test-id="org-permission-alert" type="warning">
+          <Alert data-test-id="org-permission-alert" variant="warning">
             {t(
               'These settings can only be edited by users with the organization owner or manager role.'
             )}

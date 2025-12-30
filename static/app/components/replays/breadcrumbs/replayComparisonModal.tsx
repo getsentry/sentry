@@ -105,7 +105,7 @@ export default function ReplayComparisonModal({
         <Body>
           {isSameTimestamp ? (
             <Alert.Container>
-              <Alert type="warning">
+              <Alert variant="warning">
                 {t(
                   "Cannot display diff for this hydration error. Sentry wasn't able to identify the correct event."
                 )}

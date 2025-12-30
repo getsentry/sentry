@@ -316,7 +316,7 @@ export default function SentryApplicationDetails() {
           <Header>{t('Your new Client Secret')}</Header>
           <Body>
             <Alert.Container>
-              <Alert type="info">
+              <Alert variant="info">
                 {t('This will be the only time your client secret is visible!')}
               </Alert>
             </Alert.Container>

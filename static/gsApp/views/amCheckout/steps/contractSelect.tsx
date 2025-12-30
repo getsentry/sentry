@@ -59,7 +59,7 @@ function ContractSelect({
   };
 
   const annualContractWarning = (
-    <ContractAlert type="info">
+    <ContractAlert variant="info">
       {t(
         'You are currently on an annual contract so any subscription downgrades will take effect at the end of your contract period.'
       )}

@@ -72,7 +72,7 @@ function MyDrawer({title}: {title: string}) {
         </div>
 
         <Alert.Container>
-          <Alert type="warning">
+          <Alert variant="warning">
             Calling <code>openDrawer</code> updates a global context. All components that
             subscribe to that context will be re-rendered, and this can cause infinite
             rendering loops. Avoid calling <code>openDrawer</code> repeatedly. This can

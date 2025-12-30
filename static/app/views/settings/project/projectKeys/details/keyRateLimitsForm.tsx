@@ -105,7 +105,7 @@ function KeyRateLimitsForm({data, disabled, organization, params, updateData}: P
             <PanelHeader>{t('Rate Limits')}</PanelHeader>
 
             <PanelBody>
-              <PanelAlert type="info">
+              <PanelAlert variant="info">
                 {t(
                   `Rate limits provide a flexible way to manage your error
                     volume. If you have a noisy project or environment you

@@ -77,7 +77,7 @@ export class OrganizationRules extends Component<Props, State> {
 
     if (rules.length === 0) {
       return (
-        <PanelAlert type="info">
+        <PanelAlert variant="info">
           {t('There are no data scrubbing rules at the organization level')}
         </PanelAlert>
       );

@@ -111,7 +111,7 @@ function Login() {
           {orgId !== undefined && (
             <Alert.Container>
               <Alert
-                type="warning"
+                variant="warning"
                 trailingItems={
                   <LinkButton to="/" size="xs">
                     Reload

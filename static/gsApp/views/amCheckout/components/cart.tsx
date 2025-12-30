@@ -948,7 +948,7 @@ function Cart({
             <Flex direction="column" gap="lg" data-test-id="plan-summary" width="100%">
               {errorMessage && (
                 <Container>
-                  <Alert type="error">{errorMessage}</Alert>
+                  <Alert variant="danger">{errorMessage}</Alert>
                 </Container>
               )}
               <ItemsSummary activePlan={activePlan} formData={formData} />

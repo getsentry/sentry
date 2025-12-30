@@ -222,7 +222,7 @@ export function DetectorsTableActions({
         </ActionsBarWrapper>
       </SimpleTable.Header>
       {pageSelected && !allResultsVisible && (
-        <FullWidthAlert type="warning" system showIcon={false}>
+        <FullWidthAlert variant="warning" system showIcon={false}>
           <Flex justify="center" wrap="wrap" gap="md">
             {allInQuerySelected ? (
               tct('Selected all [count] monitors that match this search query.', {

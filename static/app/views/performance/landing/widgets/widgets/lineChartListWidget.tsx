@@ -107,7 +107,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
   const mepSetting = useMEPSettingContext();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {ContainerActions, organization, InteractiveTitle} = props;
-  const {setPageError} = usePageAlert();
+  const {setPageDanger} = usePageAlert();
   const canHaveIntegrationEmptyState = integrationEmptyStateWidgets.includes(
     props.chartSetting
   );
@@ -516,7 +516,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
               query={eventView.getQueryWithAdditionalConditions()}
               interval={interval}
               hideError
-              onError={setPageError}
+              onError={setPageDanger}
               queryExtras={extraQueryParams}
             />
           );

@@ -17,7 +17,7 @@ type Props = React.PropsWithChildren<{
 function PerformanceNewProjectPrompt({organization}: Props) {
   return (
     <Alert.Container>
-      <StyledAlert type="info">
+      <StyledAlert variant="info">
         <Container>
           {t(
             `Performance is available for your platform, but your organization's plan does not include performance monitoring.`

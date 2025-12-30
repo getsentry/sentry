@@ -15,7 +15,7 @@ type DeprecatedPlatformInfoProps = {
 
 export function DeprecatedPlatformInfo({platform, dsn}: DeprecatedPlatformInfoProps) {
   return (
-    <NoOverflowAlert type="warning" showIcon={false}>
+    <NoOverflowAlert variant="warning" showIcon={false}>
       <Stack padding="xl" gap="xl">
         <Text>
           {tct(

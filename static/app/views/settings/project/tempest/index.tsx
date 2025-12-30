@@ -67,7 +67,7 @@ export default function TempestSettings() {
   if (!hasTempestAccess(organization)) {
     return (
       <Alert.Container>
-        <Alert type="warning" showIcon={false}>
+        <Alert variant="warning" showIcon={false}>
           {t("You don't have access to this feature")}
         </Alert>
       </Alert.Container>
@@ -124,7 +124,7 @@ export default function TempestSettings() {
         <div>
           <Alert.Container>
             <Alert
-              type="warning"
+              variant="warning"
               trailingItems={
                 <Button
                   priority="link"

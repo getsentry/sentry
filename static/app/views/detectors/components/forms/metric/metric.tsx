@@ -643,7 +643,7 @@ function MigratedAlertWarningListener() {
   if (isMigratedExtrapolation) {
     return (
       <Alert.Container>
-        <Alert type="info">
+        <Alert variant="info">
           {tct(
             'The thresholds on this chart may look off. This is because, once saved, alerts will now take into account [samplingLink:sampling rate]. Before clicking save, take the time to update your [thresholdsLink:thresholds]. Cancel to continue running this alert in compatibility mode.',
             {

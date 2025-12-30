@@ -295,7 +295,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
             onSearchChange={value => setSearchQuery(value || undefined)}
           />
         ) : (
-          <Alert type="info">No files found matching "{searchQuery}"</Alert>
+          <Alert variant="info">No files found matching "{searchQuery}"</Alert>
         )
       ) : (
         <AppSizeCategories treemapData={appSizeData.treemap} />
@@ -315,7 +315,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
         onSearchChange={value => setSearchQuery(value || undefined)}
       />
     ) : (
-      <Alert type="info">No files found matching "{searchQuery}"</Alert>
+      <Alert variant="info">No files found matching "{searchQuery}"</Alert>
     );
   }
 

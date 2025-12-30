@@ -71,7 +71,7 @@ SentrySdk.Init(options =>
 
 export const profiling: OnboardingConfig = {
   introduction: () => (
-    <Alert type="info" showIcon={false}>
+    <Alert variant="info" showIcon={false}>
       <div>
         {t(
           'Sentry profiling for .NET is available in Alpha on .NET 6.0+ (tested on .NET 7.0 & .NET 8.0 as well).'

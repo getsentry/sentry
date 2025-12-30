@@ -82,7 +82,7 @@ function ChangeDatesModal({
           cancelLabel="Cancel"
         >
           <Alert.Container>
-            <Alert type="info" showIcon={false}>
+            <Alert variant="info" showIcon={false}>
               This overrides the current contract and on-demand period dates so the
               subscription may fall into a weird state.
             </Alert>

@@ -73,7 +73,7 @@ function AccountEmails() {
         <AlertLink
           to="/settings/account/notifications"
           trailingItems={<IconStack />}
-          type="info"
+          variant="info"
         >
           {t('Want to change how many emails you get? Use the notifications panel.')}
         </AlertLink>

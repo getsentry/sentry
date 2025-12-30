@@ -22,7 +22,7 @@ export function ReplayAccess({children, fallback = null}: ReplayAccessProps) {
 export function ReplayAccessFallbackAlert() {
   return (
     <Alert
-      type="warning"
+      variant="warning"
       showIcon
       defaultExpanded
       expand={t(

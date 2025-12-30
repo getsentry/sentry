@@ -277,7 +277,7 @@ function generateContentItems(theme: Theme): KeyValueDataContentProps[] {
         key: 'null-subject-node',
         subject: 'null-subject-node',
         subjectNode: null,
-        value: <Alert type="warning">Custom value can also span full length</Alert>,
+        value: <Alert variant="warning">Custom value can also span full length</Alert>,
       },
     },
     {

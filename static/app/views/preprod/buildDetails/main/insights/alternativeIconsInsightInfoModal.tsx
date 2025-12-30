@@ -53,7 +53,7 @@ function AlternativeIconsContent() {
       </Text>
 
       <Container padding="md 0">
-        <Alert type="warning">
+        <Alert variant="warning">
           {t(
             "Reminder: If you convert your image to HEIC, make sure to update the reference in your app's project to use this new filepath!"
           )}

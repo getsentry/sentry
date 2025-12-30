@@ -35,7 +35,7 @@ const DSYM_INPUT_FILE =
 function getStripDebugSymbolsContent() {
   return (
     <Flex direction="column" gap="lg">
-      <Alert type="warning">
+      <Alert variant="warning">
         {t(
           'Stripping symbols before creating a dSYM breaks crash symbolication. Confirm your release build still produces and uploads dSYMs before stripping.'
         )}

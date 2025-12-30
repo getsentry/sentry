@@ -29,7 +29,7 @@ export function FeatureFlagOtherPlatformOnboarding({
         {
           <Alert.Container>
             <Alert
-              type="info"
+              variant="info"
               trailingItems={
                 <LinkButton href={docsUrl} size="xs" external>
                   {t('Read the docs')}

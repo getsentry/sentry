@@ -72,7 +72,7 @@ describe('processInitQueue', () => {
 
       AlertStore.addAlert({
         message: 'System Alert',
-        type: 'success',
+        variant: 'success',
       });
 
       render(<div id="system-alerts-container" />);

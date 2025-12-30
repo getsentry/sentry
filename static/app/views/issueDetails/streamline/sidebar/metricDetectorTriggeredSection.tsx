@@ -144,7 +144,7 @@ function ContributingIssues({
       return (
         <Alert.Container>
           <Alert
-            type="info"
+            variant="info"
             trailingItems={
               <Feature features="discover-basic">
                 <LinkButton priority="default" size="xs" to={discoverUrl}>

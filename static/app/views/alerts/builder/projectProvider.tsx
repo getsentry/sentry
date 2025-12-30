@@ -70,7 +70,7 @@ function AlertBuilderProjectProvider(props: Props) {
   if (!project || fetchError) {
     return (
       <Alert.Container>
-        <Alert type="warning" showIcon={false}>
+        <Alert variant="warning" showIcon={false}>
           {t('The project you were looking for was not found.')}
         </Alert>
       </Alert.Container>
