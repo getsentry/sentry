@@ -1054,12 +1054,11 @@ def get_organization_features(*, org_id: int) -> dict:
     except Organization.DoesNotExist:
         return {"organization_id": org_id, "features": []}
 
-    # Get all organization features with api_expose=True
+    # Get all organization features (not filtered by api_expose since Seer is internal)
     org_features = [
         feature
         for feature in features.all(
             feature_type=features.OrganizationFeature,
-            api_expose_only=True,
         ).keys()
         if feature.startswith("organizations:")
     ]
