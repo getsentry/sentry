@@ -21,6 +21,8 @@ from sentry.seer.endpoints.seer_rpc import (
     generate_request_signature,
     get_attributes_for_span,
     get_github_enterprise_integration_config,
+    get_organization_features,
+    get_organization_options,
     get_organization_seer_consent_by_org_name,
     get_sentry_organization_ids,
 )
@@ -1476,3 +1478,68 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         assert result == {"integration_ids": [integration.id]}
+
+    def test_get_organization_options_all(self) -> None:
+        """Test getting all organization options"""
+        OrganizationOption.objects.set_value(self.organization, "sentry:sampling_mode", "adaptive")
+        OrganizationOption.objects.set_value(self.organization, "sentry:option_epoch", 1234567890)
+
+        result = get_organization_options(org_id=self.organization.id)
+
+        assert result["organization_id"] == self.organization.id
+        assert "options" in result
+        assert len(result["options"]) >= 2
+
+        # Check that our test options are in the result
+        option_keys = {opt["key"] for opt in result["options"]}
+        assert "sentry:sampling_mode" in option_keys
+        assert "sentry:option_epoch" in option_keys
+
+        # Check specific values
+        sampling_option = next(
+            opt for opt in result["options"] if opt["key"] == "sentry:sampling_mode"
+        )
+        assert sampling_option["value"] == "adaptive"
+
+    def test_get_organization_options_specific_keys(self) -> None:
+        """Test getting specific option keys"""
+        OrganizationOption.objects.set_value(self.organization, "sentry:sampling_mode", "adaptive")
+        OrganizationOption.objects.set_value(self.organization, "sentry:option_epoch", 1234567890)
+
+        result = get_organization_options(
+            org_id=self.organization.id, keys=["sentry:sampling_mode"]
+        )
+
+        assert result["organization_id"] == self.organization.id
+        assert len(result["options"]) == 1
+        assert result["options"][0]["key"] == "sentry:sampling_mode"
+        assert result["options"][0]["value"] == "adaptive"
+
+    def test_get_organization_options_nonexistent_org(self) -> None:
+        """Test getting options for non-existent organization"""
+        result = get_organization_options(org_id=999999)
+
+        assert result["organization_id"] == 999999
+        assert result["options"] == []
+
+    def test_get_organization_options_nonexistent_keys(self) -> None:
+        """Test requesting keys that don't exist returns empty list"""
+        result = get_organization_options(org_id=self.organization.id, keys=["nonexistent:key"])
+
+        assert result["organization_id"] == self.organization.id
+        assert result["options"] == []
+
+    def test_get_organization_features(self) -> None:
+        """Test getting organization features"""
+        result = get_organization_features(org_id=self.organization.id)
+
+        assert result["organization_id"] == self.organization.id
+        assert "features" in result
+        assert isinstance(result["features"], list)
+
+    def test_get_organization_features_nonexistent_org(self) -> None:
+        """Test getting features for non-existent organization"""
+        result = get_organization_features(org_id=999999)
+
+        assert result["organization_id"] == 999999
+        assert result["features"] == []

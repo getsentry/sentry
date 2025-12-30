@@ -986,6 +986,114 @@ def check_repository_integrations_status(*, repository_integrations: list[dict[s
     return {"integration_ids": integration_ids}
 
 
+def get_organization_options(*, org_id: int, keys: list[str] | None = None) -> dict:
+    """
+    Get organization options for a specific organization.
+
+    Args:
+        org_id: Organization ID
+        keys: Optional list of specific option keys to retrieve.
+              If None, returns all options for the organization.
+
+    Returns:
+        {
+            "organization_id": 123,
+            "options": [
+                {
+                    "key": "sentry:sampling_mode",
+                    "value": "adaptive"
+                },
+                ...
+            ]
+        }
+    """
+    from sentry.models.options.organization_option import OrganizationOption
+    from sentry.models.organization import Organization
+
+    try:
+        org = Organization.objects.get(id=org_id)
+    except Organization.DoesNotExist:
+        return {"organization_id": org_id, "options": []}
+
+    if keys:
+        # Get specific keys
+        result = []
+        for key in keys:
+            value = OrganizationOption.objects.get_value(org, key, default=None)
+            if value is not None:
+                result.append({"key": key, "value": value})
+    else:
+        # Get all options for the organization
+        all_values = OrganizationOption.objects.get_all_values(org)
+        result = [{"key": k, "value": v} for k, v in all_values.items()]
+
+    return {
+        "organization_id": org_id,
+        "options": result,
+    }
+
+
+def get_organization_features(*, org_id: int) -> dict:
+    """
+    Get enabled features for an organization.
+
+    Follows the pattern from:
+    src/sentry/api/serializers/models/organization.py:get_feature_set()
+
+    Args:
+        org_id: Organization ID
+
+    Returns:
+        {
+            "organization_id": 123,
+            "features": ["dashboards-basic", "ai-insights", ...]
+        }
+    """
+    from sentry import features
+    from sentry.models.organization import Organization
+
+    try:
+        org = Organization.objects.get(id=org_id)
+    except Organization.DoesNotExist:
+        return {"organization_id": org_id, "features": []}
+
+    # Get all organization features with api_expose=True
+    org_features = [
+        feature
+        for feature in features.all(
+            feature_type=features.OrganizationFeature,
+            api_expose_only=True,
+        ).keys()
+        if feature.startswith("organizations:")
+    ]
+
+    feature_set = set()
+
+    # Batch check for efficiency
+    batch_features = features.batch_has(
+        org_features,
+        actor=None,  # No actor context for Seer
+        organization=org,
+    )
+
+    if batch_features:
+        for feature_name, active in batch_features.get(f"organization:{org.id}", {}).items():
+            if active:
+                # Strip "organizations:" prefix
+                feature_set.add(feature_name[len("organizations:") :])
+            org_features.remove(feature_name)
+
+    # Check remaining features individually
+    for feature_name in org_features:
+        if features.has(feature_name, org, actor=None, skip_entity=True):
+            feature_set.add(feature_name[len("organizations:") :])
+
+    return {
+        "organization_id": org_id,
+        "features": sorted(feature_set),
+    }
+
+
 seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     # Common to Seer features
     "get_organization_seer_consent_by_org_name": get_organization_seer_consent_by_org_name,
@@ -1043,6 +1151,10 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     # Replays
     "get_replay_summary_logs": rpc_get_replay_summary_logs,
     "get_replay_metadata": get_replay_metadata,
+    #
+    # Organization Options and Features
+    "get_organization_options": get_organization_options,
+    "get_organization_features": get_organization_features,
 }
 
 
