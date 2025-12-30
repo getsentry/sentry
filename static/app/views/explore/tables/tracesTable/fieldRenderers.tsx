@@ -1,7 +1,11 @@
-import {useState} from 'react';
+import {useMemo, useState} from 'react';
 import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
+import moment from 'moment-timezone';
+
+import {Container} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {Stack} from '@sentry/scraps/layout';
 
@@ -13,18 +17,22 @@ import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import TimeSince from 'sentry/components/timeSince';
-import {t, tn} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import Projects from 'sentry/utils/projects';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
 import {BREAKDOWN_SLICES} from 'sentry/views/explore/hooks/useTraces';
 import type {SpanResult} from 'sentry/views/explore/tables/tracesTable/types';
+import {getExploreUrl} from 'sentry/views/explore/utils';
 import type {SpanFields, SpanResponse} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
@@ -387,7 +395,10 @@ const BreakdownSlice = styled('div')<{
 `;
 
 interface SpanIdRendererProps {
+  spanDescription: string | null;
   spanId: string;
+  spanOp: string;
+  spanProject: string;
   timestamp: string;
   traceId: string;
   transactionId: string;
@@ -400,9 +411,71 @@ export function SpanIdRenderer({
   traceId,
   transactionId,
   onClick,
+  spanDescription,
+  spanOp,
+  spanProject,
 }: SpanIdRendererProps) {
   const location = useLocation();
   const organization = useOrganization();
+  const {selection} = usePageFilters();
+
+  const shortSpanId = getShortEventId(spanId);
+
+  const olderThan30Days = useMemo(() => {
+    const currentDate = moment();
+    const timestampDate = moment(timestamp);
+    return currentDate.diff(timestampDate, 'days') >= 30;
+  }, [timestamp]);
+
+  const {projects} = useProjects({slugs: [spanProject]});
+  const projectIds = projects
+    .filter(project => defined(project.id))
+    .map(project => parseInt(project.id, 10));
+
+  const queryString = useMemo(() => {
+    if (!olderThan30Days) return undefined;
+
+    const search = new MutableSearch('');
+    if (spanOp) {
+      search.addFilterValue('span.op', spanOp);
+    }
+
+    if (spanDescription) {
+      search.addFilterValue('span.description', spanDescription);
+    }
+
+    return search.formatString();
+  }, [olderThan30Days, spanDescription, spanOp]);
+
+  if (olderThan30Days) {
+    const similarTraces = getExploreUrl({
+      organization,
+      mode: Mode.SAMPLES,
+      query: queryString,
+      selection: {
+        ...selection,
+        projects: projectIds,
+        datetime: {start: null, end: null, utc: null, period: '24h'},
+      },
+    });
+
+    return (
+      <Tooltip
+        showUnderline
+        isHoverable
+        disabled={!queryString}
+        title={
+          <Text>
+            {tct('Span is older than 30 days. [similarSpans] in the past 24 hours.', {
+              similarSpans: <Link to={similarTraces}>{t('View similar spans')}</Link>,
+            })}
+          </Text>
+        }
+      >
+        <Text variant="muted">{shortSpanId}</Text>
+      </Tooltip>
+    );
+  }
 
   const target = generateLinkToEventInTraceView({
     traceSlug: traceId,
@@ -416,15 +489,17 @@ export function SpanIdRenderer({
 
   return (
     <Link to={target} onClick={onClick}>
-      {getShortEventId(spanId)}
+      {shortSpanId}
     </Link>
   );
 }
 
 interface TraceIdRendererProps {
   location: Location;
+  projectSlugs: string[];
   timestamp: number; // in milliseconds
   traceId: string;
+  traceName: string | null;
   onClick?: React.ComponentProps<typeof Link>['onClick'];
   transactionId?: string;
 }
@@ -435,9 +510,73 @@ export function TraceIdRenderer({
   transactionId,
   location,
   onClick,
+  traceName,
+  projectSlugs,
 }: TraceIdRendererProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
+
+  const shortId = getShortEventId(traceId);
+
+  const olderThan30Days = useMemo(() => {
+    const currentDate = moment();
+    const timestampDate = moment(timestamp);
+    return currentDate.diff(timestampDate, 'days') >= 30;
+  }, [timestamp]);
+
+  const {projects} = useProjects({slugs: projectSlugs, orgId: organization.slug});
+  const projectIds = projects
+    .filter(project => defined(project.id))
+    .map(project => parseInt(project.id, 10));
+
+  const queryString = useMemo(() => {
+    if (!olderThan30Days) return undefined;
+
+    const search = new MutableSearch('');
+    search.addFilterValue('is_transaction', 'true');
+    if (traceName) {
+      search.addFilterValue('span.description', traceName);
+    }
+
+    return search.formatString();
+  }, [olderThan30Days, traceName]);
+
+  if (olderThan30Days) {
+    const similarTraces = getExploreUrl({
+      organization,
+      mode: Mode.SAMPLES,
+      table: 'trace',
+      query: queryString,
+      selection: {
+        ...selection,
+        projects: projectIds,
+        datetime: {start: null, end: null, utc: null, period: '24h'},
+      },
+    });
+
+    return (
+      <Tooltip
+        showUnderline
+        isHoverable
+        disabled={!queryString}
+        title={
+          <Text>
+            {tct('Event is older than 30 days. [similarTraces] in the past 24 hours.', {
+              similarTraces: <Link to={similarTraces}>{t('View similar traces')}</Link>,
+            })}
+          </Text>
+        }
+      >
+        <Container minWidth="66px">
+          {props => (
+            <Text variant="muted" aria-disabled="true" role="link" {...props}>
+              {shortId}
+            </Text>
+          )}
+        </Container>
+      </Tooltip>
+    );
+  }
 
   const target = getTraceDetailsUrl({
     organization,
@@ -454,9 +593,13 @@ export function TraceIdRenderer({
   });
 
   return (
-    <Link to={target} style={{minWidth: '66px', textAlign: 'right'}} onClick={onClick}>
-      {getShortEventId(traceId)}
-    </Link>
+    <Container minWidth="66px">
+      {props => (
+        <Link to={target} style={{textAlign: 'right'}} onClick={onClick} {...props}>
+          {shortId}
+        </Link>
+      )}
+    </Container>
   );
 }
 
