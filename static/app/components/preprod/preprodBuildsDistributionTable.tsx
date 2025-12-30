@@ -3,7 +3,6 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
@@ -66,9 +65,7 @@ export function PreprodBuildsDistributionTable({
     return (
       <RowComponent key={build.id} variant={isRowDisabled ? 'faded' : 'default'}>
         {isRowDisabled ? (
-          <Tooltip title={t('Not Installable')} containerDisplayMode="contents">
-            <DisabledRowContent>{rowContent}</DisabledRowContent>
-          </Tooltip>
+          rowContent
         ) : (
           <FullRowLink to={linkUrl} onClick={() => onRowClick?.(build)}>
             {rowContent}
@@ -104,11 +101,6 @@ const BuildsDistributionTable = styled(SimpleTable)<{showProjectColumn?: boolean
     p.showProjectColumn
       ? distributionTableColumns.withProject
       : distributionTableColumns.withoutProject};
-`;
-
-const DisabledRowContent = styled('div')`
-  display: contents;
-  color: inherit;
 `;
 
 const DisabledRow = styled(SimpleTable.Row)`
