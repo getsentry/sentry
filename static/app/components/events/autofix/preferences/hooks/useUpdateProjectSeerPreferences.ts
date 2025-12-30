@@ -6,6 +6,7 @@ import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/type
 import type {Project} from 'sentry/types/project';
 import {
   fetchMutation,
+  getApiQueryData,
   setApiQueryData,
   useMutation,
   useQueryClient,
@@ -30,7 +31,10 @@ export function useUpdateProjectSeerPreferences(project: Project) {
 
   return useMutation<unknown, Error, ProjectSeerPreferences, Context>({
     onMutate: preference => {
-      const previousPrefs = queryClient.getQueryData<SeerPreferencesResponse>(queryKey);
+      const previousPrefs = getApiQueryData<SeerPreferencesResponse>(
+        queryClient,
+        queryKey
+      );
       if (!previousPrefs) {
         return {error: new Error('Previous preferences not found')};
       }
