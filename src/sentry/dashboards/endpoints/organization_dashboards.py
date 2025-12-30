@@ -65,6 +65,8 @@ class PrebuiltDashboardId(IntEnum):
     FRONTEND_SESSION_HEALTH = 1
     BACKEND_QUERIES = 2
     BACKEND_QUERIES_SUMMARY = 3
+    HTTP = 4
+    HTTP_DOMAIN_SUMMARY = 5
     WEB_VITALS = 6
     WEB_VITALS_SUMMARY = 7
     MOBILE_VITALS = 8
@@ -99,6 +101,14 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.BACKEND_QUERIES_SUMMARY,
         "title": "Query Details",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.HTTP,
+        "title": "Outbound API Requests",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.HTTP_DOMAIN_SUMMARY,
+        "title": "Domain Summary",
     },
     {
         "prebuilt_id": PrebuiltDashboardId.WEB_VITALS,
