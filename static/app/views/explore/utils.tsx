@@ -83,7 +83,7 @@ export function getExploreUrl({
   referrer?: string;
   selection?: PageFilters;
   sort?: string;
-  table?: string;
+  table?: 'trace' | 'attribute_breakdowns';
   title?: string;
   visualize?: BaseVisualize[];
 }) {
