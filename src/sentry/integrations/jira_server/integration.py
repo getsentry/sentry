@@ -98,7 +98,7 @@ FEATURE_DESCRIPTIONS = [
 ]
 
 setup_alert = {
-    "type": "warning",
+    "variant": "warning",
     "icon": "icon-warning-sm",
     "text": "Your Jira instance must be able to communicate with Sentry."
     " Sentry makes outbound requests from a [static set of IP"

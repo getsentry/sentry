@@ -119,7 +119,7 @@ removal_dialog = {
 }
 
 setup_alert = {
-    "type": "warning",
+    "variant": "warning",
     "icon": "icon-warning-sm",
     "text": "Your GitHub enterprise instance must be able to communicate with"
     " Sentry. Before you proceed, make sure that connections from [the static set"
