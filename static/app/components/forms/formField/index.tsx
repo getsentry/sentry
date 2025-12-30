@@ -185,7 +185,7 @@ type PassthroughProps = Omit<
   | 'flexibleControlStateSize'
   | 'saveOnBlur'
   | 'saveMessage'
-  | 'saveMessageAlertType'
+  | 'saveMessageAlertVariant'
   | 'hideControlState'
   | 'defaultValue'
 >;
