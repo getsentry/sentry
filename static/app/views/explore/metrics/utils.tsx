@@ -76,11 +76,13 @@ type BaseGetMetricsUrlParams = {
   title?: string;
 };
 
-function getMetricsUrl(
+export function getMetricsUrl(
   params: BaseGetMetricsUrlParams & {organization: Organization}
 ): string;
-function getMetricsUrl(params: BaseGetMetricsUrlParams & {organization: string}): string;
-function getMetricsUrl({
+export function getMetricsUrl(
+  params: BaseGetMetricsUrlParams & {organization: string}
+): string;
+export function getMetricsUrl({
   organization,
   selection,
   metricQueries,
