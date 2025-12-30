@@ -124,7 +124,12 @@ export function SizeCompareSelectionContent({
       );
     },
     onError: error => {
-      addErrorMessage(parseApiError(error));
+      const errorMessage = parseApiError(error);
+      addErrorMessage(
+        errorMessage === 'Unknown API Error'
+          ? t('Failed to trigger comparison. Please try again.')
+          : errorMessage
+      );
     },
   });
 

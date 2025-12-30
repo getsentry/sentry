@@ -110,7 +110,12 @@ export function SizeCompareMainContent() {
       );
     },
     onError: error => {
-      addErrorMessage(parseApiError(error));
+      const errorMessage = parseApiError(error);
+      addErrorMessage(
+        errorMessage === 'Unknown API Error'
+          ? t('Failed to trigger comparison. Please try again.')
+          : errorMessage
+      );
     },
   });
 
@@ -150,10 +155,15 @@ export function SizeCompareMainContent() {
   }
 
   if (sizeComparisonQuery.isError || !sizeComparisonQuery.data) {
+    const errorMessage = parseApiError(sizeComparisonQuery.error);
     return (
       <BuildError
         title={t('Size comparison data unavailable')}
-        message={parseApiError(sizeComparisonQuery.error)}
+        message={
+          errorMessage === 'Unknown API Error'
+            ? t('Failed to load size comparison data')
+            : errorMessage
+        }
       />
     );
   }
