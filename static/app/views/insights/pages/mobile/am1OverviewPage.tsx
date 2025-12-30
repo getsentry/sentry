@@ -90,7 +90,7 @@ export function Am1MobileOverviewPage({datePageFilterProps}: Am1MobileOverviewPa
   const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
-  const {setPageError} = usePageAlert();
+  const {setPageDanger} = usePageAlert();
   const {projects} = useProjects();
   const onboardingProject = useOnboardingProject();
   const navigate = useNavigate();
@@ -256,7 +256,7 @@ export function Am1MobileOverviewPage({datePageFilterProps}: Am1MobileOverviewPa
                     <Table
                       projects={projects}
                       columnTitles={columnTitles}
-                      setError={setPageError}
+                      setError={setPageDanger}
                       theme={theme}
                       {...sharedProps}
                     />

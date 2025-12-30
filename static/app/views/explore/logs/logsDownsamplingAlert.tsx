@@ -57,7 +57,7 @@ export function LogsDownSamplingAlert({
   ) {
     return (
       <Alert.Container>
-        <Alert type="warning">
+        <Alert variant="warning">
           {t(
             'The volume of logs in this time range is too large for us to do a full scan for the chart. Try reducing the date range or number of projects to attempt scanning all logs.'
           )}

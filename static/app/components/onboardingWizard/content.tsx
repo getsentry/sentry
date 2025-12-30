@@ -133,7 +133,7 @@ interface SkipConfirmationProps {
 
 function SkipConfirmation({onConfirm, onDismiss}: SkipConfirmationProps) {
   return (
-    <Alert type="info">
+    <Alert variant="info">
       <Flex direction="column" gap="md">
         {t("Not sure what to do? We're here for you!")}
         <Flex justify="between" gap="xs" flex={1}>

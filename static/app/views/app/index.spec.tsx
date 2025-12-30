@@ -242,7 +242,7 @@ describe('App', () => {
           id: 'abc123',
           message: 'Celery workers have not checked in',
           opaque: true,
-          type: 'error',
+          variant: 'danger',
         }),
       ]);
     });

@@ -78,7 +78,7 @@ export const getCrashReportInstallDescription = () =>
 export function FeedbackOnboardingWebApiBanner() {
   return (
     <Alert.Container>
-      <Alert type="info">
+      <Alert variant="info">
         {tct(
           `When a user experiences an error, Sentry provides the ability to collect additional feedback. You can use an endpoint in Sentry to submit it. [link:Read our docs] to learn more.`,
           {

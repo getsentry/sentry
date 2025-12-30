@@ -27,7 +27,7 @@ function tagFetchSuccess(tags: Tag[] | undefined) {
   if (tags.length > MAX_TAGS) {
     AlertStore.addAlert({
       message: t('You have too many unique tags and some have been truncated'),
-      type: 'warning',
+      variant: 'warning',
     });
   }
   TagStore.loadTagsSuccess(trimmedTags);

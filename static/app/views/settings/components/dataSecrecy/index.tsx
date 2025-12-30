@@ -54,7 +54,7 @@ export default function DataSecrecy() {
     <Panel>
       <PanelHeader>{t('Support Access')}</PanelHeader>
       <PanelBody>
-        <PanelAlert type="info">
+        <PanelAlert variant="info">
           {allowAccess
             ? t('Sentry employees have access to your organization')
             : t('Sentry employees do not have access to your organization')}

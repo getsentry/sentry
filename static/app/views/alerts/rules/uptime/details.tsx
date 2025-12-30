@@ -182,7 +182,7 @@ export default function UptimeAlertDetails() {
           {!detector.enabled && (
             <Alert.Container>
               <Alert
-                type="muted"
+                variant="muted"
                 trailingItems={
                   <StatusToggleButton
                     uptimeDetector={detector}

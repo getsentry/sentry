@@ -79,7 +79,7 @@ export default function AnomalyDetectionFeedbackBanner({
   }
   return (
     <Alert
-      type="info"
+      variant="info"
       trailingItems={
         <Fragment>
           <Button size="xs" onClick={() => handleClick(true)}>

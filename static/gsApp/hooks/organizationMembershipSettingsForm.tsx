@@ -42,7 +42,7 @@ function OrganizationMembershipSettingsForm({
         {({hasFeature}) =>
           !hasFeature && (
             <Alert.Container>
-              <Alert type="warning">
+              <Alert variant="warning">
                 {t('You must be on a paid plan to invite additional members.')}
               </Alert>
             </Alert.Container>

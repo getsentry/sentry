@@ -245,7 +245,7 @@ const ContentWrapper = styled('div')<{
   border-radius: 4px;
   color: ${p =>
     p.hasErrors
-      ? p.theme.alert.error.color
+      ? p.theme.alert.danger.color
       : p.isSuspectFlag
         ? p.theme.colors.yellow500
         : p.theme.subText};
@@ -258,14 +258,14 @@ const ContentWrapper = styled('div')<{
           : 'transparent'};
   background-color: ${p =>
     p.hasErrors
-      ? p.theme.alert.error.backgroundLight
+      ? p.theme.alert.danger.backgroundLight
       : p.isSuspectFlag
         ? p.theme.colors.yellow100
         : p.theme.tokens.background.primary};
   &:nth-child(odd) {
     background-color: ${p =>
       p.hasErrors
-        ? p.theme.alert.error.backgroundLight
+        ? p.theme.alert.danger.backgroundLight
         : p.isSuspectFlag
           ? p.theme.colors.yellow100
           : p.theme.backgroundSecondary};

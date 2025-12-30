@@ -284,7 +284,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
     if (incompatibleRule.conditionIndices || incompatibleRule.filterIndices) {
       return (
         <Alert.Container>
-          <Alert type="error">
+          <Alert variant="danger">
             {tct(
               'The conditions in this alert rule conflict and might not be working properly. [link:Edit alert rule]',
               {
@@ -310,7 +310,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
     if (rule?.status === 'disabled' && moment(new Date()).isAfter(rule.disableDate)) {
       return (
         <Alert.Container>
-          <Alert type="warning">
+          <Alert variant="warning">
             {tct(
               'This alert was disabled due to lack of activity. Please [keepAlive] to enable this alert.',
               {
@@ -330,7 +330,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
     if (rule?.status === 'disabled') {
       return (
         <Alert.Container>
-          <Alert type="warning">
+          <Alert variant="warning">
             {rule.actions?.length === 0
               ? t(
                   'This alert is disabled due to missing actions. Please edit the alert rule to enable this alert.'
@@ -347,7 +347,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
     if (rule?.disableDate && moment(rule.disableDate).isAfter(new Date())) {
       return (
         <Alert.Container>
-          <Alert type="warning">
+          <Alert variant="warning">
             {tct(
               'This alert is scheduled to be disabled [date] due to lack of activity. Please [keepAlive] to keep this alert active. [docs:Learn more]',
               {
@@ -460,7 +460,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
           {rule.snooze && (
             <Alert.Container>
               {rule.snoozeForEveryone ? (
-                <Alert type="info">
+                <Alert variant="info">
                   {tct(
                     "[creator] muted this alert for everyone so you won't get these notifications in the future.",
                     {

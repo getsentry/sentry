@@ -17,7 +17,7 @@ export function ExtrapolationEnabledAlert() {
 
   return (
     <Alert.Container>
-      <Alert type="warning">
+      <Alert variant="warning">
         {tct('You have disabled [extrapolation]. [toggle]', {
           extrapolation: (
             <ExternalLink href="https://docs.sentry.io/product/explore/trace-explorer/#how-sampling-affects-queries-in-trace-explorer">

@@ -19,7 +19,7 @@ function TrialEnded({subscription}: Props) {
   const supportLink = <ZendeskLink subject="Request Another Trial" source="trial" />;
 
   return (
-    <Alert type="info" showIcon={false}>
+    <Alert variant="info" showIcon={false}>
       {tct(
         'Your free trial has ended. You may [supportLink:contact support] to request another trial.',
         {supportLink}

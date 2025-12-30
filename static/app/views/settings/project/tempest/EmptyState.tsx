@@ -56,7 +56,7 @@ export default function EmptyState({
         <Setup>
           <BodyTitle>{t('Install instructions')}</BodyTitle>
           <Alert.Container>
-            <Alert type="info">
+            <Alert variant="info">
               {t(
                 "Note: You need PlayStation access to complete these instructions. Sentry admin access alone isn't sufficient."
               )}

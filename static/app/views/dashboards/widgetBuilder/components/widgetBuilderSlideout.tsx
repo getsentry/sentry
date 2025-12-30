@@ -267,7 +267,7 @@ function WidgetBuilderSlideout({
               {isTransactionsWidget && showTransactionsDeprecationAlert && (
                 <Section>
                   <Alert
-                    type="warning"
+                    variant="warning"
                     trailingItems={
                       <StyledCloseButton
                         icon={<IconClose size="sm" />}

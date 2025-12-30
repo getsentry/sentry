@@ -76,7 +76,7 @@ function AutofixConfigureQuota() {
                   {t('Try Out Seer Now')}
                 </LinkButton>
               ) : (
-                <Alert type="warning">
+                <Alert variant="warning">
                   {t(
                     'You need to be a billing member to try out Seer. Please contact your organization owner to upgrade your plan.'
                   )}

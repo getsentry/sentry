@@ -29,7 +29,7 @@ export default function DynamicSamplingSettings() {
   ) {
     return (
       <Alert.Container>
-        <Alert type="warning" showIcon={false}>
+        <Alert variant="warning" showIcon={false}>
           {tct(
             'Custom Sample Rates for Dynamic Sampling are not available on your current plan. Check our [documentation] for information about how to set Sampling Priorities.',
             {
@@ -48,7 +48,7 @@ export default function DynamicSamplingSettings() {
   if (!hasDynamicSamplingCustomFeature(organization)) {
     return (
       <Alert.Container>
-        <Alert type="warning" showIcon={false}>
+        <Alert variant="warning" showIcon={false}>
           {tct(
             'Dynamic Sampling is not available on your current plan. Check our [documentation] for more information about Dynamic Sampling.',
             {
@@ -99,7 +99,7 @@ export default function DynamicSamplingSettings() {
         </Fragment>
       ) : (
         <Alert.Container>
-          <Alert type="warning" showIcon={false}>
+          <Alert variant="warning" showIcon={false}>
             {t('You need at least member permissions to view these settings.')}
           </Alert>
         </Alert.Container>

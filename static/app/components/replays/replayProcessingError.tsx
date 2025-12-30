@@ -27,7 +27,7 @@ export default function ReplayProcessingError({className}: Props) {
   }, [sdk]);
 
   return (
-    <StyledAlert type="info" className={className}>
+    <StyledAlert variant="info" className={className}>
       <Heading>{t('Replay Not Found')}</Heading>
       <p>
         {t('The replay you are looking for was not found due to a processing error.')}

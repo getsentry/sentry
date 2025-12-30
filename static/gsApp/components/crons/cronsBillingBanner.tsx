@@ -164,7 +164,7 @@ function TrialBanner({
   return (
     <Alert.Container>
       <NoBorderRadiusAlert
-        type="warning"
+        variant="warning"
         trailingItems={<CronsBannerUpgradeCTA hasBillingAccess={hasBillingAccess} />}
       >
         {children}
@@ -181,7 +181,7 @@ function InsufficentOnDemandMonitorsDisabledBanner({
   return (
     <Alert.Container>
       <NoBorderRadiusAlert
-        type="warning"
+        variant="warning"
         trailingItems={
           <CronsBannerOnDemandCTA
             hasBillingAccess={hasBillingAccess}

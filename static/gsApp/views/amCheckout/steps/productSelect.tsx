@@ -248,7 +248,7 @@ function ProductSelect({
                 </Heading>
               </Flex>
               {!isSelected && subscription.addOns?.[AddOnCategory.SEER]?.enabled && (
-                <Alert type="warning" icon={<IconWarning />}>
+                <Alert variant="warning" icon={<IconWarning />}>
                   {t(
                     'Billing continues through the current cycle. New contributors and repos won’t get code reviews after cancellation.'
                   )}

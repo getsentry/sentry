@@ -21,7 +21,7 @@ const formGroups: JsonFormObject[] = [
         transformInput: slugify,
         disabled: ({hasTeamWrite}) => !hasTeamWrite,
         saveOnBlur: false,
-        saveMessageAlertType: 'info',
+        saveMessageAlertVariant: 'info',
         saveMessage: t('You will be redirected to the new team slug after saving.'),
       },
     ],

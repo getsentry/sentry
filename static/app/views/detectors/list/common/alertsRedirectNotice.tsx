@@ -18,7 +18,7 @@ export function AlertsRedirectNotice({children}: {children: React.ReactNode}) {
 
   return (
     <Alert
-      type="info"
+      variant="info"
       trailingItems={
         <Button
           size="zero"

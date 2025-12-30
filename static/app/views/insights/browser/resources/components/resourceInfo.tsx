@@ -115,7 +115,7 @@ function ResourceInfo(props: Props) {
 
       {!isLoading && hasNoData && (
         <Alert.Container>
-          <Alert style={{width: '100%'}} type="warning">
+          <Alert style={{width: '100%'}} variant="warning">
             {t(
               "We couldn't find any size information for this resource, this is likely because the `timing-allow-origin` header is not set."
             )}

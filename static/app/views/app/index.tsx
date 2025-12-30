@@ -102,9 +102,9 @@ function App() {
 
     data?.problems?.forEach?.((problem: any) => {
       const {id, message, url} = problem;
-      const type = problem.severity === 'critical' ? 'error' : 'warning';
+      const variant = problem.severity === 'critical' ? 'danger' : 'warning';
 
-      AlertStore.addAlert({id, message, type, url, opaque: true});
+      AlertStore.addAlert({id, message, variant, url, opaque: true});
     });
   }, [api, config.isSelfHosted]);
 
@@ -137,9 +137,16 @@ function App() {
     loadOrganizations();
     checkInternalHealth();
 
-    // Show system-level alerts
+    // Show system-level alerts that were forwarded by the initial client config request
     config.messages.forEach(msg =>
-      AlertStore.addAlert({message: msg.message, type: msg.level, neverExpire: true})
+      AlertStore.addAlert({
+        message: msg.message,
+        variant:
+          // These are django message level tags that need to be mapped to our alert variant types.
+          // See client config in ./src/sentry/web/client_config.py
+          msg.level === 'error' ? 'danger' : msg.level === 'debug' ? 'muted' : msg.level,
+        neverExpire: true,
+      })
     );
 
     // The app is running in deploy preview mode

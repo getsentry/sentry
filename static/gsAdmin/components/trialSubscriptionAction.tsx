@@ -99,7 +99,9 @@ class TrialSubscriptionAction extends Component<Props, State> {
       <Fragment>
         {startEnterpriseTrial && (
           <Alert.Container>
-            <Alert type="info">Spike protection will need to be manually disabled.</Alert>
+            <Alert variant="info">
+              Spike protection will need to be manually disabled.
+            </Alert>
           </Alert.Container>
         )}
         <NumberField

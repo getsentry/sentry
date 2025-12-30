@@ -55,7 +55,7 @@ export default function ProjectPlugins({
             <div />
           </PanelHeader>
           <PanelBody>
-            <PanelAlert type="warning">
+            <PanelAlert variant="warning">
               {hasAccess
                 ? tct(
                     "Legacy Integrations must be configured per-project. It's recommended to prefer organization integrations over the legacy project integrations when available. Visit the [link:organization integrations] settings to manage them.",

@@ -9,7 +9,7 @@ type BaseBlock<T extends string> = {
  * Renders the Alert component
  */
 type AlertBlock = BaseBlock<'alert'> & {
-  alertType: AlertProps['type'];
+  alertType: AlertProps['variant'];
   text: React.ReactNode;
   type: 'alert';
   icon?: AlertProps['icon'];

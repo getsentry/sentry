@@ -123,7 +123,7 @@ function LoaderItem({
         </LinkButton>
       </PanelHeader>
       <PanelBody>
-        <PanelAlert type="info">
+        <PanelAlert variant="info">
           {t('Note that it can take a few minutes until changed options are live.')}
         </PanelAlert>
 

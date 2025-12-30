@@ -135,7 +135,7 @@ export default function ProjectReleaseTracking() {
 
       {!hasWrite && (
         <Alert.Container>
-          <Alert type="warning" showIcon={false}>
+          <Alert variant="warning" showIcon={false}>
             {t(
               'You do not have sufficient permissions to access Release tokens, placeholders are displayed below.'
             )}

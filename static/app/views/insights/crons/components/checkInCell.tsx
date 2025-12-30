@@ -47,10 +47,10 @@ const checkStatusToIndicatorStatus: Record<
   StatusIndicatorProps['status']
 > = {
   [CheckInStatus.OK]: 'success',
-  [CheckInStatus.ERROR]: 'error',
+  [CheckInStatus.ERROR]: 'danger',
   [CheckInStatus.IN_PROGRESS]: 'muted',
   [CheckInStatus.MISSED]: 'warning',
-  [CheckInStatus.TIMEOUT]: 'error',
+  [CheckInStatus.TIMEOUT]: 'danger',
   [CheckInStatus.UNKNOWN]: 'muted',
 };
 

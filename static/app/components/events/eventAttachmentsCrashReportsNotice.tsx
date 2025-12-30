@@ -20,7 +20,7 @@ function EventAttachmentsCrashReportsNotice({orgSlug, projectSlug, groupId}: Pro
 
   return (
     <Alert.Container>
-      <Alert type="info">
+      <Alert variant="info">
         {tct(
           'Your limit of stored crash reports has been reached for this issue. [attachmentsLink: View crashes] or [settingsLink: configure limit].',
           {

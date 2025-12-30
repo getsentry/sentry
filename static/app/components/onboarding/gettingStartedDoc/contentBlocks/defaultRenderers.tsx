@@ -43,7 +43,7 @@ function AlertBlock({
   return (
     <div css={[baseBlockStyles, coloredCodeStyles]}>
       <Alert
-        type={alertType}
+        variant={alertType}
         showIcon={showIcon}
         system={system}
         trailingItems={trailingItems}

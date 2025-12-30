@@ -205,7 +205,7 @@ class OnDemandBudgetEdit extends Component<Props> {
             subscription={subscription}
           />
           {activePlan.onDemandCategories.length !== perCategoryCategories.length && (
-            <Alert type="warning">
+            <Alert variant="warning">
               {tct(
                 'Additional [oxfordCategories] usage [isOrAre] only available through a shared [budgetTerm] budget. To enable [budgetTerm] usage switch to a shared [budgetTerm] budget.',
                 {

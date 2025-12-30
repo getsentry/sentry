@@ -112,7 +112,7 @@ export function MetricsDataSwitcherAlert(
         return (
           <Alert.Container>
             <Alert
-              type="warning"
+              variant="warning"
               data-test-id="landing-mep-alert-multi-project-all-incompatible"
             >
               {tct(
@@ -128,7 +128,7 @@ export function MetricsDataSwitcherAlert(
       return (
         <Alert.Container>
           <Alert
-            type="warning"
+            variant="warning"
             data-test-id="landing-mep-alert-multi-project-incompatible"
           >
             {tct(
@@ -150,7 +150,7 @@ export function MetricsDataSwitcherAlert(
     return (
       <Alert.Container>
         <Alert
-          type="warning"
+          variant="warning"
           data-test-id="landing-mep-alert-single-project-incompatible"
         >
           {tct(
@@ -169,7 +169,7 @@ export function MetricsDataSwitcherAlert(
     if (!docsLink) {
       return (
         <Alert.Container>
-          <Alert type="warning" data-test-id="landing-mep-alert-unnamed-discover">
+          <Alert variant="warning" data-test-id="landing-mep-alert-unnamed-discover">
             {tct(
               `You have some unparameterized transactions which are incompatible with dynamic sampling. You can [discover]`,
               {
@@ -183,7 +183,7 @@ export function MetricsDataSwitcherAlert(
 
     return (
       <Alert.Container>
-        <Alert type="warning" data-test-id="landing-mep-alert-unnamed-discover-or-set">
+        <Alert variant="warning" data-test-id="landing-mep-alert-unnamed-discover-or-set">
           {tct(
             `You have some unparameterized transactions which are incompatible with dynamic sampling. You can either [setNames] or [discover]`,
             {

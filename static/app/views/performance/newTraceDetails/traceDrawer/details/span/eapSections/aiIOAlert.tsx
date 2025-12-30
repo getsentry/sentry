@@ -102,7 +102,7 @@ export function AIIOAlert({
 
   return (
     <Alert.Container>
-      <Alert type="info">
+      <Alert variant="info">
         <Stack direction="column" gap="md" paddingTop="2xs">
           <Heading as="h4" variant="accent">
             {t('Missing the input and output of your AI model?')}

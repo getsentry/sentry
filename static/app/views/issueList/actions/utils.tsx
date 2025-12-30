@@ -54,7 +54,7 @@ function PerformanceIssueAlert({
 
   return (
     <Alert.Container>
-      <Alert type="info">{children}</Alert>
+      <Alert variant="info">{children}</Alert>
     </Alert.Container>
   );
 }

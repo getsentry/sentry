@@ -289,7 +289,7 @@ function DynamicSamplingPanelBody({config: dsnConfig}: {config: DSNConfig | null
     <PanelBody>
       <SearchBar>
         {baseSampleRate > 0 && (
-          <BaseSampleRateWrapper type="info">
+          <BaseSampleRateWrapper variant="info">
             Base sample rate: {Math.round(baseSampleRate * 100 * 10000) / 10000}%
           </BaseSampleRateWrapper>
         )}

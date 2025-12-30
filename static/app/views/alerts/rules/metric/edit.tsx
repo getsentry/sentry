@@ -91,7 +91,7 @@ export function MetricRulesEdit({
     if (error?.status === 404) {
       return (
         <Alert.Container>
-          <Alert type="error">{t('This alert rule could not be found.')}</Alert>
+          <Alert variant="danger">{t('This alert rule could not be found.')}</Alert>
         </Alert.Container>
       );
     }

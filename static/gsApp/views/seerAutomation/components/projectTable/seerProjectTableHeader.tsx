@@ -166,7 +166,7 @@ export default function ProjectTableHeader({
       ) : null}
 
       {isAllSelected === 'indeterminate' ? (
-        <FullGridAlert type="warning" system>
+        <FullGridAlert variant="warning" system>
           <Flex justify="center" wrap="wrap" gap="md">
             {tn('Selected %s project.', 'Selected %s projects.', countSelected)}
             <a onClick={selectAll}>
@@ -181,7 +181,7 @@ export default function ProjectTableHeader({
       ) : null}
 
       {isAllSelected === true ? (
-        <FullGridAlert type="warning" system>
+        <FullGridAlert variant="warning" system>
           <Flex justify="center" wrap="wrap">
             <span>
               {queryString

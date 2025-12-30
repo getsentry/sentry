@@ -322,7 +322,7 @@ function SpanTabContentSection({
       <ExtrapolationEnabledAlert />
       {defined(error) && (
         <Alert.Container>
-          <Alert type="error">{error.message}</Alert>
+          <Alert variant="danger">{error.message}</Alert>
         </Alert.Container>
       )}
       <TourElement<ExploreSpansTour>

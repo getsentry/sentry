@@ -31,7 +31,7 @@ function ProfilingContainer() {
       renderDisabled={() => (
         <Layout.Page withPadding>
           <Alert.Container>
-            <Alert type="warning" showIcon={false}>
+            <Alert variant="warning" showIcon={false}>
               {t("You don't have access to this feature")}
             </Alert>
           </Alert.Container>
