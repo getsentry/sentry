@@ -50,29 +50,6 @@ jobs:
           path: .coverage
           github_token: ${{ github.token }}
 
-      # Option 2: Fallback to manual download using gh CLI
-      - name: Manual download of coverage artifact
-        if: steps.download-coverage.outcome == 'failure'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          echo "Downloading artifact 4972973279 (pycoverage-sqlite-combined-20529759656)..."
-
-          # Download the artifact zip
-          gh api \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            /repos/getsentry/sentry/actions/artifacts/4972973279/zip \
-            > coverage.zip
-
-          # Extract to .coverage directory
-          mkdir -p .coverage
-          unzip -q coverage.zip -d .coverage
-          rm coverage.zip
-
-          echo "Coverage artifact downloaded successfully"
-          ls -la .coverage
-
       - name: Get changed files
         id: changed-files
         uses: tj-actions/changed-files@24d32ffd492484c1d75e0c0b894501ddb9d30d62
@@ -91,7 +68,7 @@ jobs:
         env:
           SELECTIVE_TESTING_ENABLED: true
           CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
-          COVERAGE_DB_PATH: .coverage
+          COVERAGE_DB_PATH: .coverage/.coverage.combined
 
       - name: Inspect failure
         if: failure()
