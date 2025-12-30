@@ -1,31 +1,29 @@
-import {isValidElement} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import {useParams} from 'sentry/utils/useParams';
+import {useRoutes} from 'sentry/utils/useRoutes';
 
 import SettingsBreadcrumb from './settingsBreadcrumb';
 import SettingsHeader from './settingsHeader';
 import SettingsSearch from './settingsSearch';
 
-type Props = {children: React.ReactNode} & RouteComponentProps;
+interface Props {
+  children: React.ReactNode;
+}
 
-function SettingsLayout(props: Props) {
-  const {children, params, routes} = props;
-
-  // We want child's view's props
-  const childProps =
-    children && isValidElement(children) ? (children.props as Props) : props;
-  const childRoutes = childProps.routes || routes || [];
+export default function SettingsLayout({children}: Props) {
+  const params = useParams();
+  const routes = useRoutes();
 
   return (
     <SettingsColumn>
       <SettingsHeader>
         <Flex align="center" justify="between">
-          <StyledSettingsBreadcrumb params={params} routes={childRoutes} />
+          <StyledSettingsBreadcrumb params={params} routes={routes} />
           <SettingsSearch />
         </Flex>
       </SettingsHeader>
@@ -79,5 +77,3 @@ const Content = styled('div')`
     padding: 0;
   }
 `;
-
-export default SettingsLayout;
