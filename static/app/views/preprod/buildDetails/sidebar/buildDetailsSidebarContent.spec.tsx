@@ -22,6 +22,11 @@ const mockBuildDetailsData: BuildDetailsApiResponse = {
     date_added: '2023-01-01T00:00:00Z',
     is_installable: true,
   },
+  distribution_info: {
+    is_installable: true,
+    download_count: 5,
+    release_notes: 'Release notes',
+  },
   vcs_info: {
     head_sha: 'abc123',
     base_sha: 'def456',

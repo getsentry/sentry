@@ -63,6 +63,11 @@ function PreprodBuildDetailsFixture(
     id: 'artifact-1',
     state: BuildDetailsState.PROCESSED,
     app_info: PreprodAppInfoFixture(),
+    distribution_info: {
+      is_installable: false,
+      download_count: 0,
+      release_notes: null,
+    },
     vcs_info: PreprodVcsInfoFixture(),
     size_info: undefined,
     ...params,
