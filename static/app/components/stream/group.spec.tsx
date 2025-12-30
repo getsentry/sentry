@@ -1,16 +1,7 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  act,
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import StreamGroup from 'sentry/components/stream/group';
 import GroupStore from 'sentry/stores/groupStore';
@@ -59,29 +50,18 @@ describe('StreamGroup', () => {
   });
 
   it('renders with anchors', async () => {
-    const {router, organization} = initializeOrg();
-    render(<StreamGroup id="1337" hasGuideAnchor />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
-    });
+    render(<StreamGroup id="1337" hasGuideAnchor />);
 
     expect(await screen.findByTestId('group')).toBeInTheDocument();
     expect(GuideStore.state.anchors).toEqual(new Set(['dynamic_counts', 'issue_stream']));
   });
 
   it('marks as reviewed', async () => {
-    const {router, organization} = initializeOrg();
     render(
       <StreamGroup
         id="1337"
         query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
-      />,
-      {
-        router,
-        organization,
-        deprecatedRouterMocks: true,
-      }
+      />
     );
 
     expect(await screen.findByTestId('group')).toHaveAttribute(
@@ -97,12 +77,7 @@ describe('StreamGroup', () => {
   });
 
   it('marks as resolved', async () => {
-    const {router, organization} = initializeOrg();
-    render(<StreamGroup id="1337" query="is:unresolved" />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
-    });
+    render(<StreamGroup id="1337" query="is:unresolved" />);
 
     expect(await screen.findByTestId('group')).toBeInTheDocument();
     expect(screen.queryByTestId('resolved-issue')).not.toBeInTheDocument();
@@ -126,9 +101,7 @@ describe('StreamGroup', () => {
       body: {priority: PriorityLevel.HIGH},
     });
 
-    render(<StreamGroup id="1337" query="is:unresolved" />, {
-      deprecatedRouterMocks: true,
-    });
+    render(<StreamGroup id="1337" query="is:unresolved" />);
 
     const priorityDropdown = screen.getByRole('button', {name: 'Modify issue priority'});
     expect(within(priorityDropdown).getByText('Med')).toBeInTheDocument();
@@ -146,17 +119,11 @@ describe('StreamGroup', () => {
   });
 
   it('tracks clicks from issues stream', async () => {
-    const {router, organization} = initializeOrg();
     render(
       <StreamGroup
         id="1337"
         query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
-      />,
-      {
-        router,
-        organization,
-        deprecatedRouterMocks: true,
-      }
+      />
     );
 
     // skipHover - Prevent stacktrace preview from being rendered
@@ -164,12 +131,7 @@ describe('StreamGroup', () => {
   });
 
   it('can select row', async () => {
-    const {router, organization} = initializeOrg();
-    render(<StreamGroup id="1337" query="is:unresolved" />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
-    });
+    render(<StreamGroup id="1337" query="is:unresolved" />);
 
     expect(await screen.findByTestId('group')).toBeInTheDocument();
     const checkbox = screen.getByRole('checkbox', {name: 'Select Issue'});
@@ -181,18 +143,12 @@ describe('StreamGroup', () => {
   });
 
   it('does not error when group is not in GroupStore', () => {
-    const {router, organization} = initializeOrg();
     GroupStore.reset();
     const {container} = render(
       <StreamGroup
         id="1337"
         query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
-      />,
-      {
-        router,
-        organization,
-        deprecatedRouterMocks: true,
-      }
+      />
     );
 
     expect(container).toBeEmptyDOMElement();
@@ -204,10 +160,7 @@ describe('StreamGroup', () => {
         id="1337"
         query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
         withColumns={['firstSeen', 'lastSeen']}
-      />,
-      {
-        deprecatedRouterMocks: true,
-      }
+      />
     );
 
     expect(screen.getByRole('time', {name: 'First Seen'})).toHaveTextContent('1w');
@@ -215,39 +168,28 @@ describe('StreamGroup', () => {
   });
 
   it('navigates to issue with correct params when clicked', async () => {
-    const router = RouterFixture();
-    render(
+    const {router} = render(
       <StreamGroup
         id="1337"
         query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
-      />,
-      {
-        router,
-        deprecatedRouterMocks: true,
-      }
+      />
     );
 
     await userEvent.click(screen.getByTestId('group'));
 
-    await waitFor(() => {
-      expect(router.push).toHaveBeenCalledWith({
-        pathname: '/organizations/org-slug/issues/1337/',
-        query: {
-          _allp: 1,
-          project: '13',
-          query: 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
-          referrer: 'issue-stream',
-        },
-      });
+    expect(router.location.pathname).toBe('/organizations/org-slug/issues/1337/');
+    expect(router.location.query).toEqual({
+      _allp: '1',
+      project: '13',
+      query: 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
+      referrer: 'issue-stream',
     });
   });
 
   it('displays unread indicator when issue is unread', async () => {
     GroupStore.loadInitialData([GroupFixture({id: '1337', hasSeen: false})]);
 
-    render(<StreamGroup id="1337" query="is:unresolved" />, {
-      deprecatedRouterMocks: true,
-    });
+    render(<StreamGroup id="1337" query="is:unresolved" />);
 
     expect(await screen.findByTestId('unread-issue-indicator')).toBeInTheDocument();
   });
