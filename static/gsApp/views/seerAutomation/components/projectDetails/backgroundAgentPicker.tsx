@@ -33,7 +33,9 @@ export default function BackgroundAgentPicker({
     return null;
   }
   if (supportedIntegrations.length === 1) {
-    switch (supportedIntegrations[0]?.provider) {
+    const integration = supportedIntegrations[0]!;
+
+    switch (integration.provider) {
       case 'cursor':
         return (
           <BooleanField
@@ -63,7 +65,7 @@ export default function BackgroundAgentPicker({
                     ? {
                         handoff_point: 'root_cause',
                         target: 'cursor_background_agent',
-                        integration_id: Number(supportedIntegrations[0]?.id),
+                        integration_id: Number(integration.id),
                         auto_create_pr: false,
                       }
                     : undefined,
@@ -72,21 +74,18 @@ export default function BackgroundAgentPicker({
                   onSuccess: () =>
                     addSuccessMessage(
                       value
-                        ? t(
-                            'Started using %s background agent',
-                            supportedIntegrations[0]?.name
-                          )
-                        : t(
-                            'Stopped using %s background agent',
-                            supportedIntegrations[0]?.name
-                          )
+                        ? tct('Started using [name] background agent', {
+                            name: <strong>{integration.name}</strong>,
+                          })
+                        : tct('Stopped using [name] background agent', {
+                            name: <strong>{integration.name}</strong>,
+                          })
                     ),
                   onError: () =>
                     addErrorMessage(
-                      t(
-                        'Failed to enable %s background agent',
-                        supportedIntegrations[0]?.name
-                      )
+                      tct('Failed to enable [name] background agent', {
+                        name: <strong>{integration.name}</strong>,
+                      })
                     ),
                 }
               );
@@ -94,13 +93,13 @@ export default function BackgroundAgentPicker({
           />
         );
       default:
-        // TODO: Add another SwitchField for other integrations
+        // Add more SwitchFields for other integrations here
         return null;
     }
   }
 
   const options = supportedIntegrations.map(integration => ({
-    value: integration.id,
+    value: integration,
     label: `${integration.name} (${integration.id})`,
   }));
 
@@ -112,17 +111,20 @@ export default function BackgroundAgentPicker({
       allowEmpty
       allowClear
       options={options}
-      value={preference?.automation_handoff?.integration_id}
-      onChange={value => {
+      value={supportedIntegrations.find(
+        integration =>
+          integration.id === String(preference?.automation_handoff?.integration_id)
+      )}
+      onChange={integration => {
         updateProjectSeerPreferences(
           {
             repositories: preference?.repositories || [],
             automated_run_stopping_point: preference?.automated_run_stopping_point,
-            automation_handoff: value
+            automation_handoff: integration
               ? {
                   handoff_point: 'root_cause',
                   target: 'cursor_background_agent',
-                  integration_id: Number(supportedIntegrations[0]?.id),
+                  integration_id: Number(integration.id),
                   auto_create_pr: false,
                 }
               : undefined,
@@ -130,11 +132,15 @@ export default function BackgroundAgentPicker({
           {
             onSuccess: () =>
               addSuccessMessage(
-                t('Enabled %s background agent', supportedIntegrations[0]?.name)
+                tct('Started using [name] background agent', {
+                  name: <strong>{integration.name}</strong>,
+                })
               ),
             onError: () =>
               addErrorMessage(
-                t('Failed to enable %s background agent', supportedIntegrations[0]?.name)
+                tct('Failed to enable [name] background agent', {
+                  name: <strong>{integration.name}</strong>,
+                })
               ),
           }
         );

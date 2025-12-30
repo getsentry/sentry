@@ -7,6 +7,7 @@ import {Stack} from '@sentry/scraps/layout/stack';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
+import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
@@ -25,12 +26,18 @@ export default function SeerProjectDetailsPage() {
   return showNewSeer(organization) ? <SeerProjectDetails /> : <OldProjectDetails />;
 }
 
+const DEFAULT_PREFERENCE: ProjectSeerPreferences = {
+  repositories: [],
+  automated_run_stopping_point: 'root_cause',
+  automation_handoff: undefined,
+};
+
 function SeerProjectDetails() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
   const {codeMappingRepos, isPending, preference} = useProjectSeerPreferences(project);
 
-  const canWrite = hasEveryAccess(['project:read'], {organization, project});
+  const canWrite = hasEveryAccess(['project:write'], {organization, project});
 
   if (!organization.features.includes('autofix-seer-preferences')) {
     return (
@@ -67,31 +74,31 @@ function SeerProjectDetails() {
       />
       {canWrite ? null : (
         <Stack paddingBottom="xl">
-          <Alert data-test-id="org-permission-alert" type="warning">
+          <Alert variant="warning">
             {t(
               'These settings can only be edited by users with the project owner or manager role.'
             )}
           </Alert>
         </Stack>
       )}
-      {isPending || !preference ? (
+      {isPending ? (
         <LoadingIndicator />
       ) : (
         <Fragment>
           <ProjectDetailsForm
             canWrite={canWrite}
-            preference={preference}
+            preference={preference ?? DEFAULT_PREFERENCE}
             project={project}
           />
           <BackgroundAgentForm
             canWrite={canWrite}
             project={project}
-            preference={preference}
+            preference={preference ?? DEFAULT_PREFERENCE}
           />
           <AutofixRepositories
             canWrite={canWrite}
             codeMappingRepos={codeMappingRepos}
-            preference={preference}
+            preference={preference ?? DEFAULT_PREFERENCE}
             project={project}
           />
         </Fragment>

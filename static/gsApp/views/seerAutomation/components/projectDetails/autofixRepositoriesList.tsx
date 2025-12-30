@@ -72,30 +72,7 @@ export default function AutofixRepositories({canWrite, preference, project}: Pro
   );
 
   const handleSaveRepoList = useCallback(
-    (repoIds: string[]) => {
-      const updatedRepositories: SeerRepoDefinition[] = repoIds.map(repoId => {
-        // Keep existing repo settings if already configured
-        const existing = repoMap.get(repoId);
-        if (existing) {
-          return existing;
-        }
-
-        // Create new entry with defaults for newly added repos
-        const orgRepo = repositories?.find(r => r.externalId === repoId);
-        const [owner] = (orgRepo?.name ?? '').split('/');
-        return {
-          organization_id: organization.id,
-          external_id: repoId,
-          name: orgRepo?.name ?? '',
-          owner: owner ?? '',
-          provider: orgRepo?.provider.id ?? '',
-          integration_id: orgRepo?.integrationId,
-          branch_name: '',
-          instructions: '',
-          branch_overrides: [],
-        };
-      });
-
+    (updatedRepositories: SeerRepoDefinition[]) => {
       updateProjectSeerPreferences(
         {
           repositories: updatedRepositories,
@@ -105,19 +82,12 @@ export default function AutofixRepositories({canWrite, preference, project}: Pro
           onError: () => addErrorMessage(t('Failed to connect repositories')),
           onSuccess: () =>
             addSuccessMessage(
-              t('%s repo(s) connected to %s', repoIds.length, project.slug)
+              t('%s repo(s) connected to %s', updatedRepositories.length, project.slug)
             ),
         }
       );
     },
-    [
-      updateProjectSeerPreferences,
-      preference?.automated_run_stopping_point,
-      repoMap,
-      repositories,
-      organization.id,
-      project.slug,
-    ]
+    [updateProjectSeerPreferences, preference?.automated_run_stopping_point, project.slug]
   );
 
   const handleAddRepoClick = useCallback(() => {
@@ -125,10 +95,35 @@ export default function AutofixRepositories({canWrite, preference, project}: Pro
       <AddAutofixRepoModal
         {...deps}
         selectedRepoIds={repoMap.keys().toArray()}
-        onSave={handleSaveRepoList}
+        onSave={(repoIds: string[]) => {
+          const updatedRepositories: SeerRepoDefinition[] = repoIds.map(repoId => {
+            // Keep existing repo settings if already configured
+            const existing = repoMap.get(repoId);
+            if (existing) {
+              return existing;
+            }
+
+            // Create new entry with defaults for newly added repos
+            const orgRepo = repositories?.find(r => r.externalId === repoId);
+            const [owner] = (orgRepo?.name ?? '').split('/');
+            return {
+              organization_id: organization.id,
+              external_id: repoId,
+              name: orgRepo?.name ?? '',
+              owner: owner ?? '',
+              provider: orgRepo?.provider.id ?? '',
+              integration_id: orgRepo?.integrationId,
+              branch_name: '',
+              instructions: '',
+              branch_overrides: [],
+            };
+          });
+
+          handleSaveRepoList(updatedRepositories);
+        }}
       />
     ));
-  }, [repoMap, handleSaveRepoList]);
+  }, [repoMap, handleSaveRepoList, repositories, organization.id]);
 
   if (isFetchingRepositories) {
     return <LoadingIndicator />;
@@ -184,14 +179,20 @@ export default function AutofixRepositories({canWrite, preference, project}: Pro
               onRemoveRepo={() => {
                 handleSaveRepoList(
                   repoMap
-                    .keys()
+                    .values()
                     .toArray()
-                    .filter(key => key !== repository.external_id)
+                    .filter(repo => repo.external_id !== repository.external_id)
                 );
               }}
               onUpdateRepo={(updatedRepo: SeerRepoDefinition) => {
-                repoMap.set(updatedRepo.external_id, updatedRepo);
-                handleSaveRepoList(repoMap.keys().toArray());
+                handleSaveRepoList(
+                  repoMap
+                    .values()
+                    .toArray()
+                    .map(repo =>
+                      repo.external_id === updatedRepo.external_id ? updatedRepo : repo
+                    )
+                );
               }}
             />
           ))}

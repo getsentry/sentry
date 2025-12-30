@@ -45,13 +45,15 @@ export default function BackgroundAgentForm({canWrite, preference, project}: Pro
   // If there is something configured, use that
   // otherwise if there is only one integration, we'll show those fields
   // but when there are multiple integrations and none picked: show no fields yet.
-  const selectedIntegration =
-    (supportedIntegrations.find(
-      integration =>
-        integration.id === String(preference?.automation_handoff?.integration_id)
-    ) ?? codingAgentIntegrations?.integrations.length === 1)
+  const firstIntegration =
+    codingAgentIntegrations?.integrations.length === 1
       ? codingAgentIntegrations?.integrations[0]
       : undefined;
+  const selectedIntegration =
+    supportedIntegrations.find(
+      integration =>
+        integration.id === String(preference?.automation_handoff?.integration_id)
+    ) ?? firstIntegration;
 
   return (
     <Container border="primary" radius="md" margin="2xl 0">
