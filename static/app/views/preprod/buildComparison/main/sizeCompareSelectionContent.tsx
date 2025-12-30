@@ -25,6 +25,7 @@ import {IconBranch} from 'sentry/icons/iconBranch';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import parseApiError from 'sentry/utils/parseApiError';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useApiQuery, useMutation, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -123,9 +124,9 @@ export function SizeCompareSelectionContent({
       );
     },
     onError: error => {
-      const errorMessage =
-        error.responseJSON?.detail ??
-        t('Failed to trigger comparison. Please try again.');
+      const errorMessage = error.responseJSON
+        ? parseApiError(error)
+        : t('Failed to trigger comparison. Please try again.');
       addErrorMessage(errorMessage);
     },
   });

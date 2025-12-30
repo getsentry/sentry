@@ -12,6 +12,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron, IconRefresh, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import parseApiError from 'sentry/utils/parseApiError';
 import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -109,9 +110,9 @@ export function SizeCompareMainContent() {
       );
     },
     onError: error => {
-      const errorMessage =
-        error.responseJSON?.detail ??
-        t('Failed to trigger comparison. Please try again.');
+      const errorMessage = error.responseJSON
+        ? parseApiError(error)
+        : t('Failed to trigger comparison. Please try again.');
       addErrorMessage(errorMessage);
     },
   });
@@ -156,8 +157,9 @@ export function SizeCompareMainContent() {
       <BuildError
         title={t('Size comparison data unavailable')}
         message={
-          sizeComparisonQuery.error?.responseJSON?.detail ??
-          t('Failed to load size comparison data')
+          sizeComparisonQuery.error?.responseJSON
+            ? parseApiError(sizeComparisonQuery.error)
+            : t('Failed to load size comparison data')
         }
       />
     );
