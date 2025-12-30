@@ -77,6 +77,7 @@ export default function AutofixRepositories({canWrite, preference, project}: Pro
         {
           repositories: updatedRepositories,
           automated_run_stopping_point: preference?.automated_run_stopping_point,
+          automation_handoff: preference?.automation_handoff,
         },
         {
           onError: () => addErrorMessage(t('Failed to connect repositories')),
@@ -87,7 +88,7 @@ export default function AutofixRepositories({canWrite, preference, project}: Pro
         }
       );
     },
-    [updateProjectSeerPreferences, preference?.automated_run_stopping_point, project.slug]
+    [updateProjectSeerPreferences, preference, project.slug]
   );
 
   const handleAddRepoClick = useCallback(() => {
