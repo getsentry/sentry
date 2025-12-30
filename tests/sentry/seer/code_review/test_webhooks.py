@@ -638,13 +638,13 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
 
 class IsPrReviewCommandTest(TestCase):
-    def test_true_cases(self):
+    def test_true_cases(self) -> None:
         assert is_pr_review_command("@sentry review")
         assert is_pr_review_command("Please @sentry review this PR")
         assert is_pr_review_command("@Sentry Review")
         assert is_pr_review_command("@SENTRY REVIEW")
 
-    def test_false_cases(self):
+    def test_false_cases(self) -> None:
         assert not is_pr_review_command("This is a regular comment")
         assert not is_pr_review_command("@sentry")
         assert not is_pr_review_command("review")

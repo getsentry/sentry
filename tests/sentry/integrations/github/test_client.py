@@ -431,7 +431,7 @@ class GitHubApiClientTest(TestCase):
             repo=self.repo.name, comment_id="123", reaction=GitHubReaction.EYES
         )
         assert result == response_data
-        assert responses.calls[0].request.body == b'{"content":"eyes"}'
+        assert orjson.loads(responses.calls[0].request.body) == {"content": "eyes"}
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
