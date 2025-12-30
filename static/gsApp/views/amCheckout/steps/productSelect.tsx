@@ -242,7 +242,7 @@ function ProductSelect({
           return (
             <Flex direction="column" gap="xl" key={apiName}>
               <Flex gap="sm" align="center">
-                <Badge type="new">{t('New')}</Badge>
+                <Badge variant="new">{t('New')}</Badge>
                 <Heading as="h2">
                   {t('Find and fix issues anywhere with Seer AI debugger')}
                 </Heading>
