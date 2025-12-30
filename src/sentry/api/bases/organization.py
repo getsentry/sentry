@@ -675,7 +675,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         # API tokens with project:releases scope to create releases even if the user
         # is not a direct team member of the project.
         has_valid_api_key = has_valid_api_key or (
-            is_api_token_auth(request.auth) and request.auth.has_scope("project:releases")
+            is_api_token_auth(request.auth) and request.access.has_scope("project:releases")
         )
 
         if not (
