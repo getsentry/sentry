@@ -113,7 +113,7 @@ export function getConditionDescription({
 
     if (condition.conditionResult === DetectorPriorityLevel.OK) {
       return t(
-        `Less than %(comparisonValue)s%(unit)s %(direction)s than the previous %(timeRange)s`,
+        `Below or equal to %(comparisonValue)s%(unit)s %(direction)s than the previous %(timeRange)s`,
         {
           comparisonValue,
           unit,
