@@ -40,6 +40,7 @@ export const SizingWindow = styled(NegativeSpaceContainer)<{display?: 'block' | 
 `;
 
 export const Section = styled('section')`
+  min-width: 0;
   padding-top: ${p => p.theme.space['3xl']};
   display: flex;
   flex-direction: column;
