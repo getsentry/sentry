@@ -112,35 +112,31 @@ export default function MobileBuilds({organization, selectedProjectIds}: Props) 
   const pageLinks = getResponseHeader?.('Link') ?? undefined;
   const hasSearchQuery = !!searchQuery?.trim();
   const showProjectColumn = selectedProjectIds.length > 1;
-  const shouldShowFilters = true;
-
   return (
     <Stack gap="xl">
-      {shouldShowFilters && (
-        <Flex
-          align={{xs: 'stretch', sm: 'center'}}
-          direction={{xs: 'column', sm: 'row'}}
-          gap="md"
-          wrap="wrap"
-        >
-          <Container flex="1">
-            <SearchBar
-              placeholder={t('Search by build, SHA, branch name, or pull request')}
-              onSearch={handleSearch}
-              query={searchQuery ?? undefined}
-              disabled={isLoadingBuilds}
+      <Flex
+        align={{xs: 'stretch', sm: 'center'}}
+        direction={{xs: 'column', sm: 'row'}}
+        gap="md"
+        wrap="wrap"
+      >
+        <Container flex="1">
+          <SearchBar
+            placeholder={t('Search by build, SHA, branch name, or pull request')}
+            onSearch={handleSearch}
+            query={searchQuery ?? undefined}
+            disabled={isLoadingBuilds}
+          />
+        </Container>
+        {shouldShowDisplayToggle && (
+          <Container maxWidth="200px">
+            <PreprodBuildsDisplayOptions
+              selected={activeDisplay}
+              onSelect={handleDisplayChange}
             />
           </Container>
-          {shouldShowDisplayToggle && (
-            <Container maxWidth="200px">
-              <PreprodBuildsDisplayOptions
-                selected={activeDisplay}
-                onSelect={handleDisplayChange}
-              />
-            </Container>
-          )}
-        </Flex>
-      )}
+        )}
+      </Flex>
 
       {buildsError && <LoadingError onRetry={refetch} />}
 

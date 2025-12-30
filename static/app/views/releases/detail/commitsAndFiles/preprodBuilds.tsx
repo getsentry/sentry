@@ -128,7 +128,6 @@ export default function PreprodBuilds() {
 
   const hasSearchQuery = !!urlSearchQuery?.trim();
   const showOnboarding = builds.length === 0 && !hasSearchQuery && !isLoadingBuilds;
-  const shouldShowFilters = true;
 
   const handleBuildRowClick = useCallback(
     (build: BuildDetailsApiResponse) => {
@@ -152,33 +151,31 @@ export default function PreprodBuilds() {
           projectSlug={projectSlug}
         />
         {buildsError && <LoadingError onRetry={refetch} />}
-        {shouldShowFilters && (
-          <Container paddingBottom="md">
-            <Flex
-              align={{xs: 'stretch', sm: 'center'}}
-              direction={{xs: 'column', sm: 'row'}}
-              gap="md"
-              wrap="wrap"
-            >
-              <Container flex="1">
-                <SearchBar
-                  placeholder={t('Search by build, SHA, branch name, or pull request')}
-                  onChange={handleSearch}
-                  query={localSearchQuery}
-                  disabled={isLoadingBuilds}
+        <Container paddingBottom="md">
+          <Flex
+            align={{xs: 'stretch', sm: 'center'}}
+            direction={{xs: 'column', sm: 'row'}}
+            gap="md"
+            wrap="wrap"
+          >
+            <Container flex="1">
+              <SearchBar
+                placeholder={t('Search by build, SHA, branch name, or pull request')}
+                onChange={handleSearch}
+                query={localSearchQuery}
+                disabled={isLoadingBuilds}
+              />
+            </Container>
+            {shouldShowDisplayToggle && (
+              <Container maxWidth="200px">
+                <PreprodBuildsDisplayOptions
+                  selected={activeDisplay}
+                  onSelect={handleDisplayChange}
                 />
               </Container>
-              {shouldShowDisplayToggle && (
-                <Container maxWidth="200px">
-                  <PreprodBuildsDisplayOptions
-                    selected={activeDisplay}
-                    onSelect={handleDisplayChange}
-                  />
-                </Container>
-              )}
-            </Flex>
-          </Container>
-        )}
+            )}
+          </Flex>
+        </Container>
         {showOnboarding ? (
           <PreprodOnboarding
             organizationSlug={organization.slug}
