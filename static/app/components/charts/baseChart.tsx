@@ -453,13 +453,13 @@ function BaseChart({
           lineStyle: {
             color: previousPeriodColors
               ? previousPeriodColors[seriesIndex]
-              : theme.colors.gray400,
+              : theme.tokens.dataviz.semantic.neutral,
             type: 'dotted',
           },
           itemStyle: {
             color: previousPeriodColors
               ? previousPeriodColors[seriesIndex]
-              : theme.colors.gray400,
+              : theme.tokens.dataviz.semantic.neutral,
           },
           stack: 'previous',
           animation: false,
