@@ -708,7 +708,7 @@ def _assemble_preprod_artifact_installable_app(
 
     try:
         organization = preprod_artifact.project.organization
-        if features.has("organizations:preprod-size-metrics-eap-write", organization):
+        if features.has("organizations:preprod-build-distribution-eap-write", organization):
             produce_preprod_build_distribution_to_eap(
                 artifact=preprod_artifact,
                 organization_id=org_id,

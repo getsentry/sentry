@@ -116,10 +116,10 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
             # Update build distribution data in EAP with new download count
             try:
                 organization = project.organization
-                if features.has("organizations:preprod-size-metrics-eap-write", organization):
+                if features.has("organizations:preprod-build-distribution-eap-write", organization):
                     produce_preprod_build_distribution_to_eap(
                         artifact=preprod_artifact,
-                        organization_id=organization.id,
+                        organization_id=project.organization_id,
                         project_id=project.id,
                     )
             except Exception:
@@ -127,7 +127,7 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
                     "Failed to write preprod build distribution to EAP after download",
                     extra={
                         "preprod_artifact_id": preprod_artifact.id,
-                        "organization_id": organization.id,
+                        "organization_id": project.organization_id,
                         "project_id": project.id,
                     },
                 )

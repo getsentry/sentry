@@ -5,6 +5,7 @@ from typing import Any
 
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
+from django.db.models import Sum
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_kafka_schemas.codecs import Codec
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
@@ -127,12 +128,13 @@ def produce_preprod_build_distribution_to_eap(
     """
     Write PreprodArtifact build distribution data to EAP as a TRACE_ITEM_TYPE_PREPROD trace item.
 
-    Extracts distribution metadata from artifact.extras (codesigning, profile info, etc.) and includes
-    data from any associated InstallablePreprodArtifact (download count, expiration, etc.).
+    Extracts distribution metadata from artifact.extras (codesigning, profile info, etc.) and aggregates
+    download counts across all InstallablePreprodArtifact records for this artifact.
 
     NOTE: One build distribution record per artifact (many size metrics can relate to one build).
     EAP is append-only with ReplacingMergeTree deduplication support.
     """
+
     proto_timestamp = Timestamp()
     proto_timestamp.FromDatetime(artifact.date_added)
 
@@ -183,8 +185,14 @@ def produce_preprod_build_distribution_to_eap(
 
     attributes["has_installable_file"] = artifact.installable_app_file_id is not None
 
-    installable = InstallablePreprodArtifact.objects.filter(preprod_artifact=artifact).first()
-    attributes["download_count"] = installable.download_count if installable else 0
+    # Sum download counts across all installable links for this artifact
+    total_downloads = (
+        InstallablePreprodArtifact.objects.filter(preprod_artifact=artifact).aggregate(
+            Sum("download_count")
+        )["download_count__sum"]
+        or 0
+    )
+    attributes["download_count"] = total_downloads
 
     if artifact.commit_comparison is not None:
         commit_comparison = artifact.commit_comparison

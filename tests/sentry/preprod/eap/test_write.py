@@ -202,10 +202,16 @@ class WritePreprodBuildDistributionToEAPTest(TestCase):
             },
         )
 
+        # Create multiple installables to test summing
         InstallablePreprodArtifact.objects.create(
             preprod_artifact=artifact,
-            url_path="test-url-path",
+            url_path="test-url-path-1",
             download_count=42,
+        )
+        InstallablePreprodArtifact.objects.create(
+            preprod_artifact=artifact,
+            url_path="test-url-path-2",
+            download_count=10,
         )
 
         produce_preprod_build_distribution_to_eap(
@@ -252,7 +258,7 @@ class WritePreprodBuildDistributionToEAPTest(TestCase):
         assert attrs["has_proguard_mapping"].bool_value is False
 
         assert attrs["has_installable_file"].bool_value is True
-        assert attrs["download_count"].int_value == 42
+        assert attrs["download_count"].int_value == 52  # 42 + 10 from both installables
 
         assert attrs["git_head_sha"].string_value == "abc123"
         assert attrs["git_base_sha"].string_value == "def456"
