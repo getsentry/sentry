@@ -280,7 +280,7 @@ class NotifyEventServiceSentryAppActionTest(NotifyEventServiceActionTest):
         assert len(results) == 1
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.install.save()
+            self.install.delete()
 
         results = rule.get_services()
         assert len(results) == 0
