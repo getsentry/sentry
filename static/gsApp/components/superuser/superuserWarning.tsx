@@ -86,7 +86,7 @@ function SuperuserWarning({organization, className}: Props) {
   }
 
   return (
-    <StyledBadge type="warning" className={className}>
+    <StyledBadge variant="warning" className={className}>
       <Tooltip
         isHoverable
         title={

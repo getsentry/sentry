@@ -166,7 +166,7 @@ function ProductSelect({
                       <Flex align="center" gap="md">
                         {formattedMonthlyBudget && (
                           <Tag
-                            type="promotion"
+                            variant="promotion"
                             data-test-id="product-option-feature-credits"
                           >
                             {tct('Includes [includedBudget]/mo in credits', {
@@ -242,7 +242,7 @@ function ProductSelect({
           return (
             <Flex direction="column" gap="xl" key={apiName}>
               <Flex gap="sm" align="center">
-                <Badge type="new">{t('New')}</Badge>
+                <Badge variant="new">{t('New')}</Badge>
                 <Heading as="h2">
                   {t('Find and fix issues anywhere with Seer AI debugger')}
                 </Heading>
