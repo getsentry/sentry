@@ -1018,7 +1018,7 @@ def get_organization_options(*, org_id: int, keys: list[str] | None = None) -> d
     # Get all options for the organization (single query)
     all_values = OrganizationOption.objects.get_all_values(org)
 
-    if keys:
+    if keys is not None:
         # Filter to requested keys only
         result = [{"key": k, "value": v} for k, v in all_values.items() if k in keys]
     else:

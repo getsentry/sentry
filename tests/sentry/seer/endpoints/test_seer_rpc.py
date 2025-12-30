@@ -1529,6 +1529,17 @@ class TestSeerRpcMethods(APITestCase):
         assert result["organization_id"] == self.organization.id
         assert result["options"] == []
 
+    def test_get_organization_options_empty_list(self) -> None:
+        """Test that passing an empty list returns empty result, not all options"""
+        OrganizationOption.objects.set_value(self.organization, "sentry:sampling_mode", "adaptive")
+        OrganizationOption.objects.set_value(self.organization, "sentry:option_epoch", 1234567890)
+
+        # Empty list should return empty result
+        result = get_organization_options(org_id=self.organization.id, keys=[])
+
+        assert result["organization_id"] == self.organization.id
+        assert result["options"] == []
+
     def test_get_organization_features(self) -> None:
         """Test getting organization features"""
         result = get_organization_features(org_id=self.organization.id)
