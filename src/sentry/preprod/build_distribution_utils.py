@@ -3,13 +3,10 @@ from __future__ import annotations
 import logging
 import secrets
 from datetime import timedelta
-from typing import TypeVar
 
-from django.db.models import IntegerField, Sum
-from django.db.models.functions import Coalesce
+from django.db.models import Sum
 from django.utils import timezone
 
-from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.preprod.models import InstallablePreprodArtifact, PreprodArtifact
 from sentry.utils.http import absolute_uri
 
@@ -19,21 +16,6 @@ logger = logging.getLogger(__name__)
 def is_installable_artifact(artifact: PreprodArtifact) -> bool:
     # TODO: Adjust this logic when we have a better way to determine if an artifact is installable
     return artifact.installable_app_file_id is not None and artifact.build_number is not None
-
-
-PreprodArtifactQuerySet = TypeVar(
-    "PreprodArtifactQuerySet", bound=BaseQuerySet[PreprodArtifact, PreprodArtifact]
-)
-
-
-def annotate_download_count(queryset: PreprodArtifactQuerySet) -> PreprodArtifactQuerySet:
-    return queryset.annotate(
-        download_count=Coalesce(
-            Sum("installablepreprodartifact__download_count"),
-            0,
-            output_field=IntegerField(),
-        )
-    )
 
 
 def get_download_count_for_artifact(artifact: PreprodArtifact) -> int:
