@@ -48,13 +48,14 @@ function Token({
   const handleCopy = () => copy(formatSnippet({token, scale}));
   return (
     <Tooltip
+      maxWidth={640}
       title={
-        <Flex gap="md" align="baseline">
+        <Flex gap="md" align="baseline" wrap="wrap-reverse">
           <Heading as="h4" size="md">
             {scale}
           </Heading>
           <Text>{token}</Text>
-          <Text variant="muted" monospace>
+          <Text variant="muted" monospace wrap="nowrap">
             {value}
           </Text>
         </Flex>
