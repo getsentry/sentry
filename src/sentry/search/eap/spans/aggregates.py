@@ -109,8 +109,13 @@ def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, 
         if value2 == "":
             raise InvalidSearchQuery("between operator requires two values")
 
-        if float(value2) <= float(value):
-            raise InvalidSearchQuery(f"Invalid parameter {value2}. Must be greater than {value}")
+        try:
+            if float(value2) <= float(value):
+                raise InvalidSearchQuery(
+                    f"Invalid parameter {value2}. Must be greater than {value}"
+                )
+        except ValueError:
+            raise InvalidSearchQuery("between operator requires two numbers")
 
         attr_value2 = resolve_attribute_value(key, value2)
         trace_filter = TraceItemFilter(
