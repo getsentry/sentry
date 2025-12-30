@@ -87,18 +87,16 @@ export default function MobileBuilds({organization, selectedProjectIds}: Props) 
   const builds = buildsData?.builds ?? [];
   const pageLinks = getResponseHeader?.('Link') ?? undefined;
   const hasSearchQuery = !!searchQuery?.trim();
-  const shouldShowSearchBar = builds.length > 0 || hasSearchQuery;
   const showProjectColumn = selectedProjectIds.length > 1;
 
   return (
     <Stack gap="xl">
-      {shouldShowSearchBar && (
-        <SearchBar
-          placeholder={t('Search by build, SHA, branch name, or pull request')}
-          onSearch={handleSearch}
-          query={searchQuery ?? undefined}
-        />
-      )}
+      <SearchBar
+        placeholder={t('Search by build, SHA, branch name, or pull request')}
+        onSearch={handleSearch}
+        query={searchQuery ?? undefined}
+        disabled={isLoadingBuilds}
+      />
 
       {buildsError && <LoadingError onRetry={refetch} />}
 
