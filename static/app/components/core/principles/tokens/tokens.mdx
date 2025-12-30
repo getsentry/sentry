@@ -171,27 +171,27 @@ export function FontSize() {
 
 export function FontWeight() {
   const theme = useTheme();
+  const tokens = {
+    'sans.regular': theme.font.weight.sans.regular,
+    'sans.medium': theme.font.weight.sans.medium,
+    'mono.regular': theme.font.weight.mono.regular,
+    'mono.medium': theme.font.weight.mono.medium,
+  };
   return (
-    <Fragment>
-      <Storybook.TokenReference
-        scale="font.weight.sans"
-        tokens={theme.font.weight.sans}
-        renderToken={({value}) => (
-          <Text size="lg" style={{fontWeight: value}} variant="accent">
-            {value}
-          </Text>
-        )}
-      />
-      <Storybook.TokenReference
-        scale="font.weight.mono"
-        tokens={theme.font.weight.mono}
-        renderToken={({value}) => (
-          <Text size="lg" style={{fontWeight: value}} variant="accent">
-            {value}
-          </Text>
-        )}
-      />
-    </Fragment>
+    <Storybook.TokenReference
+      scale="font.weight"
+      tokens={tokens}
+      renderToken={({token, value}) => (
+        <Text
+          size="lg"
+          style={{fontWeight: value}}
+          monospace={token.startsWith('mono')}
+          variant="accent"
+        >
+          {value}
+        </Text>
+      )}
+    />
   );
 }
 
