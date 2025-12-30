@@ -3,6 +3,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -49,7 +51,7 @@ function RootAllocationCard({
     <RootAllocation>
       {!rootAllocation && (
         <Card data-test-id="missing-root">
-          <CreateRoot>
+          <Flex justify="between">
             <NoRootInfo>
               There is currently no organization-level allocation for this billing metric.
               <p>
@@ -68,7 +70,7 @@ function RootAllocationCard({
                 Create Organization-Level Allocation
               </Button>
             </EnableRoot>
-          </CreateRoot>
+          </Flex>
         </Card>
       )}
       {rootAllocation && (
@@ -203,10 +205,6 @@ const RootAllocation = styled('div')`
   margin: ${space(2)} 0;
 `;
 
-const CreateRoot = styled('div')`
-  display: flex;
-  justify-content: space-between;
-`;
 const EnableRoot = styled('div')`
   grid-column: -auto / span 1;
   grid-area: bt;
