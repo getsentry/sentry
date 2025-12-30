@@ -8,30 +8,14 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconBitbucket} from 'sentry/icons/iconBitbucket';
-import {IconGithub} from 'sentry/icons/iconGithub';
-import {IconGitlab} from 'sentry/icons/iconGitlab';
-import {IconOpen} from 'sentry/icons/iconOpen';
-import {IconVsts} from 'sentry/icons/iconVsts';
 import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import RepoDetailsForm from 'getsentry/views/seerAutomation/components/repoDetails/repoDetailsForm';
+import RepoProviderIcon from 'getsentry/views/seerAutomation/components/repoProviderIcon';
 import useRepositoryWithSettings from 'getsentry/views/seerAutomation/onboarding/hooks/useRepositoryWithSettings';
-
-const PROVIDER_ICONS = {
-  github: IconGithub,
-  'integrations:github': IconGithub,
-  'integrations:github_enterprise': IconGithub,
-  bitbucket: IconBitbucket,
-  'integrations:bitbucket': IconBitbucket,
-  visualstudio: IconVsts,
-  'integrations:vsts': IconVsts,
-  gitlab: IconGitlab,
-  'integrations:gitlab': IconGitlab,
-};
 
 export default function SeerRepoDetails() {
   const {repoId} = useParams<{repoId: string}>();
@@ -52,10 +36,6 @@ export default function SeerRepoDetails() {
     return <LoadingError onRetry={refetch} />;
   }
 
-  const ProviderIcon =
-    PROVIDER_ICONS[repoWithSettings?.provider?.id as keyof typeof PROVIDER_ICONS] ??
-    IconOpen;
-
   return (
     <Fragment>
       <SentryDocumentTitle
@@ -67,7 +47,7 @@ export default function SeerRepoDetails() {
           repoName: <code>{repoWithSettings?.name}</code>,
           providerLink: (
             <ExternalLink href={repoWithSettings?.url}>
-              <ProviderIcon size="md" />
+              <RepoProviderIcon size="md" provider={repoWithSettings?.provider.id} />
             </ExternalLink>
           ),
         })}
