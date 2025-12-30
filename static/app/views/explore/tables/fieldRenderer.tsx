@@ -1,11 +1,15 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import moment from 'moment-timezone';
+
+import {Text} from '@sentry/scraps/text';
 
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import TimeSince from 'sentry/components/timeSince';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -21,6 +25,7 @@ import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import CellAction, {updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
@@ -33,6 +38,8 @@ import {
   useQueryParamsQuery,
   useSetQueryParamsQuery,
 } from 'sentry/views/explore/queryParams/context';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
+import {getExploreUrl} from 'sentry/views/explore/utils';
 import {SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
@@ -113,6 +120,7 @@ function BaseExploreFieldRenderer({
   const location = useLocation();
   const organization = useOrganization();
   const theme = useTheme();
+  const {selection} = usePageFilters();
   const dateSelection = EventView.fromLocation(location).normalizeDateSelection(location);
   const query = new MutableSearch(userQuery);
   const {projects} = useProjects();
@@ -125,6 +133,12 @@ function BaseExploreFieldRenderer({
       {} as Record<string, Project>
     );
   }, [projects]);
+
+  const olderThan30Days = useMemo(() => {
+    const currentDate = moment();
+    const timestampDate = moment(data.timestamp);
+    return currentDate.diff(timestampDate, 'days') >= 30;
+  }, [data.timestamp]);
 
   if (!defined(column)) {
     return nullableValue(null);
@@ -148,6 +162,47 @@ function BaseExploreFieldRenderer({
   }
 
   if (field === 'trace') {
+    if (olderThan30Days) {
+      const queryString = new MutableSearch('');
+      queryString.addFilterValue('is_transaction', 'true');
+
+      if (data?.transaction) {
+        queryString.addFilterValue('transaction', data.transaction);
+      }
+
+      const project = projectsMap[data.project];
+      const target = getExploreUrl({
+        organization,
+        mode: Mode.SAMPLES,
+        query: queryString.formatString(),
+        table: 'trace',
+        selection: {
+          ...selection,
+          projects: defined(project?.id)
+            ? [parseInt(project.id, 10)]
+            : selection.projects,
+          datetime: {start: null, end: null, utc: null, period: '24h'},
+        },
+      });
+
+      return (
+        <Tooltip
+          showUnderline
+          isHoverable
+          disabled={!queryString}
+          title={
+            <Text>
+              {tct('Trace is older than 30 days. [similarTraces] in the past 24 hours.', {
+                similarTraces: <Link to={target}>{t('View similar traces')}</Link>,
+              })}
+            </Text>
+          }
+        >
+          <Text variant="muted">{rendered}</Text>
+        </Tooltip>
+      );
+    }
+
     const target = getTraceDetailsUrl({
       traceSlug: data.trace,
       timestamp: data.timestamp,
@@ -162,6 +217,55 @@ function BaseExploreFieldRenderer({
 
   if (['id', 'span_id', 'transaction.id'].includes(field)) {
     const spanId = field === 'transaction.id' ? undefined : (data.span_id ?? data.id);
+
+    if (olderThan30Days) {
+      const queryString = new MutableSearch('');
+
+      if (field === 'transaction.id') {
+        queryString.addFilterValue('is_transaction', 'true');
+      }
+
+      if (data?.['span.name']) {
+        queryString.addFilterValue('span.name', data['span.name']);
+      }
+
+      if (data?.['span.description']) {
+        queryString.addFilterValue('span.description', data['span.description']);
+      }
+
+      const project = projectsMap[data.project];
+
+      const target = getExploreUrl({
+        organization,
+        mode: Mode.SAMPLES,
+        query: queryString.formatString(),
+        selection: {
+          ...selection,
+          projects: defined(project?.id)
+            ? [parseInt(project.id, 10)]
+            : selection.projects,
+          datetime: {start: null, end: null, utc: null, period: '24h'},
+        },
+      });
+
+      return (
+        <Tooltip
+          showUnderline
+          isHoverable
+          disabled={!queryString}
+          title={
+            <Text>
+              {tct('Span is older than 30 days. [similarSpans] in the past 24 hours.', {
+                similarSpans: <Link to={target}>{t('View similar spans')}</Link>,
+              })}
+            </Text>
+          }
+        >
+          <Text variant="muted">{rendered}</Text>
+        </Tooltip>
+      );
+    }
+
     const target = generateLinkToEventInTraceView({
       traceSlug: data.trace,
       timestamp: data.timestamp,
