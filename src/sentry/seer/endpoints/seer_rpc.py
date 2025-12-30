@@ -1101,6 +1101,8 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_github_enterprise_integration_config": get_github_enterprise_integration_config,
     "get_organization_project_ids": get_organization_project_ids,
     "check_repository_integrations_status": check_repository_integrations_status,
+    "get_organization_options": get_organization_options,
+    "get_organization_features": get_organization_features,
     #
     # Autofix
     "get_organization_slug": get_organization_slug,
@@ -1152,10 +1154,6 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     # Replays
     "get_replay_summary_logs": rpc_get_replay_summary_logs,
     "get_replay_metadata": get_replay_metadata,
-    #
-    # Organization Options and Features
-    "get_organization_options": get_organization_options,
-    "get_organization_features": get_organization_features,
 }
 
 
