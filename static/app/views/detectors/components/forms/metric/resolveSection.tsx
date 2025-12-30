@@ -158,8 +158,8 @@ export function ResolveSection() {
         <DescriptionContainer onClick={e => e.preventDefault()}>
           <Text>
             {conditionType === DataConditionType.GREATER
-              ? t('Less than')
-              : t('More than')}
+              ? t('Below or equal to')
+              : t('Above or equal to')}
           </Text>
           <ThresholdField
             hideLabel

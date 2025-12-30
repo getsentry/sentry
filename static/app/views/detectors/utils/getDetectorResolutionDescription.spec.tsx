@@ -26,7 +26,7 @@ describe('getDetectorResolutionDescription', () => {
       });
 
       expect(result).toBe(
-        'Issue will be resolved when the query value is less than 100%.'
+        'Issue will be resolved when the query value is below or equal to 100%.'
       );
     });
 
@@ -40,7 +40,7 @@ describe('getDetectorResolutionDescription', () => {
       });
 
       expect(result).toBe(
-        'Issue will be resolved when the query value is more than 50ms.'
+        'Issue will be resolved when the query value is above or equal to 50ms.'
       );
     });
 
@@ -54,7 +54,7 @@ describe('getDetectorResolutionDescription', () => {
       });
 
       expect(result).toBe(
-        'Issue will be resolved when the query value is less than 100.'
+        'Issue will be resolved when the query value is below or equal to 100.'
       );
     });
 
@@ -68,7 +68,7 @@ describe('getDetectorResolutionDescription', () => {
       });
 
       expect(result).toBe(
-        'Issue will be resolved when the query value is less than 75%.'
+        'Issue will be resolved when the query value is below or equal to 75%.'
       );
     });
 
@@ -82,7 +82,7 @@ describe('getDetectorResolutionDescription', () => {
       });
 
       expect(result).toBe(
-        'Issue will be resolved when the query value is more than 80ms.'
+        'Issue will be resolved when the query value is above or equal to 80ms.'
       );
     });
   });
@@ -99,7 +99,7 @@ describe('getDetectorResolutionDescription', () => {
       });
 
       expect(result).toBe(
-        'Issue will be resolved when the query value is less than 25% higher than the previous 1 hour.'
+        'Issue will be resolved when the query value is below or equal to 25% higher than the previous 1 hour.'
       );
     });
 
@@ -140,7 +140,7 @@ describe('getDetectorResolutionDescription', () => {
       });
 
       expect(result).toBe(
-        'Issue will be resolved when the query value is less than 15% lower than the previous 2 hours.'
+        'Issue will be resolved when the query value is below or equal to 15% lower than the previous 2 hours.'
       );
     });
 
@@ -155,7 +155,7 @@ describe('getDetectorResolutionDescription', () => {
       });
 
       expect(result).toBe(
-        'Issue will be resolved when the query value is less than 20% higher than the previous 5 minutes.'
+        'Issue will be resolved when the query value is below or equal to 20% higher than the previous 5 minutes.'
       );
     });
 
@@ -170,7 +170,7 @@ describe('getDetectorResolutionDescription', () => {
       });
 
       expect(result).toBe(
-        'Issue will be resolved when the query value is less than 15% higher than the previous 1 hour.'
+        'Issue will be resolved when the query value is below or equal to 15% higher than the previous 1 hour.'
       );
     });
   });
