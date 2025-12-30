@@ -1016,7 +1016,7 @@ function renderTag(kind: FieldValueKind, label: string, dataType?: string) {
       case 'integer':
       case 'percentage':
       case 'number':
-        return <Tag variant="info">{t('number')}</Tag>;
+        return <Tag variant="success">{t('number')}</Tag>;
       default:
         return <Tag variant="muted">{dataType}</Tag>;
     }
