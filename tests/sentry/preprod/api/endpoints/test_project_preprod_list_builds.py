@@ -111,6 +111,33 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         assert resp_data["builds"][1]["app_info"]["app_id"] == "com.example.app2"
         assert resp_data["builds"][2]["app_info"]["app_id"] == "com.example.app"
 
+    def test_list_builds_distribution_info(self) -> None:
+        self.artifact1.extras = {"release_notes": "Release notes"}
+        self.artifact1.save()
+        self.create_installable_preprod_artifact(preprod_artifact=self.artifact1, download_count=2)
+        self.create_installable_preprod_artifact(preprod_artifact=self.artifact1, download_count=3)
+        self.artifact2.installable_app_file_id = None
+        self.artifact2.save()
+
+        url = self._get_url()
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        builds_by_app_id = {build["app_info"]["app_id"]: build for build in resp_data["builds"]}
+
+        artifact1_distribution = builds_by_app_id["com.example.app"]["distribution_info"]
+        assert artifact1_distribution["is_installable"] is True
+        assert artifact1_distribution["download_count"] == 5
+        assert artifact1_distribution["release_notes"] == "Release notes"
+
+        artifact2_distribution = builds_by_app_id["com.example.app2"]["distribution_info"]
+        assert artifact2_distribution["is_installable"] is False
+        assert artifact2_distribution["download_count"] == 0
+        assert artifact2_distribution["release_notes"] is None
+
     def test_list_builds_with_pagination(self) -> None:
         url = self._get_url()
         response = self.client.get(

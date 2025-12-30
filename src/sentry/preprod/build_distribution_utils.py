@@ -4,6 +4,7 @@ import logging
 import secrets
 from datetime import timedelta
 
+from django.db.models import Sum
 from django.utils import timezone
 
 from sentry.preprod.models import InstallablePreprodArtifact, PreprodArtifact
@@ -15,6 +16,18 @@ logger = logging.getLogger(__name__)
 def is_installable_artifact(artifact: PreprodArtifact) -> bool:
     # TODO: Adjust this logic when we have a better way to determine if an artifact is installable
     return artifact.installable_app_file_id is not None and artifact.build_number is not None
+
+
+def get_download_count_for_artifact(artifact: PreprodArtifact) -> int:
+    download_count = getattr(artifact, "download_count", None)
+    if download_count is None:
+        download_count = (
+            InstallablePreprodArtifact.objects.filter(preprod_artifact=artifact).aggregate(
+                total_downloads=Sum("download_count")
+            )["total_downloads"]
+            or 0
+        )
+    return int(download_count)
 
 
 def get_download_url_for_artifact(artifact: PreprodArtifact) -> str:
