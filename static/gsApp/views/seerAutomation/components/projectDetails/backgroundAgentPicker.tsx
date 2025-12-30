@@ -12,6 +12,8 @@ import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Project} from 'sentry/types/project';
 
+import type {SUPPORTED_CODING_AGENT_INTEGRATION_PROVIDERS} from 'getsentry/views/seerAutomation/components/projectDetails/constants';
+
 interface Props {
   canWrite: boolean;
   preference: ProjectSeerPreferences;
@@ -34,8 +36,10 @@ export default function BackgroundAgentPicker({
   }
   if (supportedIntegrations.length === 1) {
     const integration = supportedIntegrations[0]!;
+    const provider =
+      integration.provider as (typeof SUPPORTED_CODING_AGENT_INTEGRATION_PROVIDERS)[number];
 
-    switch (integration.provider) {
+    switch (provider) {
       case 'cursor':
         return (
           <BooleanField
@@ -115,7 +119,7 @@ export default function BackgroundAgentPicker({
         integration =>
           integration.id === String(preference?.automation_handoff?.integration_id)
       )}
-      onChange={integration => {
+      onChange={(integration: CodingAgentIntegration | undefined) => {
         updateProjectSeerPreferences(
           {
             repositories: preference?.repositories || [],
@@ -132,15 +136,19 @@ export default function BackgroundAgentPicker({
           {
             onSuccess: () =>
               addSuccessMessage(
-                tct('Started using [name] background agent', {
-                  name: <strong>{integration.name}</strong>,
-                })
+                integration
+                  ? tct('Started using [name] background agent', {
+                      name: <strong>{integration.name}</strong>,
+                    })
+                  : t('Stopped using background agent')
               ),
             onError: () =>
               addErrorMessage(
-                tct('Failed to enable [name] background agent', {
-                  name: <strong>{integration.name}</strong>,
-                })
+                integration
+                  ? tct('Failed to enable [name] background agent', {
+                      name: <strong>{integration.name}</strong>,
+                    })
+                  : t('Failed to disable background agent')
               ),
           }
         );

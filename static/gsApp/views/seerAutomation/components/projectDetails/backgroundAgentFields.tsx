@@ -6,6 +6,8 @@ import BooleanField from 'sentry/components/forms/fields/booleanField';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 
+import type {SUPPORTED_CODING_AGENT_INTEGRATION_PROVIDERS} from 'getsentry/views/seerAutomation/components/projectDetails/constants';
+
 interface Props {
   canWrite: boolean;
   preference: ProjectSeerPreferences;
@@ -19,7 +21,9 @@ export default function BackgroundAgentFields({
   preference,
   project,
 }: Props) {
-  switch (selectedIntegration.provider) {
+  const provider =
+    selectedIntegration.provider as (typeof SUPPORTED_CODING_AGENT_INTEGRATION_PROVIDERS)[number];
+  switch (provider) {
     case 'cursor':
       return (
         <CursorIntegrationFields

@@ -15,14 +15,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 import BackgroundAgentFields from 'getsentry/views/seerAutomation/components/projectDetails/backgroundAgentFields';
 import BackgroundAgentPicker from 'getsentry/views/seerAutomation/components/projectDetails/backgroundAgentPicker';
 import BackgroundAgentSetup from 'getsentry/views/seerAutomation/components/projectDetails/backgroundAgentSetup';
+import {SUPPORTED_CODING_AGENT_INTEGRATION_PROVIDERS} from 'getsentry/views/seerAutomation/components/projectDetails/constants';
 
 interface Props {
   canWrite: boolean;
   preference: ProjectSeerPreferences;
   project: Project;
 }
-
-const SUPPORTED_INTEGRATION_PROVIDERS = ['cursor'];
 
 export default function BackgroundAgentForm({canWrite, preference, project}: Props) {
   const organization = useOrganization();
@@ -33,7 +32,9 @@ export default function BackgroundAgentForm({canWrite, preference, project}: Pro
   const supportedIntegrations = useMemo(
     () =>
       codingAgentIntegrations?.integrations.filter(integration =>
-        SUPPORTED_INTEGRATION_PROVIDERS.includes(integration.provider)
+        (SUPPORTED_CODING_AGENT_INTEGRATION_PROVIDERS as unknown as string[]).includes(
+          integration.provider
+        )
       ) ?? [],
     [codingAgentIntegrations]
   );
@@ -45,15 +46,13 @@ export default function BackgroundAgentForm({canWrite, preference, project}: Pro
   // If there is something configured, use that
   // otherwise if there is only one integration, we'll show those fields
   // but when there are multiple integrations and none picked: show no fields yet.
-  const firstIntegration =
-    codingAgentIntegrations?.integrations.length === 1
-      ? codingAgentIntegrations?.integrations[0]
-      : undefined;
+  const onlyIntegration =
+    supportedIntegrations.length === 1 ? supportedIntegrations[0] : undefined;
   const selectedIntegration =
     supportedIntegrations.find(
       integration =>
         integration.id === String(preference?.automation_handoff?.integration_id)
-    ) ?? firstIntegration;
+    ) ?? onlyIntegration;
 
   return (
     <Container border="primary" radius="md" margin="2xl 0">
