@@ -99,7 +99,7 @@ function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
               {props.story.exports.frontmatter?.status ? (
                 props.story.exports.frontmatter.status === 'stable' ? null : (
                   <Tag
-                    type={
+                    variant={
                       props.story.exports.frontmatter.status === 'in-progress'
                         ? 'warning'
                         : 'promotion'

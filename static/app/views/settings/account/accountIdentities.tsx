@@ -66,13 +66,15 @@ function IdentityItem({identity, onDisconnect}: IdentityItemProps) {
       <InternalContainer>
         <TagWrapper>
           {identity.category === UserIdentityCategory.SOCIAL_IDENTITY && (
-            <Tag type="default">{t('Legacy')}</Tag>
+            <Tag variant="muted">{t('Legacy')}</Tag>
           )}
           {identity.category !== UserIdentityCategory.ORG_IDENTITY && (
-            <Tag type="default">{identity.isLogin ? t('Sign In') : t('Integration')}</Tag>
+            <Tag variant="muted">
+              {identity.isLogin ? t('Sign In') : t('Integration')}
+            </Tag>
           )}
           {identity.organization && (
-            <Tag type="highlight">{identity.organization.slug}</Tag>
+            <Tag variant="info">{identity.organization.slug}</Tag>
           )}
         </TagWrapper>
 

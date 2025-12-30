@@ -84,7 +84,11 @@ export default function SentryAppDetailsModal(props: Props) {
   const featureTags = (features: Array<Pick<IntegrationFeature, 'featureGate'>>) => {
     return features.map(feature => {
       const feat = feature.featureGate.replace(/integrations/g, '');
-      return <StyledTag key={feat}>{feat.replace(/-/g, ' ')}</StyledTag>;
+      return (
+        <StyledTag key={feat} variant="muted">
+          {feat.replace(/-/g, ' ')}
+        </StyledTag>
+      );
     });
   };
 

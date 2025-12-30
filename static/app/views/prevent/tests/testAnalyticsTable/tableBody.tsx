@@ -49,7 +49,7 @@ export function renderTableBody({column, row, wrapToggleValue}: TableBodyProps) 
 
     return (
       <Flex gap="sm" align="center" justify="end">
-        {isBrokenTest && <Tag type="highlight">{t('Broken test')}</Tag>}
+        {isBrokenTest && <Tag variant="info">{t('Broken test')}</Tag>}
         <Tooltip
           showUnderline
           isHoverable

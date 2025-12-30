@@ -88,7 +88,7 @@ export function AssigneeBadge({
   );
 
   return loading ? (
-    <StyledTag icon={loadingIcon} />
+    <StyledTag icon={loadingIcon} variant="muted" />
   ) : assignedTo ? (
     <Tooltip
       isHoverable
@@ -104,7 +104,7 @@ export function AssigneeBadge({
       }
       skipWrapper
     >
-      <StyledTag icon={makeAssignedIcon(assignedTo)} />
+      <StyledTag icon={makeAssignedIcon(assignedTo)} variant="muted" />
     </Tooltip>
   ) : (
     <Tooltip
@@ -127,7 +127,7 @@ export function AssigneeBadge({
       }
       skipWrapper
     >
-      <UnassignedTag icon={unassignedIcon} />
+      <UnassignedTag icon={unassignedIcon} variant="muted" />
     </Tooltip>
   );
 }

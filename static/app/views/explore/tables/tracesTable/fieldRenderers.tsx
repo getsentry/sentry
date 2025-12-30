@@ -3,7 +3,7 @@ import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Tag} from 'sentry/components/core/badge/tag';
+import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -484,12 +484,12 @@ export function SpanTimeRenderer({
 
 type SpanStatus = SpanResponse[SpanFields.SPAN_STATUS];
 
-const STATUS_TO_TAG_TYPE: Record<SpanStatus, keyof Theme['tag']> = {
+const STATUS_TO_TAG_TYPE: Record<SpanStatus, TagProps['variant']> = {
   ok: 'success',
   cancelled: 'warning',
   unknown: 'info',
   invalid_argument: 'warning',
-  deadline_exceeded: 'error',
+  deadline_exceeded: 'danger',
   not_found: 'warning',
   already_exists: 'warning',
   permission_denied: 'warning',
@@ -497,10 +497,10 @@ const STATUS_TO_TAG_TYPE: Record<SpanStatus, keyof Theme['tag']> = {
   failed_precondition: 'warning',
   aborted: 'warning',
   out_of_range: 'warning',
-  unimplemented: 'error',
-  internal_error: 'error',
-  unavailable: 'error',
-  data_loss: 'error',
+  unimplemented: 'danger',
+  internal_error: 'danger',
+  unavailable: 'danger',
+  data_loss: 'danger',
   unauthenticated: 'warning',
 };
 
@@ -525,7 +525,7 @@ function StatusTag({status, onClick}: {status: string; onClick?: () => void}) {
     return null;
   }
   return (
-    <StyledTag type={tagType} onClick={onClick}>
+    <StyledTag variant={tagType} onClick={onClick}>
       {status}
     </StyledTag>
   );

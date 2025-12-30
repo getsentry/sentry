@@ -201,10 +201,10 @@ function CheckInBodyCell({
                   )
             }
           >
-            <Tag type="default">{t('%s spans', totalSpanCount)}</Tag>
+            <Tag variant="muted">{t('%s spans', totalSpanCount)}</Tag>
           </Tooltip>
         ) : (
-          <Tag type="info">{t('%s spans', totalSpanCount)}</Tag>
+          <Tag variant="info">{t('%s spans', totalSpanCount)}</Tag>
         );
 
       return (

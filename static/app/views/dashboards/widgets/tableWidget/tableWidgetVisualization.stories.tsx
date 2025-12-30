@@ -399,7 +399,7 @@ function onTriggerCellAction(actions: Actions, value: string | number) {
     function getRenderer(fieldName: string) {
       if (fieldName === 'http.request_method') {
         return function (dataRow: TabularRow) {
-          return <Tag>{dataRow[fieldName]}</Tag>;
+          return <Tag variant="muted">{dataRow[fieldName]}</Tag>;
         };
       }
 

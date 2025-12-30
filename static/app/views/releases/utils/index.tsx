@@ -204,7 +204,7 @@ const adoptionStagesLink = (
 
 export const ADOPTION_STAGE_LABELS: Record<
   string,
-  {name: string; tooltipTitle: React.ReactNode; type: TagProps['type']}
+  {name: string; tooltipTitle: React.ReactNode; variant: TagProps['variant']}
 > = {
   low_adoption: {
     name: t('Low Adoption'),
@@ -212,7 +212,7 @@ export const ADOPTION_STAGE_LABELS: Record<
       'This release has a low percentage of sessions compared to other releases in this project. [link:Learn more]',
       {link: adoptionStagesLink}
     ),
-    type: 'warning',
+    variant: 'warning',
   },
   adopted: {
     name: t('Adopted'),
@@ -220,7 +220,7 @@ export const ADOPTION_STAGE_LABELS: Record<
       'This release has a high percentage of sessions compared to other releases in this project. [link:Learn more]',
       {link: adoptionStagesLink}
     ),
-    type: 'success',
+    variant: 'success',
   },
   replaced: {
     name: t('Replaced'),
@@ -228,7 +228,7 @@ export const ADOPTION_STAGE_LABELS: Record<
       'This release was previously Adopted, but now has a lower level of sessions compared to other releases in this project. [link:Learn more]',
       {link: adoptionStagesLink}
     ),
-    type: 'default',
+    variant: 'muted',
   },
 };
 

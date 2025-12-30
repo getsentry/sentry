@@ -40,7 +40,7 @@ export function CollapsedAvatars({
 
   if (hasStreamlinedUI) {
     return (
-      <Tag ref={ref} data-test-id="avatarList-collapsedavatars">
+      <Tag ref={ref} data-test-id="avatarList-collapsedavatars" variant="muted">
         {children}
       </Tag>
     );

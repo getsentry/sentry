@@ -11,15 +11,15 @@ interface TypeBadgeProps {
 
 export function TypeBadge({func, kind}: TypeBadgeProps) {
   if (defined(func) || kind === FieldKind.FUNCTION) {
-    return <Tag type="success">{t('f(x)')}</Tag>;
+    return <Tag variant="success">{t('f(x)')}</Tag>;
   }
 
   if (kind === FieldKind.MEASUREMENT) {
-    return <Tag type="highlight">{t('number')}</Tag>;
+    return <Tag variant="info">{t('number')}</Tag>;
   }
 
   if (kind === FieldKind.TAG) {
-    return <Tag type="warning">{t('string')}</Tag>;
+    return <Tag variant="warning">{t('string')}</Tag>;
   }
 
   return null;

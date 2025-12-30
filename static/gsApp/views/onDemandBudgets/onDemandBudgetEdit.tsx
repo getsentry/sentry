@@ -287,7 +287,7 @@ class OnDemandBudgetEdit extends Component<Props> {
                       <OnDemandType>{t('Shared')}</OnDemandType>
                       {onDemandEnabled &&
                         currentBudgetMode === OnDemandBudgetMode.SHARED && (
-                          <Tag>{t('Current Budget')}</Tag>
+                          <Tag variant="muted">{t('Current Budget')}</Tag>
                         )}
                     </Title>
                     <Description>
@@ -326,7 +326,7 @@ class OnDemandBudgetEdit extends Component<Props> {
                       <OnDemandType>{t('Per-Category')}</OnDemandType>
                       {onDemandEnabled &&
                         currentBudgetMode === OnDemandBudgetMode.PER_CATEGORY && (
-                          <Tag>{t('Current Budget')}</Tag>
+                          <Tag variant="muted">{t('Current Budget')}</Tag>
                         )}
                     </Title>
                     <Description>

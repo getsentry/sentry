@@ -110,7 +110,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
       <ImageHeader />
       <div>
         <PartnerPlanHeading>
-          <Tag icon={<IconClock />} type="promotion">
+          <Tag icon={<IconClock />} variant="promotion">
             {tn('%s day left', '%s days left', daysLeft)}
           </Tag>
           <h2 data-test-id="partner-plan-ending-header">

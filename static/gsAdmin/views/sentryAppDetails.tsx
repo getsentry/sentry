@@ -131,7 +131,7 @@ export default function SentryAppDetails() {
           {data.featureData?.map((feature: any) => (
             <div key={feature.featureGate}>
               {
-                <Tag type="warning">
+                <Tag variant="warning">
                   {feature.featureGate.replace(/(^integrations-)/, '')}
                 </Tag>
               }

@@ -11,7 +11,9 @@ type Props = {
 export function PerformanceBadge({score}: Props) {
   const status = scoreToStatus(score);
   return (
-    <Tag type={status === 'good' ? 'success' : status === 'bad' ? 'error' : 'warning'}>
+    <Tag
+      variant={status === 'good' ? 'success' : status === 'bad' ? 'danger' : 'warning'}
+    >
       {STATUS_TEXT[status]} {score}
     </Tag>
   );

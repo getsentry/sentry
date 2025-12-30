@@ -144,7 +144,7 @@ function BroadcastDetails({params: {broadcastId}}: Props) {
       badges={[
         {
           name: data.isActive ? 'Enabled' : 'Disabled',
-          level: data.isActive ? 'success' : 'error',
+          level: data.isActive ? 'success' : 'danger',
         },
       ]}
       actions={[

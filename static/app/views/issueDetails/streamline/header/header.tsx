@@ -129,7 +129,7 @@ export default function StreamlinedGroupHeader({
                   'Error counts on this page have been upsampled based on your sampling rate.'
                 )}
               >
-                <StyledTag>{t('Errors Upsampled')}</StyledTag>
+                <StyledTag variant="muted">{t('Errors Upsampled')}</StyledTag>
               </Tooltip>
             )}
           </Flex>

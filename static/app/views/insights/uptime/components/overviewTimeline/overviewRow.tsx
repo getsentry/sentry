@@ -118,7 +118,7 @@ export function OverviewRow({summary, uptimeDetector, timeWindowConfig, single}:
             </Fragment>
           )}
         </DetailsLine>
-        <div>{!uptimeDetector.enabled && <Tag>{t('Disabled')}</Tag>}</div>
+        <div>{!uptimeDetector.enabled && <Tag variant="muted">{t('Disabled')}</Tag>}</div>
       </Details>
     </DetailsLink>
   );

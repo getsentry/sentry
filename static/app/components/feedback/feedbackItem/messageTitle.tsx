@@ -24,7 +24,7 @@ export default function MessageTitle({feedbackItem, eventData}: Props) {
       <FeedbackItemUsername feedbackIssue={feedbackItem} />
       <Flex gap="md">
         {isSpam ? (
-          <Tag key="spam" type="error">
+          <Tag key="spam" variant="danger">
             <Tooltip
               isHoverable
               position="left"

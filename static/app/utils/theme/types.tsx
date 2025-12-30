@@ -85,13 +85,12 @@ export type FormSize = SizeRange<'xs', 'md'>;
  * Tag color scheme.
  */
 export type TagVariant =
-  | 'default'
-  | 'promotion'
-  | 'highlight'
-  | 'warning'
+  | 'muted'
+  | 'info'
   | 'success'
-  | 'error'
-  | 'info';
+  | 'warning'
+  | 'danger'
+  | 'promotion';
 
 /**
  * Alert/status color scheme.

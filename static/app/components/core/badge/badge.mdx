@@ -134,20 +134,20 @@ The text of each badge is derived from the `environment` passed to the `deploy` 
 The `Tag` component is a generic primitive. Depending on the `type` prop, it can be used as an error/warning/success indicator and for various other use cases.
 
 <Storybook.Demo>
-  <Tag type="default">Default</Tag>
-  <Tag type="success">Success</Tag>
-  <Tag type="error">Error</Tag>
-  <Tag type="warning">Warning</Tag>
-  <Tag type="info">Info</Tag>
-  <Tag type="promotion">Promotion</Tag>
+  <Tag variant="muted">Default</Tag>
+  <Tag variant="success">Success</Tag>
+  <Tag variant="danger">Error</Tag>
+  <Tag variant="warning">Warning</Tag>
+  <Tag variant="info">Info</Tag>
+  <Tag variant="promotion">Promotion</Tag>
 </Storybook.Demo>
 ```jsx
-<Tag type="default">Default</Tag>
-<Tag type="success">Success</Tag>
-<Tag type="error">Error</Tag>
-<Tag type="warning">Warning</Tag>
-<Tag type="info">Info</Tag>
-<Tag type="promotion">Promotion</Tag>
+<Tag variant="muted">Default</Tag>
+<Tag variant="success">Success</Tag>
+<Tag variant="danger">Error</Tag>
+<Tag variant="warning">Warning</Tag>
+<Tag variant="info">Info</Tag>
+<Tag variant="promotion">Promotion</Tag>
 ```
 
 ### Icons
@@ -155,24 +155,24 @@ The `Tag` component is a generic primitive. Depending on the `type` prop, it can
 The `icon` prop accepts an `<Icon />` component to render a custom leading icon.
 
 <Storybook.Demo>
-  <Tag icon={<IconCheckmark />} type="success">
+  <Tag icon={<IconCheckmark />} variant="success">
     Success
   </Tag>
-  <Tag icon={<IconWarning />} type="warning">
+  <Tag icon={<IconWarning />} variant="warning">
     Warning
   </Tag>
-  <Tag icon={<IconCircle />} type="promotion">
+  <Tag icon={<IconCircle />} variant="promotion">
     Promotion
   </Tag>
 </Storybook.Demo>
 ```jsx
-<Tag icon={<IconCheckmark />} type="success">
+<Tag icon={<IconCheckmark />} variant="success">
   Success
 </Tag>
-<Tag icon={<IconWarning />} type="warning">
+<Tag icon={<IconWarning />} variant="warning">
   Warning
 </Tag>
-<Tag icon={<IconCircle />} type="promotion">
+<Tag icon={<IconCircle />} variant="promotion">
   Promotion
 </Tag>
 ```
@@ -185,10 +185,10 @@ export function DismissableTag() {
   const [dismissed, setDismissed] = useState(false);
 
 if (dismissed) {
-return <Tag icon={<IconRefresh />} type="default" onClick={() => setDismissed(false)}>Reset Tag</Tag>
+return <Tag icon={<IconRefresh />} variant="muted" onClick={() => setDismissed(false)}>Reset Tag</Tag>
 }
 
-return <Tag type="info" onDismiss={() => setDismissed(true)}>
+return <Tag variant="info" onDismiss={() => setDismissed(true)}>
 Dismiss Tag
 
   </Tag>

@@ -118,8 +118,8 @@ export function OverviewRow({
             {scheduleAsText(monitor.config)}
           </ScheduleDetails>
           <MonitorStatuses>
-            {monitor.isMuted && <Tag>{t('Muted')}</Tag>}
-            {isDisabled && <Tag>{t('Disabled')}</Tag>}
+            {monitor.isMuted && <Tag variant="muted">{t('Muted')}</Tag>}
+            {isDisabled && <Tag variant="muted">{t('Disabled')}</Tag>}
           </MonitorStatuses>
         </DetailsContainer>
       </DetailsLink>

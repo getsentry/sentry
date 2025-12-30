@@ -111,7 +111,7 @@ function PromoCodeDetails() {
       badges={[
         {
           name: isActive ? 'Active' : 'Inactive',
-          level: isActive ? 'success' : 'error',
+          level: isActive ? 'success' : 'danger',
         },
       ]}
       actions={[

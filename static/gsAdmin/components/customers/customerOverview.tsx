@@ -514,7 +514,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
       <DetailLabel key={apiName} title={formattedTrialName}>
         <TrialState>
           <StyledTag
-            type={
+            variant={
               lessThanOneDayLeft
                 ? 'promotion'
                 : hasActiveProductTrial

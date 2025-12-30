@@ -273,9 +273,9 @@ function DiffTag(
   label: string
 ): string {
   const diffString = formattedSizeDiff(sizeDiff);
-  let tagType: 'success' | 'error' | 'default' = 'default';
+  let tagType: 'success' | 'danger' | 'muted' = 'muted';
   if (diffType === 'increased' || diffType === 'added') {
-    tagType = 'error';
+    tagType = 'danger';
   } else if (diffType === 'decreased' || diffType === 'removed') {
     tagType = 'success';
   }
