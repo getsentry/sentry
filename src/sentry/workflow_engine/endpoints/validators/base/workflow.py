@@ -161,9 +161,37 @@ class WorkflowValidator(CamelSnakeSerializer):
 
         return condition_group
 
+    def _validate_action_filter_ownership(self, action_filters: ListInputData) -> None:
+        workflow = self.context["workflow"]
+
+        valid_dcg_ids: set[int] = set(
+            workflow.workflowdataconditiongroup_set.values_list("condition_group_id", flat=True)
+        )
+        valid_action_ids: set[int] = set(
+            DataConditionGroupAction.objects.filter(
+                condition_group_id__in=valid_dcg_ids
+            ).values_list("action_id", flat=True)
+        )
+
+        for action_filter in action_filters:
+            dcg_id = action_filter.get("id")
+            if dcg_id is not None and int(dcg_id) not in valid_dcg_ids:
+                raise serializers.ValidationError(
+                    f"Action filter ID {dcg_id} does not belong to this workflow"
+                )
+
+            for action in action_filter.get("actions", []):
+                action_id = action.get("id")
+                if action_id is not None and int(action_id) not in valid_action_ids:
+                    raise serializers.ValidationError(
+                        f"Action ID {action_id} does not belong to this workflow"
+                    )
+
     def update_action_filters(self, action_filters: ListInputData) -> list[DataConditionGroup]:
         instance = self.context["workflow"]
         filters: list[DataConditionGroup] = []
+
+        self._validate_action_filter_ownership(action_filters)
 
         remove_items_by_api_input(
             action_filters, instance.workflowdataconditiongroup_set, "condition_group__id"
