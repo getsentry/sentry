@@ -163,7 +163,7 @@ export default function FeedbackCategories() {
         return (
           <ClickableTag
             key={index}
-            type={selected ? 'info' : 'default'}
+            variant={selected ? 'info' : 'muted'}
             onClick={() => handleTagClick(category)}
             selected={selected}
           >
