@@ -15,8 +15,6 @@ import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {StoryTreeNode} from 'sentry/stories/view/storyTree';
 import {
-  COMPONENT_SUBCATEGORY_CONFIG,
-  COMPONENT_SUBCATEGORY_ORDER,
   SECTION_CONFIG,
   SECTION_ORDER,
   useStoryHierarchy,
@@ -52,13 +50,13 @@ export function StorySearch() {
       }
 
       // For components section, flatten all subcategories into component groups
-      if (section === 'core' && data.subcategories) {
-        for (const subcategory of COMPONENT_SUBCATEGORY_ORDER) {
-          const nodes = data.subcategories.get(subcategory);
-          if (nodes?.length) {
+      if (section === 'core') {
+        for (const subcategoryFolder of data.stories) {
+          const nodes = Object.values(subcategoryFolder.children);
+          if (nodes.length) {
             sections.push({
-              key: subcategory,
-              label: COMPONENT_SUBCATEGORY_CONFIG[subcategory].label,
+              key: subcategoryFolder.path,
+              label: subcategoryFolder.name,
               options: nodes,
             });
           }

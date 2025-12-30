@@ -128,7 +128,7 @@ export const SECTION_CONFIG: Record<StorySection, {label: string}> = {
   product: {label: 'Shared'},
 };
 
-export const COMPONENT_SUBCATEGORY_CONFIG: Record<
+const COMPONENT_SUBCATEGORY_CONFIG: Record<
   ComponentSubcategory,
   {
     components: string[];
@@ -204,7 +204,7 @@ export const SECTION_ORDER: StorySection[] = [
   'product',
 ];
 
-export const COMPONENT_SUBCATEGORY_ORDER: ComponentSubcategory[] = [
+const COMPONENT_SUBCATEGORY_ORDER: ComponentSubcategory[] = [
   'layout',
   'typography',
   'buttons',
