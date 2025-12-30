@@ -41,7 +41,8 @@ export function getWidgetMetricsUrl(
       // For each aggregate, create a metric query for each widget query
       return widget.queries.map(query => {
         const queryString =
-          applyDashboardFilters(query.conditions, dashboardFilters) ?? '';
+          applyDashboardFilters(query.conditions, dashboardFilters, widget.widgetType) ??
+          '';
 
         const groupByFields: GroupBy[] = query.columns.map(
           (col): GroupBy => ({groupBy: col})
