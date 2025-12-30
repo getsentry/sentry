@@ -2,7 +2,7 @@ import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-export type ChonkPropMapping<LegacyProps, ChonkProps> = (
+type ChonkPropMapping<LegacyProps, ChonkProps> = (
   props: Omit<LegacyProps, 'theme' | 'ref'>
 ) => Omit<ChonkProps, 'theme' | 'ref'>;
 
