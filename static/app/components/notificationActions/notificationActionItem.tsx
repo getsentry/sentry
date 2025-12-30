@@ -109,7 +109,7 @@ function NotificationActionItem({
           <Fragment>
             <div>{t('Send an email notification to the following roles')}</div>
             {recipientRoles?.map(role => (
-              <NotificationRecipientBadge type="default" key={role}>
+              <NotificationRecipientBadge variant="muted" key={role}>
                 {role}
               </NotificationRecipientBadge>
             ))}
@@ -119,7 +119,7 @@ function NotificationActionItem({
         return (
           <Fragment>
             <div>{t('Send a notification to the')}</div>
-            <NotificationRecipientBadge type="default">
+            <NotificationRecipientBadge variant="muted">
               {action.targetDisplay}
             </NotificationRecipientBadge>
             <div>{t('channel')}</div>
@@ -129,7 +129,7 @@ function NotificationActionItem({
         return (
           <Fragment>
             <div>{t('Send a notification to the')}</div>
-            <NotificationRecipientBadge type="default">
+            <NotificationRecipientBadge variant="muted">
               {action.targetDisplay}
             </NotificationRecipientBadge>
             <div>{t('service')}</div>
@@ -139,7 +139,7 @@ function NotificationActionItem({
         return (
           <Fragment>
             <div>{t('Send a notification to the')}</div>
-            <NotificationRecipientBadge type="default">
+            <NotificationRecipientBadge variant="muted">
               {action.targetDisplay}
             </NotificationRecipientBadge>
             <div>{t('team')}</div>

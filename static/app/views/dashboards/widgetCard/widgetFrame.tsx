@@ -72,7 +72,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
           {props.badgeProps &&
             (Array.isArray(props.badgeProps) ? props.badgeProps : [props.badgeProps]).map(
               (currentBadgeProps, i) => (
-                <WidgetBadge key={i} type="default">
+                <WidgetBadge key={i} variant="muted">
                   {currentBadgeProps}
                 </WidgetBadge>
               )

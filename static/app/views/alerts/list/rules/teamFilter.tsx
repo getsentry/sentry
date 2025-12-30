@@ -112,7 +112,7 @@ function TeamFilter({
           <Fragment>
             {triggerLabel}
             {selectedTeams.length > 1 && (
-              <StyledBadge type="default">{`+${selectedTeams.length - 1}`}</StyledBadge>
+              <StyledBadge variant="muted">{`+${selectedTeams.length - 1}`}</StyledBadge>
             )}
           </Fragment>
         ),
