@@ -36,6 +36,8 @@ def get_affected_tests_from_coverage(db_path: str, source_files: list[str]) -> s
         test_contexts = set()
 
         for file_path in source_files:
+            if file_path.endswith("sentry/testutils/pytest/sentry.py"):
+                continue
             cleaned_file_path = file_path
             if cleaned_file_path.startswith("/src"):
                 cleaned_file_path = cleaned_file_path[len("/src") :]
@@ -51,7 +53,7 @@ def get_affected_tests_from_coverage(db_path: str, source_files: list[str]) -> s
                 WHERE f.path LIKE '%' || ?
                   AND c.context != ''
             """,
-                (f"{cleaned_file_path}",),
+                (f"%{cleaned_file_path}",),
             )
 
             print(f"Found {len(cur.fetchall())} contexts for {cleaned_file_path}")
