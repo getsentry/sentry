@@ -26,7 +26,7 @@ seer_anomaly_detection_connection_pool = connection_from_url(
     timeout=settings.SEER_HISTORICAL_ANOMALY_DETECTION_TIMEOUT,
 )
 
-SEER_RETRIES = Retry(total=2, backoff_factor=0.5)
+SEER_RETRIES = Retry(total=2, backoff_factor=0.5, status_forcelist=[408, 429, 502, 503, 504])
 
 
 def handle_seer_error_responses(response, config, context, log_params):
