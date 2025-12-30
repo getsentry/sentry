@@ -1,3 +1,5 @@
+# flake8: noqa: S002
+
 from __future__ import annotations
 
 import os
@@ -34,6 +36,9 @@ def get_affected_tests_from_coverage(db_path: str, source_files: list[str]) -> s
         test_contexts = set()
 
         for file_path in source_files:
+            cleaned_file_path = file_path
+            if cleaned_file_path.startswith("/src"):
+                cleaned_file_path = cleaned_file_path[len("/src") :]
             # Query for test contexts that executed this file
             cur.execute(
                 """
@@ -44,7 +49,7 @@ def get_affected_tests_from_coverage(db_path: str, source_files: list[str]) -> s
                 WHERE f.path LIKE '%' || ?
                   AND c.context != ''
             """,
-                (f"/{file_path}",),
+                (f"{cleaned_file_path}",),
             )
 
             for context, bitblob in cur.fetchall():
@@ -64,6 +69,7 @@ def get_affected_tests_from_coverage(db_path: str, source_files: list[str]) -> s
 
     except (sqlite3.Error, Exception) as e:
         # Log the error but don't fail the test run
+
         print(f"Warning: Could not query coverage database: {e}", file=sys.stderr)
         return None
 
