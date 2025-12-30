@@ -1,7 +1,6 @@
 ---
 title: Tokens
 description: Tokens are the smallest unit of a Design System. They represent discrete design decisions in a platform-agnostic way.
-status: in-progress
 resources:
   figma: https://www.figma.com/design/97XKAiOW0Rg8Rk1hb02R4E/%F0%9F%90%A6-Primitives?node-id=446-34701&p=f&t=secYuPMqzV9RoH8F-0
   js: https://github.com/getsentry/design-engineering/tree/main/packages/scraps/src/tokens
@@ -19,6 +18,16 @@ import {Text} from 'sentry/components/core/text';
 import * as Storybook from 'sentry/stories';
 // eslint-disable-next-line @sentry/scraps/no-token-import -- temporary until theme.borderWidth is exposed
 import {size} from 'sentry/utils/theme/scraps/tokens/size';
+
+> [!WARNING]
+>
+> These tokens are exposed here for **reference and documentation**, not as a primary integration surface.
+
+**Designers**, please use the [**Primitives** library](https://www.figma.com/design/97XKAiOW0Rg8Rk1hb02R4E/%F0%9F%90%A6-Primitives) in Figma as the source of truth.
+
+**Developers**, consume tokens by composing **component primitives** (e.g. [`<Container />`](/stories/layout/container/), [`<Text />`](/stories/typography/text/)) with the correct props. Let the components do the wiring.
+
+One **exception** is low-level `core` components maintained by the **Design Engineering team**, which may access tokens directly when abstraction isn’t practical.
 
 # Color
 
@@ -41,6 +50,10 @@ Colors have been organized into separate scales for specific use cases.
 ## Variants
 
 For consistency, token scales and `variant` properties have been standardized with the following terminology.
+
+> [!TIP]
+>
+> `sentry/utils/theme` exposes standardized, public types for `SurfaceVariant`, `SemanticVariant`, `ContentVariant`, `GraphicsVariant`, and `BorderVariant`.
 
 | Keyword     | Description                                                   |
 | ----------- | ------------------------------------------------------------- |
