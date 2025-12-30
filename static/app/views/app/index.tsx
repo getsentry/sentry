@@ -137,9 +137,20 @@ function App() {
     loadOrganizations();
     checkInternalHealth();
 
-    // Show system-level alerts
+    // Show system-level alerts that were forwarded by the initial client config request
     config.messages.forEach(msg =>
-      AlertStore.addAlert({message: msg.message, variant: msg.level, neverExpire: true})
+      AlertStore.addAlert({
+        message: msg.message,
+        variant:
+          // These are django message level tags that need to be mapped to our alert variant types.
+          // See client config in ./src/sentry/web/client_config.py
+          msg.level === 'error'
+            ? 'danger'
+            : msg.level === 'debug'
+              ? 'warning'
+              : msg.level,
+        neverExpire: true,
+      })
     );
 
     // The app is running in deploy preview mode
