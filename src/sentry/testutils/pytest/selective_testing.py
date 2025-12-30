@@ -56,10 +56,9 @@ def filter_items_by_coverage(
 
         # Extract test file paths from contexts
         # Context format: 'tests/foo/bar.py::TestClass::test_function|run'
-        test_files = set()
         for context in test_contexts:
             test_file = context.split("::", 1)[0]
-            test_files.add(test_file)
+            affected_test_files.add(test_file)
 
     except (sqlite3.Error, Exception) as e:
         raise ValueError(f"Could not query coverage database: {e}")
