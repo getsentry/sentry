@@ -53,6 +53,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     handleDeleteArtifact,
     handleRerunAction,
     handleDownloadAction,
+    handleRerunStatusChecksAction,
   } = useBuildDetailsActions({
     projectId,
     artifactId,
@@ -187,6 +188,17 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
           >
             {({open: openDeleteModal}) => {
               const menuItems: MenuItemProps[] = [
+                {
+                  key: 'rerun-status-checks',
+                  label: (
+                    <Flex align="center" gap="sm">
+                      <IconRefresh size="sm" />
+                      {t('Rerun Status Checks')}
+                    </Flex>
+                  ),
+                  onAction: handleRerunStatusChecksAction,
+                  textValue: t('Rerun Status Checks'),
+                },
                 {
                   key: 'delete',
                   label: (

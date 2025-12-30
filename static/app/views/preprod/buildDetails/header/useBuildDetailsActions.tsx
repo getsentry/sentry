@@ -136,6 +136,28 @@ export function useBuildDetailsActions({
     }
   };
 
+  const {mutate: rerunStatusChecks} = useMutation<void, RequestError>({
+    mutationFn: () => {
+      return fetchMutation({
+        url: `/projects/${organization.slug}/${projectId}/preprod-artifact/rerun-status-checks/${artifactId}/`,
+        method: 'POST',
+        data: {
+          check_types: ['size'],
+        },
+      });
+    },
+    onSuccess: () => {
+      addSuccessMessage(t('Status checks rerun initiated successfully'));
+    },
+    onError: () => {
+      addErrorMessage(t('Failed to rerun status checks'));
+    },
+  });
+
+  const handleRerunStatusChecksAction = () => {
+    rerunStatusChecks();
+  };
+
   return {
     // State
     isDeletingArtifact,
@@ -144,5 +166,6 @@ export function useBuildDetailsActions({
     handleDeleteArtifact,
     handleRerunAction,
     handleDownloadAction,
+    handleRerunStatusChecksAction,
   };
 }
