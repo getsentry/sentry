@@ -137,7 +137,7 @@ function BaseExploreFieldRenderer({
   const olderThan30Days = useMemo(() => {
     const currentDate = moment();
     const timestampDate = moment(data.timestamp);
-    return currentDate.diff(timestampDate, 'days') >= 30;
+    return currentDate.diff(timestampDate, 'days') > 30;
   }, [data.timestamp]);
 
   if (!defined(column)) {

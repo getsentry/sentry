@@ -424,7 +424,7 @@ export function SpanIdRenderer({
   const olderThan30Days = useMemo(() => {
     const currentDate = moment();
     const timestampDate = moment(timestamp);
-    return currentDate.diff(timestampDate, 'days') >= 30;
+    return currentDate.diff(timestampDate, 'days') > 30;
   }, [timestamp]);
 
   const {projects} = useProjects({slugs: [spanProject]});
@@ -521,7 +521,7 @@ export function TraceIdRenderer({
   const olderThan30Days = useMemo(() => {
     const currentDate = moment();
     const timestampDate = moment(timestamp);
-    return currentDate.diff(timestampDate, 'days') >= 30;
+    return currentDate.diff(timestampDate, 'days') > 30;
   }, [timestamp]);
 
   const {projects} = useProjects({slugs: projectSlugs, orgId: organization.slug});
