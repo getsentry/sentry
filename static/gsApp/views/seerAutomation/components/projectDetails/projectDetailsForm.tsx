@@ -83,13 +83,8 @@ export default function ProjectDetailsForm({canWrite, project, preference}: Prop
                   value: boolean
                 ): ProjectSeerPreferences['automated_run_stopping_point'] =>
                   value ? 'open_pr' : 'code_changes',
-                disabled: () => {
-                  return Boolean(preference?.automation_handoff);
-                  // console.log(preference?.automation_handoff);
-                  // return field.getValue() === 'background_agent';
-                },
+                disabled: () => Boolean(preference?.automation_handoff),
                 disabledReason: () => {
-                  // if (field.getValue() === 'background_agent') {
                   if (preference?.automation_handoff) {
                     return t(
                       'This setting is not available when using background agents.'

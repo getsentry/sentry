@@ -29,14 +29,12 @@ type Props = ModalRenderProps & {
 };
 
 export function AddAutofixRepoModal({
-  // repositories,
   selectedRepoIds,
   onSave,
   Header,
   Body,
   Footer,
   closeModal,
-  // isFetchingRepositories,
 }: Props) {
   const {data: repositories, isFetching: isFetchingRepositories} =
     useOrganizationRepositories();
