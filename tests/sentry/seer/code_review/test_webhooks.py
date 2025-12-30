@@ -706,27 +706,28 @@ class HandleIssueCommentEventTest(TestCase):
         )
         mock_schedule.assert_not_called()
 
-    @patch("sentry.seer.code_review.webhooks.handlers._schedule_task")
+    @patch("sentry.seer.code_review.webhooks.task.make_seer_request")
     @patch("sentry.seer.code_review.webhooks.issue_comment._add_eyes_reaction_to_comment")
     @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
     def test_adds_reaction_and_forwards_when_valid(
-        self, mock_reaction: MagicMock, mock_schedule: MagicMock
+        self, mock_reaction: MagicMock, mock_seer: MagicMock
     ) -> None:
         self._enable_code_review()
         mock_integration = MagicMock()
 
-        handle_issue_comment_event(
-            event_type="issue_comment",
-            event=self.event,
-            organization=self.organization,
-            repo=self.repo,
-            integration=mock_integration,
-        )
+        with self.tasks():
+            handle_issue_comment_event(
+                event_type="issue_comment",
+                event=self.event,
+                organization=self.organization,
+                repo=self.repo,
+                integration=mock_integration,
+            )
 
         mock_reaction.assert_called_once_with(
             mock_integration, self.organization, self.repo, "123456789"
         )
-        mock_schedule.assert_called_once()
+        mock_seer.assert_called_once()
 
     @patch("sentry.seer.code_review.webhooks.issue_comment._add_eyes_reaction_to_comment")
     @patch("sentry.seer.code_review.webhooks.handlers._schedule_task")
