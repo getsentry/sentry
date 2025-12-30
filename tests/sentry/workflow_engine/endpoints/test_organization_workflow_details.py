@@ -518,6 +518,86 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
                 == 0
             )
 
+    def test_update_action_filter_from_different_organization(self) -> None:
+        """Test validation failure when action filter belongs to different organization"""
+        other_org = self.create_organization()
+        other_dcg = DataConditionGroup.objects.create(
+            organization=other_org,
+            logic_type=DataConditionGroup.Type.ALL,
+        )
+
+        data = {
+            **self.valid_workflow,
+            "actionFilters": [
+                {
+                    "id": str(other_dcg.id),
+                    "logicType": "none",
+                    "conditions": [],
+                    "actions": [],
+                }
+            ],
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data=data,
+            status_code=400,
+        )
+
+        assert "does not belong to this workflow" in str(response.data)
+
+        other_dcg.refresh_from_db()
+        assert other_dcg.logic_type == DataConditionGroup.Type.ALL
+
+    def test_update_action_from_different_organization(self) -> None:
+        """Test validation failure when action belongs to different organization"""
+        other_org = self.create_organization()
+        other_dcg = DataConditionGroup.objects.create(
+            organization=other_org,
+            logic_type=DataConditionGroup.Type.ALL,
+        )
+        other_action = Action.objects.create(
+            type=Action.Type.EMAIL,
+            config={"target_type": ActionTarget.TEAM, "target_identifier": "1"},
+            data={},
+        )
+        DataConditionGroupAction.objects.create(
+            action=other_action,
+            condition_group=other_dcg,
+        )
+        original_config = other_action.config.copy()
+
+        data = {
+            **self.valid_workflow,
+            "actionFilters": [
+                {
+                    "logicType": "any",
+                    "conditions": [],
+                    "actions": [
+                        {
+                            "id": str(other_action.id),
+                            "type": "email",
+                            "config": {"targetType": "team", "targetIdentifier": "999"},
+                            "data": {},
+                        }
+                    ],
+                }
+            ],
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data=data,
+            status_code=400,
+        )
+
+        assert "does not belong to this workflow" in str(response.data)
+
+        other_action.refresh_from_db()
+        assert other_action.config == original_config
+
 
 @region_silo_test
 class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWorkflowTest):
