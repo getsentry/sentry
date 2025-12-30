@@ -65,7 +65,7 @@ export function PreprodBuildsRowCells({
                 </Text>
               </Container>
               <Feature features="organizations:preprod-build-distribution">
-                {build.app_info.is_installable && (
+                {build.distribution_info?.is_installable && (
                   <InstallAppButton
                     projectId={build.project_slug}
                     artifactId={build.id}
