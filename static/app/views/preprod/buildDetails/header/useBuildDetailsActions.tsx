@@ -136,7 +136,10 @@ export function useBuildDetailsActions({
     }
   };
 
-  const {mutate: rerunStatusChecks} = useMutation<void, RequestError>({
+  const {mutate: rerunStatusChecks, isPending: isRerunningStatusChecks} = useMutation<
+    void,
+    RequestError
+  >({
     mutationFn: () => {
       return fetchMutation({
         url: `/projects/${organization.slug}/${projectId}/preprod-artifact/rerun-status-checks/${artifactId}/`,
@@ -161,6 +164,7 @@ export function useBuildDetailsActions({
   return {
     // State
     isDeletingArtifact,
+    isRerunningStatusChecks,
 
     // Actions
     handleDeleteArtifact,

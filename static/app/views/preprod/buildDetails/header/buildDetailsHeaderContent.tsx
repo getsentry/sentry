@@ -50,6 +50,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
   const {buildDetailsQuery, projectId, artifactId, projectType} = props;
   const {
     isDeletingArtifact,
+    isRerunningStatusChecks,
     handleDeleteArtifact,
     handleRerunAction,
     handleDownloadAction,
@@ -252,7 +253,9 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
                       size="sm"
                       aria-label="More actions"
                       showChevron={false}
-                      disabled={isDeletingArtifact || !artifactId}
+                      disabled={
+                        isDeletingArtifact || isRerunningStatusChecks || !artifactId
+                      }
                     >
                       <IconEllipsis />
                     </DropdownButton>
