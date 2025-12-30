@@ -15,7 +15,7 @@ export interface BuildDetailsApiResponse {
   base_build_info?: BuildDetailsAppInfo | null;
 }
 
-export interface BuildDetailsDistributionInfo {
+interface BuildDetailsDistributionInfo {
   is_installable: boolean;
   download_count: number;
   release_notes: string | null;
