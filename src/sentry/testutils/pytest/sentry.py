@@ -408,8 +408,8 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
         coverage_db_path = os.environ.get("COVERAGE_DB_PATH", ".coverage.combined")
 
         if changed_files_str:
-            # Parse changed files from comma-separated string
-            changed_files = [f.strip() for f in changed_files_str.split(",") if f.strip()]
+            # Parse changed files from space-separated string
+            changed_files = [f.strip() for f in changed_files_str.split(" ") if f.strip()]
 
             config.get_terminal_writer().line(
                 f"Selective testing enabled for {len(changed_files)} changed file(s)"
