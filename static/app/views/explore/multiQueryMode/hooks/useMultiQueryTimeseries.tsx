@@ -29,6 +29,7 @@ interface UseMultiQueryTimeseriesResults {
 export function useMultiQueryTimeseries({
   enabled,
   index,
+  queryExtras,
 }: UseMultiQueryTimeseriesOptions) {
   const canTriggerHighAccuracy = useCallback(
     (results: ReturnType<typeof useMultiQueryTimeseriesImpl>['result']) => {
@@ -51,7 +52,7 @@ export function useMultiQueryTimeseries({
   );
   return useProgressiveQuery<typeof useMultiQueryTimeseriesImpl>({
     queryHookImplementation: useMultiQueryTimeseriesImpl,
-    queryHookArgs: {enabled, index},
+    queryHookArgs: {enabled, index, queryExtras},
     queryOptions: {
       canTriggerHighAccuracy,
     },
@@ -106,7 +107,7 @@ function useMultiQueryTimeseriesImpl({
 
   const timeseriesResult = useSortedTimeSeries(
     options,
-    'api.explore.spans-stats',
+    `api.explore.spans-timeseries`,
     DiscoverDatasets.SPANS
   );
 

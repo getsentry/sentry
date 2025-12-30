@@ -195,7 +195,7 @@ export default function FeedbackListPage() {
 }
 
 const Background = styled('div')`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -239,7 +239,7 @@ const LayoutGrid = styled('div')<{hideTop?: boolean}>`
 
 const Container = styled('div')`
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   display: flex;
   flex-direction: column;
   flex: 1;

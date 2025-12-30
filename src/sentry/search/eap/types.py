@@ -59,6 +59,8 @@ class SupportedTraceItemType(str, Enum):
     UPTIME_RESULTS = "uptime_results"
     TRACEMETRICS = "tracemetrics"
     PROFILE_FUNCTIONS = "profile_functions"
+    PREPROD = "preprod"
+    ATTACHMENTS = "attachments"
 
 
 class AttributeSourceType(str, Enum):
@@ -87,6 +89,3 @@ class AdditionalQueries:
     span: list[str] | None
     log: list[str] | None
     metric: list[str] | None
-
-
-MetricType = Literal["counter", "gauge", "distribution"]

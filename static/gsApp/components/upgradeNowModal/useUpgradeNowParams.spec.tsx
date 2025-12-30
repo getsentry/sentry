@@ -54,6 +54,11 @@ describe('useUpgradeNowParams', () => {
           reservedProfileDuration: 0,
           reservedProfileDurationUI: 0,
           reservedLogBytes: 5,
+          reservedSpans: undefined,
+          reservedSeerAutofix: 0,
+          reservedSeerScanner: 0,
+          reservedSeerUsers: 0,
+          reservedPreventUsers: undefined,
         },
       })
     );

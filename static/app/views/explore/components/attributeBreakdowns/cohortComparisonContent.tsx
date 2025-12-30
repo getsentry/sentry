@@ -3,15 +3,12 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Button} from '@sentry/scraps/button/button';
-import {ButtonBar} from '@sentry/scraps/button/buttonBar';
 import {Flex} from '@sentry/scraps/layout';
 
 import type {Selection} from 'sentry/components/charts/useChartXRangeSelection';
 import {Text} from 'sentry/components/core/text';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
-import BaseSearchBar from 'sentry/components/searchBar';
-import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getUserTimezone} from 'sentry/utils/dates';
@@ -21,12 +18,10 @@ import useAttributeBreakdownComparison from 'sentry/views/explore/hooks/useAttri
 import {useQueryParamsVisualizes} from 'sentry/views/explore/queryParams/context';
 
 import {Chart} from './cohortComparisonChart';
+import {CHARTS_PER_PAGE} from './constants';
 import {AttributeBreakdownsComponent} from './styles';
 
 type SortingMethod = 'rrr';
-
-const CHARTS_COLUMN_COUNT = 3;
-const CHARTS_PER_PAGE = CHARTS_COLUMN_COUNT * 4;
 
 export function CohortComparison({
   selection,
@@ -109,10 +104,10 @@ export function CohortComparison({
   }, [selection]);
 
   return (
-    <Panel data-explore-chart-selection-region>
+    <Panel>
       <Flex direction="column" gap="2xl" padding="xl">
-        <ControlsContainer>
-          <StyledBaseSearchBar
+        <AttributeBreakdownsComponent.ControlsContainer>
+          <AttributeBreakdownsComponent.StyledBaseSearchBar
             placeholder={t('Search keys')}
             onChange={query => {
               setSearchQuery(query);
@@ -121,9 +116,9 @@ export function CohortComparison({
             size="sm"
           />
           <AttributeBreakdownsComponent.FeedbackButton />
-        </ControlsContainer>
+        </AttributeBreakdownsComponent.ControlsContainer>
         {isLoading ? (
-          <AttributeBreakdownsComponent.LoadingCharts />
+          <LoadingIndicator />
         ) : error ? (
           <AttributeBreakdownsComponent.ErrorState error={error} />
         ) : (
@@ -144,7 +139,7 @@ export function CohortComparison({
             )}
             {filteredRankedAttributes.length > 0 ? (
               <Fragment>
-                <ChartsGrid>
+                <AttributeBreakdownsComponent.ChartsGrid>
                   {filteredRankedAttributes
                     .slice(page * CHARTS_PER_PAGE, (page + 1) * CHARTS_PER_PAGE)
                     .map(attribute => (
@@ -156,32 +151,20 @@ export function CohortComparison({
                         cohort2Total={data?.cohort2Total ?? 0}
                       />
                     ))}
-                </ChartsGrid>
-                <PaginationContainer>
-                  <ButtonBar merged gap="0">
-                    <Button
-                      icon={<IconChevron direction="left" />}
-                      aria-label={t('Previous')}
-                      size="sm"
-                      disabled={page === 0}
-                      onClick={() => {
-                        setPage(page - 1);
-                      }}
-                    />
-                    <Button
-                      icon={<IconChevron direction="right" />}
-                      aria-label={t('Next')}
-                      size="sm"
-                      disabled={
-                        page ===
-                        Math.ceil(filteredRankedAttributes.length / CHARTS_PER_PAGE) - 1
-                      }
-                      onClick={() => {
-                        setPage(page + 1);
-                      }}
-                    />
-                  </ButtonBar>
-                </PaginationContainer>
+                </AttributeBreakdownsComponent.ChartsGrid>
+                <AttributeBreakdownsComponent.Pagination
+                  isNextDisabled={
+                    page ===
+                    Math.ceil(filteredRankedAttributes.length / CHARTS_PER_PAGE) - 1
+                  }
+                  isPrevDisabled={page === 0}
+                  onNextClick={() => {
+                    setPage(page + 1);
+                  }}
+                  onPrevClick={() => {
+                    setPage(page - 1);
+                  }}
+                />
               </Fragment>
             ) : (
               <AttributeBreakdownsComponent.EmptySearchState />
@@ -192,28 +175,6 @@ export function CohortComparison({
     </Panel>
   );
 }
-
-const ControlsContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-`;
-
-const StyledBaseSearchBar = styled(BaseSearchBar)`
-  flex: 1;
-`;
-
-const ChartsGrid = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(${CHARTS_COLUMN_COUNT}, 1fr);
-  gap: ${space(1)};
-`;
-
-const PaginationContainer = styled('div')`
-  display: flex;
-  justify-content: end;
-  align-items: center;
-`;
 
 const SelectionHintContainer = styled('div')`
   display: flex;
@@ -232,7 +193,7 @@ const SelectionHint = styled(Text)<{color?: string}>`
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background-color: ${p => p.color || p.theme.gray400};
+    background-color: ${p => p.color || p.theme.colors.gray500};
     margin-right: ${space(0.5)};
     flex-shrink: 0;
   }

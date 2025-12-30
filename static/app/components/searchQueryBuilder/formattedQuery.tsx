@@ -33,6 +33,7 @@ export type FormattedQueryProps = {
   fieldDefinitionGetter?: FieldDefinitionGetter;
   filterKeyAliases?: TagCollection;
   filterKeys?: TagCollection;
+  getFilterTokenWarning?: (key: string) => React.ReactNode;
 };
 
 type TokenProps = {
@@ -57,17 +58,13 @@ function FilterKey({token}: {token: TokenResult<Token.FILTER>}) {
 
 function Filter({token}: {token: TokenResult<Token.FILTER>}) {
   const {getFieldDefinition} = useSearchQueryBuilder();
-  const hasWildcardOperators = useOrganization().features.includes(
-    'search-query-builder-wildcard-operators'
-  );
   const label = useMemo(
     () =>
       getOperatorInfo({
         filterToken: token,
-        hasWildcardOperators,
         fieldDefinition: getFieldDefinition(token.key.text),
       }).label,
-    [hasWildcardOperators, token, getFieldDefinition]
+    [token, getFieldDefinition]
   );
 
   return (
@@ -173,6 +170,7 @@ export function ProvidedFormattedQuery({
   fieldDefinitionGetter = defaultGetFieldDefinition,
   filterKeys = EMPTY_FILTER_KEYS,
   filterKeyAliases = EMPTY_FILTER_KEYS,
+  getFilterTokenWarning,
 }: FormattedQueryProps) {
   return (
     <SearchQueryBuilderProvider
@@ -181,6 +179,7 @@ export function ProvidedFormattedQuery({
       getTagValues={() => Promise.resolve([])}
       initialQuery={query}
       searchSource="formatted_query"
+      getFilterTokenWarning={getFilterTokenWarning}
     >
       <FormattedQuery
         className={className}
@@ -205,10 +204,10 @@ export const FilterWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   padding: ${space(0.25)} ${space(0.5)};
   border: 1px solid ${p => p.theme.innerBorder};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   height: 24px;
   white-space: nowrap;
   overflow: hidden;
@@ -217,7 +216,7 @@ export const FilterWrapper = styled('div')`
 const FilterValue = styled('div')`
   width: 100%;
   max-width: 300px;
-  color: ${p => p.theme.purple400};
+  color: ${p => p.theme.colors.blue500};
   ${p => p.theme.overflowEllipsis};
 `;
 

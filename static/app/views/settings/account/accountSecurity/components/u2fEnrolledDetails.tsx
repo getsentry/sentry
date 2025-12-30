@@ -161,7 +161,7 @@ const DeviceInformation = styled('div')`
 `;
 
 const FadedDateTime = styled(DateTime)`
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   opacity: 0.6;
 `;
 

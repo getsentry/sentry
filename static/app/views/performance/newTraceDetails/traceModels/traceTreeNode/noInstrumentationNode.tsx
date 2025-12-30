@@ -4,15 +4,16 @@ import {uuid4} from '@sentry/core';
 import {t} from 'sentry/locale';
 import {MissingInstrumentationNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/missingInstrumentation';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import type {MissingInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceModels/missingInstrumentationNode';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {TraceMissingInstrumentationRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceMissingInstrumentationRow';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
 import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 
 export class NoInstrumentationNode extends BaseNode<TraceTree.MissingInstrumentationSpan> {
+  id: string;
+  type: TraceTree.NodeType;
+
   previous: BaseNode;
   next: BaseNode;
 
@@ -28,20 +29,15 @@ export class NoInstrumentationNode extends BaseNode<TraceTree.MissingInstrumenta
     this.previous = previous;
     this.next = next;
 
+    this.id = this.previous.id || this.next.id || uuid4();
+    this.type = 'ms';
+
     if (this.previous.endTimestamp && this.next.startTimestamp) {
       this.space = [
         this.previous.endTimestamp * 1e3,
         (this.next.startTimestamp - this.previous.endTimestamp) * 1e3,
       ];
     }
-  }
-
-  get type(): TraceTree.NodeType {
-    return 'ms';
-  }
-
-  get id(): string {
-    return this.previous.id || this.next.id || uuid4();
   }
 
   get drawerTabsTitle(): string {
@@ -68,20 +64,14 @@ export class NoInstrumentationNode extends BaseNode<TraceTree.MissingInstrumenta
   renderWaterfallRow<NodeType extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<NodeType>
   ): React.ReactNode {
-    // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
-    return <TraceMissingInstrumentationRow {...props} node={props.node} />;
+    return <TraceMissingInstrumentationRow {...props} node={this} />;
   }
 
-  renderDetails<NodeType extends TraceTreeNode<TraceTree.NodeValue>>(
+  renderDetails<NodeType extends BaseNode>(
     props: TraceTreeNodeDetailsProps<NodeType>
   ): React.ReactNode {
     // Won't need this cast once we use BaseNode type for props.node
-    return (
-      <MissingInstrumentationNodeDetails
-        {...props}
-        node={props.node as unknown as MissingInstrumentationNode}
-      />
-    );
+    return <MissingInstrumentationNodeDetails {...props} node={this} />;
   }
 
   matchById(id: string): boolean {
@@ -93,6 +83,14 @@ export class NoInstrumentationNode extends BaseNode<TraceTree.MissingInstrumenta
   }
 
   makeBarColor(theme: Theme): string {
-    return theme.gray300;
+    return theme.colors.gray400;
+  }
+
+  makeBarTextColor(_inside: boolean, theme: Theme): string {
+    return theme.subText;
+  }
+
+  resolveValueFromSearchKey(_key: string): any | null {
+    return null;
   }
 }

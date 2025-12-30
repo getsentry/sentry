@@ -10,9 +10,29 @@
     },
     "owner": {
       "title": "Owner",
-      "description": "The owner of this feature. Either an email address or team name, preferably.",
-      "minLength": 1,
-      "type": "string"
+      "description": "The owner of this feature.",
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "object",
+          "properties": {
+            "team": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The team that owns this feature."
+            },
+            "email": {
+              "type": ["string", "null"],
+              "description": "The email address of the owner. Not required."
+            }
+          },
+          "required": ["team"],
+          "additionalProperties": false
+        }
+      ]
     },
     "segments": {
       "title": "Segments",

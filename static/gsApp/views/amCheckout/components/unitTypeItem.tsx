@@ -59,7 +59,7 @@ const UnitTitle = styled('div')`
 `;
 
 const Weight = styled('div')`
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.fontSize.xl};
   color: ${p => p.theme.gray500};
   align-self: start;
 `;

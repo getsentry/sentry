@@ -26,7 +26,6 @@ const mockUseOrganizationSeerSetup = jest.mocked(useOrganizationSeerSetup);
 describe('FeedbackCategories', () => {
   const mockOrganization = OrganizationFixture({
     slug: 'org-slug',
-    features: ['search-query-builder-wildcard-operators'],
   });
 
   const mockCategories = [

@@ -146,10 +146,10 @@ const Frame = styled('div')<{
   width: 100%;
   min-width: ${MIN_WIDTH}px;
 
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border: ${p => (p.borderless ? 'none' : `1px solid ${p.theme.border}`)};
 
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 
   ${p =>
     p.revealActions === 'hover' &&

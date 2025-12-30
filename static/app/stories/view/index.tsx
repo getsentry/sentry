@@ -4,10 +4,13 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {StorySidebar} from 'sentry/stories/view/storySidebar';
-import {useStoryRedirect} from 'sentry/stories/view/useStoryRedirect';
+import {
+  StorySidebar,
+  useStoryBookFilesByCategory,
+} from 'sentry/stories/view/storySidebar';
+import {StoryTreeNode, type StoryCategory} from 'sentry/stories/view/storyTree';
 import {useLocation} from 'sentry/utils/useLocation';
-import OrganizationContainer from 'sentry/views/organizationContainer';
+import {OrganizationContainer} from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 
 import {StoryLanding} from './landing';
@@ -16,13 +19,25 @@ import {StoryHeader} from './storyHeader';
 import {useStoryDarkModeTheme} from './useStoriesDarkMode';
 import {useStoriesLoader} from './useStoriesLoader';
 
-export default function Stories() {
+export function useStoryParams(): {storyCategory?: StoryCategory; storySlug?: string} {
   const location = useLocation();
-  return isLandingPage(location) ? <StoriesLanding /> : <StoryDetail />;
+  // Match: /stories/:category/(one/optional/or/more/path/segments)
+  // Handles both /stories/... and /organizations/{org}/stories/...
+  // Supports optional trailing slashes
+  const match = location.pathname.match(/\/stories\/([^/]+)\/(.+?)\/?$/);
+  return {
+    storyCategory: match?.[1] as StoryCategory | undefined,
+    storySlug: match?.[2] ?? undefined,
+  };
 }
 
-function isLandingPage(location: ReturnType<typeof useLocation>) {
-  return /\/stories\/?$/.test(location.pathname) && !location.query.name;
+export default function Stories() {
+  const location = useLocation();
+  return isLandingPage(location) && !location.query.name ? (
+    <StoriesLanding />
+  ) : (
+    <StoryDetail />
+  );
 }
 
 function StoriesLanding() {
@@ -36,11 +51,37 @@ function StoriesLanding() {
 }
 
 function StoryDetail() {
-  useStoryRedirect();
+  const location = useLocation();
+  const {storyCategory, storySlug} = useStoryParams();
+  const stories = useStoryBookFilesByCategory();
 
-  const location = useLocation<{name: string; query?: string}>();
+  let storyNode = getStoryFromParams(stories, {
+    category: storyCategory,
+    slug: storySlug,
+  });
+
+  // If we don't have a story node, try to find it by the filesystem path
+  if (!storyNode && location.query.name) {
+    const nodes = Object.values(stories).flat();
+    const queue = [...nodes];
+
+    while (queue.length > 0) {
+      const node = queue.pop();
+      if (!node) break;
+
+      if (node.filesystemPath === location.query.name) {
+        storyNode = node;
+        break;
+      }
+
+      for (const key in node.children) {
+        queue.push(node.children[key]!);
+      }
+    }
+  }
+
   const story = useStoriesLoader({
-    files: [location.state?.storyPath ?? location.query.name],
+    files: storyNode ? [storyNode.filesystemPath] : [],
   });
 
   return (
@@ -52,7 +93,7 @@ function StoryDetail() {
       ) : story.isError ? (
         <VerticalScroll>
           <Alert.Container>
-            <Alert type="error">
+            <Alert variant="danger">
               <strong>{story.error.name}:</strong> {story.error.message}
             </Alert>
           </Alert.Container>
@@ -89,6 +130,39 @@ function StoriesLayout(props: PropsWithChildren) {
       </RouteAnalyticsContextProvider>
     </Fragment>
   );
+}
+
+function isLandingPage(location: ReturnType<typeof useLocation>) {
+  // Handles both /stories and /organizations/{org}/stories
+  return /\/stories\/?$/.test(location.pathname);
+}
+
+function getStoryFromParams(
+  stories: ReturnType<typeof useStoryBookFilesByCategory>,
+  context: {category?: StoryCategory; slug?: string}
+): StoryTreeNode | undefined {
+  const nodes = stories[context.category as keyof typeof stories] ?? [];
+
+  if (!nodes || nodes.length === 0) {
+    return undefined;
+  }
+
+  const queue = [...nodes];
+
+  while (queue.length > 0) {
+    const node = queue.pop();
+    if (!node) break;
+
+    if (node.slug === context.slug) {
+      return node;
+    }
+
+    for (const key in node.children) {
+      queue.push(node.children[key]!);
+    }
+  }
+
+  return undefined;
 }
 
 function GlobalStoryStyles() {
@@ -160,7 +234,7 @@ const VerticalScroll = styled('main')`
   padding: ${p => p.theme.space.xl};
 `;
 
-const StoryMainContainer = styled('div')`
+const StoryMainContainer = styled('main')`
   grid-row: 1;
   grid-column: 2;
   color: ${p => p.theme.tokens.content.primary};
@@ -195,13 +269,13 @@ const StoryMainContainer = styled('div')`
     table-layout: auto;
     border: 0;
     border-collapse: collapse;
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
     box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.primary};
     margin-bottom: ${p => p.theme.space['3xl']};
 
     & thead {
       height: 36px;
-      border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+      border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
       background: ${p => p.theme.tokens.background.tertiary};
       border-bottom: 4px solid ${p => p.theme.tokens.border.primary};
     }
@@ -211,23 +285,23 @@ const StoryMainContainer = styled('div')`
       padding-block: ${p => p.theme.space.sm};
 
       &:first-of-type {
-        border-radius: ${p => p.theme.borderRadius} 0 0 0;
+        border-radius: ${p => p.theme.radius.md} 0 0 0;
       }
       &:last-of-type {
-        border-radius: 0 ${p => p.theme.borderRadius} 0 0;
+        border-radius: 0 ${p => p.theme.radius.md} 0 0;
       }
     }
 
     tr:last-child td:first-of-type {
-      border-radius: 0 0 0 ${p => p.theme.borderRadius};
+      border-radius: 0 0 0 ${p => p.theme.radius.md};
     }
     tr:last-child td:last-of-type {
-      border-radius: 0 0 ${p => p.theme.borderRadius} 0;
+      border-radius: 0 0 ${p => p.theme.radius.md} 0;
     }
 
     tbody {
       background: ${p => p.theme.tokens.background.primary};
-      border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+      border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
     }
 
     tr {
@@ -252,9 +326,9 @@ const StoryMainContainer = styled('div')`
   }
 
   div + .expressive-code .frame {
-    border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+    border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
     pre {
-      border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+      border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
     }
   }
 

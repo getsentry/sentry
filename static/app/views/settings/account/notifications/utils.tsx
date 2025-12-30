@@ -53,6 +53,7 @@ export function getPricingDocsLinkForEventType(event: DataCategoryExact) {
       return 'https://docs.sentry.io/pricing/quotas/manage-continuous-profile-hours/';
     case DataCategoryExact.PROFILE_DURATION_UI:
       return 'https://docs.sentry.io/pricing/quotas/manage-ui-profile-hours/';
+    case DataCategoryExact.SEER_USER:
     case DataCategoryExact.SEER_AUTOFIX:
     case DataCategoryExact.SEER_SCANNER:
       return 'https://docs.sentry.io/pricing/quotas/manage-seer-budget/';

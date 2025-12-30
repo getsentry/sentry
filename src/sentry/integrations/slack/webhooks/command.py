@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterable
 
 from rest_framework import status
 from rest_framework.request import Request
@@ -9,7 +10,6 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.helpers.teams import is_team_admin
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.slack.message_builder.disconnected import SlackDisconnectedMessageBuilder
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
@@ -18,8 +18,8 @@ from sentry.integrations.slack.utils.auth import is_valid_role
 from sentry.integrations.slack.views.link_team import build_team_linking_url
 from sentry.integrations.slack.views.unlink_team import build_team_unlinking_url
 from sentry.integrations.types import ExternalProviders
-from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 
 _logger = logging.getLogger("sentry.integration.slack.bot-commands")
 
@@ -44,15 +44,27 @@ NO_USER_ID_MESSAGE = "Could not identify your Slack user ID. Please try again."
 NO_CHANNEL_ID_MESSAGE = "Could not identify the Slack channel ID. Please try again."
 
 
-def is_team_linked_to_channel(organization: Organization, slack_request: SlackDMRequest) -> bool:
-    """Check if a Slack channel already has a team linked to it"""
-    return ExternalActor.objects.filter(
-        organization_id=organization.id,
-        integration_id=slack_request.integration.id,
-        provider=ExternalProviders.SLACK.value,
-        external_name=slack_request.channel_name,
-        external_id=slack_request.channel_id,
-    ).exists()
+def get_orgs_with_teams_linked_to_channel(
+    organization_ids: list[int], slack_request: SlackDMRequest
+) -> set[int]:
+    """Get the organizations with teams linked to a Slack channel"""
+    return set(
+        ExternalActor.objects.filter(
+            organization_id__in=organization_ids,
+            integration_id=slack_request.integration.id,
+            provider=ExternalProviders.SLACK.value,
+            external_name=slack_request.channel_name,
+            external_id=slack_request.channel_id,
+        ).values_list("organization_id", flat=True)
+    )
+
+
+def get_team_admin_member_ids(org_members: Iterable[OrganizationMember]) -> set[int]:
+    return set(
+        OrganizationMemberTeam.objects.filter(
+            organizationmember_id__in=[om.id for om in org_members], role="admin"
+        ).values_list("organizationmember_id", flat=True)
+    )
 
 
 @region_silo_endpoint
@@ -91,10 +103,17 @@ class SlackCommandsEndpoint(SlackDMEndpoint):
             integration, identity_user
         )
 
+        # Batch check for team admin roles to avoid N+1 queries
+        team_admin_member_ids = get_team_admin_member_ids(organization_memberships)
+
         has_valid_role = False
         for organization_membership in organization_memberships:
-            if is_valid_role(organization_membership) or is_team_admin(organization_membership):
+            if (
+                is_valid_role(organization_membership)
+                or organization_membership.id in team_admin_member_ids
+            ):
                 has_valid_role = True
+                break
 
         if not has_valid_role:
             return self.reply(slack_request, INSUFFICIENT_ROLE_MESSAGE)
@@ -128,15 +147,29 @@ class SlackCommandsEndpoint(SlackDMEndpoint):
             integration, identity_user
         )
 
-        found: OrganizationMember | None = None
-        for organization_membership in organization_memberships:
-            if is_team_linked_to_channel(organization_membership.organization, slack_request):
-                found = organization_membership
+        # Batch check which organizations have teams linked to this channel
+        linked_org_ids = get_orgs_with_teams_linked_to_channel(
+            [om.organization_id for om in organization_memberships], slack_request
+        )
 
-        if not found:
+        if not linked_org_ids:
             return self.reply(slack_request, TEAM_NOT_LINKED_MESSAGE)
 
-        if not is_valid_role(found) and not is_team_admin(found):
+        # Batch check for team admin roles to avoid N+1 queries
+        team_admin_member_ids = get_team_admin_member_ids(organization_memberships)
+
+        # Find an organization where user has both a linked team AND sufficient permissions
+        found: OrganizationMember | None = None
+        for organization_membership in organization_memberships:
+            if organization_membership.organization_id in linked_org_ids:
+                if (
+                    is_valid_role(organization_membership)
+                    or organization_membership.id in team_admin_member_ids
+                ):
+                    found = organization_membership
+                    break
+
+        if not found:
             return self.reply(slack_request, INSUFFICIENT_ROLE_MESSAGE)
 
         if not slack_request.user_id:

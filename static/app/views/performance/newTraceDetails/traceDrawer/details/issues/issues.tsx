@@ -14,10 +14,9 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import {isTraceOccurence} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 
 type IssueProps = {
   issue: TraceTree.TraceIssue;
@@ -69,8 +68,8 @@ function Issue(props: IssueProps) {
     }
   );
 
-  const isOccurence: boolean = isTraceOccurence(props.issue);
-  const iconClassName: string = isOccurence ? 'occurence' : props.issue.level;
+  const iconClassName: string =
+    props.issue.event_type === 'error' ? props.issue.level : 'occurence';
 
   return isPending ? (
     <StyledLoadingIndicatorWrapper>
@@ -182,14 +181,14 @@ const SummaryWrapper = styled('div')`
 
 type IssueListProps = {
   issues: TraceTree.TraceIssue[];
-  node: TraceTreeNode<TraceTree.NodeValue>;
+  node: BaseNode;
   organization: Organization;
 };
 
 export function IssueList({issues, node, organization}: IssueListProps) {
   const uniqueIssues = [
-    ...TraceTree.UniqueErrorIssues(node).sort(sortIssuesByLevel),
-    ...TraceTree.UniqueOccurrences(node),
+    ...node.uniqueErrorIssues.sort(sortIssuesByLevel),
+    ...node.uniqueOccurrenceIssues,
   ];
 
   if (!issues.length) {

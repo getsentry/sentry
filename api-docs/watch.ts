@@ -1,9 +1,11 @@
 import {spawn} from 'node:child_process';
-import {join} from 'node:path';
+import {dirname, join} from 'node:path';
 import {stderr, stdout} from 'node:process';
+import {fileURLToPath} from 'node:url';
 
 import sane from 'sane';
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const watcherPy = sane(join(__dirname, '../src/sentry'));
 const watcherJson = sane(join(__dirname, '../api-docs'));
 

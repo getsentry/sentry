@@ -1,6 +1,7 @@
 import {useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {Observer} from 'mobx-react-lite';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/core/button';
@@ -66,6 +67,7 @@ const initialData = {
   environment: null,
   frequency: 1440,
   enabled: true,
+  projectIds: [],
 };
 
 export default function AutomationNewSettings() {
@@ -78,7 +80,7 @@ export default function AutomationNewSettings() {
   const maxWidth = theme.breakpoints.lg;
 
   const [automationBuilderErrors, setAutomationBuilderErrors] = useState<
-    Record<string, string>
+    Record<string, any>
   >({});
   const removeError = useCallback((errorId: string) => {
     setAutomationBuilderErrors(prev => {
@@ -104,19 +106,36 @@ export default function AutomationNewSettings() {
   const {mutateAsync: createAutomation, error} = useCreateAutomation();
 
   const handleSubmit = useCallback<OnSubmitCallback>(
-    async (data, _, __, ___, ____) => {
+    async (data, onSubmitSuccess, onSubmitError, _event, formModel) => {
       const errors = validateAutomationBuilderState(state);
       setAutomationBuilderErrors(errors);
+      const newAutomationData = getNewAutomationData(data as AutomationFormData, state);
 
       if (Object.keys(errors).length === 0) {
-        const automation = await createAutomation(
-          getNewAutomationData(data as AutomationFormData, state)
-        );
+        try {
+          formModel.setFormSaving();
+          const automation = await createAutomation(newAutomationData);
+          onSubmitSuccess(formModel.getData());
+          trackAnalytics('automation.created', {
+            organization,
+            ...getAutomationAnalyticsPayload(newAutomationData),
+            success: true,
+          });
+          navigate(makeAutomationDetailsPathname(organization.slug, automation.id));
+        } catch (err) {
+          onSubmitError(err);
+          trackAnalytics('automation.created', {
+            organization,
+            ...getAutomationAnalyticsPayload(newAutomationData),
+            success: false,
+          });
+        }
+      } else {
         trackAnalytics('automation.created', {
           organization,
-          ...getAutomationAnalyticsPayload(automation),
+          ...getAutomationAnalyticsPayload(newAutomationData),
+          success: false,
         });
-        navigate(makeAutomationDetailsPathname(organization.slug, automation.id));
       }
     },
     [createAutomation, state, navigate, organization]
@@ -170,9 +189,13 @@ export default function AutomationNewSettings() {
         </Layout.Page>
         <StickyFooter>
           <Flex style={{maxWidth}} align="center" gap="md" justify="end">
-            <Button priority="primary" type="submit">
-              {t('Create Alert')}
-            </Button>
+            <Observer>
+              {() => (
+                <Button priority="primary" type="submit" disabled={model.isSaving}>
+                  {t('Create Alert')}
+                </Button>
+              )}
+            </Observer>
           </Flex>
         </StickyFooter>
       </AutomationFormProvider>
@@ -181,7 +204,7 @@ export default function AutomationNewSettings() {
 }
 
 const StyledLayoutHeader = styled(Layout.Header)`
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 const HeaderInner = styled('div')<{maxWidth?: string}>`

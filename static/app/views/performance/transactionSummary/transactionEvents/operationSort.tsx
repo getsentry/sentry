@@ -172,7 +172,7 @@ const DropdownWrapper = styled('div')`
     0 0 0 1px rgba(52, 60, 69, 0.2),
     0 1px 3px rgba(70, 82, 98, 0.25);
   background-clip: padding-box;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   width: 220px;
   overflow: visible;
   z-index: ${p => p.theme.zIndex.tooltip};
@@ -210,7 +210,7 @@ const DropdownWrapper = styled('div')`
     }
 
     &:after {
-      border-bottom: 8px solid ${p => p.theme.background};
+      border-bottom: 8px solid ${p => p.theme.tokens.background.primary};
       top: -8px;
     }
   }
@@ -224,7 +224,7 @@ const DropdownWrapper = styled('div')`
     }
 
     &:after {
-      border-top: 8px solid ${p => p.theme.background};
+      border-top: 8px solid ${p => p.theme.tokens.background.primary};
       bottom: -8px;
     }
   }

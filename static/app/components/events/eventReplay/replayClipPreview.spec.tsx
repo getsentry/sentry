@@ -1,21 +1,29 @@
 import {duration} from 'moment-timezone';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render as baseRender, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import type {Organization} from 'sentry/types/organization';
 import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import {useRoutes} from 'sentry/utils/useRoutes';
 
 import ReplayClipPreview from './replayClipPreview';
 
 jest.mock('sentry/utils/replays/hooks/useLoadReplayReader');
+jest.mock('sentry/utils/useRoutes');
 
 const mockUseLoadReplayReader = jest.mocked(useLoadReplayReader);
+jest
+  .mocked(useRoutes)
+  .mockImplementation(() => [
+    {path: '/'},
+    {path: '/organizations/:orgId/issues/:groupId/'},
+    {path: 'replays/'},
+  ]);
 
 const mockOrgSlug = 'sentry-emerging-tech';
 const mockReplaySlug = 'replays:761104e184c64d439ee1014b72b4d83b';
@@ -65,26 +73,21 @@ mockUseLoadReplayReader.mockImplementation(() => {
   };
 });
 
-const render = (children: React.ReactElement, orgParams: Partial<Organization> = {}) => {
-  const {router, organization} = initializeOrg({
-    organization: {slug: mockOrgSlug, ...orgParams},
-    router: {
-      routes: [
-        {path: '/'},
-        {path: '/organizations/:orgId/issues/:groupId/'},
-        {path: 'replays/'},
-      ],
-      location: {
-        pathname: '/organizations/org-slug/replays/',
-        query: {},
-      },
-    },
-  });
+const render = (
+  children: React.ReactElement,
+  orgParams: Parameters<typeof OrganizationFixture>[0] = {}
+) => {
+  const organization = OrganizationFixture({slug: mockOrgSlug, ...orgParams});
 
   return baseRender(children, {
-    router,
     organization,
-    deprecatedRouterMocks: true,
+    initialRouterConfig: {
+      location: {
+        pathname: `/organizations/${mockOrgSlug}/issues/`,
+        query: {},
+      },
+      route: '/organizations/:orgId/issues/',
+    },
   });
 };
 

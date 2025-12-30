@@ -5,10 +5,12 @@ import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
+import {DataCategory} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
@@ -187,7 +189,7 @@ function AlertBanner(props: Omit<AlertProps, 'type' | 'showIcon'>) {
   return (
     <ModuleLayout.Full>
       <Alert.Container>
-        <Alert {...props} type="info" showIcon />
+        <Alert {...props} variant="info" showIcon />
       </Alert.Container>
     </ModuleLayout.Full>
   );
@@ -196,12 +198,20 @@ function AlertBanner(props: Omit<AlertProps, 'type' | 'showIcon'>) {
 const LIMIT = 25;
 
 function PageWithProviders() {
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.SPANS],
+  });
+
   const hasDashboardsPlatformizedQueries = useHasDashboardsPlatformizedQueries();
   if (hasDashboardsPlatformizedQueries) {
     return <PlatformizedQueriesOverview />;
   }
   return (
-    <ModulePageProviders moduleName="db" analyticEventName="insight.page_loads.db">
+    <ModulePageProviders
+      moduleName="db"
+      analyticEventName="insight.page_loads.db"
+      maxPickableDays={maxPickableDays.maxPickableDays}
+    >
       <DatabaseLandingPage />
     </ModulePageProviders>
   );

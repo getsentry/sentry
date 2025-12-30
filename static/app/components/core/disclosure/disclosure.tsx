@@ -1,5 +1,4 @@
 import {createContext, useContext, useRef} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {
   useDisclosure,
@@ -10,7 +9,6 @@ import {usePress} from '@react-aria/interactions';
 import {useDisclosureState, type DisclosureState} from '@react-stately/disclosure';
 
 import {Button} from 'sentry/components/core/button';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Container, Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {IconChevron} from 'sentry/icons';
@@ -87,7 +85,7 @@ function Title({children, trailingItems, ...rest}: DisclosureTitleProps) {
   const {pressProps} = usePress({...restProps});
 
   return (
-    <HoverStyleFlex
+    <Flex
       justify="start"
       gap={context.size}
       align="center"
@@ -106,41 +104,14 @@ function Title({children, trailingItems, ...rest}: DisclosureTitleProps) {
         {children}
       </StretchedButton>
       {trailingItems ?? null}
-    </HoverStyleFlex>
+    </Flex>
   );
 }
-
-const HoverStyleFlex = styled(Flex)`
-  ${p =>
-    p.theme.isChonk
-      ? ''
-      : css`
-          &:hover {
-            background-color: ${p.theme.backgroundSecondary};
-          }
-        `}
-`;
 
 const StretchedButton = styled(Button)`
   flex-grow: 1;
   justify-content: flex-start;
   padding-left: ${p => p.theme.space.xs};
-
-  ${p =>
-    p.theme.isChonk
-      ? ''
-      : css`
-          display: flex;
-          box-shadow: none;
-
-          &:hover {
-            background-color: transparent;
-          }
-
-          ${InteractionStateLayer} {
-            display: none;
-          }
-        `}
 `;
 
 interface DisclosureContentProps {

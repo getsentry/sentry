@@ -12,10 +12,10 @@ import type {ProductTrial} from 'getsentry/types';
 interface ProductTrialTagProps {
   trial: ProductTrial;
   showTrialEnded?: boolean;
-  type?: TagProps['type'];
+  variant?: TagProps['variant'];
 }
 
-function ProductTrialTag({trial, type, showTrialEnded = false}: ProductTrialTagProps) {
+function ProductTrialTag({trial, variant, showTrialEnded = false}: ProductTrialTagProps) {
   const now = moment();
 
   if (moment(trial.endDate).add(1, 'days').isBefore(now)) {
@@ -24,7 +24,7 @@ function ProductTrialTag({trial, type, showTrialEnded = false}: ProductTrialTagP
     }
 
     return (
-      <Tag icon={<IconFlag />} type={type ?? 'default'}>
+      <Tag icon={<IconFlag />} variant={variant ?? 'muted'}>
         {t('Trial ended')}
       </Tag>
     );
@@ -32,17 +32,16 @@ function ProductTrialTag({trial, type, showTrialEnded = false}: ProductTrialTagP
 
   if (!trial.isStarted) {
     return (
-      <Tag icon={<IconBusiness gradient />} type={type ?? 'promotion'}>
+      <Tag icon={<IconBusiness />} variant={variant ?? 'promotion'}>
         {t('Trial available')}
       </Tag>
     );
   }
 
   const daysLeft = -1 * getDaysSinceDate(trial.endDate ?? '');
-  const tagType = type ?? (daysLeft <= 7 ? 'warning' : 'highlight');
 
   return (
-    <Tag icon={<IconClock />} type={tagType}>
+    <Tag icon={<IconClock />} variant={variant ?? (daysLeft <= 7 ? 'warning' : 'info')}>
       {t('%d days left', daysLeft)}
     </Tag>
   );

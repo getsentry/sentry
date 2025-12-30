@@ -135,7 +135,7 @@ export function DomainSelector({
     });
   }
 
-  const projectIds = pageFilters.selection.projects.sort();
+  const projectIds = [...pageFilters.selection.projects].sort();
   const cacheKey = [...additionalQuery, ...projectIds].join(' ');
 
   const {options: domainOptions} = useCompactSelectOptionsCache(
@@ -167,7 +167,6 @@ export function DomainSelector({
       loading={isPending}
       searchable
       menuTitle={domainAlias}
-      maxMenuWidth="500px"
       data-test-id="domain-selector"
       onSearch={newValue => {
         if (!wasSearchSpaceExhausted) {

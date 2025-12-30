@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import * as React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -15,10 +16,11 @@ import {useKeyboard} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import type {OverlayTriggerState} from '@react-stately/overlays';
 
+import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
+
 import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
-import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import DropdownButton from 'sentry/components/dropdownButton';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
@@ -31,6 +33,7 @@ import useOverlay from 'sentry/utils/useOverlay';
 import usePrevious from 'sentry/utils/usePrevious';
 
 import type {SingleListProps} from './list';
+import {type ButtonTriggerProps, type SelectTriggerProps} from './trigger';
 import type {SelectKey, SelectOptionOrSection} from './types';
 
 // autoFocus react attribute is sync called on render, this causes
@@ -53,11 +56,13 @@ interface SelectContextValue {
    * Search string to determine whether an option should be rendered in the select list.
    */
   search: string;
+  disabled?: boolean;
   /**
    * The control's overlay state. Useful for opening/closing the menu from inside the
    * selector.
    */
   overlayState?: OverlayTriggerState;
+  size?: FormSize;
 }
 
 export const SelectContext = createContext<SelectContextValue>({
@@ -125,7 +130,6 @@ export interface ControlProps
    */
   loading?: boolean;
   maxMenuHeight?: number | string;
-  maxMenuWidth?: number | string;
   /**
    * Optional content to display below the menu's header and above the options.
    */
@@ -144,6 +148,7 @@ export interface ControlProps
   menuHeaderTrailingItems?:
     | React.ReactNode
     | ((actions: {closeOverlay: () => void}) => React.ReactNode);
+  menuHeight?: number | string;
   /**
    * Title to display in the menu's header. Keep the title as short as possible.
    */
@@ -179,17 +184,12 @@ export interface ControlProps
    * forward `props` and `ref` its outer wrap, otherwise many accessibility features
    * won't work correctly.
    */
-  trigger?: (
-    props: Omit<React.HTMLAttributes<HTMLButtonElement>, 'children'> & {
-      ref?: React.Ref<HTMLButtonElement | null>;
-    },
-    isOpen: boolean
-  ) => React.ReactNode;
+  trigger?: (props: SelectTriggerProps, isOpen: boolean) => React.ReactNode;
 
   /**
    * Props to be passed to the default trigger button.
    */
-  triggerProps?: DropdownButtonProps;
+  triggerProps?: Partial<ButtonTriggerProps>;
 }
 
 /**
@@ -215,8 +215,8 @@ export function Control({
   hideOptions,
   menuTitle,
   maxMenuHeight = '32rem',
-  maxMenuWidth,
   menuWidth,
+  menuHeight,
   menuHeaderTrailingItems,
   menuBody,
   menuFooter,
@@ -235,9 +235,11 @@ export function Control({
   loading = false,
   grid = false,
   children,
+  menuRef,
   ...wrapperProps
 }: ControlProps & {
   items?: Array<SelectOptionOrSection<SelectKey>>;
+  menuRef?: React.Ref<HTMLDivElement>;
   value?: SelectKey | SelectKey[] | undefined;
 }) {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -278,6 +280,11 @@ export function Control({
     },
   });
 
+  const overflowBoundaryId = useBoundaryContext();
+  const overflowBoundary = overflowBoundaryId
+    ? document.getElementById(overflowBoundaryId)
+    : null;
+
   // Manage overlay position
   const {
     isOpen: overlayIsOpen,
@@ -297,7 +304,15 @@ export function Control({
     onInteractOutside,
     shouldCloseOnInteractOutside,
     shouldCloseOnBlur,
-    preventOverflowOptions,
+    preventOverflowOptions: {
+      ...preventOverflowOptions,
+      boundary:
+        preventOverflowOptions?.boundary ??
+        overflowBoundary ??
+        document.querySelector('main') ??
+        document.getElementById('main') ??
+        undefined,
+    },
     flipOptions,
     strategy,
     onOpenChange: open => {
@@ -422,7 +437,7 @@ export function Control({
       <Fragment>
         <TriggerLabel>{options[0]?.label}</TriggerLabel>
         {options.length > 1 && (
-          <StyledBadge type="default">{`+${options.length - 1}`}</StyledBadge>
+          <StyledBadge variant="muted">{`+${options.length - 1}`}</StyledBadge>
         )}
       </Fragment>
     );
@@ -451,8 +466,10 @@ export function Control({
       overlayState,
       overlayIsOpen,
       search,
+      size,
+      disabled,
     };
-  }, [overlayState, overlayIsOpen, search]);
+  }, [overlayState, overlayIsOpen, search, size, disabled]);
 
   const theme = useTheme();
 
@@ -460,7 +477,10 @@ export function Control({
     <SelectContext value={contextValue}>
       <ControlWrap {...wrapperProps}>
         {trigger ? (
-          trigger(mergeProps(triggerKeyboardProps, overlayTriggerProps), overlayIsOpen)
+          trigger(
+            mergeProps({id: triggerProps.id}, triggerKeyboardProps, overlayTriggerProps),
+            overlayIsOpen
+          )
         ) : (
           <DropdownButton
             size={size}
@@ -478,9 +498,15 @@ export function Control({
         >
           {overlayIsOpen && (
             <StyledOverlay
+              ref={menuRef}
               width={menuWidth ?? menuFullWidth}
+              height={menuHeight}
               minWidth={overlayProps.style!.minWidth}
-              maxWidth={maxMenuWidth}
+              maxWidth={
+                overlayProps.style?.maxWidth
+                  ? `calc(${withUnits(overlayProps.style.maxWidth)} * 0.9)`
+                  : undefined
+              }
               maxHeight={overlayProps.style!.maxHeight}
               maxHeightProp={maxMenuHeight}
               data-menu-has-header={!!menuTitle || clearable}
@@ -553,7 +579,6 @@ const ControlWrap = styled('div')`
 export const TriggerLabel = styled('span')`
   ${p => p.theme.overflowEllipsis}
   text-align: left;
-  ${p => !p.theme.isChonk && 'line-height: normal;'}
 `;
 
 const StyledBadge = styled(Badge)`
@@ -579,11 +604,11 @@ const MenuHeader = styled('div')<{size: NonNullable<ControlProps['size']>}>`
     box-shadow: none;
   }
 
-  line-height: ${p => p.theme.text.lineHeightBody};
+  line-height: ${p => p.theme.font.lineHeight.comfortable};
   z-index: 2;
 
   font-size: ${p => (p.size === 'xs' ? p.theme.fontSize.xs : p.theme.fontSize.sm)};
-  color: ${p => p.theme.headingColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const MenuHeaderTrailingItems = styled('div')`
@@ -594,7 +619,7 @@ const MenuHeaderTrailingItems = styled('div')`
 
 const MenuTitle = styled('span')`
   font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   white-space: nowrap;
   margin-right: ${space(2)};
 `;
@@ -609,7 +634,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 const ClearButton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.subText};
   padding: 0 ${space(0.5)};
   margin: -${space(0.25)} -${space(0.5)};
@@ -626,12 +651,13 @@ const SearchInput = styled(Input)`
     margin-top: calc(${space(0.5)} + 1px);
   }
 `;
-const withUnits = (value: any) => (typeof value === 'string' ? value : `${value}px`);
+const withUnits = (value: unknown) => (typeof value === 'string' ? value : `${value}px`);
 
 const StyledOverlay = styled(Overlay, {
-  shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
+  shouldForwardProp: prop => isPropValid(prop),
 })<{
   maxHeightProp: string | number;
+  height?: string | number;
   maxHeight?: string | number;
   maxWidth?: string | number;
   minWidth?: string | number;
@@ -644,6 +670,7 @@ const StyledOverlay = styled(Overlay, {
   overflow: hidden;
 
   ${p => p.width && `width: ${withUnits(p.width)};`}
+  ${p => p.height && `height: ${withUnits(p.height)};`}
   ${p => p.minWidth && `min-width: ${withUnits(p.minWidth)};`}
   max-width: ${p => (p.maxWidth ? `min(${withUnits(p.maxWidth)}, 100%)` : `100%`)};
   max-height: ${p =>

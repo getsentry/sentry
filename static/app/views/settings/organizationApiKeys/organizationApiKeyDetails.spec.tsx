@@ -1,5 +1,4 @@
 import {DeprecatedApiKeyFixture} from 'sentry-fixture/deprecatedApiKey';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -7,11 +6,6 @@ import OrganizationApiKeyDetails from 'sentry/views/settings/organizationApiKeys
 
 describe('OrganizationApiKeyDetails', () => {
   const apiKey = DeprecatedApiKeyFixture();
-  const router = RouterFixture({
-    params: {
-      apiKey: apiKey.id,
-    },
-  });
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -23,8 +17,12 @@ describe('OrganizationApiKeyDetails', () => {
 
   it('renders', async () => {
     render(<OrganizationApiKeyDetails />, {
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/org-slug/api-keys/${apiKey.id}/`,
+        },
+        route: '/settings/:orgId/api-keys/:apiKey/',
+      },
     });
 
     expect(await screen.findByRole('textbox', {name: 'API Key'})).toBeInTheDocument();

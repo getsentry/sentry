@@ -7,15 +7,12 @@ import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {Button} from 'sentry/components/core/button';
-import {t, tct, tn} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import usePrevious from 'sentry/utils/usePrevious';
-import type {
-  TraceItemDetailsMeta,
-  TraceItemResponseAttribute,
-} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   getIsAiNode,
   getTraceNodeAttribute,
@@ -23,8 +20,9 @@ import {
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
+import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
+import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 
 interface AIMessage {
   content: React.ReactNode;
@@ -32,14 +30,20 @@ interface AIMessage {
 }
 
 const ALLOWED_MESSAGE_ROLES = new Set(['system', 'user', 'assistant', 'tool']);
+const FILE_CONTENT_PARTS = ['blob', 'uri', 'file'] as const;
+const SUPPORTED_CONTENT_PARTS = ['text', ...FILE_CONTENT_PARTS] as const;
 
 function renderTextMessages(content: any) {
   if (!Array.isArray(content)) {
     return content;
   }
   return content
-    .filter((part: any) => part.type === 'text')
-    .map((part: any) => part.text.trim())
+    .filter((part: any) => SUPPORTED_CONTENT_PARTS.includes(part.type))
+    .map((part: any) =>
+      FILE_CONTENT_PARTS.includes(part.type)
+        ? `\n\n[redacted content of type "${part.mime_type ?? 'unknown'}"]\n\n`
+        : part.text.trim()
+    )
     .join('\n');
 }
 
@@ -136,7 +140,7 @@ function transformPrompt(prompt: string) {
 }
 
 export function hasAIInputAttribute(
-  node: TraceTreeNode<TraceTree.EAPSpan | TraceTree.Span | TraceTree.Transaction>,
+  node: EapSpanNode | SpanNode | TransactionNode,
   attributes?: TraceItemResponseAttribute[],
   event?: EventTransaction
 ) {
@@ -177,17 +181,19 @@ function useInvalidRoleDetection(roles: string[]) {
 export function AIInputSection({
   node,
   attributes,
-  attributesMeta,
   event,
 }: {
-  node: TraceTreeNode<TraceTree.EAPSpan | TraceTree.Span | TraceTree.Transaction>;
+  node: EapSpanNode | SpanNode | TransactionNode;
   attributes?: TraceItemResponseAttribute[];
-  attributesMeta?: TraceItemDetailsMeta;
   event?: EventTransaction;
 }) {
   const shouldRender = getIsAiNode(node) && hasAIInputAttribute(node, attributes, event);
-  const messagesMeta = attributesMeta?.['gen_ai.request.messages']?.meta as any;
-  const originalMessagesLength: number | undefined = messagesMeta?.['']?.len;
+  const originalMessagesLength = getTraceNodeAttribute(
+    'gen_ai.request.messages.original_length',
+    node,
+    event,
+    attributes
+  );
 
   let promptMessages = shouldRender
     ? getTraceNodeAttribute('gen_ai.request.messages', node, event, attributes)
@@ -234,21 +240,29 @@ export function AIInputSection({
     >
       {/* If parsing fails, we'll just show the raw string */}
       {typeof messages === 'string' ? (
-        <TraceDrawerComponents.MultilineText>
+        // We set the key to the node id to ensure the internal collapse state is reset when the user switches between nodes
+        <TraceDrawerComponents.MultilineText key={node.id}>
           {messages}
         </TraceDrawerComponents.MultilineText>
       ) : null}
       {Array.isArray(messages) ? (
         <MessagesArrayRenderer
+          key={node.id}
           messages={messages}
-          originalLength={originalMessagesLength}
+          originalLength={
+            defined(originalMessagesLength) ? Number(originalMessagesLength) : undefined
+          }
         />
       ) : null}
       {toolArgs ? (
-        <TraceDrawerComponents.MultilineJSON value={toolArgs} maxDefaultDepth={1} />
+        <TraceDrawerComponents.MultilineJSON
+          key={node.id}
+          value={toolArgs}
+          maxDefaultDepth={1}
+        />
       ) : null}
       {embeddingsInput ? (
-        <TraceDrawerComponents.MultilineText>
+        <TraceDrawerComponents.MultilineText key={node.id}>
           {embeddingsInput.toString()}
         </TraceDrawerComponents.MultilineText>
       ) : null}
@@ -285,11 +299,10 @@ function MessagesArrayRenderer({
 
   const truncationAlert = isTruncated ? (
     <Container paddingBottom="lg">
-      <Alert type="muted">
+      <Alert variant="muted">
         {tct(
-          'Due to [link:size limitations], the oldest [count] got dropped from the history.',
+          'Due to [link:size limitations], the oldest messages got dropped from the history.',
           {
-            count: tn('message', '%s messages', truncatedMessages),
             link: (
               <ExternalLink href="https://develop.sentry.dev/sdk/expected-features/data-handling/#variable-size" />
             ),

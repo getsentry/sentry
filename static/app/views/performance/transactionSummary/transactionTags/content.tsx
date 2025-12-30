@@ -15,6 +15,7 @@ import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -22,7 +23,9 @@ import type EventView from 'sentry/utils/discover/eventView';
 import type {TableData} from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
 import SegmentExplorerQuery from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {getTransactionField} from 'sentry/views/performance/transactionSummary/transactionOverview/tagExplorer';
@@ -191,6 +194,11 @@ function InnerContent(
 
   const projectIds = useMemo(() => eventView.project?.slice(), [eventView.project]);
 
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.TRANSACTIONS],
+  });
+  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
+
   return (
     <ReversedLayoutBody>
       <TagsSideBar
@@ -204,7 +212,7 @@ function InnerContent(
         <FilterActions>
           <PageFilterBar condensed>
             <EnvironmentPageFilter />
-            <DatePageFilter />
+            <DatePageFilter {...datePageFilterProps} />
           </PageFilterBar>
           <StyledSearchBarWrapper>
             <TransactionSearchQueryBuilder
@@ -320,7 +328,7 @@ const StyledSectionHeading = styled(SectionHeading)`
 // TODO(k-fish): Adjust thirds layout to allow for this instead.
 const ReversedLayoutBody = styled('div')`
   margin: 0;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   flex-grow: 1;
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {

@@ -448,7 +448,10 @@ def process_workflows(
         fire_actions,
     )
 
-    workflow_evaluation_data = WorkflowEvaluationData(event=event_data.event)
+    organization = event_data.event.project.organization
+    workflow_evaluation_data = WorkflowEvaluationData(
+        event=event_data.event, organization=organization
+    )
 
     try:
         event_detectors = get_detectors_for_event(event_data, detector)
@@ -456,8 +459,9 @@ def process_workflows(
         if not event_detectors:
             raise Detector.DoesNotExist("No Detectors associated with the issue were found")
 
-        log_context.add_extras(detector_id=event_detectors.preferred_detector.id)
-        organization = event_data.event.project.organization
+        log_context.add_extras(
+            detector_id=event_detectors.preferred_detector.id, group_id=event_data.group.id
+        )
 
         # set the detector / org information asap, this is used in `get_environment_by_event` as well.
         WorkflowEventContext.set(

@@ -246,7 +246,7 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
                     new_frame = dict(raw_frame)
                     _merge_frame(new_frame, returned)
                     new_frames.append(new_frame)
-            else:
+            elif not _handles_frame(raw_frame, data.get("platform", "unknown")):
                 new_frames.append(raw_frame)
 
         sinfo.stacktrace["frames"] = new_frames

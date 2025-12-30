@@ -15,6 +15,8 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams
+from sentry.incidents.endpoints.serializers.utils import get_object_id_from_fake_id
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.workflow_engine.endpoints.serializers.incident_groupopenperiod_serializer import (
     IncidentGroupOpenPeriodSerializer,
 )
@@ -49,6 +51,9 @@ class OrganizationIncidentGroupOpenPeriodIndexEndpoint(OrganizationEndpoint):
         """
         Returns an incident and group open period relationship.
         Can optionally filter by incident_id, incident_identifier, group_id, or open_period_id.
+        If incident_identifier is provided but no match is found, falls back to calculating
+        open_period_id by subtracting 10^9 from the incident_identifier and looking up the
+        GroupOpenPeriod directly.
         """
         validator = IncidentGroupOpenPeriodValidator(data=request.query_params)
         validator.is_valid(raise_exception=True)
@@ -74,7 +79,37 @@ class OrganizationIncidentGroupOpenPeriodIndexEndpoint(OrganizationEndpoint):
             queryset = queryset.filter(group_open_period_id=open_period_id)
 
         incident_groupopenperiod = queryset.first()
-        if not incident_groupopenperiod:
-            raise ResourceDoesNotExist
 
-        return Response(serialize(incident_groupopenperiod, request.user))
+        if incident_groupopenperiod:
+            return Response(serialize(incident_groupopenperiod, request.user))
+
+        # Fallback: if incident_identifier or incident_id was provided but no IGOP found,
+        # try looking up GroupOpenPeriod directly using calculated open_period_id
+        fake_id = incident_identifier or incident_id
+        if fake_id:
+            calculated_open_period_id = get_object_id_from_fake_id(int(fake_id))
+            gop_queryset = GroupOpenPeriod.objects.filter(
+                id=calculated_open_period_id,
+                project__organization=organization,
+            )
+
+            if group_id:
+                gop_queryset = gop_queryset.filter(group_id=group_id)
+
+            if open_period_id:
+                gop_queryset = gop_queryset.filter(id=open_period_id)
+
+            group_open_period = gop_queryset.first()
+
+            if group_open_period:
+                # Serialize the GroupOpenPeriod as if it were an IncidentGroupOpenPeriod
+                return Response(
+                    {
+                        "incidentId": str(fake_id),
+                        "incidentIdentifier": str(fake_id),
+                        "groupId": str(group_open_period.group_id),
+                        "openPeriodId": str(group_open_period.id),
+                    }
+                )
+
+        raise ResourceDoesNotExist

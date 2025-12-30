@@ -1,13 +1,13 @@
 import {useCallback, useMemo, useSyncExternalStore} from 'react';
-import {
-  css,
-  useTheme,
-  type DO_NOT_USE_ChonkTheme,
-  type SerializedStyles,
-} from '@emotion/react';
+import {css, useTheme, type SerializedStyles} from '@emotion/react';
 
-import type {Theme} from 'sentry/utils/theme';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
+import type {
+  BorderVariant,
+  BreakpointSize,
+  RadiusSize,
+  SpaceSize,
+  Theme,
+} from 'sentry/utils/theme';
 
 // It is unfortunate, but Emotion seems to use the fn callback name in the classname, so lets keep it short.
 export function rc<T>(
@@ -15,7 +15,7 @@ export function rc<T>(
   value: Responsive<T> | undefined,
   theme: Theme,
   // Optional resolver function to transform the value before it is applied to the CSS property.
-  resolver?: (value: T, breakpoint: Breakpoint | undefined, theme: Theme) => string
+  resolver?: (value: T, breakpoint: BreakpointSize | undefined, theme: Theme) => string
 ): SerializedStyles | undefined {
   if (!value) {
     return undefined;
@@ -59,7 +59,7 @@ export function rc<T>(
   `;
 }
 
-const BREAKPOINT_ORDER: readonly Breakpoint[] = [
+const BREAKPOINT_ORDER: readonly BreakpointSize[] = [
   '2xs',
   'xs',
   'sm',
@@ -69,17 +69,11 @@ const BREAKPOINT_ORDER: readonly Breakpoint[] = [
   '2xl',
 ];
 
-// We alias None -> 0 to make it slighly more terse and easier to read.
-export type RadiusSize = keyof DO_NOT_USE_ChonkTheme['radius'];
-export type SpacingSize = keyof Theme['space'];
-export type Border = keyof Theme['tokens']['border'];
-export type Breakpoint = keyof Theme['breakpoints'];
-
 /**
  * Prefer using padding or gap instead.
  * @deprecated
  */
-export type Margin = SpacingSize | 'auto' | '0';
+export type Margin = SpaceSize | 'auto' | '0';
 
 // @TODO(jonasbadalic): audit for memory usage and linting performance issues.
 // These may not be trivial to infer as we are dealing with n^4 complexity
@@ -89,9 +83,9 @@ export type Shorthand<T extends string, N extends 4 | 2> = N extends 4
     ? `${T} ${T}` | `${T}`
     : never;
 
-export type Responsive<T> = T | Partial<Record<Breakpoint, T>>;
+export type Responsive<T> = T | Partial<Record<BreakpointSize, T>>;
 
-function isResponsive(prop: unknown): prop is Record<Breakpoint, any> {
+function isResponsive(prop: unknown): prop is Record<BreakpointSize, any> {
   return typeof prop === 'object' && prop !== null;
 }
 
@@ -107,10 +101,10 @@ function resolveRadius(sizeComponent: RadiusSize | undefined, theme: Theme) {
     return undefined;
   }
 
-  return isChonkTheme(theme) ? theme.radius[sizeComponent] : theme.borderRadius;
+  return theme.radius[sizeComponent];
 }
 
-function resolveSpacing(sizeComponent: SpacingSize, theme: Theme) {
+function resolveSpacing(sizeComponent: SpaceSize, theme: Theme) {
   if (sizeComponent === undefined) {
     return undefined;
   }
@@ -134,20 +128,30 @@ function resolveMargin(sizeComponent: Margin, theme: Theme) {
   return theme.space[sizeComponent] ?? theme.space['0'];
 }
 
+function borderValue(key: BorderVariant, theme: Theme): string {
+  if (key === 'primary') {
+    return theme.tokens.border[key];
+  }
+  if (key === 'muted') {
+    return theme.tokens.border.secondary;
+  }
+  return theme.tokens.border[key].vibrant;
+}
+
 export function getBorder(
-  border: Border,
-  _breakpoint: Breakpoint | undefined,
+  border: BorderVariant,
+  _breakpoint: BreakpointSize | undefined,
   theme: Theme
 ) {
   return border
     .split(' ')
-    .map(b => `1px solid ${theme.tokens.border[b as keyof Theme['tokens']['border']]}`)
+    .map(b => `1px solid ${borderValue(b as BorderVariant, theme)}`)
     .join(' ');
 }
 
 export function getRadius(
   radius: Shorthand<RadiusSize, 4>,
-  _breakpoint: Breakpoint | undefined,
+  _breakpoint: BreakpointSize | undefined,
   theme: Theme
 ) {
   if (radius.length < 3) {
@@ -162,24 +166,24 @@ export function getRadius(
 }
 
 export function getSpacing(
-  spacing: Shorthand<SpacingSize, 4>,
-  _breakpoint: Breakpoint | undefined,
+  spacing: Shorthand<SpaceSize, 4>,
+  _breakpoint: BreakpointSize | undefined,
   theme: Theme
 ): string {
   if (spacing.length < 3) {
     // This can only be a single spacing value, so we can resolve it directly.
-    return resolveSpacing(spacing as SpacingSize, theme) as string;
+    return resolveSpacing(spacing as SpaceSize, theme) as string;
   }
 
   return spacing
     .split(' ')
-    .map(size => resolveSpacing(size as SpacingSize, theme))
+    .map(size => resolveSpacing(size as SpaceSize, theme))
     .join(' ');
 }
 
 export function getMargin(
   margin: Shorthand<Margin, 4>,
-  _breakpoint: Breakpoint | undefined,
+  _breakpoint: BreakpointSize | undefined,
   theme: Theme
 ) {
   if (margin.length < 3) {
@@ -245,7 +249,7 @@ export function useResponsivePropValue<T extends Responsive<any>>(
   return value as ResponsiveValue<T>;
 }
 
-export function useActiveBreakpoint(): Breakpoint {
+export function useActiveBreakpoint(): BreakpointSize {
   const theme = useTheme();
 
   const mediaQueries = useMemo(() => {
@@ -253,7 +257,7 @@ export function useActiveBreakpoint(): Breakpoint {
       return [];
     }
 
-    const queries: Array<{breakpoint: Breakpoint; query: MediaQueryList}> = [];
+    const queries: Array<{breakpoint: BreakpointSize; query: MediaQueryList}> = [];
 
     // Iterate in reverse so that we always find the largest breakpoint
     for (let i = BREAKPOINT_ORDER.length - 1; i >= 0; i--) {
@@ -295,8 +299,8 @@ export function useActiveBreakpoint(): Breakpoint {
 }
 
 function findLargestBreakpoint(
-  queries: Array<{breakpoint: Breakpoint; query: MediaQueryList}>
-): Breakpoint {
+  queries: Array<{breakpoint: BreakpointSize; query: MediaQueryList}>
+): BreakpointSize {
   // Find the largest active breakpoint with a defined value
   // This mirrors the logic in rc() function
   for (const query of queries) {

@@ -18,6 +18,7 @@ import {IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DatasetSource} from 'sentry/utils/discover/types';
 import useApi from 'sentry/utils/useApi';
@@ -430,6 +431,7 @@ function Dashboard({
             onSetTransactionsDataset={() => handleChangeSplitDataset(widget, index)}
             isEmbedded={isEmbedded}
             isPreview={isPreview}
+            isPrebuiltDashboard={defined(dashboard.prebuiltId)}
             dashboardFilters={getDashboardFiltersFromURL(location) ?? dashboard.filters}
             dashboardPermissions={dashboard.permissions}
             dashboardCreator={dashboard.createdBy}
@@ -457,15 +459,15 @@ export default Dashboard;
 // Allow the Add Widget tile to show above widgets when moved
 const AddWidgetWrapper = styled('div')`
   z-index: 5;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 const GridLayout = styled(WidthProvider(Responsive))`
   margin: -${space(2)};
 
   .react-grid-item.react-grid-placeholder {
-    background: ${p => p.theme.purple200};
-    border-radius: ${p => p.theme.borderRadius};
+    background: ${p => p.theme.colors.blue200};
+    border-radius: ${p => p.theme.radius.md};
   }
 `;
 

@@ -26,7 +26,7 @@ import {getShortEventId} from 'sentry/utils/events';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   TraceItemSearchQueryBuilder,
-  useSearchQueryBuilderProps,
+  useTraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
@@ -78,7 +78,7 @@ export function OurlogsDrawer({
     numberSecondaryAliases,
     stringSecondaryAliases,
   };
-  const searchQueryBuilderProps = useSearchQueryBuilderProps(
+  const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps(
     tracesItemSearchQueryBuilderProps
   );
   const containerRef = useRef<HTMLDivElement>(null);

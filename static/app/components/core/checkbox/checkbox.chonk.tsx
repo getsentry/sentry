@@ -1,6 +1,6 @@
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import styled from '@emotion/styled';
 
-export const ChonkNativeHiddenCheckbox = chonkStyled('input')`
+export const ChonkNativeHiddenCheckbox = styled('input')`
   position: absolute;
   opacity: 0;
   top: 0;

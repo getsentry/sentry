@@ -1,4 +1,3 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
@@ -31,14 +30,8 @@ describe('Relocation Onboarding Container', () => {
   });
 
   it('should render if feature enabled', async () => {
-    const {routerProps, organization} = initializeOrg({
-      router: {
-        params: {step: 'get-started'},
-      },
-    });
     ConfigStore.set('features', new Set(['relocation:enabled']));
-    render(<RelocationOnboardingContainer {...routerProps} />, {
-      organization,
+    render(<RelocationOnboardingContainer />, {
       initialRouterConfig: {
         location: {
           pathname: '/relocation/get-started/',
@@ -55,14 +48,8 @@ describe('Relocation Onboarding Container', () => {
   });
 
   it('should not render if feature disabled', async () => {
-    const {routerProps, organization} = initializeOrg({
-      router: {
-        params: {step: 'get-started'},
-      },
-    });
     ConfigStore.set('features', new Set([]));
-    render(<RelocationOnboardingContainer {...routerProps} />, {
-      organization,
+    render(<RelocationOnboardingContainer />, {
       initialRouterConfig: {
         location: {
           pathname: '/relocation/get-started/',

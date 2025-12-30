@@ -2,9 +2,6 @@ import styled from '@emotion/styled';
 
 import {Tooltip, type TooltipProps} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 
 import {Badge, type BadgeProps} from './badge';
 
@@ -24,7 +21,7 @@ const labels: Record<FeatureBadgeProps['type'], string> = {
   experimental: t('experimental'),
 };
 
-export interface FeatureBadgeProps extends Omit<BadgeProps, 'children'> {
+export interface FeatureBadgeProps extends Omit<BadgeProps, 'children' | 'variant'> {
   type: 'alpha' | 'beta' | 'new' | 'experimental';
   tooltipProps?: Partial<TooltipProps>;
 }
@@ -34,7 +31,7 @@ function InnerFeatureBadge({type, tooltipProps, ...props}: FeatureBadgeProps) {
 
   return (
     <Tooltip title={title} position="right" {...tooltipProps} skipWrapper>
-      <StyledBadge type={type} {...props}>
+      <StyledBadge variant={type} {...props}>
         {labels[type]}
       </StyledBadge>
     </Tooltip>
@@ -47,16 +44,8 @@ function InnerFeatureBadge({type, tooltipProps, ...props}: FeatureBadgeProps) {
  */
 export const FeatureBadge = styled(InnerFeatureBadge)``;
 
-const ChonkStyledBadge = chonkStyled(Badge)`
+const ChonkStyledBadge = styled(Badge)`
   text-transform: capitalize;
 `;
 
-const StyledBadge = withChonk(
-  styled(Badge)`
-    margin: 0;
-    padding: 0 ${space(0.75)};
-    height: ${space(2)};
-    vertical-align: middle;
-  `,
-  ChonkStyledBadge
-);
+const StyledBadge = ChonkStyledBadge;

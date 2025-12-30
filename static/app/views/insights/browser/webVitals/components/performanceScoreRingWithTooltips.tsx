@@ -3,6 +3,8 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Link} from 'sentry/components/core/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -173,10 +175,10 @@ function PerformanceScoreRingWithTooltips({
   if (labelHovered && inPerformanceWidget) {
     const index = ringSegmentOrder.indexOf(labelHovered);
     ringSegmentColors = ringSegmentColors.map((color, i) => {
-      return i === index ? color : theme.gray200;
+      return i === index ? color : theme.colors.gray200;
     });
     ringBackgroundColors = ringBackgroundColors.map((color, i) => {
-      return i === index ? color : `${theme.gray200}33`;
+      return i === index ? color : `${theme.colors.gray200}33`;
     });
   }
 
@@ -207,7 +209,7 @@ function PerformanceScoreRingWithTooltips({
     <ProgressRingContainer ref={elem} {...mouseTrackingProps}>
       {webVitalTooltip && (
         <PerformanceScoreRingTooltip x={mousePosition.x} y={mousePosition.y}>
-          <TooltipRow>
+          <Flex justify="between" align="center">
             <span>
               <Dot
                 color={ringBackgroundColors[ringSegmentOrder.indexOf(webVitalTooltip)]!}
@@ -217,8 +219,8 @@ function PerformanceScoreRingWithTooltips({
             <TooltipValue>
               {100 - (projectScore[`${webVitalTooltip}Score`] ?? 0)}
             </TooltipValue>
-          </TooltipRow>
-          <TooltipRow>
+          </Flex>
+          <Flex justify="between" align="center">
             <span>
               <Dot
                 color={ringSegmentColors[ringSegmentOrder.indexOf(webVitalTooltip)]!}
@@ -226,7 +228,7 @@ function PerformanceScoreRingWithTooltips({
               {webVitalTooltip.toUpperCase()} {t('Score')}
             </span>
             <TooltipValue>{projectScore[`${webVitalTooltip}Score`]}</TooltipValue>
-          </TooltipRow>
+          </Flex>
           <PerformanceScoreRingTooltipArrow />
         </PerformanceScoreRingTooltip>
       )}
@@ -289,7 +291,7 @@ function PerformanceScoreRingWithTooltips({
           textCss={() => css`
             font-size: 32px;
             font-weight: ${theme.fontWeight.bold};
-            color: ${theme.textColor};
+            color: ${theme.tokens.content.primary};
           `}
           segmentColors={ringSegmentColors}
           backgroundColors={ringBackgroundColors}
@@ -346,7 +348,7 @@ const ProgressRingContainer = styled('div')``;
 
 const ProgressRingText = styled('text')<{isLink?: boolean}>`
   font-size: ${p => p.theme.fontSize.md};
-  fill: ${p => (p.isLink ? p.theme.blue300 : p.theme.textColor)};
+  fill: ${p => (p.isLink ? p.theme.colors.blue400 : p.theme.tokens.content.primary)};
   font-weight: ${p => p.theme.fontWeight.bold};
   text-transform: uppercase;
   text-anchor: middle;
@@ -360,14 +362,18 @@ const ProgressRingSubText = styled('text')`
 
 const ProgressRingDiffSubText = styled(ProgressRingSubText)<{value: number}>`
   fill: ${p =>
-    p.value < 0 ? p.theme.green300 : p.value > 0 ? p.theme.red300 : p.theme.subText};
+    p.value < 0
+      ? p.theme.colors.green400
+      : p.value > 0
+        ? p.theme.colors.red400
+        : p.theme.subText};
 `;
 
 // Hover element on mouse
 const PerformanceScoreRingTooltip = styled('div')<{x: number; y: number}>`
   position: absolute;
-  background: ${p => p.theme.backgroundElevated};
-  border-radius: ${p => p.theme.borderRadius};
+  background: ${p => p.theme.tokens.background.primary};
+  border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.border};
   transform: translate3d(${p => p.x - 100}px, ${p => p.y - 74}px, 0px);
   padding: ${space(1)} ${space(2)};
@@ -385,7 +391,7 @@ const PerformanceScoreRingTooltipArrow = styled('div')`
   pointer-events: none;
   border-left: 8px solid transparent;
   border-right: 8px solid transparent;
-  border-top: 8px solid ${p => p.theme.backgroundElevated};
+  border-top: 8px solid ${p => p.theme.tokens.background.primary};
   margin-left: -8px;
   &:before {
     border-left: 8px solid transparent;
@@ -407,12 +413,6 @@ const Dot = styled('span')<{color: string}>`
   width: 10px;
   height: 10px;
   background-color: ${p => p.color};
-`;
-
-const TooltipRow = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
 `;
 
 const TooltipValue = styled('span')`

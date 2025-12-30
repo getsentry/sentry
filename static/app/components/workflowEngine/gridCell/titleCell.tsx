@@ -86,7 +86,7 @@ export function TitleCell({
 }
 
 const Name = styled('div')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   display: flex;
   align-items: center;
   gap: ${space(0.5)};

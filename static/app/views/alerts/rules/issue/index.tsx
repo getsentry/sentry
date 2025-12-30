@@ -457,6 +457,12 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
 
     metric.endSpan({name: 'saveAlertRule'});
 
+    if (isNew) {
+      trackAnalytics('issue_alert_rule.created', {
+        organization,
+      });
+    }
+
     router.push(
       makeAlertsPathname({
         path: `/rules/${project.slug}/${rule.id}/details/`,
@@ -830,7 +836,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
   renderError() {
     return (
       <Alert.Container>
-        <Alert type="error">
+        <Alert variant="danger">
           {t(
             'Unable to access this alert rule -- check to make sure you have the correct permissions'
           )}
@@ -906,7 +912,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
       <AlertLink.Container>
         <AlertLink
           openInNewTab
-          type="error"
+          variant="danger"
           trailingItems={<IconNot color="red300" />}
           href={makeAlertsPathname({
             path: `/rules/${project.slug}/${duplicateRuleId}/details/`,
@@ -956,7 +962,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
 
     return (
       <Alert.Container>
-        <Alert type="warning">
+        <Alert variant="warning">
           <div>
             {t(
               'Alerts without conditions can fire too frequently. Are you sure you want to save this alert rule?'
@@ -1297,7 +1303,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                           disabled={disabled}
                           error={
                             this.hasError('conditions') && (
-                              <Alert type="error" showIcon={false}>
+                              <Alert variant="danger" showIcon={false}>
                                 {detailedError?.conditions![0]}
                                 {(detailedError?.conditions![0] || '').startsWith(
                                   'You may not exceed'
@@ -1379,7 +1385,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                           disabled={disabled}
                           error={
                             this.hasError('filters') && (
-                              <Alert type="error" showIcon={false}>
+                              <Alert variant="danger" showIcon={false}>
                                 {detailedError?.filters![0]}
                               </Alert>
                             )
@@ -1423,7 +1429,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                           disabled={disabled}
                           error={
                             this.hasError('actions') && (
-                              <Alert type="error" showIcon={false}>
+                              <Alert variant="danger" showIcon={false}>
                                 {detailedError?.actions![0]}
                               </Alert>
                             )
@@ -1642,7 +1648,7 @@ const StepConnector = styled('div')`
   height: 100%;
   top: 28px;
   left: 19px;
-  border-right: 1px ${p => p.theme.gray200} dashed;
+  border-right: 1px ${p => p.theme.colors.gray200} dashed;
 `;
 
 const StepLead = styled('div')`
@@ -1664,9 +1670,9 @@ const ChevronContainer = styled('div')`
 
 const Badge = styled('span')`
   min-width: 56px;
-  background-color: ${p => p.theme.purple300};
+  background-color: ${p => p.theme.colors.blue400};
   padding: 0 ${space(0.75)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.white};
   text-transform: uppercase;
   text-align: center;

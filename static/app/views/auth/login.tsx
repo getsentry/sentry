@@ -1,7 +1,6 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
@@ -10,8 +9,8 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {AuthConfig} from 'sentry/types/auth';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import withApi from 'sentry/utils/withApi';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {useParams} from 'sentry/utils/useParams';
 
 import LoginForm from './loginForm';
 import RegisterForm from './registerForm';
@@ -27,128 +26,110 @@ type ActiveTab = keyof typeof FORM_COMPONENTS;
 
 type TabConfig = [key: ActiveTab, label: string, disabled?: boolean];
 
-type Props = RouteComponentProps<{orgId?: string}> & {
-  api: Client;
+type AuthConfigResponse = Omit<
+  AuthConfig,
+  'vstsLoginLink' | 'githubLoginLink' | 'googleLoginLink'
+> & {
+  github_login_link?: string;
+  google_login_link?: string;
+  vsts_login_link?: string;
 };
 
-type State = {
-  activeTab: ActiveTab;
-  authConfig: null | AuthConfig;
-  error: null | boolean;
-  loading: boolean;
-};
+function Login() {
+  const {orgId} = useParams<{orgId?: string}>();
+  const [activeTab, setActiveTab] = useState<ActiveTab>('login');
 
-class Login extends Component<Props, State> {
-  state: State = {
-    loading: true,
-    error: null,
-    activeTab: 'login',
-    authConfig: null,
-  };
+  const {
+    data: response,
+    isPending,
+    isError,
+    refetch,
+  } = useApiQuery<AuthConfigResponse>(['/auth/config/'], {
+    staleTime: 0,
+  });
 
-  componentDidMount() {
-    this.fetchData();
-  }
-
-  fetchData = async () => {
-    const {api} = this.props;
-    try {
-      const response = await api.requestPromise('/auth/config/');
-
-      const {vsts_login_link, github_login_link, google_login_link, ...config} = response;
-      const authConfig = {
-        ...config,
-        vstsLoginLink: vsts_login_link,
-        githubLoginLink: github_login_link,
-        googleLoginLink: google_login_link,
-      };
-
-      this.setState({authConfig});
-    } catch (e) {
-      this.setState({error: true});
+  const authConfig = useMemo((): AuthConfig | null => {
+    if (!response) {
+      return null;
     }
+    const {vsts_login_link, github_login_link, google_login_link, ...config} = response;
+    return {
+      ...config,
+      vstsLoginLink: vsts_login_link ?? '',
+      githubLoginLink: github_login_link ?? '',
+      googleLoginLink: google_login_link ?? '',
+    };
+  }, [response]);
 
-    this.setState({loading: false});
-  };
+  const hasAuthProviders =
+    !!authConfig?.githubLoginLink ||
+    !!authConfig?.vstsLoginLink ||
+    !!authConfig?.googleLoginLink;
 
-  get hasAuthProviders() {
-    if (this.state.authConfig === null) {
-      return false;
-    }
+  const FormComponent = FORM_COMPONENTS[activeTab];
 
-    const {githubLoginLink, googleLoginLink, vstsLoginLink} = this.state.authConfig;
-    return !!(githubLoginLink || vstsLoginLink || googleLoginLink);
-  }
+  const tabs: TabConfig[] = [
+    ['login', t('Login')],
+    ['sso', t('Single Sign-On')],
+    ['register', t('Register'), !authConfig?.canRegister],
+  ];
 
-  render() {
-    const {loading, error, activeTab, authConfig} = this.state;
-    const {orgId} = this.props.params;
-
-    const FormComponent = FORM_COMPONENTS[activeTab];
-
-    const tabs: TabConfig[] = [
-      ['login', t('Login')],
-      ['sso', t('Single Sign-On')],
-      ['register', t('Register'), !authConfig?.canRegister],
-    ];
-
-    return (
-      <Fragment>
-        <Header>
-          <Heading>{t('Sign in to continue')}</Heading>
-          <TabsContainer>
-            <Tabs
-              value={activeTab}
-              onChange={tab => {
-                this.setState({activeTab: tab});
-              }}
-            >
-              <TabList>
-                {tabs
-                  .map(([key, label, disabled]) => {
-                    if (disabled) {
-                      return null;
-                    }
-                    return <TabList.Item key={key}>{label}</TabList.Item>;
-                  })
-                  .filter(n => !!n)}
-              </TabList>
-            </Tabs>
-          </TabsContainer>
-        </Header>
-        {loading && <LoadingIndicator />}
-
-        {error && (
-          <StyledLoadingError
-            message={t('Unable to load authentication configuration')}
-            onRetry={this.fetchData}
-          />
-        )}
-        {!loading && authConfig !== null && !error && (
-          <FormWrapper hasAuthProviders={this.hasAuthProviders}>
-            {orgId !== undefined && (
-              <Alert.Container>
-                <Alert
-                  type="warning"
-                  trailingItems={
-                    <LinkButton to="/" size="xs">
-                      Reload
-                    </LinkButton>
+  return (
+    <Fragment>
+      <Header>
+        <Heading>{t('Sign in to continue')}</Heading>
+        <TabsContainer>
+          <Tabs
+            value={activeTab}
+            onChange={tab => {
+              setActiveTab(tab);
+            }}
+          >
+            <TabList>
+              {tabs
+                .map(([key, label, disabled]) => {
+                  if (disabled) {
+                    return null;
                   }
-                >
-                  {tct(
-                    "Experimental SPA mode does not currently support SSO style login. To develop against the [org] you'll need to copy your production session cookie.",
-                    {org: this.props.params.orgId}
-                  )}
-                </Alert>
-              </Alert.Container>
-            )}
-            <FormComponent {...{authConfig}} />
-          </FormWrapper>
-        )}
-      </Fragment>
-    );
-  }
+                  return <TabList.Item key={key}>{label}</TabList.Item>;
+                })
+                .filter(n => !!n)}
+            </TabList>
+          </Tabs>
+        </TabsContainer>
+      </Header>
+      {isPending && <LoadingIndicator />}
+
+      {isError && (
+        <StyledLoadingError
+          message={t('Unable to load authentication configuration')}
+          onRetry={refetch}
+        />
+      )}
+      {!isPending && authConfig !== null && !isError && (
+        <FormWrapper hasAuthProviders={hasAuthProviders}>
+          {orgId !== undefined && (
+            <Alert.Container>
+              <Alert
+                variant="warning"
+                trailingItems={
+                  <LinkButton to="/" size="xs">
+                    Reload
+                  </LinkButton>
+                }
+              >
+                {tct(
+                  "Experimental SPA mode does not currently support SSO style login. To develop against the [org] you'll need to copy your production session cookie.",
+                  {org: orgId}
+                )}
+              </Alert>
+            </Alert.Container>
+          )}
+          <FormComponent {...{authConfig}} />
+        </FormWrapper>
+      )}
+    </Fragment>
+  );
 }
 
 const StyledLoadingError = styled(LoadingError)`
@@ -174,4 +155,4 @@ const FormWrapper = styled('div')<{hasAuthProviders: boolean}>`
   width: ${p => (p.hasAuthProviders ? '600px' : '490px')};
 `;
 
-export default withApi(Login);
+export default Login;

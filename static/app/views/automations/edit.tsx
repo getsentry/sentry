@@ -31,6 +31,7 @@ import {AutomationFeedbackButton} from 'sentry/views/automations/components/auto
 import AutomationForm from 'sentry/views/automations/components/automationForm';
 import type {AutomationFormData} from 'sentry/views/automations/components/automationFormData';
 import {
+  assignSubfilterIds,
   getAutomationFormData,
   getNewAutomationData,
   validateAutomationBuilderState,
@@ -117,7 +118,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
             logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
             conditions: [],
           },
-      actionFilters: automation.actionFilters,
+      actionFilters: assignSubfilterIds(automation.actionFilters),
     };
   }, [automation]);
 
@@ -125,7 +126,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
   const {state, actions} = useAutomationBuilderReducer(initialState);
 
   const [automationBuilderErrors, setAutomationBuilderErrors] = useState<
-    Record<string, string>
+    Record<string, any>
   >({});
 
   const {mutateAsync: updateAutomation, error} = useUpdateAutomation();
@@ -138,25 +139,33 @@ function AutomationEditForm({automation}: {automation: Automation}) {
   }, []);
 
   const handleFormSubmit = useCallback<OnSubmitCallback>(
-    async (data, _, __, ___, ____) => {
+    async (data, onSubmitSuccess, onSubmitError, _event, formModel) => {
       const errors = validateAutomationBuilderState(state);
       setAutomationBuilderErrors(errors);
 
       if (Object.keys(errors).length === 0) {
-        const formData: NewAutomation = getNewAutomationData(
-          data as AutomationFormData,
-          state
-        );
-        const updatedData = {
-          id: automation.id,
-          ...formData,
-        };
-        const updatedAutomation = await updateAutomation(updatedData);
-        trackAnalytics('automation.updated', {
-          organization,
-          ...getAutomationAnalyticsPayload(updatedAutomation),
-        });
-        navigate(makeAutomationDetailsPathname(organization.slug, updatedAutomation.id));
+        try {
+          formModel.setFormSaving();
+          const formData: NewAutomation = getNewAutomationData(
+            data as AutomationFormData,
+            state
+          );
+          const updatedData = {
+            id: automation.id,
+            ...formData,
+          };
+          const updatedAutomation = await updateAutomation(updatedData);
+          onSubmitSuccess(formModel?.getData() ?? data);
+          trackAnalytics('automation.updated', {
+            organization,
+            ...getAutomationAnalyticsPayload(updatedAutomation),
+          });
+          navigate(
+            makeAutomationDetailsPathname(organization.slug, updatedAutomation.id)
+          );
+        } catch (err) {
+          onSubmitError?.(err);
+        }
       }
     },
     [automation.id, organization, navigate, updateAutomation, state]
@@ -210,8 +219,8 @@ function AutomationEditForm({automation}: {automation: Automation}) {
           </StyledBody>
         </Layout.Page>
         <StickyFooter>
-          <Flex style={{maxWidth}} align="center" gap="md" justify="end">
-            <EditAutomationActions automation={automation} />
+          <Flex maxWidth={maxWidth} align="center" gap="md" justify="end">
+            <EditAutomationActions automation={automation} form={model} />
           </Flex>
         </StickyFooter>
       </AutomationFormProvider>
@@ -220,7 +229,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
 }
 
 const StyledLayoutHeader = styled(Layout.Header)`
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 const HeaderInner = styled('div')<{maxWidth?: string}>`

@@ -1,5 +1,10 @@
-import {useCallback, useEffect, useRef} from 'react';
+import {useCallback} from 'react';
 import * as echarts from 'echarts/core';
+
+import {formatAbbreviatedNumberWithDynamicPrecision} from 'sentry/utils/formatters';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
+import {prettifyAggregation} from 'sentry/views/explore/utils';
 
 /**
  * Captures a coarse ASCII representation of the current page by laying out
@@ -7,26 +12,8 @@ import * as echarts from 'echarts/core';
  * Elements within any ancestor marked with `data-seer-explorer-root` are excluded.
  */
 function useAsciiSnapshot() {
-  const mousePosRef = useRef<{inWindow: boolean; x: number; y: number} | null>(null);
-
-  useEffect(() => {
-    const handleMove = (e: MouseEvent) => {
-      mousePosRef.current = {x: e.clientX, y: e.clientY, inWindow: true};
-    };
-    const handleLeave = () => {
-      if (mousePosRef.current) {
-        mousePosRef.current.inWindow = false;
-      } else {
-        mousePosRef.current = {x: 0, y: 0, inWindow: false};
-      }
-    };
-    window.addEventListener('mousemove', handleMove, {passive: true});
-    window.addEventListener('mouseleave', handleLeave, {passive: true});
-    return () => {
-      window.removeEventListener('mousemove', handleMove as EventListener);
-      window.removeEventListener('mouseleave', handleLeave as EventListener);
-    };
-  }, []);
+  const {selection} = usePageFilters();
+  const {projects} = useProjects();
 
   const capture = useCallback(() => {
     if (typeof document === 'undefined' || typeof window === 'undefined') {
@@ -158,7 +145,12 @@ function useAsciiSnapshot() {
 
     // Intentionally removed detailed debug metadata to avoid unused variable warnings
 
-    // ----- Chart plotting (draw first so text can overlay labels) -----
+    // Collect chart tables to append as footnotes
+    const chartTables: string[] = [];
+    // Track chart containers to exclude their text content (axes, labels, etc.)
+    const chartContainers = new Set<Element>();
+
+    // ----- Chart to table conversion (for timeseries charts) -----
     try {
       // Collect potential ECharts containers
       const selector = '[data-ec], [data-zr-dom-id], .echarts-for-react, .echarts';
@@ -182,56 +174,57 @@ function useAsciiSnapshot() {
           inst = echarts.getInstanceByDom(el.parentElement as HTMLDivElement);
         }
         if (inst?.getDom && inst?.getOption) {
-          instanceByDom.set(inst.getDom(), inst);
+          const dom = inst.getDom();
+          instanceByDom.set(dom, inst);
+          // Track chart container for exclusion
+          chartContainers.add(dom);
         }
       }
 
-      const MAX_POINTS_TOTAL = 5000;
-      let pointsDrawn = 0;
+      // Timeseries chart types that can be converted to tables
+      const TIMESERIES_TYPES = new Set(['line', 'bar', 'area', 'scatter']);
 
-      const drawPoint = (absX: number, absY: number) => {
-        if (absX <= 0 || absY <= 0 || absX >= viewportWidth || absY >= viewportHeight) {
-          return;
+      // First pass: count charts with timeseries data
+      let timeseriesChartCount = 0;
+      for (const [, inst] of instanceByDom) {
+        const dom: Element = inst.getDom();
+        if (isExcluded(dom) || !isVisible(dom)) continue;
+
+        const rect = dom.getBoundingClientRect();
+        if (
+          rect.right <= 0 ||
+          rect.bottom <= 0 ||
+          rect.left >= viewportWidth ||
+          rect.top >= viewportHeight
+        ) {
+          continue;
         }
-        const rowIdx = Math.min(rows - 1, Math.max(0, Math.floor(absY / cellHeightPx)));
-        const colIdx = Math.max(0, Math.floor((absX - leftShiftPx) / cellWidthPx));
-        setCell(rowIdx, colIdx, '*');
-      };
 
-      const tryConvertToPixel = (
-        inst: any,
-        seriesIndex: number,
-        xy: [number, number]
-      ): [number, number] | null => {
-        try {
-          const p = inst.convertToPixel({seriesIndex}, xy);
-          if (
-            Array.isArray(p) &&
-            p.length === 2 &&
-            Number.isFinite(p[0]) &&
-            Number.isFinite(p[1])
-          ) {
-            return [p[0], p[1]];
+        const option = inst.getOption?.() || {};
+        const series: any[] = Array.isArray(option.series) ? option.series : [];
+        if (!series.length) continue;
+
+        // Check if this chart has timeseries data
+        let hasTimeseriesData = false;
+        for (const s of series) {
+          if (s?.show === false) continue;
+          const type = String(s?.type || '').toLowerCase();
+          if (TIMESERIES_TYPES.has(type)) {
+            const data: any[] = Array.isArray(s?.data) ? s.data : [];
+            if (data.length > 0) {
+              hasTimeseriesData = true;
+              break;
+            }
           }
-        } catch (e) {
-          /* noop: convertToPixel may throw for some series/coords */
         }
-        try {
-          const p = inst.convertToPixel('grid', xy as any);
-          if (
-            Array.isArray(p) &&
-            p.length === 2 &&
-            Number.isFinite(p[0]) &&
-            Number.isFinite(p[1])
-          ) {
-            return [p[0], p[1]];
-          }
-        } catch (e) {
-          /* noop: grid conversion unsupported in some configs */
-        }
-        return null;
-      };
 
+        if (hasTimeseriesData) {
+          timeseriesChartCount++;
+        }
+      }
+
+      // Second pass: process charts and build tables
+      let chartIndex = 0;
       for (const [, inst] of instanceByDom) {
         const dom: Element = inst.getDom();
         if (isExcluded(dom) || !isVisible(dom)) continue;
@@ -251,18 +244,18 @@ function useAsciiSnapshot() {
         const series: any[] = Array.isArray(option.series) ? option.series : [];
         if (!series.length) continue;
 
-        const chartCols = Math.max(1, Math.floor(rect.width / cellWidthPx));
-        const maxSeriesToPlot = 3; // cap for performance
-        let plottedSeries = 0;
+        // Extract timeseries data from all series
+        const timeseriesData: Array<{
+          data: Map<number, number>; // x -> y mapping
+          name: string;
+        }> = [];
 
-        for (let sIdx = 0; sIdx < series.length; sIdx++) {
-          if (plottedSeries >= maxSeriesToPlot) break;
-          const s = series[sIdx] || {};
+        for (const s of series) {
           if (s?.show === false) continue;
 
           const type = String(s?.type || '').toLowerCase();
-          if (type === 'pie' || type === 'treemap' || type === 'sunburst') {
-            // Fallback textual summary centered in chart
+          if (!TIMESERIES_TYPES.has(type)) {
+            // For non-timeseries charts, show a simple label
             try {
               const centerRow = Math.min(
                 rows - 1,
@@ -277,26 +270,25 @@ function useAsciiSnapshot() {
             } catch (e) {
               /* noop: overlay fallback */
             }
-            plottedSeries++;
             continue;
           }
 
           const data: any[] = Array.isArray(s?.data) ? s.data : [];
           if (!data.length) continue;
 
-          const maxPointsForSeries = Math.max(1, chartCols);
-          const stride = Math.max(1, Math.ceil(data.length / maxPointsForSeries));
+          // Try to get a prettier name for the series
+          const rawSeriesName =
+            s?.name || s?.seriesName || `Series${timeseriesData.length + 1}`;
+          const seriesName = prettifyAggregation(String(rawSeriesName)) || rawSeriesName;
+          const dataMap = new Map<number, number>();
 
-          // Pre-sample for min/max and values
-          const sampled: Array<{i: number; x: number; y: number}> = [];
-          let minY = Number.POSITIVE_INFINITY;
-          let maxY = Number.NEGATIVE_INFINITY;
-          for (let i = 0; i < data.length; i += stride) {
-            const item = data[i];
+          // Extract x,y pairs from various data formats
+          data.forEach((item, index) => {
             let x: number | null = null;
             let y: number | null = null;
 
             if (Array.isArray(item)) {
+              // Format: [x, y] or [timestamp, value]
               if (
                 item.length >= 2 &&
                 Number.isFinite(item[0]) &&
@@ -306,70 +298,259 @@ function useAsciiSnapshot() {
                 y = Number(item[1]);
               }
             } else if (typeof item === 'number') {
-              x = i;
+              // Format: single number (y-value, use index as x)
+              x = index;
               y = item;
             } else if (item && typeof item === 'object') {
-              const v = (item as {value?: unknown}).value;
-              if (Array.isArray(v) && v.length >= 2) {
-                if (Number.isFinite(v[0]) && Number.isFinite(v[1])) {
-                  x = Number(v[0]);
-                  y = Number(v[1]);
+              // Format: {name: timestamp, value: number}
+              const name = (item as {name?: unknown}).name;
+              const value = (item as {value?: unknown}).value;
+              if (
+                (typeof name === 'number' || typeof name === 'string') &&
+                typeof value === 'number' &&
+                Number.isFinite(value)
+              ) {
+                x = typeof name === 'number' ? name : Number(name);
+                y = value;
+              } else if (Array.isArray(value) && value.length >= 2) {
+                // Format: {value: [x, y]}
+                if (Number.isFinite(value[0]) && Number.isFinite(value[1])) {
+                  x = Number(value[0]);
+                  y = Number(value[1]);
                 }
-              } else if (typeof v === 'number') {
-                x = i;
-                y = v;
               }
             }
 
-            if (x === null || y === null || !Number.isFinite(x) || !Number.isFinite(y)) {
-              continue;
+            if (x !== null && y !== null && Number.isFinite(x) && Number.isFinite(y)) {
+              // If multiple points share the same x, take the last one
+              dataMap.set(x, y);
             }
+          });
 
-            sampled.push({x, y, i});
-            if (y < minY) minY = y;
-            if (y > maxY) maxY = y;
+          if (dataMap.size > 0) {
+            timeseriesData.push({name: String(seriesName), data: dataMap});
           }
-
-          if (!sampled.length) continue;
-
-          for (let k = 0; k < sampled.length; k++) {
-            if (pointsDrawn >= MAX_POINTS_TOTAL) break;
-            const pt = sampled[k];
-            if (!pt) continue;
-
-            // Try native conversion first
-            const rel = tryConvertToPixel(inst, sIdx, [pt.x, pt.y]);
-            if (rel) {
-              const absX = rect.left + rel[0];
-              const absY = rect.top + rel[1];
-              drawPoint(absX, absY);
-              pointsDrawn++;
-              continue;
-            }
-
-            // Fallback: linear mapping within this chart rect
-            if (!(Number.isFinite(minY) && Number.isFinite(maxY) && maxY > minY)) {
-              continue;
-            }
-            const xRatio = sampled.length > 1 ? k / (sampled.length - 1) : 0;
-            const yRatio = (pt.y - minY) / (maxY - minY);
-            const absX = rect.left + xRatio * rect.width;
-            const absY = rect.bottom - yRatio * rect.height;
-            drawPoint(absX, absY);
-            pointsDrawn++;
-          }
-
-          plottedSeries++;
-          if (pointsDrawn >= MAX_POINTS_TOTAL) break;
         }
 
-        if (pointsDrawn >= MAX_POINTS_TOTAL) break;
-      }
+        // If we have timeseries data, convert to table
+        if (timeseriesData.length > 0) {
+          // Filter out empty series (series with no data points)
+          const nonEmptySeries = timeseriesData.filter(s => s.data.size > 0);
+          if (nonEmptySeries.length === 0) continue;
 
-      // (debug metadata omitted in favor of logging full snapshot)
+          // Deduplicate series by name (keep the first one with data)
+          const seenNames = new Set<string>();
+          const uniqueSeries = nonEmptySeries.filter(s => {
+            if (seenNames.has(s.name)) {
+              return false;
+            }
+            seenNames.add(s.name);
+            return true;
+          });
+
+          if (uniqueSeries.length === 0) continue;
+
+          chartIndex++;
+          const chartNumber = chartIndex;
+          const totalCharts = timeseriesChartCount;
+
+          // Collect all unique x-values (timestamps) across all series
+          const allXValues = new Set<number>();
+          for (const seriesData of uniqueSeries) {
+            for (const x of seriesData.data.keys()) {
+              allXValues.add(x);
+            }
+          }
+
+          // Sort x-values
+          const sortedXValues = Array.from(allXValues).sort((a, b) => a - b);
+
+          // Predefined bucket sizes (in milliseconds) for deterministic bucketing
+          const BUCKET_SIZES = [
+            {ms: 60_000, label: '1min'},
+            {ms: 300_000, label: '5min'},
+            {ms: 1_800_000, label: '30min'},
+            {ms: 3_600_000, label: '1hr'},
+            {ms: 21_600_000, label: '6hr'},
+            {ms: 43_200_000, label: '12hr'},
+            {ms: 86_400_000, label: '1d'},
+            {ms: 259_200_000, label: '3d'},
+          ];
+          const maxBuckets = 50;
+
+          const minX = sortedXValues[0]!;
+          const maxX = sortedXValues[sortedXValues.length - 1]!;
+          const timeRange = maxX - minX;
+
+          // Find the smallest bucket size that keeps us under maxBuckets
+          let chosenBucketSize = BUCKET_SIZES[BUCKET_SIZES.length - 1]!;
+          for (const bucket of BUCKET_SIZES) {
+            if (Math.ceil(timeRange / bucket.ms) <= maxBuckets) {
+              chosenBucketSize = bucket;
+              break;
+            }
+          }
+
+          let displayTimestamps: number[];
+          let displaySeriesData: Array<{data: Map<number, number>; name: string}>;
+          let bucketSizeMs: number;
+
+          if (sortedXValues.length <= maxBuckets && timeRange < chosenBucketSize.ms) {
+            // No bucketing needed - use original data
+            displayTimestamps = sortedXValues;
+            displaySeriesData = uniqueSeries;
+            bucketSizeMs = 0; // Indicates no bucketing
+          } else {
+            bucketSizeMs = chosenBucketSize.ms;
+
+            // Align bucket start to round intervals (e.g., start of minute/hour)
+            const alignedMinX = Math.floor(minX / bucketSizeMs) * bucketSizeMs;
+            const numBuckets = Math.ceil((maxX - alignedMinX) / bucketSizeMs);
+
+            // Generate bucket start timestamps
+            displayTimestamps = [];
+            for (let i = 0; i < numBuckets; i++) {
+              displayTimestamps.push(alignedMinX + i * bucketSizeMs);
+            }
+
+            // Sum each series' values into buckets
+            displaySeriesData = uniqueSeries.map(s => {
+              const bucketedData = new Map<number, number>();
+
+              for (const [x, y] of s.data) {
+                // Find which bucket this timestamp belongs to
+                const bucketIndex = Math.min(
+                  numBuckets - 1,
+                  Math.floor((x - alignedMinX) / bucketSizeMs)
+                );
+                const bucketTime = displayTimestamps[bucketIndex]!;
+
+                // Sum into the bucket
+                const existing = bucketedData.get(bucketTime) ?? 0;
+                bucketedData.set(bucketTime, existing + y);
+              }
+
+              return {data: bucketedData, name: s.name};
+            });
+          }
+
+          // Format timestamp or time range for display (no seconds since intervals are round)
+          const formatTimestamp = (ts: number): string => {
+            if (ts > 1000000000000) {
+              try {
+                const startDate = new Date(ts);
+                const startStr = startDate
+                  .toISOString()
+                  .replace('T', ' ')
+                  .substring(0, 16); // "YYYY-MM-DD HH:MM"
+
+                if (bucketSizeMs > 0) {
+                  // Show time range for bucketed data
+                  const endDate = new Date(ts + bucketSizeMs);
+                  const sameDay =
+                    startDate.toISOString().substring(0, 10) ===
+                    endDate.toISOString().substring(0, 10);
+
+                  if (sameDay) {
+                    // Same day: "YYYY-MM-DD HH:MM-HH:MM"
+                    const endTime = endDate.toISOString().substring(11, 16);
+                    return `${startStr}-${endTime}`;
+                  }
+                  // Different day: "YYYY-MM-DD HH:MM - YYYY-MM-DD HH:MM"
+                  const endStr = endDate.toISOString().replace('T', ' ').substring(0, 16);
+                  return `${startStr} - ${endStr}`;
+                }
+                return startStr;
+              } catch (e) {
+                return String(ts);
+              }
+            }
+            return String(ts);
+          };
+
+          // Mark chart location with numbered placeholder
+          const chartRow = Math.max(
+            0,
+            Math.min(rows - 1, Math.floor((rect.top + rect.height / 2) / cellHeightPx))
+          );
+          const chartCol = Math.max(
+            0,
+            Math.floor((rect.left + rect.width / 2 - leftShiftPx) / cellWidthPx)
+          );
+          const marker = `[CHART ${chartNumber}${totalCharts > 1 ? `/${totalCharts}` : ''} RENDERED HERE; SEE DATA IN FOOTNOTES]`;
+          writeOverlay(chartRow, chartCol - Math.floor(marker.length / 2), marker);
+
+          // Build table with fixed-width columns (pandas-style, no separators)
+          const columnNames = ['Time (UTC)', ...displaySeriesData.map(s => s.name)];
+
+          // Calculate max width for each column
+          const columnWidths = columnNames.map((name, idx) => {
+            let maxWidth = name.length;
+            if (idx === 0) {
+              // Time column: check all timestamps
+              for (const x of displayTimestamps) {
+                const tsStr = formatTimestamp(x);
+                maxWidth = Math.max(maxWidth, tsStr.length);
+              }
+            } else {
+              // Data columns: check all values
+              const seriesIdx = idx - 1;
+              for (const x of displayTimestamps) {
+                const y = displaySeriesData[seriesIdx]?.data.get(x);
+                if (y === undefined) {
+                  maxWidth = Math.max(maxWidth, 1); // '-' is 1 char
+                } else {
+                  const valStr = formatAbbreviatedNumberWithDynamicPrecision(y);
+                  maxWidth = Math.max(maxWidth, valStr.length);
+                }
+              }
+            }
+            return maxWidth;
+          });
+
+          // Helper to pad string to fixed width
+          const padRight = (str: string, width: number): string => {
+            return (str || '').padEnd(width, ' ');
+          };
+
+          // Build header row
+          const headerRow = columnNames
+            .map((name, idx) => padRight(name, columnWidths[idx] || 0))
+            .join('  '); // Two spaces between columns
+
+          const tableRows: string[] = [headerRow];
+
+          // Build data rows
+          for (const x of displayTimestamps) {
+            const timestampStr = formatTimestamp(x);
+            const values = displaySeriesData.map((s, idx) => {
+              const y = s.data.get(x);
+              const valStr =
+                y === undefined ? '-' : formatAbbreviatedNumberWithDynamicPrecision(y);
+              return padRight(valStr, columnWidths[idx + 1] || 0);
+            });
+            const row = `${padRight(timestampStr, columnWidths[0] || 0)}  ${values.join('  ')}`;
+            tableRows.push(row);
+          }
+
+          chartTables.push(tableRows.join('\n'));
+        }
+      }
     } catch (e) {
       /* noop: chart detection should not break snapshot */
     }
+
+    // Helper to check if element is within a chart container
+    const isWithinChart = (el: Element | null): boolean => {
+      let node: Element | null = el;
+      while (node) {
+        if (chartContainers.has(node)) {
+          return true;
+        }
+        node = node.parentElement;
+      }
+      return false;
+    };
 
     // Text-node based placement for better accuracy and wrapping
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
@@ -379,6 +560,11 @@ function useAsciiSnapshot() {
       const parent = textNode.parentElement;
       const raw = (textNode.textContent || '').replace(/\s+/g, ' ').trim();
       if (parent && raw) {
+        // Skip text within chart containers (axes, labels, etc.)
+        if (isWithinChart(parent)) {
+          node = walker.nextNode();
+          continue;
+        }
         if (!isExcluded(parent) && isVisible(parent)) {
           const range = document.createRange();
           range.selectNodeContents(textNode);
@@ -547,28 +733,48 @@ function useAsciiSnapshot() {
       node = walker.nextNode();
     }
 
-    // Overlay the user's mouse cursor marker if within the viewport
-    const cursorLabel = '[USER CURSOR]';
-    const pos = mousePosRef.current;
-    if (pos?.inWindow) {
-      const within = !(
-        pos.x <= 0 ||
-        pos.y <= 0 ||
-        pos.x >= viewportWidth ||
-        pos.y >= viewportHeight
-      );
-      if (within) {
-        const rowIdx = Math.min(rows - 1, Math.max(0, Math.floor(pos.y / cellHeightPx)));
-        const colIdx = Math.max(0, Math.floor((pos.x - leftShiftPx) / cellWidthPx));
-        writeOverlay(rowIdx, colIdx, cursorLabel);
+    // Top line: full URL of the current page
+    const url = window.location.href;
+    let result = url + '\n' + grid.map(row => row.join('')).join('\n');
+
+    // Check if project selector exists on the page and get selected project slugs
+    const projectSlugs: string[] = [];
+    const projectSelector = document.querySelector(
+      '[data-test-id="page-filter-project-selector"]'
+    );
+    if (projectSelector && selection.projects.length > 0) {
+      // Convert project IDs to slugs
+      const projectIdToSlug = new Map(projects.map(p => [parseInt(p.id, 10), p.slug]));
+      for (const projectId of selection.projects) {
+        const slug = projectIdToSlug.get(projectId);
+        if (slug) {
+          projectSlugs.push(slug);
+        }
       }
     }
 
-    // Top line: full URL of the current page
-    const url = window.location.href;
-    const result = url + '\n' + grid.map(row => row.join('')).join('\n');
+    // Append footnotes if either charts or projects are present
+    if (chartTables.length > 0 || projectSlugs.length > 0) {
+      result += '\n\n=== FOOTNOTES ===\n\n';
+
+      // Append selected project slugs if project selector exists
+      if (projectSlugs.length > 0) {
+        result += `This page has the following projects selected: ${projectSlugs.join(', ')}\n`;
+        if (chartTables.length > 0) {
+          result += '\n';
+        }
+      }
+
+      // Append chart tables
+      if (chartTables.length > 0) {
+        chartTables.forEach((table, index) => {
+          result += `Chart ${index + 1}:\n${table}\n\n`;
+        });
+      }
+    }
+
     return result;
-  }, []);
+  }, [selection.projects, projects]);
 
   return capture;
 }

@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 import scrollToElement from 'scroll-to-element';
 
@@ -27,12 +27,12 @@ interface JsonFormProps
    * Fields that are grouped by "section"
    */
   forms?: JsonFormObject[];
-}
 
-type State = {
-  // Field name that should be highlighted
-  highlighted?: string;
-};
+  /**
+   * INTERNAL FIELD: used by the `collapsible` field type to adjust rendering of the form title
+   */
+  nested?: boolean;
+}
 
 interface ChildFormPanelProps
   extends Pick<
@@ -40,36 +40,38 @@ interface ChildFormPanelProps
     | 'access'
     | 'disabled'
     | 'features'
+    | 'nested'
     | 'additionalFieldProps'
     | 'renderFooter'
     | 'renderHeader'
     | 'initiallyCollapsed'
     | 'collapsible'
   > {
-  highlighted?: State['highlighted'];
+  highlighted?: string;
 }
 
-class JsonForm extends Component<JsonFormProps, State> {
-  state: State = {
+function JsonForm({
+  access,
+  collapsible,
+  initiallyCollapsed = false,
+  fields: propFields,
+  nested,
+  title,
+  forms,
+  disabled,
+  features,
+  additionalFieldProps,
+  renderFooter,
+  renderHeader,
+  location,
+  params,
+  router,
+  routes,
+  ...otherProps
+}: JsonFormProps) {
+  const scrollToHash = (toHash?: string): void => {
     // location.hash is optional because of tests.
-    highlighted: this.props.location?.hash,
-  };
-
-  componentDidMount() {
-    this.scrollToHash();
-  }
-
-  componentDidUpdate(prevProps: JsonFormProps) {
-    if (this.props.location && this.props.location.hash !== prevProps.location.hash) {
-      const hash = this.props.location.hash;
-      this.scrollToHash(hash);
-      this.setState({highlighted: hash});
-    }
-  }
-
-  scrollToHash(toHash?: string): void {
-    // location.hash is optional because of tests.
-    const hash = toHash || this.props.location?.hash;
+    const hash = toHash || location?.hash;
 
     if (!hash) {
       return;
@@ -86,19 +88,41 @@ class JsonForm extends Component<JsonFormProps, State> {
     } catch (err) {
       Sentry.captureException(err);
     }
-  }
+  };
 
-  shouldDisplayForm(fields: FieldObject[]): boolean {
-    const fieldsWithVisibleProp = fields.filter(
+  useEffect(() => {
+    const hash = location?.hash;
+    scrollToHash(hash);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location?.hash]);
+
+  const shouldDisplayForm = (fieldList: FieldObject[]): boolean => {
+    const fieldsWithVisibleProp = fieldList.filter(
       (field): field is Field => typeof field !== 'function' && defined(field?.visible)
     );
 
-    if (fields.length === fieldsWithVisibleProp.length) {
-      const {additionalFieldProps, ...props} = this.props;
-
+    if (fieldList.length === fieldsWithVisibleProp.length) {
       const areAllFieldsHidden = fieldsWithVisibleProp.every(field => {
         if (typeof field.visible === 'function') {
-          return !field.visible({...props, ...additionalFieldProps});
+          return !field.visible({
+            access,
+            collapsible,
+            initiallyCollapsed,
+            fields: propFields,
+            nested,
+            title,
+            forms,
+            disabled,
+            features,
+            renderFooter,
+            renderHeader,
+            location,
+            params,
+            router,
+            routes,
+            ...otherProps,
+            ...additionalFieldProps,
+          });
         }
         return !field.visible;
       });
@@ -107,82 +131,58 @@ class JsonForm extends Component<JsonFormProps, State> {
     }
 
     return true;
-  }
+  };
 
-  renderForm({
+  const renderForm = ({
     fields,
     formPanelProps,
-    title,
-    initiallyCollapsed,
+    title: formTitle,
+    initiallyCollapsed: formInitiallyCollapsed,
   }: {
     fields: FieldObject[];
     formPanelProps: ChildFormPanelProps;
     initiallyCollapsed?: boolean;
     title?: React.ReactNode;
-  }) {
-    const shouldDisplayForm = this.shouldDisplayForm(fields);
+  }) => {
+    const displayForm = shouldDisplayForm(fields);
 
-    if (
-      !shouldDisplayForm &&
-      !formPanelProps?.renderFooter &&
-      !formPanelProps?.renderHeader
-    ) {
+    if (!displayForm && !formPanelProps?.renderFooter && !formPanelProps?.renderHeader) {
       return null;
     }
 
     return (
       <FormPanel
-        title={title}
+        title={formTitle}
         fields={fields}
         {...formPanelProps}
-        initiallyCollapsed={initiallyCollapsed ?? formPanelProps.initiallyCollapsed}
+        initiallyCollapsed={formInitiallyCollapsed ?? formPanelProps.initiallyCollapsed}
       />
     );
-  }
+  };
 
-  render() {
-    const {
-      access,
-      collapsible,
-      initiallyCollapsed = false,
-      fields,
-      title,
-      forms,
-      disabled,
-      features,
-      additionalFieldProps,
-      renderFooter,
-      renderHeader,
-      location: _location,
-      params: _params,
-      router: _router,
-      routes: _routes,
-      ...otherProps
-    } = this.props;
+  const formPanelProps: ChildFormPanelProps = {
+    access,
+    disabled,
+    features,
+    nested,
+    additionalFieldProps,
+    renderFooter,
+    renderHeader,
+    highlighted: location?.hash,
+    collapsible,
+    initiallyCollapsed,
+  };
 
-    const formPanelProps: ChildFormPanelProps = {
-      access,
-      disabled,
-      features,
-      additionalFieldProps,
-      renderFooter,
-      renderHeader,
-      highlighted: this.state.highlighted,
-      collapsible,
-      initiallyCollapsed,
-    };
-
-    return (
-      <div {...otherProps}>
-        {forms?.map((formGroup, i) => (
-          <Fragment key={i}>{this.renderForm({formPanelProps, ...formGroup})}</Fragment>
-        ))}
-        {typeof forms === 'undefined' &&
-          typeof fields !== 'undefined' &&
-          this.renderForm({fields, formPanelProps, title})}
-      </div>
-    );
-  }
+  return (
+    <div {...otherProps}>
+      {forms?.map((formGroup, i) => (
+        <Fragment key={i}>{renderForm({formPanelProps, ...formGroup})}</Fragment>
+      ))}
+      {typeof forms === 'undefined' &&
+        typeof propFields !== 'undefined' &&
+        renderForm({fields: propFields, formPanelProps, title})}
+    </div>
+  );
 }
 
 export default withSentryRouter(JsonForm);

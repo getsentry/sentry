@@ -120,7 +120,7 @@ function Content({
     yAxis: {
       minInterval: durationUnit,
       axisLabel: {
-        color: theme.chartLabel,
+        color: theme.tokens.content.muted,
         formatter: (value: number) => {
           return axisLabelFormatter(value, 'duration', undefined, durationUnit);
         },

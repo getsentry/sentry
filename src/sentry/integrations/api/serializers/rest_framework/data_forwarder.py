@@ -40,19 +40,35 @@ SPLUNK_REQUIRED_KEYS = ["instance_url", "index", "source", "token"]
 
 
 class DataForwarderSerializer(Serializer):
-    organization_id = serializers.IntegerField()
-    is_enabled = serializers.BooleanField(default=True)
-    enroll_new_projects = serializers.BooleanField(default=False)
+    organization_id = serializers.IntegerField(
+        help_text="The ID of the organization related to the data forwarder."
+    )
+    is_enabled = serializers.BooleanField(
+        default=True, help_text="Whether the data forwarder is enabled."
+    )
+    enroll_new_projects = serializers.BooleanField(
+        default=False,
+        help_text="Whether to enroll new projects automatically, after they're created.",
+    )
     provider = serializers.ChoiceField(
         choices=[
             (DataForwarderProviderSlug.SEGMENT, "Segment"),
             (DataForwarderProviderSlug.SQS, "Amazon SQS"),
             (DataForwarderProviderSlug.SPLUNK, "Splunk"),
-        ]
+        ],
+        help_text='The provider of the data forwarder. One of "segment", "sqs", or "splunk".',
     )
-    config = serializers.DictField(child=serializers.CharField(allow_blank=True), default=dict)
+    config = serializers.DictField(
+        child=serializers.CharField(allow_blank=True),
+        default=dict,
+        help_text=f"The configuration for the data forwarder, specific to the provider type. \nFor a '{DataForwarderProviderSlug.SQS.value}' provider, the required keys are {', '.join(SQS_REQUIRED_KEYS)}. If using a FIFO queue, you must also provide a message_group_id, though s3_bucket is optional. \nFor a '{DataForwarderProviderSlug.SEGMENT.value}' provider, the required keys are {', '.join(SEGMENT_REQUIRED_KEYS)}. \nFor a '{DataForwarderProviderSlug.SPLUNK.value}' provider, the required keys are {', '.join(SPLUNK_REQUIRED_KEYS)}.",
+    )
     project_ids = serializers.ListField(
-        child=serializers.IntegerField(), allow_empty=True, required=False, default=list
+        child=serializers.IntegerField(),
+        allow_empty=True,
+        required=False,
+        default=list,
+        help_text="The IDs of the projects connected to the data forwarder. Missing project IDs will be unenrolled if previously enrolled.",
     )
 
     def validate_config(self, config) -> SQSConfig | SegmentConfig | SplunkConfig:

@@ -1,4 +1,3 @@
-import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -16,20 +15,40 @@ import StepHeader from 'getsentry/views/amCheckout/components/stepHeader';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 import {formatPrice, getReservedPriceCents} from 'getsentry/views/amCheckout/utils';
 
-type Props = StepProps;
+const isAnnual = (plan: Plan) => {
+  return plan.billingInterval === ANNUAL;
+};
 
-class ContractSelect extends Component<Props> {
-  get title() {
-    return t('Contract Term & Discounts');
-  }
+const getOptionName = (isAnnualPlan: boolean) => {
+  return isAnnualPlan ? t('Annual Contract') : t('Monthly');
+};
+
+const getPriceHeader = (isAnnualPlan: boolean) => {
+  return tct('Per [billingInterval]', {
+    billingInterval: isAnnualPlan ? 'year' : 'month',
+  });
+};
+
+function ContractSelect({
+  formData,
+  subscription,
+  promotion,
+  billingConfig,
+  stepNumber,
+  isActive,
+  isCompleted,
+  onUpdate,
+  onEdit,
+  onCompleteStep,
+}: StepProps) {
+  const title = t('Contract Term & Discounts');
 
   /**
    * Filter for monthly and annual billing intervals
    * of the same base plan. AM1 plans can either be
    * monthly or annual-up-front.
    */
-  get planOptions() {
-    const {billingConfig, formData} = this.props;
+  const getPlanOptions = () => {
     const basePlan = formData.plan.replace('_auf', '');
     const plans = billingConfig.planList.filter(({id}) => id.indexOf(basePlan) === 0);
 
@@ -37,54 +56,34 @@ class ContractSelect extends Component<Props> {
       throw new Error('Cannot get billing interval options');
     }
     return plans;
-  }
+  };
 
-  get annualContractWarning() {
-    return (
-      <ContractAlert type="info">
-        {t(
-          'You are currently on an annual contract so any subscription downgrades will take effect at the end of your contract period.'
-        )}
-      </ContractAlert>
-    );
-  }
+  const annualContractWarning = (
+    <ContractAlert variant="info">
+      {t(
+        'You are currently on an annual contract so any subscription downgrades will take effect at the end of your contract period.'
+      )}
+    </ContractAlert>
+  );
 
-  isAnnual(plan: Plan) {
-    return plan.billingInterval === ANNUAL;
-  }
-
-  getOptionName(isAnnual: boolean) {
-    return isAnnual ? t('Annual Contract') : t('Monthly');
-  }
-
-  getDescription(isAnnual: boolean) {
-    const {billingConfig} = this.props;
-
-    return isAnnual
+  const getDescription = (isAnnualPlan: boolean) => {
+    return isAnnualPlan
       ? tct('Save an additional [annualDiscount]% by committing to a 12-month plan', {
           annualDiscount: billingConfig.annualDiscount * 100,
         })
       : t('Month-to-month contract');
-  }
+  };
 
-  getPriceHeader(isAnnual: boolean) {
-    return tct('Per [billingInterval]', {
-      billingInterval: isAnnual ? 'year' : 'month',
-    });
-  }
-
-  renderBody = () => {
-    const {onUpdate, formData, subscription, promotion} = this.props;
-
+  const renderBody = () => {
     return (
-      <PanelBody data-test-id={this.title}>
-        {this.planOptions.map(plan => {
+      <PanelBody data-test-id={title}>
+        {getPlanOptions().map(plan => {
           const isSelected = plan.id === formData.plan;
 
-          const isAnnual = this.isAnnual(plan);
-          const name = this.getOptionName(isAnnual);
-          const description = this.getDescription(isAnnual);
-          const priceHeader = this.getPriceHeader(isAnnual);
+          const isAnnualPlan = isAnnual(plan);
+          const name = getOptionName(isAnnualPlan);
+          const description = getDescription(isAnnualPlan);
+          const priceHeader = getPriceHeader(isAnnualPlan);
 
           const hasWarning =
             isSelected &&
@@ -128,7 +127,7 @@ class ContractSelect extends Component<Props> {
               planValue={plan.billingInterval}
               planContent={{description, features: {}}}
               priceHeader={priceHeader}
-              planWarning={hasWarning ? this.annualContractWarning : undefined}
+              planWarning={hasWarning ? annualContractWarning : undefined}
               shouldShowDefaultPayAsYouGo={false}
               shouldShowEventPrice={false}
               price={formattedPriceAfterDiscount}
@@ -139,36 +138,26 @@ class ContractSelect extends Component<Props> {
     );
   };
 
-  renderFooter = () => {
-    const {stepNumber, onCompleteStep} = this.props;
-
-    return (
-      <StepFooter data-test-id={this.title}>
-        <Button priority="primary" onClick={() => onCompleteStep(stepNumber)}>
-          {t('Continue')}
-        </Button>
-      </StepFooter>
-    );
-  };
-
-  render() {
-    const {isActive, stepNumber, isCompleted, onEdit} = this.props;
-
-    return (
-      <Panel>
-        <StepHeader
-          canSkip
-          title={this.title}
-          isActive={isActive}
-          stepNumber={stepNumber}
-          isCompleted={isCompleted}
-          onEdit={onEdit}
-        />
-        {isActive && this.renderBody()}
-        {isActive && this.renderFooter()}
-      </Panel>
-    );
-  }
+  return (
+    <Panel>
+      <StepHeader
+        canSkip
+        title={title}
+        isActive={isActive}
+        stepNumber={stepNumber}
+        isCompleted={isCompleted}
+        onEdit={onEdit}
+      />
+      {isActive && renderBody()}
+      {isActive && (
+        <StepFooter data-test-id={title}>
+          <Button priority="primary" onClick={() => onCompleteStep(stepNumber)}>
+            {t('Continue')}
+          </Button>
+        </StepFooter>
+      )}
+    </Panel>
+  );
 }
 
 const ContractAlert = styled(Alert)`

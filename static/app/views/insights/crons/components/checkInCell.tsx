@@ -47,10 +47,10 @@ const checkStatusToIndicatorStatus: Record<
   StatusIndicatorProps['status']
 > = {
   [CheckInStatus.OK]: 'success',
-  [CheckInStatus.ERROR]: 'error',
+  [CheckInStatus.ERROR]: 'danger',
   [CheckInStatus.IN_PROGRESS]: 'muted',
   [CheckInStatus.MISSED]: 'warning',
-  [CheckInStatus.TIMEOUT]: 'error',
+  [CheckInStatus.TIMEOUT]: 'danger',
   [CheckInStatus.UNKNOWN]: 'muted',
 };
 
@@ -120,13 +120,13 @@ export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
   const statusText = statusToText[status];
 
   const statusColumn = (
-    <Status>
+    <Flex align="center">
       <StatusIndicator
         status={checkStatusToIndicatorStatus[status]}
         tooltipTitle={tct('Check-in Status: [statusText]', {statusText})}
       />
       {statusText}
-    </Status>
+    </Flex>
   );
 
   const environmentColumn = <div>{environment}</div>;
@@ -195,7 +195,7 @@ export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
       ) : completionStatus === CompletionStatus.INCOMPLETE_TIMEOUT ? (
         <IncompleteTimeoutIndicator />
       ) : completionStatus === CompletionStatus.INCOMPLETE ? (
-        <Tag type="default">{t('In Progress')}</Tag>
+        <Tag variant="muted">{t('In Progress')}</Tag>
       ) : (
         emptyCell
       )}
@@ -203,11 +203,11 @@ export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
   );
 
   const durationColumn = defined(duration) ? (
-    <DurationContainer>
+    <Flex align="center">
       <Tooltip skipWrapper title={<Duration exact seconds={duration / 1000} />}>
         <Duration seconds={duration / 1000} />
       </Tooltip>
-    </DurationContainer>
+    </Flex>
   ) : (
     emptyCell
   );
@@ -320,7 +320,7 @@ function OffScheduleIndicator({checkIn}: OffScheduleIndicatorProps) {
 
   return (
     <Tooltip skipWrapper title={title}>
-      <Tag type="error">{t('Early')}</Tag>
+      <Tag variant="danger">{t('Early')}</Tag>
     </Tooltip>
   );
 }
@@ -405,7 +405,7 @@ function CompletedLateIndicator({checkIn}: TimeoutLateByProps) {
 
   return (
     <Tooltip skipWrapper title={title}>
-      <Tag type="error">
+      <Tag variant="danger">
         {t('%s late', <Duration abbreviation seconds={lateBySeconds} />)}
       </Tag>
     </Tooltip>
@@ -423,7 +423,7 @@ function IncompleteTimeoutIndicator() {
 
   return (
     <Tooltip skipWrapper title={title}>
-      <Tag type="error">{t('Incomplete')}</Tag>
+      <Tag variant="danger">{t('Incomplete')}</Tag>
     </Tooltip>
   );
 }
@@ -438,7 +438,7 @@ function NotSentIndicator() {
 
   return (
     <Tooltip skipWrapper title={title}>
-      <Tag type="warning">{t('Not Sent')}</Tag>
+      <Tag variant="warning">{t('Not Sent')}</Tag>
     </Tooltip>
   );
 }
@@ -487,21 +487,11 @@ function ProcessingLatencyIndicator({checkIn}: ProcessingLatencyProps) {
   return <QuestionTooltip icon="info" size="sm" title={tooltipMessage} />;
 }
 
-const Status = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
 const TimestampContainer = styled('div')`
   display: flex;
   gap: ${space(0.5)};
   align-items: center;
   font-variant-numeric: tabular-nums;
-`;
-
-const DurationContainer = styled('div')`
-  display: flex;
-  align-items: center;
 `;
 
 const IssuesContainer = styled('div')`

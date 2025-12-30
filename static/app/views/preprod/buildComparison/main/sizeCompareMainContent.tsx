@@ -1,5 +1,6 @@
 import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {parseAsBoolean, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input/inputGroup';
@@ -18,8 +19,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {BuildComparisonMetricCards} from 'sentry/views/preprod/buildComparison/main/buildComparisonMetricCards';
+import {InsightComparisonSection} from 'sentry/views/preprod/buildComparison/main/insightComparisonSection';
 import {SizeCompareItemDiffTable} from 'sentry/views/preprod/buildComparison/main/sizeCompareItemDiffTable';
 import {SizeCompareSelectedBuilds} from 'sentry/views/preprod/buildComparison/main/sizeCompareSelectedBuilds';
+import {TreemapDiffSection} from 'sentry/views/preprod/buildComparison/main/treemapDiffSection';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
 import {
@@ -46,7 +49,10 @@ export function SizeCompareMainContent() {
   const navigate = useNavigate();
   const theme = useTheme();
   const [isFilesExpanded, setIsFilesExpanded] = useState(true);
-  const [hideSmallChanges, setHideSmallChanges] = useState(true);
+  const [hideSmallChanges, setHideSmallChanges] = useQueryState(
+    'hideSmallChanges',
+    parseAsBoolean.withDefault(true)
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const {baseArtifactId, headArtifactId, projectId} = useParams<{
     baseArtifactId: string;
@@ -239,6 +245,17 @@ export function SizeCompareMainContent() {
         comparisonResponse={sizeComparisonQuery.data}
       />
 
+      {/* Insights Section */}
+      {comparisonDataQuery.data?.insight_diff_items &&
+        comparisonDataQuery.data.insight_diff_items.length > 0 && (
+          <InsightComparisonSection
+            totalInstallSizeBytes={
+              comparisonDataQuery.data?.size_metric_diff_item.head_install_size
+            }
+            insightDiffItems={comparisonDataQuery.data.insight_diff_items}
+          />
+        )}
+
       {/* Items Changed Section */}
       <Container background="primary" radius="lg" padding="0" border="primary">
         <Flex direction="column" gap="0">
@@ -301,12 +318,18 @@ export function SizeCompareMainContent() {
               <SizeCompareItemDiffTable
                 diffItems={filteredDiffItems}
                 originalItemCount={comparisonDataQuery.data?.diff_items.length ?? 0}
-                disableHideSmallChanges={() => setHideSmallChanges(!hideSmallChanges)}
+                disableHideSmallChanges={() => setHideSmallChanges(false)}
               />
             </Stack>
           )}
         </Flex>
       </Container>
+
+      {/* Treemap Diff Section */}
+      {comparisonDataQuery.data?.diff_items &&
+        comparisonDataQuery.data.diff_items.length > 0 && (
+          <TreemapDiffSection diffItems={comparisonDataQuery.data.diff_items} />
+        )}
     </Flex>
   );
 }

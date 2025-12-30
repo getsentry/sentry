@@ -302,12 +302,12 @@ const StyledLink = styled('a')<{hasActiveChild: boolean; isActive: boolean}>`
   text-decoration: none;
   padding: ${p => p.theme.space.md};
   transition: color 80ms ease-out;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   position: relative;
 
   &:hover {
     background: ${p => p.theme.tokens.background.tertiary};
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 
   ${p =>

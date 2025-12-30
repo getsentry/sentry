@@ -11,7 +11,7 @@ import {
   OnDemandWarningIcon,
 } from 'sentry/components/alerts/onDemandMetricAlert';
 import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Select} from 'sentry/components/core/select';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {
@@ -53,6 +53,7 @@ import {getHasTag} from 'sentry/utils/tag';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import withTags from 'sentry/utils/withTags';
+import {getIsMigratedExtrapolationMode} from 'sentry/views/alerts/rules/metric/details/utils';
 import WizardField from 'sentry/views/alerts/rules/metric/wizardField';
 import {getProjectOptions, isEapAlertType} from 'sentry/views/alerts/rules/utils';
 import {
@@ -83,8 +84,13 @@ import {
   DEFAULT_TRANSACTION_AGGREGATE,
   getTimeWindowOptions,
 } from './constants';
-import type {EventTypes} from './types';
-import {AlertRuleComparisonType, Dataset, Datasource} from './types';
+import {
+  AlertRuleComparisonType,
+  Dataset,
+  Datasource,
+  ExtrapolationMode,
+  type EventTypes,
+} from './types';
 
 type Props = {
   aggregate: string;
@@ -109,6 +115,7 @@ type Props = {
   allowChangeEventTypes?: boolean;
   comparisonDelta?: number;
   disableProjectSelector?: boolean;
+  extrapolationMode?: ExtrapolationMode;
   isErrorMigration?: boolean;
   isExtrapolatedChartData?: boolean;
   isLowConfidenceChartData?: boolean;
@@ -554,6 +561,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       isLowConfidenceChartData,
       isOnDemandLimitReached,
       eventTypes,
+      extrapolationMode,
     } = this.props;
 
     const {environments, filterKeys} = this.state;
@@ -574,11 +582,17 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       organization.features.includes('performance-transaction-deprecation-banner') &&
       DEPRECATED_TRANSACTION_ALERTS.includes(alertType);
 
+    const showExtrapolationModeChangeWarning = getIsMigratedExtrapolationMode(
+      extrapolationMode,
+      dataset,
+      traceItemType
+    );
+
     return (
       <Fragment>
         {deprecateTransactionsAlertsWarning && (
           <Alert.Container>
-            <Alert type="warning">
+            <Alert variant="warning">
               {tctCode(
                 'Editing of transaction-based alerts is disabled, as we migrate to the span dataset. To expedite and re-enable edit functionality, use span-based alerts with the [code:is_transaction:true] filter instead. Please read these [FAQLink:FAQs] for more information.',
                 {
@@ -590,6 +604,38 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             </Alert>
           </Alert.Container>
         )}
+        {showExtrapolationModeChangeWarning && (
+          <Alert.Container>
+            <Alert variant="info">
+              {tct(
+                'The thresholds on this chart may look off. This is because, once saved, alerts will now take into account [samplingLink:sampling rate]. Before clicking save, take the time to update your [thresholdsLink:thresholds]. Click cancel to continue running this alert in compatibility mode.',
+                {
+                  thresholdsLink: (
+                    <Link
+                      aria-label="Go to thresholds"
+                      to="#thresholds-warning-icon"
+                      preventScrollReset
+                      onClick={() => {
+                        requestAnimationFrame(() => {
+                          document
+                            .getElementById('thresholds-warning-icon')
+                            ?.scrollIntoView({behavior: 'smooth'});
+                        });
+                      }}
+                    />
+                  ),
+                  samplingLink: (
+                    <ExternalLink
+                      href="https://docs.sentry.io/product/explore/trace-explorer/#how-sampling-affects-queries-in-trace-explorer"
+                      openInNewTab
+                    />
+                  ),
+                }
+              )}
+            </Alert>
+          </Alert.Container>
+        )}
+
         <ChartPanel>
           <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
         </ChartPanel>
@@ -618,7 +664,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
               )}
               {confidenceEnabled && isLowConfidenceChartData && (
                 <Alert.Container>
-                  <Alert type="warning">
+                  <Alert variant="warning">
                     {t(
                       'Your low sample count may impact the accuracy of this alert. Edit your query or increase your sampling rate.'
                     )}

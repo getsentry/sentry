@@ -1,6 +1,8 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {unreachable} from 'sentry/utils/unreachable';
+
 import type {StoryTreeNode} from './storyTree';
 import {inferFileCategory, StoryTree, useStoryTree} from './storyTree';
 import {useStoryBookFiles} from './useStoriesLoader';
@@ -85,8 +87,10 @@ export function useStoryBookFilesByCategory(): Record<
       product: [],
       shared: [],
     };
+
     for (const file of files) {
-      switch (inferFileCategory(file)) {
+      const category = inferFileCategory(file);
+      switch (category) {
         case 'foundations':
           map.foundations.push(file);
           break;
@@ -105,11 +109,14 @@ export function useStoryBookFilesByCategory(): Record<
         case 'core':
           map.core.push(file);
           break;
+        case 'product':
+          map.product.push(file);
+          break;
         case 'shared':
           map.shared.push(file);
           break;
         default:
-          map.product.push(file);
+          unreachable(category);
       }
     }
     return map;
@@ -148,11 +155,12 @@ export function useStoryBookFilesByCategory(): Record<
   const product = useStoryTree(filesByOwner.product, {
     query: '',
     representation: 'category',
+    type: 'nested',
   });
-
   const shared = useStoryTree(filesByOwner.shared, {
     query: '',
     representation: 'category',
+    type: 'nested',
   });
 
   return {
@@ -160,9 +168,9 @@ export function useStoryBookFilesByCategory(): Record<
     principles,
     patterns,
     typography,
+    layout,
     core,
     product,
-    layout,
     shared,
   };
 }
@@ -183,7 +191,8 @@ const SidebarContainer = styled('nav')`
   background: ${p => p.theme.tokens.background.primary};
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: ${p => p.theme.tokens.border.primary} ${p => p.theme.background};
+  scrollbar-color: ${p => p.theme.tokens.border.primary}
+    ${p => p.theme.tokens.background.primary};
   ul,
   li {
     list-style: none;

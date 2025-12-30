@@ -31,7 +31,7 @@ function AddIntegrationRow({onClick}: Props) {
     size: 'sm',
     priority: 'primary',
     'data-test-id': 'install-button',
-  };
+  } as const;
 
   return (
     <RowWrapper>

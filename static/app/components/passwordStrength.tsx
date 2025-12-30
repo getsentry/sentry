@@ -34,11 +34,11 @@ type Props = {
 export function PasswordStrength(props: Props) {
   const theme = useTheme();
   const colors = props.colors ?? [
-    theme.red300,
-    theme.red300,
-    theme.yellow300,
-    theme.green300,
-    theme.green300,
+    theme.colors.red400,
+    theme.colors.red400,
+    theme.colors.yellow400,
+    theme.colors.green400,
+    theme.colors.green400,
   ];
   const labels = props.labels ?? [
     'Very Weak',
@@ -85,7 +85,7 @@ export function PasswordStrength(props: Props) {
 }
 
 const StrengthProgress = styled('div')`
-  background: ${p => p.theme.gray200};
+  background: ${p => p.theme.colors.gray200};
   height: 8px;
   border-radius: 2px;
   overflow: hidden;
@@ -98,7 +98,7 @@ const StrengthProgressBar = styled('div')`
 const StrengthLabel = styled('div')`
   font-size: 0.8em;
   margin-top: ${space(0.25)};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
 `;
 
 const ScoreText = styled('strong')`

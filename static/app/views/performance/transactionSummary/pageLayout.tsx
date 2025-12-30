@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import {Outlet} from 'react-router-dom';
 import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -17,6 +17,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -29,10 +30,10 @@ import {
   useMetricsCardinalityContext,
 } from 'sentry/utils/performance/contexts/metricsCardinality';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
-import {decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useRouter from 'sentry/utils/useRouter';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {useTransactionSummaryEAP} from 'sentry/views/performance/otlp/useTransactionSummaryEAP';
 import {TransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
 import {
@@ -45,20 +46,17 @@ import {eventsRouteWithQuery} from './transactionEvents/utils';
 import {profilesRouteWithQuery} from './transactionProfiles/utils';
 import {replaysRouteWithQuery} from './transactionReplays/utils';
 import {tagsRouteWithQuery} from './transactionTags/utils';
-import {vitalsRouteWithQuery} from './transactionVitals/utils';
-import TransactionHeader, {type Props as TransactionHeaderProps} from './header';
+import TransactionHeader from './header';
 import Tab from './tabs';
 import type {TransactionThresholdMetric} from './transactionThresholdModal';
 import {generateTransactionSummaryRoute, transactionSummaryRouteWithQuery} from './utils';
 
 type TabEvents =
-  | 'performance_views.vitals.vitals_tab_clicked'
   | 'performance_views.tags.tags_tab_clicked'
   | 'performance_views.events.events_tab_clicked'
   | 'performance_views.spans.spans_tab_clicked';
 
 export const TAB_ANALYTICS: Partial<Record<Tab, TabEvents>> = {
-  [Tab.WEB_VITALS]: 'performance_views.vitals.vitals_tab_clicked',
   [Tab.TAGS]: 'performance_views.tags.tags_tab_clicked',
   [Tab.EVENTS]: 'performance_views.events.events_tab_clicked',
 };
@@ -108,7 +106,29 @@ function PageLayout(props: Props) {
     TransactionThresholdMetric | undefined
   >();
 
-  const {isInDomainView} = useDomainViewFilters();
+  const dataCategories: [DataCategory, ...DataCategory[]] = useMemo(() => {
+    switch (tab) {
+      case Tab.PROFILING:
+        return [DataCategory.PROFILE_DURATION, DataCategory.PROFILE_DURATION_UI];
+      case Tab.REPLAYS:
+        return [DataCategory.REPLAYS];
+      case Tab.EVENTS:
+      case Tab.TAGS:
+      case Tab.TRANSACTION_SUMMARY:
+        // The transactions summary page technically also uses transactions
+        // in additional to spans. But if we specify transactions here, it'll
+        // use the 90d retention for transactions instead of the 30d retention
+        // for spans in some cases which is not what we want.
+        return [DataCategory.SPANS];
+      default:
+        throw new Error(`Unsupported tab: ${tab}`);
+    }
+  }, [tab]);
+
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories,
+  });
+  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   const getNewRoute = useCallback(
     (newTab: Tab) => {
@@ -133,13 +153,6 @@ function PageLayout(props: Props) {
         case Tab.PROFILING: {
           return profilesRouteWithQuery(routeQuery);
         }
-        case Tab.WEB_VITALS:
-          return vitalsRouteWithQuery({
-            organization,
-            transaction: transactionName,
-            projectID: decodeScalar(location.query.project),
-            query: location.query,
-          });
         case Tab.TRANSACTION_SUMMARY:
         default:
           return transactionSummaryRouteWithQuery(routeQuery);
@@ -250,16 +263,6 @@ function PageLayout(props: Props) {
 
   const project = projects.find(p => p.id === projectId);
 
-  let hasWebVitals: TransactionHeaderProps['hasWebVitals'] =
-    tab === Tab.WEB_VITALS ? 'yes' : 'maybe';
-
-  // TODO: /performance routes have been deprecated and all orgs should now evaluate isInDomainView as true
-  // We do not show the old web vitals tab for any orgs, with the exception of AM1 orgs as they do not have access to the new web vitals module
-  // Delete this check once all orgs have been migrated off AM1
-  if (isInDomainView && organization.features.includes('insights-modules-use-eap')) {
-    hasWebVitals = 'no';
-  }
-
   return (
     <SentryDocumentTitle
       title={getDocumentTitle(transactionName)}
@@ -277,6 +280,19 @@ function PageLayout(props: Props) {
               shouldForceProject={defined(project)}
               forceProject={project}
               specificProjectSlugs={defined(project) ? [project.slug] : []}
+              maxPickableDays={datePageFilterProps.maxPickableDays}
+              defaultSelection={
+                datePageFilterProps.defaultPeriod
+                  ? {
+                      datetime: {
+                        period: datePageFilterProps.defaultPeriod,
+                        start: null,
+                        end: null,
+                        utc: null,
+                      },
+                    }
+                  : undefined
+              }
             >
               <Tabs value={tab} onChange={onTabChange}>
                 <Layout.Page>
@@ -288,7 +304,6 @@ function PageLayout(props: Props) {
                     projectId={projectId}
                     transactionName={transactionName}
                     currentTab={tab}
-                    hasWebVitals={hasWebVitals}
                     onChangeThreshold={(threshold, metric) => {
                       setTransactionThreshold(threshold);
                       setTransactionThresholdMetric(metric);
@@ -296,7 +311,9 @@ function PageLayout(props: Props) {
                     metricsCardinality={metricsCardinality}
                   />
                   <StyledBody fillSpace={props.fillSpace} hasError={defined(error)}>
-                    {defined(error) && <StyledAlert type="error">{error}</StyledAlert>}
+                    {defined(error) && (
+                      <StyledAlert variant="danger">{error}</StyledAlert>
+                    )}
                     <TransactionSummaryContext
                       value={{
                         eventView,
@@ -325,7 +342,7 @@ function PageLayout(props: Props) {
 function NoAccess() {
   return (
     <Alert.Container>
-      <Alert type="warning" showIcon={false}>
+      <Alert variant="warning" showIcon={false}>
         {t("You don't have access to this feature")}
       </Alert>
     </Alert.Container>

@@ -544,6 +544,16 @@ class MetricAlertParams:
     )
 
 
+class DataForwarderParams:
+    DATA_FORWARDER_ID = OpenApiParameter(
+        name="data_forwarder_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the data forwarder you'd like to query.",
+    )
+
+
 class SentryAppParams:
     SENTRY_APP_ID_OR_SLUG = OpenApiParameter(
         name="sentry_app_id_or_slug",
@@ -730,7 +740,11 @@ class EventParams:
         name="query",
         location=OpenApiParameter.QUERY,
         type=OpenApiTypes.STR,
-        description="An optional search query for filtering events.",
+        description=(
+            "An optional search query for filtering events. "
+            "See [search syntax](https://docs.sentry.io/concepts/search/) and queryable event properties at "
+            "[Sentry Search Documentation](https://docs.sentry.io/concepts/search/searchable-properties/events/) for more information. An example query might be `query=transaction:foo AND release:abc`"
+        ),
         required=False,
     )
 

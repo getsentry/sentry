@@ -128,7 +128,7 @@ class ErrorBoundary extends Component<Props, State> {
     if (mini) {
       return (
         <Alert.Container>
-          <Alert type="error" className={className}>
+          <Alert variant="danger" className={className}>
             <Flex align="center" justify="between">
               {message || t('There was a problem rendering this component')}
               {this.props.allowDismiss && <IconClose onClick={this.handleClose} />}
@@ -155,7 +155,7 @@ Anyway, we apologize for the inconvenience.`
 }
 
 const Wrapper = styled('div')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   padding: ${space(3)};
   max-width: 1000px;
   margin: auto;

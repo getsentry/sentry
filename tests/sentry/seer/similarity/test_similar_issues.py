@@ -107,7 +107,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
         mock_metrics_incr: MagicMock,
         mock_record_circuit_breaker_error: MagicMock,
     ):
-        existing_grouphash = GroupHash.objects.create(hash="dogs are great", project=self.project)
+        existing_grouphash = GroupHash.objects.create(hash="dogs_are_great", project=self.project)
         assert existing_grouphash.group_id is None
 
         cases: list[tuple[Any, str]] = [
@@ -144,7 +144,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
                         {
                             # hash value matches the `GroupHash` created above, but that `GroupHash`
                             # has no associated group
-                            "parent_hash": "dogs are great",
+                            "parent_hash": "dogs_are_great",
                             "should_group": True,
                             "stacktrace_distance": 0.01,
                         }
@@ -329,7 +329,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
         mock_seer_similarity_request: MagicMock,
         mock_seer_deletion_request: MagicMock,
     ):
-        existing_grouphash = GroupHash.objects.create(hash="dogs are great", project=self.project)
+        existing_grouphash = GroupHash.objects.create(hash="dogs_are_great", project=self.project)
         assert existing_grouphash.group_id is None
 
         # Set the grouphash creation date to yesterday
@@ -341,7 +341,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
             {
                 "responses": [
                     {
-                        "parent_hash": "dogs are great",
+                        "parent_hash": "dogs_are_great",
                         "should_group": True,
                         "stacktrace_distance": 0.01,
                     }
@@ -352,12 +352,12 @@ class GetSimilarityDataFromSeerTest(TestCase):
         get_similarity_data_from_seer(self.request_params)
 
         assert mock_seer_deletion_request.delay.call_count == 1
-        mock_seer_deletion_request.delay.assert_called_with(self.project.id, ["dogs are great"])
+        mock_seer_deletion_request.delay.assert_called_with(self.project.id, ["dogs_are_great"])
 
         # Now do it all over again, but with a hash that's just been created
 
         newly_created_grouphash = GroupHash.objects.create(
-            hash="adopt, don't shop", project=self.project
+            hash="adopt_dont_shop", project=self.project
         )
         assert newly_created_grouphash.group_id is None
 
@@ -370,7 +370,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
             {
                 "responses": [
                     {
-                        "parent_hash": "adopt, don't shop",
+                        "parent_hash": "adopt_dont_shop",
                         "should_group": True,
                         "stacktrace_distance": 0.01,
                     }
@@ -418,19 +418,19 @@ class GetSimilarityDataFromSeerTest(TestCase):
         mock_grouphash_objects_filter: MagicMock,
     ):
         existing_grouphash_no_group = GroupHash.objects.create(
-            hash="dogs are great", project=self.project
+            hash="dogs_are_great", project=self.project
         )
         GroupHashMetadata.objects.create(grouphash=existing_grouphash_no_group)
         assert existing_grouphash_no_group.group_id is None
         existing_grouphash_with_group = GroupHash.objects.create(
-            hash="adopt, don't shop", project=self.project, group=self.group
+            hash="adopt_dont_shop", project=self.project, group=self.group
         )
 
         mock_seer_similarity_request.return_value = self._make_response(
             {
                 "responses": [
                     {
-                        "parent_hash": "dogs are great",
+                        "parent_hash": "dogs_are_great",
                         "should_group": True,
                         "stacktrace_distance": 0.01,
                     }
@@ -459,7 +459,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
         assert results == [
             SeerSimilarIssueData(
                 parent_group_id=self.group.id,
-                parent_hash="dogs are great",
+                parent_hash="dogs_are_great",
                 should_group=True,
                 stacktrace_distance=0.01,
             )
@@ -471,9 +471,8 @@ class GetSimilarityDataFromSeerTest(TestCase):
         self,
         mock_seer_similarity_request: MagicMock,
         mock_logger: MagicMock,
-        # mock_grouphash_objects_filter: MagicMock,
     ):
-        existing_grouphash = GroupHash.objects.create(hash="dogs are great", project=self.project)
+        existing_grouphash = GroupHash.objects.create(hash="dogs_are_great", project=self.project)
         GroupHashMetadata.objects.create(grouphash=existing_grouphash)
         assert existing_grouphash.group_id is None
 
@@ -481,7 +480,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
             {
                 "responses": [
                     {
-                        "parent_hash": "dogs are great",
+                        "parent_hash": "dogs_are_great",
                         "should_group": True,
                         "stacktrace_distance": 0.01,
                     }

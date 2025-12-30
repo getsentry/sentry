@@ -83,13 +83,13 @@ const LEGACY_BROWSER_SUBFILTERS = {
   chrome: {
     icon: iconChrome,
     title: 'Chrome',
-    helpText: 'Version 63 and lower',
+    helpText: 'Version 110 and lower',
     legacy: false,
   },
   safari: {
     icon: iconSafari,
     title: 'Safari',
-    helpText: 'Version 11 and lower',
+    helpText: 'Version 15 and lower',
     legacy: false,
   },
   safari_pre_6: {
@@ -101,7 +101,7 @@ const LEGACY_BROWSER_SUBFILTERS = {
   firefox: {
     icon: iconFirefox,
     title: 'Firefox',
-    helpText: 'Version 66 and lower',
+    helpText: 'Version 110 and lower',
     legacy: false,
   },
   android: {
@@ -119,7 +119,7 @@ const LEGACY_BROWSER_SUBFILTERS = {
   edge: {
     icon: iconEdgeLegacy,
     title: 'Edge',
-    helpText: 'Version 78 and lower',
+    helpText: 'Version 110 and lower',
     legacy: false,
   },
   edge_pre_79: {
@@ -161,7 +161,7 @@ const LEGACY_BROWSER_SUBFILTERS = {
   opera: {
     icon: iconOpera,
     title: 'Opera',
-    helpText: 'Version 50 and lower',
+    helpText: 'Version 99 and lower',
     legacy: false,
   },
   opera_pre_15: {
@@ -386,7 +386,7 @@ function CustomFilters({project, disabled}: {disabled: boolean; project: Project
             ))}
 
           {hasFeature && project.options?.['filters:error_messages'] && (
-            <PanelAlert type="warning" data-test-id="error-message-disclaimer">
+            <PanelAlert variant="warning" data-test-id="error-message-disclaimer">
               {t(
                 "Minidumps, obfuscated or minified exceptions (ProGuard, errors in the minified production build of React), and Internet Explorer's i18n errors cannot be filtered by message."
               )}
@@ -601,7 +601,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                       name: 'filters:chunk-load-error',
                       label: t('Filter out ChunkLoadError(s)'),
                       help: t(
-                        "ChunkLoadErrors can happen in Webpack-powered applications when code chunks can't be found on the server. This often occurs during a redeploy of the website while users have the old page open. A page refresh usually resolves the issue."
+                        "ChunkLoadErrors can happen in applications powered by Webpack or Turbopack when code chunks can't be found on the server. This often occurs during a redeploy of the website while users have the old page open. A page refresh usually resolves the issue."
                       ),
                       disabled: !hasAccess,
                     }}
@@ -654,7 +654,7 @@ const FilterGridItem = styled('div')`
   gap: ${space(1)};
   align-items: center;
   background: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${space(1.5)};
 `;
 

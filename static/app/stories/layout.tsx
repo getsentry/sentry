@@ -30,8 +30,8 @@ export const Grid = styled('div')<{columns?: number}>`
 `;
 
 export const SizingWindow = styled(NegativeSpaceContainer)<{display?: 'block' | 'flex'}>`
-  border: 1px solid ${p => p.theme.yellow400};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.colors.yellow500};
+  border-radius: ${p => p.theme.radius.md};
 
   resize: both;
   padding: ${p => p.theme.space.xl};
@@ -40,6 +40,7 @@ export const SizingWindow = styled(NegativeSpaceContainer)<{display?: 'block' | 
 `;
 
 export const Section = styled('section')`
+  min-width: 0;
   padding-top: ${p => p.theme.space['3xl']};
   display: flex;
   flex-direction: column;

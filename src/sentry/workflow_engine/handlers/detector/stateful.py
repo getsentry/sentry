@@ -396,6 +396,7 @@ class StatefulDetectorHandler(
             "conditions": [
                 result.condition.get_snapshot() for result in evaluation_result.condition_results
             ],
+            "config": self.detector.config,
             "data_sources": self._build_evidence_data_sources(data_packet),
         }
 

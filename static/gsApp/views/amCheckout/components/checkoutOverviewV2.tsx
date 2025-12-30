@@ -111,7 +111,7 @@ function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) 
                     bounce: 0.1,
                   }}
                 >
-                  <DefaultAmountTag icon={<IconSentry />} type="info">
+                  <DefaultAmountTag icon={<IconSentry />} variant="info">
                     {t('Default Amount')}
                   </DefaultAmountTag>
                 </motion.div>
@@ -279,14 +279,14 @@ function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) 
                     {isMoreThanIncluded ? (
                       `+ ${price}/${shortInterval}`
                     ) : activePlan.checkoutCategories.includes(category) ? (
-                      <Tag>{t('Included')}</Tag>
+                      <Tag variant="muted">{t('Included')}</Tag>
                     ) : hasPaygProducts ? (
-                      <Tag>{t('Available')}</Tag>
+                      <Tag variant="muted">{t('Available')}</Tag>
                     ) : (
                       <Tooltip
                         title={t('This product is only available with a PAYG budget.')}
                       >
-                        <Tag icon={<IconLock locked size="xs" />}>
+                        <Tag variant="muted" icon={<IconLock locked size="xs" />}>
                           {t('Product not available')}
                         </Tag>
                       </Tooltip>
@@ -400,7 +400,7 @@ const SpaceBetweenRow = styled('div')`
 const Title = styled('div')`
   font-size: ${p => p.theme.fontSize.lg};
   font-weight: 600;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   line-height: initial;
 `;
 
@@ -420,7 +420,8 @@ const ReservedVolumes = styled('div')`
 `;
 
 const ReservedItem = styled(Title)<{isIndividualProduct?: boolean}>`
-  color: ${p => (p.isIndividualProduct ? p.theme.textColor : p.theme.subText)};
+  color: ${p =>
+    p.isIndividualProduct ? p.theme.tokens.content.primary : p.theme.subText};
   font-weight: ${p => (p.isIndividualProduct ? 600 : 'normal')};
   text-wrap: balance;
 
@@ -446,13 +447,13 @@ const TotalSeparator = styled(Separator)`
 
 const Price = styled('div')`
   justify-self: end;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   display: flex;
   justify-content: end;
 `;
 
 const TotalPrice = styled(Price)`
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: 600;
 `;
 
@@ -464,7 +465,7 @@ const AdditionalMonthlyCharge = styled('div')`
 `;
 
 const EmphasisText = styled('span')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-weight: 600;
 `;
 

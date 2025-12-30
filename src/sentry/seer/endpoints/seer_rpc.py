@@ -42,11 +42,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, internal_region_silo_endpoint
 from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
-from sentry.constants import (
-    ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
-    HIDE_AI_FEATURES_DEFAULT,
-    ObjectStatus,
-)
+from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidSearchQuery
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
@@ -79,6 +75,7 @@ from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profi
 from sentry.seer.autofix.coding_agent import launch_coding_agents_for_run
 from sentry.seer.autofix.utils import AutofixTriggerSource
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
+from sentry.seer.endpoints.utils import validate_date_params
 from sentry.seer.explorer.custom_tool_utils import call_custom_tool
 from sentry.seer.explorer.index_data import (
     rpc_get_issues_for_transaction,
@@ -86,10 +83,13 @@ from sentry.seer.explorer.index_data import (
     rpc_get_trace_for_transaction,
     rpc_get_transactions_for_project,
 )
+from sentry.seer.explorer.on_completion_hook import call_on_completion_hook
 from sentry.seer.explorer.tools import (
     execute_table_query,
     execute_timeseries_query,
-    get_issue_and_event_details,
+    execute_trace_table_query,
+    get_baseline_tag_distribution,
+    get_issue_and_event_details_v2,
     get_log_attributes_for_trace,
     get_metric_attributes_for_trace,
     get_replay_metadata,
@@ -106,6 +106,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba_rpc
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.env import in_test_environment
+from sentry.utils.seer import can_use_prevent_ai_features
 from sentry.utils.snuba_rpc import table_rpc
 
 logger = logging.getLogger(__name__)
@@ -223,6 +224,8 @@ class SeerRpcServiceEndpoint(Endpoint):
 
     @sentry_sdk.trace
     def post(self, request: Request, method_name: str) -> Response:
+        sentry_sdk.set_tag("rpc.method", method_name)
+
         if not self._is_authorized(request):
             raise PermissionDenied
 
@@ -278,20 +281,6 @@ def get_organization_project_ids(*, org_id: int) -> dict:
     return {"projects": projects}
 
 
-def _can_use_prevent_ai_features(org: Organization) -> bool:
-    if not features.has("organizations:gen-ai-features", org):
-        return False
-
-    hide_ai_features = org.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
-    pr_review_test_generation_enabled = bool(
-        org.get_option(
-            "sentry:enable_pr_review_test_generation",
-            ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
-        )
-    )
-    return not hide_ai_features and pr_review_test_generation_enabled
-
-
 class SentryOrganizaionIdsAndSlugs(TypedDict):
     org_ids: list[int]
     org_slugs: list[str]
@@ -328,7 +317,7 @@ def get_sentry_organization_ids(
     )
     organizations = Organization.objects.filter(id__in=organization_ids)
     # We then filter out all orgs that didn't give us consent to use AI features.
-    orgs_with_consent = [org for org in organizations if _can_use_prevent_ai_features(org)]
+    orgs_with_consent = [org for org in organizations if can_use_prevent_ai_features(org)]
 
     return {
         "org_ids": [organization.id for organization in orgs_with_consent],
@@ -359,7 +348,7 @@ def get_organization_seer_consent_by_org_name(
     for org_integration in org_integrations:
         try:
             org = Organization.objects.get(id=org_integration.organization_id)
-            if _can_use_prevent_ai_features(org):
+            if can_use_prevent_ai_features(org):
                 return {"consent": True}
             # If this is the last org we will return this URL as the consent URL
             consent_url = org.absolute_url("/settings/organization/")
@@ -373,7 +362,9 @@ def get_attributes_and_values(
     *,
     org_id: int,
     project_ids: list[int],
-    stats_period: str,
+    stats_period: str | None = None,
+    start: str | None = None,
+    end: str | None = None,
     max_values: int = 100,
     max_attributes: int = 1000,
     sampled: bool = True,
@@ -382,17 +373,21 @@ def get_attributes_and_values(
     """
     Fetches all string attributes and the corresponding values with counts for a given period.
     """
-    period = parse_stats_period(stats_period)
-    if period is None:
-        period = datetime.timedelta(days=7)
+    stats_period, start, end = validate_date_params(stats_period, start, end)
 
-    end = datetime.datetime.now()
-    start = end - period
+    if stats_period:
+        period = parse_stats_period(stats_period) or datetime.timedelta(days=7)
+        end_dt = datetime.datetime.now()
+        start_dt = end_dt - period
+    else:
+        # end and start should both be not None after validate_date_params
+        end_dt = datetime.datetime.fromisoformat(end or "")
+        start_dt = datetime.datetime.fromisoformat(start or "")
 
     start_time_proto = ProtobufTimestamp()
-    start_time_proto.FromDatetime(start)
+    start_time_proto.FromDatetime(start_dt)
     end_time_proto = ProtobufTimestamp()
-    end_time_proto.FromDatetime(end)
+    end_time_proto.FromDatetime(end_dt)
 
     sampling_mode = (
         DownsampledStorageConfig.MODE_NORMAL
@@ -444,8 +439,8 @@ def get_attributes_and_values(
 
     resolver = SearchResolver(
         params=SnubaParams(
-            start=start,
-            end=end,
+            start=start_dt,
+            end=end_dt,
         ),
         config=SearchResolverConfig(),
         definitions=SPAN_DEFINITIONS,
@@ -1021,7 +1016,6 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_spans": get_spans,
     "get_issue_filter_keys": get_issue_filter_keys,
     "get_filter_key_values": get_filter_key_values,
-    "execute_issues_query": execute_issues_query,
     "get_issues_stats": get_issues_stats,
     "get_event_filter_keys": get_event_filter_keys,
     "get_event_filter_key_values": get_event_filter_key_values,
@@ -1032,15 +1026,19 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_profiles_for_trace": rpc_get_profiles_for_trace,
     "get_issues_for_transaction": rpc_get_issues_for_transaction,
     "get_trace_waterfall": rpc_get_trace_waterfall,
-    "get_issue_and_event_details": get_issue_and_event_details,
+    "get_issue_and_event_details_v2": get_issue_and_event_details_v2,
     "get_profile_flamegraph": rpc_get_profile_flamegraph,
     "execute_table_query": execute_table_query,
     "execute_timeseries_query": execute_timeseries_query,
+    "execute_trace_table_query": execute_trace_table_query,
+    "execute_issues_query": execute_issues_query,
     "get_trace_item_attributes": get_trace_item_attributes,
     "get_repository_definition": get_repository_definition,
     "call_custom_tool": call_custom_tool,
+    "call_on_completion_hook": call_on_completion_hook,
     "get_log_attributes_for_trace": get_log_attributes_for_trace,
     "get_metric_attributes_for_trace": get_metric_attributes_for_trace,
+    "get_baseline_tag_distribution": get_baseline_tag_distribution,
     #
     # Replays
     "get_replay_summary_logs": rpc_get_replay_summary_logs,

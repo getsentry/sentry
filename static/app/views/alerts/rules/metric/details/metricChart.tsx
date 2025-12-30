@@ -50,6 +50,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
+import {getIsMigratedExtrapolationMode} from 'sentry/views/alerts/rules/metric/details/utils';
 import {makeDefaultCta} from 'sentry/views/alerts/rules/metric/metricRulePresets';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {
@@ -127,7 +128,7 @@ function getRuleChangeSeries(
       markLine: MarkLine({
         silent: true,
         animation: false,
-        lineStyle: {color: theme.gray200, type: 'solid', width: 1},
+        lineStyle: {color: theme.colors.gray200, type: 'solid', width: 1},
         data: [{xAxis: ruleChanged}],
         label: {
           show: false,
@@ -136,7 +137,7 @@ function getRuleChangeSeries(
       markArea: MarkArea({
         silent: true,
         itemStyle: {
-          color: color(theme.gray100).alpha(0.42).rgb().string(),
+          color: color(theme.colors.gray100).alpha(0.42).rgb().string(),
         },
         data: [[{xAxis: seriesStart}, {xAxis: ruleChanged}]],
       }),
@@ -246,6 +247,18 @@ export default function MetricChart({
         traceItemType,
       });
 
+      const disableEapButton = getIsMigratedExtrapolationMode(
+        rule.extrapolationMode,
+        rule.dataset,
+        traceItemType
+      );
+
+      const disabledTooltip = disableEapButton
+        ? t(
+            'This alert cannot be opened in Explore until you update thresholds and resave.'
+          )
+        : undefined;
+
       const resolvedPercent =
         (100 *
           Math.max(
@@ -306,7 +319,12 @@ export default function MetricChart({
               })
             ) ? (
               <Feature features="visibility-explore-view">
-                <LinkButton size="sm" {...props}>
+                <LinkButton
+                  size="sm"
+                  disabled={disableEapButton}
+                  title={disabledTooltip}
+                  {...props}
+                >
                   {buttonText}
                 </LinkButton>
               </Feature>
@@ -375,8 +393,8 @@ export default function MetricChart({
           LineSeries({
             name: comparisonSeriesName,
             data: _data.map(({name, value}) => [name, value]),
-            lineStyle: {color: theme.gray200, type: 'dashed', width: 1},
-            itemStyle: {color: theme.gray200},
+            lineStyle: {color: theme.colors.gray200, type: 'dashed', width: 1},
+            itemStyle: {color: theme.colors.gray200},
             animation: false,
             animationThreshold: 1,
             animationDuration: 0,
@@ -588,10 +606,10 @@ function getMetricChartTooltipFormatter({
 
     const changeStatusColor =
       changeStatus === AlertRuleTriggerType.CRITICAL
-        ? theme.red300
+        ? theme.colors.red400
         : changeStatus === AlertRuleTriggerType.WARNING
-          ? theme.yellow300
-          : theme.green300;
+          ? theme.colors.yellow400
+          : theme.colors.green400;
 
     return [
       `<div class="tooltip-series">`,
@@ -649,7 +667,7 @@ const StyledCircleIndicator = styled(CircleIndicator)`
 const ChartFilters = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   font-family: ${p => p.theme.text.family};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   display: inline-grid;
   grid-template-columns: max-content max-content auto;
   align-items: center;

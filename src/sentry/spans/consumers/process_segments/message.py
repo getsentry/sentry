@@ -5,6 +5,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 import sentry_sdk
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
@@ -49,6 +50,22 @@ outcome_aggregator = OutcomeAggregator()
 @metrics.wraps("spans.consumers.process_segments.process_segment")
 def process_segment(
     unprocessed_spans: list[SpanEvent], skip_produce: bool = False
+) -> list[CompatibleSpan]:
+    sample_rate = (
+        settings.SENTRY_PROCESS_SEGMENTS_TRANSACTIONS_SAMPLE_RATE
+        * settings.SENTRY_PROCESS_EVENT_APM_SAMPLING
+    )
+    with sentry_sdk.start_transaction(
+        name="spans.consumers.process_segments.process_segment",
+        custom_sampling_context={
+            "sample_rate": sample_rate,
+        },
+    ):
+        return _process_segment(unprocessed_spans, skip_produce)
+
+
+def _process_segment(
+    unprocessed_spans: list[SpanEvent], skip_produce: bool
 ) -> list[CompatibleSpan]:
     _verify_compatibility(unprocessed_spans)
     segment_span, spans = _enrich_spans(unprocessed_spans)
@@ -147,6 +164,7 @@ def _enrich_spans(
 
 
 @metrics.wraps("spans.consumers.process_segments.normalize_segment_name")
+@sentry_sdk.trace
 def _normalize_segment_name(segment_span: CompatibleSpan, project: Project) -> None:
     if not features.has(
         "organizations:normalize_segment_names_in_span_enrichment", project.organization
@@ -163,7 +181,7 @@ def _normalize_segment_name(segment_span: CompatibleSpan, project: Project) -> N
     unknown_if_parameterized = not source
     known_to_be_unparameterized = source == TRANSACTION_SOURCE_URL
     if unknown_if_parameterized or known_to_be_unparameterized:
-        normalize_segment_name(segment_span)
+        normalize_segment_name(project, segment_span)
 
     record_segment_name(project, segment_span)
 
@@ -175,9 +193,9 @@ def _add_segment_name(segment: CompatibleSpan, spans: Sequence[CompatibleSpan]) 
         return
 
     for span in spans:
-        if not attribute_value(span, "sentry.segment.name"):
+        if not attribute_value(span, ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME):
             span["attributes"] = span.get("attributes") or {}
-            span["attributes"]["sentry.segment.name"] = {  # type: ignore[index]
+            span["attributes"][ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME] = {  # type: ignore[index]
                 "type": "string",
                 "value": segment_name,
             }
@@ -199,9 +217,9 @@ def _create_models(segment: CompatibleSpan, project: Project) -> None:
     Creates the Environment and Release models, along with the necessary
     relationships between them and the Project model.
     """
-    environment_name = attribute_value(segment, "sentry.environment")
-    release_name = attribute_value(segment, "sentry.release")
-    dist_name = attribute_value(segment, "sentry.dist")
+    environment_name = attribute_value(segment, ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT)
+    release_name = attribute_value(segment, ATTRIBUTE_NAMES.SENTRY_RELEASE)
+    dist_name = attribute_value(segment, ATTRIBUTE_NAMES.SENTRY_DIST)
     date = to_datetime(segment["end_timestamp"])
 
     environment = Environment.get_or_create(project=project, name=environment_name)
@@ -294,9 +312,9 @@ def _record_signals(
 ) -> None:
     record_generic_event_processed(
         project,
-        platform=attribute_value(segment_span, "sentry.platform"),
-        release=attribute_value(segment_span, "sentry.release"),
-        environment=attribute_value(segment_span, "sentry.environment"),
+        platform=attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_PLATFORM),
+        release=attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_RELEASE),
+        environment=attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT),
     )
 
     # signal expects an event like object with a datetime attribute

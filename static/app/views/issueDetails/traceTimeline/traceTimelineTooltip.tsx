@@ -180,16 +180,16 @@ const YouAreHereItem = styled('div')`
 const EventItemRoot = styled(Link)`
   display: grid;
   grid-template-columns: max-content auto;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   gap: ${space(1)};
   width: 100%;
   padding: ${space(1)} ${space(1)} ${space(0.5)} ${space(1)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   font-size: ${p => p.theme.fontSize.sm};
 
   &:hover {
-    background-color: ${p => p.theme.surface200};
-    color: ${p => p.theme.textColor};
+    background-color: ${p => p.theme.colors.surface300};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 
@@ -211,6 +211,6 @@ const EventDescription = styled('div')`
 
 const TraceItem = styled('div')`
   padding: ${space(1)} ${space(1.5)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border-top: 1px solid ${p => p.theme.innerBorder};
 `;

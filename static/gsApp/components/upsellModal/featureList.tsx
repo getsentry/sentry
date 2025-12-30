@@ -54,7 +54,7 @@ function FeatureList({
           whileTap={{x: -7}}
           transition={testableTransition()}
         >
-          <IconBusiness gradient={feat === selected} withShine={feat === selected} />
+          <IconBusiness />
           {feat.name}
         </FeatureLink>
       ))}
@@ -129,10 +129,10 @@ const FeatureLink = styled(motion.div)`
   margin-bottom: ${space(0.5)};
 
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
   &[aria-selected] {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
     font-weight: bold;
   }
 `;

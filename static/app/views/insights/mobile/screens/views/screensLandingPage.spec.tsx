@@ -1,22 +1,16 @@
 import {Fragment} from 'react';
-import type {Location} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {MODULE_FEATURE} from 'sentry/views/insights/mobile/screens/settings';
 import ScreensLandingPage from 'sentry/views/insights/mobile/screens/views/screensLandingPage';
 import MobileLayout from 'sentry/views/insights/pages/mobile/layout';
 import {ModuleName} from 'sentry/views/insights/types';
 
-jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/views/insights/mobile/common/queries/useCrossPlatformProject');
 
 describe('Screens Landing Page', () => {
@@ -30,34 +24,17 @@ describe('Screens Landing Page', () => {
     platform: 'react-native',
   });
 
-  ProjectsStore.loadInitialData([project]);
-
-  jest.mocked(useLocation).mockReturnValue({
-    action: 'PUSH',
-    hash: '',
-    key: '',
-    pathname: '/organizations/org-slug/insights/mobile-vitals',
-    query: {
-      project: project.id,
-    },
-    search: '',
-    state: undefined,
-  } as Location);
-
-  jest.mocked(usePageFilters).mockReturnValue(
-    PageFilterStateFixture({
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [parseInt(project.id, 10)],
+  const baseRouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/insights/mobile-vitals/`,
+      query: {
+        project: project.id,
       },
-    })
-  );
+    },
+    route: `/organizations/:orgId/insights/mobile-vitals/`,
+  };
+
+  ProjectsStore.loadInitialData([project]);
 
   jest.mocked(useCrossPlatformProject).mockReturnValue({
     project,
@@ -106,18 +83,6 @@ describe('Screens Landing Page', () => {
     });
 
     it('renders all vital cards', async () => {
-      jest.mocked(useLocation).mockReturnValue({
-        action: 'PUSH',
-        hash: '',
-        key: '',
-        pathname: '/organizations/org-slug/insights/mobile-vitals',
-        query: {
-          project: project.id,
-        },
-        search: '',
-        state: undefined,
-      } as Location);
-
       const metricsMock = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events/`,
         body: {
@@ -189,7 +154,10 @@ describe('Screens Landing Page', () => {
         ],
       });
 
-      render(<ScreensLandingPage />, {organization, deprecatedRouterMocks: true});
+      render(<ScreensLandingPage />, {
+        organization,
+        initialRouterConfig: baseRouterConfig,
+      });
 
       await waitFor(() => {
         expect(metricsMock).toHaveBeenCalled();
@@ -235,7 +203,10 @@ describe('Screens Landing Page', () => {
 
     it('shows no content if permission is missing', async () => {
       organization.features = [];
-      render(<ScreensLandingPage />, {organization, deprecatedRouterMocks: true});
+      render(<ScreensLandingPage />, {
+        organization,
+        initialRouterConfig: baseRouterConfig,
+      });
       expect(
         await screen.findByText("You don't have access to this feature")
       ).toBeInTheDocument();
@@ -243,7 +214,10 @@ describe('Screens Landing Page', () => {
 
     it('shows content if permission is present', async () => {
       organization.features = [MODULE_FEATURE];
-      render(<ScreensLandingPage />, {organization, deprecatedRouterMocks: true});
+      render(<ScreensLandingPage />, {
+        organization,
+        initialRouterConfig: baseRouterConfig,
+      });
       expect(await screen.findAllByText('Avg. Cold App Start')).toHaveLength(1);
     });
   });

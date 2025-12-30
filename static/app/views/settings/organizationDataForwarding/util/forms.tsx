@@ -129,11 +129,11 @@ export function getProjectOverrideForm({
           <Text>{project.slug}</Text>
         </Flex>
         {projectConfig?.isEnabled ? (
-          <CalmTag type={hasOverrides ? 'warning' : 'success'}>
+          <CalmTag variant={hasOverrides ? 'warning' : 'success'}>
             {hasOverrides ? t('Forwarding with Overrides') : t('Forwarding')}
           </CalmTag>
         ) : (
-          <CalmTag type="error">{t('Disabled')}</CalmTag>
+          <CalmTag variant="danger">{t('Disabled')}</CalmTag>
         )}
       </Flex>
     ),
@@ -188,7 +188,7 @@ const SQS_GLOBAL_CONFIGURATION_FORM: JsonFormObject = {
       label: 'Secret Key',
       type: 'text',
       required: true,
-      help: 'Only visible once when the access key is created..',
+      help: 'Only visible once when the access key is created.',
       placeholder: 'e.g. wJalrXUtnFEMI1K7MDENGSbPxRfiCYEXAMPLEKEY',
     },
     {
@@ -241,7 +241,7 @@ const SPLUNK_GLOBAL_CONFIGURATION_FORM: JsonFormObject = {
       type: 'text',
       required: true,
       help: 'The token generated for your HTTP Event Collector.',
-      placeholder: 'e.g. 1234567890abcdef1234567890abcdef',
+      placeholder: 'e.g. ab13cdef-45aa-1bcd-a123-bcEXAMPLEKEY',
     },
     {
       name: 'index',

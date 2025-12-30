@@ -93,7 +93,7 @@ export function SubscriptionCard({subscription, organization}: SubscriptionCardP
           <PaymentDetails>
             {subscription.isPastDue && (
               <div>
-                <Tag type="error">{t('Payment Failed')}</Tag>
+                <Tag variant="danger">{t('Payment Failed')}</Tag>
               </div>
             )}
             {renewalText}
@@ -132,8 +132,8 @@ const PlanHeader = styled('div')<{isPastDue?: boolean}>`
   display: flex;
   gap: ${space(0.5)};
   align-items: center;
-  color: ${p => (p.isPastDue ? p.theme.red300 : p.theme.textColor)};
-  font-size: ${p => p.theme.headerFontSize};
+  color: ${p => (p.isPastDue ? p.theme.red300 : p.theme.tokens.content.primary)};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: bold;
   white-space: nowrap;
 `;

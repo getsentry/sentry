@@ -103,10 +103,21 @@ class CustomGenerator(SchemaGenerator):
     endpoint_inspector_cls = CustomEndpointEnumerator
 
 
+# Collected during preprocessing, used in postprocessing
+_ENDPOINT_SERVERS: dict[str, list[dict[str, Any]]] = {}
+
+
 def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, rename
+    _ENDPOINT_SERVERS.clear()
+
     filtered = []
     ownership_data: dict[ApiOwner, dict] = {}
     for path, path_regex, method, callback in endpoints:
+        # Collect servers from endpoint class for postprocessing
+        endpoint_servers = getattr(callback.view_class, "servers", None)
+        if endpoint_servers is not None:
+            _ENDPOINT_SERVERS[path] = endpoint_servers
+
         owner_team = callback.view_class.owner
         if owner_team not in ownership_data:
             ownership_data[owner_team] = {
@@ -222,6 +233,12 @@ def _validate_request_body(
 
 
 def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> Any:
+    # Add servers override from endpoint class definitions
+    for path, servers in _ENDPOINT_SERVERS.items():
+        if path in result["paths"]:
+            for method_info in result["paths"][path].values():
+                method_info["servers"] = servers
+
     _fix_issue_paths(result)
 
     # Fetch schema component references
