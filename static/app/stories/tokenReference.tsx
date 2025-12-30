@@ -61,14 +61,8 @@ function Token({
         </Flex>
       }
     >
-      <Button>
-        <Stack
-          gap="sm"
-          paddingBottom="md"
-          align="center"
-          justify="center"
-          onClick={handleCopy}
-        >
+      <Button onClick={handleCopy}>
+        <Stack gap="sm" paddingBottom="md" align="center" justify="center">
           <Flex minWidth="64px" height="64px" align="center" justify="center">
             {children}
           </Flex>
