@@ -141,7 +141,7 @@ describe('ProjectEventRedirect', () => {
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
   });
 
-  it('preserves query parameters during redirect', async () => {
+  it('preserves only relevant query parameters during redirect', async () => {
     const event = EventFixture({
       eventID: 'abc123',
       groupID: '456',
@@ -157,7 +157,13 @@ describe('ProjectEventRedirect', () => {
       initialRouterConfig: {
         location: {
           pathname: `/organizations/${organization.slug}/projects/my-project/events/event-id/`,
-          query: {referrer: 'discover-events-table'},
+          query: {
+            referrer: 'discover-events-table',
+            project: '123',
+            dataset: 'errors',
+            field: 'title',
+            statsPeriod: '14d',
+          },
         },
         route: '/organizations/:orgId/projects/:projectId/events/:eventId/',
       },
@@ -167,7 +173,10 @@ describe('ProjectEventRedirect', () => {
       expect(router.location).toEqual(
         expect.objectContaining({
           pathname: `/organizations/${organization.slug}/issues/456/events/abc123/`,
-          query: {referrer: 'discover-events-table'},
+          query: {
+            project: '123',
+            referrer: 'discover-events-table',
+          },
         })
       );
     });

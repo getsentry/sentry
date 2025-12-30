@@ -57,7 +57,10 @@ export default function ProjectEventRedirect() {
       navigate(
         {
           pathname: `/organizations/${organization.slug}/issues/${event.groupID}/events/${event.eventID}/`,
-          query: location.query,
+          query: {
+            project: location.query.project,
+            referrer: location.query.referrer,
+          },
         },
         {replace: true}
       );
