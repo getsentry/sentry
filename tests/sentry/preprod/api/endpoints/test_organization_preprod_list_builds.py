@@ -11,13 +11,14 @@ from sentry.preprod.models import PreprodArtifact
 from sentry.testutils.cases import APITestCase
 
 
-class ProjectPreprodListBuildsEndpointTest(APITestCase):
+class OrganizationPreprodListBuildsEndpointTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
 
         self.user = self.create_user(email="test@example.com")
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)
+        self.project2 = self.create_project(organization=self.org, name="Project 2")
         self.api_token = self.create_user_auth_token(
             user=self.user, scope_list=["org:admin", "project:admin"]
         )
@@ -36,7 +37,6 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
             pr_number=123,
         )
 
-        # Create multiple artifacts for testing pagination
         self.artifact1 = self.create_preprod_artifact(
             project=self.project,
             file_id=self.file.id,
@@ -79,156 +79,163 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
             commit_comparison=commit_comparison,
         )
 
-        # Enable the feature flag for all tests by default
+        self.artifact4 = self.create_preprod_artifact(
+            project=self.project2,
+            file_id=self.file.id,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            app_id="com.example.app4",
+            app_name="TestApp4",
+            build_version="4.0.0",
+            build_number=45,
+            build_configuration=None,
+            installable_app_file_id=1237,
+            commit_comparison=commit_comparison,
+        )
+
         self.feature_context = self.feature({"organizations:preprod-frontend-routes": True})
         self.feature_context.__enter__()
 
     def tearDown(self) -> None:
-        # Exit the feature flag context manager
         self.feature_context.__exit__(None, None, None)
         super().tearDown()
 
     def _get_url(self):
         return reverse(
-            "sentry-api-0-project-preprod-list-builds",
-            args=[self.org.slug, self.project.slug],
+            "sentry-api-0-organization-preprod-list-builds",
+            args=[self.org.slug],
         )
 
     def test_list_builds_success(self) -> None:
-        url = self._get_url()
         response = self.client.get(
-            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
-        )
-
-        assert response.status_code == 200
-        resp_data = response.json()
-        assert "builds" in resp_data
-        assert "Link" in response  # Pagination info is in headers
-        assert len(resp_data["builds"]) == 3  # Should return all 3 artifacts
-
-        # Check that builds are ordered by date_added (most recent first)
-        assert resp_data["builds"][0]["app_info"]["app_id"] == "com.example.app3"
-        assert resp_data["builds"][1]["app_info"]["app_id"] == "com.example.app2"
-        assert resp_data["builds"][2]["app_info"]["app_id"] == "com.example.app"
-
-    def test_list_builds_distribution_info(self) -> None:
-        self.artifact1.extras = {"release_notes": "Release notes"}
-        self.artifact1.save()
-        self.create_installable_preprod_artifact(preprod_artifact=self.artifact1, download_count=2)
-        self.create_installable_preprod_artifact(preprod_artifact=self.artifact1, download_count=3)
-        self.artifact2.installable_app_file_id = None
-        self.artifact2.save()
-
-        url = self._get_url()
-        response = self.client.get(
-            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
-        )
-
-        assert response.status_code == 200
-        resp_data = response.json()
-        builds_by_app_id = {build["app_info"]["app_id"]: build for build in resp_data["builds"]}
-
-        artifact1_distribution = builds_by_app_id["com.example.app"]["distribution_info"]
-        assert artifact1_distribution["is_installable"] is True
-        assert artifact1_distribution["download_count"] == 5
-        assert artifact1_distribution["release_notes"] == "Release notes"
-
-        artifact2_distribution = builds_by_app_id["com.example.app2"]["distribution_info"]
-        assert artifact2_distribution["is_installable"] is False
-        assert artifact2_distribution["download_count"] == 0
-        assert artifact2_distribution["release_notes"] is None
-
-    def test_list_builds_with_pagination(self) -> None:
-        url = self._get_url()
-        response = self.client.get(
-            f"{url}?per_page=2",
+            f"{self._get_url()}?project={self.project.id}&project={self.project2.id}",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
 
         assert response.status_code == 200
-        resp_data = response.json()
-        assert len(resp_data["builds"]) == 2
-        assert "Link" in response  # Pagination info is in headers
+        builds = response.json()["builds"]
+        assert len(builds) == 4
+        assert "Link" in response
+        app_ids = [b["app_info"]["app_id"] for b in builds]
+        assert app_ids == [
+            "com.example.app4",
+            "com.example.app3",
+            "com.example.app2",
+            "com.example.app",
+        ]
 
-        # Check that Link header contains pagination info
-        link_header = response["Link"]
-        assert "next" in link_header
-        assert "previous" in link_header
+    def test_list_builds_with_pagination(self) -> None:
+        response = self.client.get(
+            f"{self._get_url()}?project={self.project.id}&project={self.project2.id}&per_page=2",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+
+        assert response.status_code == 200
+        assert len(response.json()["builds"]) == 2
+        assert "next" in response["Link"]
+        assert "previous" in response["Link"]
+
+    def test_list_builds_filter_by_single_project(self) -> None:
+        response = self.client.get(
+            f"{self._get_url()}?project={self.project.id}",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+
+        assert response.status_code == 200
+        builds = response.json()["builds"]
+        assert len(builds) == 3
+        app_ids = {b["app_info"]["app_id"] for b in builds}
+        assert app_ids == {"com.example.app", "com.example.app2", "com.example.app3"}
+
+    def test_list_builds_filter_by_multiple_projects(self) -> None:
+        response = self.client.get(
+            f"{self._get_url()}?project={self.project.id}&project={self.project2.id}",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+
+        assert response.status_code == 200
+        assert len(response.json()["builds"]) == 4
+
+    def test_list_builds_no_projects_error(self) -> None:
+        other_org = self.create_organization()
+        url = reverse(
+            "sentry-api-0-organization-preprod-list-builds",
+            args=[other_org.slug],
+        )
+
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+
+        assert response.status_code == 403
 
     def test_list_builds_with_filters(self) -> None:
         url = self._get_url()
+        auth = f"Bearer {self.api_token.token}"
+        projects = f"project={self.project.id}&project={self.project2.id}"
 
-        # Filter by app_id
         response = self.client.get(
-            f"{url}?app_id=com.example.app2",
-            format="json",
-            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+            f"{url}?{projects}&app_id=com.example.app2", format="json", HTTP_AUTHORIZATION=auth
         )
         assert response.status_code == 200
-        resp_data = response.json()
-        assert len(resp_data["builds"]) == 1
-        assert resp_data["builds"][0]["app_info"]["app_id"] == "com.example.app2"
+        builds = response.json()["builds"]
+        assert len(builds) == 1
+        assert builds[0]["app_info"]["app_id"] == "com.example.app2"
 
-        # Filter by platform
         response = self.client.get(
-            f"{url}?platform=android",
-            format="json",
-            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+            f"{url}?{projects}&platform=android", format="json", HTTP_AUTHORIZATION=auth
         )
         assert response.status_code == 200
-        resp_data = response.json()
-        assert len(resp_data["builds"]) == 2  # APK and AAB are both Android
-        for result in resp_data["builds"]:
-            assert result["app_info"]["platform"] in ["android"]
+        builds = response.json()["builds"]
+        assert len(builds) == 3
+        assert all(b["app_info"]["platform"] == "android" for b in builds)
 
-        # Filter by state
         response = self.client.get(
-            f"{url}?state=3",  # PROCESSED state
-            format="json",
-            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+            f"{url}?{projects}&state=3", format="json", HTTP_AUTHORIZATION=auth
         )
         assert response.status_code == 200
-        resp_data = response.json()
-        assert len(resp_data["builds"]) == 2  # Only 2 artifacts are PROCESSED
+        assert len(response.json()["builds"]) == 3
 
     def test_list_builds_feature_flag_disabled(self) -> None:
         with self.feature({"organizations:preprod-frontend-routes": False}):
-            url = self._get_url()
             response = self.client.get(
-                url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+                f"{self._get_url()}?project={self.project.id}",
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
             )
             assert response.status_code == 403
             assert response.json()["error"] == "Feature not enabled"
 
     def test_list_builds_invalid_pagination_params(self) -> None:
-        url = self._get_url()
-
-        # Test per_page over max (should return validation error)
         response = self.client.get(
-            f"{url}?per_page=200",
+            f"{self._get_url()}?project={self.project.id}&per_page=200",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
         assert response.status_code == 400
-        resp_data = response.json()
-        assert "per_page" in resp_data  # DRF validation error format
+        assert "per_page" in response.json()
 
     def test_list_builds_empty_builds(self) -> None:
-        # Create a different project with no artifacts
-        other_project = self.create_project(organization=self.org)
+        other_org = self.create_organization(owner=self.user)
+        other_project = self.create_project(organization=other_org)
         url = reverse(
-            "sentry-api-0-project-preprod-list-builds",
-            args=[self.org.slug, other_project.slug],
+            "sentry-api-0-organization-preprod-list-builds",
+            args=[other_org.slug],
         )
 
         response = self.client.get(
-            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+            f"{url}?project={other_project.id}",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
         assert response.status_code == 200
         resp_data = response.json()
         assert len(resp_data["builds"]) == 0
-        assert "Link" in response  # Pagination headers still present
+        assert "Link" in response
 
     def test_list_builds_with_date_filtering(self) -> None:
         url = self._get_url()
@@ -240,9 +247,11 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         self.artifact2.save()
         self.artifact3.date_added = now - timedelta(days=1)
         self.artifact3.save()
+        self.artifact4.date_added = now - timedelta(days=1)
+        self.artifact4.save()
 
         response = self.client.get(
-            f"{url}?statsPeriod=7d",
+            f"{url}?project={self.project.id}&project={self.project2.id}&statsPeriod=7d",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
@@ -250,15 +259,23 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         assert response.status_code == 200
         resp_data = response.json()
         returned_ids = {build["id"] for build in resp_data["builds"]}
-        assert returned_ids == {str(self.artifact2.id), str(self.artifact3.id)}
+        assert returned_ids == {
+            str(self.artifact2.id),
+            str(self.artifact3.id),
+            str(self.artifact4.id),
+        }
 
     def test_list_builds_with_invalid_date_range(self) -> None:
         url = self._get_url()
         now = timezone.now()
 
-        params = {"start": now.isoformat(), "end": (now - timedelta(days=1)).isoformat()}
+        params = {
+            "project": [self.project.id, self.project2.id],
+            "start": now.isoformat(),
+            "end": (now - timedelta(days=1)).isoformat(),
+        }
         response = self.client.get(
-            f"{url}?{urlencode(params)}",
+            f"{url}?{urlencode(params, doseq=True)}",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
@@ -267,120 +284,97 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         resp = response.json()
         assert "Invalid date range" in str(resp)
 
-    # Search functionality tests
     def test_list_builds_search_by_app_name(self) -> None:
-        url = self._get_url()
         response = self.client.get(
-            f"{url}?query=TestApp2",
+            f"{self._get_url()}?project={self.project.id}&project={self.project2.id}&query=TestApp2",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
         assert response.status_code == 200
-        resp_data = response.json()
-        assert len(resp_data["builds"]) == 1
-        assert resp_data["builds"][0]["app_info"]["name"] == "TestApp2"
+        builds = response.json()["builds"]
+        assert len(builds) == 1
+        assert builds[0]["app_info"]["name"] == "TestApp2"
 
     def test_list_builds_search_by_app_id(self) -> None:
-        url = self._get_url()
         response = self.client.get(
-            f"{url}?query=com.example.app3",
+            f"{self._get_url()}?project={self.project.id}&project={self.project2.id}&query=com.example.app3",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
         assert response.status_code == 200
-        resp_data = response.json()
-        assert len(resp_data["builds"]) == 1
-        assert resp_data["builds"][0]["app_info"]["app_id"] == "com.example.app3"
+        builds = response.json()["builds"]
+        assert len(builds) == 1
+        assert builds[0]["app_info"]["app_id"] == "com.example.app3"
 
     def test_list_builds_search_by_build_version(self) -> None:
-        url = self._get_url()
         response = self.client.get(
-            f"{url}?query=2.0.0",
+            f"{self._get_url()}?project={self.project.id}&project={self.project2.id}&query=2.0.0",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
         assert response.status_code == 200
-        resp_data = response.json()
-        assert len(resp_data["builds"]) == 1
-        assert resp_data["builds"][0]["app_info"]["version"] == "2.0.0"
+        builds = response.json()["builds"]
+        assert len(builds) == 1
+        assert builds[0]["app_info"]["version"] == "2.0.0"
 
     def test_list_builds_search_by_commit_sha(self) -> None:
-        url = self._get_url()
         response = self.client.get(
-            f"{url}?query=123456789009876543211234567890",
+            f"{self._get_url()}?project={self.project.id}&project={self.project2.id}&query=123456789009876543211234567890",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
         assert response.status_code == 200
-        resp_data = response.json()
-        assert len(resp_data["builds"]) == 3  # All artifacts have the same commit
+        assert len(response.json()["builds"]) == 4
 
     def test_list_builds_search_by_head_ref(self) -> None:
-        url = self._get_url()
         response = self.client.get(
-            f"{url}?query=feature/xyz",
+            f"{self._get_url()}?project={self.project.id}&project={self.project2.id}&query=feature/xyz",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
         assert response.status_code == 200
-        resp_data = response.json()
-        assert len(resp_data["builds"]) == 3  # All artifacts have the same commit
+        assert len(response.json()["builds"]) == 4
 
     def test_list_builds_search_by_pr_number(self) -> None:
-        url = self._get_url()
         response = self.client.get(
-            f"{url}?query=123",
+            f"{self._get_url()}?project={self.project.id}&project={self.project2.id}&query=123",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
         assert response.status_code == 200
-        resp_data = response.json()
-        assert len(resp_data["builds"]) == 3  # All artifacts have the same PR
+        assert len(response.json()["builds"]) == 4
 
     def test_list_builds_search_too_long(self) -> None:
-        url = self._get_url()
-        long_search = "a" * 101  # > 100 characters
         response = self.client.get(
-            f"{url}?query={long_search}",
+            f"{self._get_url()}?project={self.project.id}&query={'a' * 101}",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
         assert response.status_code == 400
-        resp_data = response.json()
-        assert "query" in resp_data  # DRF validation error format
-        # Check for either our custom message or DRF's default max_length message
-        query_error = str(resp_data["query"])
+        query_error = str(response.json()["query"])
         assert "Search term too long" in query_error or "no more than 100 characters" in query_error
 
     def test_list_builds_search_no_results(self) -> None:
-        url = self._get_url()
         response = self.client.get(
-            f"{url}?query=nonexistent",
+            f"{self._get_url()}?project={self.project.id}&project={self.project2.id}&query=nonexistent",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
         assert response.status_code == 200
-        resp_data = response.json()
-        assert len(resp_data["builds"]) == 0
+        assert len(response.json()["builds"]) == 0
 
-    # Release version filtering tests
     def test_list_builds_filter_by_release_version_with_build_number(self) -> None:
         url = self._get_url()
         response = self.client.get(
-            f"{url}?release_version=com.example.app@1.0.0+42",
+            f"{url}?project={self.project.id}&project={self.project2.id}&release_version=com.example.app@1.0.0+42",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
         assert response.status_code == 200
         resp_data = response.json()
-        # The release_version parsing should extract app_id "com.example.app" and version "1.0.0"
-        # Since our test artifact has exactly these values, we should get 1 result
-        # Debug: let's be more flexible in our assertion since the filtering uses icontains
         if len(resp_data["builds"]) == 0:
-            # If no results, test that the filtering at least worked (no error)
             assert response.status_code == 200
         else:
-            # If we get results, verify they match our criteria
             for build in resp_data["builds"]:
                 assert "com.example.app" in build["app_info"]["app_id"]
                 assert "1.0.0" in build["app_info"]["version"]
@@ -388,7 +382,7 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
     def test_list_builds_filter_by_release_version_without_build_number(self) -> None:
         url = self._get_url()
         response = self.client.get(
-            f"{url}?release_version=com.example.app2@2.0.0",
+            f"{url}?project={self.project.id}&project={self.project2.id}&release_version=com.example.app2@2.0.0",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
@@ -399,17 +393,14 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         assert resp_data["builds"][0]["app_info"]["version"] == "2.0.0"
 
     def test_list_builds_filter_by_release_version_invalid_format(self) -> None:
-        # Invalid format should fall back to individual filtering
         url = self._get_url()
         response = self.client.get(
-            f"{url}?release_version=invalid_format&app_id=com.example.app",
+            f"{url}?project={self.project.id}&project={self.project2.id}&release_version=invalid_format&app_id=com.example.app",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
         assert response.status_code == 200
         resp_data = response.json()
-        # When release_version format is invalid, it should fall back to app_id filtering
-        # app_id uses icontains, so we should get all builds with "com.example.app" in the app_id
         matching_builds = [
             build
             for build in resp_data["builds"]
@@ -417,52 +408,39 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         ]
         assert len(matching_builds) >= 1
 
-    # Platform filtering tests
     def test_list_builds_filter_by_platform_ios(self) -> None:
-        url = self._get_url()
         response = self.client.get(
-            f"{url}?platform=ios",
+            f"{self._get_url()}?project={self.project.id}&project={self.project2.id}&platform=ios",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
         assert response.status_code == 200
-        resp_data = response.json()
-        assert len(resp_data["builds"]) == 1  # Only XCARCHIVE
-        # Check that the returned build is indeed XCARCHIVE type
-        assert resp_data["builds"][0]["app_info"]["artifact_type"] == 0  # XCARCHIVE
+        builds = response.json()["builds"]
+        assert len(builds) == 1
+        assert builds[0]["app_info"]["artifact_type"] == 0
 
     def test_list_builds_filter_by_platform_macos(self) -> None:
-        url = self._get_url()
         response = self.client.get(
-            f"{url}?platform=macos",
+            f"{self._get_url()}?project={self.project.id}&project={self.project2.id}&platform=macos",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
         assert response.status_code == 200
-        resp_data = response.json()
-        assert len(resp_data["builds"]) == 1  # XCARCHIVE also works for macOS
-        # Check that the returned build is indeed XCARCHIVE type
-        assert resp_data["builds"][0]["app_info"]["artifact_type"] == 0  # XCARCHIVE
+        builds = response.json()["builds"]
+        assert len(builds) == 1
+        assert builds[0]["app_info"]["artifact_type"] == 0
 
     def test_list_builds_filter_by_platform_invalid(self) -> None:
-        url = self._get_url()
         response = self.client.get(
-            f"{url}?platform=windows",
+            f"{self._get_url()}?project={self.project.id}&platform=windows",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
         assert response.status_code == 400
-        resp_data = response.json()
-        assert "platform" in resp_data  # DRF validation error format
+        assert "platform" in response.json()
 
-    # Build configuration filtering tests
     def test_list_builds_filter_by_build_configuration(self) -> None:
-        # Create a build configuration and artifact with it
-        build_config = self.create_preprod_build_configuration(
-            name="Release",
-            project=self.project,
-        )
-
+        build_config = self.create_preprod_build_configuration(name="Release", project=self.project)
         self.create_preprod_artifact(
             project=self.project,
             file_id=self.file.id,
@@ -473,109 +451,93 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
             build_version="1.0.0",
             build_number=50,
             build_configuration=build_config,
-            installable_app_file_id=1237,
+            installable_app_file_id=1238,
         )
 
-        url = self._get_url()
         response = self.client.get(
-            f"{url}?build_configuration=Release",
+            f"{self._get_url()}?project={self.project.id}&project={self.project2.id}&build_configuration=Release",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
         assert response.status_code == 200
-        resp_data = response.json()
-        assert len(resp_data["builds"]) == 1
-        assert resp_data["builds"][0]["app_info"]["app_id"] == "com.example.configured"
-        assert resp_data["builds"][0]["app_info"]["build_configuration"] == "Release"
+        builds = response.json()["builds"]
+        assert len(builds) == 1
+        assert builds[0]["app_info"]["app_id"] == "com.example.configured"
+        assert builds[0]["app_info"]["build_configuration"] == "Release"
 
-    # Build version filtering tests
     def test_list_builds_filter_by_build_version(self) -> None:
-        url = self._get_url()
         response = self.client.get(
-            f"{url}?build_version=3.0.0",
+            f"{self._get_url()}?project={self.project.id}&project={self.project2.id}&build_version=3.0.0",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
         assert response.status_code == 200
-        resp_data = response.json()
-        assert len(resp_data["builds"]) == 1
-        assert resp_data["builds"][0]["app_info"]["version"] == "3.0.0"
+        builds = response.json()["builds"]
+        assert len(builds) == 1
+        assert builds[0]["app_info"]["version"] == "3.0.0"
 
-    # Combined filtering tests
     def test_list_builds_filter_multiple_criteria(self) -> None:
-        url = self._get_url()
         response = self.client.get(
-            f"{url}?platform=android&state=3",
+            f"{self._get_url()}?project={self.project.id}&project={self.project2.id}&platform=android&state=3",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
         assert response.status_code == 200
-        resp_data = response.json()
-        assert len(resp_data["builds"]) == 2  # Both Android artifacts are PROCESSED
+        assert len(response.json()["builds"]) == 3
 
-    # Pagination edge cases
     def test_list_builds_pagination_invalid_string_params(self) -> None:
-        url = self._get_url()
         response = self.client.get(
-            f"{url}?per_page=invalid&cursor=invalid",
+            f"{self._get_url()}?project={self.project.id}&per_page=invalid&cursor=invalid",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
         assert response.status_code == 400
-        resp_data = response.json()
-        # Either per_page or cursor validation should fail
-        assert "per_page" in resp_data or "cursor" in resp_data
+        assert "per_page" in response.json() or "cursor" in response.json()
 
     def test_list_builds_pagination_negative_per_page(self) -> None:
-        url = self._get_url()
         response = self.client.get(
-            f"{url}?per_page=-1",
+            f"{self._get_url()}?project={self.project.id}&per_page=-1",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
         assert response.status_code == 400
-        resp_data = response.json()
-        assert "per_page" in resp_data  # Should validate min_value=1
+        assert "per_page" in response.json()
 
     def test_list_builds_pagination_zero_per_page(self) -> None:
-        url = self._get_url()
         response = self.client.get(
-            f"{url}?per_page=0",
+            f"{self._get_url()}?project={self.project.id}&per_page=0",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
         assert response.status_code == 400
-        resp_data = response.json()
-        assert "per_page" in resp_data  # Should validate min_value=1
+        assert "per_page" in response.json()
 
-    # State filtering edge cases
     def test_list_builds_filter_by_invalid_state(self) -> None:
-        url = self._get_url()
         response = self.client.get(
-            f"{url}?state=999",  # Invalid state
+            f"{self._get_url()}?project={self.project.id}&state=999",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
         assert response.status_code == 400
-        resp_data = response.json()
-        assert "state" in resp_data  # DRF validation error format
+        assert "state" in response.json()
 
     def test_list_builds_filter_by_state_string(self) -> None:
-        url = self._get_url()
         response = self.client.get(
-            f"{url}?state=invalid",
+            f"{self._get_url()}?project={self.project.id}&state=invalid",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
         assert response.status_code == 400
-        resp_data = response.json()
-        assert "state" in resp_data  # DRF validation error format
+        assert "state" in response.json()
 
-    # Analytics tests
     @patch.object(analytics, "record")
     def test_list_builds_analytics_tracking(self, mock_record) -> None:
         url = self._get_url()
-        self.client.get(url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}")
+        self.client.get(
+            f"{url}?project={self.project.id}&project={self.project2.id}",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
 
         mock_record.assert_called_once()
         event = mock_record.call_args[0][0]
@@ -583,28 +545,23 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         assert event.organization_id == self.org.id
         assert event.user_id == self.user.id
 
-    # Authentication and authorization tests
     def test_list_builds_without_authentication(self) -> None:
-        url = self._get_url()
-        response = self.client.get(url, format="json")
+        response = self.client.get(f"{self._get_url()}?project={self.project.id}", format="json")
         assert response.status_code == 401
 
     def test_list_builds_with_insufficient_permissions(self) -> None:
-        # Create a user with limited permissions
         limited_user = self.create_user(email="limited@example.com")
         limited_token = self.create_user_auth_token(user=limited_user, scope_list=["project:read"])
+        self.client.get(
+            f"{self._get_url()}?project={self.project.id}",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {limited_token.token}",
+        )
 
-        url = self._get_url()
-        self.client.get(url, format="json", HTTP_AUTHORIZATION=f"Bearer {limited_token.token}")
-        # Depending on implementation, this might be 403 or work fine
-        # The actual behavior depends on the permission requirements
-
-    # Transform function error handling
     @patch(
-        "sentry.preprod.api.endpoints.project_preprod_list_builds.transform_preprod_artifact_to_build_details"
+        "sentry.preprod.api.endpoints.organization_preprod_list_builds.transform_preprod_artifact_to_build_details"
     )
     def test_list_builds_transform_exception_handling(self, mock_transform) -> None:
-        # Make the transform function raise an exception for one artifact
         def side_effect(artifact):
             if artifact.app_id == "com.example.app2":
                 raise Exception("Transform failed")
@@ -619,42 +576,36 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
 
         url = self._get_url()
         response = self.client.get(
-            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+            f"{url}?project={self.project.id}&project={self.project2.id}",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
 
         assert response.status_code == 200
         resp_data = response.json()
-        # Should return 2 builds instead of 3 (one failed to transform)
-        assert len(resp_data["builds"]) == 2
+        assert len(resp_data["builds"]) == 3
 
-    # Empty query parameter tests
     def test_list_builds_empty_query_params(self) -> None:
-        url = self._get_url()
         response = self.client.get(
-            f"{url}?query=&app_id=&platform=",
+            f"{self._get_url()}?project={self.project.id}&project={self.project2.id}&query=&app_id=&platform=",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
         assert response.status_code == 200
-        resp_data = response.json()
-        assert len(resp_data["builds"]) == 3  # Should return all
+        assert len(response.json()["builds"]) == 4
 
-    # Whitespace handling in search
     def test_list_builds_search_whitespace_trimming(self) -> None:
-        url = self._get_url()
         response = self.client.get(
-            f"{url}?query=  TestApp2  ",
+            f"{self._get_url()}?project={self.project.id}&project={self.project2.id}&query=  TestApp2  ",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
         assert response.status_code == 200
-        resp_data = response.json()
-        assert len(resp_data["builds"]) == 1
-        assert resp_data["builds"][0]["app_info"]["name"] == "TestApp2"
+        builds = response.json()["builds"]
+        assert len(builds) == 1
+        assert builds[0]["app_info"]["name"] == "TestApp2"
 
-    # Test with artifacts without commit comparison
     def test_list_builds_without_commit_comparison(self) -> None:
-        # Create an artifact without commit comparison
         self.create_preprod_artifact(
             project=self.project,
             file_id=self.file.id,
@@ -665,56 +616,43 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
             build_version="1.0.0",
             build_number=60,
             build_configuration=None,
-            installable_app_file_id=1238,
+            installable_app_file_id=1239,
             commit_comparison=None,
         )
 
-        url = self._get_url()
         response = self.client.get(
-            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+            f"{self._get_url()}?project={self.project.id}&project={self.project2.id}",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
         assert response.status_code == 200
-        resp_data = response.json()
-        assert len(resp_data["builds"]) == 4  # Should include the new artifact
+        builds = response.json()["builds"]
+        assert len(builds) == 5
 
-        # Find the artifact without commit info
         no_commit_build = next(
-            (
-                build
-                for build in resp_data["builds"]
-                if build["app_info"]["app_id"] == "com.example.no_commit"
-            ),
-            None,
+            b for b in builds if b["app_info"]["app_id"] == "com.example.no_commit"
         )
-        assert no_commit_build is not None
         assert no_commit_build["vcs_info"]["head_sha"] is None
         assert no_commit_build["vcs_info"]["pr_number"] is None
 
     def test_list_builds_filter_app_id_exact_case_sensitive_match(self) -> None:
-        """App ID filter uses case-sensitive exact match (no partial matches, no case variants)."""
+        auth = f"Bearer {self.api_token.token}"
         url = self._get_url()
+        projects = f"project={self.project.id}&project={self.project2.id}"
 
         response = self.client.get(
-            f"{url}?app_id=COM.EXAMPLE.APP",
-            format="json",
-            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+            f"{url}?{projects}&app_id=COM.EXAMPLE.APP", format="json", HTTP_AUTHORIZATION=auth
         )
         assert response.status_code == 200
         assert len(response.json()["builds"]) == 0
 
         response = self.client.get(
-            f"{url}?app_id=com.example",
-            format="json",
-            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+            f"{url}?{projects}&app_id=com.example", format="json", HTTP_AUTHORIZATION=auth
         )
         assert response.status_code == 200
         assert len(response.json()["builds"]) == 0
 
     def test_list_builds_filter_build_configuration_exact_case_sensitive_match(self) -> None:
-        """
-        Build configuration filter uses case-sensitive exact match.
-        This prevents selecting incomparable builds with different case variants.
-        """
         config_release = self.create_preprod_build_configuration(
             name="Release", project=self.project
         )
@@ -725,69 +663,59 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
             name="ReleaseProduction", project=self.project
         )
 
-        self.create_preprod_artifact(
-            project=self.project,
-            file_id=self.file.id,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-            artifact_type=PreprodArtifact.ArtifactType.APK,
-            app_id="com.example.release",
-            app_name="ReleaseApp",
-            build_version="1.0.0",
-            build_number=200,
-            build_configuration=config_release,
-            installable_app_file_id=1250,
-        )
-        self.create_preprod_artifact(
-            project=self.project,
-            file_id=self.file.id,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-            artifact_type=PreprodArtifact.ArtifactType.APK,
-            app_id="com.example.release.upper",
-            app_name="ReleaseUpperApp",
-            build_version="1.0.0",
-            build_number=201,
-            build_configuration=config_release_upper,
-            installable_app_file_id=1251,
-        )
-        self.create_preprod_artifact(
-            project=self.project,
-            file_id=self.file.id,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-            artifact_type=PreprodArtifact.ArtifactType.APK,
-            app_id="com.example.releaseprod",
-            app_name="ReleaseProdApp",
-            build_version="1.0.0",
-            build_number=202,
-            build_configuration=config_release_prod,
-            installable_app_file_id=1252,
-        )
+        for app_id, build_num, config, file_id in [
+            ("com.example.release", 200, config_release, 1250),
+            ("com.example.release.upper", 201, config_release_upper, 1251),
+            ("com.example.releaseprod", 202, config_release_prod, 1252),
+        ]:
+            self.create_preprod_artifact(
+                project=self.project,
+                file_id=self.file.id,
+                state=PreprodArtifact.ArtifactState.PROCESSED,
+                artifact_type=PreprodArtifact.ArtifactType.APK,
+                app_id=app_id,
+                app_name=f"{app_id.split('.')[-1]}App",
+                build_version="1.0.0",
+                build_number=build_num,
+                build_configuration=config,
+                installable_app_file_id=file_id,
+            )
 
         url = self._get_url()
+        auth = f"Bearer {self.api_token.token}"
+        projects = f"project={self.project.id}&project={self.project2.id}"
 
         response = self.client.get(
-            f"{url}?build_configuration=Release",
-            format="json",
-            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+            f"{url}?{projects}&build_configuration=Release", format="json", HTTP_AUTHORIZATION=auth
         )
         assert response.status_code == 200
-        resp_data = response.json()
-        assert len(resp_data["builds"]) == 1
-        assert resp_data["builds"][0]["app_info"]["build_configuration"] == "Release"
+        builds = response.json()["builds"]
+        assert len(builds) == 1
+        assert builds[0]["app_info"]["build_configuration"] == "Release"
 
         response = self.client.get(
-            f"{url}?build_configuration=RELEASE",
-            format="json",
-            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+            f"{url}?{projects}&build_configuration=RELEASE", format="json", HTTP_AUTHORIZATION=auth
         )
         assert response.status_code == 200
-        assert len(response.json()["builds"]) == 1
-        assert response.json()["builds"][0]["app_info"]["build_configuration"] == "RELEASE"
+        builds = response.json()["builds"]
+        assert len(builds) == 1
+        assert builds[0]["app_info"]["build_configuration"] == "RELEASE"
 
         response = self.client.get(
-            f"{url}?build_configuration=Release",
-            format="json",
-            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+            f"{url}?{projects}&build_configuration=Release", format="json", HTTP_AUTHORIZATION=auth
         )
         assert response.status_code == 200
         matched_configs = {b["app_info"]["build_configuration"] for b in response.json()["builds"]}
         assert matched_configs == {"Release"}
+
+    def test_list_builds_filter_project_and_other_criteria(self) -> None:
+        response = self.client.get(
+            f"{self._get_url()}?project={self.project2.id}&platform=android",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+
+        assert response.status_code == 200
+        builds = response.json()["builds"]
+        assert len(builds) == 1
+        assert builds[0]["app_info"]["app_id"] == "com.example.app4"
