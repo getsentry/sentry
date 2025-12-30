@@ -27,11 +27,11 @@ interface PreprodBuildsTableProps {
   builds: BuildDetailsApiResponse[];
   isLoading: boolean;
   organizationSlug: string;
-  projectSlug: string;
   error?: boolean;
   hasSearchQuery?: boolean;
   onRowClick?: (build: BuildDetailsApiResponse) => void;
   pageLinks?: string | null;
+  showProjectColumn?: boolean;
 }
 
 export function PreprodBuildsTable({
@@ -41,25 +41,42 @@ export function PreprodBuildsTable({
   pageLinks,
   onRowClick,
   organizationSlug,
-  projectSlug,
   hasSearchQuery,
+  showProjectColumn = false,
 }: PreprodBuildsTableProps) {
+  const hasMultiplePlatforms = useMemo(() => {
+    const platforms = new Set(builds.map(b => b.app_info?.platform).filter(Boolean));
+    return platforms.size > 1;
+  }, [builds]);
+
   const labels = useMemo(
-    () => getLabels(builds[0]?.app_info?.platform ?? undefined),
-    [builds]
+    () => getLabels(builds[0]?.app_info?.platform ?? undefined, hasMultiplePlatforms),
+    [builds, hasMultiplePlatforms]
   );
+
   const header = (
     <SimpleTable.Header>
       <SimpleTable.HeaderCell>{t('App')}</SimpleTable.HeaderCell>
+      {showProjectColumn && (
+        <SimpleTable.HeaderCell>{t('Project')}</SimpleTable.HeaderCell>
+      )}
       <SimpleTable.HeaderCell>{t('Build')}</SimpleTable.HeaderCell>
-      <SimpleTable.HeaderCell>{labels.installSizeLabel}</SimpleTable.HeaderCell>
+      <SimpleTable.HeaderCell>
+        {labels.installSizeLabelTooltip ? (
+          <Tooltip title={labels.installSizeLabelTooltip}>
+            <span>{labels.installSizeLabel}</span>
+          </Tooltip>
+        ) : (
+          labels.installSizeLabel
+        )}
+      </SimpleTable.HeaderCell>
       <SimpleTable.HeaderCell>{labels.downloadSizeLabel}</SimpleTable.HeaderCell>
       <SimpleTable.HeaderCell>{t('Created')}</SimpleTable.HeaderCell>
     </SimpleTable.Header>
   );
 
   const renderBuildRow = (build: BuildDetailsApiResponse) => {
-    const linkUrl = `/organizations/${organizationSlug}/preprod/${projectSlug}/${build.id}`;
+    const linkUrl = `/organizations/${organizationSlug}/preprod/${build.project_id}/${build.id}`;
 
     return (
       <SimpleTable.Row key={build.id}>
@@ -82,7 +99,7 @@ export function PreprodBuildsTable({
                   <Feature features="organizations:preprod-build-distribution">
                     {build.app_info.is_installable && (
                       <InstallAppButton
-                        projectId={projectSlug}
+                        projectId={build.project_slug}
                         artifactId={build.id}
                         platform={build.app_info.platform ?? null}
                         source="builds_table"
@@ -111,6 +128,12 @@ export function PreprodBuildsTable({
               </Flex>
             ) : null}
           </SimpleTable.RowCell>
+
+          {showProjectColumn && (
+            <SimpleTable.RowCell justify="start">
+              <Text>{build.project_slug}</Text>
+            </SimpleTable.RowCell>
+          )}
 
           <SimpleTable.RowCell justify="start">
             <Flex direction="column" gap="xs">
@@ -204,7 +227,7 @@ export function PreprodBuildsTable({
 
   return (
     <Fragment>
-      <SimpleTableWithColumns>
+      <SimpleTableWithColumns showProjectColumn={showProjectColumn}>
         {header}
         {tableContent}
       </SimpleTableWithColumns>
@@ -213,12 +236,15 @@ export function PreprodBuildsTable({
   );
 }
 
-const SimpleTableWithColumns = styled(SimpleTable)`
+const SimpleTableWithColumns = styled(SimpleTable)<{showProjectColumn?: boolean}>`
   overflow-x: auto;
   overflow-y: auto;
-  grid-template-columns:
-    minmax(250px, 2fr) minmax(250px, 2fr) minmax(100px, 1fr) minmax(100px, 1fr)
-    minmax(80px, 120px);
+  grid-template-columns: ${p =>
+    p.showProjectColumn
+      ? `minmax(250px, 2fr) minmax(120px, 1fr) minmax(250px, 2fr) minmax(100px, 1fr)
+    minmax(100px, 1fr) minmax(80px, 120px)`
+      : `minmax(250px, 2fr) minmax(250px, 2fr) minmax(100px, 1fr) minmax(100px, 1fr)
+    minmax(80px, 120px)`};
 `;
 
 const FullRowLink = styled(Link)`

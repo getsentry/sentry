@@ -37,20 +37,20 @@ Alerts come in five different types to convey different levels of importance and
 
 <Storybook.Demo>
   <Alert.Container>
-    <Alert type="muted">This is a muted alert for neutral information</Alert>
-    <Alert type="info">This is an info alert for general information</Alert>
-    <Alert type="warning">This is a warning alert for important notices</Alert>
-    <Alert type="success">This is a success alert for positive feedback</Alert>
-    <Alert type="error">This is an error alert for critical issues</Alert>
+    <Alert variant="muted">This is a muted alert for neutral information</Alert>
+    <Alert variant="info">This is an info alert for general information</Alert>
+    <Alert variant="warning">This is a warning alert for important notices</Alert>
+    <Alert variant="success">This is a success alert for positive feedback</Alert>
+    <Alert variant="danger">This is an error alert for critical issues</Alert>
   </Alert.Container>
 </Storybook.Demo>
 ```jsx
 <Alert.Container>
-  <Alert type="muted">This is a muted alert for neutral information</Alert>
-  <Alert type="info">This is an info alert for general information</Alert>
-  <Alert type="warning">This is a warning alert for important notices</Alert>
-  <Alert type="success">This is a success alert for positive feedback</Alert>
-  <Alert type="error">This is an error alert for critical issues</Alert>
+  <Alert variant="muted">This is a muted alert for neutral information</Alert>
+  <Alert variant="info">This is an info alert for general information</Alert>
+  <Alert variant="warning">This is a warning alert for important notices</Alert>
+  <Alert variant="success">This is a success alert for positive feedback</Alert>
+  <Alert variant="danger">This is an error alert for critical issues</Alert>
 </Alert.Container>
 ```
 
@@ -59,12 +59,12 @@ Alerts come in five different types to convey different levels of importance and
 System alerts are full-width variants typically used for application-level notifications or banners.
 
 <Storybook.Demo>
-  <Alert type="warning" system>
+  <Alert variant="warning" system>
     This is a system-wide alert that spans the full width of its container
   </Alert>
 </Storybook.Demo>
 ```jsx
-<Alert type="warning" system>
+<Alert variant="warning" system>
   This is a system-wide alert that spans the full width of its container
 </Alert>
 ```
@@ -75,19 +75,19 @@ By default, alerts display appropriate icons based on their type. You can hide i
 
 <Storybook.Demo>
   <Alert.Container>
-    <Alert type="info">Default info icon</Alert>
-    <Alert type="warning" showIcon={false}>
+    <Alert variant="info">Default info icon</Alert>
+    <Alert variant="warning" showIcon={false}>
       No icon
     </Alert>
-    <Alert type="success" icon={<IconAdd />}>
+    <Alert variant="success" icon={<IconAdd />}>
       Custom add icon
     </Alert>
   </Alert.Container>
 </Storybook.Demo>
 ```jsx
 <Alert.Container>
-  <Alert type="info">Default info icon</Alert>
-  <Alert type="warning" showIcon={false}>
+  <Alert variant="info">Default info icon</Alert>
+  <Alert variant="warning" showIcon={false}>
     No icon
   </Alert>
   <Alert type="success" icon={<IconAdd />}>
@@ -102,7 +102,7 @@ Alerts can contain expandable content to provide additional details without over
 
 <Storybook.Demo>
   <Alert
-    type="warning"
+    variant="warning"
     expand={
       <div>
         <p>This is additional content that was hidden by default.</p>
@@ -118,7 +118,7 @@ Alerts can contain expandable content to provide additional details without over
 </Storybook.Demo>
 ```jsx
 <Alert
-  type="warning"
+  variant="warning"
   expand={
     <div>
       <p>This is additional content that was hidden by default.</p>
@@ -139,7 +139,7 @@ You can control the initial expansion state of alerts with the `defaultExpanded`
 
 <Storybook.Demo>
   <Alert
-    type="info"
+    variant="info"
     defaultExpanded
     expand={
       <div>
@@ -153,7 +153,7 @@ You can control the initial expansion state of alerts with the `defaultExpanded`
 </Storybook.Demo>
 ```jsx
 <Alert
-  type="info"
+  variant="info"
   defaultExpanded
   expand={
     <div>
@@ -172,17 +172,17 @@ Add interactive elements like buttons, links or badges to the right side of aler
 
 <Storybook.Demo>
   <Alert.Container>
-    <Alert type="info" trailingItems={<Badge type="warning">Action Required</Badge>}>
+    <Alert variant="info" trailingItems={<Badge type="warning">Action Required</Badge>}>
       This alert has a trailing badge
     </Alert>
     <Alert
-      type="error"
+      variant="danger"
       trailingItems={
         <Flex gap="sm">
           <Alert.Button priority="danger" icon={<IconDelete />}>
             Delete
           </Alert.Button>
-          <Alert.Button priority="muted" icon={<IconEdit />}>
+          <Alert.Button priority="transparent" icon={<IconEdit />}>
             Edit
           </Alert.Button>
         </Flex>
@@ -191,7 +191,7 @@ Add interactive elements like buttons, links or badges to the right side of aler
       This alert has multiple trailing actions
     </Alert>
     <Alert
-      type="warning"
+      variant="warning"
       expand={
         <div>
           <p>This alert starts in an expanded state.</p>
@@ -201,7 +201,7 @@ Add interactive elements like buttons, links or badges to the right side of aler
       trailingItems={
         <Flex gap="sm">
           <Badge type="warning">Action Required</Badge>
-          <Alert.Button priority="muted" icon={<IconEdit />}>
+          <Alert.Button priority="transparent" icon={<IconEdit />}>
             Edit
           </Alert.Button>
         </Flex>
@@ -214,13 +214,13 @@ Add interactive elements like buttons, links or badges to the right side of aler
 ```jsx
 <Alert.Container>
   <Alert
-    type="info"
+    variant="info"
     trailingItems={<Alert.Button priority="primary">Take Action</Alert.Button>}
   >
     This alert has a trailing badge
   </Alert>
   <Alert
-    type="error"
+    variant="danger"
     trailingItems={
       <Flex gap="sm">
         <Alert.Button priority="danger" icon={<IconDelete />}>
@@ -243,16 +243,16 @@ Use `Alert.Container` to properly manage spacing between multiple alerts.
 
 <Storybook.Demo>
   <Alert.Container>
-    <Alert type="info">First alert in a container</Alert>
-    <Alert type="warning">Second alert in a container</Alert>
-    <Alert type="success">Third alert in a container</Alert>
+    <Alert variant="info">First alert in a container</Alert>
+    <Alert variant="warning">Second alert in a container</Alert>
+    <Alert variant="success">Third alert in a container</Alert>
   </Alert.Container>
 </Storybook.Demo>
 ```jsx
 <Alert.Container>
-  <Alert type="info">First alert in a container</Alert>
+  <Alert variant="info">First alert in a container</Alert>
   <Alert type="warning">Second alert in a container</Alert>
-  <Alert type="success">Third alert in a container</Alert>
+  <Alert variant="success">Third alert in a container</Alert>
 </Alert.Container>
 ```
 
@@ -267,10 +267,14 @@ AlertLink supports three types of navigation: internal routing, external URLs, a
 Use the `to` prop for internal navigation within the application.
 
 <Storybook.Demo>
-  <AlertLink to="/settings">Go to Settings</AlertLink>
+  <AlertLink variant="info" to="/settings">
+    Go to Settings
+  </AlertLink>
 </Storybook.Demo>
 ```jsx
-<AlertLink to="/settings">Go to Settings</AlertLink>
+<AlertLink variant="info" to="/settings">
+  Go to Settings
+</AlertLink>
 ```
 
 ### External
@@ -278,12 +282,12 @@ Use the `to` prop for internal navigation within the application.
 Use the `href` prop for external URLs. The `openInNewTab` prop controls whether the link opens in a new tab.
 
 <Storybook.Demo>
-  <AlertLink href="https://docs.sentry.io" openInNewTab>
+  <AlertLink variant="info" href="https://docs.sentry.io" openInNewTab>
     Read the Documentation
   </AlertLink>
 </Storybook.Demo>
 ```jsx
-<AlertLink href="https://docs.sentry.io" openInNewTab>
+<AlertLink variant="info" href="https://docs.sentry.io" openInNewTab>
   Read the Documentation
 </AlertLink>
 ```
@@ -294,12 +298,12 @@ Use the `onClick` prop for custom actions that don't involve navigation.
 
 <Storybook.Demo>
   {/* eslint-disable-next-line no-alert */}
-  <AlertLink onClick={() => alert('Custom action triggered!')}>
+  <AlertLink variant="info" onClick={() => alert('Custom action triggered!')}>
     Trigger Custom Action
   </AlertLink>
 </Storybook.Demo>
 ```jsx
-<AlertLink onClick={() => alert('Custom action triggered!')}>
+<AlertLink variant="info" onClick={() => alert('Custom action triggered!')}>
   Trigger Custom Action
 </AlertLink>
 ```
@@ -310,11 +314,13 @@ By default, AlertLink includes a right-pointing chevron icon. You can customize 
 
 <Storybook.Demo>
   <AlertLink.Container>
-    <AlertLink to="/settings">Default trailing chevron</AlertLink>
-    <AlertLink to="/settings" trailingItems={<IconMail />}>
+    <AlertLink variant="info" to="/settings">
+      Default trailing chevron
+    </AlertLink>
+    <AlertLink variant="info" to="/settings" trailingItems={<IconMail />}>
       Custom trailing icon
     </AlertLink>
-    <AlertLink to="/settings" trailingItems={null}>
+    <AlertLink variant="info" to="/settings" trailingItems={null}>
       No trailing items
     </AlertLink>
   </AlertLink.Container>

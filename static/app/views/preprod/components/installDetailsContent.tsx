@@ -108,61 +108,96 @@ export function InstallDetailsContent({
                   {tn('%s download', '%s downloads', installDetails.download_count)}
                 </Text>
               )}
-            <QuietZoneQRCode
-              aria-label={t('Install QR Code')}
-              value={
-                installDetails.platform === 'ios'
-                  ? `itms-services://?action=download-manifest&url=${encodeURIComponent(installDetails.install_url)}`
-                  : installDetails.install_url
-              }
-              size={qrSize}
-            />
+            <Container display={{xs: 'none', sm: 'block'}}>
+              <QuietZoneQRCode
+                aria-label={t('Install QR Code')}
+                value={
+                  installDetails.platform === 'ios'
+                    ? `itms-services://?action=download-manifest&url=${encodeURIComponent(installDetails.install_url)}`
+                    : installDetails.install_url
+                }
+                size={qrSize}
+              />
+            </Container>
             {details}
-            <Flex direction="column" maxWidth="300px" gap="xl" paddingTop="xl">
-              <Text align="center" size="lg">
-                {t(
-                  'Scan the QR code with your device and follow the installation prompts'
-                )}
-              </Text>
-            </Flex>
+            <Container display={{xs: 'none', sm: 'block'}}>
+              <Flex direction="column" maxWidth="300px" gap="xl" paddingTop="xl">
+                <Text align="center" size="lg">
+                  {t(
+                    'Scan the QR code with your device and follow the installation prompts'
+                  )}
+                </Text>
+              </Flex>
+            </Container>
           </Stack>
-          <Flex align="center" gap="md" width="100%">
-            <Separator
-              orientation="horizontal"
-              border="muted"
-              style={{flex: 1, margin: 'auto'}}
-            />
-            <Text size="sm" variant="muted">
-              {t('OR')}
-            </Text>
-            <Separator
-              orientation="horizontal"
-              border="muted"
-              style={{flex: 1, margin: 'auto'}}
-            />
-          </Flex>
+          <Container display={{xs: 'none', sm: 'block'}} width="100%">
+            <Flex align="center" gap="md" width="100%">
+              <Separator
+                orientation="horizontal"
+                border="muted"
+                style={{flex: 1, margin: 'auto'}}
+              />
+              <Text size="sm" variant="muted">
+                {t('OR')}
+              </Text>
+              <Separator
+                orientation="horizontal"
+                border="muted"
+                style={{flex: 1, margin: 'auto'}}
+              />
+            </Flex>
+          </Container>
           <Stack align="center" gap="lg">
-            <Flex gap="md">
-              <Button
-                onClick={() => window.open(installDetails.install_url, '_blank')}
-                priority="primary"
-                size="md"
-              >
-                {t('Download')}
-              </Button>
+            <Flex
+              gap="md"
+              width="100%"
+              direction={{xs: 'column', sm: 'row'}}
+              align={{xs: 'stretch', sm: 'center'}}
+            >
+              <Flex width={{xs: '100%', sm: 'auto'}}>
+                <Button
+                  onClick={() => window.open(installDetails.install_url, '_blank')}
+                  priority="primary"
+                  size="md"
+                  style={{width: '100%'}}
+                >
+                  {t('Download')}
+                </Button>
+              </Flex>
               {installDetails.install_url && (
-                <Tooltip title={t('Copy Download Link')}>
-                  <Button
-                    aria-label={t('Copy Download Link')}
-                    icon={<IconLink />}
-                    size="md"
-                    onClick={() =>
-                      copy(installDetails.install_url!, {
-                        successMessage: t('Copied Download Link'),
-                      })
-                    }
-                  />
-                </Tooltip>
+                <Flex
+                  alignSelf={{xs: 'stretch', sm: 'center'}}
+                  width={{xs: '100%', sm: 'auto'}}
+                >
+                  <Container display={{xs: 'block', sm: 'none'}} width="100%">
+                    <Button
+                      onClick={() =>
+                        copy(installDetails.install_url!, {
+                          successMessage: t('Copied Download Link'),
+                        })
+                      }
+                      size="md"
+                      priority="default"
+                      style={{width: '100%'}}
+                    >
+                      {t('Copy Download Link')}
+                    </Button>
+                  </Container>
+                  <Container display={{xs: 'none', sm: 'block'}}>
+                    <Tooltip title={t('Copy Download Link')}>
+                      <Button
+                        aria-label={t('Copy Download Link')}
+                        icon={<IconLink />}
+                        size="md"
+                        onClick={() =>
+                          copy(installDetails.install_url!, {
+                            successMessage: t('Copied Download Link'),
+                          })
+                        }
+                      />
+                    </Tooltip>
+                  </Container>
+                </Flex>
               )}
             </Flex>
             <Text align="center" size="md" variant="muted">
