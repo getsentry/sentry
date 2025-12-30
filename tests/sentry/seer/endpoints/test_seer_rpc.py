@@ -1537,6 +1537,14 @@ class TestSeerRpcMethods(APITestCase):
         assert "features" in result
         assert isinstance(result["features"], list)
 
+    def test_get_organization_options_empty(self) -> None:
+        """Test getting options for org with no options set"""
+        result = get_organization_options(org_id=self.organization.id)
+
+        assert result["organization_id"] == self.organization.id
+        # Organization may have some default options, but result should be a list
+        assert isinstance(result["options"], list)
+
     def test_get_organization_features_nonexistent_org(self) -> None:
         """Test getting features for non-existent organization"""
         result = get_organization_features(org_id=999999)

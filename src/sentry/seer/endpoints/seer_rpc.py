@@ -1015,16 +1015,13 @@ def get_organization_options(*, org_id: int, keys: list[str] | None = None) -> d
     except Organization.DoesNotExist:
         return {"organization_id": org_id, "options": []}
 
+    # Get all options for the organization (single query)
+    all_values = OrganizationOption.objects.get_all_values(org)
+
     if keys:
-        # Get specific keys
-        result = []
-        for key in keys:
-            value = OrganizationOption.objects.get_value(org, key, default=None)
-            if value is not None:
-                result.append({"key": key, "value": value})
+        # Filter to requested keys only
+        result = [{"key": k, "value": v} for k, v in all_values.items() if k in keys]
     else:
-        # Get all options for the organization
-        all_values = OrganizationOption.objects.get_all_values(org)
         result = [{"key": k, "value": v} for k, v in all_values.items()]
 
     return {
@@ -1076,17 +1073,21 @@ def get_organization_features(*, org_id: int) -> dict:
         organization=org,
     )
 
+    # Track which features were checked via batch
+    batch_checked_features = set()
+
     if batch_features:
         for feature_name, active in batch_features.get(f"organization:{org.id}", {}).items():
+            batch_checked_features.add(feature_name)
             if active:
                 # Strip "organizations:" prefix
                 feature_set.add(feature_name[len("organizations:") :])
-            org_features.remove(feature_name)
 
     # Check remaining features individually
     for feature_name in org_features:
-        if features.has(feature_name, org, actor=None, skip_entity=True):
-            feature_set.add(feature_name[len("organizations:") :])
+        if feature_name not in batch_checked_features:
+            if features.has(feature_name, org, actor=None, skip_entity=True):
+                feature_set.add(feature_name[len("organizations:") :])
 
     return {
         "organization_id": org_id,
