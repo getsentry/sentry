@@ -155,7 +155,9 @@ export function SizeCompareMainContent() {
   }
 
   if (sizeComparisonQuery.isError || !sizeComparisonQuery.data) {
-    const errorMessage = parseApiError(sizeComparisonQuery.error);
+    const errorMessage = sizeComparisonQuery.error
+      ? parseApiError(sizeComparisonQuery.error)
+      : 'Unknown API Error';
     return (
       <BuildError
         title={t('Size comparison data unavailable')}
