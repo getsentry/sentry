@@ -48,7 +48,7 @@ function StoryLayout() {
       {isMDXStory(story) ? <MDXStoryTitle story={story} /> : null}
       <StoryGrid>
         <StoryContainer>
-          <Flex flexGrow={1} minWidth={0}>
+          <Flex flexGrow={1} minWidth="0px">
             <StoryTabPanels />
           </Flex>
           <ErrorBoundary>
