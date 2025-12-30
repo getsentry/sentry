@@ -15,6 +15,7 @@ import type {
   SeerRepoDefinition,
 } from 'sentry/components/events/autofix/types';
 import {isOverrideValid} from 'sentry/components/events/autofix/utils/isOverrideValid';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconDelete} from 'sentry/icons/iconDelete';
@@ -172,7 +173,17 @@ export function AutofixRepositoriesItem({
         <Container padding="lg xl" style={{gridColumn: '1 / -1'}}>
           <Stack gap="lg" justify="between" paddingTop="0" paddingLeft="xl">
             <Flex align="center" justify="between">
-              <Heading as="h4">{t('(Optional) Select Working Branch for Seer')}</Heading>
+              <Heading as="h4">
+                <Flex align="center" gap="sm">
+                  {t('(Optional) Select Working Branch for Seer')}
+                  <QuestionTooltip
+                    title={t(
+                      'Optionally provide a specific branch that Seer will work on. If left blank, Seer will use the default branch of the repository.'
+                    )}
+                    size="sm"
+                  />
+                </Flex>
+              </Heading>
             </Flex>
             <Flex align="center" gap="sm">
               {t('By default, look at')}
