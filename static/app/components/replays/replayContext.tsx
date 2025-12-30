@@ -467,15 +467,10 @@ export function Provider({
     if (!replayer) {
       return;
     }
-    if (isPlaying) {
-      // we need to pass in the current time when pausing for mobile replays
-      replayer.pause(getCurrentPlayerTime());
-      replayer.setConfig({speed: prefs.playbackSpeed});
-      replayer.play(getCurrentPlayerTime());
-    } else {
-      replayer.setConfig({speed: prefs.playbackSpeed});
-    }
-  }, [getCurrentPlayerTime, isPlaying, prefs.playbackSpeed]);
+    // Only update speed config, don't trigger pause/play cycle
+    // The pause/play cycle was causing race conditions when isPlaying changed rapidly
+    replayer.setConfig({speed: prefs.playbackSpeed});
+  }, [prefs.playbackSpeed]);
 
   const togglePlayPause = useCallback(
     (play: boolean) => {
