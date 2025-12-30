@@ -77,7 +77,6 @@ export default function BuildList() {
                 error={!!error}
                 pageLinks={pageLinks}
                 organizationSlug={organization.slug}
-                projectSlug={projectId}
               />
             </Flex>
           </Layout.Main>
