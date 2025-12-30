@@ -1,7 +1,5 @@
 import {DashboardFixture} from 'sentry-fixture/dashboard';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
   render,
@@ -75,19 +73,17 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: '/dashboards/',
             query: {
               field: ['project'],
               yAxis: ['count()'],
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
 
@@ -114,19 +110,17 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: '/dashboards/',
             query: {
               field: [],
               yAxis: [],
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.TABLE,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
 
@@ -150,19 +144,17 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: '/dashboards/',
             query: {
               field: [],
               yAxis: ['count()'],
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
 
@@ -187,7 +179,6 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-        deprecatedRouterMocks: true,
       }
     );
     renderGlobalModal();
@@ -218,7 +209,6 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-        deprecatedRouterMocks: true,
       }
     );
 
@@ -258,20 +248,17 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: '/dashboards/',
             query: {
               field: [],
               yAxis: ['count()'],
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
-              title: undefined,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
 
@@ -301,19 +288,17 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: '/dashboards/',
             query: {
               field: ['count()'],
               yAxis: [],
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.TABLE,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
 
@@ -340,19 +325,17 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: '/dashboards/',
             query: {
               field: ['count()'],
               yAxis: [],
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.TABLE,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
 
@@ -386,17 +369,15 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: '/dashboards/',
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.BIG_NUMBER,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
 
@@ -423,7 +404,6 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-        deprecatedRouterMocks: true,
       }
     );
 
@@ -454,7 +434,6 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-        deprecatedRouterMocks: true,
       }
     );
 
@@ -560,15 +539,15 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization: organizationWithFeature,
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: '/dashboards/',
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },
-          }),
-        }),
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
     renderGlobalModal();
@@ -600,15 +579,15 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: '/dashboards/',
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },
-          }),
-        }),
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
     renderGlobalModal();
@@ -642,15 +621,15 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: '/dashboards/',
             query: {
               dataset: WidgetType.ISSUE,
               displayType: DisplayType.LINE,
             },
-          }),
-        }),
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
 
@@ -674,15 +653,15 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: '/dashboards/',
             query: {
               dataset: WidgetType.ISSUE,
               displayType: DisplayType.LINE,
             },
-          }),
-        }),
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
 
