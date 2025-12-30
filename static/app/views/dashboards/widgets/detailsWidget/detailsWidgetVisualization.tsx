@@ -1,9 +1,12 @@
 import styled from '@emotion/styled';
 
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {DatabaseSpanDescription} from 'sentry/views/insights/common/components/spanDescription';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
+import {DomainStatusLink} from 'sentry/views/insights/http/components/domainStatusLink';
 import {ModuleName, SpanFields, type SpanResponse} from 'sentry/views/insights/types';
 
 import {DEEMPHASIS_COLOR_NAME, LOADING_PLACEHOLDER} from './settings';
@@ -33,7 +36,50 @@ export function DetailsWidgetVisualization(props: DetailsWidgetVisualizationProp
     );
   }
 
+  if (moduleName === ModuleName.HTTP) {
+    return (
+      <HttpSpanVisualization
+        spanId={span[SpanFields.ID]}
+        spanOp={span[SpanFields.SPAN_OP]}
+        spanDescription={span[SpanFields.SPAN_DESCRIPTION]}
+      />
+    );
+  }
+
   return <Wrapper>{`${spanOp} - ${spanDescription}`}</Wrapper>;
+}
+
+function HttpSpanVisualization(props: {
+  spanDescription: string;
+  spanId: string;
+  spanOp: string;
+}): React.ReactNode {
+  const {spanId, spanOp, spanDescription} = props;
+
+  const {data: httpSpan, isLoading} = useSpans(
+    {
+      search: MutableSearch.fromQueryObject({
+        id: spanId,
+      }),
+      fields: [SpanFields.SPAN_DOMAIN],
+    },
+    'api.dashboards.details-widget.domain-status'
+  );
+
+  if (isLoading) {
+    return <LoadingPlaceholder>{LOADING_PLACEHOLDER}</LoadingPlaceholder>;
+  }
+
+  if (!httpSpan?.[0]?.[SpanFields.SPAN_DOMAIN]) {
+    return <Wrapper>{`${spanOp} - ${spanDescription}`}</Wrapper>;
+  }
+
+  return (
+    <HttpSpanVisualizationWrapper>
+      <h1>{httpSpan[0][SpanFields.SPAN_DOMAIN]}</h1>
+      <DomainStatusLink domain={httpSpan[0][SpanFields.SPAN_DOMAIN]} />
+    </HttpSpanVisualizationWrapper>
+  );
 }
 
 function Wrapper({children}: any) {
@@ -45,6 +91,13 @@ function Wrapper({children}: any) {
     </GrowingWrapper>
   );
 }
+
+const HttpSpanVisualizationWrapper = styled('div')`
+  padding: ${p => p.theme.space.xl};
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.sm};
+`;
 
 // Takes up 100% of the parent. If within flex context, grows to fill.
 // Otherwise, takes up 100% horizontally and vertically
