@@ -167,6 +167,7 @@ class GitHubWebhook(SCMWebhook, ABC):
                     event=event,
                     organization=organization,
                     repo=repo,
+                    integration=integration,
                     **kwargs,
                 )
             except Exception as e:
@@ -992,8 +993,7 @@ class IssueCommentEventWebhook(GitHubWebhook):
     """
 
     EVENT_TYPE = IntegrationWebhookEventType.ISSUE_COMMENT
-    # XXX: Once we port the Overwatch feature, we can add the processor here.
-    WEBHOOK_EVENT_PROCESSORS = ()
+    WEBHOOK_EVENT_PROCESSORS = (code_review_handle_webhook_event,)
 
 
 @all_silo_endpoint

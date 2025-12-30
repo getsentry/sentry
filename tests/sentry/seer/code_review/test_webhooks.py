@@ -12,7 +12,13 @@ from fixtures.github import (
     CHECK_RUN_COMPLETED_EVENT_EXAMPLE,
     CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE,
 )
+from sentry.integrations.github.client import GitHubReaction
 from sentry.seer.code_review.utils import ClientError
+from sentry.seer.code_review.webhooks.issue_comment import (
+    SENTRY_REVIEW_COMMAND,
+    handle_issue_comment_event,
+    is_pr_review_command,
+)
 from sentry.seer.code_review.webhooks.task import (
     DELAY_BETWEEN_RETRIES,
     MAX_RETRIES,
@@ -629,3 +635,219 @@ class ProcessGitHubWebhookEventTest(TestCase):
         assert mock_request.call_count == 1
         pr_call = mock_request.call_args
         assert pr_call[1]["path"] == "/v1/automation/sentry-request"
+
+
+class IsPrReviewCommandTest(TestCase):
+    def test_true_cases(self):
+        assert is_pr_review_command("@sentry review")
+        assert is_pr_review_command("Please @sentry review this PR")
+        assert is_pr_review_command("@Sentry Review")
+        assert is_pr_review_command("@SENTRY REVIEW")
+
+    def test_false_cases(self):
+        assert not is_pr_review_command("This is a regular comment")
+        assert not is_pr_review_command("@sentry")
+        assert not is_pr_review_command("review")
+        assert not is_pr_review_command(None)
+        assert not is_pr_review_command("")
+
+
+class HandleIssueCommentEventTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="12345",
+        )
+        self.event = {
+            "comment": {
+                "id": 123456789,
+                "body": f"Please {SENTRY_REVIEW_COMMAND} this PR",
+            },
+            "issue": {
+                "number": 42,
+                "pull_request": {"url": "https://api.github.com/repos/owner/repo/pulls/42"},
+            },
+            "repository": {
+                "id": 12345,
+                "full_name": "owner/repo",
+            },
+        }
+
+    def _enable_code_review(self) -> None:
+        self.organization.update_option("sentry:enable_pr_review_test_generation", True)
+
+    @patch("sentry.seer.code_review.webhooks.handlers._forward_to_seer")
+    def test_skips_when_feature_flag_disabled(self, mock_forward: MagicMock) -> None:
+        self._enable_code_review()
+        handle_issue_comment_event(
+            event_type="issue_comment",
+            event=self.event,
+            organization=self.organization,
+            repo=self.repo,
+        )
+        mock_forward.assert_not_called()
+
+    @patch("sentry.seer.code_review.webhooks.handlers._forward_to_seer")
+    @with_feature("organizations:code-review-comment-command")
+    def test_skips_when_code_review_not_enabled(self, mock_forward: MagicMock) -> None:
+        handle_issue_comment_event(
+            event_type="issue_comment",
+            event=self.event,
+            organization=self.organization,
+            repo=self.repo,
+        )
+        mock_forward.assert_not_called()
+
+    @patch("sentry.seer.code_review.webhooks.handlers._forward_to_seer")
+    @with_feature(
+        {
+            "organizations:code-review-comment-command",
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+        }
+    )
+    def test_skips_when_no_review_command(self, mock_forward: MagicMock) -> None:
+        self._enable_code_review()
+        event = {
+            "comment": {
+                "id": 123456789,
+                "body": "This is a regular comment without the command",
+            },
+        }
+        handle_issue_comment_event(
+            event_type="issue_comment",
+            event=event,
+            organization=self.organization,
+            repo=self.repo,
+        )
+        mock_forward.assert_not_called()
+
+    @patch("sentry.seer.code_review.webhooks.issue_comment._add_eyes_reaction_to_comment")
+    @patch("sentry.seer.code_review.webhooks.handlers._forward_to_seer")
+    @with_feature(
+        {
+            "organizations:code-review-comment-command",
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+        }
+    )
+    def test_adds_reaction_and_forwards_when_valid(
+        self, mock_forward: MagicMock, mock_reaction: MagicMock
+    ) -> None:
+        self._enable_code_review()
+        mock_integration = MagicMock()
+
+        handle_issue_comment_event(
+            event_type="issue_comment",
+            event=self.event,
+            organization=self.organization,
+            repo=self.repo,
+            integration=mock_integration,
+        )
+
+        mock_reaction.assert_called_once_with(
+            mock_integration, self.organization, self.repo, "123456789"
+        )
+        mock_forward.assert_called_once_with(
+            "issue_comment", self.event, self.organization, self.repo
+        )
+
+    @patch("sentry.seer.code_review.webhooks.issue_comment._add_eyes_reaction_to_comment")
+    @patch("sentry.seer.code_review.webhooks.handlers._forward_to_seer")
+    @with_feature(
+        {
+            "organizations:code-review-comment-command",
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+        }
+    )
+    def test_skips_reaction_when_no_comment_id(
+        self, mock_forward: MagicMock, mock_reaction: MagicMock
+    ) -> None:
+        self._enable_code_review()
+        event = {
+            "comment": {
+                "body": f"{SENTRY_REVIEW_COMMAND}",
+            },
+        }
+        handle_issue_comment_event(
+            event_type="issue_comment",
+            event=event,
+            organization=self.organization,
+            repo=self.repo,
+        )
+
+        mock_reaction.assert_not_called()
+        mock_forward.assert_called_once()
+
+
+class AddEyesReactionTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="12345",
+            name="owner/repo",
+        )
+
+    @patch("sentry.seer.code_review.webhooks.issue_comment.logger")
+    def test_logs_warning_when_integration_is_none(self, mock_logger: MagicMock) -> None:
+        from sentry.seer.code_review.webhooks.issue_comment import _add_eyes_reaction_to_comment
+
+        _add_eyes_reaction_to_comment(
+            integration=None,
+            organization=self.organization,
+            repo=self.repo,
+            comment_id="123",
+        )
+
+        mock_logger.warning.assert_called_once()
+        assert "missing_integration" in mock_logger.warning.call_args[0][0]
+
+    @patch("sentry.seer.code_review.webhooks.issue_comment.metrics")
+    def test_calls_github_api_with_eyes_reaction(self, mock_metrics: MagicMock) -> None:
+        from sentry.seer.code_review.webhooks.issue_comment import _add_eyes_reaction_to_comment
+
+        mock_client = MagicMock()
+        mock_installation = MagicMock()
+        mock_installation.get_client.return_value = mock_client
+        mock_integration = MagicMock()
+        mock_integration.get_installation.return_value = mock_installation
+
+        _add_eyes_reaction_to_comment(
+            integration=mock_integration,
+            organization=self.organization,
+            repo=self.repo,
+            comment_id="123456",
+        )
+
+        mock_client.create_comment_reaction.assert_called_once_with(
+            "owner/repo", "123456", GitHubReaction.EYES
+        )
+        mock_metrics.incr.assert_called_once_with(
+            "seer.code_review.webhook.issue_comment.reaction_added"
+        )
+
+    @patch("sentry.seer.code_review.webhooks.issue_comment.logger")
+    def test_logs_exception_on_api_error(self, mock_logger: MagicMock) -> None:
+        from sentry.seer.code_review.webhooks.issue_comment import _add_eyes_reaction_to_comment
+
+        mock_client = MagicMock()
+        mock_client.create_comment_reaction.side_effect = Exception("API Error")
+        mock_installation = MagicMock()
+        mock_installation.get_client.return_value = mock_client
+        mock_integration = MagicMock()
+        mock_integration.get_installation.return_value = mock_installation
+
+        _add_eyes_reaction_to_comment(
+            integration=mock_integration,
+            organization=self.organization,
+            repo=self.repo,
+            comment_id="123456",
+        )
+
+        mock_logger.exception.assert_called_once()
+        assert "reaction_failed" in mock_logger.exception.call_args[0][0]

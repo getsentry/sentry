@@ -13,7 +13,7 @@ from responses import matchers
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.blame import create_blame_query, generate_file_path_mapping
-from sentry.integrations.github.client import GitHubApiClient
+from sentry.integrations.github.client import GitHubApiClient, GitHubReaction
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.source_code_management.commit_context import (
     CommitInfo,
@@ -409,6 +409,29 @@ class GitHubApiClientTest(TestCase):
 
         reactions = self.github_client.get_comment_reactions(repo=self.repo.name, comment_id="2")
         assert reactions == {}
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_create_comment_reaction(self, get_jwt) -> None:
+        response_data = {
+            "id": 1,
+            "node_id": "MDg6UmVhY3Rpb24x",
+            "user": {"login": "octocat", "id": 1},
+            "content": "eyes",
+            "created_at": "2016-05-20T20:09:31Z",
+        }
+        responses.add(
+            responses.POST,
+            f"https://api.github.com/repos/{self.repo.name}/issues/comments/123/reactions",
+            json=response_data,
+            status=201,
+        )
+
+        result = self.github_client.create_comment_reaction(
+            repo=self.repo.name, comment_id="123", reaction=GitHubReaction.EYES
+        )
+        assert result == response_data
+        assert responses.calls[0].request.body == b'{"content":"eyes"}'
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
