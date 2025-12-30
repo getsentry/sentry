@@ -79,7 +79,9 @@ type BaseGetMetricsUrlParams = {
 export function getMetricsUrl(
   params: BaseGetMetricsUrlParams & {organization: Organization}
 ): string;
-export function getMetricsUrl(params: BaseGetMetricsUrlParams & {organization: string}): string;
+export function getMetricsUrl(
+  params: BaseGetMetricsUrlParams & {organization: string}
+): string;
 export function getMetricsUrl({
   organization,
   selection,
