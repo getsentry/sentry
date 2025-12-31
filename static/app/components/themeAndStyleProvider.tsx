@@ -65,7 +65,7 @@ export function ThemeAndStyleProvider({children}: Props) {
   const didPrintBanner = useRef(false);
   if (!didPrintBanner.current && NODE_ENV !== 'development') {
     didPrintBanner.current = true;
-    printConsoleBanner(theme.colors.blue400, theme.text.familyMono);
+    printConsoleBanner(theme.tokens.content.accent, theme.font.family.mono);
   }
 
   return (
