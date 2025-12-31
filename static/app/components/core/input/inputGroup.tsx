@@ -6,18 +6,86 @@ import {
   useRef,
   useState,
 } from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {InputProps} from 'sentry/components/core/input';
-import {Input as _Input} from 'sentry/components/core/input';
-import {
-  ChonkStyledInput,
-  ChonkStyledLeadingItemsWrap,
-  ChonkStyledTextArea,
-  ChonkStyledTrailingItemsWrap,
-} from 'sentry/components/core/input/inputGroup.chonk';
+import {Input as _Input, Input as CoreInput} from 'sentry/components/core/input';
 import type {TextAreaProps} from 'sentry/components/core/textarea';
-import {TextArea as _TextArea} from 'sentry/components/core/textarea';
+import {
+  TextArea as _TextArea,
+  TextArea as CoreTextArea,
+} from 'sentry/components/core/textarea';
+import {space} from 'sentry/styles/space';
+import type {FormSize, StrictCSSObject, Theme} from 'sentry/utils/theme';
+
+interface InputStyleProps {
+  leadingWidth?: number;
+  size?: FormSize;
+  trailingWidth?: number;
+}
+
+const InputItemsWrap = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  align-items: center;
+  gap: ${space(1)};
+
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+`;
+
+const itemsPadding = {
+  md: 8,
+  sm: 6,
+  xs: 4,
+} satisfies Record<NonNullable<InputStyleProps['size']>, number>;
+
+const inputStyles = ({
+  leadingWidth,
+  trailingWidth,
+  size = 'md',
+  theme,
+}: InputStyleProps & {theme: Theme}): StrictCSSObject => css`
+  ${leadingWidth &&
+  css`
+    padding-left: calc(
+      ${theme.form[size].paddingLeft}px + ${itemsPadding[size]}px + ${leadingWidth}px
+    );
+  `}
+
+  ${trailingWidth &&
+  css`
+    padding-right: calc(
+      ${theme.form[size].paddingRight}px + ${itemsPadding[size]}px + ${trailingWidth}px
+    );
+  `}
+`;
+
+export const StyledInput = styled(CoreInput)<InputStyleProps>`
+  ${inputStyles}
+`;
+
+export const StyledTextArea = styled(CoreTextArea)<InputStyleProps>`
+  ${inputStyles}
+`;
+
+export const StyledLeadingItemsWrap = styled(InputItemsWrap)<{
+  size: NonNullable<InputStyleProps['size']>;
+  disablePointerEvents?: boolean;
+}>`
+  left: ${p => p.theme.form[p.size].paddingLeft + 1}px;
+  ${p => p.disablePointerEvents && `pointer-events: none;`}
+`;
+
+export const StyledTrailingItemsWrap = styled(InputItemsWrap)<{
+  size: NonNullable<InputStyleProps['size']>;
+  disablePointerEvents?: boolean;
+}>`
+  right: ${p => p.theme.form[p.size].paddingRight + 1}px;
+  ${p => p.disablePointerEvents && `pointer-events: none;`}
+`;
 
 interface InputContext {
   /**
@@ -204,10 +272,6 @@ const InputGroupWrap = styled('div')<{disabled?: boolean}>`
   ${p => p.disabled && `color: ${p.theme.disabled};`};
 `;
 
-const StyledInput = ChonkStyledInput;
+const InputLeadingItemsWrap = StyledLeadingItemsWrap;
 
-const StyledTextArea = ChonkStyledTextArea;
-
-const InputLeadingItemsWrap = ChonkStyledLeadingItemsWrap;
-
-const InputTrailingItemsWrap = ChonkStyledTrailingItemsWrap;
+const InputTrailingItemsWrap = StyledTrailingItemsWrap;
