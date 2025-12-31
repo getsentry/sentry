@@ -119,8 +119,8 @@ export const onboarding: OnboardingConfig = {
                 code: `using Sentry;
 using UnityEngine;
 
-// Unity's Debug.Warning (and higher severity levels) will automatically be captured
-Debug.Warning("This warning will be sent to Sentry");
+// Unity's Debug.Log (and higher severity levels) will automatically be captured
+Debug.Log("This log will be sent to Sentry");
 
 // Or use the SDK directly
 SentrySdk.Logger.LogInfo("A simple log message");
