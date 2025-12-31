@@ -23,7 +23,7 @@ function urlEscapeHex(hex: string) {
   return hex.replace(/#/g, '%23');
 }
 
-export const NativeHiddenCheckbox = styled('input')<{
+const NativeHiddenCheckbox = styled('input')<{
   nativeSize: NonNullable<SwitchProps['size']>;
 }>`
   position: absolute;
@@ -133,14 +133,14 @@ export const NativeHiddenCheckbox = styled('input')<{
   }
 `;
 
-export const FakeCheckbox = styled('div')<{
+const FakeCheckbox = styled('div')<{
   size: NonNullable<SwitchProps['size']>;
 }>`
   width: ${p => toggleWrapperSize[p.size].width}px;
   height: ${p => toggleWrapperSize[p.size].height}px;
 `;
 
-export const FakeCheckboxButton = styled('div')``;
+const FakeCheckboxButton = styled('div')``;
 
 export function Switch({ref, size = 'sm', ...props}: SwitchProps) {
   return (
