@@ -533,9 +533,15 @@ export function TraceIdRenderer({
     if (!olderThan30Days) return undefined;
 
     const search = new MutableSearch('');
-    search.addFilterValue('is_transaction', 'true');
+
     if (traceName) {
+      search.addOp('(');
+      search.addFilterValue('transaction', traceName);
+      search.addOp('OR');
+      search.addFilterValue('span.op', traceName);
+      search.addOp('OR');
       search.addFilterValue('span.description', traceName);
+      search.addOp(')');
     }
 
     return search.formatString();
