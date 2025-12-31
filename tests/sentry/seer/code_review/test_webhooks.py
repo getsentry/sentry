@@ -593,10 +593,13 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
     @patch("sentry.seer.code_review.webhooks.task.metrics")
-    def test_pr_related_event_does_not_call_seer_request_endpoint(
+    def test_pr_related_event_calls_correct_endpoint(
         self, mock_metrics: MagicMock, mock_request: MagicMock
     ) -> None:
         """Test that PR-related events are sent to the sentry-request endpoint."""
+        import orjson
+
+        mock_request.return_value = self._mock_response(200, b'{"run_id": 123}')
 
         event_payload = {
             "data": {
@@ -621,4 +624,44 @@ class ProcessGitHubWebhookEventTest(TestCase):
             enqueued_at_str=self.enqueued_at_str,
         )
 
-        assert not mock_request.called
+        mock_request.assert_called_once()
+        call_args = mock_request.call_args
+        assert call_args[1]["path"] == "/v1/automation/sentry-request"
+        assert call_args[1]["body"] == orjson.dumps(event_payload)
+
+    @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
+    @patch("sentry.seer.code_review.webhooks.task.metrics")
+    def test_check_run_and_pr_events_processed_separately(
+        self, mock_metrics: MagicMock, mock_request: MagicMock
+    ) -> None:
+        """Test that CHECK_RUN events use rerun endpoint while PR events use sentry-request."""
+        mock_request.return_value = self._mock_response(200, b"{}")
+
+        process_github_webhook_event._func(
+            github_event=GithubWebhookType.CHECK_RUN,
+            event_payload={"original_run_id": self.original_run_id},
+            enqueued_at_str=self.enqueued_at_str,
+        )
+
+        assert mock_request.call_count == 1
+        check_run_call = mock_request.call_args
+        assert check_run_call[1]["path"] == "/v1/automation/codegen/pr-review/rerun"
+
+        mock_request.reset_mock()
+
+        event_payload = {
+            "data": {"repo": {}, "pr_id": 123},
+            "external_owner_id": "456",
+            "request_type": "pr-review",
+            "organization_id": 789,
+        }
+
+        process_github_webhook_event._func(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event_payload=event_payload,
+            enqueued_at_str=self.enqueued_at_str,
+        )
+
+        assert mock_request.call_count == 1
+        pr_call = mock_request.call_args
+        assert pr_call[1]["path"] == "/v1/automation/sentry-request"
