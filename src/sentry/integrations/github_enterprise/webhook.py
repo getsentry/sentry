@@ -290,7 +290,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
             domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
             provider_key=event_handler.provider,
         ).capture():
-            event_handler(event, host=host)
+            event_handler(event, host=host, github_event=github_event)
 
         return HttpResponse(status=204)
 
