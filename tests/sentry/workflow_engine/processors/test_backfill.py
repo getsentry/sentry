@@ -2,14 +2,12 @@ from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.models.group import GroupStatus
-from sentry.models.project import Project
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.workflow_engine.models import Detector, DetectorGroup
 from sentry.workflow_engine.processors.backfill import (
     backfill_detector_groups,
     backfill_project_range,
-    get_project_id_ranges_for_backfill,
 )
 
 
@@ -188,72 +186,3 @@ class BackfillProjectRangeTest(TestCase):
 
         # Detector should still not exist (we don't create it)
         assert not Detector.objects.filter(project=project, type=ErrorGroupType.slug).exists()
-
-
-class GetProjectIdRangesForBackfillTest(TestCase):
-    def test_splits_projects_into_chunks(self) -> None:
-
-        # Create 10 active projects
-        for _ in range(10):
-            self.create_project()
-
-        num_chunks = 3
-        ranges = list(get_project_id_ranges_for_backfill(num_chunks))
-
-        # Should return 3 ranges
-        assert len(ranges) == num_chunks
-
-        # Each range should be a tuple of (min_id, max_id)
-        for min_id, max_id in ranges:
-            assert isinstance(min_id, int)
-            assert isinstance(max_id, int)
-            assert min_id <= max_id
-
-    def test_covers_all_active_projects(self) -> None:
-
-        # Create projects with varying statuses
-        active_projects = [self.create_project() for _ in range(5)]
-        inactive_project = self.create_project()
-        inactive_project.status = ObjectStatus.PENDING_DELETION
-        inactive_project.save()
-
-        ranges = list(get_project_id_ranges_for_backfill(num_chunks=2))
-
-        # Get all project IDs covered by ranges
-        covered_ids = set[int]()
-        for min_id, max_id in ranges:
-            covered_ids.update(range(min_id, max_id + 1))
-
-        # All active projects should be covered
-        for project in active_projects:
-            assert project.id in covered_ids
-
-        # Inactive project should not be covered
-        assert inactive_project.id not in covered_ids
-
-    def test_single_chunk_returns_one_range(self) -> None:
-
-        all_project_ids = [self.create_project().id for _ in range(5)]
-
-        ranges = list(get_project_id_ranges_for_backfill(num_chunks=1))
-
-        assert len(ranges) == 1
-        min_id, max_id = ranges[0]
-
-        # Should cover all project IDs
-        assert min_id == min(all_project_ids)
-        assert max_id == max(all_project_ids)
-
-    def test_handles_no_projects(self) -> None:
-        Project.objects.all().delete()
-
-        ranges = list(get_project_id_ranges_for_backfill(num_chunks=5))
-
-        assert len(ranges) == 0
-
-    def test_more_chunks_than_projects(self) -> None:
-        for _ in range(3):
-            self.create_project()
-
-        ranges = list(get_project_id_ranges_for_backfill(num_chunks=10))
-        assert len(ranges) == 3

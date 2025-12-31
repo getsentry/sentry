@@ -1,9 +1,7 @@
 """Backfill DetectorGroup associations for error detectors."""
 
 import logging
-from collections.abc import Iterator
 
-from django.db import connection
 from django.db.models import Exists, OuterRef
 
 from sentry.constants import ObjectStatus
@@ -96,25 +94,3 @@ def backfill_project_range(min_project_id: int, max_project_id: int) -> None:
             "max_project_id": max_project_id,
         },
     )
-
-
-def get_project_id_ranges_for_backfill(num_chunks: int) -> Iterator[tuple[int, int]]:
-    """Split active projects into roughly-equal ID ranges using NTILE for parallel processing."""
-    with connection.cursor() as cursor:
-        cursor.execute(
-            f"""
-            SELECT MIN(id) as min_id, MAX(id) as max_id
-            FROM (
-                SELECT id, NTILE(%s) OVER (ORDER BY id) as bucket
-                FROM {Project._meta.db_table}
-                WHERE status = %s
-            ) as projects_with_buckets
-            GROUP BY bucket
-            ORDER BY bucket
-            """,
-            [num_chunks, ObjectStatus.ACTIVE],
-        )
-
-        for row in cursor.fetchall():
-            min_id, max_id = row
-            yield (min_id, max_id)
