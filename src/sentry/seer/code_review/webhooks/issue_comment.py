@@ -11,6 +11,7 @@ from typing import Any
 
 from sentry import options
 from sentry.integrations.github.client import GitHubReaction
+from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
@@ -84,7 +85,7 @@ def _add_eyes_reaction_to_comment(
 
 def handle_issue_comment_event(
     *,
-    event_type: str,
+    github_event: GithubWebhookType,
     event: Mapping[str, Any],
     organization: Organization,
     repo: Repository,
@@ -108,7 +109,11 @@ def handle_issue_comment_event(
         if not options.get("github.webhook.issue-comment"):
             _add_eyes_reaction_to_comment(integration, organization, repo, str(comment_id))
 
-    # Import here to avoid circular dependency with handlers
-    from .handlers import _schedule_task
+    from .task import _schedule_task
 
-    _schedule_task(event_type, event, organization, repo)
+    _schedule_task(
+        github_event=github_event,
+        event=event,
+        organization=organization,
+        repo=repo,
+    )

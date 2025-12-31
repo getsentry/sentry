@@ -85,7 +85,7 @@ export function MonitorProcessingErrors({
         return (
           <ErrorGroup key={index}>
             <ErrorHeader>
-              <Tag type="error">{errors.length}x</Tag>
+              <Tag variant="danger">{errors.length}x</Tag>
               <ProcessingErrorTitle type={errortype} />
               <ErrorHeaderActions>
                 <Button
@@ -151,7 +151,7 @@ export function MonitorProcessingErrors({
 
   return (
     <ScrollableAlert
-      type="error"
+      variant="danger"
       expand={
         showingMultipleProjects ? (
           <ProjectGroupsList>{accordionErrors}</ProjectGroupsList>

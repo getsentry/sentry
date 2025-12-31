@@ -146,7 +146,7 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
             {recentDeploysByEnvironment.map(deploy => {
               return (
                 <Flex key={deploy.id} align="center" gap="md" justify="between">
-                  <Tag type="highlight">{deploy.environment}</Tag>
+                  <Tag variant="info">{deploy.environment}</Tag>
                   {deploy.dateFinished && <StyledTimeSince date={deploy.dateFinished} />}
                 </Flex>
               );

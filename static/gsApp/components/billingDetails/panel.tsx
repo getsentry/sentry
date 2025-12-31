@@ -182,7 +182,7 @@ function BillingDetailsPanel({
         <Heading as="h2" size="lg">
           {t('Business address')}
         </Heading>
-        {formError && <Alert type="error">{formError}</Alert>}
+        {formError && <Alert variant="danger">{formError}</Alert>}
         {!isEditing && !!subscription.accountBalance && (
           <Text>
             {tct('Account balance: [balance]', {

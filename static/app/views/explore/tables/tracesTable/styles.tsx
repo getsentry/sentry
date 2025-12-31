@@ -28,7 +28,7 @@ export function StyledPanelHeader({
   ...props
 }: StyledPanelHeaderProps) {
   return (
-    <Flex justify={justify} radius={radius}>
+    <Flex justify={justify} radius={radius} height="100%">
       {flexProps => (
         <Text as="div" wrap="nowrap">
           <PanelHeader lightText={lightText} {...flexProps} {...props}>
