@@ -265,6 +265,7 @@ function StoryModuleExports(props: {
 }
 
 const StyledTabPanels = styled(TabPanels)`
+  flex-grow: 1;
   min-width: 0;
 `;
 
