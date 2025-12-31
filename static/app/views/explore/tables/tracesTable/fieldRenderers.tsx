@@ -561,7 +561,7 @@ export function TraceIdRenderer({
         disabled={!queryString}
         title={
           <Text>
-            {tct('Event is older than 30 days. [similarTraces] in the past 24 hours.', {
+            {tct('Trace is older than 30 days. [similarTraces] in the past 24 hours.', {
               similarTraces: <Link to={similarTraces}>{t('View similar traces')}</Link>,
             })}
           </Text>
