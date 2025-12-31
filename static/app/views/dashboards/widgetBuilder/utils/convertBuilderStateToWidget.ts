@@ -28,7 +28,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
 
   if (
     state.dataset === WidgetType.TRACEMETRICS &&
-    (state.displayType !== DisplayType.BIG_NUMBER ||
+    (state.displayType === DisplayType.BIG_NUMBER ||
       isChartDisplayType(state.displayType))
   ) {
     // HACK: Inject the trace metric name and type into the aggregate function
