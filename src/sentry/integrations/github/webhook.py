@@ -1106,7 +1106,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         if not handler:
             logger.info(
                 "github.webhook.missing-handler",
-                extra={"event_type": github_event},
+                extra={"github_event": github_event},
             )
             return HttpResponse(status=204)
 
