@@ -164,10 +164,13 @@ function BaseExploreFieldRenderer({
   if (field === 'trace') {
     if (olderThan30Days) {
       const queryString = new MutableSearch('');
-      queryString.addFilterValue('is_transaction', 'true');
 
-      if (data?.transaction) {
-        queryString.addFilterValue('transaction', data.transaction);
+      if (data?.['span.name']) {
+        queryString.addFilterValue('span.name', data['span.name']);
+      }
+
+      if (data?.['span.description']) {
+        queryString.addFilterValue('span.description', data['span.description']);
       }
 
       const project = projectsMap[data.project];

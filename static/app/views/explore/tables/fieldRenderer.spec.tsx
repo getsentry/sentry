@@ -251,7 +251,7 @@ describe('FieldRenderer tests', () => {
       expect(await screen.findByText(/Trace is older than 30 days/)).toBeInTheDocument();
 
       const queryString = encodeURIComponent(
-        'is_transaction:true transaction:"GET /foo"'
+        'span.name:"HTTP GET /foo" span.description:"GET /foo"'
       );
       expect(await screen.findByRole('link')).toHaveAttribute(
         'href',
