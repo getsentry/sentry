@@ -4,6 +4,7 @@ from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.apiapplication import ApiApplication
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test, create_test_regions
 
 
@@ -31,6 +32,13 @@ class SentryAppTest(TestCase):
         self.sentry_app.delete()
         assert self.sentry_app.date_deleted is not None
         assert self.sentry_app not in SentryApp.objects.all()
+
+    @override_options({"sentry-apps.disable-paranoia": True})
+    def test_paranoid_disabled(self) -> None:
+        self.sentry_app.save()
+        self.sentry_app.delete()
+        assert self.sentry_app.date_deleted is None
+        assert self.sentry_app in SentryApp.objects.all()
 
     def test_date_updated(self) -> None:
         self.sentry_app.save()
