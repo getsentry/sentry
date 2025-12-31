@@ -1,0 +1,372 @@
+---
+title: NumberInput
+description: A numeric input field with increment and decrement buttons for precise value control.
+source: 'sentry/components/core/input/numberInput'
+resources:
+  figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=384-2119&t=DdXZ7WIgTdURJlRv-4
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/input/numberInput.tsx
+  a11y:
+    WCAG 2.1.1: https://www.w3.org/TR/WCAG22/#keyboard
+    WCAG 2.4.7: https://www.w3.org/TR/WCAG22/#focus-visible
+    WCAG 3.3.2: https://www.w3.org/TR/WCAG22/#labels-or-instructions
+    WAI-ARIA SpinButton: https://www.w3.org/WAI/ARIA/apg/patterns/spinbutton/
+---
+
+import {useState} from 'react';
+
+import {NumberInput} from '@sentry/scraps/input';
+import {Stack} from '@sentry/scraps/layout';
+
+import * as Storybook from 'sentry/stories';
+
+import documentation from '!!type-loader!@sentry/scraps/input';
+
+export {documentation};
+
+`<NumberInput>` is a specialized numeric input field that provides increment and decrement buttons for precise value control. Built with React Aria, it offers full keyboard support, internationalization, and accessibility features out of the box.
+
+Use `<NumberInput>` when users need to enter numeric values with optional bounds and step controls, such as quantities, durations, or numeric settings.
+
+```jsx
+<NumberInput defaultValue={5} min={0} max={10} />
+```
+
+## Basic Usage
+
+The simplest use case is a number input without constraints. Users can type numbers directly or use the increment/decrement buttons.
+
+<Storybook.Demo>
+  <Stack gap="sm">
+    Default NumberInput
+    <NumberInput />
+  </Stack>
+</Storybook.Demo>
+
+```jsx
+<NumberInput />
+```
+
+## Sizes
+
+`<NumberInput>` supports two sizes: `md` (default) and `xs`. The size controls the height of the input and the scale of the step buttons.
+
+<Storybook.Demo>
+  <Stack gap="sm">
+    size="md" (default)
+    <NumberInput defaultValue={42} />
+  </Stack>
+  <Stack gap="sm">
+    size="xs"
+    <NumberInput size="xs" defaultValue={42} />
+  </Stack>
+</Storybook.Demo>
+
+```jsx
+<NumberInput defaultValue={42} />
+<NumberInput size="xs" defaultValue={42} />
+```
+
+## Min and Max Values
+
+Use the `min` and `max` props to constrain the allowed numeric range. The step buttons will automatically disable when the bounds are reached.
+
+export function MinMaxDemo() {
+  const [value, setValue] = useState(5);
+  return (
+    <Stack gap="sm">
+      Value: {value} (constrained between 0 and 10)
+      <NumberInput value={value} onChange={setValue} min={0} max={10} />
+    </Stack>
+  );
+}
+
+<Storybook.Demo>
+  <MinMaxDemo />
+</Storybook.Demo>
+
+```jsx
+const [value, setValue] = useState(5);
+
+<NumberInput value={value} onChange={setValue} min={0} max={10} />;
+```
+
+> [!NOTE]
+> When the value reaches the minimum, the decrement button becomes disabled. When it reaches the maximum, the increment button becomes disabled. Users can still type values outside the bounds, but the component will constrain them on blur.
+
+## Step Control
+
+The `step` prop controls the increment/decrement amount. This is useful for values that should change in specific intervals.
+
+export function StepDemo() {
+  const [value, setValue] = useState(0);
+  return (
+    <Stack gap="sm">
+      Value: {value} (increments by 5)
+      <NumberInput value={value} onChange={setValue} step={5} min={0} max={100} />
+    </Stack>
+  );
+}
+
+<Storybook.Demo>
+  <StepDemo />
+</Storybook.Demo>
+
+```jsx
+const [value, setValue] = useState(0);
+
+<NumberInput value={value} onChange={setValue} step={5} min={0} max={100} />;
+```
+
+## Decimal Values
+
+`<NumberInput>` supports decimal values. Use the `step` and `formatOptions` props to control decimal precision.
+
+export function DecimalDemo() {
+  const [value, setValue] = useState(0.5);
+  return (
+    <Stack gap="sm">
+      Value: {value} (increments by 0.1)
+      <NumberInput
+        value={value}
+        onChange={setValue}
+        step={0.1}
+        minValue={0}
+        maxValue={1}
+        formatOptions={{
+          minimumFractionDigits: 1,
+          maximumFractionDigits: 1,
+        }}
+      />
+    </Stack>
+  );
+}
+
+<Storybook.Demo>
+  <DecimalDemo />
+</Storybook.Demo>
+
+```jsx
+const [value, setValue] = useState(0.5);
+
+<NumberInput
+  value={value}
+  onChange={setValue}
+  step={0.1}
+  minValue={0}
+  maxValue={1}
+  formatOptions={{
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }}
+/>;
+```
+
+## Controlled vs Uncontrolled
+
+Like standard inputs, `<NumberInput>` can be controlled or uncontrolled. Use `value` and `onChange` for controlled inputs, or `defaultValue` for uncontrolled.
+
+```jsx
+// Controlled
+const [value, setValue] = useState(0);
+<NumberInput value={value} onChange={setValue} />
+
+// Uncontrolled
+<NumberInput defaultValue={0} />
+```
+
+## States
+
+`<NumberInput>` supports `disabled` and `readOnly` states.
+
+<Storybook.Demo>
+  <Stack gap="sm">
+    Disabled
+    <NumberInput defaultValue={42} disabled />
+  </Stack>
+  <Stack gap="sm">
+    Read-only
+    <NumberInput defaultValue={42} readOnly />
+  </Stack>
+</Storybook.Demo>
+
+```jsx
+<NumberInput defaultValue={42} disabled />
+<NumberInput defaultValue={42} readOnly />
+```
+
+## Placeholder
+
+Use the `placeholder` prop to provide hint text when the input is empty.
+
+<Storybook.Demo>
+  <Stack gap="sm">
+    With placeholder
+    <NumberInput placeholder="Enter a number" />
+  </Stack>
+</Storybook.Demo>
+
+```jsx
+<NumberInput placeholder="Enter a number" />
+```
+
+## Monospace Font
+
+Set the `monospace` prop to render the input value with a monospace font, useful for technical or code-related numeric values.
+
+<Storybook.Demo>
+  <Stack gap="sm">
+    Regular font
+    <NumberInput defaultValue={12345} />
+  </Stack>
+  <Stack gap="sm">
+    Monospace font
+    <NumberInput defaultValue={12345} monospace />
+  </Stack>
+</Storybook.Demo>
+
+```jsx
+<NumberInput defaultValue={12345} />
+<NumberInput defaultValue={12345} monospace />
+```
+
+## Keyboard Controls
+
+`<NumberInput>` provides comprehensive keyboard support:
+
+- **Arrow Up/Down**: Increment or decrement by the `step` value
+- **Page Up/Down**: Increment or decrement by a larger amount (10× the step)
+- **Home**: Jump to the minimum value (if `min` is set)
+- **End**: Jump to the maximum value (if `max` is set)
+- **Type numbers**: Directly enter numeric values
+
+These keyboard shortcuts work regardless of locale and are automatically provided by React Aria.
+
+## Usage Patterns
+
+### Quantity Selectors
+
+Use for selecting item quantities in forms or shopping interfaces:
+
+```jsx
+<label>
+  Quantity
+  <NumberInput defaultValue={1} min={1} max={99} />
+</label>
+```
+
+### Duration Inputs
+
+Combine with appropriate step values for time-based inputs:
+
+```jsx
+<label>
+  Timeout (seconds)
+  <NumberInput defaultValue={30} min={0} max={300} step={5} />
+</label>
+```
+
+### Percentage Inputs
+
+Use for percentage values with decimal precision:
+
+```jsx
+<NumberInput
+  defaultValue={50}
+  min={0}
+  max={100}
+  step={0.1}
+  formatOptions={{
+    style: 'percent',
+    minimumFractionDigits: 1,
+  }}
+/>
+```
+
+### Configuration Values
+
+Use for numeric configuration settings with sensible bounds:
+
+```jsx
+<label>
+  Max retries
+  <NumberInput defaultValue={3} min={0} max={10} />
+</label>
+```
+
+## React Aria Integration
+
+`<NumberInput>` is built on React Aria's `useNumberField` hook, which provides:
+
+- **Internationalization**: Automatic locale-aware number formatting
+- **Accessibility**: Full ARIA attributes and keyboard support
+- **Validation**: Built-in min/max/step validation
+- **State management**: Robust state handling for numeric values
+
+This means the component automatically handles complex scenarios like:
+
+- International number formats (e.g., comma vs. period as decimal separator)
+- Screen reader announcements for value changes
+- Touch-friendly increment/decrement buttons
+- Input validation and error states
+
+## Accessibility
+
+`<NumberInput>` is built with React Aria and automatically meets WCAG 2.2 AA standards:
+
+- [2.1.1 Keyboard](https://www.w3.org/TR/WCAG22/#keyboard): Full keyboard control with arrow keys, page up/down, home/end
+- [2.4.7 Focus Visible](https://www.w3.org/TR/WCAG22/#focus-visible): Clear focus indicators on the input and buttons
+- Follows the [WAI-ARIA SpinButton pattern](https://www.w3.org/WAI/ARIA/apg/patterns/spinbutton/)
+
+The component automatically includes:
+
+- `role="spinbutton"` on the input
+- `aria-valuemin`, `aria-valuemax`, `aria-valuenow` attributes
+- `aria-label` on increment/decrement buttons
+- Disabled state management for buttons when at bounds
+
+### Developer Responsibilities
+
+**Labels** ([WCAG 3.3.2](https://www.w3.org/TR/WCAG22/#labels-or-instructions))
+
+- Every NumberInput must have an associated label
+- Use a `<label>` element, `aria-label`, or `aria-labelledby`
+
+```jsx
+// Good: Visible label
+<label>
+  Quantity
+  <NumberInput defaultValue={1} min={1} />
+</label>
+
+// Good: aria-label
+<NumberInput defaultValue={1} min={1} aria-label="Quantity" />
+```
+
+**Error Handling**
+
+- Use `isInvalid` prop to mark validation errors
+- Provide `errorMessage` to describe the error
+- Associate error messages with `aria-describedby`
+
+```jsx
+<NumberInput
+  value={value}
+  onChange={setValue}
+  min={1}
+  max={10}
+  isInvalid={value > 10}
+  aria-describedby="error"
+/>;
+{
+  value > 10 && (
+    <span id="error" role="alert">
+      Value must be 10 or less
+    </span>
+  );
+}
+```
+
+**Required Fields**
+
+- Use the `required` prop for required fields
+- Indicate visually in the label (e.g., with an asterisk)
