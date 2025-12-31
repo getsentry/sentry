@@ -515,7 +515,7 @@ class PRCommentWorkflow(ABC):
     ) -> list[dict[str, Any]]:
         """EAP implementation: Given a list of issue group ids, return a sublist of the top 5 ordered by event count"""
         organization = Organization.objects.get(id=project.organization_id)
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now()
         start = now - timedelta(days=30)
 
         snuba_params = SnubaParams(
@@ -523,7 +523,6 @@ class PRCommentWorkflow(ABC):
             end=now,
             organization=organization,
             projects=[project],
-            environments=[],
         )
 
         group_id_filter = " OR ".join([f"group_id:{gid}" for gid in issue_ids])
@@ -573,7 +572,10 @@ class PRCommentWorkflow(ABC):
         ):
             eap_results = self._get_top_5_issues_by_count_eap(issue_ids, project)
             results = EAPOccurrencesComparator.check_and_choose(
-                snuba_results, eap_results, "integrations.pr_comment.get_top_5_issues_by_count"
+                snuba_results,
+                eap_results,
+                "integrations.pr_comment.get_top_5_issues_by_count",
+                is_experimental_data_a_null_result=len(eap_results) == 0,
             )
 
         return results
