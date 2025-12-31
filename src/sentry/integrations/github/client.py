@@ -363,6 +363,14 @@ class GitHubBaseClient(
         """
         return self.get(f"/repos/{repo}/pulls/{pull_number}/files")
 
+    def get_pullrequest(self, repo: str, pull_number: int) -> Any:
+        """
+        https://docs.github.com/en/rest/pulls/pulls#get-a-pull-request
+
+        Returns a single pull request.
+        """
+        return self.get(f"/repos/{repo}/pulls/{pull_number}")
+
     def get_repo(self, repo: str) -> Any:
         """
         https://docs.github.com/en/rest/repos/repos#get-a-repository

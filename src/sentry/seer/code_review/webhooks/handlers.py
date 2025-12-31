@@ -5,6 +5,8 @@ from collections.abc import Mapping
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
+from sentry.integrations.github.client import GitHubApiClient
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.seer.code_review.webhooks.types import EventType
@@ -21,12 +23,45 @@ logger = logging.getLogger(__name__)
 METRICS_PREFIX = "seer.code_review.webhook"
 
 
+def _get_target_commit_sha(
+    event_type: EventType,
+    event: Mapping[str, Any],
+    repo: Repository,
+    integration: RpcIntegration | None,
+) -> str | None:
+    """
+    Get the target commit SHA for the PR from the event or GitHub API.
+
+    For pull_request events, the target commit SHA is in the payload (head.sha).
+    For issue_comment events, we need to fetch it from the GitHub API.
+    """
+    if event_type == EventType.PULL_REQUEST:
+        return event.get("pull_request", {}).get("head", {}).get("sha")
+
+    if event_type == EventType.ISSUE_COMMENT:
+        if integration is None:
+            return None
+        pr_number = event.get("issue", {}).get("number")
+        if not pr_number:
+            return None
+
+        client = GitHubApiClient(integration=integration)
+        try:
+            pr_data = client.get_pullrequest(repo.name, pr_number)
+            return pr_data.get("head", {}).get("sha")
+        except Exception:
+            return None
+
+    return None
+
+
 def handle_other_webhook_event(
     *,
     event_type: str,
     event: Mapping[str, Any],
     organization: Organization,
     repo: Repository,
+    integration: RpcIntegration | None = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -36,8 +71,11 @@ def handle_other_webhook_event(
     from .task import process_github_webhook_event
 
     event_type_enum = EventType.from_string(event_type)
+
+    target_commit_sha = _get_target_commit_sha(event_type_enum, event, repo, integration)
+
     transformed_event = _transform_webhook_to_codegen_request(
-        event_type_enum, dict(event), organization.id, repo
+        event_type_enum, dict(event), organization, repo, target_commit_sha
     )
 
     if transformed_event is None:

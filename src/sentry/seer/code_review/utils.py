@@ -6,7 +6,9 @@ import orjson
 from django.conf import settings
 from urllib3.exceptions import HTTPError
 
+from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.net.http import connection_from_url
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 
@@ -56,12 +58,57 @@ def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:
         return response.data
 
 
-# XXX: Do a thorough review of this function and make sure it's correct.
+def _get_trigger(event_type: str, event_payload: Mapping[str, Any]) -> str | None:
+    if event_type == "pull_request":
+        action = event_payload.get("action")
+        if action in ("ready_for_review", "opened"):
+            return CodeReviewTrigger.ON_READY_FOR_REVIEW.value
+        if action == "synchronize":
+            return CodeReviewTrigger.ON_NEW_COMMIT.value
+        return None
+
+    if event_type == "issue_comment":
+        return CodeReviewTrigger.ON_COMMAND_PHRASE.value
+
+    return None
+
+
+def _get_trigger_metadata(event_payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Extract trigger metadata fields from the event payload."""
+    trigger_comment_id: int | None = None
+    trigger_comment_type: Literal["issue_comment", "pull_request_review_comment"] | None = None
+    trigger_user: str | None = None
+
+    if "comment" in event_payload:
+        comment = event_payload["comment"]
+        trigger_comment_id = comment.get("id")
+        trigger_user = comment.get("user", {}).get("login")
+
+    if trigger_user is None:
+        if "sender" in event_payload:
+            trigger_user = event_payload["sender"].get("login")
+        elif "pull_request" in event_payload:
+            trigger_user = event_payload["pull_request"].get("user", {}).get("login")
+
+    if "comment" in event_payload:
+        if "pull_request_review_id" in event_payload.get("comment", {}):
+            trigger_comment_type = "pull_request_review_comment"
+        else:
+            trigger_comment_type = "issue_comment"
+
+    return {
+        "trigger_comment_id": trigger_comment_id,
+        "trigger_comment_type": trigger_comment_type,
+        "trigger_user": trigger_user,
+    }
+
+
 def _transform_webhook_to_codegen_request(
     event_type: str,
     event_payload: Mapping[str, Any],
-    organization_id: int,
+    organization: Organization,
     repo: Repository,
+    target_commit_sha: str | None,
 ) -> dict[str, Any] | None:
     """
     Transform a GitHub webhook payload into CodecovTaskRequest format for Seer.
@@ -69,7 +116,9 @@ def _transform_webhook_to_codegen_request(
     Args:
         event_type: The type of GitHub webhook event
         event_payload: The full webhook event payload from GitHub
-        organization_id: The Sentry organization ID
+        organization: The Sentry organization
+        repo: The repository model
+        target_commit_sha: The target commit SHA for PR review (head of the PR at the time of webhook event)
 
     Returns:
         Dictionary in CodecovTaskRequest format with request_type, data, and external_owner_id,
@@ -104,25 +153,33 @@ def _transform_webhook_to_codegen_request(
     repo_name = "/".join(repo_name_sections[1:])
 
     # Build RepoDefinition
-    repo_definition = {
+    repo_definition: dict[str, Any] = {
         "provider": "github",  # All GitHub webhooks use "github" provider
         "owner": owner,
         "name": repo_name,
         "external_id": repo.external_id,
+        "base_commit_sha": target_commit_sha,
     }
 
-    # Build CodegenBaseRequest (minimal required fields)
-    codegen_request = {
-        "repo": repo_definition,
-        "pr_id": pr_number,
-        "codecov_status": None,
-        "more_readable_repos": [],
-    }
+    trigger_metadata = _get_trigger_metadata(event_payload)
 
     # Build CodecovTaskRequest
     return {
-        "data": codegen_request,
-        "external_owner_id": repo.external_id,
         "request_type": request_type,
-        "organization_id": organization_id,
+        "external_owner_id": repo.external_id,
+        "data": {
+            "repo": repo_definition,
+            "pr_id": pr_number,
+            "bug_prediction_specific_information": {
+                "organization_id": organization.id,
+                "organization_slug": organization.slug,
+            },
+            "config": {
+                "features": {
+                    "bug_prediction": True,
+                },
+                "trigger": _get_trigger(event_type, event_payload),
+                **trigger_metadata,
+            },
+        },
     }
