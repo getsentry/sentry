@@ -1102,6 +1102,8 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
             logger.exception("github.webhook.missing-event", extra=self.get_logging_data())
             logger.exception("Missing Github event in webhook.")
             return HttpResponse(status=400)
+        except ValueError:
+            return HttpResponse(status=204)
 
         if not handler:
             logger.info(
