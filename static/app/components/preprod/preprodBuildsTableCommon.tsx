@@ -16,7 +16,7 @@ import {InstallAppButton} from 'sentry/views/preprod/components/installAppButton
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {getPlatformIconFromPlatform} from 'sentry/views/preprod/utils/labelUtils';
 
-export function PreprodBuildsCommonHeaderCells({
+export function PreprodBuildsHeaderCells({
   showProjectColumn,
 }: {
   showProjectColumn: boolean;
@@ -36,17 +36,17 @@ export function PreprodBuildsCreatedHeaderCell() {
   return <SimpleTable.HeaderCell>{t('Created')}</SimpleTable.HeaderCell>;
 }
 
-interface PreprodBuildsCommonRowCellsProps {
+interface PreprodBuildsRowCellsProps {
   build: BuildDetailsApiResponse;
   showInteraction: boolean;
   showProjectColumn: boolean;
 }
 
-export function PreprodBuildsCommonRowCells({
+export function PreprodBuildsRowCells({
   build,
   showInteraction,
   showProjectColumn,
-}: PreprodBuildsCommonRowCellsProps) {
+}: PreprodBuildsRowCellsProps) {
   return (
     <Fragment>
       {showInteraction && <InteractionStateLayer />}

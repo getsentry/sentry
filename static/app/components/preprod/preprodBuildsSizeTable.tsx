@@ -12,42 +12,24 @@ import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDeta
 import {
   formattedPrimaryMetricDownloadSize,
   formattedPrimaryMetricInstallSize,
-  getLabels,
+  type Labels,
 } from 'sentry/views/preprod/utils/labelUtils';
 
 import {
   FullRowLink,
-  PreprodBuildsCommonHeaderCells,
-  PreprodBuildsCommonRowCells,
   PreprodBuildsCreatedHeaderCell,
   PreprodBuildsCreatedRowCell,
+  PreprodBuildsHeaderCells,
+  PreprodBuildsRowCells,
 } from './preprodBuildsTableCommon';
-
-type PreprodBuildLabels = ReturnType<typeof getLabels>;
 
 interface PreprodBuildsSizeTableProps {
   builds: BuildDetailsApiResponse[];
-  labels: PreprodBuildLabels;
+  labels: Labels;
   organizationSlug: string;
   showProjectColumn: boolean;
   content?: ReactNode;
   onRowClick?: (build: BuildDetailsApiResponse) => void;
-}
-
-function InstallSizeRowCell({build}: {build: BuildDetailsApiResponse}) {
-  return (
-    <SimpleTable.RowCell>
-      <Text>{formattedPrimaryMetricInstallSize(build.size_info)}</Text>
-    </SimpleTable.RowCell>
-  );
-}
-
-function DownloadSizeRowCell({build}: {build: BuildDetailsApiResponse}) {
-  return (
-    <SimpleTable.RowCell>
-      <Text>{formattedPrimaryMetricDownloadSize(build.size_info)}</Text>
-    </SimpleTable.RowCell>
-  );
 }
 
 export function PreprodBuildsSizeTable({
@@ -64,13 +46,17 @@ export function PreprodBuildsSizeTable({
       <SimpleTable.Row key={build.id}>
         <FullRowLink to={linkUrl} onClick={() => onRowClick?.(build)}>
           <Fragment>
-            <PreprodBuildsCommonRowCells
+            <PreprodBuildsRowCells
               build={build}
               showInteraction
               showProjectColumn={showProjectColumn}
             />
-            <InstallSizeRowCell build={build} />
-            <DownloadSizeRowCell build={build} />
+            <SimpleTable.RowCell>
+              <Text>{formattedPrimaryMetricInstallSize(build.size_info)}</Text>
+            </SimpleTable.RowCell>
+            <SimpleTable.RowCell>
+              <Text>{formattedPrimaryMetricDownloadSize(build.size_info)}</Text>
+            </SimpleTable.RowCell>
             <PreprodBuildsCreatedRowCell build={build} />
           </Fragment>
         </FullRowLink>
@@ -81,7 +67,7 @@ export function PreprodBuildsSizeTable({
   return (
     <BuildsSizeTable showProjectColumn={showProjectColumn}>
       <SimpleTable.Header>
-        <PreprodBuildsCommonHeaderCells showProjectColumn={showProjectColumn} />
+        <PreprodBuildsHeaderCells showProjectColumn={showProjectColumn} />
         <SimpleTable.HeaderCell>
           {labels.installSizeLabelTooltip ? (
             <Tooltip title={labels.installSizeLabelTooltip}>
