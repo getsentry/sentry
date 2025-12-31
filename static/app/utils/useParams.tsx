@@ -57,7 +57,6 @@ type ParamKeys =
   | 'traceSlug'
   | 'userId'
   | 'viewId'
-  | 'widgetId'
   | 'widgetIndex';
 
 /**
