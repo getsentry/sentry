@@ -47,6 +47,11 @@ interface TraceAskSeerSearchResponse {
   unsupported_reason: string | null;
 }
 
+interface TraceAskSeerTranslateResponse {
+  query: string;
+  status: string;
+}
+
 export function SpansTabSeerComboBox() {
   const navigate = useNavigate();
   const {projects} = useProjects();
@@ -59,6 +64,11 @@ export function SpansTabSeerComboBox() {
     askSeerSuggestedQueryRef,
     enableAISearch,
   } = useSearchQueryBuilder();
+
+  // Check if the new translation endpoint should be used (internal testing)
+  const useTranslateEndpoint = organization.features.includes(
+    'gen-ai-explore-traces-translate'
+  );
 
   let initialSeerQuery = '';
   const queryDetails = useMemo(() => {
@@ -99,6 +109,35 @@ export function SpansTabSeerComboBox() {
           ? pageFilters.selection.projects
           : projects.filter(p => p.isMember).map(p => p.id);
 
+      // Use new translation endpoint if feature flag is enabled
+      if (useTranslateEndpoint) {
+        const data = await fetchMutation<TraceAskSeerTranslateResponse>({
+          url: `/organizations/${organization.slug}/search-agent/translate/`,
+          method: 'POST',
+          data: {
+            natural_language_query: queryToSubmit,
+            project_ids: selectedProjects,
+          },
+        });
+
+        // Convert single query response to the expected format
+        return {
+          status: data.status,
+          unsupported_reason: null,
+          queries: [
+            {
+              visualizations: [],
+              query: data.query,
+              sort: '',
+              groupBys: [],
+              statsPeriod: '',
+              mode: 'spans',
+            },
+          ],
+        };
+      }
+
+      // Use the original endpoint
       const data = await fetchMutation<TraceAskSeerSearchResponse>({
         url: `/organizations/${organization.slug}/trace-explorer-ai/query/`,
         method: 'POST',
@@ -200,7 +239,10 @@ export function SpansTabSeerComboBox() {
     !organization?.hideAiFeatures &&
     organization.features.includes('gen-ai-features');
 
-  useTraceExploreAiQuerySetup({enableAISearch: areAiFeaturesAllowed});
+  // Skip setup call when using the translation endpoint (it doesn't require setup)
+  useTraceExploreAiQuerySetup({
+    enableAISearch: areAiFeaturesAllowed && !useTranslateEndpoint,
+  });
 
   return (
     <AskSeerComboBox
