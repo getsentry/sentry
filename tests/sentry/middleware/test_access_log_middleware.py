@@ -290,11 +290,11 @@ class TestAccessLogSuccess(LogCaptureAPITestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
         self.login_as(user=self.create_user())
+        upper_gateway_header = PROXY_APIGATEWAY_HEADER.upper().replace("-", "_")
         self.get_success_response(
             extra_headers={
                 "HTTP_AUTHORIZATION": f"Bearer {token.token}",
-                "HTTP_BUTTS": "butts",
-                f"HTTP_{PROXY_APIGATEWAY_HEADER}": "true",
+                f"HTTP_{upper_gateway_header}": "true",
             }
         )
         self.assert_access_log_recorded()
