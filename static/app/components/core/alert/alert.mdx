@@ -26,7 +26,7 @@ export {documentation};
 To create a basic alert, wrap your message in an `<Alert>` component and specify the appropriate type.
 
 ```jsx
-<Alert type="info">This is an informational message</Alert>
+<Alert variant="info">This is an informational message</Alert>
 ```
 
 ## Props
@@ -90,7 +90,7 @@ By default, alerts display appropriate icons based on their type. You can hide i
   <Alert variant="warning" showIcon={false}>
     No icon
   </Alert>
-  <Alert type="success" icon={<IconAdd />}>
+  <Alert variant="success" icon={<IconAdd />}>
     Custom add icon
   </Alert>
 </Alert.Container>
@@ -172,7 +172,10 @@ Add interactive elements like buttons, links or badges to the right side of aler
 
 <Storybook.Demo>
   <Alert.Container>
-    <Alert variant="info" trailingItems={<Badge type="warning">Action Required</Badge>}>
+    <Alert
+      variant="info"
+      trailingItems={<Badge variant="warning">Action Required</Badge>}
+    >
       This alert has a trailing badge
     </Alert>
     <Alert
@@ -200,7 +203,7 @@ Add interactive elements like buttons, links or badges to the right side of aler
       }
       trailingItems={
         <Flex gap="sm">
-          <Badge type="warning">Action Required</Badge>
+          <Badge variant="warning">Action Required</Badge>
           <Alert.Button priority="transparent" icon={<IconEdit />}>
             Edit
           </Alert.Button>
@@ -251,7 +254,7 @@ Use `Alert.Container` to properly manage spacing between multiple alerts.
 ```jsx
 <Alert.Container>
   <Alert variant="info">First alert in a container</Alert>
-  <Alert type="warning">Second alert in a container</Alert>
+  <Alert variant="warning">Second alert in a container</Alert>
   <Alert variant="success">Third alert in a container</Alert>
 </Alert.Container>
 ```
