@@ -34,10 +34,10 @@ class SentryAppTest(TestCase):
         assert self.sentry_app not in SentryApp.objects.all()
 
     @override_options({"sentry-apps.disable-paranoia": True})
-    def test_paranoid_disabled(self) -> None:
+    def test_paranoid_querying_disabled(self) -> None:
         self.sentry_app.save()
         self.sentry_app.delete()
-        assert self.sentry_app.date_deleted is None
+        assert self.sentry_app.date_deleted is not None
         assert self.sentry_app in SentryApp.objects.all()
 
     def test_date_updated(self) -> None:
