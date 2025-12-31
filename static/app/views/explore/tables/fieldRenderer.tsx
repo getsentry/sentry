@@ -187,9 +187,8 @@ function BaseExploreFieldRenderer({
 
       return (
         <Tooltip
-          showUnderline
           isHoverable
-          disabled={!queryString}
+          showUnderline
           title={
             <Text>
               {tct('Trace is older than 30 days. [similarTraces] in the past 24 hours.', {
@@ -250,9 +249,8 @@ function BaseExploreFieldRenderer({
 
       return (
         <Tooltip
-          showUnderline
           isHoverable
-          disabled={!queryString}
+          showUnderline
           title={
             <Text>
               {tct('Span is older than 30 days. [similarSpans] in the past 24 hours.', {
