@@ -43,14 +43,14 @@ const LetterAvatarComponent = styled('svg')<LetterAvatarProps>`
     fill: ${props =>
       props.suggested
         ? props.theme.tokens.background.primary
-        : getChonkColor(props.identifier, props.theme).background};
+        : getColor(props.identifier, props.theme).background};
   }
 
   text {
     fill: ${props =>
       props.suggested
         ? props.theme.subText
-        : getChonkColor(props.identifier, props.theme).content};
+        : getColor(props.identifier, props.theme).content};
   }
 `;
 
@@ -63,14 +63,14 @@ function hashIdentifier(identifier: string) {
   return hash;
 }
 
-function getChonkColor(
+function getColor(
   identifier: string | undefined,
   theme: Theme
 ): {
   background: string;
   content: string;
 } {
-  const colors = makeChonkLetterAvatarColors(theme);
+  const colors = makeLetterAvatarColors(theme);
   if (identifier === undefined) {
     return colors[0]!;
   }
@@ -93,7 +93,7 @@ function getInitials(displayName: string | undefined) {
   return initials.toUpperCase();
 }
 
-function makeChonkLetterAvatarColors(theme: Theme) {
+function makeLetterAvatarColors(theme: Theme) {
   return theme.chart.getColorPalette(9).map(c => ({
     background: c,
     content: color(c).isDark() ? theme.colors.white : theme.colors.black,
