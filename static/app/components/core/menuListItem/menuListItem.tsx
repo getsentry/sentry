@@ -221,12 +221,12 @@ export type MenuListItemProps = {
 
 interface OtherProps {
   as?: React.ElementType;
-  detailsProps?: Partial<React.ComponentProps<typeof Details>>;
-  innerWrapProps?: Partial<React.ComponentProps<typeof InnerWrap>>;
+  detailsProps?: Partial<React.ComponentProps<typeof StyledDetails>>;
+  innerWrapProps?: Partial<React.ComponentProps<typeof StyledInnerWrap>>;
   isFocused?: boolean;
   isPressed?: boolean;
   isSelected?: boolean;
-  labelProps?: Partial<React.ComponentProps<typeof Label>>;
+  labelProps?: Partial<React.ComponentProps<typeof StyledLabel>>;
 }
 
 interface Props extends MenuListItemProps, OtherProps {
@@ -276,7 +276,7 @@ function BaseMenuListItem({
         }
         {...tooltipOptions}
       >
-        <InnerWrap
+        <StyledInnerWrap
           isFocused={isFocused}
           disabled={disabled}
           priority={priority}
@@ -289,19 +289,23 @@ function BaseMenuListItem({
             higherOpacity={priority !== 'default'}
           />
           {leadingItems && (
-            <LeadingItems disabled={disabled} size={size}>
+            <StyledLeadingItems disabled={disabled} size={size}>
               {typeof leadingItems === 'function'
                 ? leadingItems({disabled, isFocused, isSelected})
                 : leadingItems}
-            </LeadingItems>
+            </StyledLeadingItems>
           )}
-          <ContentWrap isFocused={isFocused} size={size}>
-            <LabelWrap>
-              <Label id={labelId} data-test-id="menu-list-item-label" {...labelProps}>
+          <StyledContentWrap isFocused={isFocused} size={size}>
+            <StyledLabelWrap>
+              <StyledLabel
+                id={labelId}
+                data-test-id="menu-list-item-label"
+                {...labelProps}
+              >
                 {label}
-              </Label>
+              </StyledLabel>
               {!showDetailsInOverlay && details && (
-                <Details
+                <StyledDetails
                   id={detailId}
                   disabled={disabled}
                   priority={priority}
@@ -310,9 +314,9 @@ function BaseMenuListItem({
                   {typeof details === 'function'
                     ? details({disabled, isFocused, isSelected})
                     : details}
-                </Details>
+                </StyledDetails>
               )}
-            </LabelWrap>
+            </StyledLabelWrap>
             {trailingItems && (
               <TrailingItems disabled={disabled}>
                 {typeof trailingItems === 'function'
@@ -320,8 +324,8 @@ function BaseMenuListItem({
                   : trailingItems}
               </TrailingItems>
             )}
-          </ContentWrap>
-        </InnerWrap>
+          </StyledContentWrap>
+        </StyledInnerWrap>
       </Tooltip>
       {showDetailsInOverlay && details && isFocused && (
         <DetailsOverlay size={size} id={detailId} itemRef={itemRef}>
@@ -417,21 +421,9 @@ const MenuItemWrap = styled('li')`
   }
 `;
 
-export const InnerWrap = StyledInnerWrap;
-
 const StyledInteractionStateLayer = styled(InteractionStateLayer)`
   z-index: -1;
 `;
-
-const ContentWrap = StyledContentWrap;
-
-export const LeadingItems = StyledLeadingItems;
-
-const LabelWrap = StyledLabelWrap;
-
-const Label = StyledLabel;
-
-const Details = StyledDetails;
 
 const TrailingItems = styled('div')<{disabled: boolean}>`
   display: flex;
@@ -442,3 +434,6 @@ const TrailingItems = styled('div')<{disabled: boolean}>`
 
   ${p => p.disabled && `opacity: 0.5;`}
 `;
+
+export const LeadingItems = StyledLeadingItems;
+export const InnerWrap = StyledInnerWrap;
