@@ -581,6 +581,30 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
         ["test-secret"],
     )
+    def test_returns_enabled_with_default_triggers_when_pr_review_test_generation_enabled(self):
+        org = self.create_organization()
+        org.update_option("sentry:enable_pr_review_test_generation", True)
+
+        url = reverse("sentry-api-0-code-review-repo-settings")
+        params = {
+            "sentryOrgId": str(org.id),
+            "externalRepoId": "nonexistent-repo-id",
+            "provider": "integrations:github",
+        }
+        auth = self._auth_header_for_get(url, params, "test-secret")
+
+        resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
+
+        assert resp.status_code == 200
+        assert resp.data == {
+            "enabledCodeReview": True,
+            "codeReviewTriggers": DEFAULT_CODE_REVIEW_TRIGGERS,
+        }
+
+    @patch(
+        "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
+        ["test-secret"],
+    )
     def test_returns_repo_settings_when_exist(self):
         org = self.create_organization()
         project = self.create_project(organization=org)
