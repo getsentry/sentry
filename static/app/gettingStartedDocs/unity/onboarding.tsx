@@ -60,19 +60,6 @@ export const onboarding: OnboardingConfig = {
         },
         {
           type: 'conditional',
-          condition: params.isPerformanceSelected,
-          content: [
-            {
-              type: 'text',
-              text: tct(
-                'To enable performance monitoring, set the [code:TracesSampleRate] option in the Sentry configuration window. For example, set it to [code:1.0] to capture 100% of transactions.',
-                {code: <code />}
-              ),
-            },
-          ],
-        },
-        {
-          type: 'conditional',
           condition: params.isLogsSelected,
           content: [
             {
@@ -115,51 +102,6 @@ export const onboarding: OnboardingConfig = {
         },
       ],
     },
-    ...(params.isPerformanceSelected
-      ? ([
-          {
-            title: t('Tracing'),
-            content: [
-              {
-                type: 'text',
-                text: t(
-                  'You can measure the performance of your code by capturing transactions and spans.'
-                ),
-              },
-              {
-                type: 'code',
-                language: 'csharp',
-                code: `using Sentry;
-
-// Transaction can be started by providing, at minimum, the name and the operation
-var transaction = SentrySdk.StartTransaction(
-    "test-transaction-name",
-    "test-transaction-operation"
-);
-
-// Transactions can have child spans (and those spans can have child spans as well)
-var span = transaction.StartChild("test-child-operation");
-
-// ... Perform the operation
-
-span.Finish(); // Mark the span as finished
-transaction.Finish(); // Mark the transaction as finished and send it to Sentry`,
-              },
-              {
-                type: 'text',
-                text: tct(
-                  'Check out [link:the documentation] to learn more about the API and automatic instrumentations.',
-                  {
-                    link: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/unity/tracing/" />
-                    ),
-                  }
-                ),
-              },
-            ],
-          },
-        ] satisfies OnboardingStep[])
-      : []),
     ...(params.isLogsSelected
       ? ([
           {
@@ -177,8 +119,8 @@ transaction.Finish(); // Mark the transaction as finished and send it to Sentry`
                 code: `using Sentry;
 using UnityEngine;
 
-// Unity's Debug.Log will automatically be captured
-Debug.Log("This log will be sent to Sentry");
+// Unity's Debug.Warning (and higher severity levels) will automatically be captured
+Debug.Warning("This warning will be sent to Sentry");
 
 // Or use the SDK directly
 SentrySdk.Logger.LogInfo("A simple log message");
