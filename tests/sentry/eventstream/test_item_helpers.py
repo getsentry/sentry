@@ -232,6 +232,41 @@ class ItemHelpersTest(TestCase):
         # tag_keys should still be present with an empty array
         assert result["tag_keys"] == AnyValue(array_value=ArrayValue(values=[]))
 
+    def test_encode_attributes_with_none_elements_in_tags(self) -> None:
+        """Test that encode_attributes handles tags list containing None values."""
+        event_data = {
+            "field": "value",
+            "tags": [
+                ("tag1", "value1"),
+                None,
+                ("tag2", None),
+                ("tag3", "value3"),
+            ],
+        }
+
+        event = Event(
+            event_id="a" * 32,
+            data=event_data,
+            project_id=self.project.id,
+        )
+
+        result = encode_attributes(event, event_data)
+
+        assert result["field"] == AnyValue(string_value="value")
+        assert result["tags[tag1]"] == AnyValue(string_value="value1")
+        assert result["tags[tag3]"] == AnyValue(string_value="value3")
+        # tag2 has None value, so it should be skipped
+        assert "tags[tag2]" not in result
+
+        assert result["tag_keys"] == AnyValue(
+            array_value=ArrayValue(
+                values=[
+                    AnyValue(string_value="tags[tag1]"),
+                    AnyValue(string_value="tags[tag3]"),
+                ]
+            )
+        )
+
     def test_serialize_event_data_as_item_basic(self) -> None:
         project = self.create_project()
 

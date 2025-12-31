@@ -5,13 +5,13 @@ import {IconFire} from 'sentry/icons';
 
 describe('Tag', () => {
   it('basic', () => {
-    render(<Tag>Text</Tag>);
+    render(<Tag variant="muted">Text</Tag>);
     expect(screen.getByText('Text')).toBeInTheDocument();
   });
 
   it('with icon', () => {
     render(
-      <Tag icon={<IconFire data-test-id="icon-fire" />} type="error">
+      <Tag icon={<IconFire data-test-id="icon-fire" />} variant="danger">
         Error
       </Tag>
     );
@@ -23,7 +23,7 @@ describe('Tag', () => {
     const mockCallback = jest.fn();
 
     render(
-      <Tag type="highlight" onDismiss={mockCallback}>
+      <Tag variant="info" onDismiss={mockCallback}>
         Dismissable
       </Tag>
     );

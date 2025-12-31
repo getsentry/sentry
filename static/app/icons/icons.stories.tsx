@@ -302,7 +302,7 @@ const SECTIONS: TSection[] = [
         id: 'github',
         groups: ['logo'],
         keywords: ['git', 'repository', 'code', 'microsoft'],
-        name: 'Github',
+        name: 'GitHub',
         defaultProps: {},
       },
       {
@@ -1839,7 +1839,7 @@ function IconCard(props: IconCardProps) {
           <Flex gap="lg">
             <Flex align="center" gap="sm">
               <Tag
-                type={action === 'element' ? 'info' : 'default'}
+                variant={action === 'element' ? 'info' : 'muted'}
                 style={{width: 'max-content'}}
               >
                 click
@@ -1853,7 +1853,7 @@ function IconCard(props: IconCardProps) {
               </Text>
             </Flex>
             <Flex align="center" gap="sm">
-              <Tag type={action === 'import' ? 'info' : 'default'}>shift+click</Tag>
+              <Tag variant={action === 'import' ? 'info' : 'muted'}>shift+click</Tag>
               <Text
                 monospace
                 size="sm"
