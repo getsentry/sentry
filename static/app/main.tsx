@@ -23,7 +23,7 @@ function buildRouter() {
   return router;
 }
 
-function Main() {
+export default function Main() {
   const [router] = useState(buildRouter);
 
   useEffect(() => {
@@ -51,5 +51,3 @@ function Main() {
     </AppQueryClientProvider>
   );
 }
-
-export default Main;
