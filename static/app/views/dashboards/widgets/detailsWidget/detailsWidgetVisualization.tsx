@@ -40,8 +40,8 @@ export function DetailsWidgetVisualization(props: DetailsWidgetVisualizationProp
     return (
       <HttpSpanVisualization
         spanId={span[SpanFields.ID]}
-        spanOp={span[SpanFields.SPAN_OP]}
-        spanDescription={span[SpanFields.SPAN_DESCRIPTION]}
+        spanOp={spanOp}
+        spanDescription={spanDescription}
       />
     );
   }
