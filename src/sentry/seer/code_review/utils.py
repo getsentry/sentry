@@ -6,7 +6,6 @@ import orjson
 from django.conf import settings
 from urllib3.exceptions import HTTPError
 
-from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
@@ -18,11 +17,10 @@ class ClientError(Exception):
     pass
 
 
+# These values need to match the value defined in the Seer API.
 class SeerEndpoint(StrEnum):
-    # XXX: We will need to either add a new one or re-use the overwatch-request endpoint.
     # https://github.com/getsentry/seer/blob/main/src/seer/routes/automation_request.py#L57
-    SENTRY_REQUEST = "/v1/automation/sentry-request"
-    # This needs to match the value defined in the Seer API:
+    OVERWATCH_REQUEST = "/v1/automation/overwatch-request"
     # https://github.com/getsentry/seer/blob/main/src/seer/routes/codegen.py
     PR_REVIEW_RERUN = "/v1/automation/codegen/pr-review/rerun"
 
@@ -58,8 +56,7 @@ def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:
 
 
 # XXX: Do a thorough review of this function and make sure it's correct.
-def _transform_webhook_to_codegen_request(
-    event_type: GithubWebhookType,
+def transform_webhook_to_codegen_request(
     event_payload: Mapping[str, Any],
     organization_id: int,
     repo: Repository,
@@ -68,7 +65,6 @@ def _transform_webhook_to_codegen_request(
     Transform a GitHub webhook payload into CodecovTaskRequest format for Seer.
 
     Args:
-        event_type: The type of GitHub webhook event
         event_payload: The full webhook event payload from GitHub
         organization_id: The Sentry organization ID
 
