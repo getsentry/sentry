@@ -868,49 +868,53 @@ function Visualize({error, setError}: VisualizeProps) {
                                 }}
                               />
                             )}
-                          <Button
-                            borderless
-                            icon={<IconDelete />}
-                            size="zero"
-                            disabled={
-                              fields.length <= 1 || !canDelete || isOnlyFieldOrAggregate
-                            }
-                            onClick={() => {
-                              dispatch({
-                                type: updateAction,
-                                payload: fields?.filter((_field, i) => i !== index) ?? [],
-                              });
-
-                              if (
-                                state.displayType === DisplayType.BIG_NUMBER &&
-                                selectedAggregateSet
-                              ) {
-                                // Unset the selected aggregate if it's the last one
-                                // so the state will automatically choose the last aggregate
-                                // as new fields are added
-                                if (state.selectedAggregate === fields.length - 1) {
-                                  dispatch({
-                                    type: BuilderStateAction.SET_SELECTED_AGGREGATE,
-                                    payload: undefined,
-                                  });
-                                }
+                          {(state.displayType !== DisplayType.BIG_NUMBER ||
+                            datasetConfig.enableEquations) && (
+                            <Button
+                              borderless
+                              icon={<IconDelete />}
+                              size="zero"
+                              disabled={
+                                fields.length <= 1 || !canDelete || isOnlyFieldOrAggregate
                               }
+                              onClick={() => {
+                                dispatch({
+                                  type: updateAction,
+                                  payload:
+                                    fields?.filter((_field, i) => i !== index) ?? [],
+                                });
 
-                              trackAnalytics('dashboards_views.widget_builder.change', {
-                                builder_version: WidgetBuilderVersion.SLIDEOUT,
-                                field:
-                                  field.kind === FieldValueKind.EQUATION
-                                    ? 'visualize.deleteEquation'
-                                    : 'visualize.deleteField',
-                                from: source,
-                                new_widget: !isEditing,
-                                value: '',
-                                widget_type: state.dataset ?? '',
-                                organization,
-                              });
-                            }}
-                            aria-label={t('Remove field')}
-                          />
+                                if (
+                                  state.displayType === DisplayType.BIG_NUMBER &&
+                                  selectedAggregateSet
+                                ) {
+                                  // Unset the selected aggregate if it's the last one
+                                  // so the state will automatically choose the last aggregate
+                                  // as new fields are added
+                                  if (state.selectedAggregate === fields.length - 1) {
+                                    dispatch({
+                                      type: BuilderStateAction.SET_SELECTED_AGGREGATE,
+                                      payload: undefined,
+                                    });
+                                  }
+                                }
+
+                                trackAnalytics('dashboards_views.widget_builder.change', {
+                                  builder_version: WidgetBuilderVersion.SLIDEOUT,
+                                  field:
+                                    field.kind === FieldValueKind.EQUATION
+                                      ? 'visualize.deleteEquation'
+                                      : 'visualize.deleteField',
+                                  from: source,
+                                  new_widget: !isEditing,
+                                  value: '',
+                                  widget_type: state.dataset ?? '',
+                                  organization,
+                                });
+                              }}
+                              aria-label={t('Remove field')}
+                            />
+                          )}
                         </FieldExtras>
                       </FieldRow>
                     )}
@@ -934,71 +938,75 @@ function Visualize({error, setError}: VisualizeProps) {
         </DndContext>
       </StyledFieldGroup>
 
-      <AddButtons>
-        <AddButton
-          priority="link"
-          disabled={disableTransactionWidget}
-          aria-label={
-            isChartWidget
-              ? t('Add Series')
+      {(isChartWidget ||
+        isTableWidget ||
+        (isBigNumberWidget && datasetConfig.enableEquations)) && (
+        <AddButtons>
+          <AddButton
+            priority="link"
+            disabled={disableTransactionWidget}
+            aria-label={
+              isChartWidget
+                ? t('Add Series')
+                : isBigNumberWidget
+                  ? t('Add Field')
+                  : t('Add Column')
+            }
+            onClick={() => {
+              dispatch({
+                type: updateAction,
+                payload: [...(fields ?? []), cloneDeep(defaultField)],
+              });
+
+              trackAnalytics('dashboards_views.widget_builder.change', {
+                builder_version: WidgetBuilderVersion.SLIDEOUT,
+                field: 'visualize.addField',
+                from: source,
+                new_widget: !isEditing,
+                value: '',
+                widget_type: state.dataset ?? '',
+                organization,
+              });
+            }}
+          >
+            {isChartWidget
+              ? t('+ Add Series')
               : isBigNumberWidget
-                ? t('Add Field')
-                : t('Add Column')
-          }
-          onClick={() => {
-            dispatch({
-              type: updateAction,
-              payload: [...(fields ?? []), cloneDeep(defaultField)],
-            });
+                ? t('+ Add Field')
+                : t('+ Add Column')}
+          </AddButton>
+          {datasetConfig.enableEquations &&
+            (state.dataset !== WidgetType.SPANS ||
+              (state.dataset === WidgetType.SPANS && hasExploreEquations)) && (
+              <AddButton
+                priority="link"
+                disabled={disableTransactionWidget}
+                aria-label={t('Add Equation')}
+                onClick={() => {
+                  dispatch({
+                    type: updateAction,
+                    payload: [
+                      ...(fields ?? []),
+                      {kind: FieldValueKind.EQUATION, field: ''},
+                    ],
+                  });
 
-            trackAnalytics('dashboards_views.widget_builder.change', {
-              builder_version: WidgetBuilderVersion.SLIDEOUT,
-              field: 'visualize.addField',
-              from: source,
-              new_widget: !isEditing,
-              value: '',
-              widget_type: state.dataset ?? '',
-              organization,
-            });
-          }}
-        >
-          {isChartWidget
-            ? t('+ Add Series')
-            : isBigNumberWidget
-              ? t('+ Add Field')
-              : t('+ Add Column')}
-        </AddButton>
-        {datasetConfig.enableEquations &&
-          (state.dataset !== WidgetType.SPANS ||
-            (state.dataset === WidgetType.SPANS && hasExploreEquations)) && (
-            <AddButton
-              priority="link"
-              disabled={disableTransactionWidget}
-              aria-label={t('Add Equation')}
-              onClick={() => {
-                dispatch({
-                  type: updateAction,
-                  payload: [
-                    ...(fields ?? []),
-                    {kind: FieldValueKind.EQUATION, field: ''},
-                  ],
-                });
-
-                trackAnalytics('dashboards_views.widget_builder.change', {
-                  builder_version: WidgetBuilderVersion.SLIDEOUT,
-                  field: 'visualize.addEquation',
-                  from: source,
-                  new_widget: !isEditing,
-                  value: '',
-                  widget_type: state.dataset ?? '',
-                  organization,
-                });
-              }}
-            >
-              {t('+ Add Equation')}
-            </AddButton>
-          )}
-      </AddButtons>
+                  trackAnalytics('dashboards_views.widget_builder.change', {
+                    builder_version: WidgetBuilderVersion.SLIDEOUT,
+                    field: 'visualize.addEquation',
+                    from: source,
+                    new_widget: !isEditing,
+                    value: '',
+                    widget_type: state.dataset ?? '',
+                    organization,
+                  });
+                }}
+              >
+                {t('+ Add Equation')}
+              </AddButton>
+            )}
+        </AddButtons>
+      )}
     </Fragment>
   );
 }
