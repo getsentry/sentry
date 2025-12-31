@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import {ErrorBoundary} from '@sentry/react';
 import {parseAsString, useQueryState} from 'nuqs';
 
+import {InlineCode} from '@sentry/scraps/code';
+
 import {Alert} from 'sentry/components/core/alert';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
@@ -194,7 +196,7 @@ function StoryUsage() {
           <ErrorBoundary
             fallback={
               <Alert variant="danger" showIcon={false}>
-                Problem loading <code>{filename}</code>
+                Problem loading <InlineCode>{filename}</InlineCode>
               </Alert>
             }
           >
