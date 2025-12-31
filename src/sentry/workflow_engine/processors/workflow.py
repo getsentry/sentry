@@ -534,10 +534,10 @@ def process_workflows(
     enqueue_workflows(batch_client, queue_items_by_workflow_id)
 
     actions = filter_recently_fired_workflow_actions(actions_to_trigger, event_data)
-
     sentry_sdk.set_tag("workflow_engine.triggered_actions", len(actions))
 
-    kick_off_service_hooks(event_data.event, len(actions) > 0)
+    if isinstance(event_data.event, GroupEvent):
+        kick_off_service_hooks(event_data.event, len(actions) > 0)
 
     workflow_evaluation_data.action_groups = actions_to_trigger
     workflow_evaluation_data.triggered_actions = set(actions)
