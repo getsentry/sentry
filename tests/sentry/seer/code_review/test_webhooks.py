@@ -719,13 +719,13 @@ class IssueCommentEventWebhookTest(GitHubWebhookHelper):
         }
         return orjson.dumps(event)
 
-    @patch("sentry.seer.code_review.webhooks.task._schedule_task")
+    @patch("sentry.seer.code_review.webhooks.task.schedule_task")
     def test_skips_when_code_review_not_enabled(self, mock_schedule: MagicMock) -> None:
         event = self._build_issue_comment_event(f"Please {SENTRY_REVIEW_COMMAND} this PR")
         self._send_issue_comment_event(event)
         mock_schedule.assert_not_called()
 
-    @patch("sentry.seer.code_review.webhooks.task._schedule_task")
+    @patch("sentry.seer.code_review.webhooks.task.schedule_task")
     @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
     def test_skips_when_no_review_command(self, mock_schedule: MagicMock) -> None:
         self._enable_code_review()
@@ -750,7 +750,7 @@ class IssueCommentEventWebhookTest(GitHubWebhookHelper):
         mock_seer.assert_called_once()
 
     @patch("sentry.seer.code_review.webhooks.issue_comment._add_eyes_reaction_to_comment")
-    @patch("sentry.seer.code_review.webhooks.task._schedule_task")
+    @patch("sentry.seer.code_review.webhooks.task.schedule_task")
     @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
     def test_skips_reaction_when_no_comment_id(
         self, mock_schedule: MagicMock, mock_reaction: MagicMock

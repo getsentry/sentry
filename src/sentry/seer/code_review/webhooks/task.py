@@ -42,7 +42,7 @@ def _call_seer_request(
     make_seer_request(path=SeerEndpoint.SENTRY_REQUEST.value, payload=event_payload)
 
 
-def _schedule_task(
+def schedule_task(
     github_event: GithubWebhookType,
     event: Mapping[str, Any],
     organization: Organization,
