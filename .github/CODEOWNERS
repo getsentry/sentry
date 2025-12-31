@@ -703,12 +703,12 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 ## End of Frontend Platform
 
 # Prevent
-/src/sentry/prevent/                                      @getsentry/prevent
-/src/sentry/overwatch/                                    @getsentry/prevent
-/src/sentry/overwatch_webhooks/                           @getsentry/prevent
-/static/app/components/prevent/                           @getsentry/prevent
-/static/app/views/prevent/                                @getsentry/prevent
-/static/app/views/nav/secondary/sections/prevent/         @getsentry/prevent
+/src/sentry/prevent/                                      @getsentry/coding-workflows
+/src/sentry/overwatch/                                    @getsentry/coding-workflows
+/src/sentry/overwatch_webhooks/                           @getsentry/coding-workflows
+/static/app/components/prevent/                           @getsentry/coding-workflows
+/static/app/views/prevent/                                @getsentry/coding-workflows
+/static/app/views/nav/secondary/sections/prevent/         @getsentry/coding-workflows
 # End of Prevent
 
 # Coding Workflows
