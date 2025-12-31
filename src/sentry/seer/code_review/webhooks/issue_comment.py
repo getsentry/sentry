@@ -105,15 +105,15 @@ def handle_issue_comment_event(
     if not is_pr_review_command(comment_body or ""):
         return
 
-    if comment_id:
-        if not options.get("github.webhook.issue-comment"):
+    if not options.get("github.webhook.issue-comment"):
+        if comment_id:
             _add_eyes_reaction_to_comment(integration, organization, repo, str(comment_id))
 
-    from .task import schedule_task
+        from .task import schedule_task
 
-    schedule_task(
-        github_event=github_event,
-        event=event,
-        organization=organization,
-        repo=repo,
-    )
+        schedule_task(
+            github_event=github_event,
+            event=event,
+            organization=organization,
+            repo=repo,
+        )

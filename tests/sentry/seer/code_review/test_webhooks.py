@@ -606,7 +606,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
     def test_pr_related_event_calls_correct_endpoint(
         self, mock_metrics: MagicMock, mock_request: MagicMock
     ) -> None:
-        """Test that PR-related events are sent to the sentry-request endpoint."""
+        """Test that PR-related events are sent to the overwatch-request endpoint."""
         import orjson
 
         mock_request.return_value = self._mock_response(200, b'{"run_id": 123}')
@@ -636,7 +636,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         mock_request.assert_called_once()
         call_args = mock_request.call_args
-        assert call_args[1]["path"] == "/v1/automation/sentry-request"
+        assert call_args[1]["path"] == "/v1/automation/overwatch-request"
         assert call_args[1]["body"] == orjson.dumps(event_payload)
 
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
@@ -644,7 +644,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
     def test_check_run_and_pr_events_processed_separately(
         self, mock_metrics: MagicMock, mock_request: MagicMock
     ) -> None:
-        """Test that CHECK_RUN events use rerun endpoint while PR events use sentry-request."""
+        """Test that CHECK_RUN events use rerun endpoint while PR events use overwatch-request."""
         mock_request.return_value = self._mock_response(200, b"{}")
 
         process_github_webhook_event._func(
@@ -674,7 +674,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         assert mock_request.call_count == 1
         pr_call = mock_request.call_args
-        assert pr_call[1]["path"] == "/v1/automation/sentry-request"
+        assert pr_call[1]["path"] == "/v1/automation/overwatch-request"
 
 
 class TestIsPrReviewCommand:
@@ -756,11 +756,27 @@ class IssueCommentEventWebhookTest(GitHubWebhookHelper):
         self, mock_schedule: MagicMock, mock_reaction: MagicMock
     ) -> None:
         self._enable_code_review()
-        event = self._build_issue_comment_event(SENTRY_REVIEW_COMMAND, comment_id=None)
-        self._send_issue_comment_event(event)
+        with self.options({"github.webhook.issue-comment": False}):
+            event = self._build_issue_comment_event(SENTRY_REVIEW_COMMAND, comment_id=None)
+            self._send_issue_comment_event(event)
 
         mock_reaction.assert_not_called()
         mock_schedule.assert_called_once()
+
+    @patch("sentry.seer.code_review.webhooks.issue_comment._add_eyes_reaction_to_comment")
+    @patch("sentry.seer.code_review.webhooks.task.schedule_task")
+    @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
+    def test_skips_processing_when_option_is_true(
+        self, mock_schedule: MagicMock, mock_reaction: MagicMock
+    ) -> None:
+        """Test that when github.webhook.issue-comment option is True (default), no processing occurs."""
+        self._enable_code_review()
+        with self.options({"github.webhook.issue-comment": True}):
+            event = self._build_issue_comment_event(f"Please {SENTRY_REVIEW_COMMAND} this PR")
+            self._send_issue_comment_event(event)
+
+        mock_reaction.assert_not_called()
+        mock_schedule.assert_not_called()
 
 
 class AddEyesReactionTest(TestCase):
