@@ -22,7 +22,31 @@ const DOMAIN_WIDGET: Widget = {
   displayType: DisplayType.DETAILS,
   widgetType: WidgetType.SPANS,
   interval: '5m',
-  queries: [],
+  queries: [
+    {
+      name: '',
+      fields: [
+        SpanFields.ID,
+        SpanFields.SPAN_OP,
+        SpanFields.SPAN_GROUP,
+        SpanFields.SPAN_DESCRIPTION,
+        SpanFields.SPAN_CATEGORY,
+      ],
+      aggregates: [],
+      columns: [
+        SpanFields.ID,
+        SpanFields.SPAN_OP,
+        SpanFields.SPAN_GROUP,
+        SpanFields.SPAN_DESCRIPTION,
+        SpanFields.SPAN_CATEGORY,
+      ],
+      fieldAliases: [],
+      conditions: FILTER_STRING,
+      orderby: SpanFields.ID,
+      onDemand: [],
+      linkedDashboards: [],
+    },
+  ],
   layout: {
     x: 0,
     y: 0,
