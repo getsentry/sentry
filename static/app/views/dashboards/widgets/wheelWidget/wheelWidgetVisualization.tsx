@@ -1,6 +1,8 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
@@ -46,7 +48,7 @@ export function WheelWidgetVisualization({
   return (
     <Container>
       <PerformanceScoreSubtext>{performanceScoreSubtext}</PerformanceScoreSubtext>
-      <Centered>
+      <Flex justify="center" align="center">
         <PerformanceScoreRingWithTooltips
           projectScore={projectScore}
           text={score}
@@ -55,16 +57,10 @@ export function WheelWidgetVisualization({
           ringBackgroundColors={ringBackgroundColors}
           ringSegmentColors={ringSegmentColors}
         />
-      </Centered>
+      </Flex>
     </Container>
   );
 }
-
-const Centered = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-`;
 
 const Container = styled('div')`
   padding: 0 ${space(2)};

@@ -678,7 +678,9 @@ function BigNumberComponent({
         type={meta.fields?.[field] ?? null}
         unit={(meta.units?.[field] as DataUnit) ?? null}
         thresholds={widget.thresholds ?? undefined}
-        preferredPolarity="-"
+        // TODO: preferredPolarity has been added to ThresholdsConfig as a property,
+        // we should remove this prop fromBigNumberWidgetVisualization
+        preferredPolarity={widget.thresholds?.preferredPolarity ?? '-'}
       />
     );
   });
@@ -793,7 +795,7 @@ function LoadingScreen({
 const LoadingPlaceholder = styled(({className}: PlaceholderProps) => (
   <Placeholder height="200px" className={className} />
 ))`
-  background-color: ${p => p.theme.surface300};
+  background-color: ${p => p.theme.colors.surface400};
 `;
 
 const BigNumberResizeWrapper = styled('div')<{noPadding?: boolean}>`

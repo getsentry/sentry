@@ -275,7 +275,7 @@ const ClearPasswordButton = styled(Button)`
   right: ${space(0.75)};
   transform: translateY(-50%);
   svg {
-    color: ${p => p.theme.gray400};
+    color: ${p => p.theme.colors.gray500};
     :hover {
       color: hsl(0, 0%, 60%);
     }

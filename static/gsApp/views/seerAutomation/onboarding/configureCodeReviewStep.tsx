@@ -15,7 +15,10 @@ import {
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
+import {DEFAULT_CODE_REVIEW_TRIGGERS} from 'sentry/types/integrations';
+import useOrganization from 'sentry/utils/useOrganization';
 
+import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {useSeerOnboardingContext} from 'getsentry/views/seerAutomation/onboarding/hooks/seerOnboardingContext';
 import {useBulkUpdateRepositorySettings} from 'getsentry/views/seerAutomation/onboarding/hooks/useBulkUpdateRepositorySettings';
 
@@ -24,13 +27,9 @@ import {RepositorySelector} from './repositorySelector';
 
 // This is the max # of repos that we will allow to be pre-selected.
 const MAX_REPOSITORIES_TO_PRESELECT = 10;
-const DEFAULT_CODE_REVIEW_TRIGGERS = [
-  'on_command_phrase',
-  'on_new_commit',
-  'on_ready_for_review',
-];
 
 export function ConfigureCodeReviewStep() {
+  const organization = useOrganization();
   const {currentStep, setCurrentStep} = useGuidedStepsContext();
   const {
     clearRootCauseAnalysisRepositories,
@@ -109,7 +108,15 @@ export function ConfigureCodeReviewStep() {
           // the user will have an overwhelming number of repositories to map.
           clearRootCauseAnalysisRepositories();
         }
+
         addSuccessMessage(t('AI Code Review settings updated successfully'));
+
+        trackGetsentryAnalytics('seer.onboarding.code_review_updated', {
+          organization,
+          added_repositories: selectedCodeReviewRepositories.length,
+          removed_repositories: existingRepostoriesToRemove.length,
+        });
+
         setCurrentStep(currentStep + 1);
       })
       .catch(() => {
@@ -124,6 +131,7 @@ export function ConfigureCodeReviewStep() {
     currentStep,
     setCurrentStep,
     updateRepositorySettings,
+    organization,
   ]);
 
   return (

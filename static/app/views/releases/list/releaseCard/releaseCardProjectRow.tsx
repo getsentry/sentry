@@ -134,7 +134,9 @@ function ReleaseCardProjectRow({
                     },
                   }}
                 >
-                  <Tag type={adoptionStageLabel.type}>{adoptionStageLabel.name}</Tag>
+                  <Tag variant={adoptionStageLabel.variant}>
+                    {adoptionStageLabel.name}
+                  </Tag>
                 </Link>
               </Tooltip>
             ) : (
@@ -164,7 +166,7 @@ function ReleaseCardProjectRow({
 
                     return `${value.toLocaleString()} ${suffix}`;
                   }}
-                  colors={[theme.purple300, theme.gray200]}
+                  colors={[theme.colors.blue400, theme.colors.gray200]}
                 />
               </LazyLoad>
             </AdoptionWrapper>

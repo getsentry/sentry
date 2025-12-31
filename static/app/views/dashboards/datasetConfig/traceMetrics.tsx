@@ -1,8 +1,9 @@
+import type {ReactNode} from 'react';
 import pickBy from 'lodash/pickBy';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {ApiResult, Client} from 'sentry/api';
-import type {PageFilters, SelectValue} from 'sentry/types/core';
+import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
@@ -36,6 +37,7 @@ import {
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceItemAttributesWithConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
 import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -82,9 +84,17 @@ function TraceMetricsSearchBar({
   };
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'string');
+    useTraceItemAttributesWithConfig(
+      traceItemAttributeConfig,
+      'string',
+      HiddenTraceMetricSearchFields
+    );
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number');
+    useTraceItemAttributesWithConfig(
+      traceItemAttributeConfig,
+      'number',
+      HiddenTraceMetricSearchFields
+    );
 
   return (
     <TraceItemSearchQueryBuilder
@@ -145,12 +155,15 @@ function useTraceMetricsSearchBarDataProvider(
   };
 }
 
-function prettifySortOption(option: SelectValue<string>) {
-  const parsedFunction = parseFunction(option.value);
+export function formatTraceMetricsFunction(
+  valueToParse: string,
+  defaultValue: string | ReactNode = ''
+) {
+  const parsedFunction = parseFunction(valueToParse);
   if (parsedFunction) {
     return `${parsedFunction.name}(${parsedFunction.arguments[1] ?? '…'})`;
   }
-  return option.label;
+  return defaultValue;
 }
 
 export const TraceMetricsConfig: DatasetConfig<EventsTimeSeriesResponse, never> = {
@@ -167,7 +180,7 @@ export const TraceMetricsConfig: DatasetConfig<EventsTimeSeriesResponse, never> 
   // we only want to allow sorting by selected aggregates.
   getTableSortOptions: (organization, widgetQuery) =>
     getTableSortOptions(organization, widgetQuery).map(option => ({
-      label: prettifySortOption(option),
+      label: formatTraceMetricsFunction(option.value, option.label),
       value: option.value,
     })),
   getGroupByFieldOptions,
@@ -182,7 +195,7 @@ export const TraceMetricsConfig: DatasetConfig<EventsTimeSeriesResponse, never> 
       }
       return {
         data: timeSeries.values.map(value => ({
-          name: value.timestamp / 1000, // Account for microseconds to milliseconds precision
+          name: value.timestamp,
           value: value.value ?? 0,
         })),
         seriesName: formatTimeSeriesLabel(timeSeries),

@@ -1,6 +1,8 @@
 import {useEffect, useState, type ChangeEvent} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -128,12 +130,12 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
     <SelectedRepoContainer>
       <SelectedRepoHeader role="button" onClick={toggleExpanded}>
         <InteractionStateLayer />
-        <RepoNameAndExpandToggle>
+        <Flex align="center">
           <StyledIconExpandToggle direction={isExpanded ? 'up' : 'down'} size="xs" />
           <RepoInfoWrapper>
             <RepoName>{repo.name}</RepoName>
           </RepoInfoWrapper>
-        </RepoNameAndExpandToggle>
+        </Flex>
         <RepoProvider>{repo.provider?.name || t('Unknown Provider')}</RepoProvider>
       </SelectedRepoHeader>
       {isExpanded && (
@@ -395,16 +397,11 @@ const StyledTextArea = styled(TextArea)`
 `;
 
 const ClearButton = styled(Button)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.colors.gray400};
 
   &:hover {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.colors.gray800};
   }
-`;
-
-const RepoNameAndExpandToggle = styled('div')`
-  display: flex;
-  align-items: center;
 `;
 
 const StyledIconExpandToggle = styled(IconExpandToggle)`

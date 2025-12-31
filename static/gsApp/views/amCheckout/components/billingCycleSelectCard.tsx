@@ -97,7 +97,7 @@ function BillingCycleSelectCard({
               <Heading as="h3" variant="primary">
                 {intervalName}
               </Heading>
-              {isAnnual && <Tag type="promotion">{t('save 10%')}</Tag>}
+              {isAnnual && <Tag variant="promotion">{t('save 10%')}</Tag>}
             </Flex>
             <Flex align="center" gap="xs">
               {formattedPriceBeforeDiscount && (
