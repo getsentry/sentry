@@ -6,6 +6,7 @@ import orjson
 from django.conf import settings
 from urllib3.exceptions import HTTPError
 
+from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
@@ -58,7 +59,7 @@ def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:
 
 # XXX: Do a thorough review of this function and make sure it's correct.
 def _transform_webhook_to_codegen_request(
-    event_type: str,
+    event_type: GithubWebhookType,
     event_payload: Mapping[str, Any],
     organization_id: int,
     repo: Repository,
