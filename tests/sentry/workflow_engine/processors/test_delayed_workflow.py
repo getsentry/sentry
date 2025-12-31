@@ -1,6 +1,6 @@
 from dataclasses import asdict
 from datetime import datetime, timedelta
-from unittest.mock import ANY, MagicMock, Mock, patch
+from unittest.mock import ANY, MagicMock, Mock, call, patch
 
 import pytest
 from django.utils import timezone
@@ -1036,6 +1036,43 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
             group_id=self.group1.id,
             event_id=self.event1.event_id,
         ).exists()
+
+    @with_feature("projects:servicehooks")
+    @patch("sentry.sentry_apps.tasks.service_hooks.process_service_hook")
+    def test_fire_actions_for_groups__service_hooks(
+        self, mock_process_service_hook: MagicMock
+    ) -> None:
+        hook = self.create_service_hook(
+            project=self.project,
+            organization=self.project.organization,
+            actor=self.user,
+            events=["event.alert"],
+        )
+
+        fire_actions_for_groups(
+            self.project.organization,
+            self.groups_to_dcgs,
+            self.group_to_groupevent,
+        )
+
+        assert mock_process_service_hook.delay.call_count == 2
+
+        mock_process_service_hook.delay.assert_has_calls(
+            [
+                call(
+                    servicehook_id=hook.id,
+                    project_id=self.project.id,
+                    group_id=self.group1.id,
+                    event_id=self.event1.event_id,
+                ),
+                call(
+                    servicehook_id=hook.id,
+                    project_id=self.project.id,
+                    group_id=self.group2.id,
+                    event_id=self.event2.event_id,
+                ),
+            ]
+        )
 
 
 class TestCleanupRedisBuffer(TestDelayedWorkflowBase):

@@ -395,6 +395,60 @@ class TestProcessWorkflows(BaseWorkflowTest):
         assert result.data.triggered_workflows == {self.error_workflow, issue_stream_workflow}
         assert result.data.associated_detector == self.error_detector
 
+    @with_feature("projects:servicehooks")
+    @patch("sentry.sentry_apps.tasks.service_hooks.process_service_hook")
+    def test_service_hooks_event_alert(self, mock_process_service_hook: MagicMock) -> None:
+        hook = self.create_service_hook(
+            project=self.project,
+            organization=self.project.organization,
+            actor=self.user,
+            events=["event.alert"],
+        )
+        project2 = self.create_project(organization=self.organization)
+        self.create_service_hook(
+            project=project2,
+            organization=self.project.organization,
+            actor=self.user,
+            events=["event.alert"],
+        )
+
+        self.create_workflow_action(workflow=self.error_workflow)
+
+        process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
+
+        mock_process_service_hook.delay.assert_called_once_with(
+            servicehook_id=hook.id,
+            project_id=self.project.id,
+            group_id=self.group.id,
+            event_id=self.event.event_id,
+        )
+
+    @with_feature("projects:servicehooks")
+    @patch("sentry.sentry_apps.tasks.service_hooks.process_service_hook")
+    def test_service_hooks_event_created(self, mock_process_service_hook: MagicMock) -> None:
+        hook = self.create_service_hook(
+            project=self.project,
+            organization=self.project.organization,
+            actor=self.user,
+            events=["event.created"],
+        )
+        self.create_service_hook(
+            project=self.project,
+            organization=self.project.organization,
+            actor=self.user,
+            events=["event.alert"],
+        )
+
+        process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
+
+        # no actions to fire, only event.created service hook fired
+        mock_process_service_hook.delay.assert_called_once_with(
+            servicehook_id=hook.id,
+            project_id=self.project.id,
+            group_id=self.group.id,
+            event_id=self.event.event_id,
+        )
+
 
 class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
     def setUp(self) -> None:

@@ -11,6 +11,7 @@ from django.db.models import Q
 from sentry import features
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
+from sentry.sentry_apps.tasks.service_hooks import kick_off_service_hooks
 from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient, DelayedWorkflowItem
 from sentry.workflow_engine.models import (
@@ -533,7 +534,10 @@ def process_workflows(
     enqueue_workflows(batch_client, queue_items_by_workflow_id)
 
     actions = filter_recently_fired_workflow_actions(actions_to_trigger, event_data)
+
     sentry_sdk.set_tag("workflow_engine.triggered_actions", len(actions))
+
+    kick_off_service_hooks(event_data.event, len(actions) > 0)
 
     workflow_evaluation_data.action_groups = actions_to_trigger
     workflow_evaluation_data.triggered_actions = set(actions)
