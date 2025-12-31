@@ -13,12 +13,10 @@ export interface OverlayArrowProps extends React.ComponentPropsWithRef<'div'> {
   strokeWidth?: number;
 }
 
-export const OverlayArrow = ChonkOverlayArrow;
-
 const sizeRatio = 0.5;
 const heightRatio = 0.3;
 
-function ChonkOverlayArrow({
+export function OverlayArrow({
   placement,
   ref,
   size = 16,
@@ -32,7 +30,7 @@ function ChonkOverlayArrow({
   const topOffset = placement?.startsWith('top') ? 3 : 1;
 
   return (
-    <ChonkWrap dimensions={size} ref={ref} placement={placement} {...props}>
+    <OverlayArrowWrap dimensions={size} ref={ref} placement={placement} {...props}>
       <svg
         viewBox={`0 0 ${size} ${size * sizeRatio}`}
         fill="none"
@@ -70,11 +68,11 @@ function ChonkOverlayArrow({
           }
         />
       </svg>
-    </ChonkWrap>
+    </OverlayArrowWrap>
   );
 }
 
-const ChonkWrap = styled('div')<{
+const OverlayArrowWrap = styled('div')<{
   dimensions: number;
   placement?: PopperProps<any>['placement'];
 }>`

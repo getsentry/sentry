@@ -44,8 +44,6 @@ function InnerFeatureBadge({type, tooltipProps, ...props}: FeatureBadgeProps) {
  */
 export const FeatureBadge = styled(InnerFeatureBadge)``;
 
-const ChonkStyledBadge = styled(Badge)`
+const StyledBadge = styled(Badge)`
   text-transform: capitalize;
 `;
-
-const StyledBadge = ChonkStyledBadge;
