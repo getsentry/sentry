@@ -133,7 +133,7 @@ function ReferenceResource(props: {items: Record<string, string>}) {
         </ul>
       </td>
       <td>
-        <Badge type="internal">Reference</Badge>
+        <Badge variant="internal">Reference</Badge>
       </td>
     </tr>
   );
