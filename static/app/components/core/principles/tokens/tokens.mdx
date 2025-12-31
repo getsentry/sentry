@@ -31,6 +31,25 @@ One **exception** is low-level `core` components maintained by the **Design Engi
 
 # Color
 
+Scraps uses **semantic color tokens** to describe *intent*, not pigment. They encode meaning like hierarchy, emphasis, and state so your UI survives theme changes, accessibility tweaks, and future rebrands without a mass refactor.
+
+Raw color values (`red400`, `blue500`, etc.) hard-code appearance. Semantic tokens (`background.surface.overlay`) let the system decide *what color is correct* for that role.
+
+The result is more consistent UI, fewer bugs, and significantly fewer “wait, was this supposed to use 400 or 500?” questions.
+
+
+```
+// ❌ Do not use use color values
+const Component = styled('span')`
+  background-color: ${p => p.theme.colors.red400}
+`
+
+// ✅ Prefer use of semantic tokens
+const Component = styled('span')`
+  background-color: ${p => p.theme.tokens.background.surface.overlay}
+`
+```
+
 ## Categories
 
 Colors have been organized into separate scales for specific use cases.
