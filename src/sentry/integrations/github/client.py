@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
+from enum import StrEnum
 from typing import Any, TypedDict
 
 import orjson
@@ -57,6 +58,21 @@ class GithubRateLimitInfo:
 
     def __repr__(self) -> str:
         return f"GithubRateLimitInfo(limit={self.limit},rem={self.remaining},reset={self.reset})"
+
+
+class GitHubReaction(StrEnum):
+    """
+    https://docs.github.com/en/rest/reactions/reactions#about-reactions
+    """
+
+    PLUS_ONE = "+1"
+    MINUS_ONE = "-1"
+    LAUGH = "laugh"
+    CONFUSED = "confused"
+    HEART = "heart"
+    HOORAY = "hooray"
+    ROCKET = "rocket"
+    EYES = "eyes"
 
 
 class GithubSetupApiClient(IntegrationProxyClient):
@@ -584,6 +600,18 @@ class GitHubBaseClient(
         reactions = response.get("reactions", {})
         reactions.pop("url", None)
         return reactions
+
+    def create_comment_reaction(self, repo: str, comment_id: str, reaction: GitHubReaction) -> Any:
+        """
+        https://docs.github.com/en/rest/reactions/reactions#create-reaction-for-an-issue-comment
+
+        Args:
+            repo: Repository name in "owner/repo" format
+            comment_id: The ID of the comment
+            reaction: The reaction type
+        """
+        endpoint = f"/repos/{repo}/issues/comments/{comment_id}/reactions"
+        return self.post(endpoint, data={"content": reaction.value})
 
     def get_user(self, gh_username: str) -> Any:
         """
