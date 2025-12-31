@@ -42,44 +42,42 @@ Toasts come in four types, each serving a different purpose:
 - **undo**: Provides an undo action for reversible operations
 
 <Storybook.Demo>
-  <Storybook.SideBySide>
-    <Toast
-      indicator={{
-        type: 'success',
-        message: 'Operation completed successfully',
-        id: 'success',
-        options: {},
-      }}
-      onDismiss={() => {}}
-    />
-    <Toast
-      indicator={{
-        type: 'error',
-        message: 'An error occurred',
-        id: 'error',
-        options: {},
-      }}
-      onDismiss={() => {}}
-    />
-    <Toast
-      indicator={{
-        type: 'loading',
-        message: 'Processing...',
-        id: 'loading',
-        options: {},
-      }}
-      onDismiss={() => {}}
-    />
-    <Toast
-      indicator={{
-        type: 'undo',
-        message: 'Item deleted',
-        id: 'undo',
-        options: {},
-      }}
-      onDismiss={() => {}}
-    />
-  </Storybook.SideBySide>
+  <Toast
+    indicator={{
+      type: 'success',
+      message: 'Operation completed successfully',
+      id: 'success',
+      options: {},
+    }}
+    onDismiss={() => {}}
+  />
+  <Toast
+    indicator={{
+      type: 'error',
+      message: 'An error occurred',
+      id: 'error',
+      options: {},
+    }}
+    onDismiss={() => {}}
+  />
+  <Toast
+    indicator={{
+      type: 'loading',
+      message: 'Processing...',
+      id: 'loading',
+      options: {},
+    }}
+    onDismiss={() => {}}
+  />
+  <Toast
+    indicator={{
+      type: 'undo',
+      message: 'Item deleted',
+      id: 'undo',
+      options: {},
+    }}
+    onDismiss={() => {}}
+  />
 </Storybook.Demo>
 
 ```jsx
