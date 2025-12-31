@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 METRICS_PREFIX = "seer.code_review.webhook"
 
 
-EVENT_TYPE_TO_handler: dict[GithubWebhookType, WebhookProcessor] = {
+EVENT_TYPE_TO_HANDLER: dict[GithubWebhookType, WebhookProcessor] = {
     GithubWebhookType.CHECK_RUN: handle_check_run_event,
     GithubWebhookType.ISSUE_COMMENT: handle_issue_comment_event,
 }
@@ -43,7 +43,7 @@ def handle_webhook_event(
         repo: The repository that the webhook event is for
         **kwargs: Additional keyword arguments including integration
     """
-    handler = EVENT_TYPE_TO_handler.get(github_event)
+    handler = EVENT_TYPE_TO_HANDLER.get(github_event)
     if handler is None:
         logger.warning(
             "github.webhook.handler.not_found",
@@ -58,8 +58,3 @@ def handle_webhook_event(
         repo=repo,
         **kwargs,
     )
-
-
-# Type checks to ensure the functions match WebhookProcessor protocol
-_type_checked_handle_issue_comment_event: WebhookProcessor = handle_issue_comment_event
-_type_checked_handle_check_run_event: WebhookProcessor = handle_check_run_event

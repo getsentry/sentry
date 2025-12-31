@@ -166,8 +166,8 @@ class GitHubWebhook(SCMWebhook, ABC):
     def _handle(
         self,
         github_event: GithubWebhookType,
-        integration: RpcIntegration,
         event: Mapping[str, Any],
+        integration: RpcIntegration,
         organization: Organization,
         repo: Repository,
         **kwargs: Any,
@@ -177,9 +177,9 @@ class GitHubWebhook(SCMWebhook, ABC):
                 processor(
                     github_event=github_event,
                     event=event,
+                    integration=integration,
                     organization=organization,
                     repo=repo,
-                    integration=integration,
                     **kwargs,
                 )
             except Exception as e:
