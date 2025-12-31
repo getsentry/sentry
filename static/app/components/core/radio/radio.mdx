@@ -1,0 +1,280 @@
+---
+title: Radio
+description: A radio button component for selecting a single option from a set of mutually exclusive choices.
+source: 'sentry/components/core/radio'
+resources:
+  figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=384-2119&t=DdXZ7WIgTdURJlRv-4
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/radio/index.tsx
+  a11y:
+    WCAG 2.1.1: https://www.w3.org/TR/WCAG22/#keyboard
+    WCAG 2.4.7: https://www.w3.org/TR/WCAG22/#focus-visible
+    WCAG 3.3.2: https://www.w3.org/TR/WCAG22/#labels-or-instructions
+    WAI-ARIA Radio: https://www.w3.org/WAI/ARIA/apg/patterns/radio/
+---
+
+import {useState} from 'react';
+
+import {Flex} from '@sentry/scraps/layout';
+import {Radio} from '@sentry/scraps/radio';
+
+import * as Storybook from 'sentry/stories';
+
+import documentation from '!!type-loader!@sentry/scraps/radio';
+
+export {documentation};
+
+`<Radio>` is a radio button component for selecting a single option from a set of mutually exclusive choices. Radio buttons should always be used in groups where only one option can be selected at a time.
+
+Use `<Radio>` for forms and settings where users must choose exactly one option from multiple choices. For independent binary choices, use `<Checkbox>` or `<Switch>` instead.
+
+```jsx
+<label>
+  <Radio checked={value === 'option1'} onChange={() => setValue('option1')} />
+  Option 1
+</label>
+```
+
+## Sizes
+
+`<Radio>` comes in two sizes: `md` (default) and `sm` (small).
+
+export function SizesDemo() {
+  const [md, setMd] = useState(true);
+  const [sm, setSm] = useState(true);
+  return (
+    <Storybook.SideBySide>
+      <Flex as="label" align="center" gap="sm">
+        Medium (default)
+        <Radio checked={md} onClick={() => setMd(!md)} />
+      </Flex>
+      <Flex as="label" align="center" gap="sm">
+        Small
+        <Radio size="sm" checked={sm} onClick={() => setSm(!sm)} />
+      </Flex>
+    </Storybook.SideBySide>
+  );
+}
+
+<Storybook.Demo>
+  <SizesDemo />
+</Storybook.Demo>
+
+```jsx
+<Radio checked={checked} onChange={handleChange} />
+<Radio size="sm" checked={checked} onChange={handleChange} />
+```
+
+## States
+
+Radio buttons support checked, unchecked, and disabled states.
+
+export function StatesDemo() {
+  const [checked, setChecked] = useState(true);
+  const [unchecked, setUnchecked] = useState(false);
+  return (
+    <Storybook.SideBySide>
+      <Flex as="label" align="center" gap="sm">
+        Checked
+        <Radio checked={checked} onClick={() => setChecked(!checked)} />
+      </Flex>
+      <Flex as="label" align="center" gap="sm">
+        Unchecked
+        <Radio checked={unchecked} onClick={() => setUnchecked(!unchecked)} />
+      </Flex>
+      <Flex as="label" align="center" gap="sm">
+        Disabled (unchecked)
+        <Radio checked={false} disabled onClick={() => {}} />
+      </Flex>
+      <Flex as="label" align="center" gap="sm">
+        Disabled (checked)
+        <Radio checked disabled onClick={() => {}} />
+      </Flex>
+    </Storybook.SideBySide>
+  );
+}
+
+<Storybook.Demo>
+  <StatesDemo />
+</Storybook.Demo>
+
+```jsx
+<Radio checked={true} onChange={handleChange} />
+<Radio checked={false} onChange={handleChange} />
+<Radio checked={false} disabled />
+<Radio checked={true} disabled />
+```
+
+## Radio Groups
+
+Radio buttons should always be used in groups with a shared `name` attribute. Manage the selected value in state and update it when any radio changes.
+
+export function GroupDemo() {
+  const [selected, setSelected] = useState('option2');
+  return (
+    <div role="radiogroup" aria-label="Choose an option">
+      <Flex as="label" align="center" gap="sm">
+        <Radio
+          name="example"
+          checked={selected === 'option1'}
+          onChange={() => setSelected('option1')}
+        />
+        Option 1
+      </Flex>
+      <Flex as="label" align="center" gap="sm">
+        <Radio
+          name="example"
+          checked={selected === 'option2'}
+          onChange={() => setSelected('option2')}
+        />
+        Option 2
+      </Flex>
+      <Flex as="label" align="center" gap="sm">
+        <Radio
+          name="example"
+          checked={selected === 'option3'}
+          onChange={() => setSelected('option3')}
+        />
+        Option 3
+      </Flex>
+      <p>Selected: {selected}</p>
+    </div>
+  );
+}
+
+<Storybook.Demo>
+  <GroupDemo />
+</Storybook.Demo>
+
+```jsx
+const [selected, setSelected] = useState('option2');
+
+<div role="radiogroup" aria-label="Choose an option">
+  <label>
+    <Radio
+      name="group"
+      checked={selected === 'option1'}
+      onChange={() => setSelected('option1')}
+    />
+    Option 1
+  </label>
+  <label>
+    <Radio
+      name="group"
+      checked={selected === 'option2'}
+      onChange={() => setSelected('option2')}
+    />
+    Option 2
+  </label>
+</div>;
+```
+
+## Usage Patterns
+
+### Form Fields
+
+Use radio groups for mutually exclusive form options:
+
+```jsx
+<fieldset>
+  <legend>Deployment Environment</legend>
+  <label>
+    <Radio name="environment" checked={env === 'prod'} onChange={() => setEnv('prod')} />
+    Production
+  </label>
+  <label>
+    <Radio
+      name="environment"
+      checked={env === 'staging'}
+      onChange={() => setEnv('staging')}
+    />
+    Staging
+  </label>
+  <label>
+    <Radio name="environment" checked={env === 'dev'} onChange={() => setEnv('dev')} />
+    Development
+  </label>
+</fieldset>
+```
+
+### Settings Choices
+
+Use for settings where only one option can be active:
+
+```jsx
+<div>
+  <h4>Notification Frequency</h4>
+  <label>
+    <Radio checked={freq === 'realtime'} onChange={() => setFreq('realtime')} />
+    Real-time
+  </label>
+  <label>
+    <Radio checked={freq === 'daily'} onChange={() => setFreq('daily')} />
+    Daily digest
+  </label>
+  <label>
+    <Radio checked={freq === 'weekly'} onChange={() => setFreq('weekly')} />
+    Weekly digest
+  </label>
+</div>
+```
+
+## Accessibility
+
+`<Radio>` follows the [WAI-ARIA Radio pattern](https://www.w3.org/WAI/ARIA/apg/patterns/radio/) and meets WCAG 2.2 AA standards:
+
+- [2.1.1 Keyboard](https://www.w3.org/TR/WCAG22/#keyboard): Keyboard accessible
+- [2.4.7 Focus Visible](https://www.w3.org/TR/WCAG22/#focus-visible): Clear focus indicators
+
+The component automatically provides proper native radio button behavior.
+
+### Developer Responsibilities
+
+**Labels** ([WCAG 3.3.2](https://www.w3.org/TR/WCAG22/#labels-or-instructions))
+
+- Every radio button must have an associated label
+- Use a `<label>` element wrapping both the radio and text
+- Or use `aria-label` if no visible label
+
+```jsx
+// Good: Wrapping label
+<label>
+  <Radio checked={selected === 'a'} onChange={handleChange} />
+  Option A
+</label>
+
+// Good: aria-label
+<Radio checked={selected === 'a'} onChange={handleChange} aria-label="Option A" />
+```
+
+**Radio Groups**
+
+- Always group related radio buttons
+- Use `role="radiogroup"` on the container
+- Provide `aria-label` or `aria-labelledby` for the group
+- Use the same `name` attribute for all radios in a group
+
+```jsx
+<div role="radiogroup" aria-label="Choose a plan">
+  <label>
+    <Radio name="plan" checked={plan === 'basic'} onChange={() => setPlan('basic')} />
+    Basic
+  </label>
+  <label>
+    <Radio name="plan" checked={plan === 'pro'} onChange={() => setPlan('pro')} />
+    Pro
+  </label>
+</div>
+```
+
+**Keyboard Navigation**
+
+- **Tab**: Move focus to/from the radio group
+- **Arrow Keys**: Navigate between radio buttons in a group
+- **Space**: Select the focused radio button
+
+**Required Fields**
+
+- Mark required radio groups visually and with `required` attribute
+- Provide clear validation feedback if no option is selected
+
+For more information, see the [WAI-ARIA Radio practices](https://www.w3.org/WAI/ARIA/apg/patterns/radio/).
