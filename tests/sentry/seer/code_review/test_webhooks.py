@@ -710,10 +710,11 @@ class IssueCommentEventWebhookTest(GitHubWebhookHelper):
         self, mock_create_reaction: MagicMock, mock_seer: MagicMock
     ) -> None:
         self._enable_code_review()
-        event = self._build_issue_comment_event(f"Please {SENTRY_REVIEW_COMMAND} this PR")
+        with self.options({"github.webhook.issue-comment": False}):
+            event = self._build_issue_comment_event(f"Please {SENTRY_REVIEW_COMMAND} this PR")
 
-        with self.tasks():
-            self._send_issue_comment_event(event)
+            with self.tasks():
+                self._send_issue_comment_event(event)
 
         mock_create_reaction.assert_called_once()
         mock_seer.assert_called_once()

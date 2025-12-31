@@ -105,7 +105,7 @@ def handle_issue_comment_event(
         return
 
     if comment_id:
-        if options.get("github.webhook.issue-comment"):
+        if not options.get("github.webhook.issue-comment"):
             _add_eyes_reaction_to_comment(integration, organization, repo, str(comment_id))
 
     # Import here to avoid circular dependency with handlers
