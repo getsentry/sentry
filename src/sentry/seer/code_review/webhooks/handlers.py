@@ -13,6 +13,7 @@ from sentry.utils import metrics
 if TYPE_CHECKING:
     from sentry.integrations.github.webhook import WebhookProcessor
 
+from ..preflight import CodeReviewPreflightService
 from ..utils import _transform_webhook_to_codegen_request
 from .check_run import handle_check_run_event
 
@@ -33,6 +34,14 @@ def handle_other_webhook_event(
     Each webhook event type may implement its own handler.
     This is a generic handler for non-PR-related events (e.g., issue_comment on regular issues).
     """
+    preflight = CodeReviewPreflightService(organization, repo).check()
+    if not preflight.allowed:
+        metrics.incr(
+            f"{METRICS_PREFIX}.{event_type}.skipped",
+            tags={"reason": preflight.denial_reason, "event_type": event_type},
+        )
+        return
+
     from .task import process_github_webhook_event
 
     event_type_enum = EventType.from_string(event_type)

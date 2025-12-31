@@ -18,9 +18,10 @@ from typing import Any
 from pydantic import BaseModel, Field, ValidationError  # noqa: F401
 
 from sentry.models.organization import Organization
+from sentry.models.repository import Repository
 from sentry.utils import metrics
 
-from ..permissions import has_code_review_enabled
+from ..preflight import CodeReviewPreflightService
 from ..utils import SeerEndpoint, make_seer_request
 from .types import EventType
 
@@ -79,7 +80,12 @@ class GitHubCheckRunEvent(BaseModel):
 
 
 def handle_check_run_event(
-    *, event_type: str, event: Mapping[str, Any], organization: Organization, **kwargs: Any
+    *,
+    event_type: str,
+    event: Mapping[str, Any],
+    organization: Organization,
+    repo: Repository,
+    **kwargs: Any,
 ) -> None:
     """
     This is called when a check_run event is received from GitHub.
@@ -90,6 +96,7 @@ def handle_check_run_event(
         event_type: The type of the webhook event (as string)
         event: The webhook event payload
         organization: The Sentry organization that the webhook event belongs to
+        repo: The repository the webhook event is for
         **kwargs: Additional keyword arguments
     """
     if event_type != EventType.CHECK_RUN:
@@ -111,7 +118,8 @@ def handle_check_run_event(
     if action != GitHubCheckRunAction.REREQUESTED:
         return
 
-    if not has_code_review_enabled(organization):
+    preflight = CodeReviewPreflightService(organization, repo).check()
+    if not preflight.allowed:
         metrics.incr(
             f"{Metrics.ERROR.value}",
             tags={**tags, "error_status": ErrorStatus.CODE_REVIEW_NOT_ENABLED.value},
