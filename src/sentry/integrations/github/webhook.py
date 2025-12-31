@@ -26,7 +26,10 @@ from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.identity.services.identity.service import identity_service
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.github.utils import should_create_or_increment_contributor_seat
-from sentry.integrations.github.webhook_types import GithubWebhookType
+from sentry.integrations.github.webhook_types import (
+    GITHUB_WEBHOOK_TYPE_HEADER_KEY,
+    GithubWebhookType,
+)
 from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.services.integration.model import (
     RpcIntegration,
@@ -1044,7 +1047,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
     }
 
     def get_handler(self, event_type: GithubWebhookType) -> type[GitHubWebhook] | None:
-        return self._handlers.get(event_type)
+        return self._handlers.get(event_type.value)
 
     @staticmethod
     def compute_signature(method: str, body: bytes, secret: str) -> str:
@@ -1093,7 +1096,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
             return HttpResponse(status=400)
 
         try:
-            github_event = request.META["HTTP_X_GITHUB_EVENT"]
+            github_event = GithubWebhookType(request.headers.get(GITHUB_WEBHOOK_TYPE_HEADER_KEY))
             handler = self.get_handler(github_event)
         except KeyError:
             logger.exception("github.webhook.missing-event", extra=self.get_logging_data())
