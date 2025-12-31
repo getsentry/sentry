@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from hashlib import md5
 from typing import Any
 from unittest import mock
-from unittest.mock import MagicMock, Mock, PropertyMock, patch
+from unittest.mock import ANY, MagicMock, Mock, PropertyMock, patch
 
 import pytest
 from django.db import router
@@ -324,6 +324,7 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
             assert mock_derive_code_mappings.delay.call_count == 2
 
 
+# TODO: rewrite with workflow engine?
 class RuleProcessorTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.rules.processing.processor.RuleProcessor")
     def test_rule_processor_backwards_compat(self, mock_processor: MagicMock) -> None:
@@ -515,16 +516,8 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
         )
 
     @patch("sentry.sentry_apps.tasks.service_hooks.process_service_hook")
-    @patch("sentry.rules.processing.processor.RuleProcessor")
-    def test_service_hook_fires_on_alert(
-        self, mock_processor: MagicMock, mock_process_service_hook: MagicMock
-    ) -> None:
+    def test_service_hook_fires_on_alert(self, mock_process_service_hook: MagicMock) -> None:
         event = self.create_event(data={}, project_id=self.project.id)
-
-        mock_callback = Mock()
-        mock_futures = [Mock()]
-
-        mock_processor.return_value.apply.return_value = [(mock_callback, mock_futures)]
 
         hook = self.create_service_hook(
             project=self.project,
@@ -774,8 +767,8 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
 
 
 class InboxTestMixin(BasePostProgressGroupMixin):
-    @patch("sentry.rules.processing.processor.RuleProcessor")
-    def test_group_inbox_regression(self, mock_processor: MagicMock) -> None:
+    @patch("sentry.workflow_engine.tasks.workflows.process_workflows_event")
+    def test_group_inbox_regression(self, mock_process_workflows_event: MagicMock) -> None:
         new_event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
 
         group = new_event.group
@@ -796,7 +789,23 @@ class InboxTestMixin(BasePostProgressGroupMixin):
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.NEW
 
-        mock_processor.assert_called_with(EventMatcher(new_event), True, True, False, False, False)
+        mock_process_workflows_event.apply_async.assert_called_with(
+            kwargs={
+                "event_id": new_event.event_id,
+                "occurrence_id": ANY,
+                "group_id": group.id,
+                "group_state": {
+                    "id": group.id,
+                    "is_new": True,
+                    "is_regression": True,
+                    "is_new_group_environment": False,
+                },
+                "has_reappeared": False,
+                "has_escalated": False,
+                "start_timestamp_seconds": ANY,
+            },
+            headers={"sentry-propagate-traces": False},
+        )
 
         # resolve the new issue so regression actually happens
         group.status = GroupStatus.RESOLVED
@@ -820,9 +829,24 @@ class InboxTestMixin(BasePostProgressGroupMixin):
             event=regressed_event,
         )
 
-        mock_processor.assert_called_with(
-            EventMatcher(regressed_event), False, True, False, False, False
+        mock_process_workflows_event.apply_async.assert_called_with(
+            kwargs={
+                "event_id": regressed_event.event_id,
+                "occurrence_id": None,
+                "group_id": group.id,
+                "group_state": {
+                    "id": group.id,
+                    "is_new": False,
+                    "is_regression": True,
+                    "is_new_group_environment": False,
+                },
+                "has_reappeared": False,
+                "has_escalated": False,
+                "start_timestamp_seconds": time.time(),
+            },
+            headers={"sentry-propagate-traces": False},
         )
+
         group.refresh_from_db()
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.REGRESSED
@@ -1801,9 +1825,9 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
 
 class SnoozeTestSkipSnoozeMixin(BasePostProgressGroupMixin):
     @patch("sentry.signals.issue_unignored.send_robust")
-    @patch("sentry.rules.processing.processor.RuleProcessor")
+    @patch("sentry.workflow_engine.tasks.workflows.process_workflows_event")
     def test_invalidates_snooze_issue_platform(
-        self, mock_processor: MagicMock, mock_send_unignored_robust: MagicMock
+        self, mock_process_workflows_event: MagicMock, mock_send_unignored_robust: MagicMock
     ) -> None:
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
         group = event.group
@@ -1820,7 +1844,18 @@ class SnoozeTestSkipSnoozeMixin(BasePostProgressGroupMixin):
         assert GroupInbox.objects.filter(group=group, reason=GroupInboxReason.NEW.value).exists()
         GroupInbox.objects.filter(group=group).delete()  # Delete so it creates the UNIGNORED entry.
         Activity.objects.filter(group=group).delete()
-        mock_processor.assert_called_with(EventMatcher(event), True, False, True, False, False)
+        mock_process_workflows_event.apply_async.assert_called_with(
+            kwargs={
+                "event_id": event.event_id,
+                "occurrence_id": ANY,
+                "group_id": group.id,
+                "group_state": ANY,
+                "has_reappeared": False,
+                "has_escalated": False,
+                "start_timestamp_seconds": ANY,
+            },
+            headers={"sentry-propagate-traces": False},
+        )
 
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
         group.status = GroupStatus.IGNORED
@@ -1835,7 +1870,18 @@ class SnoozeTestSkipSnoozeMixin(BasePostProgressGroupMixin):
             is_new_group_environment=True,
             event=event,
         )
-        mock_processor.assert_called_with(EventMatcher(event), False, False, True, True, False)
+        mock_process_workflows_event.apply_async.assert_called_with(
+            kwargs={
+                "event_id": event.event_id,
+                "occurrence_id": ANY,
+                "group_id": event.group.id,
+                "group_state": ANY,
+                "has_reappeared": True,
+                "has_escalated": False,
+                "start_timestamp_seconds": ANY,
+            },
+            headers={"sentry-propagate-traces": False},
+        )
 
         if should_detect_escalation:
             assert not GroupSnooze.objects.filter(id=snooze.id).exists()
@@ -1867,9 +1913,9 @@ class SnoozeTestSkipSnoozeMixin(BasePostProgressGroupMixin):
 
 class SnoozeTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.signals.issue_unignored.send_robust")
-    @patch("sentry.rules.processing.processor.RuleProcessor")
+    @patch("sentry.workflow_engine.tasks.workflows.process_workflows_event")
     def test_invalidates_snooze(
-        self, mock_processor: MagicMock, mock_send_unignored_robust: MagicMock
+        self, mock_process_workflows_event: MagicMock, mock_send_unignored_robust: MagicMock
     ) -> None:
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
 
@@ -1886,7 +1932,23 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         GroupInbox.objects.filter(group=group).delete()  # Delete so it creates the UNIGNORED entry.
         Activity.objects.filter(group=group).delete()
 
-        mock_processor.assert_called_with(EventMatcher(event), True, False, True, False, False)
+        mock_process_workflows_event.apply_async.assert_called_with(
+            kwargs={
+                "event_id": event.event_id,
+                "occurrence_id": ANY,
+                "group_id": group.id,
+                "group_state": {
+                    "id": group.id,
+                    "is_new": True,
+                    "is_regression": False,
+                    "is_new_group_environment": True,
+                },
+                "has_reappeared": False,
+                "has_escalated": False,
+                "start_timestamp_seconds": ANY,
+            },
+            headers={"sentry-propagate-traces": False},
+        )
 
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
         group.status = GroupStatus.IGNORED
@@ -1902,7 +1964,23 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
             event=event,
         )
 
-        mock_processor.assert_called_with(EventMatcher(event), False, False, True, True, False)
+        mock_process_workflows_event.apply_async.assert_called_with(
+            kwargs={
+                "event_id": event.event_id,
+                "occurrence_id": ANY,
+                "group_id": group.id,
+                "group_state": {
+                    "id": group.id,
+                    "is_new": False,
+                    "is_regression": False,
+                    "is_new_group_environment": True,
+                },
+                "has_reappeared": True,
+                "has_escalated": False,
+                "start_timestamp_seconds": ANY,
+            },
+            headers={"sentry-propagate-traces": False},
+        )
         assert not GroupSnooze.objects.filter(id=snooze.id).exists()
 
         group.refresh_from_db()
@@ -1957,8 +2035,8 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
             )
             assert not GroupSnooze.objects.filter(id=snooze.id).exists()
 
-    @patch("sentry.rules.processing.processor.RuleProcessor")
-    def test_maintains_valid_snooze(self, mock_processor: MagicMock) -> None:
+    @patch("sentry.workflow_engine.tasks.workflows.process_workflows_event")
+    def test_maintains_valid_snooze(self, mock_process_workflows_event: MagicMock) -> None:
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
         assert group.status == GroupStatus.UNRESOLVED
@@ -1972,7 +2050,23 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
             event=event,
         )
 
-        mock_processor.assert_called_with(EventMatcher(event), True, False, True, False, False)
+        mock_process_workflows_event.apply_async.assert_called_with(
+            kwargs={
+                "event_id": event.event_id,
+                "occurrence_id": ANY,
+                "group_id": group.id,
+                "group_state": {
+                    "id": group.id,
+                    "is_new": True,
+                    "is_regression": False,
+                    "is_new_group_environment": True,
+                },
+                "has_reappeared": False,
+                "has_escalated": False,
+                "start_timestamp_seconds": ANY,
+            },
+            headers=ANY,
+        )
 
         assert GroupSnooze.objects.filter(id=snooze.id).exists()
         group.refresh_from_db()
@@ -3605,12 +3699,12 @@ class PostProcessGroupErrorTest(
         assert generic_metrics_backend_mock.call_count == 1
         metric_incr_mock.assert_any_call(
             "sentry.tasks.post_process.post_process_group.completed",
-            tags={"issue_category": "error", "pipeline": "process_rules"},
+            tags={"issue_category": "error", "pipeline": "process_workflow_engine_issue_alerts"},
         )
         metric_timer_mock.assert_any_call(
             "tasks.post_process.run_post_process_job.pipeline.duration",
             tags={
-                "pipeline": "process_rules",
+                "pipeline": "process_workflow_engine_issue_alerts",
                 "issue_category": "error",
                 "is_reprocessed": False,
             },
