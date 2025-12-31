@@ -1,0 +1,418 @@
+---
+title: InputGroup
+description: A compound component for creating inputs with leading or trailing elements like icons, buttons, or badges.
+source: 'sentry/components/core/input/inputGroup'
+resources:
+  figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=384-2119&t=DdXZ7WIgTdURJlRv-4
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/input/inputGroup.tsx
+  a11y:
+    WCAG 2.1.1: https://www.w3.org/TR/WCAG22/#keyboard
+    WCAG 2.4.7: https://www.w3.org/TR/WCAG22/#focus-visible
+    WCAG 3.3.2: https://www.w3.org/TR/WCAG22/#labels-or-instructions
+    WAI-ARIA Text Input: https://www.w3.org/WAI/ARIA/apg/patterns/textbox/
+---
+
+import {Button} from '@sentry/scraps/button';
+import {InputGroup} from '@sentry/scraps/input';
+
+import {IconAttachment, IconSearch, IconSettings} from 'sentry/icons';
+import * as Storybook from 'sentry/stories';
+
+import documentation from '!!type-loader!@sentry/scraps/input';
+
+export {documentation};
+
+`<InputGroup>` is a compound component that allows you to add leading or trailing elements to inputs, such as icons, buttons, or other decorative elements. It automatically handles sizing, spacing, and layout coordination between the input and its accompanying elements.
+
+Use `<InputGroup>` when you need to add visual context or actions directly adjacent to an input field, such as a search icon, clear button, or unit indicator.
+
+```jsx
+<InputGroup>
+  <InputGroup.LeadingItems disablePointerEvents>
+    <IconSearch />
+  </InputGroup.LeadingItems>
+  <InputGroup.Input placeholder="Search" />
+</InputGroup>
+```
+
+## Compound Components
+
+`<InputGroup>` uses a compound component pattern with four main parts:
+
+- **`<InputGroup>`**: The wrapper component that coordinates sizing and layout
+- **`<InputGroup.Input>`**: A specialized Input component that works within the group
+- **`<InputGroup.LeadingItems>`**: Container for elements positioned at the start of the input
+- **`<InputGroup.TrailingItems>`**: Container for elements positioned at the end of the input
+
+> [!NOTE]
+> Use `<InputGroup.Input>` instead of the regular `<Input>` component when working within an `<InputGroup>`. This ensures proper padding coordination with leading and trailing items.
+
+## Sizes
+
+`<InputGroup>` supports the same sizes as `<Input>`: `md` (default), `sm`, and `xs`. The size is controlled by the `size` prop on `<InputGroup.Input>`, and leading/trailing items automatically adjust to match.
+
+export function SizesDemo() {
+  return (
+    <Storybook.Grid columns={3}>
+      <div>
+        <code>md (default)</code>
+        <InputGroup>
+          <InputGroup.LeadingItems disablePointerEvents>
+            <IconSearch />
+          </InputGroup.LeadingItems>
+          <InputGroup.Input size="md" placeholder="Search" />
+          <InputGroup.TrailingItems disablePointerEvents>
+            <IconAttachment />
+          </InputGroup.TrailingItems>
+        </InputGroup>
+      </div>
+      <div>
+        <code>sm</code>
+        <InputGroup>
+          <InputGroup.LeadingItems disablePointerEvents>
+            <IconSearch />
+          </InputGroup.LeadingItems>
+          <InputGroup.Input size="sm" placeholder="Search" />
+          <InputGroup.TrailingItems disablePointerEvents>
+            <IconAttachment />
+          </InputGroup.TrailingItems>
+        </InputGroup>
+      </div>
+      <div>
+        <code>xs</code>
+        <InputGroup>
+          <InputGroup.LeadingItems disablePointerEvents>
+            <IconSearch />
+          </InputGroup.LeadingItems>
+          <InputGroup.Input size="xs" placeholder="Search" />
+          <InputGroup.TrailingItems disablePointerEvents>
+            <IconAttachment />
+          </InputGroup.TrailingItems>
+        </InputGroup>
+      </div>
+    </Storybook.Grid>
+  );
+}
+
+<Storybook.Demo>
+  <SizesDemo />
+</Storybook.Demo>
+
+```jsx
+<InputGroup>
+  <InputGroup.LeadingItems disablePointerEvents>
+    <IconSearch />
+  </InputGroup.LeadingItems>
+  <InputGroup.Input size="md" placeholder="Search" />
+  <InputGroup.TrailingItems disablePointerEvents>
+    <IconAttachment />
+  </InputGroup.TrailingItems>
+</InputGroup>
+```
+
+## Leading Items
+
+Use `<InputGroup.LeadingItems>` to add elements to the left side (start) of the input. Common use cases include search icons, currency symbols, or prefixes.
+
+<Storybook.Demo>
+  <Storybook.Grid columns={3}>
+    <InputGroup>
+      <InputGroup.LeadingItems disablePointerEvents>
+        <IconSearch />
+      </InputGroup.LeadingItems>
+      <InputGroup.Input placeholder="Search" />
+    </InputGroup>
+  </Storybook.Grid>
+</Storybook.Demo>
+
+```jsx
+<InputGroup>
+  <InputGroup.LeadingItems disablePointerEvents>
+    <IconSearch />
+  </InputGroup.LeadingItems>
+  <InputGroup.Input placeholder="Search" />
+</InputGroup>
+```
+
+## Trailing Items
+
+Use `<InputGroup.TrailingItems>` to add elements to the right side (end) of the input. Common use cases include clear buttons, loading indicators, or unit labels.
+
+<Storybook.Demo>
+  <Storybook.Grid columns={3}>
+    <InputGroup>
+      <InputGroup.Input placeholder="Search" />
+      <InputGroup.TrailingItems disablePointerEvents>
+        <IconAttachment />
+      </InputGroup.TrailingItems>
+    </InputGroup>
+  </Storybook.Grid>
+</Storybook.Demo>
+
+```jsx
+<InputGroup>
+  <InputGroup.Input placeholder="Search" />
+  <InputGroup.TrailingItems disablePointerEvents>
+    <IconAttachment />
+  </InputGroup.TrailingItems>
+</InputGroup>
+```
+
+## Non-Interactive Items
+
+When leading or trailing items are purely decorative (like icons) and not interactive, set `disablePointerEvents` on the items container. This allows mouse clicks to fall through to the input underneath, triggering focus as expected.
+
+**Without `disablePointerEvents`**: Clicking on the icon area doesn't focus the input.
+**With `disablePointerEvents`**: Clicking anywhere in the input area, including on the icon, focuses the input.
+
+```jsx
+// Good: Icon is decorative, clicks pass through to input
+<InputGroup>
+  <InputGroup.LeadingItems disablePointerEvents>
+    <IconSearch />
+  </InputGroup.LeadingItems>
+  <InputGroup.Input placeholder="Search" />
+</InputGroup>
+
+// Without disablePointerEvents: Clicking the icon won't focus the input
+<InputGroup>
+  <InputGroup.LeadingItems>
+    <IconSearch />
+  </InputGroup.LeadingItems>
+  <InputGroup.Input placeholder="Search" />
+</InputGroup>
+```
+
+> [!IMPORTANT]
+> Always use `disablePointerEvents` for non-interactive items like icons or text labels. Only omit it when the items contain interactive elements like buttons.
+
+## Interactive Trailing Items
+
+When trailing items contain interactive elements (like buttons), don't use `disablePointerEvents`. This allows the interactive elements to receive clicks and focus.
+
+export function InteractiveDemo() {
+  return (
+    <Storybook.Grid columns={3}>
+      <InputGroup>
+        <InputGroup.Input placeholder="Search" />
+        <InputGroup.TrailingItems>
+          <Button borderless icon={<IconSettings />} size="zero" aria-label="Settings" />
+        </InputGroup.TrailingItems>
+      </InputGroup>
+    </Storybook.Grid>
+  );
+}
+
+<Storybook.Demo>
+  <InteractiveDemo />
+</Storybook.Demo>
+
+```jsx
+<InputGroup>
+  <InputGroup.Input placeholder="Search" />
+  <InputGroup.TrailingItems>
+    <Button borderless icon={<IconSettings />} size="zero" aria-label="Settings" />
+  </InputGroup.TrailingItems>
+</InputGroup>
+```
+
+## Combining Leading and Trailing Items
+
+You can use both leading and trailing items together for more complex input compositions.
+
+export function CombinedDemo() {
+  return (
+    <Storybook.PropMatrix
+      render={({leadingItems, trailingItems}) => {
+        return (
+          <InputGroup>
+            {leadingItems ? (
+              <InputGroup.LeadingItems disablePointerEvents>
+                {leadingItems}
+              </InputGroup.LeadingItems>
+            ) : null}
+            <InputGroup.Input placeholder="Search" />
+            {trailingItems ? (
+              <InputGroup.TrailingItems>{trailingItems}</InputGroup.TrailingItems>
+            ) : null}
+          </InputGroup>
+        );
+      }}
+      selectedProps={['leadingItems', 'trailingItems']}
+      propMatrix={{
+        leadingItems: [null, <IconSearch key="leading-icon" size="sm" />],
+        trailingItems: [
+          null,
+          <IconAttachment key="trailing-icon" size="sm" />,
+          <Button
+            key="trailing-button"
+            borderless
+            icon={<IconSettings />}
+            size="zero"
+            aria-label="Settings"
+          />,
+        ],
+      }}
+    />
+  );
+}
+
+<Storybook.Demo>
+  <CombinedDemo />
+</Storybook.Demo>
+
+```jsx
+<InputGroup>
+  <InputGroup.LeadingItems disablePointerEvents>
+    <IconSearch />
+  </InputGroup.LeadingItems>
+  <InputGroup.Input placeholder="Search" />
+  <InputGroup.TrailingItems>
+    <Button borderless icon={<IconSettings />} size="zero" aria-label="Settings" />
+  </InputGroup.TrailingItems>
+</InputGroup>
+```
+
+## Usage Patterns
+
+### Search Inputs
+
+The most common use case is adding a search icon to indicate search functionality:
+
+```jsx
+<InputGroup>
+  <InputGroup.LeadingItems disablePointerEvents>
+    <IconSearch />
+  </InputGroup.LeadingItems>
+  <InputGroup.Input
+    type="search"
+    placeholder="Search issues, projects, teams..."
+    aria-label="Search"
+  />
+</InputGroup>
+```
+
+### Clearable Inputs
+
+Add a clear button to allow users to quickly reset the input:
+
+```jsx
+const [value, setValue] = useState('');
+
+<InputGroup>
+  <InputGroup.Input
+    value={value}
+    onChange={e => setValue(e.target.value)}
+    placeholder="Type to search"
+  />
+  {value && (
+    <InputGroup.TrailingItems>
+      <Button
+        borderless
+        icon={<IconClose />}
+        size="zero"
+        aria-label="Clear"
+        onClick={() => setValue('')}
+      />
+    </InputGroup.TrailingItems>
+  )}
+</InputGroup>;
+```
+
+### Unit Indicators
+
+Display measurement units or currency alongside numeric inputs:
+
+```jsx
+<InputGroup>
+  <InputGroup.Input type="number" defaultValue="100" />
+  <InputGroup.TrailingItems disablePointerEvents>
+    <span>ms</span>
+  </InputGroup.TrailingItems>
+</InputGroup>
+```
+
+### Loading States
+
+Show a loading indicator when fetching results:
+
+```jsx
+<InputGroup>
+  <InputGroup.Input placeholder="Search..." />
+  <InputGroup.TrailingItems disablePointerEvents>
+    {isLoading && <LoadingIndicator mini />}
+  </InputGroup.TrailingItems>
+</InputGroup>
+```
+
+## With TextArea
+
+`<InputGroup>` also works with `<InputGroup.TextArea>` for multi-line text inputs:
+
+```jsx
+<InputGroup>
+  <InputGroup.TextArea placeholder="Enter a description..." rows={4} />
+  <InputGroup.TrailingItems>
+    <Button borderless icon={<IconAttachment />} size="zero" aria-label="Attach file" />
+  </InputGroup.TrailingItems>
+</InputGroup>
+```
+
+## Accessibility
+
+`<InputGroup>` is a layout component that doesn't affect the accessibility of the underlying input. The input itself handles all accessibility concerns.
+
+### Developer Responsibilities
+
+**Labels** ([WCAG 3.3.2](https://www.w3.org/TR/WCAG22/#labels-or-instructions))
+
+- The input within the group still requires a proper label
+- Leading/trailing items don't replace the need for labels
+- Use `aria-label` on the input if no visible label is present
+
+```jsx
+// Good: Visible label
+<label htmlFor="search">
+  Search
+  <InputGroup>
+    <InputGroup.LeadingItems disablePointerEvents>
+      <IconSearch />
+    </InputGroup.LeadingItems>
+    <InputGroup.Input id="search" placeholder="Type to search" />
+  </InputGroup>
+</label>
+
+// Good: aria-label when context is clear
+<InputGroup>
+  <InputGroup.LeadingItems disablePointerEvents>
+    <IconSearch />
+  </InputGroup.LeadingItems>
+  <InputGroup.Input placeholder="Search" aria-label="Search issues" />
+</InputGroup>
+```
+
+**Interactive Elements**
+
+- Buttons in trailing/leading items must have accessible labels
+- Use `aria-label` for icon-only buttons
+- Ensure all interactive elements are keyboard accessible
+
+```jsx
+<InputGroup.TrailingItems>
+  <Button
+    borderless
+    icon={<IconClose />}
+    size="zero"
+    aria-label="Clear search"
+    onClick={handleClear}
+  />
+</InputGroup.TrailingItems>
+```
+
+**Focus Management**
+
+- Use `disablePointerEvents` on non-interactive items so clicks focus the input
+- Don't trap focus within the group—allow natural tab order
+- Ensure the input receives focus when the label is clicked
+
+For more information, see the [WAI-ARIA Text Input practices](https://www.w3.org/WAI/ARIA/apg/patterns/textbox/).
