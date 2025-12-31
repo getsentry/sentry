@@ -8,6 +8,9 @@ from typing import Any
 from urllib3.exceptions import HTTPError
 
 from sentry.integrations.github.webhook_types import GithubWebhookType
+from sentry.models.organization import Organization
+from sentry.models.repository import Repository
+from sentry.seer.code_review.utils import transform_webhook_to_codegen_request
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_code_review_tasks
@@ -25,6 +28,7 @@ PREFIX = "seer.code_review.task"
 MAX_RETRIES = 3
 DELAY_BETWEEN_RETRIES = 60  # 1 minute
 RETRYABLE_ERRORS = (HTTPError,)
+METRICS_PREFIX = "seer.code_review.task"
 
 
 def _call_seer_request(
@@ -35,7 +39,38 @@ def _call_seer_request(
     """
     assert github_event != GithubWebhookType.CHECK_RUN
     # XXX: Add checking options to prevent sending events to Seer by mistake.
-    make_seer_request(path=SeerEndpoint.SENTRY_REQUEST.value, payload=event_payload)
+    make_seer_request(path=SeerEndpoint.OVERWATCH_REQUEST.value, payload=event_payload)
+
+
+def schedule_task(
+    github_event: GithubWebhookType,
+    event: Mapping[str, Any],
+    organization: Organization,
+    repo: Repository,
+) -> None:
+    """Transform and forward a webhook event to Seer for processing."""
+    from .task import process_github_webhook_event
+
+    transformed_event = transform_webhook_to_codegen_request(
+        event_payload=dict(event), organization_id=organization.id, repo=repo
+    )
+
+    if transformed_event is None:
+        metrics.incr(
+            f"{METRICS_PREFIX}.{github_event.value}.skipped",
+            tags={"reason": "failed_to_transform", "github_event": github_event.value},
+        )
+        return
+
+    process_github_webhook_event.delay(
+        github_event=github_event,
+        event_payload=transformed_event,
+        enqueued_at_str=datetime.now(timezone.utc).isoformat(),
+    )
+    metrics.incr(
+        f"{METRICS_PREFIX}.{github_event.value}.enqueued",
+        tags={"status": "success", "github_event": github_event.value},
+    )
 
 
 EVENT_TYPE_TO_PROCESSOR = {GithubWebhookType.CHECK_RUN: process_check_run_task_event}
