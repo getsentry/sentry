@@ -58,7 +58,7 @@ FEATURES = [
 ]
 
 setup_alert = {
-    "type": "info",
+    "variant": "info",
     "text": "The PagerDuty integration adds a new Alert Rule action to all projects. To enable automatic notifications sent to PagerDuty you must create a rule using the PagerDuty action in your project settings.",
 }
 
