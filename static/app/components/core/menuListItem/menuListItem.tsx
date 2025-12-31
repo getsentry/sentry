@@ -16,7 +16,7 @@ import type {FormSize, Theme} from 'sentry/utils/theme';
 /**
  * Menu item priority. Determines the text and background color.
  */
-export type Priority = 'primary' | 'danger' | 'default';
+type Priority = 'primary' | 'danger' | 'default';
 
 function getTextColor({
   theme,
@@ -57,7 +57,7 @@ const getVerticalPadding = (size?: FormSize) => {
   }
 };
 
-export const StyledInnerWrap = styled('div', {
+const StyledInnerWrap = styled('div', {
   shouldForwardProp: prop =>
     typeof prop === 'string' &&
     isPropValid(prop) &&
@@ -109,7 +109,7 @@ export const StyledInnerWrap = styled('div', {
     `}
 `;
 
-export const StyledContentWrap = styled('div')<{
+const StyledContentWrap = styled('div')<{
   isFocused: boolean;
   size?: FormSize;
 }>`
@@ -122,7 +122,7 @@ export const StyledContentWrap = styled('div')<{
   padding: 0;
 `;
 
-export const StyledLeadingItems = styled('div')<{
+const StyledLeadingItems = styled('div')<{
   disabled: boolean;
   size?: FormSize;
 }>`
@@ -135,7 +135,7 @@ export const StyledLeadingItems = styled('div')<{
   ${p => p.disabled && `opacity: 0.5;`}
 `;
 
-export const StyledLabel = styled('div')`
+const StyledLabel = styled('div')`
   margin-bottom: 0;
   line-height: 1.4;
   white-space: nowrap;
@@ -143,13 +143,13 @@ export const StyledLabel = styled('div')`
   ${p => p.theme.overflowEllipsis}
 `;
 
-export const StyledLabelWrap = styled('div')`
+const StyledLabelWrap = styled('div')`
   padding-right: ${space(1)};
   width: 100%;
   min-width: 0;
 `;
 
-export const StyledDetails = styled('div')<{disabled: boolean; priority: Priority}>`
+const StyledDetails = styled('div')<{disabled: boolean; priority: Priority}>`
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.subText};
   line-height: 1.4;
