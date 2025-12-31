@@ -1047,7 +1047,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
     }
 
     def get_handler(self, event_type: GithubWebhookType) -> type[GitHubWebhook] | None:
-        return self._handlers.get(event_type.value)
+        return self._handlers.get(event_type)
 
     @staticmethod
     def compute_signature(method: str, body: bytes, secret: str) -> str:
@@ -1096,7 +1096,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
             return HttpResponse(status=400)
 
         try:
-            github_event = GithubWebhookType(request.headers.get(GITHUB_WEBHOOK_TYPE_HEADER_KEY))
+            github_event = GithubWebhookType(request.headers[GITHUB_WEBHOOK_TYPE_HEADER_KEY])
             handler = self.get_handler(github_event)
         except KeyError:
             logger.exception("github.webhook.missing-event", extra=self.get_logging_data())
