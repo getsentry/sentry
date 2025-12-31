@@ -1016,7 +1016,6 @@ class DashboardDetail extends Component<Props, State> {
       organization,
       dashboard,
       dashboards,
-      router,
       location,
       onDashboardUpdate,
       projects,
@@ -1157,8 +1156,6 @@ class DashboardDetail extends Component<Props, State> {
                                   organization={organization}
                                   eventView={eventView}
                                   projects={projects}
-                                  location={location}
-                                  router={router}
                                   source={DiscoverQueryPageSource.DISCOVER}
                                   {...metricsDataSide}
                                 />
