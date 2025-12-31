@@ -7,6 +7,7 @@ from typing import Any
 
 from urllib3.exceptions import HTTPError
 
+from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_code_review_tasks
@@ -14,9 +15,8 @@ from sentry.taskworker.retry import Retry
 from sentry.taskworker.state import current_task
 from sentry.utils import metrics
 
-from ..utils import SeerEndpoint, make_seer_request
-from .check_run import process_check_run_task_event
-from .types import EventType
+from ..utils import call_seer_if_allowed
+from .config import EVENT_TYPE_TO_PROCESSOR
 
 logger = logging.getLogger(__name__)
 
@@ -25,24 +25,6 @@ PREFIX = "seer.code_review.task"
 MAX_RETRIES = 3
 DELAY_BETWEEN_RETRIES = 60  # 1 minute
 RETRYABLE_ERRORS = (HTTPError,)
-
-
-def _call_seer_request(*, event_type: str, event_payload: Mapping[str, Any], **kwargs: Any) -> None:
-    """
-    XXX: This is a placeholder processor to send events to Seer.
-    """
-    assert event_type != EventType.CHECK_RUN
-    assert event_payload is not None
-    make_seer_request(path=SeerEndpoint.SENTRY_REQUEST.value, payload=event_payload)
-
-
-EVENT_TYPE_TO_PROCESSOR = {
-    EventType.CHECK_RUN: process_check_run_task_event,
-    EventType.ISSUE_COMMENT: _call_seer_request,
-    EventType.PULL_REQUEST: _call_seer_request,
-    EventType.PULL_REQUEST_REVIEW: _call_seer_request,
-    EventType.PULL_REQUEST_REVIEW_COMMENT: _call_seer_request,
-}
 
 
 @instrumented_task(
@@ -66,11 +48,12 @@ def process_github_webhook_event(
     status = "success"
     should_record_latency = True
     try:
-        event_type_enum = EventType.from_string(event_type)
+        event_type_enum = GithubWebhookType(event_type)
         event_processor = EVENT_TYPE_TO_PROCESSOR.get(event_type_enum)
-        if event_processor is None:
-            raise ValueError(f"No processor found for event type: {event_type}")
-        event_processor(event_type=event_type, event_payload=event_payload, **kwargs)
+        if event_processor:
+            event_processor(event_type=event_type, event_payload=event_payload, **kwargs)
+        else:
+            call_seer_if_allowed(event_type=event_type_enum, event_payload=event_payload, **kwargs)
     except Exception as e:
         status = e.__class__.__name__
         # Retryable errors are automatically retried by taskworker.
@@ -84,6 +67,24 @@ def process_github_webhook_event(
             metrics.incr(f"{PREFIX}.error", tags={"error_status": status})
         if should_record_latency:
             record_latency(status, enqueued_at_str)
+
+
+def schedule_task(
+    event_type: str,
+    event_payload: Mapping[str, Any],
+) -> None:
+    """
+    Schedule a task to process the webhook event.
+    """
+    process_github_webhook_event.delay(
+        event_type=event_type,
+        event_payload=event_payload,
+        enqueued_at_str=datetime.now(timezone.utc).isoformat(),
+    )
+    metrics.incr(
+        f"{PREFIX}.{event_type}.enqueued",
+        tags={"status": "success", "event_type": event_type},
+    )
 
 
 def record_latency(status: str, enqueued_at_str: str) -> None:

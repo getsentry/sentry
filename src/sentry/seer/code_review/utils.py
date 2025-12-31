@@ -6,6 +6,8 @@ import orjson
 from django.conf import settings
 from urllib3.exceptions import HTTPError
 
+from sentry import options
+from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
@@ -24,6 +26,22 @@ class SeerEndpoint(StrEnum):
     # This needs to match the value defined in the Seer API:
     # https://github.com/getsentry/seer/blob/main/src/seer/routes/codegen.py
     PR_REVIEW_RERUN = "/v1/automation/codegen/pr-review/rerun"
+
+
+def call_seer_if_allowed(
+    *, event_type: GithubWebhookType, event_payload: Mapping[str, Any], **kwargs: Any
+) -> None:
+    """
+    Call Seer if the option is enabled.
+    """
+    from .webhooks.config import EVENT_TYPE_TO_OPTION
+
+    assert event_payload is not None
+    option_key = EVENT_TYPE_TO_OPTION.get(event_type)
+    if option_key and not options.get(option_key):
+        return
+
+    make_seer_request(path=SeerEndpoint.SENTRY_REQUEST.value, payload=event_payload)
 
 
 def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:
@@ -58,7 +76,7 @@ def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:
 
 # XXX: Do a thorough review of this function and make sure it's correct.
 def _transform_webhook_to_codegen_request(
-    event_type: str,
+    event_type: GithubWebhookType,
     event_payload: Mapping[str, Any],
     organization_id: int,
     repo: Repository,
