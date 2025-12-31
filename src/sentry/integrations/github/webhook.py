@@ -166,8 +166,8 @@ class GitHubWebhook(SCMWebhook, ABC):
     def _handle(
         self,
         github_event: GithubWebhookType,
-        event: Mapping[str, Any],
         integration: RpcIntegration,
+        event: Mapping[str, Any],
         organization: Organization,
         repo: Repository,
         **kwargs: Any,

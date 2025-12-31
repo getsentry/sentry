@@ -10,7 +10,7 @@ from urllib3.exceptions import HTTPError
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.seer.code_review.utils import _transform_webhook_to_codegen_request
+from sentry.seer.code_review.utils import transform_webhook_to_codegen_request
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_code_review_tasks
@@ -39,7 +39,7 @@ def _call_seer_request(
     """
     assert github_event != GithubWebhookType.CHECK_RUN
     # XXX: Add checking options to prevent sending events to Seer by mistake.
-    make_seer_request(path=SeerEndpoint.SENTRY_REQUEST.value, payload=event_payload)
+    make_seer_request(path=SeerEndpoint.OVERWATCH_REQUEST.value, payload=event_payload)
 
 
 def schedule_task(
@@ -51,8 +51,8 @@ def schedule_task(
     """Transform and forward a webhook event to Seer for processing."""
     from .task import process_github_webhook_event
 
-    transformed_event = _transform_webhook_to_codegen_request(
-        github_event, dict(event), organization.id, repo
+    transformed_event = transform_webhook_to_codegen_request(
+        event_payload=dict(event), organization_id=organization.id, repo=repo
     )
 
     if transformed_event is None:
