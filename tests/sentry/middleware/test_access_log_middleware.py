@@ -14,6 +14,7 @@ from sentry.api.permissions import SentryIsAuthenticated
 from sentry.models.apitoken import ApiToken
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.silo.base import SiloMode
+from sentry.silo.util import PROXY_APIGATEWAY_HEADER
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, control_silo_test
 from sentry.types.ratelimit import RateLimit, RateLimitCategory, RateLimitMeta, RateLimitType
@@ -173,6 +174,7 @@ optional_access_log_fields = (
     "snuba_quota_used",
     "snuba_rejection_threshold",
     "token_last_characters",
+    "gateway_proxy",
 )
 
 
@@ -282,6 +284,22 @@ class TestAccessLogSuccess(LogCaptureAPITestCase):
         assert tested_log.token_type == "api_token"
         assert tested_log.token_last_characters == token.token_last_characters
         assert tested_log.entity_id == str(token.id)
+
+    def test_access_log_gateway_proxy(self) -> None:
+        self._caplog.set_level(logging.INFO, logger="sentry")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
+        self.login_as(user=self.create_user())
+        self.get_success_response(
+            extra_headers={
+                "HTTP_AUTHORIZATION": f"Bearer {token.token}",
+                "HTTP_BUTTS": "butts",
+                f"HTTP_{PROXY_APIGATEWAY_HEADER}": "true",
+            }
+        )
+        self.assert_access_log_recorded()
+        tested_log = self.get_tested_log()
+        assert tested_log.gateway_proxy == "true"
 
     def test_with_subdomain_redirect(self) -> None:
         # the subdomain middleware is in between this and the access log middelware
