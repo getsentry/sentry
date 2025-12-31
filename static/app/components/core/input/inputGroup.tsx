@@ -213,7 +213,7 @@ function LeadingItems({children, disablePointerEvents, ...props}: InputItemsProp
   }, [children, setLeadingWidth, size]);
 
   return (
-    <InputLeadingItemsWrap
+    <StyledLeadingItemsWrap
       ref={ref}
       size={size}
       disablePointerEvents={disabled || disablePointerEvents}
@@ -221,7 +221,7 @@ function LeadingItems({children, disablePointerEvents, ...props}: InputItemsProp
       {...props}
     >
       {children}
-    </InputLeadingItemsWrap>
+    </StyledLeadingItemsWrap>
   );
 }
 
@@ -248,7 +248,7 @@ function TrailingItems({children, disablePointerEvents, ...props}: InputItemsPro
   }, [children, setTrailingWidth, size]);
 
   return (
-    <InputTrailingItemsWrap
+    <StyledTrailingItemsWrap
       ref={ref}
       size={size}
       disablePointerEvents={disabled || disablePointerEvents}
@@ -256,7 +256,7 @@ function TrailingItems({children, disablePointerEvents, ...props}: InputItemsPro
       {...props}
     >
       {children}
-    </InputTrailingItemsWrap>
+    </StyledTrailingItemsWrap>
   );
 }
 
@@ -271,7 +271,3 @@ const InputGroupWrap = styled('div')<{disabled?: boolean}>`
   position: relative;
   ${p => p.disabled && `color: ${p.theme.disabled};`};
 `;
-
-const InputLeadingItemsWrap = StyledLeadingItemsWrap;
-
-const InputTrailingItemsWrap = StyledTrailingItemsWrap;
