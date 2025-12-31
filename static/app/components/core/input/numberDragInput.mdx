@@ -1,0 +1,413 @@
+---
+title: NumberDragInput
+description: A numeric input that allows users to adjust values by typing or by clicking and dragging.
+source: 'sentry/components/core/input/numberDragInput'
+resources:
+  figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=384-2119&t=DdXZ7WIgTdURJlRv-4
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/input/numberDragInput.tsx
+  a11y:
+    WCAG 2.1.1: https://www.w3.org/TR/WCAG22/#keyboard
+    WCAG 2.4.7: https://www.w3.org/TR/WCAG22/#focus-visible
+    WCAG 3.3.2: https://www.w3.org/TR/WCAG22/#labels-or-instructions
+---
+
+import {useState} from 'react';
+
+import {NumberDragInput} from '@sentry/scraps/input';
+import {Stack} from '@sentry/scraps/layout';
+
+import * as Storybook from 'sentry/stories';
+
+import documentation from '!!type-loader!@sentry/scraps/input';
+
+export {documentation};
+
+`<NumberDragInput>` is a specialized numeric input that combines typing and dragging interactions. Users can enter values directly or click and drag the arrow indicators to adjust values dynamically. This provides an intuitive, continuous way to explore numeric ranges.
+
+Use `<NumberDragInput>` for numeric parameters that benefit from interactive exploration, such as threshold adjustments, animation timing, or visual property tuning.
+
+```jsx
+<NumberDragInput
+  value={value}
+  onChange={e => setValue(Number(e.target.value))}
+  min={0}
+  max={100}
+/>
+```
+
+## Drag Interaction
+
+Click and hold the arrow indicators on the right side of the input, then move the mouse horizontally or vertically (depending on the `axis` prop) to adjust the value. The input uses pointer lock to provide smooth, unbounded dragging.
+
+export function HorizontalDemo() {
+  const [value, setValue] = useState(50);
+  return (
+    <Stack gap="sm">
+      Value: {value}
+      <NumberDragInput
+        axis="x"
+        value={value}
+        onChange={e => setValue(Number(e.target.value))}
+        min={0}
+        max={100}
+        placeholder="None"
+      />
+    </Stack>
+  );
+}
+
+<Storybook.Demo>
+  <HorizontalDemo />
+</Storybook.Demo>
+
+```jsx
+const [value, setValue] = useState(50);
+
+<NumberDragInput
+  axis="x"
+  value={value}
+  onChange={e => setValue(Number(e.target.value))}
+  min={0}
+  max={100}
+/>;
+```
+
+> [!NOTE]
+> Dragging uses pointer lock, which hides the cursor and provides unbounded movement. The pointer is automatically released when you stop dragging.
+
+## Drag Axes
+
+The `axis` prop controls the drag direction: `x` for horizontal (left/right) or `y` for vertical (up/down). The default is `x`.
+
+export function AxesDemo() {
+  const [horizontalValue, setHorizontalValue] = useState(10);
+  const [verticalValue, setVerticalValue] = useState(10);
+  return (
+    <Storybook.SideBySide>
+      <Stack gap="sm">
+        Horizontal (axis="x")
+        <NumberDragInput
+          axis="x"
+          onChange={e => setHorizontalValue(Number(e.target.value))}
+          min={0}
+          max={100}
+          value={horizontalValue}
+          placeholder="None"
+        />
+      </Stack>
+      <Stack gap="sm">
+        Vertical (axis="y")
+        <NumberDragInput
+          axis="y"
+          onChange={e => setVerticalValue(Number(e.target.value))}
+          min={0}
+          max={100}
+          value={verticalValue}
+          placeholder="None"
+        />
+      </Stack>
+    </Storybook.SideBySide>
+  );
+}
+
+<Storybook.Demo>
+  <AxesDemo />
+</Storybook.Demo>
+
+```jsx
+// Horizontal dragging (left/right)
+<NumberDragInput axis="x" value={value} onChange={handleChange} />
+
+// Vertical dragging (up/down)
+<NumberDragInput axis="y" value={value} onChange={handleChange} />
+```
+
+## Step Control
+
+The `step` prop controls how much the value changes per drag increment. The default step is `1`.
+
+export function StepDemo() {
+  const [value, setValue] = useState(0);
+  return (
+    <Stack gap="sm">
+      Value: {value} (step=5)
+      <NumberDragInput
+        value={value}
+        onChange={e => setValue(Number(e.target.value))}
+        step={5}
+        min={0}
+        max={100}
+      />
+    </Stack>
+  );
+}
+
+<Storybook.Demo>
+  <StepDemo />
+</Storybook.Demo>
+
+```jsx
+<NumberDragInput value={value} onChange={handleChange} step={5} min={0} max={100} />
+```
+
+## Shift Key Modifier
+
+Hold **Shift** while dragging to increase the step size by a multiplier (default: 10×). This provides fine-grained control for precise adjustments. You can customize the multiplier with the `shiftKeyMultiplier` prop.
+
+export function ShiftKeyDemo() {
+  const [value, setValue] = useState(50);
+  return (
+    <Stack gap="sm">
+      Value: {value}
+      <br />
+      <small>Hold Shift while dragging for 10× speed</small>
+      <NumberDragInput
+        value={value}
+        onChange={e => setValue(Number(e.target.value))}
+        min={0}
+        max={100}
+        shiftKeyMultiplier={10}
+      />
+    </Stack>
+  );
+}
+
+<Storybook.Demo>
+  <ShiftKeyDemo />
+</Storybook.Demo>
+
+```jsx
+<NumberDragInput
+  value={value}
+  onChange={handleChange}
+  min={0}
+  max={100}
+  shiftKeyMultiplier={10}
+/>
+```
+
+> [!TIP]
+> The shift key modifier is useful for workflows where users need both coarse adjustments (dragging) and fine-tuning (shift + dragging).
+
+## Min and Max Values
+
+Use the `min` and `max` props to constrain the allowed numeric range. Values are automatically clamped during dragging and typing.
+
+export function MinMaxDemo() {
+  const [value, setValue] = useState(5);
+  return (
+    <Stack gap="sm">
+      Value: {value} (constrained between 0 and 10)
+      <NumberDragInput
+        value={value}
+        onChange={e => setValue(Number(e.target.value))}
+        min={0}
+        max={10}
+      />
+    </Stack>
+  );
+}
+
+<Storybook.Demo>
+  <MinMaxDemo />
+</Storybook.Demo>
+
+```jsx
+<NumberDragInput value={value} onChange={handleChange} min={0} max={10} />
+```
+
+## Keyboard Controls
+
+In addition to dragging, `<NumberDragInput>` supports keyboard controls:
+
+- **Arrow Up**: Increment by the `step` value
+- **Arrow Down**: Decrement by the `step` value
+- **Type numbers**: Directly enter numeric values
+
+These keyboard shortcuts provide an accessible alternative to mouse-based dragging.
+
+## Controlled vs Uncontrolled
+
+Like standard inputs, `<NumberDragInput>` can be controlled or uncontrolled. Use `value` and `onChange` for controlled inputs, or `defaultValue` for uncontrolled.
+
+export function UncontrolledDemo() {
+  return (
+    <Storybook.SideBySide>
+      <Stack gap="sm">
+        Controlled
+        <NumberDragInput
+          value={25}
+          onChange={e => console.log(e.target.value)}
+          min={0}
+          max={100}
+        />
+      </Stack>
+      <Stack gap="sm">
+        Uncontrolled
+        <NumberDragInput defaultValue={25} min={0} max={100} />
+      </Stack>
+    </Storybook.SideBySide>
+  );
+}
+
+<Storybook.Demo>
+  <UncontrolledDemo />
+</Storybook.Demo>
+
+```jsx
+// Controlled
+const [value, setValue] = useState(25);
+<NumberDragInput
+  value={value}
+  onChange={e => setValue(Number(e.target.value))}
+/>
+
+// Uncontrolled
+<NumberDragInput defaultValue={25} />
+```
+
+## Placeholder
+
+Use the `placeholder` prop to provide hint text when the input is empty.
+
+<Storybook.Demo>
+  <Stack gap="sm">
+    With placeholder
+    <NumberDragInput placeholder="Enter a value" min={0} max={100} />
+  </Stack>
+</Storybook.Demo>
+
+```jsx
+<NumberDragInput placeholder="Enter a value" min={0} max={100} />
+```
+
+## Usage Patterns
+
+### Threshold Adjustments
+
+Use for adjusting numeric thresholds in real-time:
+
+```jsx
+<label>
+  Error Threshold (%)
+  <NumberDragInput
+    value={errorThreshold}
+    onChange={e => setErrorThreshold(Number(e.target.value))}
+    min={0}
+    max={100}
+    step={1}
+  />
+</label>
+```
+
+### Animation Timing
+
+Allow users to explore animation durations interactively:
+
+```jsx
+<label>
+  Animation Duration (ms)
+  <NumberDragInput
+    value={duration}
+    onChange={e => setDuration(Number(e.target.value))}
+    min={0}
+    max={5000}
+    step={100}
+  />
+</label>
+```
+
+### Visual Property Tuning
+
+Enable interactive adjustment of visual properties:
+
+```jsx
+<label>
+  Border Radius (px)
+  <NumberDragInput
+    value={borderRadius}
+    onChange={e => setBorderRadius(Number(e.target.value))}
+    min={0}
+    max={50}
+    step={1}
+  />
+</label>
+```
+
+### Decimal Precision
+
+Adjust decimal values with fine control using shift modifier:
+
+```jsx
+<NumberDragInput
+  value={opacity}
+  onChange={e => setOpacity(Number(e.target.value))}
+  min={0}
+  max={1}
+  step={0.01}
+  shiftKeyMultiplier={0.1}
+/>
+```
+
+## Implementation Details
+
+`<NumberDragInput>` is built on top of `<InputGroup>` and uses:
+
+- **Pointer Lock API**: Provides unbounded cursor movement during dragging
+- **Pointer Events**: Handles mouse and touch input for dragging
+- **Input dispatch**: Programmatically sets values while maintaining React state synchronization
+
+The component automatically:
+
+- Clamps values to min/max bounds during interaction
+- Converts drag movement to value changes based on step size
+- Releases pointer lock when dragging ends
+- Maintains keyboard accessibility
+
+## Accessibility
+
+`<NumberDragInput>` provides multiple interaction methods to ensure accessibility:
+
+- [2.1.1 Keyboard](https://www.w3.org/TR/WCAG22/#keyboard): Full keyboard control with arrow keys for value adjustment
+- [2.4.7 Focus Visible](https://www.w3.org/TR/WCAG22/#focus-visible): Clear focus indicators on the input
+
+The component includes:
+
+- Keyboard shortcuts (Arrow Up/Down) as an alternative to dragging
+- Direct text input for precise value entry
+- Tooltip explaining the drag interaction
+- Standard input focus behavior
+
+### Developer Responsibilities
+
+**Labels** ([WCAG 3.3.2](https://www.w3.org/TR/WCAG22/#labels-or-instructions))
+
+- Every NumberDragInput must have an associated label
+- Use a `<label>` element, `aria-label`, or `aria-labelledby`
+- The tooltip on the drag arrows provides interaction guidance but doesn't replace the label requirement
+
+```jsx
+// Good: Visible label
+<label>
+  Threshold
+  <NumberDragInput value={value} onChange={handleChange} />
+</label>
+
+// Good: aria-label
+<NumberDragInput value={value} onChange={handleChange} aria-label="Threshold" />
+```
+
+**Interaction Guidance**
+
+- The component includes a tooltip that explains the drag interaction
+- Consider adding supplementary text for first-time users
+- Ensure keyboard shortcuts are discoverable
+
+**Mouse-Only Concerns**
+
+- While dragging is intuitive, it's a mouse-centric interaction
+- Always ensure keyboard alternatives work correctly
+- Consider providing a dedicated `<NumberInput>` alternative for users who prefer traditional inputs
+
+> [!WARNING]
+> The drag interaction relies on pointer lock, which may not work in all browsers or contexts. Always test keyboard functionality as the primary accessibility method.
