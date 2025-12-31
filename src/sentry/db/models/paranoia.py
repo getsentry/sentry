@@ -32,7 +32,7 @@ class ParanoidManager(BaseManager[M]):
     Only exposes objects that have NOT been soft-deleted.
     """
 
-    def get_queryset(self) -> ParanoidQuerySet[M]:
+    def get_queryset(self) -> BaseQuerySet[M]:
         if options.get("sentry-apps.disable-paranoia"):
             return super().get_queryset()
 
