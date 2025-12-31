@@ -16,6 +16,22 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 const FILTER_STRING = MutableSearch.fromQueryObject(BASE_FILTERS).formatString();
 
+const DOMAIN_WIDGET: Widget = {
+  id: 'domain-widget',
+  title: t('Domain'),
+  displayType: DisplayType.DETAILS,
+  widgetType: WidgetType.SPANS,
+  interval: '5m',
+  queries: [],
+  layout: {
+    x: 0,
+    y: 0,
+    minH: 1,
+    h: 1,
+    w: 6,
+  },
+};
+
 const BIG_NUMBER_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
   [
     {
@@ -121,7 +137,7 @@ const BIG_NUMBER_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
       ],
     },
   ],
-  0,
+  1,
   {h: 1, minH: 1}
 );
 
@@ -195,7 +211,7 @@ const CHART_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
       ],
     },
   ],
-  1
+  2
 );
 
 const TRANSACTIONS_TABLE: Widget = {
@@ -231,7 +247,7 @@ const TRANSACTIONS_TABLE: Widget = {
   ],
   layout: {
     x: 0,
-    y: 3,
+    y: 4,
     minH: 2,
     h: 5,
     w: 6,
@@ -255,5 +271,10 @@ export const HTTP_DOMAIN_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
       },
     ],
   },
-  widgets: [...BIG_NUMBER_ROW_WIDGETS, ...CHART_ROW_WIDGETS, TRANSACTIONS_TABLE],
+  widgets: [
+    DOMAIN_WIDGET,
+    ...BIG_NUMBER_ROW_WIDGETS,
+    ...CHART_ROW_WIDGETS,
+    TRANSACTIONS_TABLE,
+  ],
 };
