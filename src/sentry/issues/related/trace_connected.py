@@ -54,7 +54,7 @@ def _trace_connected_issues_snuba(
     org_id: int,
     project_ids: list[int],
     exclude_group_id: int,
-) -> list[int]:
+) -> set[int]:
     """Snuba implementation of trace_connected_issues."""
     start, end = default_start_end_dates()  # Today to 90 days back
     query = DiscoverQueryBuilder(
@@ -70,14 +70,11 @@ def _trace_connected_issues_snuba(
     results = bulk_snuba_queries(
         [query.get_snql_query()], referrer=Referrer.API_ISSUES_RELATED_ISSUES.value
     )
-    transformed_results = list(
-        {
-            datum["issue.id"]
-            for datum in query.process_results(results[0])["data"]
-            if datum["issue.id"] != exclude_group_id  # Exclude itself
-        }
-    )
-    return transformed_results
+    return {
+        datum["issue.id"]
+        for datum in query.process_results(results[0])["data"]
+        if datum["issue.id"] != exclude_group_id  # Exclude itself
+    }
 
 
 def _trace_connected_issues_eap(
@@ -85,7 +82,7 @@ def _trace_connected_issues_eap(
     organization: Organization,
     projects: list[Project],
     exclude_group_id: int,
-) -> list[int]:
+) -> set[int]:
     """EAP implementation of trace_connected_issues."""
     start, end = default_start_end_dates()  # Today to 90 days back
     snuba_params = SnubaParams(
@@ -114,7 +111,7 @@ def _trace_connected_issues_eap(
                 gid = int(group_id)
                 if gid != exclude_group_id:
                     group_ids.add(gid)
-        return list(group_ids)
+        return group_ids
     except Exception:
         logger.exception(
             "Fetching trace connected issues from EAP failed",
@@ -124,7 +121,7 @@ def _trace_connected_issues_eap(
                 "exclude_group_id": exclude_group_id,
             },
         )
-        return []
+        return set()
 
 
 def trace_connected_issues(event: Event | GroupEvent) -> tuple[list[int], dict[str, str]]:
@@ -158,7 +155,11 @@ def trace_connected_issues(event: Event | GroupEvent) -> tuple[list[int], dict[s
             exclude_group_id=group.id,
         )
         issues = EAPOccurrencesComparator.check_and_choose(
-            snuba_results, eap_results, "issues.related.trace_connected_issues"
+            snuba_results,
+            eap_results,
+            "issues.related.trace_connected_issues",
+            is_experimental_data_a_null_result=len(eap_results) == 0,
+            reasonable_match_comparator=lambda snuba, eap: eap.issubset(snuba),
         )
 
-    return issues, meta
+    return list(issues), meta

@@ -51,7 +51,7 @@ class TraceConnectedIssuesTest(TestCase):
         )
 
         # Should return unique group_ids excluding the specified one
-        assert set(result) == {100, 300}
+        assert result == {100, 300}
         mock_table_rpc.assert_called_once()
 
     @mock.patch("sentry.snuba.rpc_dataset_common.snuba_rpc.table_rpc")
@@ -69,7 +69,7 @@ class TraceConnectedIssuesTest(TestCase):
             exclude_group_id=1,
         )
 
-        assert result == []
+        assert result == set()
 
     @mock.patch("sentry.snuba.rpc_dataset_common.snuba_rpc.table_rpc")
     def test_eap_returns_empty_on_exception(self, mock_table_rpc: mock.MagicMock) -> None:
@@ -85,7 +85,7 @@ class TraceConnectedIssuesTest(TestCase):
             exclude_group_id=1,
         )
 
-        assert result == []
+        assert result == set()
 
     @mock.patch("sentry.issues.related.trace_connected._trace_connected_issues_eap")
     @mock.patch("sentry.issues.related.trace_connected._trace_connected_issues_snuba")
@@ -106,13 +106,13 @@ class TraceConnectedIssuesTest(TestCase):
         event.group.id = group.id
         event.group.project.organization_id = organization.id
 
-        mock_snuba.return_value = [100, 200, 300]
-        mock_eap.return_value = [100, 200]
+        mock_snuba.return_value = {100, 200, 300}
+        mock_eap.return_value = {100, 200}
 
         with self.options({EAPOccurrencesComparator._should_eval_option_name(): True}):
             result, meta = trace_connected_issues(event)
 
-        assert result == [100, 200, 300]
+        assert set(result) == {100, 200, 300}
         assert meta["trace_id"] == event.trace_id
         mock_snuba.assert_called_once()
         mock_eap.assert_called_once()
@@ -136,8 +136,8 @@ class TraceConnectedIssuesTest(TestCase):
         event.group.id = group.id
         event.group.project.organization_id = organization.id
 
-        mock_snuba.return_value = [100, 200, 300]
-        mock_eap.return_value = [100, 200]
+        mock_snuba.return_value = {100, 200, 300}
+        mock_eap.return_value = {100, 200}
 
         with self.options(
             {
@@ -149,7 +149,7 @@ class TraceConnectedIssuesTest(TestCase):
         ):
             result, meta = trace_connected_issues(event)
 
-        assert result == [100, 200]
+        assert set(result) == {100, 200}
         assert meta["trace_id"] == event.trace_id
         mock_snuba.assert_called_once()
         mock_eap.assert_called_once()
