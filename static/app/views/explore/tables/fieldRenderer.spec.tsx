@@ -139,7 +139,7 @@ describe('FieldRenderer tests', () => {
       );
       expect(await screen.findByRole('link')).toHaveAttribute(
         'href',
-        `/organizations/org-slug/explore/traces/?mode=samples&project=1&query=${queryString}&statsPeriod=24h`
+        `/organizations/org-slug/explore/traces/?mode=samples&project=1&query=${queryString}&referrer=partial-trace&statsPeriod=24h`
       );
     });
   });
@@ -197,7 +197,7 @@ describe('FieldRenderer tests', () => {
       );
       expect(await screen.findByRole('link')).toHaveAttribute(
         'href',
-        `/organizations/org-slug/explore/traces/?mode=samples&project=1&query=${queryString}&statsPeriod=24h`
+        `/organizations/org-slug/explore/traces/?mode=samples&project=1&query=${queryString}&referrer=partial-trace&statsPeriod=24h`
       );
     });
   });
@@ -255,7 +255,7 @@ describe('FieldRenderer tests', () => {
       );
       expect(await screen.findByRole('link')).toHaveAttribute(
         'href',
-        `/organizations/org-slug/explore/traces/?mode=samples&project=1&query=${queryString}&statsPeriod=24h&table=trace`
+        `/organizations/org-slug/explore/traces/?mode=samples&project=1&query=${queryString}&referrer=partial-trace&statsPeriod=24h&table=trace`
       );
     });
   });

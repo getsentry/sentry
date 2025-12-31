@@ -186,6 +186,7 @@ function BaseExploreFieldRenderer({
             : selection.projects,
           datetime: {start: null, end: null, utc: null, period: '24h'},
         },
+        referrer: 'partial-trace',
       });
 
       return (
@@ -248,6 +249,7 @@ function BaseExploreFieldRenderer({
             : selection.projects,
           datetime: {start: null, end: null, utc: null, period: '24h'},
         },
+        referrer: 'partial-trace',
       });
 
       return (
