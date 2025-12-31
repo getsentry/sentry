@@ -39,7 +39,7 @@ export function BuildDetailsSidebarStatusCheck({
     const providerName = getProviderDisplayName(vcsInfo.provider);
     const errorMessage = getErrorMessage(statusCheck.error_type, providerName);
     return (
-      <Alert type="muted" showIcon={false}>
+      <Alert variant="muted" showIcon={false}>
         <Flex direction="column" gap="sm">
           <Flex align="center" gap="xs">
             <IconWarning size="xs" color="errorText" />
@@ -72,7 +72,7 @@ export function BuildDetailsSidebarStatusCheck({
     const providerName = getProviderDisplayName(vcsInfo.provider);
 
     return (
-      <Alert type="muted" showIcon={false}>
+      <Alert variant="muted" showIcon={false}>
         <Flex align="center" gap="xs">
           <IconCheckmark size="xs" color="successText" />
           <Text size="sm">
