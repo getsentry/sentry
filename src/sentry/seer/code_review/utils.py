@@ -6,6 +6,7 @@ import orjson
 from django.conf import settings
 from urllib3.exceptions import HTTPError
 
+from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import CodeReviewTrigger
@@ -19,11 +20,10 @@ class ClientError(Exception):
     pass
 
 
+# These values need to match the value defined in the Seer API.
 class SeerEndpoint(StrEnum):
-    # XXX: We will need to either add a new one or re-use the overwatch-request endpoint.
     # https://github.com/getsentry/seer/blob/main/src/seer/routes/automation_request.py#L57
-    SENTRY_REQUEST = "/v1/automation/sentry-request"
-    # This needs to match the value defined in the Seer API:
+    OVERWATCH_REQUEST = "/v1/automation/overwatch-request"
     # https://github.com/getsentry/seer/blob/main/src/seer/routes/codegen.py
     PR_REVIEW_RERUN = "/v1/automation/codegen/pr-review/rerun"
 
@@ -103,8 +103,8 @@ def _get_trigger_metadata(event_payload: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _transform_webhook_to_codegen_request(
-    event_type: str,
+def transform_webhook_to_codegen_request(
+    github_event: GithubWebhookType,
     event_payload: Mapping[str, Any],
     organization: Organization,
     repo: Repository,
@@ -114,7 +114,6 @@ def _transform_webhook_to_codegen_request(
     Transform a GitHub webhook payload into CodecovTaskRequest format for Seer.
 
     Args:
-        event_type: The type of GitHub webhook event
         event_payload: The full webhook event payload from GitHub
         organization: The Sentry organization
         repo: The repository model
@@ -178,7 +177,7 @@ def _transform_webhook_to_codegen_request(
                 "features": {
                     "bug_prediction": True,
                 },
-                "trigger": _get_trigger(event_type, event_payload),
+                "trigger": _get_trigger(github_event, event_payload),
                 **trigger_metadata,
             },
         },
