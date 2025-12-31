@@ -791,6 +791,33 @@ class IssueCommentEventWebhookTest(GitHubWebhookHelper):
         mock_reaction.assert_not_called()
         mock_schedule.assert_not_called()
 
+    @patch("sentry.seer.code_review.metrics.metrics.incr")
+    @patch("sentry.seer.code_review.webhooks.task.make_seer_request")
+    @patch("sentry.integrations.github.client.GitHubApiClient.create_comment_reaction")
+    @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
+    def test_increments_metrics_when_valid(
+        self, mock_create_reaction: MagicMock, mock_seer: MagicMock, mock_metrics_incr: MagicMock
+    ) -> None:
+        from sentry.seer.code_review.metrics import METRICS_PREFIX
+
+        self._enable_code_review()
+        with self.options({"github.webhook.issue-comment": False}):
+            event = self._build_issue_comment_event(f"Please {SENTRY_REVIEW_COMMAND} this PR")
+
+            with self.tasks():
+                self._send_issue_comment_event(event)
+
+        mock_create_reaction.assert_called_once()
+        mock_seer.assert_called_once()
+        mock_metrics_incr.assert_any_call(
+            f"{METRICS_PREFIX}.webhook.received",
+            tags={"github_event": "issue_comment", "github_event_action": "created"},
+        )
+        mock_metrics_incr.assert_any_call(
+            f"{METRICS_PREFIX}.webhook.enqueued",
+            tags={"github_event": "issue_comment", "github_event_action": "created"},
+        )
+
 
 class AddEyesReactionTest(TestCase):
     def setUp(self) -> None:
@@ -805,6 +832,8 @@ class AddEyesReactionTest(TestCase):
     @patch("sentry.seer.code_review.webhooks.issue_comment.logger")
     def test_logs_warning_when_integration_is_none(self, mock_logger: MagicMock) -> None:
         _add_eyes_reaction_to_comment(
+            github_event=GithubWebhookType.ISSUE_COMMENT,
+            github_event_action="created",
             integration=None,
             organization=self.organization,
             repo=self.repo,
@@ -814,8 +843,7 @@ class AddEyesReactionTest(TestCase):
         mock_logger.warning.assert_called_once()
         assert "missing-integration" in mock_logger.warning.call_args[0][0]
 
-    @patch("sentry.seer.code_review.webhooks.issue_comment.metrics")
-    def test_calls_github_api_with_eyes_reaction(self, mock_metrics: MagicMock) -> None:
+    def test_calls_github_api_with_eyes_reaction(self) -> None:
         mock_client = MagicMock()
         mock_installation = MagicMock()
         mock_installation.get_client.return_value = mock_client
@@ -823,6 +851,8 @@ class AddEyesReactionTest(TestCase):
         mock_integration.get_installation.return_value = mock_installation
 
         _add_eyes_reaction_to_comment(
+            github_event=GithubWebhookType.ISSUE_COMMENT,
+            github_event_action="created",
             integration=mock_integration,
             organization=self.organization,
             repo=self.repo,
@@ -830,12 +860,8 @@ class AddEyesReactionTest(TestCase):
         )
 
         mock_client.create_comment_reaction.assert_called_once_with(
-            "owner/repo", "123456", GitHubReaction.EYES
+            self.repo.name, "123456", GitHubReaction.EYES
         )
-        mock_metrics.incr.assert_called_once()
-        call_args = mock_metrics.incr.call_args
-        assert call_args[0][0] == "seer.code_review.webhook.issue_comment.outcome"
-        assert call_args[1]["tags"]["status"] == "reaction_added"
 
     @patch("sentry.seer.code_review.webhooks.issue_comment.logger")
     def test_logs_exception_on_api_error(self, mock_logger: MagicMock) -> None:
@@ -847,6 +873,8 @@ class AddEyesReactionTest(TestCase):
         mock_integration.get_installation.return_value = mock_installation
 
         _add_eyes_reaction_to_comment(
+            github_event=GithubWebhookType.ISSUE_COMMENT,
+            github_event_action="created",
             integration=mock_integration,
             organization=self.organization,
             repo=self.repo,
