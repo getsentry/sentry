@@ -2,9 +2,12 @@ import type {ReactNode} from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {IconQuestion} from 'sentry/icons';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
   formattedPrimaryMetricDownloadSize,
@@ -29,24 +32,6 @@ interface PreprodBuildsSizeTableProps {
   showProjectColumn: boolean;
   content?: ReactNode;
   onRowClick?: (build: BuildDetailsApiResponse) => void;
-}
-
-function InstallSizeHeaderCell({labels}: {labels: PreprodBuildLabels}) {
-  return (
-    <SimpleTable.HeaderCell>
-      {labels.installSizeLabelTooltip ? (
-        <Tooltip title={labels.installSizeLabelTooltip}>
-          <span>{labels.installSizeLabel}</span>
-        </Tooltip>
-      ) : (
-        labels.installSizeLabel
-      )}
-    </SimpleTable.HeaderCell>
-  );
-}
-
-function DownloadSizeHeaderCell({labels}: {labels: PreprodBuildLabels}) {
-  return <SimpleTable.HeaderCell>{labels.downloadSizeLabel}</SimpleTable.HeaderCell>;
 }
 
 function InstallSizeRowCell({build}: {build: BuildDetailsApiResponse}) {
@@ -97,8 +82,21 @@ export function PreprodBuildsSizeTable({
     <BuildsSizeTable showProjectColumn={showProjectColumn}>
       <SimpleTable.Header>
         <PreprodBuildsCommonHeaderCells showProjectColumn={showProjectColumn} />
-        <InstallSizeHeaderCell labels={labels} />
-        <DownloadSizeHeaderCell labels={labels} />
+        <SimpleTable.HeaderCell>
+          {labels.installSizeLabelTooltip ? (
+            <Tooltip title={labels.installSizeLabelTooltip}>
+              <Flex align="center" gap="xs">
+                <Text as="span" variant="muted">
+                  {labels.installSizeLabel}
+                </Text>
+                <IconQuestion size="xs" variant="muted" />
+              </Flex>
+            </Tooltip>
+          ) : (
+            labels.installSizeLabel
+          )}
+        </SimpleTable.HeaderCell>
+        <SimpleTable.HeaderCell>{labels.downloadSizeLabel}</SimpleTable.HeaderCell>
         <PreprodBuildsCreatedHeaderCell />
       </SimpleTable.Header>
       {content ?? rows}
