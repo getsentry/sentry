@@ -2,6 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
+import {Button} from '@sentry/scraps/button';
+
 import Feature from 'sentry/components/acl/feature';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Container, Flex} from 'sentry/components/core/layout';
@@ -79,12 +81,16 @@ export function PreprodBuildsRowCells({
                         variant="icon"
                       />
                     ) : (
-                      <Tooltip title={t('Not installable')}>
-                        <IconNot
-                          aria-label={t('Not installable')}
-                          color="red300"
-                          size="xs"
-                        />
+                      <Tooltip title={t('Not installable')} skipWrapper>
+                        <span>
+                          <Button
+                            aria-label={t('Not installable')}
+                            icon={<IconNot color="red300" size="xs" />}
+                            priority="transparent"
+                            size="zero"
+                            disabled
+                          />
+                        </span>
                       </Tooltip>
                     )}
                   </Flex>
