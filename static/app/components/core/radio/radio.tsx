@@ -22,7 +22,7 @@ const radioConfig = {
   },
 };
 
-export const radioStyles = (props: RadioProps & {theme: Theme}): StrictCSSObject => ({
+const radioStyles = (props: RadioProps & {theme: Theme}): StrictCSSObject => ({
   width: radioConfig[props.size ?? 'md'].outerSize,
   height: radioConfig[props.size ?? 'md'].outerSize,
 
