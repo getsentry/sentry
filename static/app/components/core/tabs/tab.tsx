@@ -27,7 +27,7 @@ export interface BaseTabProps {
   variant?: 'flat' | 'floating';
 }
 
-export const StyledTabWrap = styled('li', {
+const StyledTabWrap = styled('li', {
   shouldForwardProp: tabsShouldForwardProp,
 })<{
   overflowing: boolean;
@@ -71,7 +71,7 @@ const paddingPerSize = (theme: Theme, orientation: Orientation) => ({
 
 const selectionIndicatorSize = '2px';
 
-export const innerWrapStyles = ({
+const innerWrapStyles = ({
   theme,
   orientation,
   variant,
@@ -152,7 +152,7 @@ export const innerWrapStyles = ({
   `}
 `;
 
-export const StyledTabSelectionIndicator = styled('div')<{
+const StyledTabSelectionIndicator = styled('div')<{
   orientation: Orientation;
   selected: boolean;
 }>`

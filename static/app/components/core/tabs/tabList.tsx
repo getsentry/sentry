@@ -25,7 +25,7 @@ import type {BaseTabProps} from './tab';
 import {TabsContext} from './tabs';
 import {tabsShouldForwardProp} from './utils';
 
-export const StyledTabListWrap = styled('ul', {
+const StyledTabListWrap = styled('ul', {
   shouldForwardProp: tabsShouldForwardProp,
 })<{
   orientation: Orientation;
@@ -53,7 +53,7 @@ export const StyledTabListWrap = styled('ul', {
         `};
 `;
 
-export const StyledTabListOverflowWrap = styled('div')`
+const StyledTabListOverflowWrap = styled('div')`
   position: absolute;
   right: 0;
   top: 50%;
