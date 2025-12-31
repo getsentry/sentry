@@ -63,15 +63,15 @@ const inputStyles = ({
   `}
 `;
 
-export const StyledInput = styled(CoreInput)<InputStyleProps>`
+const StyledInput = styled(CoreInput)<InputStyleProps>`
   ${inputStyles}
 `;
 
-export const StyledTextArea = styled(CoreTextArea)<InputStyleProps>`
+const StyledTextArea = styled(CoreTextArea)<InputStyleProps>`
   ${inputStyles}
 `;
 
-export const StyledLeadingItemsWrap = styled(InputItemsWrap)<{
+const StyledLeadingItemsWrap = styled(InputItemsWrap)<{
   size: NonNullable<InputStyleProps['size']>;
   disablePointerEvents?: boolean;
 }>`
@@ -79,7 +79,7 @@ export const StyledLeadingItemsWrap = styled(InputItemsWrap)<{
   ${p => p.disablePointerEvents && `pointer-events: none;`}
 `;
 
-export const StyledTrailingItemsWrap = styled(InputItemsWrap)<{
+const StyledTrailingItemsWrap = styled(InputItemsWrap)<{
   size: NonNullable<InputStyleProps['size']>;
   disablePointerEvents?: boolean;
 }>`
