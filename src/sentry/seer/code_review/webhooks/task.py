@@ -70,9 +70,7 @@ def process_github_webhook_event(
         if event_processor:
             event_processor(event_payload=event_payload, **kwargs)
         else:
-            # XXX: Uncomment this when we are ready to send events to Seer.
-            # _call_seer_request(github_event=github_event, event_payload=event_payload, **kwargs)
-            pass
+            _call_seer_request(github_event=github_event, event_payload=event_payload, **kwargs)
     except Exception as e:
         status = e.__class__.__name__
         # Retryable errors are automatically retried by taskworker.

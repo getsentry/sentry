@@ -593,11 +593,10 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
     @patch("sentry.seer.code_review.webhooks.task.metrics")
-    def test_pr_related_event_calls_correct_endpoint(
+    def test_pr_related_event_does_not_call_seer_request_endpoint(
         self, mock_metrics: MagicMock, mock_request: MagicMock
     ) -> None:
         """Test that PR-related events are sent to the sentry-request endpoint."""
-        mock_request.return_value = self._mock_response(200, b'{"run_id": 123}')
 
         event_payload = {
             "data": {
@@ -622,4 +621,4 @@ class ProcessGitHubWebhookEventTest(TestCase):
             enqueued_at_str=self.enqueued_at_str,
         )
 
-        mock_request.assert_not_called()
+        assert not mock_request.called
