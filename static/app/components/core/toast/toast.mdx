@@ -1,0 +1,283 @@
+---
+title: Toast
+description: Temporary notification messages that provide feedback for user actions, with support for success, error, loading, and undoable states.
+source: 'sentry/components/core/toast'
+resources:
+  figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=384-2119&t=DdXZ7WIgTdURJlRv-4
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/toast/index.tsx
+  a11y:
+    WCAG 2.2.4: https://www.w3.org/TR/WCAG22/#interruptions
+    WAI-ARIA Alert: https://www.w3.org/WAI/ARIA/apg/patterns/alert/
+---
+
+import {Toast} from '@sentry/scraps/toast';
+
+import * as Storybook from 'sentry/stories';
+
+import documentation from '!!type-loader!@sentry/scraps/toast';
+
+export {documentation};
+
+`<Toast>` is a notification component that displays temporary messages to provide feedback for user actions. Toasts appear briefly to confirm actions, report errors, show loading states, or offer undo functionality.
+
+In practice, you won't typically render `<Toast>` components directly. Instead, use the action creators `addSuccessMessage` and `addErrorMessage` from `static/app/actionCreators/indicator.tsx` to display toasts.
+
+```jsx
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+
+// Show success toast
+addSuccessMessage('Project settings saved successfully');
+
+// Show error toast
+addErrorMessage('Failed to save settings. Please try again.');
+```
+
+## Toast Types
+
+Toasts come in four types, each serving a different purpose:
+
+- **success**: Confirms successful operations (green checkmark)
+- **error**: Reports errors or failures (red error icon)
+- **loading**: Indicates ongoing operations (spinner)
+- **undo**: Provides an undo action for reversible operations
+
+<Storybook.Demo>
+  <Storybook.SideBySide>
+    <Toast
+      indicator={{
+        type: 'success',
+        message: 'Operation completed successfully',
+        id: 'success',
+        options: {},
+      }}
+      onDismiss={() => {}}
+    />
+    <Toast
+      indicator={{
+        type: 'error',
+        message: 'An error occurred',
+        id: 'error',
+        options: {},
+      }}
+      onDismiss={() => {}}
+    />
+    <Toast
+      indicator={{
+        type: 'loading',
+        message: 'Processing...',
+        id: 'loading',
+        options: {},
+      }}
+      onDismiss={() => {}}
+    />
+    <Toast
+      indicator={{
+        type: 'undo',
+        message: 'Item deleted',
+        id: 'undo',
+        options: {},
+      }}
+      onDismiss={() => {}}
+    />
+  </Storybook.SideBySide>
+</Storybook.Demo>
+
+```jsx
+// Success
+addSuccessMessage('Settings saved');
+
+// Error
+addErrorMessage('Failed to load data');
+
+// Loading
+addLoadingMessage('Uploading file...');
+
+// Undo
+addSuccessMessage('Item deleted', {undo: handleUndo});
+```
+
+## Undoable Actions
+
+For reversible actions, provide an `undo` callback in the options. This displays an "Undo" button in the toast.
+
+<Storybook.Demo>
+  <Storybook.SideBySide>
+    <Toast
+      indicator={{
+        type: 'success',
+        message: 'Item deleted',
+        id: 'undo-success',
+        options: {
+          undo: () => alert('Undone!'),
+        },
+      }}
+      onDismiss={() => {}}
+    />
+    <Toast
+      indicator={{
+        type: 'undo',
+        message: 'Changes reverted',
+        id: 'undo-undo',
+        options: {
+          undo: () => alert('Re-applied!'),
+        },
+      }}
+      onDismiss={() => {}}
+    />
+  </Storybook.SideBySide>
+</Storybook.Demo>
+
+```jsx
+addSuccessMessage('Project deleted', {
+  undo: () => {
+    restoreProject(projectId);
+  },
+});
+```
+
+## Dismissible
+
+All toasts are dismissible by default—users can click the "×" button to close them. Toasts also auto-dismiss after a few seconds (except loading toasts).
+
+```jsx
+addSuccessMessage('Your changes have been saved');
+// Toast appears and auto-dismisses after ~4 seconds
+```
+
+## Duration
+
+Control how long toasts remain visible using the `duration` option:
+
+```jsx
+// Short duration (2 seconds)
+addSuccessMessage('Copied to clipboard', {duration: 2000});
+
+// Longer duration (10 seconds)
+addErrorMessage('Important error message', {duration: 10000});
+
+// Persistent (no auto-dismiss)
+addLoadingMessage('Processing large file...', {duration: Infinity});
+```
+
+## Usage Patterns
+
+### Action Confirmations
+
+Confirm successful operations:
+
+```jsx
+const handleSave = async () => {
+  try {
+    await saveProject(data);
+    addSuccessMessage('Project saved successfully');
+  } catch (error) {
+    addErrorMessage('Failed to save project');
+  }
+};
+```
+
+### Error Reporting
+
+Inform users of errors with actionable guidance:
+
+```jsx
+try {
+  await uploadFile(file);
+  addSuccessMessage(`${file.name} uploaded`);
+} catch (error) {
+  addErrorMessage(`Failed to upload ${file.name}. File may be too large.`);
+}
+```
+
+### Deletions with Undo
+
+Allow users to undo destructive actions:
+
+```jsx
+const handleDelete = async id => {
+  const backup = items.find(item => item.id === id);
+  await deleteItem(id);
+
+  addSuccessMessage('Item deleted', {
+    undo: async () => {
+      await restoreItem(backup);
+      addSuccessMessage('Item restored');
+    },
+  });
+};
+```
+
+### Loading States
+
+Show progress for long-running operations:
+
+```jsx
+const handleExport = async () => {
+  addLoadingMessage('Generating export...');
+
+  try {
+    await generateExport();
+    addSuccessMessage('Export complete');
+  } catch (error) {
+    addErrorMessage('Export failed');
+  }
+};
+```
+
+## Best Practices
+
+**Message Content**
+
+- Keep messages concise (1-2 sentences maximum)
+- Use clear, specific language
+- Avoid technical jargon
+- Include actionable next steps for errors
+
+**Frequency**
+
+- Don't overwhelm users with too many toasts
+- Batch similar notifications when possible
+- Use toasts for important feedback, not every minor action
+
+**Timing**
+
+- Success toasts: 3-4 seconds (default)
+- Error toasts: 6-8 seconds (users need time to read)
+- Loading toasts: Until operation completes
+- Undo toasts: 5-8 seconds (give time to react)
+
+## Accessibility
+
+Toasts use the [WAI-ARIA Alert pattern](https://www.w3.org/WAI/ARIA/apg/patterns/alert/) for announcing messages to screen readers:
+
+- [2.2.4 Interruptions](https://www.w3.org/TR/WCAG22/#interruptions): Toasts can be dismissed and auto-dismiss
+- Screen readers announce toast content when it appears
+- Undo buttons are keyboard accessible
+
+### Developer Responsibilities
+
+**Message Clarity**
+
+- Write clear, specific messages
+- Ensure messages make sense when read aloud
+- Avoid relying solely on icons to convey meaning
+
+**Timing**
+
+- Allow sufficient time for users to read and react
+- Don't auto-dismiss error messages too quickly
+- Give adequate time to click undo buttons
+
+**Frequency Control**
+
+- Avoid showing multiple toasts simultaneously
+- Queue or batch notifications when appropriate
+- Don't interrupt critical user workflows with non-urgent toasts
+
+**Undo Actions**
+
+- Ensure undo callbacks work correctly
+- Provide feedback when undo completes
+- Handle errors in undo operations
+
+For more information, see the [WAI-ARIA Alert practices](https://www.w3.org/WAI/ARIA/apg/patterns/alert/).
