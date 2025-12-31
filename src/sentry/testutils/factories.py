@@ -558,7 +558,7 @@ class Factories:
         organization=None,
         teams=None,
         fire_project_created=False,
-        create_default_detectors=False,
+        create_default_detectors=True,
         **kwargs,
     ) -> Project:
         from sentry.receivers.project_detectors import disable_default_detector_creation
