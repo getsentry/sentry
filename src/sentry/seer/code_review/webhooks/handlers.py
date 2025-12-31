@@ -5,9 +5,9 @@ from collections.abc import Mapping
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
+from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.seer.code_review.webhooks.types import EventType
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
@@ -23,7 +23,7 @@ METRICS_PREFIX = "seer.code_review.webhook"
 
 def handle_other_webhook_event(
     *,
-    event_type: str,
+    github_event: GithubWebhookType,
     event: Mapping[str, Any],
     organization: Organization,
     repo: Repository,
@@ -35,41 +35,40 @@ def handle_other_webhook_event(
     """
     from .task import process_github_webhook_event
 
-    event_type_enum = EventType.from_string(event_type)
     transformed_event = _transform_webhook_to_codegen_request(
-        event_type_enum, dict(event), organization.id, repo
+        github_event, dict(event), organization.id, repo
     )
 
     if transformed_event is None:
         metrics.incr(
-            f"{METRICS_PREFIX}.{event_type}.skipped",
-            tags={"reason": "failed_to_transform", "event_type": event_type},
+            f"{METRICS_PREFIX}.{github_event.value}.skipped",
+            tags={"reason": "failed_to_transform", "github_event": github_event.value},
         )
         return
 
     process_github_webhook_event.delay(
-        event_type=event_type,
+        github_event=github_event,
         event_payload=transformed_event,
         enqueued_at_str=datetime.now(timezone.utc).isoformat(),
     )
     metrics.incr(
-        f"{METRICS_PREFIX}.{event_type}.enqueued",
-        tags={"status": "success", "event_type": event_type},
+        f"{METRICS_PREFIX}.{github_event.value}.enqueued",
+        tags={"status": "success", "github_event": github_event.value},
     )
 
 
-EVENT_TYPE_TO_handler: dict[EventType, WebhookProcessor] = {
-    EventType.CHECK_RUN: handle_check_run_event,
-    EventType.ISSUE_COMMENT: handle_other_webhook_event,
-    EventType.PULL_REQUEST: handle_other_webhook_event,
-    EventType.PULL_REQUEST_REVIEW: handle_other_webhook_event,
-    EventType.PULL_REQUEST_REVIEW_COMMENT: handle_other_webhook_event,
+EVENT_TYPE_TO_handler: dict[GithubWebhookType, WebhookProcessor] = {
+    GithubWebhookType.CHECK_RUN: handle_check_run_event,
+    GithubWebhookType.ISSUE_COMMENT: handle_other_webhook_event,
+    GithubWebhookType.PULL_REQUEST: handle_other_webhook_event,
+    GithubWebhookType.PULL_REQUEST_REVIEW: handle_other_webhook_event,
+    GithubWebhookType.PULL_REQUEST_REVIEW_COMMENT: handle_other_webhook_event,
 }
 
 
 def handle_webhook_event(
     *,
-    event_type: str,
+    github_event: GithubWebhookType,
     event: Mapping[str, Any],
     organization: Organization,
     repo: Repository,
@@ -79,22 +78,27 @@ def handle_webhook_event(
     Handle GitHub webhook events.
 
     Args:
-        event_type: The type of the webhook event (as string)
+        github_event: The GitHub webhook event type from X-GitHub-Event header (e.g., "check_run", "pull_request")
         event: The webhook event payload
         organization: The Sentry organization that the webhook event belongs to
         repo: The repository that the webhook event is for
         **kwargs: Additional keyword arguments including integration
     """
-    event_type_enum = EventType.from_string(event_type)
-    handler = EVENT_TYPE_TO_handler.get(event_type_enum)
+    handler = EVENT_TYPE_TO_handler.get(github_event)
     if handler is None:
         logger.warning(
             "github.webhook.handler.not_found",
-            extra={"event_type": event_type},
+            extra={"github_event": github_event.value},
         )
         return
 
-    handler(event_type=event_type, event=event, organization=organization, repo=repo, **kwargs)
+    handler(
+        github_event=github_event,
+        event=event,
+        organization=organization,
+        repo=repo,
+        **kwargs,
+    )
 
 
 # Type checks to ensure the functions match WebhookProcessor protocol

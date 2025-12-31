@@ -12,6 +12,7 @@ from django.http.response import HttpResponseBase
 
 from sentry import options
 from sentry.integrations.github.webhook import GitHubIntegrationsWebhookEndpoint
+from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.models.integration import Integration
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -89,7 +90,7 @@ class GitHubWebhookTestCase(APITestCase):
 
     def send_github_webhook_event(
         self,
-        event_type: str,
+        github_event: GithubWebhookType,
         event_data: str | bytes,
         **extra_headers: str,
     ) -> HttpResponseBase:
@@ -97,7 +98,7 @@ class GitHubWebhookTestCase(APITestCase):
         Send a GitHub webhook event with proper signatures and headers.
 
         Args:
-            event_type: GitHub event type (e.g., "push", "pull_request", "check_run")
+            github_event: GitHub event type (e.g., "push", "pull_request", "check_run")
             event_data: The webhook event payload (as JSON string or bytes)
             **extra_headers: Additional HTTP headers
 
@@ -115,7 +116,7 @@ class GitHubWebhookTestCase(APITestCase):
 
         # Build headers
         headers = {
-            "HTTP_X_GITHUB_EVENT": event_type,
+            "HTTP_X_GITHUB_EVENT": github_event.value,
             "HTTP_X_HUB_SIGNATURE": sha1_sig,
             "HTTP_X_HUB_SIGNATURE_256": sha256_sig,
             "HTTP_X_GITHUB_DELIVERY": str(uuid4()),
