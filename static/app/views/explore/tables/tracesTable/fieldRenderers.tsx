@@ -457,6 +457,7 @@ export function SpanIdRenderer({
         projects: projectIds,
         datetime: {start: null, end: null, utc: null, period: '24h'},
       },
+      referrer: 'partial-trace',
     });
 
     return (
