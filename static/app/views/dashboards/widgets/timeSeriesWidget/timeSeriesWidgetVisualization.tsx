@@ -21,6 +21,7 @@ import {
 } from 'sentry/components/charts/useChartXRangeSelection';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {space} from 'sentry/styles/space';
 import type {
@@ -130,7 +131,13 @@ export interface TimeSeriesWidgetVisualizationProps
 
 export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizationProps) {
   if (props.plottables.every(plottable => plottable.isEmpty)) {
-    throw new Error(NO_PLOTTABLE_VALUES);
+    return (
+      <EmptyStateContainer>
+        <EmptyStateWarning small>
+          <p>{NO_PLOTTABLE_VALUES}</p>
+        </EmptyStateWarning>
+      </EmptyStateContainer>
+    );
   }
 
   // TODO: It would be polite to also scan for gaps (i.e., the items don't all
@@ -747,6 +754,15 @@ const LoadingMessage = styled('div')<{visible: boolean}>`
 
 const LoadingMask = styled(TransparentLoadingMask)`
   background: ${p => p.theme.tokens.background.primary};
+`;
+
+const EmptyStateContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 96px;
+  padding: ${Y_GUTTER} ${X_GUTTER};
 `;
 
 TimeSeriesWidgetVisualization.LoadingPlaceholder = LoadingPanel;
