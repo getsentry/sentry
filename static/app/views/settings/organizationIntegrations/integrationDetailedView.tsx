@@ -139,7 +139,13 @@ export default function IntegrationDetailedView() {
     // The server response for integration installations includes old icon CSS classes
     // We map those to the currently in use values to their react equivalents
     // and fallback to IconFlag just in case.
-    const alertList = provider?.metadata.aspects.alerts || [];
+    const alertList: AlertType[] = (provider?.metadata.aspects.alerts || []).map(
+      alert => ({
+        variant: alert.variant ?? 'muted',
+        text: alert.text,
+        icon: alert.icon,
+      })
+    );
 
     if (!provider?.canAdd && provider?.metadata.aspects.externalInstall) {
       alertList.push({
