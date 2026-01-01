@@ -63,7 +63,7 @@ function PanelContents({onClick}: PanelContentsProps) {
     <Flex direction="column" border="primary" height="100%" gap="md" padding="md">
       <Button onClick={onClick}>Close Panel</Button>
       <Container>
-        <Alert type="warning">I took a very long time to render!</Alert>
+        <Alert variant="warning">I took a very long time to render!</Alert>
         <ManySlowComponents />
       </Container>
     </Flex>

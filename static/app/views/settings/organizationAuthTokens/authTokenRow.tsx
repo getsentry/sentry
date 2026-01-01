@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {Link} from 'sentry/components/core/link';
@@ -117,7 +119,7 @@ export function OrganizationAuthTokensAuthTokenRow({
         )}
       </DateTime>
 
-      <Actions>
+      <Flex justify="end">
         <Tooltip
           title={t('You must be an organization owner or manager to revoke a token.')}
           disabled={!!revokeToken}
@@ -140,17 +142,12 @@ export function OrganizationAuthTokensAuthTokenRow({
             </Button>
           </Confirm>
         </Tooltip>
-      </Actions>
+      </Flex>
     </Fragment>
   );
 }
 
 const Label = styled('div')``;
-
-const Actions = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-`;
 
 const DateTime = styled('div')`
   display: flex;
