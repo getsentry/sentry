@@ -805,7 +805,6 @@ def _get_recommended_event(
                 per_page=len(trace_ids),
                 fields=["trace", "count()"],
                 query=f"trace:[{','.join(trace_ids)}]",
-                project_ids=[group.project.id],
                 start=spans_start.isoformat(),
                 end=spans_end.isoformat(),
             )
