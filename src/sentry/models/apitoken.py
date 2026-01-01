@@ -20,7 +20,11 @@ from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import SentryAppStatus
 from sentry.db.models import FlexibleForeignKey, control_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.hybridcloud.outbox.base import ControlOutboxProducingManager, ReplicatedControlModel
+from sentry.hybridcloud.outbox.base import (
+    ControlOutboxBase,
+    ControlOutboxProducingManager,
+    ReplicatedControlModel,
+)
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.locks import locks
 from sentry.models.apiapplication import ApiApplicationStatus
@@ -171,6 +175,9 @@ class ApiTokenManager(ControlOutboxProducingManager["ApiToken"]):
 class ApiToken(ReplicatedControlModel, HasApiScopes):
     __relocation_scope__ = {RelocationScope.Global, RelocationScope.Config}
     category = OutboxCategory.API_TOKEN_UPDATE
+    # Note: We override outboxes_for_update() to use token.id as shard_identifier
+    # instead of the default USER_SCOPE behavior (user_id). This prevents lock
+    # contention for Sentry App tokens which share proxy_user_id. See #105425.
 
     # users can generate tokens without being application-bound
     application = FlexibleForeignKey("sentry.ApiApplication", null=True)
@@ -314,6 +321,21 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
     def outbox_region_names(self) -> Collection[str]:
         return list(find_all_region_names())
+
+    def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
+        """
+        Use token.id as shard_identifier instead of user_id.
+
+        The default USER_SCOPE inference uses user_id, which causes problems:
+        1. For Sentry App tokens: all installations share proxy_user_id, creating a hot shard
+        2. For regular tokens: user-level batching provides no benefit since coalescing
+           happens at the token level anyway (object_identifier = token.id)
+
+        Using token.id ensures each token can be processed independently without lock contention.
+        """
+        if shard_identifier is None:
+            shard_identifier = self.id
+        return super().outboxes_for_update(shard_identifier=shard_identifier)
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
         from sentry.auth.services.auth.serial import serialize_api_token

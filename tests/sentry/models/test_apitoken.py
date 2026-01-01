@@ -186,6 +186,69 @@ class ApiTokenTest(TestCase):
             region_name=mock.ANY,
         )
 
+    def test_outboxes_for_update_uses_token_id_as_shard_identifier(self) -> None:
+        """Verify ApiToken uses token.id (not user_id) for outbox sharding.
+
+        This prevents lock contention for Sentry App tokens where all
+        installations share the same proxy_user_id.
+        """
+        user = self.create_user()
+        token = ApiToken.objects.create(user_id=user.id)
+
+        outboxes = token.outboxes_for_update()
+        assert len(outboxes) > 0
+
+        for outbox in outboxes:
+            # shard_identifier should be token.id, NOT user.id
+            assert outbox.shard_identifier == token.id
+            assert outbox.shard_identifier != user.id
+
+    def test_outboxes_for_update_sentry_app_tokens_use_different_shards(self) -> None:
+        """Verify that tokens for different Sentry App installations get different shards,
+        even though they share the same proxy_user_id.
+
+        This is the core fix for the lock contention issue described in #105425.
+        """
+        # Create a Sentry App with proxy user
+        sentry_app = self.create_sentry_app(name="Test App", organization=self.organization)
+        proxy_user = sentry_app.proxy_user
+
+        # Create tokens for the same proxy_user (simulating different installations)
+        token1 = ApiToken.objects.create(
+            user=proxy_user,
+            application=sentry_app.application,
+        )
+        token2 = ApiToken.objects.create(
+            user=proxy_user,
+            application=sentry_app.application,
+        )
+
+        # Get outboxes for both tokens
+        outboxes1 = token1.outboxes_for_update()
+        outboxes2 = token2.outboxes_for_update()
+
+        assert len(outboxes1) > 0
+        assert len(outboxes2) > 0
+
+        # Verify they use different shards (token.id, not proxy_user.id)
+        assert outboxes1[0].shard_identifier == token1.id
+        assert outboxes2[0].shard_identifier == token2.id
+        assert outboxes1[0].shard_identifier != outboxes2[0].shard_identifier
+        assert outboxes1[0].shard_identifier != proxy_user.id
+        assert outboxes2[0].shard_identifier != proxy_user.id
+
+    def test_outboxes_for_update_respects_explicit_shard_identifier(self) -> None:
+        """Verify that passing an explicit shard_identifier still works."""
+        user = self.create_user()
+        token = ApiToken.objects.create(user_id=user.id)
+
+        custom_shard_id = 99999
+        outboxes = token.outboxes_for_update(shard_identifier=custom_shard_id)
+
+        assert len(outboxes) > 0
+        for outbox in outboxes:
+            assert outbox.shard_identifier == custom_shard_id
+
 
 @control_silo_test
 class ApiTokenInternalIntegrationTest(TestCase):
