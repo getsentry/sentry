@@ -17,7 +17,6 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.rules.conditions.event_frequency import COMPARISON_INTERVALS
-from sentry.sentry_apps.tasks.service_hooks import kick_off_service_hooks
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.post_process import should_retry_fetch
 from sentry.taskworker.retry import retry_task
@@ -734,7 +733,7 @@ def fire_actions_for_groups(
                 filtered_actions = filter_recently_fired_workflow_actions(
                     dcgs_for_group, workflow_event_data
                 )
-                kick_off_service_hooks(group_event, len(filtered_actions) > 0)
+                # TODO: trigger service hooks from here
 
                 metrics.incr(
                     "workflow_engine.delayed_workflow.triggered_actions",
