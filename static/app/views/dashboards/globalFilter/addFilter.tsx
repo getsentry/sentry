@@ -88,7 +88,7 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
           value: tag.key,
           label: prettifyTagKey(tag.key),
           trailingItems: (
-            <TagBadge>
+            <TagBadge variant="muted">
               <ValueType fieldDefinition={fieldDefinition} fieldKind={tag.kind} />
             </TagBadge>
           ),

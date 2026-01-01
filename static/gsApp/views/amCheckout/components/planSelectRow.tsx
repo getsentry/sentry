@@ -135,7 +135,7 @@ function PlanSelectRow({
                             highlightedFeatures.length === 1 ? (
                               <Fragment>
                                 <strong>{feature}</strong>
-                                <Tag>{t('Looking for this?')}</Tag>
+                                <Tag variant="muted">{t('Looking for this?')}</Tag>
                               </Fragment>
                             ) : (
                               <b>{feature}</b>
@@ -181,10 +181,10 @@ function PlanSelectRow({
               <BillingInterval>{`/${billingInterval}`}</BillingInterval>
             </Price>
             {errorsStartingPrice && (
-              <EventPriceTag>{`${displayUnitPrice({cents: errorsStartingPrice})} / error`}</EventPriceTag>
+              <EventPriceTag variant="muted">{`${displayUnitPrice({cents: errorsStartingPrice})} / error`}</EventPriceTag>
             )}
             {spansStartingPrice && (
-              <EventPriceTag>{`${displayUnitPrice({cents: spansStartingPrice})} / span`}</EventPriceTag>
+              <EventPriceTag variant="muted">{`${displayUnitPrice({cents: spansStartingPrice})} / span`}</EventPriceTag>
             )}
             {discountInfo && (
               <DiscountWrapper>

@@ -170,7 +170,7 @@ function ReleaseCard({
                     ),
                   })}
                 >
-                  <Tag type="success" icon={<IconCheckmark />} />
+                  <Tag variant="success" icon={<IconCheckmark />} />
                 </Tooltip>
               ) : (
                 <Tooltip

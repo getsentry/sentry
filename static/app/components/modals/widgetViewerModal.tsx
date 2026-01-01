@@ -90,6 +90,7 @@ import {
   getWidgetExploreUrl,
   getWidgetTableRowExploreUrlFunction,
 } from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetricsUrl';
 import {
   SESSION_DURATION_ALERT,
   WidgetDescription,
@@ -686,7 +687,7 @@ function WidgetViewerModal(props: Props) {
         )}
         {widget.queries.length > 1 && (
           <Alert.Container>
-            <Alert type="info">
+            <Alert variant="info">
               {t(
                 'This widget was built with multiple queries. Table data can only be displayed for one query at a time. To edit any of the queries, edit the widget.'
               )}
@@ -911,6 +912,10 @@ function OpenButton({
     case WidgetType.LOGS:
       openLabel = t('Open in Explore');
       path = getWidgetExploreUrl(widget, dashboardFilters, selection, organization);
+      break;
+    case WidgetType.TRACEMETRICS:
+      openLabel = t('Open in Metrics');
+      path = getWidgetMetricsUrl(widget, dashboardFilters, selection, organization);
       break;
     case WidgetType.DISCOVER:
     default:
