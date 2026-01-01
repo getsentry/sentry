@@ -270,4 +270,50 @@ describe('IntegrationDetailedView', () => {
       );
     });
   });
+
+  it('renders alerts without crashing when variant is not provided', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/config/integrations/`,
+      match: [],
+      body: {
+        providers: [
+          {
+            canAdd: true,
+            canDisable: false,
+            features: [],
+            key: 'test-integration',
+            metadata: {
+              aspects: {
+                alerts: [
+                  {text: 'Alert without variant'},
+                  {text: 'Alert with explicit variant', variant: 'warning'},
+                ],
+              },
+              author: 'Test Author',
+              description: 'Test integration',
+              features: [],
+              noun: 'Installation',
+            },
+            name: 'Test Integration',
+            slug: 'test-integration',
+          },
+        ],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/`,
+      match: [
+        MockApiClient.matchQuery({provider_key: 'test-integration', includeConfig: 0}),
+      ],
+      body: [],
+    });
+
+    render(<IntegrationDetailedView />, {
+      initialRouterConfig: createRouterConfig('test-integration'),
+      organization,
+    });
+
+    expect(await screen.findByText('Alert without variant')).toBeInTheDocument();
+    expect(await screen.findByText('Alert with explicit variant')).toBeInTheDocument();
+  });
 });

@@ -254,7 +254,7 @@ function InformationCard({
           {permissions}
           {alerts.map((alert, i) => (
             <Alert.Container key={i}>
-              <Alert key={i} variant={alert.variant}>
+              <Alert variant={alert.variant}>
                 <span
                   dangerouslySetInnerHTML={{__html: singleLineRenderer(alert.text)}}
                 />
@@ -269,8 +269,8 @@ function InformationCard({
               <div>{author}</div>
             </AuthorInfo>
           )}
-          {resourceLinks.map(({title, url}) => (
-            <ExternalLinkContainer key={url}>
+          {resourceLinks.map(({title, url}, index) => (
+            <ExternalLinkContainer key={index}>
               <ResourceIcon title={title} />
               <ExternalLink href={url}>{title}</ExternalLink>
             </ExternalLinkContainer>
