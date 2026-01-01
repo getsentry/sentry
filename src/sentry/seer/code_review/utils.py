@@ -80,31 +80,27 @@ def _get_trigger(github_event: GithubWebhookType, event_payload: Mapping[str, An
 
 def _get_trigger_metadata(event_payload: Mapping[str, Any]) -> dict[str, Any]:
     """Extract trigger metadata fields from the event payload."""
-    trigger_comment_id: int | None = None
-    trigger_comment_type: Literal["issue_comment", "pull_request_review_comment"] | None = None
-    trigger_user: str | None = None
+    comment = event_payload.get("comment")
 
-    if "comment" in event_payload:
-        comment = event_payload["comment"]
-        trigger_comment_id = comment.get("id")
+    if comment:
         trigger_user = comment.get("user", {}).get("login")
-
-    if trigger_user is None:
-        if "sender" in event_payload:
-            trigger_user = event_payload["sender"].get("login")
-        elif "pull_request" in event_payload:
-            trigger_user = event_payload["pull_request"].get("user", {}).get("login")
-
-    if "comment" in event_payload:
-        if "pull_request_review_id" in event_payload.get("comment", {}):
-            trigger_comment_type = "pull_request_review_comment"
-        else:
-            trigger_comment_type = "issue_comment"
+        trigger_comment_id = comment.get("id")
+        trigger_comment_type = (
+            "pull_request_review_comment"
+            if comment.get("pull_request_review_id") is not None
+            else "issue_comment"
+        )
+    else:
+        trigger_user = event_payload.get("sender", {}).get("login") or event_payload.get(
+            "pull_request", {}
+        ).get("user", {}).get("login")
+        trigger_comment_id = None
+        trigger_comment_type = None
 
     return {
+        "trigger_user": trigger_user,
         "trigger_comment_id": trigger_comment_id,
         "trigger_comment_type": trigger_comment_type,
-        "trigger_user": trigger_user,
     }
 
 
@@ -206,7 +202,7 @@ def transform_webhook_to_codegen_request(
     repo_name = "/".join(repo_name_sections[1:])
 
     # Build RepoDefinition
-    repo_definition: dict[str, Any] = {
+    repo_definition = {
         "provider": "github",  # All GitHub webhooks use "github" provider
         "owner": owner,
         "name": repo_name,

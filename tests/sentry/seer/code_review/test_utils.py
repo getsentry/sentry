@@ -1,14 +1,20 @@
+from collections.abc import Mapping
+from unittest.mock import MagicMock, patch
+
 import pytest
 
+from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.seer.code_review.utils import (
+    _get_target_commit_sha,
     _get_trigger,
     _get_trigger_metadata,
-    _transform_webhook_to_codegen_request,
+    transform_webhook_to_codegen_request,
 )
+from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.users.models.user import User
 
@@ -16,19 +22,19 @@ from sentry.users.models.user import User
 class TestGetTrigger:
     def test_pull_request_opened(self) -> None:
         assert (
-            _get_trigger("pull_request", {"action": "opened"})
+            _get_trigger(GithubWebhookType.PULL_REQUEST, {"action": "opened"})
             == CodeReviewTrigger.ON_READY_FOR_REVIEW.value
         )
 
     def test_pull_request_ready_for_review(self) -> None:
         assert (
-            _get_trigger("pull_request", {"action": "ready_for_review"})
+            _get_trigger(GithubWebhookType.PULL_REQUEST, {"action": "ready_for_review"})
             == CodeReviewTrigger.ON_READY_FOR_REVIEW.value
         )
 
     def test_pull_request_synchronize(self) -> None:
         assert (
-            _get_trigger("pull_request", {"action": "synchronize"})
+            _get_trigger(GithubWebhookType.PULL_REQUEST, {"action": "synchronize"})
             == CodeReviewTrigger.ON_NEW_COMMIT.value
         )
 
@@ -40,17 +46,17 @@ class TestGetTrigger:
             {"action": "labeled"},
         ],
     )
-    def test_pull_request_other_action_returns_none(self, event_payload: dict[str, str]) -> None:
-        assert _get_trigger("pull_request", event_payload) is None
+    def test_pull_request_other_action_returns_none(self, event_payload: Mapping[str, str]) -> None:
+        assert _get_trigger(GithubWebhookType.PULL_REQUEST, event_payload) is None
 
     def test_issue_comment_created(self) -> None:
         assert (
-            _get_trigger("issue_comment", {"action": "created"})
+            _get_trigger(GithubWebhookType.ISSUE_COMMENT, {"action": "created"})
             == CodeReviewTrigger.ON_COMMAND_PHRASE.value
         )
 
     def test_unknown_event_type_returns_none(self) -> None:
-        assert _get_trigger("push", {}) is None
+        assert _get_trigger(GithubWebhookType.PUSH, {}) is None
 
 
 class TestGetTriggerMetadata:
@@ -100,6 +106,78 @@ class TestGetTriggerMetadata:
         assert result["trigger_user"] is None
 
 
+class GetTargetCommitShaTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.repo = self.create_repo(
+            project=self.project,
+            name="test-owner/test-repo",
+            provider="integrations:github",
+        )
+
+    def test_returns_sha_from_pull_request_payload(self) -> None:
+        event = {
+            "pull_request": {
+                "head": {"sha": "abc123"},
+            }
+        }
+        result = _get_target_commit_sha(GithubWebhookType.PULL_REQUEST, event, self.repo, None)
+        assert result == "abc123"
+
+    def test_returns_none_if_pull_request_head_missing(self) -> None:
+        event: dict[str, dict[str, str]] = {"pull_request": {}}
+        result = _get_target_commit_sha(GithubWebhookType.PULL_REQUEST, event, self.repo, None)
+        assert result is None
+
+    @patch("sentry.seer.code_review.utils.GitHubApiClient")
+    def test_issue_comment_fetches_sha_from_api(self, mock_client_class: MagicMock) -> None:
+        mock_client = MagicMock()
+        mock_client.get_pull_request.return_value = {"head": {"sha": "def456"}}
+        mock_client_class.return_value = mock_client
+
+        mock_integration = MagicMock()
+        event = {"issue": {"number": 42}}
+
+        result = _get_target_commit_sha(
+            GithubWebhookType.ISSUE_COMMENT, event, self.repo, mock_integration
+        )
+
+        assert result == "def456"
+        mock_client.get_pull_request.assert_called_once_with("test-owner/test-repo", 42)
+
+    def test_issue_comment_returns_none_without_integration(self) -> None:
+        event = {"issue": {"number": 42}}
+        result = _get_target_commit_sha(GithubWebhookType.ISSUE_COMMENT, event, self.repo, None)
+        assert result is None
+
+    def test_issue_comment_returns_none_without_issue_number(self) -> None:
+        mock_integration = MagicMock()
+        event: dict[str, dict[str, int]] = {"issue": {}}
+        result = _get_target_commit_sha(
+            GithubWebhookType.ISSUE_COMMENT, event, self.repo, mock_integration
+        )
+        assert result is None
+
+    @patch("sentry.seer.code_review.utils.GitHubApiClient")
+    def test_issue_comment_returns_none_on_api_error(self, mock_client_class: MagicMock) -> None:
+        mock_client = MagicMock()
+        mock_client.get_pull_request.side_effect = Exception("API error")
+        mock_client_class.return_value = mock_client
+
+        mock_integration = MagicMock()
+        event = {"issue": {"number": 42}}
+
+        result = _get_target_commit_sha(
+            GithubWebhookType.ISSUE_COMMENT, event, self.repo, mock_integration
+        )
+        assert result is None
+
+    def test_returns_none_for_unknown_event_type(self) -> None:
+        event: dict[str, str] = {}
+        result = _get_target_commit_sha(GithubWebhookType.CHECK_RUN, event, self.repo, None)
+        assert result is None
+
+
 @pytest.mark.django_db(databases=["default", "control"])
 class TestTransformWebhookToCodegenRequest:
     @pytest.fixture
@@ -129,8 +207,8 @@ class TestTransformWebhookToCodegenRequest:
             },
             "sender": {"login": "sender-user"},
         }
-        result = _transform_webhook_to_codegen_request(
-            "pull_request", event_payload, organization, repo, "abc123sha"
+        result = transform_webhook_to_codegen_request(
+            GithubWebhookType.PULL_REQUEST, event_payload, organization, repo, "abc123sha"
         )
 
         expected_repo = {
@@ -174,8 +252,8 @@ class TestTransformWebhookToCodegenRequest:
                 "user": {"login": "commenter"},
             },
         }
-        result = _transform_webhook_to_codegen_request(
-            "issue_comment", event_payload, organization, repo, "def456sha"
+        result = transform_webhook_to_codegen_request(
+            GithubWebhookType.ISSUE_COMMENT, event_payload, organization, repo, "def456sha"
         )
 
         assert isinstance(result, dict)
@@ -196,8 +274,8 @@ class TestTransformWebhookToCodegenRequest:
             "issue": {"number": 42},
             "comment": {"id": 12345},
         }
-        result = _transform_webhook_to_codegen_request(
-            "issue_comment", event_payload, organization, repo, None
+        result = transform_webhook_to_codegen_request(
+            GithubWebhookType.ISSUE_COMMENT, event_payload, organization, repo, None
         )
         assert result is None
 
@@ -215,8 +293,8 @@ class TestTransformWebhookToCodegenRequest:
             "pull_request": {"number": 1},
         }
         with pytest.raises(ValueError, match="Invalid repository name format"):
-            _transform_webhook_to_codegen_request(
-                "pull_request",
+            transform_webhook_to_codegen_request(
+                GithubWebhookType.PULL_REQUEST,
                 event_payload,
                 organization,
                 bad_repo,

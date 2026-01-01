@@ -14,7 +14,7 @@ from fixtures.github import (
 )
 from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.webhook_types import GithubWebhookType
-from sentry.seer.code_review.utils import ClientError, _get_target_commit_sha
+from sentry.seer.code_review.utils import ClientError
 from sentry.seer.code_review.webhooks.check_run import GitHubCheckRunAction
 from sentry.seer.code_review.webhooks.issue_comment import (
     SENTRY_REVIEW_COMMAND,
@@ -815,7 +815,7 @@ class IssueCommentEventWebhookTest(GitHubWebhookHelper):
         mock_schedule.assert_not_called()
 
 
-class AddEyesReactionTest(TestCase):
+class AddEyesReactionApiTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.repo = self.create_repo(
@@ -823,68 +823,6 @@ class AddEyesReactionTest(TestCase):
             name="test-owner/test-repo",
             provider="integrations:github",
         )
-
-    def test_pull_request_event_gets_sha_from_payload(self) -> None:
-        event = {
-            "pull_request": {
-                "head": {"sha": "abc123"},
-            }
-        }
-        result = _get_target_commit_sha(GithubWebhookType.PULL_REQUEST, event, self.repo, None)
-        assert result == "abc123"
-
-    def test_pull_request_event_returns_none_if_no_head(self) -> None:
-        event: dict[str, dict[str, str]] = {"pull_request": {}}
-        result = _get_target_commit_sha(GithubWebhookType.PULL_REQUEST, event, self.repo, None)
-        assert result is None
-
-    @patch("sentry.seer.code_review.utils.GitHubApiClient")
-    def test_issue_comment_fetches_from_api(self, mock_client_class: MagicMock) -> None:
-        mock_client = MagicMock()
-        mock_client.get_pullrequest.return_value = {"head": {"sha": "def456"}}
-        mock_client_class.return_value = mock_client
-
-        mock_integration = MagicMock()
-        event = {"issue": {"number": 42}}
-
-        result = _get_target_commit_sha(
-            GithubWebhookType.ISSUE_COMMENT, event, self.repo, mock_integration
-        )
-
-        assert result == "def456"
-        mock_client.get_pullrequest.assert_called_once_with("test-owner/test-repo", 42)
-
-    def test_issue_comment_returns_none_without_integration(self) -> None:
-        event = {"issue": {"number": 42}}
-        result = _get_target_commit_sha(GithubWebhookType.ISSUE_COMMENT, event, self.repo, None)
-        assert result is None
-
-    def test_issue_comment_returns_none_without_pr_number(self) -> None:
-        mock_integration = MagicMock()
-        event: dict[str, dict[str, int]] = {"issue": {}}
-        result = _get_target_commit_sha(
-            GithubWebhookType.ISSUE_COMMENT, event, self.repo, mock_integration
-        )
-        assert result is None
-
-    @patch("sentry.seer.code_review.utils.GitHubApiClient")
-    def test_issue_comment_returns_none_on_api_error(self, mock_client_class: MagicMock) -> None:
-        mock_client = MagicMock()
-        mock_client.get_pullrequest.side_effect = Exception("API error")
-        mock_client_class.return_value = mock_client
-
-        mock_integration = MagicMock()
-        event = {"issue": {"number": 42}}
-
-        result = _get_target_commit_sha(
-            GithubWebhookType.ISSUE_COMMENT, event, self.repo, mock_integration
-        )
-        assert result is None
-
-    def test_unknown_event_type_returns_none(self) -> None:
-        event: dict[str, str] = {}
-        result = _get_target_commit_sha(GithubWebhookType.CHECK_RUN, event, self.repo, None)
-        assert result is None
 
     @patch("sentry.seer.code_review.webhooks.issue_comment.logger")
     def test_logs_warning_when_integration_is_none(self, mock_logger: MagicMock) -> None:
