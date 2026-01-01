@@ -15,6 +15,7 @@ from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.utils import metrics
 
 from ..permissions import has_code_review_enabled
@@ -120,4 +121,5 @@ def handle_issue_comment_event(
             organization=organization,
             repo=repo,
             target_commit_sha=target_commit_sha,
+            trigger=CodeReviewTrigger.ON_COMMAND_PHRASE,
         )

@@ -766,7 +766,7 @@ class IssueCommentEventWebhookTest(GitHubWebhookHelper):
     ) -> None:
         # Mock the GitHub API client to return PR data with head SHA
         mock_client_instance = MagicMock()
-        mock_client_instance.get_pullrequest.return_value = {"head": {"sha": "abc123"}}
+        mock_client_instance.get_pull_request.return_value = {"head": {"sha": "abc123"}}
         mock_api_client.return_value = mock_client_instance
 
         self._enable_code_review()
@@ -788,7 +788,7 @@ class IssueCommentEventWebhookTest(GitHubWebhookHelper):
     ) -> None:
         # Mock the GitHub API client to return PR data with head SHA
         mock_client_instance = MagicMock()
-        mock_client_instance.get_pullrequest.return_value = {"head": {"sha": "abc123"}}
+        mock_client_instance.get_pull_request.return_value = {"head": {"sha": "abc123"}}
         mock_api_client.return_value = mock_client_instance
 
         self._enable_code_review()
@@ -815,13 +815,14 @@ class IssueCommentEventWebhookTest(GitHubWebhookHelper):
         mock_schedule.assert_not_called()
 
 
-class AddEyesReactionApiTest(TestCase):
+class AddEyesReactionTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.repo = self.create_repo(
             project=self.project,
-            name="test-owner/test-repo",
             provider="integrations:github",
+            external_id="12345",
+            name="owner/repo",
         )
 
     @patch("sentry.seer.code_review.webhooks.issue_comment.logger")
@@ -852,7 +853,7 @@ class AddEyesReactionApiTest(TestCase):
         )
 
         mock_client.create_comment_reaction.assert_called_once_with(
-            self.repo.name, "123456", GitHubReaction.EYES
+            "owner/repo", "123456", GitHubReaction.EYES
         )
         mock_metrics.incr.assert_called_once()
         call_args = mock_metrics.incr.call_args

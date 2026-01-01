@@ -1,4 +1,3 @@
-import logging
 from collections.abc import Mapping
 from enum import StrEnum
 from typing import Any, Literal
@@ -15,8 +14,6 @@ from sentry.models.repository import Repository
 from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.net.http import connection_from_url
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
-
-logger = logging.getLogger(__name__)
 
 
 class ClientError(Exception):
@@ -63,21 +60,6 @@ def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:
         return response.data
 
 
-def _get_trigger(github_event: GithubWebhookType, event_payload: Mapping[str, Any]) -> str | None:
-    if github_event == GithubWebhookType.PULL_REQUEST:
-        action = event_payload.get("action")
-        if action in ("ready_for_review", "opened"):
-            return CodeReviewTrigger.ON_READY_FOR_REVIEW.value
-        if action == "synchronize":
-            return CodeReviewTrigger.ON_NEW_COMMIT.value
-        return None
-
-    if github_event == GithubWebhookType.ISSUE_COMMENT:
-        return CodeReviewTrigger.ON_COMMAND_PHRASE.value
-
-    return None
-
-
 def _get_trigger_metadata(event_payload: Mapping[str, Any]) -> dict[str, Any]:
     """Extract trigger metadata fields from the event payload."""
     comment = event_payload.get("comment")
@@ -109,48 +91,33 @@ def _get_target_commit_sha(
     event_payload: Mapping[str, Any],
     repo: Repository,
     integration: RpcIntegration | None,
-) -> str | None:
+) -> str:
     """
     Get the target commit SHA for code review.
-
-    Returns None on any error (missing data, API failures, unsupported events).
     """
-    extra = {"repo": repo.name, "github_event": github_event.value}
-
     if github_event == GithubWebhookType.PULL_REQUEST:
         sha = event_payload.get("pull_request", {}).get("head", {}).get("sha")
         if not isinstance(sha, str) or not sha:
-            logger.warning("github.webhook.missing-pr-head-sha", extra=extra)
-            return None
+            raise ValueError("missing-pr-head-sha")
         return sha
 
     if github_event == GithubWebhookType.ISSUE_COMMENT:
-        # Issue comment webhook payload does not contain the head sha unfortunately
         if integration is None:
-            logger.warning("github.webhook.missing-integration-for-sha", extra=extra)
-            return None
+            raise ValueError("missing-integration-for-sha")
         pr_number = event_payload.get("issue", {}).get("number")
         if not isinstance(pr_number, int):
-            logger.warning("github.webhook.missing-pr-number-for-sha", extra=extra)
-            return None
+            raise ValueError("missing-pr-number-for-sha")
+        sha = (
+            GitHubApiClient(integration=integration)
+            .get_pull_request(repo.name, pr_number)
+            .get("head", {})
+            .get("sha")
+        )
+        if not isinstance(sha, str) or not sha:
+            raise ValueError("missing-api-pr-head-sha")
+        return sha
 
-        try:
-            sha = (
-                GitHubApiClient(integration=integration)
-                .get_pull_request(repo.name, pr_number)
-                .get("head", {})
-                .get("sha")
-            )
-            if not isinstance(sha, str) or not sha:
-                logger.warning("github.webhook.missing-api-pr-head-sha", extra=extra)
-                return None
-            return sha
-        except Exception:
-            logger.exception("github.webhook.api-error-fetching-pr-sha", extra=extra)
-            return None
-
-    logger.warning("github.webhook.unsupported-event-for-sha", extra=extra)
-    return None
+    raise ValueError("unsupported-event-for-sha")
 
 
 def transform_webhook_to_codegen_request(
@@ -159,6 +126,7 @@ def transform_webhook_to_codegen_request(
     organization: Organization,
     repo: Repository,
     target_commit_sha: str,
+    trigger: CodeReviewTrigger,
 ) -> dict[str, Any] | None:
     """
     Transform a GitHub webhook payload into CodecovTaskRequest format for Seer.
@@ -168,6 +136,7 @@ def transform_webhook_to_codegen_request(
         organization: The Sentry organization
         repo: The repository model
         target_commit_sha: The target commit SHA for PR review (head of the PR at the time of webhook event)
+        trigger: The trigger type for the PR review
 
     Returns:
         Dictionary in CodecovTaskRequest format with request_type, data, and external_owner_id,
@@ -227,7 +196,7 @@ def transform_webhook_to_codegen_request(
                 "features": {
                     "bug_prediction": True,
                 },
-                "trigger": _get_trigger(github_event, event_payload),
+                "trigger": trigger,
                 **trigger_metadata,
             },
         },
