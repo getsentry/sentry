@@ -23,10 +23,12 @@ interface Visualization {
 }
 
 interface AskSeerSearchQuery {
+  end: string | null;
   groupBys: string[];
   mode: string;
   query: string;
   sort: string;
+  start: string | null;
   statsPeriod: string;
   visualizations: Visualization[];
 }
@@ -48,8 +50,20 @@ interface TraceAskSeerSearchResponse {
 }
 
 interface TraceAskSeerTranslateResponse {
-  query: string;
-  status: string;
+  responses: Array<{
+    end: string | null;
+    group_by: string[];
+    mode: string;
+    query: string;
+    sort: string;
+    start: string | null;
+    stats_period: string;
+    unsupported_reason: string | null;
+    visualization: Array<{
+      chart_type: number;
+      y_axes: string[];
+    }>;
+  }>;
 }
 
 export function SpansTabSeerComboBox() {
@@ -66,9 +80,10 @@ export function SpansTabSeerComboBox() {
   } = useSearchQueryBuilder();
 
   // Check if the new translation endpoint should be used (internal testing)
-  const useTranslateEndpoint = organization.features.includes(
-    'gen-ai-explore-traces-translate'
-  );
+  // const useTranslateEndpoint = organization.features.includes(
+  //   'gen-ai-explore-traces-translate'
+  // );
+  const useTranslateEndpoint = true; // TODO: Testing
 
   let initialSeerQuery = '';
   const queryDetails = useMemo(() => {
@@ -120,20 +135,24 @@ export function SpansTabSeerComboBox() {
           },
         });
 
-        // Convert single query response to the expected format
+        // Convert responses array to the expected format
         return {
-          status: data.status,
-          unsupported_reason: null,
-          queries: [
-            {
-              visualizations: [],
-              query: data.query,
-              sort: '',
-              groupBys: [],
-              statsPeriod: '',
-              mode: 'spans',
-            },
-          ],
+          status: 'ok',
+          unsupported_reason: data.responses[0]?.unsupported_reason ?? null,
+          queries: data.responses.map(r => ({
+            visualizations:
+              r?.visualization?.map(v => ({
+                chartType: v?.chart_type,
+                yAxes: v?.y_axes,
+              })) ?? [],
+            query: r?.query ?? '',
+            sort: r?.sort ?? '',
+            groupBys: r?.group_by ?? [],
+            statsPeriod: r?.stats_period ?? '',
+            start: r?.start ?? null,
+            end: r?.end ?? null,
+            mode: r?.mode ?? 'spans',
+          })),
         };
       }
 
@@ -161,6 +180,8 @@ export function SpansTabSeerComboBox() {
           sort: q?.sort ?? '',
           groupBys: q?.group_by ?? [],
           statsPeriod: q?.stats_period ?? '',
+          start: null,
+          end: null,
           mode: q?.mode ?? 'spans',
         })),
       };
@@ -170,17 +191,43 @@ export function SpansTabSeerComboBox() {
   const applySeerSearchQuery = useCallback(
     (result: AskSeerSearchQuery) => {
       if (!result) return;
-      const {query: queryToUse, visualizations, groupBys, sort, statsPeriod} = result;
+      const {
+        query: queryToUse,
+        visualizations,
+        groupBys,
+        sort,
+        statsPeriod,
+        start: resultStart,
+        end: resultEnd,
+      } = result;
 
-      const startFilter = pageFilters.selection.datetime.start?.valueOf();
-      const start = startFilter
-        ? new Date(startFilter).toISOString()
-        : pageFilters.selection.datetime.start;
+      // Use start/end from result if provided, otherwise fall back to page filters
+      let start: string | null | undefined;
+      let end: string | null | undefined;
 
-      const endFilter = pageFilters.selection.datetime.end?.valueOf();
-      const end = endFilter
-        ? new Date(endFilter).toISOString()
-        : pageFilters.selection.datetime.end;
+      if (resultStart && resultEnd) {
+        // Treat UTC dates as local dates by removing the 'Z' suffix
+        // This ensures "2025-12-06T00:00:00Z" is interpreted as Dec 6th midnight local time
+        const startLocal = resultStart.endsWith('Z')
+          ? resultStart.slice(0, -1)
+          : resultStart;
+        const endLocal = resultEnd.endsWith('Z') ? resultEnd.slice(0, -1) : resultEnd;
+
+        // Convert to ISO string format expected by the page filters
+        start = new Date(startLocal).toISOString();
+        end = new Date(endLocal).toISOString();
+      } else {
+        // Fall back to page filters
+        const startFilter = pageFilters.selection.datetime.start?.valueOf();
+        start = startFilter
+          ? new Date(startFilter).toISOString()
+          : pageFilters.selection.datetime.start;
+
+        const endFilter = pageFilters.selection.datetime.end?.valueOf();
+        end = endFilter
+          ? new Date(endFilter).toISOString()
+          : pageFilters.selection.datetime.end;
+      }
 
       const selection = {
         ...pageFilters.selection,
@@ -188,7 +235,11 @@ export function SpansTabSeerComboBox() {
           start,
           end,
           utc: pageFilters.selection.datetime.utc,
-          period: statsPeriod || pageFilters.selection.datetime.period,
+          // Only use statsPeriod if we don't have explicit start/end from result
+          period:
+            resultStart && resultEnd
+              ? null
+              : statsPeriod || pageFilters.selection.datetime.period,
         },
       };
 

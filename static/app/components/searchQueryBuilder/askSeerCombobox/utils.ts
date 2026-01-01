@@ -79,6 +79,50 @@ export function formatQueryToNaturalLanguage(query: string): string {
   return `${formattedQuery} `;
 }
 
+function formatDateRangeForText(start: string, end: string): string {
+  // Treat UTC dates as local dates by removing the 'Z' suffix
+  const startLocal = start.endsWith('Z') ? start.slice(0, -1) : start;
+  const endLocal = end.endsWith('Z') ? end.slice(0, -1) : end;
+
+  const startDate = new Date(startLocal);
+  const endDate = new Date(endLocal);
+
+  // Check if times are at midnight (date-only range)
+  const startIsMidnight =
+    startDate.getHours() === 0 &&
+    startDate.getMinutes() === 0 &&
+    startDate.getSeconds() === 0;
+  const endIsMidnight =
+    endDate.getHours() === 0 && endDate.getMinutes() === 0 && endDate.getSeconds() === 0;
+  const endIsEndOfDay =
+    endDate.getHours() === 23 &&
+    endDate.getMinutes() === 59 &&
+    endDate.getSeconds() === 59;
+
+  const useDateOnly = startIsMidnight && (endIsMidnight || endIsEndOfDay);
+
+  const dateOptions: Intl.DateTimeFormatOptions = {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  };
+
+  const dateTimeOptions: Intl.DateTimeFormatOptions = {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  };
+
+  const formatOptions = useDateOnly ? dateOptions : dateTimeOptions;
+
+  const startFormatted = startDate.toLocaleString('en-US', formatOptions);
+  const endFormatted = endDate.toLocaleString('en-US', formatOptions);
+
+  return `${startFormatted} to ${endFormatted}`;
+}
+
 export function generateQueryTokensString(args: QueryTokensProps): string {
   const parts = [];
 
@@ -103,7 +147,10 @@ export function generateQueryTokensString(args: QueryTokensProps): string {
     parts.push(`groupBys are '${groupByText}'`);
   }
 
-  if (args?.statsPeriod && args.statsPeriod.length > 0) {
+  // Prefer absolute date range over statsPeriod
+  if (args?.start && args?.end) {
+    parts.push(`time range is '${formatDateRangeForText(args.start, args.end)}'`);
+  } else if (args?.statsPeriod && args.statsPeriod.length > 0) {
     parts.push(`time range is '${args?.statsPeriod}'`);
   }
 
