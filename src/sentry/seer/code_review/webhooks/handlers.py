@@ -4,9 +4,7 @@ import logging
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
-from sentry.integrations.github.client import GitHubApiClient
 from sentry.integrations.github.webhook_types import GithubWebhookType
-from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 
@@ -19,38 +17,6 @@ from .issue_comment import handle_issue_comment_event
 logger = logging.getLogger(__name__)
 
 METRICS_PREFIX = "seer.code_review.webhook"
-
-
-def _get_target_commit_sha(
-    github_event: GithubWebhookType,
-    event: Mapping[str, Any],
-    repo: Repository,
-    integration: RpcIntegration | None,
-) -> str | None:
-    """
-    Get the target commit SHA for the PR from the event or GitHub API.
-
-    For pull_request events, the target commit SHA is in the payload (head.sha).
-    For issue_comment events, we need to fetch it from the GitHub API.
-    """
-    if github_event == GithubWebhookType.PULL_REQUEST:
-        return event.get("pull_request", {}).get("head", {}).get("sha")
-
-    if github_event == GithubWebhookType.ISSUE_COMMENT:
-        if integration is None:
-            return None
-        pr_number = event.get("issue", {}).get("number")
-        if not pr_number:
-            return None
-
-        client = GitHubApiClient(integration=integration)
-        try:
-            pr_data = client.get_pullrequest(repo.name, pr_number)
-            return pr_data.get("head", {}).get("sha")
-        except Exception:
-            return None
-
-    return None
 
 
 EVENT_TYPE_TO_HANDLER: dict[GithubWebhookType, WebhookProcessor] = {
