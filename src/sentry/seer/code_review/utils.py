@@ -141,7 +141,7 @@ def _get_target_commit_sha(
         try:
             sha = (
                 GitHubApiClient(integration=integration)
-                .get_pullrequest(repo.name, pr_number)
+                .get_pull_request(repo.name, pr_number)
                 .get("head", {})
                 .get("sha")
             )

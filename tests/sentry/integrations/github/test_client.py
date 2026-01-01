@@ -465,7 +465,7 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_pullrequest(self, get_jwt) -> None:
+    def test_get_pull_request(self, get_jwt) -> None:
         pull_number = 42
         pr_data = {
             "number": pull_number,
@@ -487,7 +487,7 @@ class GitHubApiClientTest(TestCase):
             json=pr_data,
         )
 
-        result = self.github_client.get_pullrequest(repo=self.repo.name, pull_number=pull_number)
+        result = self.github_client.get_pull_request(repo=self.repo.name, pull_number=pull_number)
         assert result["number"] == pull_number
         assert result["title"] == "Test PR"
         assert result["state"] == "open"
