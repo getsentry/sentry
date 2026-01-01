@@ -12,15 +12,26 @@ import {css} from '@emotion/react';
 import modifyColor from 'color';
 import {spring, type Transition} from 'framer-motion';
 
-import {color} from 'sentry/utils/theme/scraps/color';
-import {breakpoints, radius, size, space} from 'sentry/utils/theme/scraps/size';
-import {typography} from 'sentry/utils/theme/scraps/typography';
+import {withLegacyTokens, type LegacyTokens} from 'sentry/utils/theme/compat';
+// eslint-disable-next-line no-restricted-imports
+import {darkTheme as baseDarkTheme} from 'sentry/utils/theme/scraps/theme/dark';
+// eslint-disable-next-line no-restricted-imports
+import {lightTheme as baseLightTheme} from 'sentry/utils/theme/scraps/theme/light';
+import {color} from 'sentry/utils/theme/scraps/tokens/color';
+import {typography} from 'sentry/utils/theme/scraps/tokens/typography';
 
-type SimpleMotionName = 'smooth' | 'snap' | 'enter' | 'exit';
+import type {
+  AlertVariant,
+  ButtonVariant,
+  FormSize,
+  LevelVariant,
+  MotionDuration,
+  MotionEasing,
+  TagVariant,
+} from './types';
 
-type PhysicsMotionName = 'spring';
-
-type MotionDuration = 'fast' | 'moderate' | 'slow';
+type Tokens = typeof baseLightTheme.tokens | typeof baseDarkTheme.tokens;
+type TokensWithLegacy = Tokens & LegacyTokens;
 
 type MotionDefinition = Record<MotionDuration, string>;
 
@@ -30,7 +41,10 @@ const motionDurations: Record<MotionDuration, number> = {
   slow: 240,
 };
 
-const motionCurves: Record<SimpleMotionName, [number, number, number, number]> = {
+const motionCurves: Record<
+  Exclude<MotionEasing, keyof typeof motionTransitions>,
+  [number, number, number, number]
+> = {
   smooth: [0.72, 0, 0.16, 1],
   snap: [0.8, -0.4, 0.5, 1],
   enter: [0.24, 1, 0.32, 1],
@@ -65,7 +79,7 @@ const motionCurveWithDuration = (
   return [motion, framerMotion];
 };
 
-const motionTransitions: Record<PhysicsMotionName, Record<MotionDuration, Transition>> = {
+const motionTransitions: Record<'spring', Record<MotionDuration, Transition>> = {
   spring: {
     fast: {
       type: 'spring',
@@ -143,9 +157,8 @@ function generateMotion() {
   };
 }
 
-type Alert = 'muted' | 'info' | 'warning' | 'success' | 'error';
 type AlertColors = Record<
-  Alert,
+  AlertVariant,
   {
     background: string;
     backgroundLight: string;
@@ -202,7 +215,7 @@ const generateThemePrismVariables = (
 const generateButtonTheme = (
   colors: Colors,
   alias: Aliases,
-  tokens: ReturnType<typeof generateChonkTokens>
+  tokens: Tokens
 ): ButtonColors => ({
   default: {
     // all alias-based, already derived from new theme
@@ -302,7 +315,7 @@ const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
     borderHover: colors.yellow400,
     color: colors.yellow500,
   },
-  error: {
+  danger: {
     background: colors.red400,
     backgroundLight: colors.red100,
     border: colors.red200,
@@ -312,12 +325,9 @@ const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
   },
 });
 
-const generateLevelTheme = (
-  tokens: ReturnType<typeof generateChonkTokens>,
-  mode: 'light' | 'dark'
-): LevelColors => ({
-  sample: tokens.graphics.accent,
-  info: tokens.graphics.accent,
+const generateLevelTheme = (tokens: Tokens, mode: 'light' | 'dark'): LevelColors => ({
+  sample: tokens.dataviz.semantic.accent,
+  info: tokens.dataviz.semantic.accent,
   // BAD: accessing named colors is forbidden
   // but necessary to differente from orange
   warning: color.categorical[mode].yellow,
@@ -325,15 +335,13 @@ const generateLevelTheme = (
   // but do have it in the chart palette. This needs to be harcoded
   // because existing users still associate orange with the "error" level.
   error: color.categorical[mode].orange,
-  fatal: tokens.graphics.danger,
-  // BAD: should be `tokens.dataviz.semantic.neutral` once available
-  default: color.neutral[mode][mode === 'light' ? 'opaque800' : 'opaque900'],
-  // BAD: should be `tokens.dataviz.semantic.other` once available
-  unknown: color.neutral[mode][mode === 'light' ? 'opaque400' : 'opaque800'],
+  fatal: tokens.dataviz.semantic.bad,
+  default: tokens.dataviz.semantic.neutral,
+  unknown: tokens.dataviz.semantic.other,
 });
 
 const generateTagTheme = (colors: Colors): TagColors => ({
-  default: {
+  muted: {
     background: colors.surface500,
     border: colors.gray200,
     color: colors.gray500,
@@ -343,12 +351,6 @@ const generateTagTheme = (colors: Colors): TagColors => ({
     background: colors.pink100,
     border: colors.pink100,
     color: colors.pink500,
-  },
-
-  highlight: {
-    background: colors.blue100,
-    border: colors.blue100,
-    color: colors.blue500,
   },
 
   warning: {
@@ -363,7 +365,7 @@ const generateTagTheme = (colors: Colors): TagColors => ({
     color: colors.green500,
   },
 
-  error: {
+  danger: {
     background: colors.red100,
     border: colors.red100,
     color: colors.red500,
@@ -382,17 +384,8 @@ const generateTagTheme = (colors: Colors): TagColors => ({
 
 type Colors = typeof lightColors;
 
-type Tag =
-  | 'default'
-  | 'promotion'
-  | 'highlight'
-  | 'warning'
-  | 'success'
-  | 'error'
-  | 'info';
-
 type TagColors = Record<
-  Tag,
+  TagVariant,
   {
     background: string;
     border: string;
@@ -400,14 +393,10 @@ type TagColors = Record<
   }
 >;
 
-// @TODO: is this loose coupling enough?
-type Level = 'sample' | 'info' | 'warning' | 'error' | 'fatal' | 'default' | 'unknown';
-type LevelColors = Record<Level, string>;
+type LevelColors = Record<LevelVariant, string>;
 
-// @TODO(jonasbadalic): Disabled is not a button variant, it's a state
-type Button = 'default' | 'primary' | 'danger' | 'link' | 'disabled' | 'transparent';
 type ButtonColors = Record<
-  Button,
+  ButtonVariant,
   {
     background: string;
     backgroundActive: string;
@@ -421,20 +410,11 @@ type ButtonColors = Record<
   }
 >;
 
-export type Size = '2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
-/**
- * Unless you are implementing a new component in the `sentry/components/core`
- * directory, use `ComponentProps['size']` instead.
- * @internal
- */
-export type FormSize = 'xs' | 'sm' | 'md';
-export type Space = keyof typeof space;
-
 const legacyTypography = {
   fontSize: typography.font.size,
   fontWeight: {
-    normal: typography.font.weight.regular,
-    bold: typography.font.weight.medium,
+    normal: typography.font.weight.sans.regular,
+    bold: typography.font.weight.sans.medium,
   },
   text: {
     family: typography.font.family.sans,
@@ -475,7 +455,7 @@ const formTheme: FormTheme = {
       paddingRight: 16,
       paddingTop: 12,
       paddingBottom: 12,
-      borderRadius: radius.lg,
+      borderRadius: baseLightTheme.radius.lg,
     },
     sm: {
       height: '32px',
@@ -486,7 +466,7 @@ const formTheme: FormTheme = {
       paddingRight: 12,
       paddingTop: 8,
       paddingBottom: 8,
-      borderRadius: radius.md,
+      borderRadius: baseLightTheme.radius.md,
     },
     xs: {
       height: '28px',
@@ -497,7 +477,7 @@ const formTheme: FormTheme = {
       paddingRight: 8,
       paddingTop: 6,
       paddingBottom: 6,
-      borderRadius: radius.sm,
+      borderRadius: baseLightTheme.radius.sm,
     },
   },
 };
@@ -506,10 +486,6 @@ const formTheme: FormTheme = {
  * Values shared between light and dark theme
  */
 const commonTheme = {
-  breakpoints,
-
-  space,
-  size,
   motion: generateMotion(),
 
   // Try to keep these ordered plz
@@ -593,12 +569,14 @@ type Aliases = typeof lightAliases;
  * @deprecated
  */
 export type ColorOrAlias = keyof Aliases | Color;
-export interface SentryTheme extends Omit<typeof lightThemeDefinition, 'chart'> {
+export interface SentryTheme
+  extends Omit<typeof lightThemeDefinition, 'chart' | 'tokens'> {
   chart: {
     colors: typeof CHART_PALETTE_LIGHT | typeof CHART_PALETTE_DARK;
     getColorPalette: ReturnType<typeof makeChartColorPalette>;
     neutral: string;
   };
+  tokens: TokensWithLegacy;
 }
 
 const ccl = color.categorical.light;
@@ -986,57 +964,6 @@ function makeChartColorPalette<T extends ChartColorPalette>(
   };
 }
 
-// @TODO(jonasbadalic): eventually, we should port component usage to these values
-function generateChonkTokens(colorScheme: typeof lightColors) {
-  return {
-    content: {
-      primary: colorScheme.gray800,
-      muted: colorScheme.gray500,
-      accent: colorScheme.blue500,
-      promotion: colorScheme.pink500,
-      danger: colorScheme.red500,
-      warning: colorScheme.yellow500,
-      success: colorScheme.green500,
-    },
-    graphics: {
-      muted: colorScheme.gray400,
-      accent: colorScheme.blue400,
-      promotion: colorScheme.pink400,
-      danger: colorScheme.red400,
-      warning: colorScheme.yellow400,
-      success: colorScheme.green400,
-    },
-    background: {
-      primary: colorScheme.surface500,
-      secondary: colorScheme.surface400,
-      tertiary: colorScheme.surface300,
-    },
-    border: {
-      primary: colorScheme.surface100,
-      muted: colorScheme.surface200,
-      accent: colorScheme.blue400,
-      promotion: colorScheme.pink400,
-      danger: colorScheme.red400,
-      warning: colorScheme.yellow400,
-      success: colorScheme.green400,
-    },
-    component: {
-      link: {
-        muted: {
-          default: colorScheme.gray500,
-          hover: colorScheme.gray600,
-          active: colorScheme.gray700,
-        },
-        accent: {
-          default: colorScheme.blue500,
-          hover: colorScheme.blue600,
-          active: colorScheme.blue700,
-        },
-      },
-    },
-  };
-}
-
 const lightColors = {
   black: color.black,
   white: color.white,
@@ -1236,14 +1163,11 @@ const darkShadows = {
   dropShadowHeavyTop: '0 -4px 24px rgba(10, 8, 12, 0.36)',
 };
 
-const generateAliases = (
-  tokens: ReturnType<typeof generateChonkTokens>,
-  colors: typeof lightColors
-) => ({
+const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
   /**
    * Text that should not have as much emphasis
    */
-  subText: tokens.content.muted,
+  subText: tokens.content.secondary,
 
   /**
    * Primary background color
@@ -1269,13 +1193,13 @@ const generateAliases = (
    * Primary border color
    */
   border: tokens.border.primary,
-  translucentBorder: tokens.border.primary,
+  translucentBorder: tokens.border.transparent.neutral.muted,
 
   /**
    * Inner borders, e.g. borders inside of a grid
    */
-  innerBorder: tokens.border.muted,
-  translucentInnerBorder: tokens.border.muted,
+  innerBorder: tokens.border.secondary,
+  translucentInnerBorder: tokens.border.transparent.neutral.muted,
 
   /**
    * A color that denotes a "success", or something good
@@ -1320,23 +1244,23 @@ const generateAliases = (
    * Indicates that something is "active" or "selected"
    * NOTE: These are largely used for form elements, which I haven't mocked in ChonkUI
    */
-  active: tokens.component.link.accent.active,
-  activeHover: tokens.component.link.accent.hover,
-  activeText: tokens.component.link.accent.default,
+  active: tokens.interactive.link.accent.active,
+  activeHover: tokens.interactive.link.accent.hover,
+  activeText: tokens.interactive.link.accent.rest,
 
   /**
    * Indicates that something has "focus", which is different than "active" state as it is more temporal
    * and should be a bit subtler than active
    */
-  focus: tokens.border.accent,
-  focusBorder: tokens.border.accent,
+  focus: tokens.border.accent.vibrant,
+  focusBorder: tokens.border.accent.vibrant,
 
   /**
    * Link color indicates that something is clickable
    */
-  linkColor: tokens.component.link.accent.default,
-  linkHoverColor: tokens.component.link.accent.hover,
-  linkUnderline: tokens.component.link.accent.default,
+  linkColor: tokens.interactive.link.accent.rest,
+  linkHoverColor: tokens.interactive.link.accent.hover,
+  linkUnderline: tokens.interactive.link.accent.rest,
 
   /**
    * Default Progressbar color
@@ -1372,11 +1296,8 @@ const generateAliases = (
   },
 });
 
-const lightTokens = generateChonkTokens(lightColors);
-const darkTokens = generateChonkTokens(darkColors);
-
-const lightAliases = generateAliases(lightTokens, lightColors);
-const darkAliases = generateAliases(generateChonkTokens(darkColors), darkColors);
+const lightAliases = generateAliases(baseLightTheme.tokens, lightColors);
+const darkAliases = generateAliases(baseDarkTheme.tokens, darkColors);
 
 const deprecatedColorMappings = (colors: Colors) => ({
   /** @deprecated */
@@ -1517,11 +1438,11 @@ const lightThemeDefinition = {
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
   ...deprecatedColorMappings(lightColors),
+  ...baseLightTheme,
   ...lightAliases,
   ...lightShadows,
-
-  tokens: lightTokens,
-  radius,
+  // @TODO: remove backwards-compatability shim
+  tokens: withLegacyTokens(baseLightTheme.tokens),
   focusRing: (baseShadow = `0 0 0 0 ${lightAliases.background}`) => ({
     outline: 'none',
     boxShadow: `${baseShadow}, 0 0 0 2px ${lightAliases.focusBorder}`,
@@ -1530,12 +1451,12 @@ const lightThemeDefinition = {
   // @TODO: these colors need to be ported
   ...generateThemeUtils(deprecatedColorMappings(lightColors), lightAliases),
   alert: generateAlertTheme(lightColors, lightAliases),
-  button: generateButtonTheme(lightColors, lightAliases, lightTokens),
+  button: generateButtonTheme(lightColors, lightAliases, baseLightTheme.tokens),
   tag: generateTagTheme(lightColors),
-  level: generateLevelTheme(lightTokens, 'light'),
+  level: generateLevelTheme(baseLightTheme.tokens, 'light'),
 
   chart: {
-    neutral: modifyColor(lightColors.gray400).lighten(0.8).toString(),
+    neutral: baseLightTheme.tokens.dataviz.semantic.neutral,
     colors: CHART_PALETTE_LIGHT,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT),
   },
@@ -1546,7 +1467,7 @@ const lightThemeDefinition = {
   ),
   prismDarkVariables: generateThemePrismVariables(
     prismDark,
-    darkTokens.background.primary
+    baseDarkTheme.tokens.background.primary
   ),
 
   colors: lightColors,
@@ -1566,11 +1487,11 @@ export const darkTheme: SentryTheme = {
   ...commonTheme,
 
   ...deprecatedColorMappings(darkColors),
+  ...baseDarkTheme,
   ...darkAliases,
   ...darkShadows,
-  tokens: darkTokens,
-
-  radius,
+  // @TODO: remove backwards-compatability shim
+  tokens: withLegacyTokens(baseDarkTheme.tokens),
   focusRing: (baseShadow = `0 0 0 0 ${darkAliases.background}`) => ({
     outline: 'none',
     boxShadow: `${baseShadow}, 0 0 0 2px ${darkAliases.focusBorder}`,
@@ -1579,12 +1500,12 @@ export const darkTheme: SentryTheme = {
   // @TODO: these colors need to be ported
   ...generateThemeUtils(deprecatedColorMappings(darkColors), darkAliases),
   alert: generateAlertTheme(darkColors, darkAliases),
-  button: generateButtonTheme(darkColors, darkAliases, darkTokens),
+  button: generateButtonTheme(darkColors, darkAliases, baseDarkTheme.tokens),
   tag: generateTagTheme(darkColors),
-  level: generateLevelTheme(darkTokens, 'dark'),
+  level: generateLevelTheme(baseDarkTheme.tokens, 'dark'),
 
   chart: {
-    neutral: modifyColor(darkColors.gray400).darken(0.35).toString(),
+    neutral: baseDarkTheme.tokens.dataviz.semantic.neutral,
     colors: CHART_PALETTE_DARK,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
   },
@@ -1592,7 +1513,7 @@ export const darkTheme: SentryTheme = {
   prismVariables: generateThemePrismVariables(prismDark, darkAliases.backgroundSecondary),
   prismDarkVariables: generateThemePrismVariables(
     prismDark,
-    darkTokens.background.primary
+    baseDarkTheme.tokens.background.primary
   ),
 
   colors: darkColors,

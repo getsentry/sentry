@@ -4,7 +4,6 @@ import logging
 from typing import Any
 
 import sentry_sdk
-from django.db.models import Sum
 from django.http import JsonResponse
 from django.http.response import HttpResponseBase
 from rest_framework.request import Request
@@ -20,8 +19,11 @@ from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEn
 from sentry.preprod.api.models.project_preprod_build_details_models import (
     platform_from_artifact_type,
 )
-from sentry.preprod.build_distribution_utils import get_download_url_for_artifact
-from sentry.preprod.models import InstallablePreprodArtifact, PreprodArtifact
+from sentry.preprod.build_distribution_utils import (
+    get_download_count_for_artifact,
+    get_download_url_for_artifact,
+)
+from sentry.preprod.models import PreprodArtifact
 
 logger = logging.getLogger(__name__)
 
@@ -75,13 +77,7 @@ class ProjectPreprodInstallDetailsEndpoint(PreprodArtifactEndpoint):
 
         installable_url = get_download_url_for_artifact(head_artifact)
 
-        # Calculate total download count from all InstallablePreprodArtifact instances
-        total_download_count = (
-            InstallablePreprodArtifact.objects.filter(preprod_artifact=head_artifact).aggregate(
-                total_downloads=Sum("download_count")
-            )["total_downloads"]
-            or 0
-        )
+        total_download_count = get_download_count_for_artifact(head_artifact)
 
         # Build response based on artifact type
         response_data: dict[str, Any] = {

@@ -151,7 +151,6 @@ function TransactionHeader({
 
   const tabList = (
     <TabList
-      hideBorder
       outerWrapStyles={{
         gridColumn: '1 / -1',
       }}
@@ -317,7 +316,6 @@ function TransactionHeader({
         </ButtonBar>
       </Layout.HeaderActions>
       <TabList
-        hideBorder
         outerWrapStyles={{
           gridColumn: '1 / -1',
         }}

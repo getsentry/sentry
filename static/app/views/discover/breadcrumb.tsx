@@ -6,6 +6,7 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import type EventView from 'sentry/utils/discover/eventView';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
@@ -46,13 +47,15 @@ function DiscoverBreadcrumb({
   });
 
   if (!isHomepage && eventView?.isValid()) {
-    crumbs.push({
-      to: makeDiscoverPathname({
-        path: `/queries/`,
-        organization,
-      }),
-      label: t('Saved Queries'),
-    });
+    if (defined(eventView.id)) {
+      crumbs.push({
+        to: makeDiscoverPathname({
+          path: `/queries/`,
+          organization,
+        }),
+        label: t('Saved Queries'),
+      });
+    }
     crumbs.push({
       to: eventView.getResultsViewUrlTarget(organization, isHomepage),
       label: eventView.name || '',

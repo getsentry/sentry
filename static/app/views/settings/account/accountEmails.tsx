@@ -73,7 +73,7 @@ function AccountEmails() {
         <AlertLink
           to="/settings/account/notifications"
           trailingItems={<IconStack />}
-          type="info"
+          variant="info"
         >
           {t('Want to change how many emails you get? Use the notifications panel.')}
         </AlertLink>
@@ -197,8 +197,8 @@ function EmailRow({
     <EmailItem>
       <EmailTags>
         {email}
-        {!isVerified && <Tag type="warning">{t('Unverified')}</Tag>}
-        {isPrimary && <Tag type="success">{t('Primary')}</Tag>}
+        {!isVerified && <Tag variant="warning">{t('Unverified')}</Tag>}
+        {isPrimary && <Tag variant="success">{t('Primary')}</Tag>}
       </EmailTags>
       <ButtonBar>
         {!isPrimary && isVerified && (
