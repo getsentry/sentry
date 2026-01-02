@@ -1,0 +1,146 @@
+---
+title: EmptyMessage
+description: A component for displaying empty states with optional icon, title, description, and action buttons. All text content uses balanced text wrapping for better readability.
+source: 'sentry/components/emptyMessage'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/emptyMessage.tsx
+---
+
+import {Button} from 'sentry/components/core/button';
+import EmptyMessage from 'sentry/components/emptyMessage';
+import Panel from 'sentry/components/panels/panel';
+import {IconSearch} from 'sentry/icons';
+import * as Storybook from 'sentry/stories';
+
+To create a basic empty message, wrap your message in an `<EmptyMessage>` component.
+
+```jsx
+<Panel>
+  <EmptyMessage>
+    This is a simple empty message with default styling and balanced text wrapping for
+    better readability.
+  </EmptyMessage>
+</Panel>
+```
+
+## Props
+
+- **title** (`React.ReactNode`) - The title of the empty message
+- **icon** (`React.ReactNode`) - Optional icon element
+- **action** (`React.ReactElement`) - Optional action button
+- **size** (`"md" | "lg"`) - Size of the text (default: md)
+- **children** (`React.ReactNode`) - Main content text (automatically uses balanced text wrapping)
+
+## Examples
+
+### With Title
+
+Add a title to provide context for the empty state.
+
+<Storybook.Demo>
+  <Panel>
+    <EmptyMessage title="No Results Found">
+      We couldn't find any results matching your search criteria. Try adjusting your
+      filters or search terms.
+    </EmptyMessage>
+  </Panel>
+</Storybook.Demo>
+```jsx
+<EmptyMessage title="No Results Found">
+  We couldn't find any results matching your search criteria. Try adjusting your filters
+  or search terms.
+</EmptyMessage>
+```
+
+### With Icon
+
+Add an icon to make the empty state more visually distinctive. Icons are defaulted to `lg` size, so there is typically no need to specify an icon size.
+
+<Storybook.Demo>
+  <Panel>
+    <EmptyMessage icon={<IconSearch />} title="No Results">
+      We couldn't find any results matching your search criteria.
+    </EmptyMessage>
+  </Panel>
+</Storybook.Demo>
+```jsx
+<EmptyMessage icon={<IconSearch />} title="No Results">
+  We couldn't find any results matching your search criteria.
+</EmptyMessage>
+```
+
+### With Action
+
+Add action buttons to guide users toward resolving the empty state.
+
+<Storybook.Demo>
+  <Panel>
+    <EmptyMessage
+      icon={<IconSearch />}
+      title="No Results Found"
+      action={<Button priority="primary">Clear Filters</Button>}
+    >
+      We couldn't find any results matching your search criteria. Try adjusting your
+      filters or search terms.
+    </EmptyMessage>
+  </Panel>
+</Storybook.Demo>
+```jsx
+<EmptyMessage
+  icon={<IconSearch />}
+  title="No Results Found"
+  action={<Button priority="primary">Clear Filters</Button>}
+>
+  We couldn't find any results matching your search criteria. Try adjusting your filters
+  or search terms.
+</EmptyMessage>
+```
+
+### Sizes
+
+EmptyMessage supports two sizes: `md` (default) and `lg`.
+
+<Storybook.Demo>
+  <div style={{display: 'flex', gap: '1rem'}}>
+    <Panel style={{flex: 1}}>
+      <EmptyMessage icon={<IconSearch />} title="Medium Size">
+        This is the default medium size empty message.
+      </EmptyMessage>
+    </Panel>
+    <Panel style={{flex: 1}}>
+      <EmptyMessage size="lg" icon={<IconSearch />} title="Large Size">
+        This is a large size empty message with bigger text.
+      </EmptyMessage>
+    </Panel>
+  </div>
+</Storybook.Demo>
+```jsx
+<EmptyMessage size="medium" icon={<IconSearch />} title="Medium Size">
+  This is the default medium size empty message.
+</EmptyMessage>
+
+<EmptyMessage size="lg" icon={<IconSearch />} title="Large Size">
+  This is a large size empty message with bigger text.
+</EmptyMessage>
+```
+
+### Text Wrapping
+
+All text content automatically uses CSS text-wrap balance mode for better readability, especially with longer messages.
+
+<Storybook.Demo>
+  <Panel>
+    <EmptyMessage icon={<IconSearch />} title="Text Wrapping">
+      Sure you haven't misspelled? If you're using a lesser-known platform, consider
+      choosing a more generic SDK like Browser JavaScript, Python, Node, .NET & Java or
+      create a generic project.
+    </EmptyMessage>
+  </Panel>
+</Storybook.Demo>
+```jsx
+<EmptyMessage icon={<IconSearch />} title="Text Wrapping">
+  Sure you haven't misspelled? If you're using a lesser-known platform, consider choosing
+  a more generic SDK like Browser JavaScript, Python, Node, .NET & Java or create a
+  generic project.
+</EmptyMessage>
+```

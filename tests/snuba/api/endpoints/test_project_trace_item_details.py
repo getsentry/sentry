@@ -1,13 +1,22 @@
 import uuid
+from unittest import mock
 
 import pytest
 from django.urls import reverse
 
-from sentry.testutils.cases import APITestCase, OurLogTestCase, SnubaTestCase, SpanTestCase
+from sentry.testutils.cases import (
+    APITestCase,
+    OurLogTestCase,
+    SnubaTestCase,
+    SpanTestCase,
+    TraceAttachmentTestCase,
+)
 from sentry.testutils.helpers.datetime import before_now
 
 
-class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTestCase):
+class ProjectTraceItemDetailsEndpointTest(
+    APITestCase, SnubaTestCase, OurLogTestCase, SpanTestCase, TraceAttachmentTestCase
+):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
@@ -153,8 +162,12 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
         }
 
     def test_simple_using_spans_item_type(self) -> None:
+        previous_trace = uuid.uuid4().hex
         span_1 = self.create_span(
-            {"description": "foo", "sentry_tags": {"status": "success"}},
+            {
+                "description": "foo",
+                "sentry_tags": {"status": "success", "previous_trace": previous_trace},
+            },
             measurements={
                 "code.lineno": {"value": 420},
                 "http.response_content_length": {"value": 100},
@@ -192,6 +205,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
             {"name": "project_id", "type": "int", "value": str(self.project.id)},
             {"name": "span.duration", "type": "int", "value": "1000"},
             {"name": "parent_span", "type": "str", "value": span_1["parent_span_id"]},
+            {"name": "previous_trace", "type": "str", "value": previous_trace},
             {"name": "profile.id", "type": "str", "value": span_1["profile_id"]},
             {"name": "sdk.name", "type": "str", "value": "sentry.test.sdk"},
             {"name": "sdk.version", "type": "str", "value": "1.0"},
@@ -504,3 +518,44 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
         assert "normal_attr" in attribute_names
         assert "__sentry_internal_span_buffer_outcome" in attribute_names
         assert "__sentry_internal_test" in attribute_names
+
+    def test_attachment(self) -> None:
+        attachment = self.create_trace_attachment(trace_id=self.trace_uuid, attributes={"foo": 2})
+        self.store_eap_items([attachment])
+
+        item_id = uuid.UUID(bytes=bytes(reversed(attachment.item_id))).hex
+        response = self.do_request("attachments", item_id)
+        assert response.status_code == 200, response.data
+        assert response.data == {
+            "attributes": [
+                {
+                    "name": "tags[foo,number]",
+                    "type": "int",
+                    "value": "2",
+                },
+                {
+                    "name": "tags[sentry.item_type,number]",
+                    "type": "int",
+                    "value": "10",
+                },
+                {
+                    "name": "tags[sentry.organization_id,number]",
+                    "type": "int",
+                    "value": str(self.organization.id),
+                },
+                {
+                    "name": "tags[sentry.project_id,number]",
+                    "type": "int",
+                    "value": str(self.project.id),
+                },
+                {
+                    "name": "sentry.trace_id",
+                    "type": "str",
+                    "value": str(uuid.UUID(self.trace_uuid)),
+                },
+            ],
+            "itemId": item_id,
+            "links": None,
+            "meta": {},
+            "timestamp": mock.ANY,
+        }

@@ -24,7 +24,9 @@ export enum DisplayType {
   LINE = 'line',
   TABLE = 'table',
   BIG_NUMBER = 'big_number',
+  DETAILS = 'details',
   TOP_N = 'top_n',
+  WHEEL = 'wheel',
 }
 
 export enum WidgetType {
@@ -36,6 +38,7 @@ export enum WidgetType {
   TRANSACTIONS = 'transaction-like',
   SPANS = 'spans',
   LOGS = 'logs',
+  TRACEMETRICS = 'tracemetrics',
 }
 
 // These only pertain to on-demand warnings at this point in time
@@ -72,8 +75,11 @@ interface WidgetQueryOnDemand {
 }
 
 export type LinkedDashboard = {
+  // The destination dashboard id, set this to '-1' for prebuilt dashboards that link to other prebuilt dashboards
   dashboardId: string;
   field: string;
+  // Used for static dashboards that are not saved to the database
+  staticDashboardId?: PrebuiltDashboardId;
 };
 
 /**
@@ -99,6 +105,10 @@ export type WidgetQuery = {
   onDemand?: WidgetQueryOnDemand[];
   // Aggregate selected for the Big Number widget builder
   selectedAggregate?: number;
+  // Links the widget query to a slide out panel if exists.
+  // TODO: currently not stored in the backend, only used
+  // by prebuilt dashboards in the frontend.
+  slideOutId?: SlideoutId;
 };
 
 type WidgetChangedReason = {
@@ -165,19 +175,17 @@ export type DashboardListItem = {
   isFavorited?: boolean;
   lastVisited?: string;
   permissions?: DashboardPermissions;
+  prebuiltId?: PrebuiltDashboardId;
 };
 
 export enum DashboardFilterKeys {
   RELEASE = 'release',
   GLOBAL_FILTER = 'globalFilter',
-  // temporary filters are filters that are not saved to the dashboard, they occur when you link from one dashboard to another
-  TEMPORARY_FILTERS = 'temporaryFilters',
 }
 
 export type DashboardFilters = {
   [DashboardFilterKeys.RELEASE]?: string[];
   [DashboardFilterKeys.GLOBAL_FILTER]?: GlobalFilter[];
-  [DashboardFilterKeys.TEMPORARY_FILTERS]?: GlobalFilter[];
 };
 
 export type GlobalFilter = {
@@ -187,6 +195,7 @@ export type GlobalFilter = {
   tag: Tag;
   // The raw filter condition string (e.g. 'tagKey:[values,...]')
   value: string;
+  isTemporary?: boolean;
 };
 
 /**
@@ -229,4 +238,18 @@ export enum DashboardWidgetSource {
   TRACE_EXPLORER = 'traceExplorer',
   LOGS = 'logs',
   INSIGHTS = 'insights',
+  TRACEMETRICS = 'traceMetrics',
+}
+
+export enum SlideoutId {
+  LCP = 'lcp',
+  FCP = 'fcp',
+  INP = 'inp',
+  CLS = 'cls',
+  TTFB = 'ttfb',
+  LCP_SUMMARY = 'lcp-summary',
+  FCP_SUMMARY = 'fcp-summary',
+  INP_SUMMARY = 'inp-summary',
+  CLS_SUMMARY = 'cls-summary',
+  TTFB_SUMMARY = 'ttfb-summary',
 }

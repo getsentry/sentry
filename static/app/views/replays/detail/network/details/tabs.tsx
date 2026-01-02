@@ -25,7 +25,7 @@ function NetworkDetailsTabs() {
           setParamValue(tab);
         }}
       >
-        <TabList hideBorder>
+        <TabList>
           {Object.entries(TABS).map(([tab, label]) => (
             <TabList.Item key={tab}>{label}</TabList.Item>
           ))}
@@ -36,8 +36,6 @@ function NetworkDetailsTabs() {
 }
 
 const TabsContainer = styled('div')`
-  padding-top: ${space(0.5)};
-  padding-inline: ${space(1.5)};
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
@@ -50,7 +48,7 @@ const StyledNetworkDetailsTabs = styled(NetworkDetailsTabs)`
   & > li {
     margin-right: 0;
     padding-right: ${space(3)};
-    background: ${p => p.theme.surface400};
+    background: ${p => p.theme.colors.surface500};
     z-index: ${p => p.theme.zIndex.initial};
   }
   & > li:first-child {

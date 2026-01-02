@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 from django.utils import timezone
 
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
+from sentry.models.commit import Commit
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.repository import Repository
@@ -69,10 +70,11 @@ class TestGroupOwners(TestCase):
         )
 
     def set_release_commits(self, author_email):
+        self.commitSha = "a" * 40
         self.release.set_commits(
             [
                 {
-                    "id": "a" * 40,
+                    "id": self.commitSha,
                     "repository": self.repo.name,
                     "author_email": author_email,
                     "author_name": "Bob",
@@ -270,6 +272,7 @@ class TestGroupOwners(TestCase):
     def test_update_existing_entries(self) -> None:
         # As new events come in associated with existing owners, we should update the date_added of that owner.
         self.set_release_commits(self.user.email)
+        suspect_commit = Commit.objects.get(key=self.commitSha)
         event_frames = get_frame_paths(self.event)
         process_suspect_commits(
             event_id=self.event.event_id,
@@ -286,7 +289,9 @@ class TestGroupOwners(TestCase):
         )
 
         date_added_before_update = go.date_added
-        assert go.context == {"suspectCommitStrategy": SuspectCommitStrategy.RELEASE_BASED}
+        assert "commitId" in go.context
+        assert go.context["commitId"] == suspect_commit.id
+        assert go.context["suspectCommitStrategy"] == SuspectCommitStrategy.RELEASE_BASED
 
         process_suspect_commits(
             event_id=self.event.event_id,
@@ -297,7 +302,9 @@ class TestGroupOwners(TestCase):
         )
         go.refresh_from_db()
         assert go.date_added > date_added_before_update
-        assert go.context == {"suspectCommitStrategy": SuspectCommitStrategy.RELEASE_BASED}
+        assert "commitId" in go.context
+        assert go.context["commitId"] == suspect_commit.id
+        assert go.context["suspectCommitStrategy"] == SuspectCommitStrategy.RELEASE_BASED
         assert GroupOwner.objects.filter(group=self.event.group).count() == 1
         assert GroupOwner.objects.get(
             group=self.event.group,
@@ -341,9 +348,14 @@ class TestGroupOwners(TestCase):
     def test_keep_highest_score(self, patched_committers: MagicMock) -> None:
         self.user2 = self.create_user(email="user2@sentry.io")
         self.user3 = self.create_user(email="user3@sentry.io")
+
+        mock_commit1 = MagicMock(id=1)
+        mock_commit2 = MagicMock(id=2)
+        mock_commit3 = MagicMock(id=3)
+
         patched_committers.return_value = [
             {
-                "commits": [(None, 3)],
+                "commits": [(mock_commit1, 3)],
                 "author": {
                     "username": self.user.email,
                     "lastLogin": None,
@@ -367,7 +379,7 @@ class TestGroupOwners(TestCase):
                 },
             },
             {
-                "commits": [(None, 1)],
+                "commits": [(mock_commit2, 1)],
                 "author": {
                     "username": self.user2.email,
                     "lastLogin": None,
@@ -391,7 +403,7 @@ class TestGroupOwners(TestCase):
                 },
             },
             {
-                "commits": [(None, 2)],
+                "commits": [(mock_commit3, 2)],
                 "author": {
                     "username": self.user3.email,
                     "lastLogin": None,
@@ -424,17 +436,21 @@ class TestGroupOwners(TestCase):
             project_id=self.event.project_id,
         )
         # Doesn't use self.user2 due to low score.
-        assert GroupOwner.objects.get(user_id=self.user.id)
-        assert GroupOwner.objects.get(user_id=self.user3.id)
+        user1_owner = GroupOwner.objects.get(user_id=self.user.id)
+        user3_owner = GroupOwner.objects.get(user_id=self.user3.id)
         assert not GroupOwner.objects.filter(user_id=self.user2.id).exists()
+
+        assert user1_owner.context["commitId"] == 1
+        assert user3_owner.context["commitId"] == 3
 
     @patch("sentry.tasks.groupowner.get_event_file_committers")
     def test_low_suspect_committer_score(self, patched_committers: MagicMock) -> None:
         self.user = self.create_user()
+        mock_commit = MagicMock(id=1)
         patched_committers.return_value = [
             {
                 # score < MIN_COMMIT_SCORE
-                "commits": [(None, 1)],
+                "commits": [(mock_commit, 1)],
                 "author": {
                     "id": self.user.id,
                 },
@@ -472,40 +488,3 @@ class TestGroupOwners(TestCase):
         )
 
         assert owners.count() == 1
-
-    def test_external_author_no_user(self) -> None:
-        """
-        Test _process_suspect_commits with external commit author (no Sentry user).
-        TODO(nora): This test should FAIL until I update the code to handle external authors.
-        """
-        # Set up a commit with external author email (not a Sentry user)
-        external_email = "external@company.com"
-        self.set_release_commits(external_email)
-
-        assert not GroupOwner.objects.filter(group=self.event.group).exists()
-        event_frames = get_frame_paths(self.event)
-
-        # Test: process_suspect_commits should handle external authors.
-        # Currently this will NOT create a GroupOwner because the code
-        # only processes authors that have existing Sentry user accounts.
-        process_suspect_commits(
-            event_id=self.event.event_id,
-            event_platform=self.event.platform,
-            event_frames=event_frames,
-            group_id=self.event.group_id,
-            project_id=self.event.project_id,
-        )
-
-        # Once the code is updated, this should pass:
-        # group_owners = GroupOwner.objects.filter(
-        #     group=self.event.group,
-        #     project=self.event.project,
-        #     organization=self.event.project.organization,
-        #     type=GroupOwnerType.SUSPECT_COMMIT.value,
-        # )
-        # assert group_owners.count() == 1
-        # group_owner = group_owners[0]
-        # assert group_owner.user_id is None  # No Sentry user mapping
-        # assert (
-        #     group_owner.context.get("suspectCommitStrategy") == SuspectCommitStrategy.RELEASE_BASED
-        # )

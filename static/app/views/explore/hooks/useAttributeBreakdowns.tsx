@@ -1,99 +1,97 @@
-import {useMemo} from 'react';
+import {useMemo, useRef} from 'react';
 
 import {pageFiltersToQueryParams} from 'sentry/components/organizations/pageFilters/parse';
-import {getUtcDateString} from 'sentry/utils/dates';
-import {FieldKey} from 'sentry/utils/fields';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
-import type {BoxSelectOptions} from 'sentry/views/explore/hooks/useChartBoxSelect';
-import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
+import usePrevious from 'sentry/utils/usePrevious';
+import {CHARTS_PER_PAGE} from 'sentry/views/explore/components/attributeBreakdowns/constants';
 
-export type AttributeBreakdownsResult = {
-  cohort1Total: number;
-  cohort2Total: number;
-  rankedAttributes: Array<{
-    attributeName: string;
-    cohort1: Array<{
-      label: string;
-      value: string;
-    }>;
-    cohort2: Array<{
-      label: string;
-      value: string;
-    }>;
-    order: {
-      rrf: number;
-      rrr: number | null;
+type AttributeDistributionData = Record<string, Array<{label: string; value: number}>>;
+
+type AttributeBreakdowns = {
+  data: Array<{
+    attribute_distributions: {
+      data: AttributeDistributionData;
     };
   }>;
 };
 
+// The /trace-items/stats/ endpoint returns a paginated response, but recommends fetching
+//  more data than we need to display the current page. Hence we accumulate the
+// data across paginated requests.
 function useAttributeBreakdowns({
-  boxSelectOptions,
-  chartInfo,
+  cursor,
+  substringMatch,
 }: {
-  boxSelectOptions: BoxSelectOptions;
-  chartInfo: ChartInfo;
+  cursor: string | undefined;
+  substringMatch: string;
 }) {
-  const location = useLocation();
   const organization = useOrganization();
-  const dataset = useSpansDataset();
-  const {selection: pageFilters} = usePageFilters();
-  const aggregateExtrapolation = location.query.extrapolate ?? '1';
+  const location = useLocation();
+  const {selection: pageFilters, isReady: pageFiltersReady} = usePageFilters();
+  const queryString = location.query.query?.toString() ?? '';
 
-  const enableQuery = boxSelectOptions.xRange !== null;
-  const [x1, x2] = boxSelectOptions.xRange!;
+  // Ref to accumulate data across paginated requests
+  const accumulatedDataRef = useRef<AttributeDistributionData>({});
 
-  // Ensure that we pass the existing queries in the search bar to the attribute breakdowns queries
-  const currentQuery = location.query.query?.toString() ?? '';
-  const selectedRegionQuery = new MutableSearch(currentQuery);
-  const baselineRegionQuery = new MutableSearch(currentQuery);
-
-  // round off the x-axis bounds to the minute
-  let startTimestamp = Math.floor(x1 / 60_000) * 60_000;
-  const endTimestamp = Math.ceil(x2 / 60_000) * 60_000;
-
-  // ensure the x-axis bounds have 1 minute resolution
-  startTimestamp = Math.min(startTimestamp, endTimestamp - 60_000);
-
-  const formattedStartTimestamp = getUtcDateString(startTimestamp);
-  const formattedEndTimestamp = getUtcDateString(endTimestamp);
-
-  // Add the selected region by x-axis to the query, timestamp: [x1, x2]
-  selectedRegionQuery.addFilterValue(FieldKey.TIMESTAMP, `>=${formattedStartTimestamp}`);
-  selectedRegionQuery.addFilterValue(FieldKey.TIMESTAMP, `<=${formattedEndTimestamp}`);
-
-  const query1 = selectedRegionQuery.formatString();
-  const query2 = baselineRegionQuery.formatString();
+  // Clear accumulated data when anything other than cursor changes
+  const previousSubstringMatch = usePrevious(substringMatch);
+  const previousQueryString = usePrevious(queryString);
+  const previousPageFilters = usePrevious(pageFilters);
+  if (
+    previousSubstringMatch !== substringMatch ||
+    previousQueryString !== queryString ||
+    previousPageFilters !== pageFilters
+  ) {
+    accumulatedDataRef.current = {};
+  }
 
   const queryParams = useMemo(() => {
-    return {
+    const params = {
       ...pageFiltersToQueryParams(pageFilters),
-      query_1: query1,
-      query_2: query2,
-      dataset,
-      function: chartInfo.yAxis,
-      above: 1,
-      sampling: SAMPLING_MODE.NORMAL,
-      aggregateExtrapolation,
-    };
-  }, [query1, query2, pageFilters, dataset, chartInfo.yAxis, aggregateExtrapolation]);
+      query: queryString,
+      statsType: 'attributeDistributions',
+      limit: CHARTS_PER_PAGE * 2,
+    } as Record<string, any>;
 
-  return useApiQuery<AttributeBreakdownsResult>(
-    [
-      `/organizations/${organization.slug}/trace-items/attributes/ranked/`,
-      {query: queryParams},
-    ],
+    if (cursor !== undefined) {
+      params.cursor = cursor;
+    }
+
+    if (substringMatch) {
+      params.substringMatch = substringMatch;
+    }
+
+    return params;
+  }, [pageFilters, queryString, cursor, substringMatch]);
+
+  const result = useApiQuery<AttributeBreakdowns>(
+    [`/organizations/${organization.slug}/trace-items/stats/`, {query: queryParams}],
     {
       staleTime: Infinity,
-      enabled: enableQuery,
+      enabled: pageFiltersReady,
     }
   );
+
+  const data = useMemo((): AttributeDistributionData | undefined => {
+    const newData = result.data?.data[0]?.attribute_distributions?.data;
+    if (newData) {
+      accumulatedDataRef.current = {
+        ...accumulatedDataRef.current,
+        ...newData,
+      };
+    }
+    return Object.keys(accumulatedDataRef.current).length > 0
+      ? accumulatedDataRef.current
+      : newData;
+  }, [result.data]);
+
+  return {
+    ...result,
+    data,
+  };
 }
 
 export default useAttributeBreakdowns;

@@ -9,6 +9,7 @@ import type {
   AlertRuleThresholdType,
   Dataset,
   EventTypes,
+  ExtrapolationMode,
 } from 'sentry/views/alerts/rules/metric/types';
 import type {UptimeMonitorMode} from 'sentry/views/alerts/rules/uptime/types';
 import type {Monitor, MonitorConfig} from 'sentry/views/insights/crons/types';
@@ -27,6 +28,7 @@ export interface SnubaQuery {
    */
   timeWindow: number;
   environment?: string;
+  extrapolationMode?: ExtrapolationMode;
 }
 
 /**
@@ -77,23 +79,20 @@ export type DetectorType =
   | 'error'
   | 'metric_issue'
   | 'monitor_check_in_failure'
-  | 'uptime_domain_failure';
-
-interface BaseMetricDetectorConfig {
-  thresholdPeriod: number;
-}
+  | 'uptime_domain_failure'
+  | 'issue_stream';
 
 /**
  * Configuration for static/threshold-based detection
  */
-interface MetricDetectorConfigStatic extends BaseMetricDetectorConfig {
+interface MetricDetectorConfigStatic {
   detectionType: 'static';
 }
 
 /**
  * Configuration for percentage-based change detection
  */
-interface MetricDetectorConfigPercent extends BaseMetricDetectorConfig {
+interface MetricDetectorConfigPercent {
   comparisonDelta: number;
   detectionType: 'percent';
 }
@@ -101,11 +100,8 @@ interface MetricDetectorConfigPercent extends BaseMetricDetectorConfig {
 /**
  * Configuration for dynamic/anomaly detection
  */
-interface MetricDetectorConfigDynamic extends BaseMetricDetectorConfig {
+interface MetricDetectorConfigDynamic {
   detectionType: 'dynamic';
-  seasonality?: 'auto' | 'daily' | 'weekly' | 'monthly';
-  sensitivity?: AlertRuleSensitivity;
-  thresholdType?: AlertRuleThresholdType;
 }
 
 export type MetricDetectorConfig =
@@ -124,6 +120,7 @@ type BaseDetector = Readonly<{
   createdBy: string | null;
   dateCreated: string;
   dateUpdated: string;
+  description: string | null;
   enabled: boolean;
   id: string;
   lastTriggered: string;
@@ -159,7 +156,17 @@ export interface ErrorDetector extends BaseDetector {
   readonly type: 'error';
 }
 
-export type Detector = MetricDetector | UptimeDetector | CronDetector | ErrorDetector;
+export interface IssueStreamDetector extends BaseDetector {
+  // TODO: Add issue stream detector type fields
+  readonly type: 'issue_stream';
+}
+
+export type Detector =
+  | MetricDetector
+  | UptimeDetector
+  | CronDetector
+  | ErrorDetector
+  | IssueStreamDetector;
 
 interface UpdateConditionGroupPayload {
   conditions: Array<Omit<MetricCondition, 'id'>>;
@@ -174,6 +181,7 @@ interface UpdateSnubaDataSourcePayload {
   query: string;
   queryType: number;
   timeWindow: number;
+  extrapolationMode?: string;
 }
 
 interface UpdateUptimeDataSourcePayload {
@@ -190,6 +198,7 @@ export interface BaseDetectorUpdatePayload {
   projectId: Detector['projectId'];
   type: Detector['type'];
   workflowIds: string[];
+  description?: string | null;
   enabled?: boolean;
 }
 
@@ -230,7 +239,7 @@ export interface MetricCondition {
 /**
  * See AnomalyDetectionHandler
  */
-interface AnomalyDetectionComparison {
+export interface AnomalyDetectionComparison {
   seasonality:
     | 'auto'
     | 'hourly'
@@ -240,8 +249,8 @@ interface AnomalyDetectionComparison {
     | 'hourly_weekly'
     | 'hourly_daily_weekly'
     | 'daily_weekly';
-  sensitivity: 'low' | 'medium' | 'high';
-  threshold_type: 0 | 1 | 2;
+  sensitivity: AlertRuleSensitivity;
+  thresholdType: AlertRuleThresholdType;
 }
 
 type MetricDataCondition = AnomalyDetectionComparison | number;

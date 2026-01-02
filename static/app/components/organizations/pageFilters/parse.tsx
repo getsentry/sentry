@@ -10,7 +10,7 @@ import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 
 import type {PageFiltersState} from './types';
 
-type StatsPeriodType = 'h' | 'd' | 's' | 'm' | 'w';
+export type StatsPeriodType = 'h' | 'd' | 's' | 'm' | 'w';
 
 type SingleParamValue = string | undefined | null;
 type ParamValue = string[] | SingleParamValue;

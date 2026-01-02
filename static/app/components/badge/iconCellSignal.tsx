@@ -7,12 +7,12 @@ interface Props extends SVGIconProps {
 }
 function IconCellSignal({ref, bars = 3, ...props}: Props) {
   const theme = useTheme();
-  const firstBarColor = bars > 0 ? theme.subText : theme.gray200;
-  const secondBarColor = bars > 1 ? theme.subText : theme.gray200;
-  const thirdBarColor = bars > 2 ? theme.subText : theme.gray200;
+  const firstBarColor = bars > 0 ? theme.subText : theme.colors.gray200;
+  const secondBarColor = bars > 1 ? theme.subText : theme.colors.gray200;
+  const thirdBarColor = bars > 2 ? theme.subText : theme.colors.gray200;
 
   return (
-    <SvgIcon {...props} ref={ref} kind="path">
+    <SvgIcon {...props} ref={ref}>
       <rect x="0" y="10" width="4" height="5" fill={firstBarColor} rx="1" />
       <rect x="6.2" y="5" width="4" height="10" fill={secondBarColor} rx="1" />
       <rect x="12.4" y="0" width="4" height="15" fill={thirdBarColor} rx="1" />

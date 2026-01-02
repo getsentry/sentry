@@ -1,5 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import type {DistributedOmit} from 'type-fest';
 
 import {FeatureBadge} from 'sentry/components/core/badge';
 import type {
@@ -17,29 +18,39 @@ type BaseProps = {
   featureType?: 'alpha' | 'beta' | 'new';
 };
 
-interface SingleProps
-  extends Omit<
-      SingleSelectProps<string>,
-      'onChange' | 'defaultValue' | 'multiple' | 'title'
-    >,
-    BaseProps {
-  onChange: (value: string) => void;
-  selected: string;
-  defaultValue?: string;
-  multiple?: false;
-}
+type SingleUnClearableProps = DistributedOmit<
+  SingleSelectProps<string>,
+  'onChange' | 'multiple' | 'title' | 'value'
+> &
+  BaseProps & {
+    onChange: (value: string) => void;
+    selected: string;
+    clearable?: false;
+    multiple?: false;
+  };
 
-interface MultipleProps
-  extends Omit<
-      MultipleSelectProps<string>,
-      'onChange' | 'defaultValue' | 'multiple' | 'title'
-    >,
-    BaseProps {
-  multiple: true;
-  onChange: (value: string[]) => void;
-  selected: string[];
-  defaultValue?: string[];
-}
+type SingleClearableProps = DistributedOmit<
+  SingleSelectProps<string>,
+  'onChange' | 'multiple' | 'title' | 'value'
+> &
+  BaseProps & {
+    clearable: true;
+    onChange: (value: string | undefined) => void;
+    selected: string;
+    multiple?: false;
+  };
+
+type SingleProps = SingleClearableProps | SingleUnClearableProps;
+
+type MultipleProps = DistributedOmit<
+  MultipleSelectProps<string>,
+  'onChange' | 'multiple' | 'title' | 'value'
+> &
+  BaseProps & {
+    multiple: true;
+    onChange: (value: string[]) => void;
+    selected: string[];
+  };
 
 function OptionSelector({
   options,
@@ -48,8 +59,8 @@ function OptionSelector({
   title,
   featureType,
   multiple,
-  defaultValue,
   closeOnSelect,
+  clearable,
   ...rest
 }: SingleProps | MultipleProps) {
   const mappedOptions = useMemo(() => {
@@ -67,8 +78,8 @@ function OptionSelector({
     if (multiple) {
       return {
         multiple,
+        clearable,
         value: selected,
-        defaultValue,
         onChange: (sel: Array<SelectOption<string>>) => {
           onChange?.(sel.map(o => o.value));
         },
@@ -76,14 +87,24 @@ function OptionSelector({
       };
     }
 
+    if (clearable) {
+      return {
+        multiple,
+        clearable,
+        value: selected,
+        onChange: (opt: SelectOption<string> | undefined) => onChange?.(opt?.value),
+        closeOnSelect,
+      };
+    }
+
     return {
       multiple,
+      clearable,
       value: selected,
-      defaultValue,
-      onChange: (opt: any) => onChange?.(opt.value),
+      onChange: (opt: SelectOption<string>) => onChange?.(opt.value),
       closeOnSelect,
     };
-  }, [multiple, selected, defaultValue, onChange, closeOnSelect]);
+  }, [clearable, multiple, selected, onChange, closeOnSelect]);
 
   function isOptionDisabled(option: SelectOptionWithKey<string>) {
     return Boolean(

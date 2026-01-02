@@ -2,36 +2,47 @@ import hashlib
 from datetime import UTC, datetime
 from uuid import uuid4
 
+import sentry_sdk
+
 from sentry.issues.grouptype import WebVitalsGroup
 from sentry.issues.ingest import hash_fingerprint
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.group import Group, GroupStatus
-from sentry.web_vitals.types import WebVitalIssueDetectionType, WebVitalIssueGroupData
+from sentry.web_vitals.types import WebVitalIssueDetectionGroupingType, WebVitalIssueGroupData
 
 
-def create_fingerprint(vital: WebVitalIssueDetectionType, transaction: str) -> str:
-    prehashed_fingerprint = f"insights-web-vitals-{vital}-{transaction}"
+def create_fingerprint(vital_grouping: WebVitalIssueDetectionGroupingType, transaction: str) -> str:
+    prehashed_fingerprint = f"insights-web-vitals-{vital_grouping}-{transaction}"
     fingerprint = hashlib.sha1((prehashed_fingerprint).encode()).hexdigest()
     return fingerprint
 
 
-def send_web_vitals_issue_to_platform(data: WebVitalIssueGroupData, trace_id: str) -> None:
+@sentry_sdk.tracing.trace
+def send_web_vitals_issue_to_platform(data: WebVitalIssueGroupData, trace_id: str) -> bool:
+    project = data["project"]
+    sentry_sdk.set_tag("project_id", project.id)
+    sentry_sdk.set_tag("organization_id", project.organization_id)
+
     # Do not create a new web vital issue if an open issue already exists
     if check_unresolved_web_vitals_issue_exists(data):
-        return
+        return False
 
     event_id = uuid4().hex
     now = datetime.now(UTC)
     transaction = data["transaction"]
-    vital = data["vital"]
+    scores = data["scores"]
+    values = data["values"]
 
     tags = {
         "transaction": data["transaction"],
-        "web_vital": vital,
-        "score": f"{data['score']:.2g}",
-        vital: f"{data['value']}",
     }
+
+    # These should already match, but use the intersection to be safe
+    vitals = scores.keys() & values.keys()
+    for vital in vitals:
+        tags[f"{vital}_score"] = f"{scores[vital]:.2g}"
+        tags[vital] = f"{values[vital]}"
 
     event_data = {
         "event_id": event_id,
@@ -63,10 +74,25 @@ def send_web_vitals_issue_to_platform(data: WebVitalIssueGroupData, trace_id: st
     ]
 
     # TODO: Add better titles and subtitles
-    title = f"{data['vital'].upper()} score needs improvement"
-    subtitle = f"{transaction} has a {data['vital'].upper()} score of {data['score']:.2g}"
+    if data["vital_grouping"] == "rendering":
+        title = f"The page {transaction} was slow to load and render"
+    elif data["vital_grouping"] == "cls":
+        title = f"The page {transaction} had layout shifts while loading"
+    elif data["vital_grouping"] == "inp":
+        title = f"The page {transaction} responded slowly to user interactions"
+    else:
+        raise ValueError(f"Invalid vital grouping: {data['vital_grouping']}")
+    subtitle_parts = []
+    for vital in data["scores"]:
+        a_or_an = "an" if vital in ("lcp", "fcp", "inp") else "a"
+        subtitle_parts.append(f"{a_or_an} {vital.upper()} score of {data['scores'][vital]:.2g}")
+    if len(subtitle_parts) > 1:
+        scores_text = ", ".join(subtitle_parts[:-1]) + " and " + subtitle_parts[-1]
+    else:
+        scores_text = subtitle_parts[0]
+    subtitle = f"{transaction} has {scores_text}"
 
-    fingerprint = create_fingerprint(data["vital"], transaction)
+    fingerprint = create_fingerprint(data["vital_grouping"], transaction)
 
     occurence = IssueOccurrence(
         id=uuid4().hex,
@@ -88,9 +114,11 @@ def send_web_vitals_issue_to_platform(data: WebVitalIssueGroupData, trace_id: st
         payload_type=PayloadType.OCCURRENCE, occurrence=occurence, event_data=event_data
     )
 
+    return True
+
 
 def check_unresolved_web_vitals_issue_exists(data: WebVitalIssueGroupData) -> bool:
-    fingerprint = create_fingerprint(data["vital"], data["transaction"])
+    fingerprint = create_fingerprint(data["vital_grouping"], data["transaction"])
     fingerprint_hash = hash_fingerprint([fingerprint])[0]
 
     return Group.objects.filter(

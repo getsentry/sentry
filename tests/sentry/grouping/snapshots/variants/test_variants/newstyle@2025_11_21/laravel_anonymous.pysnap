@@ -1,15 +1,17 @@
 ---
-created: '2025-10-29T21:18:53.616591+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
-  hash: "a728cdf5d62c8e017c35c3fe04051b6e"
+  hash: "bf617e996d4427cda2f75c965c4266e2"
   contributing component: exception
   hint: None
   root_component:
     app*
       exception*
+        type*
+          "Exception"
+        value (ignored because stacktrace takes precedence)
+          "LARAVEL TEST"
         stacktrace*
           frame* (marked in-app by the client)
             filename*
@@ -30,18 +32,18 @@ app:
               "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
             context_line*
               "? $pipe->{$this->method}(...$parameters)"
-        type*
-          "Exception"
-        value (ignored because stacktrace takes precedence)
-          "LARAVEL TEST"
 --------------------------------------------------------------------------
 system:
-  hash: "63c67781779781d9b0a442a5b2bdb976"
+  hash: "dc13fee96d9e544e8aee8f1b4e6cbf22"
   contributing component: exception
   hint: None
   root_component:
     system*
       exception*
+        type*
+          "Exception"
+        value (ignored because stacktrace takes precedence)
+          "LARAVEL TEST"
         stacktrace*
           frame*
             filename*
@@ -62,7 +64,3 @@ system:
               "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
             context_line*
               "? $pipe->{$this->method}(...$parameters)"
-        type*
-          "Exception"
-        value (ignored because stacktrace takes precedence)
-          "LARAVEL TEST"

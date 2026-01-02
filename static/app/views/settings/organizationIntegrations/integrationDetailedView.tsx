@@ -139,11 +139,17 @@ export default function IntegrationDetailedView() {
     // The server response for integration installations includes old icon CSS classes
     // We map those to the currently in use values to their react equivalents
     // and fallback to IconFlag just in case.
-    const alertList = provider?.metadata.aspects.alerts || [];
+    const alertList: AlertType[] = (provider?.metadata.aspects.alerts || []).map(
+      alert => ({
+        variant: alert.variant ?? 'muted',
+        text: alert.text,
+        icon: alert.icon,
+      })
+    );
 
     if (!provider?.canAdd && provider?.metadata.aspects.externalInstall) {
       alertList.push({
-        type: 'warning',
+        variant: 'warning',
         text: provider?.metadata.aspects.externalInstall.noticeText,
       });
     }
@@ -271,7 +277,7 @@ export default function IntegrationDetailedView() {
         priority: 'primary',
         'data-test-id': 'install-button',
         disabled: disabledFromFeatures,
-      };
+      } as const;
 
       if (!provider) {
         return null;
@@ -340,7 +346,7 @@ export default function IntegrationDetailedView() {
       <Fragment>
         {alertText && (
           <Alert.Container>
-            <Alert type="warning">{alertText}</Alert>
+            <Alert variant="warning">{alertText}</Alert>
           </Alert.Container>
         )}
         <Panel>
@@ -443,18 +449,6 @@ export default function IntegrationDetailedView() {
             ),
           },
           {
-            name: 'githubOpenPRBot',
-            type: 'boolean',
-            label: t('Enable Comments on Open Pull Requests'),
-            help: t(
-              'Allow Sentry to comment on open pull requests to show recent error issues for the code being changed.'
-            ),
-            disabled: !hasIntegration,
-            disabledReason: t(
-              'You must have a GitHub integration to enable this feature.'
-            ),
-          },
-          {
             name: 'githubNudgeInvite',
             type: 'boolean',
             label: t('Enable Missing Member Detection'),
@@ -472,7 +466,6 @@ export default function IntegrationDetailedView() {
 
     const initialData = {
       githubPRBot: organization.githubPRBot,
-      githubOpenPRBot: organization.githubOpenPRBot,
       githubNudgeInvite: organization.githubNudgeInvite,
     };
 

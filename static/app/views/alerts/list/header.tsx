@@ -3,7 +3,7 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {TabList} from 'sentry/components/core/tabs';
 import CreateAlertButton from 'sentry/components/createAlertButton';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {IconSettings} from 'sentry/icons';
@@ -73,7 +73,7 @@ function AlertHeader({activeTab}: Props) {
           >
             {t('Create Alert')}
           </CreateAlertButton>
-          <FeedbackWidgetButton />
+          <FeedbackButton />
           <LinkButton
             size="sm"
             onClick={handleNavigateToSettings}
@@ -84,7 +84,7 @@ function AlertHeader({activeTab}: Props) {
         </ButtonBar>
       </Layout.HeaderActions>
       <Layout.HeaderTabs value={activeTab}>
-        <TabList hideBorder>
+        <TabList>
           {alertRulesLink}
           <TabList.Item
             key="stream"

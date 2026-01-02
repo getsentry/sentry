@@ -582,6 +582,11 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                                     }
                                 }
                             )
+            preferred_polarity = thresholds.get("preferred_polarity")
+            if preferred_polarity is not None and preferred_polarity not in ("+", "-", ""):
+                raise serializers.ValidationError(
+                    {"thresholds": {"preferred_polarity": "Must be '+', '-', or empty string."}}
+                )
         if len(all_columns) > 0:
             field_cardinality = check_field_cardinality(
                 list(all_columns), self.context["organization"], max_cardinality_allowed
@@ -965,6 +970,17 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                 and len(linked_dashboards) < 1
             ):
                 return
+
+            # check if the linked dashboard appears in the fields of the query
+            if not all(
+                field in query.fields
+                for field in [
+                    linked_dashboard.get("field") for linked_dashboard in linked_dashboards
+                ]
+            ):
+                raise serializers.ValidationError(
+                    "Linked dashboard does not appear in the fields of the query"
+                )
 
             for link_data in linked_dashboards:
                 field = link_data.get("field")

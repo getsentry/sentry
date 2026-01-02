@@ -6,7 +6,9 @@ import type {ListState} from '@react-stately/list';
 import type {Node, Selection} from '@react-types/shared';
 
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 
+import type {SelectProps} from './compactSelect';
 import {SectionToggleButton} from './styles';
 import type {
   SelectKey,
@@ -64,7 +66,7 @@ export function getSelectedOptions<Value extends SelectKey>(
     // If this is an option
     if (selection === 'all' || selection.has(cur.key)) {
       const {key: _key, ...opt} = cur;
-      return acc.concat(opt);
+      acc.push(opt);
     }
     return acc;
   }, []);
@@ -79,19 +81,24 @@ export function getDisabledOptions<Value extends SelectKey>(
   items: Array<SelectOptionOrSectionWithKey<Value>>,
   isOptionDisabled?: (opt: SelectOptionWithKey<Value>) => boolean
 ): SelectKey[] {
-  return items.reduce((acc: SelectKey[], cur) => {
+  return items.reduce<SelectKey[]>((acc, cur) => {
     // If this is a section
     if ('options' in cur) {
       if (cur.disabled) {
         // If the entire section is disabled, then mark all of its children as disabled
-        return acc.concat(cur.options.map(opt => opt.key));
+        for (const opt of cur.options) {
+          acc.push(opt.key);
+        }
+        return acc;
       }
+
       return acc.concat(getDisabledOptions(cur.options, isOptionDisabled));
     }
 
     // If this is an option
     if (isOptionDisabled?.(cur) ?? cur.disabled) {
-      return acc.concat(cur.key);
+      acc.push(cur.key);
+      return acc;
     }
     return acc;
   }, []);
@@ -326,4 +333,23 @@ export function itemIsSectionWithKey<T extends SelectKey>(
   item: SelectOptionOrSectionWithKey<T>
 ): item is SelectSectionWithKey<T> {
   return 'options' in item;
+}
+
+export function shouldCloseOnSelect({
+  multiple,
+  closeOnSelect,
+  selectedOptions,
+}: Pick<SelectProps<any>, 'multiple' | 'closeOnSelect'> & {
+  selectedOptions: Array<SelectOption<any>>;
+}) {
+  if (typeof closeOnSelect === 'function') {
+    // type assertions are necessary here because we don't have the discriminated union anymore
+    return closeOnSelect((multiple ? selectedOptions : selectedOptions[0]) as never);
+  }
+  if (defined(closeOnSelect)) {
+    return closeOnSelect;
+  }
+  // By default, single-selection lists close on select, while multiple-selection
+  // lists stay open
+  return !multiple;
 }

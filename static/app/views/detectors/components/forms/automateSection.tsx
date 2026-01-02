@@ -1,141 +1,18 @@
-import {Fragment, useCallback, useContext, useRef, useState} from 'react';
+import {useCallback, useContext, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import FormContext from 'sentry/components/forms/formContext';
 import useDrawer from 'sentry/components/globalDrawer';
-import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {IconAdd, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Automation} from 'sentry/types/workflowEngine/automations';
-import {getApiQueryData, setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
-import {AutomationSearch} from 'sentry/views/automations/components/automationListTable/search';
-import {makeAutomationsQueryKey} from 'sentry/views/automations/hooks';
+import {ConnectAutomationsDrawer} from 'sentry/views/detectors/components/connectAutomationsDrawer';
 import {ConnectedAutomationsList} from 'sentry/views/detectors/components/connectedAutomationList';
-
-function ConnectedAutomations({
-  automationIds,
-  toggleConnected,
-}: {
-  automationIds: string[];
-  toggleConnected: (params: {automation: Automation}) => void;
-}) {
-  const [cursor, setCursor] = useState<string | undefined>(undefined);
-
-  return (
-    <Section title={t('Connected Alerts')}>
-      <ConnectedAutomationsList
-        data-test-id="drawer-connected-automations-list"
-        automationIds={automationIds}
-        connectedAutomationIds={new Set(automationIds)}
-        toggleConnected={toggleConnected}
-        cursor={cursor}
-        onCursor={setCursor}
-        limit={null}
-        openInNewTab
-      />
-    </Section>
-  );
-}
-
-function AllAutomations({
-  automationIds,
-  toggleConnected,
-}: {
-  automationIds: string[];
-  toggleConnected: (params: {automation: Automation}) => void;
-}) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [cursor, setCursor] = useState<string | undefined>(undefined);
-  const onSearch = useCallback((query: string) => {
-    setSearchQuery(query);
-    setCursor(undefined);
-  }, []);
-
-  return (
-    <Section title={t('All Alerts')}>
-      <AutomationSearch initialQuery={searchQuery} onSearch={onSearch} />
-      <ConnectedAutomationsList
-        data-test-id="drawer-all-automations-list"
-        automationIds={null}
-        connectedAutomationIds={new Set(automationIds)}
-        toggleConnected={toggleConnected}
-        emptyMessage={t('No alerts found')}
-        cursor={cursor}
-        onCursor={setCursor}
-        query={searchQuery}
-        openInNewTab
-      />
-    </Section>
-  );
-}
-
-function ConnectAutomationsDrawer({
-  initialWorkflowIds,
-  setWorkflowIds,
-}: {
-  initialWorkflowIds: string[];
-  setWorkflowIds: (workflowIds: string[]) => void;
-}) {
-  const organization = useOrganization();
-  const queryClient = useQueryClient();
-
-  // Because GlobalDrawer is rendered outside of our form context, we need to duplicate the state here
-  const [localWorkflowIds, setLocalWorkflowIds] = useState(initialWorkflowIds);
-
-  const toggleConnected = ({automation}: {automation: Automation}) => {
-    const oldAutomationsData =
-      getApiQueryData<Automation[]>(
-        queryClient,
-        makeAutomationsQueryKey({
-          orgSlug: organization.slug,
-          ids: localWorkflowIds,
-        })
-      ) ?? [];
-
-    const newAutomations = (
-      oldAutomationsData.some(a => a.id === automation.id)
-        ? oldAutomationsData.filter(a => a.id !== automation.id)
-        : [...oldAutomationsData, automation]
-    ).sort((a, b) => a.id.localeCompare(b.id)); // API will return ID ascending, so this avoids re-ordering
-    const newWorkflowIds = newAutomations.map(a => a.id);
-
-    // Update the query cache to prevent the list from being fetched anew
-    setApiQueryData<Automation[]>(
-      queryClient,
-      makeAutomationsQueryKey({
-        orgSlug: organization.slug,
-        ids: newWorkflowIds,
-      }),
-      newAutomations
-    );
-
-    setLocalWorkflowIds(newWorkflowIds);
-    setWorkflowIds(newWorkflowIds);
-  };
-
-  return (
-    <Fragment>
-      <DrawerHeader hideBar />
-      <DrawerContent>
-        <ConnectedAutomations
-          automationIds={localWorkflowIds}
-          toggleConnected={toggleConnected}
-        />
-        <AllAutomations
-          automationIds={localWorkflowIds}
-          toggleConnected={toggleConnected}
-        />
-      </DrawerContent>
-    </Fragment>
-  );
-}
 
 export function AutomateSection() {
   const ref = useRef<HTMLButtonElement>(null);
@@ -219,13 +96,6 @@ export function AutomateSection() {
     </Container>
   );
 }
-
-const DrawerContent = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-  padding: ${space(2)} ${space(3)};
-`;
 
 const ButtonWrapper = styled(Flex)`
   border-top: 1px solid ${p => p.theme.border};

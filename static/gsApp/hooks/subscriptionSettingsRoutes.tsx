@@ -1,5 +1,5 @@
-import type {SentryRouteObject} from 'sentry/components/route';
 import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
+import type {SentryRouteObject} from 'sentry/router/types';
 
 import settingsRoutes from 'getsentry/hooks/settingsRoutes';
 

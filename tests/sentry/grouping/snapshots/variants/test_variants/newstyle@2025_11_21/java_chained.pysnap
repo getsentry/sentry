@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:18:53.235909+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: null
@@ -11,6 +9,10 @@ app:
     app (ignored because system exception takes precedence)
       chained_exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         exception*
+          type*
+            "BindException"
+          value*
+            "Address already in use"
           stacktrace (ignored because it contains no in-app frames)
             frame (marked out of app by the client)
               module*
@@ -173,11 +175,11 @@ app:
                 "net.java"
               function*
                 "bind0"
-          type*
-            "BindException"
-          value*
-            "Address already in use"
         exception*
+          type*
+            "LifecycleException"
+          value*
+            "service.getName(): \"Tomcat\";  Protocol handler start failed"
           stacktrace (ignored because it contains no in-app frames)
             frame (marked out of app by the client)
               module*
@@ -284,13 +286,13 @@ app:
                 "connector.java"
               function*
                 "startInternal"
+        exception*
           type*
             "LifecycleException"
-          value*
-            "service.getName(): \"Tomcat\";  Protocol handler start failed"
-        exception*
+          value* (stripped event-specific values)
+            "Failed to start component [Connector[HTTP/<float><int>]]"
           stacktrace (ignored because it contains no in-app frames)
-            frame (marked out of app by stack trace rule (category:framework -app))
+            frame (marked out of app by built-in stack trace rule (category:framework -app))
               module*
                 "io.sentry.example.Application"
               filename (ignored because module takes precedence)
@@ -388,10 +390,6 @@ app:
                 "lifecyclebase.java"
               function*
                 "start"
-          type*
-            "LifecycleException"
-          value* (stripped event-specific values)
-            "Failed to start component [Connector[HTTP/<float><int>]]"
 --------------------------------------------------------------------------
 default:
   hash: null
@@ -403,15 +401,19 @@ default:
         "Failed to start connector [Connector[HTTP/<float><int>]]"
 --------------------------------------------------------------------------
 system:
-  hash: "1959b227a7cf6acf7f3fd401b5d9f09b"
+  hash: "db7a5bf0e72c22eb770a3be8940782c6"
   contributing component: chained_exception
   hint: None
   root_component:
     system*
       chained_exception*
         exception*
+          type*
+            "BindException"
+          value (ignored because stacktrace takes precedence)
+            "Address already in use"
           stacktrace*
-            frame (ignored by stack trace rule (module:io.sentry.* -group))
+            frame (ignored by built-in stack trace rule (module:io.sentry.* -group))
               module*
                 "io.sentry.example.Application"
               filename (ignored because module takes precedence)
@@ -572,13 +574,13 @@ system:
                 "net.java"
               function*
                 "bind0"
-          type*
-            "BindException"
-          value (ignored because stacktrace takes precedence)
-            "Address already in use"
         exception*
+          type*
+            "LifecycleException"
+          value (ignored because stacktrace takes precedence)
+            "service.getName(): \"Tomcat\";  Protocol handler start failed"
           stacktrace*
-            frame (ignored by stack trace rule (module:io.sentry.* -group))
+            frame (ignored by built-in stack trace rule (module:io.sentry.* -group))
               module*
                 "io.sentry.example.Application"
               filename (ignored because module takes precedence)
@@ -683,13 +685,13 @@ system:
                 "connector.java"
               function*
                 "startInternal"
+        exception*
           type*
             "LifecycleException"
           value (ignored because stacktrace takes precedence)
-            "service.getName(): \"Tomcat\";  Protocol handler start failed"
-        exception*
+            "Failed to start component [Connector[HTTP/<float><int>]]"
           stacktrace*
-            frame (ignored by stack trace rule (module:io.sentry.* -group))
+            frame (ignored by built-in stack trace rule (module:io.sentry.* -group))
               module*
                 "io.sentry.example.Application"
               filename (ignored because module takes precedence)
@@ -787,7 +789,3 @@ system:
                 "lifecyclebase.java"
               function*
                 "start"
-          type*
-            "LifecycleException"
-          value (ignored because stacktrace takes precedence)
-            "Failed to start component [Connector[HTTP/<float><int>]]"

@@ -29,11 +29,7 @@ interface Props {
 
 function StartDurationWidget({additionalFilters}: Props) {
   const location = useLocation();
-  const {
-    primaryRelease,
-    secondaryRelease,
-    isLoading: isReleasesLoading,
-  } = useReleaseSelection();
+  const {primaryRelease, isLoading: isReleasesLoading} = useReleaseSelection();
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
 
   const startType =
@@ -48,10 +44,10 @@ function StartDurationWidget({additionalFilters}: Props) {
     query.addFilterValue('os.name', selectedPlatform);
   }
 
-  const queryString = appendReleaseFilters(query, primaryRelease, secondaryRelease);
+  const queryString = appendReleaseFilters(query, primaryRelease);
   const search = new MutableSearch(queryString);
   const referrer = Referrer.MOBILE_APP_STARTS_DURATION_CHART;
-  const groupBy = SpanFields.RELEASE;
+  const groupBy = primaryRelease ? SpanFields.RELEASE : SpanFields.TRANSACTION;
   const yAxis: SpanProperty = 'avg(span.duration)';
 
   const {
@@ -76,6 +72,15 @@ function StartDurationWidget({additionalFilters}: Props) {
     releaseA.groupBy?.[0]?.value === primaryRelease ? -1 : 1
   );
 
+  // If multiple releases are present, we need to set the yAxis to the release name,
+  // otherwise all will show "Avg. Duration" in the legend
+  timeSeries.forEach(release => {
+    const releaseName = release.groupBy?.find(entry => entry.key === 'release')?.value;
+    if (releaseName && typeof releaseName === 'string') {
+      release.yAxis = releaseName;
+    }
+  });
+
   return (
     <InsightsLineChartWidget
       title={
@@ -86,7 +91,7 @@ function StartDurationWidget({additionalFilters}: Props) {
       error={seriesError}
       queryInfo={{search, groupBy: [groupBy], referrer}}
       showReleaseAs="none"
-      showLegend="always"
+      showLegend={primaryRelease ? 'always' : 'never'}
       height={220}
     />
   );

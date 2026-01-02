@@ -1,2675 +1,2636 @@
 ---
-created: '2025-10-30T17:09:40.876682+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouping_info.py
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
 ---
 {
-  "app_exception_stacktrace": {
-    "component": {
+  "grouping_config": "newstyle:2025-11-21",
+  "variants": {
+    "app_exception_stacktrace": {
+      "component": {
+        "contributes": false,
+        "hint": "ignored because system exception takes precedence",
+        "id": "app",
+        "name": "in-app",
+        "values": [
+          {
+            "contributes": false,
+            "hint": "ignored because this variant does not have a contributing stacktrace, but the system variant does",
+            "id": "exception",
+            "name": "exception",
+            "values": [
+              {
+                "contributes": false,
+                "hint": "ignored because exception is synthetic",
+                "id": "type",
+                "name": null,
+                "values": [
+                  "0x00000000 / 0x00000000"
+                ]
+              },
+              {
+                "contributes": true,
+                "hint": "stripped event-specific values",
+                "id": "value",
+                "name": null,
+                "values": [
+                  "Fatal Error: <hex> / <hex>"
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": "ignored because it contains no in-app frames",
+                "id": "stacktrace",
+                "name": "stacktrace",
+                "values": [
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (category:internals -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_dispatch_root_queues_init_once"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (package:/usr/lib/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "start_wqthread"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (package:/usr/lib/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_pthread_wqthread"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (package:/usr/lib/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_dispatch_worker_thread2"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (category:internals -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_dispatch_root_queue_drain"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (category:internals -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_dispatch_client_callout"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "non app frame",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "stripped_application_code"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "non app frame",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "stripped_application_code"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "non app frame",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "function_template.hpp"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "boost::function0<T>::operator()"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "non app frame",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "stripped_application_code"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "non app frame",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "stripped_application_code"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "non app frame",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "stripped_application_code"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "non app frame",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "function_template.hpp"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "boost::function0<T>::operator()"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "non app frame",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "stripped_application_code"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "non app frame",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "stripped_application_code"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (category:internals -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "mac"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "std::__1::map<T>::~map"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (category:internals -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "map"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "std::__1::map<T>::~map"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (category:internals -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "__tree"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "std::__1::__tree<T>::~__tree"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (category:internals -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "__tree"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "std::__1::__tree<T>::~__tree"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (category:internals -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "__tree"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "std::__1::__tree<T>::destroy"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (category:internals -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "__tree"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "std::__1::__tree<T>::destroy"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (family:native function:std::* -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "memory"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "std::__1::allocator_traits<T>::destroy<T>"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (category:internals -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "memory"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "std::__1::allocator_traits<T>::__destroy<T>"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (category:internals -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "mac"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "std::__1::pair<T>::~pair"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (category:internals -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "utility"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "std::__1::pair<T>::~pair"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "non app frame",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "stripped_application_code"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "non app frame",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "stripped_application_code"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "non app frame",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "stripped_application_code"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "non app frame",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "stripped_application_code"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "non app frame",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "stripped_application_code"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "non app frame",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "stripped_application_code"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "non app frame",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "stripped_application_code"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "non app frame",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "stripped_application_code"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (category:throw ^-app -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "std::terminate"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (category:internals -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "std::__terminate"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (category:internals -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "demangling_terminate_handler"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (category:internals -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "abort_message"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (category:throw ^-app -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "abort"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (category:internals -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "__abort"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (category:internals -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "__pthread_kill"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
       "contributes": false,
+      "description": "exception stacktrace — in-app frames",
+      "hash": null,
       "hint": "ignored because system exception takes precedence",
-      "id": "app",
-      "name": "in-app",
-      "values": [
-        {
-          "contributes": false,
-          "hint": "ignored because this variant does not have a contributing stacktrace, but the system variant does",
-          "id": "exception",
-          "name": "exception",
-          "values": [
-            {
-              "contributes": false,
-              "hint": "ignored because exception is synthetic",
-              "id": "type",
-              "name": null,
-              "values": [
-                "0x00000000 / 0x00000000"
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": "stripped event-specific values",
-              "id": "value",
-              "name": null,
-              "values": [
-                "Fatal Error: <hex> / <hex>"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because it contains no in-app frames",
-              "id": "stacktrace",
-              "name": "stacktrace",
-              "values": [
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by stack trace rule (family:native package:/usr/lib/** -app)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_dispatch_root_queues_init_once"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by stack trace rule (family:native package:/usr/lib/** -app)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "start_wqthread"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by stack trace rule (family:native package:/usr/lib/** -app)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_pthread_wqthread"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by stack trace rule (family:native package:/usr/lib/** -app)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_dispatch_worker_thread2"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by stack trace rule (family:native package:/usr/lib/** -app)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_dispatch_root_queue_drain"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by stack trace rule (family:native package:/usr/lib/** -app)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_dispatch_client_callout"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "non app frame",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "stripped_application_code"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "non app frame",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "stripped_application_code"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "non app frame",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "function_template.hpp"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "boost::function0<T>::operator()"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "non app frame",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "stripped_application_code"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "non app frame",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "stripped_application_code"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "non app frame",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "stripped_application_code"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "non app frame",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "function_template.hpp"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "boost::function0<T>::operator()"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "non app frame",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "stripped_application_code"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "non app frame",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "stripped_application_code"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by stack trace rule (family:native function:std::* -app)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "mac"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "std::__1::map<T>::~map"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by stack trace rule (family:native function:std::* -app)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "map"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "std::__1::map<T>::~map"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by stack trace rule (family:native function:std::* -app)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "__tree"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "std::__1::__tree<T>::~__tree"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by stack trace rule (family:native function:std::* -app)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "__tree"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "std::__1::__tree<T>::~__tree"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by stack trace rule (family:native function:std::* -app)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "__tree"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "std::__1::__tree<T>::destroy"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by stack trace rule (family:native function:std::* -app)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "__tree"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "std::__1::__tree<T>::destroy"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by stack trace rule (family:native function:std::* -app)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "memory"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "std::__1::allocator_traits<T>::destroy<T>"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by stack trace rule (family:native function:std::* -app)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "memory"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "std::__1::allocator_traits<T>::__destroy<T>"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by stack trace rule (family:native function:std::* -app)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "mac"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "std::__1::pair<T>::~pair"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by stack trace rule (family:native function:std::* -app)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "utility"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "std::__1::pair<T>::~pair"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "non app frame",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "stripped_application_code"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "non app frame",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "stripped_application_code"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "non app frame",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "stripped_application_code"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "non app frame",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "stripped_application_code"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "non app frame",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "stripped_application_code"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "non app frame",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "stripped_application_code"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "non app frame",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "stripped_application_code"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "non app frame",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "stripped_application_code"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by stack trace rule (family:native function:std::* -app)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "std::terminate"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by stack trace rule (family:native function:std::* -app)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "std::__terminate"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by stack trace rule (family:native package:/usr/lib/** -app)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "demangling_terminate_handler"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by stack trace rule (family:native package:/usr/lib/** -app)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "abort_message"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by stack trace rule (family:native package:/usr/lib/** -app)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "abort"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by stack trace rule (family:native package:/usr/lib/** -app)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "__abort"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by stack trace rule (family:native package:/usr/lib/** -app)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "__pthread_kill"
-                      ]
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      ]
+      "key": "app_exception_stacktrace",
+      "type": "component"
     },
-    "config": {
-      "base": "newstyle:2023-01-11",
-      "delegates": [
-        "frame:v1",
-        "single-exception:v1",
-        "stacktrace:v1"
-      ],
-      "id": "newstyle:2025-11-21",
-      "strategies": [
-        "chained-exception:v1",
-        "csp:v1",
-        "expect-ct:v1",
-        "expect-staple:v1",
-        "hpkp:v1",
-        "message:v1",
-        "stacktrace:v1",
-        "template:v1",
-        "threads:v1"
-      ]
-    },
-    "contributes": false,
-    "description": "exception stacktrace — in-app frames",
-    "hash": null,
-    "hint": "ignored because system exception takes precedence",
-    "key": "app_exception_stacktrace",
-    "type": "component"
-  },
-  "system_exception_stacktrace": {
-    "component": {
+    "system_exception_stacktrace": {
+      "component": {
+        "contributes": true,
+        "hint": null,
+        "id": "system",
+        "name": null,
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "exception",
+            "name": "exception",
+            "values": [
+              {
+                "contributes": false,
+                "hint": "ignored because exception is synthetic",
+                "id": "type",
+                "name": null,
+                "values": [
+                  "0x00000000 / 0x00000000"
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": "ignored because stacktrace takes precedence",
+                "id": "value",
+                "name": null,
+                "values": [
+                  "Fatal Error: <hex> / <hex>"
+                ]
+              },
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "stacktrace",
+                "name": "stacktrace",
+                "values": [
+                  {
+                    "contributes": false,
+                    "hint": "ignored by built-in stack trace rule (category:threadbase -group v-group)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_dispatch_root_queues_init_once"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored by built-in stack trace rule (category:threadbase -group v-group)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "start_wqthread"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored by built-in stack trace rule (category:threadbase -group v-group)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_pthread_wqthread"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored by built-in stack trace rule (category:threadbase -group v-group)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_dispatch_worker_thread2"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored by built-in stack trace rule (category:internals -group)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_dispatch_root_queue_drain"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored by built-in stack trace rule (category:internals -group)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_dispatch_client_callout"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "stripped_application_code"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored due to recursion",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "stripped_application_code"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored by built-in stack trace rule (category:indirection -group)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "function_template.hpp"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "boost::function0<T>::operator()"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "stripped_application_code"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored due to recursion",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "stripped_application_code"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored due to recursion",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "stripped_application_code"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored by built-in stack trace rule (category:indirection -group)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "function_template.hpp"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "boost::function0<T>::operator()"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "stripped_application_code"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored due to recursion",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "stripped_application_code"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored by built-in stack trace rule (category:internals -group)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "mac"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "std::__1::map<T>::~map"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored by built-in stack trace rule (category:internals -group)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "map"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "std::__1::map<T>::~map"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored by built-in stack trace rule (category:internals -group)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "__tree"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "std::__1::__tree<T>::~__tree"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored due to recursion",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "__tree"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "std::__1::__tree<T>::~__tree"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored by built-in stack trace rule (category:internals -group)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "__tree"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "std::__1::__tree<T>::destroy"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored due to recursion",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "__tree"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "std::__1::__tree<T>::destroy"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "memory"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "std::__1::allocator_traits<T>::destroy<T>"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored by built-in stack trace rule (category:internals -group)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "memory"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "std::__1::allocator_traits<T>::__destroy<T>"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored by built-in stack trace rule (category:internals -group)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "mac"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "std::__1::pair<T>::~pair"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored by built-in stack trace rule (category:internals -group)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "utility"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "std::__1::pair<T>::~pair"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "stripped_application_code"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored due to recursion",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "stripped_application_code"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored due to recursion",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "stripped_application_code"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored due to recursion",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "stripped_application_code"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored due to recursion",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "stripped_application_code"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored due to recursion",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "stripped_application_code"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored due to recursion",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "stripped_application_code"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored due to recursion",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "stripped_application_code"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored by built-in stack trace rule (category:throw ^-group -group)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "std::terminate"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored by built-in stack trace rule (category:throw ^-group -group)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "std::__terminate"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored by built-in stack trace rule (category:throw ^-group -group)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "demangling_terminate_handler"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored by built-in stack trace rule (category:throw ^-group -group)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "abort_message"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored by built-in stack trace rule (category:throw ^-group -group)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "abort"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored by built-in stack trace rule (category:throw ^-group -group)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "__abort"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored by built-in stack trace rule (category:throw ^-group -group)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "__pthread_kill"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
       "contributes": true,
+      "description": "exception stacktrace — all frames",
+      "hash": "12f18dcb1efe33b32c7afe5004addaaa",
       "hint": null,
-      "id": "system",
-      "name": null,
-      "values": [
-        {
-          "contributes": true,
-          "hint": null,
-          "id": "exception",
-          "name": "exception",
-          "values": [
-            {
-              "contributes": false,
-              "hint": "ignored because exception is synthetic",
-              "id": "type",
-              "name": null,
-              "values": [
-                "0x00000000 / 0x00000000"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because stacktrace takes precedence",
-              "id": "value",
-              "name": null,
-              "values": [
-                "Fatal Error: <hex> / <hex>"
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "stacktrace",
-              "name": "stacktrace",
-              "values": [
-                {
-                  "contributes": false,
-                  "hint": "ignored by stack trace rule (category:threadbase -group v-group)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_dispatch_root_queues_init_once"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored by stack trace rule (category:threadbase -group v-group)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "start_wqthread"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored by stack trace rule (category:threadbase -group v-group)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_pthread_wqthread"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored by stack trace rule (category:threadbase -group v-group)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_dispatch_worker_thread2"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored by stack trace rule (category:internals -group)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_dispatch_root_queue_drain"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored by stack trace rule (category:internals -group)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_dispatch_client_callout"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "stripped_application_code"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored due to recursion",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "stripped_application_code"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored by stack trace rule (category:indirection -group)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "function_template.hpp"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "boost::function0<T>::operator()"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "stripped_application_code"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored due to recursion",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "stripped_application_code"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored due to recursion",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "stripped_application_code"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored by stack trace rule (category:indirection -group)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "function_template.hpp"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "boost::function0<T>::operator()"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "stripped_application_code"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored due to recursion",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "stripped_application_code"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored by stack trace rule (category:internals -group)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "mac"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "std::__1::map<T>::~map"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored by stack trace rule (category:internals -group)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "map"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "std::__1::map<T>::~map"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored by stack trace rule (category:internals -group)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "__tree"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "std::__1::__tree<T>::~__tree"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored due to recursion",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "__tree"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "std::__1::__tree<T>::~__tree"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored by stack trace rule (category:internals -group)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "__tree"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "std::__1::__tree<T>::destroy"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored due to recursion",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "__tree"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "std::__1::__tree<T>::destroy"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "memory"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "std::__1::allocator_traits<T>::destroy<T>"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored by stack trace rule (category:internals -group)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "memory"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "std::__1::allocator_traits<T>::__destroy<T>"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored by stack trace rule (category:internals -group)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "mac"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "std::__1::pair<T>::~pair"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored by stack trace rule (category:internals -group)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "utility"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "std::__1::pair<T>::~pair"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "stripped_application_code"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored due to recursion",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "stripped_application_code"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored due to recursion",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "stripped_application_code"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored due to recursion",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "stripped_application_code"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored due to recursion",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "stripped_application_code"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored due to recursion",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "stripped_application_code"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored due to recursion",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "stripped_application_code"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored due to recursion",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "stripped_application_code"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "std::terminate"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored by stack trace rule (category:throw ^-group)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "std::__terminate"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored by stack trace rule (category:throw ^-group)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "demangling_terminate_handler"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored by stack trace rule (category:throw ^-group)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "abort_message"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored by stack trace rule (category:throw ^-group)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "abort"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored by stack trace rule (category:throw ^-group)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "__abort"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored by stack trace rule (category:throw ^-group)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "__pthread_kill"
-                      ]
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    "config": {
-      "base": "newstyle:2023-01-11",
-      "delegates": [
-        "frame:v1",
-        "single-exception:v1",
-        "stacktrace:v1"
-      ],
-      "id": "newstyle:2025-11-21",
-      "strategies": [
-        "chained-exception:v1",
-        "csp:v1",
-        "expect-ct:v1",
-        "expect-staple:v1",
-        "hpkp:v1",
-        "message:v1",
-        "stacktrace:v1",
-        "template:v1",
-        "threads:v1"
-      ]
-    },
-    "contributes": true,
-    "description": "exception stacktrace — all frames",
-    "hash": "49b6f72b6635cb43190c57ee56b026b0",
-    "hint": null,
-    "key": "system_exception_stacktrace",
-    "type": "component"
+      "key": "system_exception_stacktrace",
+      "type": "component"
+    }
   }
 }

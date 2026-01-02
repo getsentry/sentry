@@ -328,7 +328,14 @@ def normalize_stacktraces_for_grouping(
         stripped_querystring = False
         for frames in stacktrace_frames:
             for frame in frames:
-                _update_frame(frame, platform)
+                _trim_function_name(frame, platform)
+
+                # Restore the original in_app value before applying in-app stacktrace rules. This
+                # lets us run grouping enhancers on the stacktrace multiple times, as would happen
+                # during a grouping config transition, for example.
+                orig_in_app = get_path(frame, "data", "orig_in_app")
+                if orig_in_app is not None:
+                    frame["in_app"] = None if orig_in_app == -1 else bool(orig_in_app)
 
                 # Track the incoming `in_app` value, before we make any changes. This is different
                 # from the `orig_in_app` value which may be set by
@@ -379,24 +386,18 @@ def normalize_stacktraces_for_grouping(
     data["metadata"] = event_metadata
 
 
-def _update_frame(frame: dict[str, Any], platform: str | None) -> None:
-    """Restore the original in_app value before the first grouping
-    enhancers have been run. This allows to re-apply grouping
-    enhancers on the original frame data.
-    """
-    orig_in_app = get_path(frame, "data", "orig_in_app")
-    if orig_in_app is not None:
-        frame["in_app"] = None if orig_in_app == -1 else bool(orig_in_app)
+def _trim_function_name(frame: dict[str, Any], platform: str | None) -> None:
+    function = frame.get("function")
+    raw_function = frame.get("raw_function")
 
-    if frame.get("raw_function") is not None:
+    # Nothing to trim or trimming has already been done
+    if not function or raw_function is not None:
         return
-    raw_func = frame.get("function")
-    if not raw_func:
-        return
-    function_name = trim_function_name(raw_func, frame.get("platform") or platform)
-    if function_name != raw_func:
-        frame["raw_function"] = raw_func
-        frame["function"] = function_name
+
+    trimmed_function = trim_function_name(function, frame.get("platform", platform))
+    if trimmed_function != function:
+        frame["raw_function"] = function
+        frame["function"] = trimmed_function
 
 
 def should_process_for_stacktraces(data):

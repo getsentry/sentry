@@ -78,6 +78,8 @@ describe('normalizeUrl', () => {
       ['/join-request/acme/', '/join-request/'],
       ['/onboarding/acme/', '/onboarding/'],
       ['/onboarding/acme/project/', '/onboarding/project/'],
+      ['/checkout/acme/', '/checkout/'],
+      ['/checkout/acme/?query=value', '/checkout/?query=value'],
 
       ['/organizations/new/', '/organizations/new/'],
       ['/organizations/albertos-organizations/issues/', '/issues/'],
@@ -106,14 +108,6 @@ describe('normalizeUrl', () => {
       ],
       // Team settings links in breadcrumbs can be pre-normalized from breadcrumbs
       ['/settings/teams/peeps/', '/settings/teams/peeps/'],
-      [
-        '/settings/billing/checkout/?_q=all#hash',
-        '/settings/billing/checkout/?_q=all#hash',
-      ],
-      [
-        '/settings/billing/bundle-checkout/?_q=all#hash',
-        '/settings/billing/bundle-checkout/?_q=all#hash',
-      ],
     ];
     for (const [input, expected] of cases) {
       result = normalizeUrl(input!);

@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:19:57.320919+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: stacktrace
 hashing_metadata: {
@@ -24,7 +22,7 @@ metrics with tags: {
 ---
 contributing variants:
   system*
-    hash: "8be5979a334287a1b47457228f1d4612"
+    hash: "e678e9c9f08b5e0f9987605f0f5dbae5"
     contributing component: exception
     hint: None
     root_component:
@@ -43,6 +41,3 @@ contributing variants:
             frame*
               function*
                 "dlopen"
-            frame*
-              function*
-                "abort"

@@ -18,7 +18,7 @@ import {getMessage, getTitle} from 'sentry/utils/events';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import {makeFeedbackPathname} from 'sentry/views/userFeedback/pathnames';
+import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
 
 type GroupHistory = {
   count: number;
@@ -162,7 +162,7 @@ const TitleWrapper = styled('div')`
 
 const MessageWrapper = styled('span')`
   ${p => p.theme.overflowEllipsis};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const PaginationWrapper = styled('div')`

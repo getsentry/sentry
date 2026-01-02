@@ -149,12 +149,12 @@ describe('MessagingIntegrationAlertRule', () => {
       />
     );
     await selectEvent.openMenu(screen.getByLabelText('channel'));
-    expect(await screen.findByText('#alerts')).toBeInTheDocument();
-    expect(screen.getByText('#general')).toBeInTheDocument();
-    await selectEvent.select(screen.getByLabelText('channel'), '#alerts');
+    expect(await screen.findByText('#general (1)')).toBeInTheDocument();
+    expect(screen.getByText('#alerts (2)')).toBeInTheDocument();
+    await selectEvent.select(screen.getByLabelText('channel'), /#alerts/);
     expect(mockSetChannel).toHaveBeenCalledWith({
-      label: '#alerts',
-      value: '#alerts',
+      label: '#alerts (2)',
+      value: '2',
       new: false,
     });
   });
@@ -356,5 +356,36 @@ describe('MessagingIntegrationAlertRule', () => {
     expect(mockClear).toHaveBeenCalled();
 
     spy.mockRestore();
+  });
+
+  it('displays and sends channel id for microsoft teams', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${msteamsIntegrations[0]!.id}/channels/`,
+      body: {
+        nextCursor: null,
+        results: [
+          {id: '1', name: 'general', display: '#general', type: 'text'},
+          {id: '2', name: 'alerts', display: '#alerts', type: 'text'},
+        ],
+      },
+    });
+    render(
+      <MessagingIntegrationAlertRule
+        {...{
+          ...notificationProps,
+          integration: msteamsIntegrations[0],
+          provider: 'msteams',
+        }}
+      />
+    );
+    await selectEvent.openMenu(screen.getByLabelText('channel'));
+    expect(await screen.findByText('#general (1)')).toBeInTheDocument();
+    expect(screen.getByText('#alerts (2)')).toBeInTheDocument();
+    await selectEvent.select(screen.getByLabelText('channel'), /#alerts/);
+    expect(mockSetChannel).toHaveBeenCalledWith({
+      label: '#alerts (2)',
+      value: '2',
+      new: false,
+    });
   });
 });

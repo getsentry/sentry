@@ -15,6 +15,8 @@ import {parseFunction} from 'sentry/utils/discover/fields';
 import {
   AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  FieldValueType,
+  getFieldDefinition,
   prettifyTagKey,
 } from 'sentry/utils/fields';
 import {unreachable} from 'sentry/utils/unreachable';
@@ -24,7 +26,6 @@ import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
-import {DetectorQueryFilterBuilder} from 'sentry/views/detectors/components/forms/metric/queryFilterBuilder';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
@@ -38,58 +39,96 @@ import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {DEFAULT_VISUALIZATION_FIELD} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
-const LOCKED_SPAN_COUNT_OPTION = {
-  value: DEFAULT_VISUALIZATION_FIELD,
-  label: t('spans'),
-};
-
 /**
  * Render a tag badge for field types, similar to dashboard widget builder
  */
 function renderTag(kind: FieldValueKind): React.ReactNode {
   let text: string | undefined;
-  let tagType: TagProps['type'] | undefined;
+  let tagVariant: TagProps['variant'] | undefined;
 
   switch (kind) {
     case FieldValueKind.FUNCTION:
       text = 'f(x)';
-      tagType = 'warning';
+      tagVariant = 'warning';
       break;
     case FieldValueKind.CUSTOM_MEASUREMENT:
     case FieldValueKind.MEASUREMENT:
       text = 'field';
-      tagType = 'highlight';
+      tagVariant = 'info';
       break;
     case FieldValueKind.BREAKDOWN:
       text = 'field';
-      tagType = 'highlight';
+      tagVariant = 'info';
       break;
     case FieldValueKind.TAG:
       text = 'tag';
-      tagType = 'warning';
+      tagVariant = 'warning';
       break;
     case FieldValueKind.NUMERIC_METRICS:
       text = 'f(x)';
-      tagType = 'warning';
+      tagVariant = 'warning';
       break;
     case FieldValueKind.FIELD:
       text = 'field';
-      tagType = 'highlight';
+      tagVariant = 'info';
       break;
     case FieldValueKind.EQUATION:
       text = 'equation';
-      tagType = 'warning';
+      tagVariant = 'warning';
       break;
     case FieldValueKind.METRICS:
       text = 'metrics';
-      tagType = 'warning';
+      tagVariant = 'warning';
       break;
     default:
       unreachable(kind);
       throw new Error(`Invalid field value kind: ${kind}`);
   }
 
-  return <Tag type={tagType}>{text}</Tag>;
+  return <Tag variant={tagVariant}>{text}</Tag>;
+}
+
+/**
+ * Aggregate options excluded for the logs dataset
+ */
+const LOGS_EXCLUDED_AGGREGATES = [
+  AggregationKey.FAILURE_RATE,
+  AggregationKey.FAILURE_COUNT,
+  AggregationKey.APDEX,
+];
+
+const ADDITIONAL_EAP_AGGREGATES = [AggregationKey.APDEX];
+
+/**
+ * Locks the primary dropdown to the single option
+ */
+const LOCKED_SPAN_AGGREGATES = {
+  [AggregationKey.APDEX]: {
+    value: DEFAULT_VISUALIZATION_FIELD,
+    label: 'span.duration',
+  },
+  [AggregationKey.COUNT]: {
+    value: DEFAULT_VISUALIZATION_FIELD,
+    label: 'spans',
+  },
+};
+
+// Type guard for locked span aggregates
+const isLockedSpanAggregate = (
+  agg: string
+): agg is keyof typeof LOCKED_SPAN_AGGREGATES => {
+  return agg in LOCKED_SPAN_AGGREGATES;
+};
+
+function getEAPAllowedAggregates(dataset: DetectorDataset): Array<[string, string]> {
+  return [...ALLOWED_EXPLORE_VISUALIZE_AGGREGATES, ...ADDITIONAL_EAP_AGGREGATES]
+    .filter(aggregate => {
+      if (dataset === DetectorDataset.LOGS) {
+        return !LOGS_EXCLUDED_AGGREGATES.includes(aggregate);
+      }
+      return true;
+    })
+    .map(aggregate => [aggregate, aggregate]);
 }
 
 function getAggregateOptions(
@@ -98,7 +137,7 @@ function getAggregateOptions(
 ): Array<[string, string]> {
   // For spans dataset, use the predefined aggregates
   if (dataset === DetectorDataset.SPANS || dataset === DetectorDataset.LOGS) {
-    return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => [aggregate, aggregate]);
+    return getEAPAllowedAggregates(dataset);
   }
 
   // For other datasets, extract function-type options from tableFieldOptions
@@ -108,7 +147,7 @@ function getAggregateOptions(
 
   // If no function options available, fall back to the predefined aggregates
   if (functionOptions.length === 0) {
-    return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => [aggregate, aggregate]);
+    return getEAPAllowedAggregates(dataset);
   }
 
   return functionOptions.sort((a, b) => a[1].localeCompare(b[1]));
@@ -211,23 +250,39 @@ export function Visualize() {
 
   const datasetConfig = useMemo(() => getDatasetConfig(dataset), [dataset]);
 
-  const aggregateOptions = useMemo(
-    () => datasetConfig.getAggregateOptions(organization, tags, customMeasurements),
-    [organization, tags, datasetConfig, customMeasurements]
-  );
+  const aggregateOptions = useMemo(() => {
+    return datasetConfig.getAggregateOptions(organization, tags, customMeasurements);
+  }, [organization, tags, datasetConfig, customMeasurements]);
 
   const fieldOptions = useMemo(() => {
     // For Spans dataset, use span-specific options from the provider
     if (dataset === DetectorDataset.SPANS || dataset === DetectorDataset.LOGS) {
+      // Use field definition to determine what options should be displayed
+      const fieldDefinition = getFieldDefinition(
+        aggregate,
+        dataset === DetectorDataset.SPANS ? 'span' : 'log'
+      );
+      let isTypeAllowed = (_valueType: FieldValueType) => true;
+      if (fieldDefinition?.parameters?.[0]?.kind === 'column') {
+        const columnTypes = fieldDefinition?.parameters[0]?.columnTypes;
+        isTypeAllowed = (valueType: FieldValueType) =>
+          typeof columnTypes === 'function'
+            ? columnTypes({key: '', valueType})
+            : columnTypes.includes(valueType);
+      }
       const spanColumnOptions: Array<[string, string]> = [
-        ...Object.values(stringSpanTags).map((tag): [string, string] => [
-          tag.key,
-          prettifyTagKey(tag.name),
-        ]),
-        ...Object.values(numericSpanTags).map((tag): [string, string] => [
-          tag.key,
-          prettifyTagKey(tag.name),
-        ]),
+        ...(isTypeAllowed(FieldValueType.STRING)
+          ? Object.values(stringSpanTags).map((tag): [string, string] => [
+              tag.key,
+              prettifyTagKey(tag.name),
+            ])
+          : []),
+        ...(isTypeAllowed(FieldValueType.NUMBER)
+          ? Object.values(numericSpanTags).map((tag): [string, string] => [
+              tag.key,
+              prettifyTagKey(tag.name),
+            ])
+          : []),
       ];
       return spanColumnOptions.sort((a, b) => a[1].localeCompare(b[1]));
     }
@@ -240,7 +295,7 @@ export function Visualize() {
       )
       .map((option): [string, string] => [option.value.meta.name, option.value.meta.name])
       .sort((a, b) => a[1].localeCompare(b[1]));
-  }, [dataset, stringSpanTags, numericSpanTags, aggregateOptions]);
+  }, [dataset, stringSpanTags, numericSpanTags, aggregateOptions, aggregate]);
 
   const fieldOptionsDropdown = useMemo(() => {
     return fieldOptions.map(([value, label]) => ({
@@ -302,15 +357,13 @@ export function Visualize() {
   };
 
   const lockSpanOptions =
-    dataset === DetectorDataset.SPANS && aggregate === AggregationKey.COUNT;
+    dataset === DetectorDataset.SPANS && isLockedSpanAggregate(aggregate);
 
-  const hasVisibleParameters =
-    Boolean(aggregateMetadata?.parameters?.length) &&
-    dataset !== DetectorDataset.SPANS &&
-    dataset !== DetectorDataset.LOGS;
+  // Get locked option if applicable, with proper type narrowing
+  const lockedOption = lockSpanOptions ? LOCKED_SPAN_AGGREGATES[aggregate] : null;
 
   return (
-    <AggregateContainer hasParameters={hasVisibleParameters}>
+    <Flex direction="column" gap="md">
       <Flex gap="md" align="end">
         <FieldContainer>
           <div>
@@ -341,22 +394,20 @@ export function Visualize() {
                 <StyledVisualizeSelect
                   searchable
                   triggerProps={{
-                    children: lockSpanOptions
-                      ? LOCKED_SPAN_COUNT_OPTION.label
+                    children: lockedOption
+                      ? lockedOption.label
                       : parameters[index] || param.defaultValue || t('Select metric'),
                   }}
-                  options={
-                    lockSpanOptions ? [LOCKED_SPAN_COUNT_OPTION] : fieldOptionsDropdown
-                  }
+                  options={lockedOption ? [lockedOption] : fieldOptionsDropdown}
                   value={
-                    lockSpanOptions
+                    lockedOption
                       ? DEFAULT_VISUALIZATION_FIELD
                       : parameters[index] || param.defaultValue || ''
                   }
                   onChange={option => {
                     handleParameterChange(index, String(option.value));
                   }}
-                  disabled={isTransactionsDataset || lockSpanOptions}
+                  disabled={isTransactionsDataset}
                 />
               ) : param.kind === 'dropdown' && param.options ? (
                 <StyledVisualizeSelect
@@ -377,6 +428,7 @@ export function Visualize() {
                 />
               ) : (
                 <StyledParameterInput
+                  size="md"
                   placeholder={param.defaultValue || t('Enter value')}
                   value={parameters[index] || ''}
                   onChange={e => {
@@ -389,50 +441,21 @@ export function Visualize() {
           );
         })}
       </Flex>
-
-      {/* Only show filter inline when no additional parameters */}
-      {!hasVisibleParameters && (
-        <Flex flex={1} gap="md">
-          <DetectorQueryFilterBuilder />
-        </Flex>
-      )}
-
-      {/* Show filter on separate row when parameters are visible */}
-      {hasVisibleParameters && (
-        <Flex flex={1} gap="md">
-          <DetectorQueryFilterBuilder />
-        </Flex>
-      )}
-    </AggregateContainer>
+    </Flex>
   );
 }
-
-const AggregateContainer = styled('div')<{hasParameters: boolean}>`
-  display: grid;
-  grid-template-columns: ${p => (p.hasParameters ? '1fr' : '1fr 2fr')};
-  grid-template-rows: ${p => (p.hasParameters ? 'auto auto' : 'auto')};
-  align-items: start;
-  gap: ${space(2)};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(2)} ${space(2)};
-  background-color: ${p => p.theme.backgroundSecondary};
-
-  @media (max-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto;
-  }
-`;
 
 const FieldContainer = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};
   flex: 1;
+  max-width: 425px;
 `;
 
 const StyledAggregateSelect = styled(CompactSelect)`
   width: 100%;
+  max-width: 425px;
   & > button {
     width: 100%;
     font-weight: normal;
@@ -441,6 +464,7 @@ const StyledAggregateSelect = styled(CompactSelect)`
 
 const StyledVisualizeSelect = styled(CompactSelect)`
   width: 100%;
+  max-width: 425px;
   & > button {
     width: 100%;
     font-weight: normal;

@@ -5,6 +5,7 @@ from functools import partial
 from uuid import uuid4
 
 import requests
+import sentry_sdk
 from django.conf import settings
 from google.protobuf.struct_pb2 import Struct
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -36,7 +37,11 @@ TASK_PROCESSING_DEADLINE_SECONDS = 60 * 3  # 3 minutes
 )
 def stream_demo_data(org_id: int, channel_id: str) -> None:
     """Asynchronously stream data to Conduit."""
-    token = generate_jwt(subject="demo")
+    try:
+        token = generate_jwt(subject="demo")
+    except ValueError as e:
+        sentry_sdk.capture_exception(e, level="warning")
+        return
     logger.info(
         "conduit.stream_demo_data.started", extra={"org_id": org_id, "channel_id": channel_id}
     )

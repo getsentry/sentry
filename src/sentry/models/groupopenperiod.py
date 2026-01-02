@@ -58,6 +58,7 @@ class GroupOpenPeriod(DefaultFieldsModel):
     date_ended = models.DateTimeField(null=True)
 
     data = models.JSONField(default=dict)
+    event_id = models.CharField(max_length=32, null=True)
 
     class Meta:
         app_label = "sentry"
@@ -144,26 +145,46 @@ def get_open_periods_for_group(
     query_end: datetime | None = None,
     limit: int | None = None,
 ) -> BaseQuerySet[GroupOpenPeriod]:
+    """
+    Get open periods for a group that overlap with the query time range.
+
+    To overlap with [query_start, query_end], an open period must:
+    1. Start before the query ends
+    2. End after the query starts (or still be open)
+
+    This covers all overlap cases:
+    - Period starts before query and ends within query range
+    - Period starts before query and ends after query (open period spans entire query range)
+    - Period starts within query and ends within query (open period completely inside query range)
+    - Period starts within query and ends after query
+    - Period starts before query and is still open
+    - Period starts within query and is still open
+    """
     if not should_create_open_periods(group.type):
         return GroupOpenPeriod.objects.none()
 
     if not query_start:
         # use whichever date is more recent to reduce the query range. first_seen could be > 90 days ago
         query_start = max(group.first_seen, timezone.now() - timedelta(days=90))
+    if not query_end:
+        query_end = timezone.now()
 
-    group_open_periods = GroupOpenPeriod.objects.filter(
-        group=group,
-        date_started__gte=query_start,
-    ).order_by("-date_started")
-    if query_end:
-        group_open_periods = group_open_periods.filter(
-            Q(date_ended__lte=query_end) | Q(date_ended__isnull=True)
+    started_before_query_ends = Q(date_started__lte=query_end)
+    ended_after_query_starts = Q(date_ended__gte=query_start)
+    still_open = Q(date_ended__isnull=True)
+
+    group_open_periods = (
+        GroupOpenPeriod.objects.filter(
+            group=group,
         )
+        .filter(started_before_query_ends & (ended_after_query_starts | still_open))
+        .order_by("-date_started")
+    )
 
     return group_open_periods[:limit]
 
 
-def create_open_period(group: Group, start_time: datetime) -> None:
+def create_open_period(group: Group, start_time: datetime, event_id: str | None = None) -> None:
     # no-op if the group does not create open periods
     if not should_create_open_periods(group.type):
         return None
@@ -188,6 +209,7 @@ def create_open_period(group: Group, start_time: datetime) -> None:
             date_started=start_time,
             date_ended=None,
             resolution_activity=None,
+            event_id=event_id,
         )
 
         # If we care about this group's activity, create activity entry

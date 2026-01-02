@@ -196,7 +196,7 @@ class ProjectUserIssueEndpoint(ProjectEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
-    owner = ApiOwner.VISIBILITY
+    owner = ApiOwner.DATA_BROWSING
 
     def get_formatter(self, data: dict) -> BaseUserIssueFormatter:
         if data.get("issueType") == WebVitalsGroup.slug:
@@ -213,8 +213,6 @@ class ProjectUserIssueEndpoint(ProjectEndpoint):
             "organizations:performance-web-vitals-seer-suggestions",
             organization,
             actor=request.user,
-        ) and features.has(
-            "organizations:issue-web-vitals-ingest", organization, actor=request.user
         )
 
     @extend_schema(

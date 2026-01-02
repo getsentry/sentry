@@ -1,3 +1,4 @@
+import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -14,6 +15,16 @@ describe('PreventPage', () => {
     route: '/prevent/',
     children: [{index: true, element: <p>Test content</p>}],
   };
+
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/config/integrations/`,
+      method: 'GET',
+      body: {
+        providers: [GitHubIntegrationProviderFixture()],
+      },
+    });
+  });
 
   describe('when the user has access to the feature', () => {
     it('renders the passed children', () => {

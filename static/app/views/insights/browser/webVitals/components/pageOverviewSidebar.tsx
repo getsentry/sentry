@@ -1,19 +1,14 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
-import {
-  makeAutofixQueryKey,
-  type AutofixResponse,
-} from 'sentry/components/events/autofix/useAutofix';
+import type {AutofixData} from 'sentry/components/events/autofix/types';
 import {
   getRootCauseCopyText,
   getRootCauseDescription,
@@ -28,24 +23,17 @@ import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
-import {IssueType, type Group} from 'sentry/types/group';
+import type {Group} from 'sentry/types/group';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
-import type {ProjectData} from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
-import {useSampleWebVitalTraceParallel} from 'sentry/views/insights/browser/webVitals/queries/useSampleWebVitalTrace';
-import {
-  POLL_INTERVAL,
-  useWebVitalsIssuesQuery,
-} from 'sentry/views/insights/browser/webVitals/queries/useWebVitalsIssuesQuery';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 import type {ProjectScore} from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useHasSeerWebVitalsSuggestions} from 'sentry/views/insights/browser/webVitals/utils/useHasSeerWebVitalsSuggestions';
-import {useRunSeerAnalysis} from 'sentry/views/insights/browser/webVitals/utils/useRunSeerAnalysis';
+import {useSeerWebVitalsSuggestions} from 'sentry/views/insights/browser/webVitals/utils/useSeerWebVitalsSuggestions';
 import type {SubregionCode} from 'sentry/views/insights/types';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -54,7 +42,6 @@ const CHART_HEIGHTS = 100;
 type Props = {
   transaction: string;
   browserTypes?: BrowserType[];
-  projectData?: ProjectData[];
   projectScore?: ProjectScore;
   projectScoreIsLoading?: boolean;
   search?: string;
@@ -67,17 +54,11 @@ export function PageOverviewSidebar({
   projectScoreIsLoading,
   browserTypes,
   subregions,
-  projectData,
 }: Props) {
   const hasSeerWebVitalsSuggestions = useHasSeerWebVitalsSuggestions();
   const theme = useTheme();
   const pageFilters = usePageFilters();
   const {period, start, end, utc} = pageFilters.selection.datetime;
-  const [isCreatingIssues, setIsCreatingIssues] = useState(false);
-  // Event IDs of issues created by the user on this page. Used to control polling logic.
-  const [newlyCreatedIssueEventIds, setNewlyCreatedIssueEventIds] = useState<
-    string[] | undefined
-  >(undefined);
 
   const {data, isLoading: isLoading} = useProjectRawWebVitalsValuesTimeseriesQuery({
     transaction,
@@ -138,15 +119,15 @@ export function PageOverviewSidebar({
     }
     if (diff > 1) {
       if (reverse) {
-        return theme.red300;
+        return theme.colors.red400;
       }
-      return theme.green300;
+      return theme.colors.green400;
     }
     if (diff < 1) {
       if (reverse) {
-        return theme.green300;
+        return theme.colors.green400;
       }
-      return theme.red300;
+      return theme.colors.red400;
     }
     return undefined;
   };
@@ -154,37 +135,13 @@ export function PageOverviewSidebar({
   const ringSegmentColors = theme.chart.getColorPalette(4);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
-  const {data: issues} = useWebVitalsIssuesQuery({
-    issueTypes: [IssueType.WEB_VITALS],
+  const {
+    data: {issues, autofix},
+    isLoading: isLoadingAutofix,
+  } = useSeerWebVitalsSuggestions({
     transaction,
     enabled: hasSeerWebVitalsSuggestions,
-    // We only poll for issues if we've created them in this session, otherwise we only attempt to load any existing issues once
-    pollInterval: POLL_INTERVAL,
-    eventIds: newlyCreatedIssueEventIds,
   });
-
-  const {isLoading: isLoadingWebVitalTraceSamples, ...webVitalTraceSamples} =
-    useSampleWebVitalTraceParallel({
-      transaction,
-      projectData,
-      enabled: hasSeerWebVitalsSuggestions,
-    });
-
-  const runSeerAnalysis = useRunSeerAnalysis({
-    projectScore,
-    projectData: projectData?.[0],
-    transaction,
-    webVitalTraceSamples,
-  });
-
-  const runSeerAnalysisOnClickHandler = async () => {
-    setIsCreatingIssues(true);
-    const newIssueEventIds = await runSeerAnalysis();
-    setNewlyCreatedIssueEventIds(newIssueEventIds);
-    setIsCreatingIssues(false);
-  };
-
-  const hasProjectScore = !projectScoreIsLoading && Boolean(projectScore);
 
   return (
     <Fragment>
@@ -220,12 +177,9 @@ export function PageOverviewSidebar({
       <SidebarSpacer />
       {hasSeerWebVitalsSuggestions && (
         <SeerSuggestionsSection
-          isCreatingIssues={isCreatingIssues}
-          hasProjectScore={hasProjectScore}
+          isLoading={isLoadingAutofix}
+          autofix={autofix}
           issues={issues}
-          newlyCreatedIssueEventIds={newlyCreatedIssueEventIds}
-          runSeerAnalysis={runSeerAnalysisOnClickHandler}
-          isLoadingWebVitalTraceSamples={isLoadingWebVitalTraceSamples}
         />
       )}
       <SidebarSpacer />
@@ -317,108 +271,72 @@ export function PageOverviewSidebar({
 }
 
 function SeerSuggestionsSection({
-  isCreatingIssues,
-  hasProjectScore,
-  isLoadingWebVitalTraceSamples,
+  isLoading,
+  autofix,
   issues,
-  newlyCreatedIssueEventIds,
-  runSeerAnalysis,
 }: {
-  hasProjectScore: boolean;
-  isCreatingIssues: boolean;
-  isLoadingWebVitalTraceSamples: boolean;
-  issues: Group[] | undefined;
-  newlyCreatedIssueEventIds: string[] | undefined;
-  runSeerAnalysis: () => void;
+  isLoading: boolean;
+  autofix?: AutofixData[];
+  issues?: Group[];
 }) {
-  // Check if we are done loading issues.
-  // If we created new issues in this session, we expect the issues results array to match in length. This should eventually be true, due to polling.
-  // If we didn't create new issues, just check to see if the issues results array is defined.
-  const areIssuesFullyLoaded =
-    !!issues &&
-    (newlyCreatedIssueEventIds
-      ? issues.length === newlyCreatedIssueEventIds.length
-      : true);
-  const loading = !(
-    areIssuesFullyLoaded &&
-    hasProjectScore &&
-    !isCreatingIssues &&
-    !isLoadingWebVitalTraceSamples
-  );
-
   return (
-    <div>
-      <SectionHeading>
-        {t('Seer Suggestions')}
-        <FeatureBadge type="beta" />
-      </SectionHeading>
-      <Content>
-        <SeerSuggestionGrid>
-          {/* Issues are still loading, or projectScore is still loading, or seer analysis is still running */}
-          {loading && <Placeholder height="1.5rem" width="100%" />}
-          {/* Issues are done loading and they don't exist */}
-          {!loading && issues.length === 0 && (
-            <RunSeerAnalysisButton
-              size="sm"
-              icon={<StyledIconSeer size="md" />}
-              onClick={runSeerAnalysis}
-              title={t(
-                'Create an issue for each underperforming web vital and run a root cause analysis.'
-              )}
-            >
-              {t('Run Seer Analysis')}
-            </RunSeerAnalysisButton>
-          )}
-          {/* Issues are done loading and they exist */}
-          {!loading &&
-            issues.length > 0 &&
-            issues.map(issue => <SeerSuggestion key={issue.shortId} issue={issue} />)}
-        </SeerSuggestionGrid>
-      </Content>
-    </div>
+    !isLoading &&
+    autofix &&
+    autofix.length > 0 && (
+      <Fragment>
+        <SectionHeading>{t('Seer Suggestions')}</SectionHeading>
+        <Content>
+          <SeerSuggestionGrid>
+            {autofix &&
+              issues?.map((issue, index) => (
+                <SeerSuggestion
+                  key={issue.shortId}
+                  issue={issue}
+                  autofix={autofix[index] as AutofixData}
+                  isLoading={isLoading}
+                />
+              ))}
+          </SeerSuggestionGrid>
+        </Content>
+      </Fragment>
+    )
   );
 }
 
-function SeerSuggestion({issue}: {issue: Group}) {
+function SeerSuggestion({
+  issue,
+  autofix,
+  isLoading,
+}: {
+  autofix: AutofixData;
+  isLoading: boolean;
+  issue: Group;
+}) {
   const organization = useOrganization();
-  const {data, isLoading: isLoadingAutofix} = useApiQuery<AutofixResponse>(
-    makeAutofixQueryKey(organization.slug, issue.id),
-    {
-      staleTime: 0,
-      refetchInterval: query => {
-        const result = query.state.data?.[0];
-        // Wait for any status other than PROCESSING to indicate the the run has stopped
-        const isProcessing = result?.autofix?.status === 'PROCESSING';
-        return !query.state.data?.[0]?.autofix || isProcessing ? POLL_INTERVAL : false;
-      },
-    }
-  );
-
-  const autofixData = data?.autofix;
 
   const rootCauseDescription = useMemo(
-    () => (autofixData ? getRootCauseDescription(autofixData) : null),
-    [autofixData]
+    () => (autofix ? getRootCauseDescription(autofix) : null),
+    [autofix]
   );
 
   const rootCauseCopyText = useMemo(
-    () => (autofixData ? getRootCauseCopyText(autofixData) : null),
-    [autofixData]
+    () => (autofix ? getRootCauseCopyText(autofix) : null),
+    [autofix]
   );
 
   const solutionDescription = useMemo(
-    () => (autofixData ? getSolutionDescription(autofixData) : null),
-    [autofixData]
+    () => (autofix ? getSolutionDescription(autofix) : null),
+    [autofix]
   );
 
   const solutionCopyText = useMemo(
-    () => (autofixData ? getSolutionCopyText(autofixData) : null),
-    [autofixData]
+    () => (autofix ? getSolutionCopyText(autofix) : null),
+    [autofix]
   );
 
   const solutionIsLoading = useMemo(
-    () => (autofixData ? getSolutionIsLoading(autofixData) : false),
-    [autofixData]
+    () => (autofix ? getSolutionIsLoading(autofix) : false),
+    [autofix]
   );
 
   return (
@@ -431,9 +349,7 @@ function SeerSuggestion({issue}: {issue: Group}) {
       </CardTitle>
       <CardContentContainer>
         <CardContent>
-          {isLoadingAutofix ||
-          autofixData === undefined ||
-          rootCauseDescription === null ? (
+          {isLoading || autofix === undefined || rootCauseDescription === null ? (
             <Placeholder height="1.5rem" width="100%" />
           ) : (
             <AutofixSummary
@@ -568,14 +484,14 @@ const SeerSuggestionGrid = styled('div')`
 const SeerSuggestionCard = styled('div')`
   display: flex;
   flex-direction: column;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   width: 100%;
   min-height: 0;
 `;
 
 const CardTitle = styled('div')`
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: ${p => p.theme.space.xs};
   padding-bottom: ${p => p.theme.space.xs};
 `;
@@ -613,13 +529,9 @@ const CardContent = styled('div')`
 `;
 
 const StyledIconSeer = styled(IconSeer)`
-  color: ${p => p.theme.blue400};
+  color: ${p => p.theme.colors.blue500};
 `;
 
 const ViewIssueButtonContainer = styled('div')`
   margin: ${p => p.theme.space.lg} 0;
-`;
-
-const RunSeerAnalysisButton = styled(Button)`
-  align-self: flex-start;
 `;

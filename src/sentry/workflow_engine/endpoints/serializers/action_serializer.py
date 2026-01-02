@@ -32,7 +32,7 @@ class ActionSerializer(Serializer):
             "id": str(obj.id),
             "type": obj.type,
             "integrationId": str(obj.integration_id) if obj.integration_id else None,
-            "data": obj.data,
+            "data": convert_dict_key_case(obj.data, snake_to_camel_case),
             "config": convert_dict_key_case(config, snake_to_camel_case),
             "status": obj.get_status_display(),
         }

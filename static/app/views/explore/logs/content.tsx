@@ -1,27 +1,29 @@
-import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {withoutLoggingSupport} from 'sentry/data/platformCategories';
 import {platforms} from 'sentry/data/platforms';
-import {IconMegaphone, IconOpen} from 'sentry/icons';
+import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {LogsTabOnboarding} from 'sentry/views/explore/logs/logsOnboarding';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
-import {logsPickableDays} from 'sentry/views/explore/logs/utils';
 import {
   useQueryParamsId,
   useQueryParamsTitle,
@@ -29,50 +31,31 @@ import {
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 
-function FeedbackButton() {
-  const openForm = useFeedbackForm();
-
-  if (!openForm) {
-    return null;
-  }
-  return (
-    <Button
-      size="xs"
-      aria-label="trace-view-feedback"
-      icon={<IconMegaphone size="xs" />}
-      onClick={() =>
-        openForm?.({
-          messagePlaceholder: t('How can we make logs work better for you?'),
-          tags: {
-            ['feedback.source']: 'logs-listing',
-            ['feedback.owner']: 'performance',
-          },
-        })
-      }
-    >
-      {t('Give Feedback')}
-    </Button>
-  );
-}
-
 export default function LogsContent() {
   const organization = useOrganization();
-  const {defaultPeriod, maxPickableDays, relativeOptions} = logsPickableDays();
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.LOG_BYTE],
+  });
+  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   const onboardingProject = useOnboardingProject({property: 'hasLogs'});
 
   return (
     <SentryDocumentTitle title={t('Logs')} orgSlug={organization?.slug}>
       <PageFiltersContainer
-        maxPickableDays={maxPickableDays}
-        defaultSelection={{
-          datetime: {
-            period: defaultPeriod,
-            start: null,
-            end: null,
-            utc: null,
-          },
-        }}
+        maxPickableDays={datePageFilterProps.maxPickableDays}
+        defaultSelection={
+          datePageFilterProps.defaultPeriod
+            ? {
+                datetime: {
+                  period: datePageFilterProps.defaultPeriod,
+                  start: null,
+                  end: null,
+                  utc: null,
+                },
+              }
+            : undefined
+        }
       >
         <LogsQueryParamsProvider
           analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
@@ -86,16 +69,10 @@ export default function LogsContent() {
                   <LogsTabOnboarding
                     organization={organization}
                     project={onboardingProject}
-                    defaultPeriod={defaultPeriod}
-                    maxPickableDays={maxPickableDays}
-                    relativeOptions={relativeOptions}
+                    datePageFilterProps={datePageFilterProps}
                   />
                 ) : (
-                  <LogsTabContent
-                    defaultPeriod={defaultPeriod}
-                    maxPickableDays={maxPickableDays}
-                    relativeOptions={relativeOptions}
-                  />
+                  <LogsTabContent datePageFilterProps={datePageFilterProps} />
                 )}
               </LogsPageDataProvider>
             </TraceItemAttributeProvider>
@@ -109,9 +86,21 @@ export default function LogsContent() {
 function LogsHeader() {
   const pageId = useQueryParamsId();
   const title = useQueryParamsTitle();
+  const organization = useOrganization();
+  const {data: savedQuery} = useGetSavedQuery(pageId);
+
+  const hasSavedQueryTitle =
+    defined(pageId) && defined(savedQuery) && savedQuery.name.length > 0;
+
   return (
     <Layout.Header unified>
       <Layout.HeaderContent unified>
+        {hasSavedQueryTitle ? (
+          <SentryDocumentTitle
+            title={`${savedQuery.name} — ${t('Logs')}`}
+            orgSlug={organization?.slug}
+          />
+        ) : null}
         {title && defined(pageId) ? (
           <ExploreBreadcrumb traceItemDataset={TraceItemDataset.LOGS} />
         ) : null}
@@ -120,7 +109,16 @@ function LogsHeader() {
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <ButtonBar>
-          <FeedbackButton />
+          <FeedbackButton
+            size="xs"
+            feedbackOptions={{
+              messagePlaceholder: t('How can we make logs work better for you?'),
+              tags: {
+                ['feedback.source']: 'logs-listing',
+                ['feedback.owner']: 'performance',
+              },
+            }}
+          />
           <SetupLogsButton />
         </ButtonBar>
       </Layout.HeaderActions>

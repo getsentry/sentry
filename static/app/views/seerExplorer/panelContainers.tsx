@@ -6,7 +6,6 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {Text} from 'sentry/components/core/text';
 import {IconSeer} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import type {PanelSize} from 'sentry/views/seerExplorer/types';
 
 interface PanelContainersProps {
@@ -37,7 +36,7 @@ function PanelContainers({
               initial={{opacity: 0}}
               animate={{opacity: isMinimized ? 0 : 1}}
               exit={{opacity: 0}}
-              transition={{duration: 0.1}}
+              transition={{duration: 0.12}}
             />
           )}
           <PanelContainer
@@ -46,17 +45,17 @@ function PanelContainers({
             initial={{
               opacity: 0,
               y: 50,
-              scale: 0.1,
+              scaleY: 0.1,
               transformOrigin: 'bottom center',
             }}
             animate={{
               opacity: 1,
               y: isMinimized ? 'calc(100% - 60px)' : 0,
-              scale: 1,
+              scaleY: 1,
               transformOrigin: 'bottom center',
             }}
-            exit={{opacity: 0, y: 50, scale: 0.1, transformOrigin: 'bottom center'}}
-            transition={{duration: 0.1, ease: 'easeInOut'}}
+            exit={{opacity: 0, y: 50, scaleY: 0.1, transformOrigin: 'bottom center'}}
+            transition={{duration: 0.12, ease: 'easeInOut'}}
           >
             <PanelContent ref={ref} data-seer-explorer-root="">
               {children}
@@ -65,14 +64,12 @@ function PanelContainers({
                   initial={{opacity: 0}}
                   animate={{opacity: 1}}
                   exit={{opacity: 0}}
-                  transition={{duration: 0.2}}
+                  transition={{duration: 0.12}}
                   onClick={onUnminimize}
                 >
-                  <Flex direction="column" align="center" gap="lg">
-                    <IconSeer variant="waiting" size="lg" color="purple400" />
-                    <Text variant="muted">
-                      Press Tab ⇥ or click to continue with Seer
-                    </Text>
+                  <Flex direction="column" align="center" gap="md">
+                    <IconSeer animation="waiting" size="lg" />
+                    <Text>Press Tab ⇥ or click to continue with Seer</Text>
                   </Flex>
                 </MinimizedOverlay>
               )}
@@ -102,7 +99,7 @@ const PanelContainer = styled(motion.div)<{
   panelSize: 'max' | 'med';
 }>`
   position: fixed;
-  bottom: ${space(2)};
+  bottom: ${p => p.theme.space.md};
   left: 50%;
   z-index: 10000;
   pointer-events: auto;
@@ -110,25 +107,25 @@ const PanelContainer = styled(motion.div)<{
   ${p =>
     p.panelSize === 'max'
       ? `
-      width: calc(100vw - ${space(4)});
-      height: calc(100vh - ${space(4)});
-      margin-left: calc(-50vw + ${space(2)});
+      width: calc(100vw - ${p.theme.space.xl});
+      height: calc(100vh - ${p.theme.space.xl});
+      margin-left: calc(-50vw + ${p.theme.space.md});
     `
       : `
       width: 50vw;
-      height: 50vh;
+      height: 60vh;
       margin-left: -25vw;
     `}
 
-  transition: all 0.2s ease-in-out;
+  transition: all 0.12s ease-in-out;
 `;
 
 const PanelContent = styled('div')`
   width: 100%;
   height: 100%;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   display: flex;
   flex-direction: column;
@@ -148,12 +145,12 @@ const MinimizedOverlay = styled(motion.div)`
   left: 0;
   right: 0;
   bottom: 0;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   display: flex;
   align-items: flex-start;
   justify-content: center;
   padding-top: ${p => p.theme.space.lg};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.border};
   z-index: 1;
   cursor: pointer;
@@ -166,7 +163,7 @@ const MinimizedOverlay = styled(motion.div)`
     left: 0;
     right: 0;
     bottom: 0;
-    background: ${p => p.theme.purple200};
+    background: ${p => p.theme.colors.blue200};
     border-radius: inherit;
     z-index: -1;
     pointer-events: none;

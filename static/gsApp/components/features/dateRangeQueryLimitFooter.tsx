@@ -20,7 +20,6 @@ interface Props {
   organization: Organization;
   source: string;
   subscription: Subscription;
-  upsellDefaultSelection: string;
 }
 
 function DateRangeQueryLimitFooter({
@@ -28,10 +27,9 @@ function DateRangeQueryLimitFooter({
   organization,
   source,
   subscription,
-  upsellDefaultSelection,
 }: Props) {
   const checkoutUrl = normalizeUrl(
-    `/settings/${organization.slug}/billing/checkout/?referrer=checkout-${source}`
+    `/checkout/${organization.slug}/?referrer=checkout-${source}`
   );
 
   const canTrial = subscription.canTrial;
@@ -62,7 +60,6 @@ function DateRangeQueryLimitFooter({
               openUpsellModal({
                 organization,
                 source,
-                defaultSelection: upsellDefaultSelection,
               })
             }
           >

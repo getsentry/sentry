@@ -11,6 +11,7 @@ import {Image} from 'sentry/components/core/image/image';
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {DebugNotificationsPreview} from 'sentry/debug/notifications/components/debugNotificationsPreview';
+import {NotificationBodyRenderer} from 'sentry/debug/notifications/components/notificationBodyRenderer';
 import {
   NotificationProviderKey,
   type NotificationTemplateRegistration,
@@ -75,7 +76,13 @@ export function TeamsPreview({
               <TeamsBlackText size="xl" bold>
                 {subject}
               </TeamsBlackText>
-              <TeamsBlackText>{body}</TeamsBlackText>
+              <TeamsBlackText>
+                <NotificationBodyRenderer
+                  body={body}
+                  codeBlockBackground="#f3f2f1"
+                  codeBlockBorder="#e1dfdd"
+                />
+              </TeamsBlackText>
               <Flex gap="md">
                 {actions.map(action => (
                   <TeamsLinkButton key={action.label} href={action.link}>

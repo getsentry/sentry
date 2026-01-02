@@ -60,12 +60,12 @@ function XAxis({
     splitNumber: 4,
     axisLine: {
       lineStyle: {
-        color: theme.chartLabel,
+        color: theme.tokens.content.muted,
       },
     },
     axisTick: {
       lineStyle: {
-        color: theme.chartLabel,
+        color: theme.tokens.content.muted,
       },
     },
     splitLine: {
@@ -73,7 +73,7 @@ function XAxis({
     },
     axisLabel: {
       hideOverlap: true,
-      color: theme.chartLabel,
+      color: theme.tokens.content.muted,
       fontFamily: theme.text.family,
       margin: 12,
 

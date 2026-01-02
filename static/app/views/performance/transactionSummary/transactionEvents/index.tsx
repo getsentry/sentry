@@ -58,7 +58,7 @@ function TransactionEvents() {
   };
 
   const onChangeSpanOperationBreakdownFilter = (
-    newFilter: SpanOperationBreakdownFilter
+    newFilter: SpanOperationBreakdownFilter | undefined
   ) => {
     trackAnalytics('performance_views.transactionEvents.ops_filter_dropdown.selection', {
       organization,
@@ -77,7 +77,9 @@ function TransactionEvents() {
       eventsFilterOptionSort?.kind === currentSort?.kind &&
       eventsFilterOptionSort?.field === currentSort?.field
     ) {
-      sortQuery = filterEventsDisplayToLocationQuery(eventsDisplayFilterName, newFilter);
+      sortQuery = newFilter
+        ? filterEventsDisplayToLocationQuery(eventsDisplayFilterName, newFilter)
+        : {};
     }
 
     const nextQuery: Location['query'] = {

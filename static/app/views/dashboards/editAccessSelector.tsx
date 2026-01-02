@@ -34,6 +34,7 @@ import type {
 
 interface EditAccessSelectorProps {
   dashboard: DashboardDetails | DashboardListItem;
+  disabled?: boolean;
   listOnly?: boolean;
   onChangeEditAccess?: (newDashboardPermissions: DashboardPermissions) => void;
 }
@@ -46,6 +47,7 @@ function EditAccessSelector({
   dashboard,
   onChangeEditAccess,
   listOnly = false,
+  disabled = false,
 }: EditAccessSelectorProps) {
   const currentUser: User = useUser();
   const dashboardCreator: User | undefined = dashboard.createdBy;
@@ -219,7 +221,7 @@ function EditAccessSelector({
   // Avatars/Badges in the Edit Access Selector Button
   const triggerAvatars =
     selectedOptions.includes('_allUsers') || !dashboardCreator ? (
-      <StyledBadge key="_all" size={listOnly ? 26 : 20} type="info">
+      <StyledBadge key="_all" size={listOnly ? 26 : 20} variant="info">
         {t('All')}
       </StyledBadge>
     ) : selectedOptions.length === 2 ? (
@@ -320,6 +322,7 @@ function EditAccessSelector({
         }}
         priority="primary"
         disabled={
+          disabled ||
           !userCanEditDashboardPermissions ||
           isEqual(getDashboardPermissions(), {
             ...dashboard.permissions,
@@ -369,14 +372,20 @@ function EditAccessSelector({
       onSearch={debounce(val => void onSearch(val), DEFAULT_DEBOUNCE_DURATION)}
       strategy="fixed"
       preventOverflowOptions={{mainAxis: false}}
+      disabled={disabled}
     />
   );
 
+  const tooltipTitle = disabled
+    ? t('Prebuilt dashboards cannot be edited')
+    : t('Only the creator of this dashboard can manage editor access');
+
   return (
     <Tooltip
-      title={t('Only the creator of this dashboard can manage editor access')}
+      title={tooltipTitle}
       disabled={
-        userCanEditDashboardPermissions || isMenuOpen || isCollapsedAvatarTooltipOpen
+        !disabled &&
+        (userCanEditDashboardPermissions || isMenuOpen || isCollapsedAvatarTooltipOpen)
       }
     >
       {dropdownMenu}

@@ -1,15 +1,21 @@
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from typing import Any
 
+from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
-from sentry.spans.consumers.process_segments.types import Attribute, attribute_value, get_span_op
+from sentry.spans.consumers.process_segments.types import (
+    Attribute,
+    attribute_value,
+    get_span_op,
+    is_gen_ai_span,
+)
 
 # Keys of shared sentry attributes that are shared across all spans in a segment. This list
 # is taken from `extract_shared_tags` in Relay.
 SHARED_SENTRY_ATTRIBUTES = (
-    "sentry.release",
+    ATTRIBUTE_NAMES.SENTRY_RELEASE,
     "sentry.user",
     "sentry.user.id",
     "sentry.user.ip",
@@ -20,19 +26,19 @@ SHARED_SENTRY_ATTRIBUTES = (
     "sentry.user.geo.region",
     "sentry.user.geo.subdivision",
     "sentry.user.geo.subregion",
-    "sentry.environment",
-    "sentry.transaction",
+    ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT,
+    ATTRIBUTE_NAMES.SENTRY_TRANSACTION,
     "sentry.transaction.method",
     "sentry.transaction.op",
     "sentry.trace.status",
     "sentry.mobile",
     "sentry.os.name",
     "sentry.device.class",
-    "sentry.browser.name",
+    ATTRIBUTE_NAMES.SENTRY_BROWSER_NAME,
     "sentry.profiler_id",
-    "sentry.sdk.name",
-    "sentry.sdk.version",
-    "sentry.platform",
+    ATTRIBUTE_NAMES.SENTRY_SDK_NAME,
+    ATTRIBUTE_NAMES.SENTRY_SDK_VERSION,
+    ATTRIBUTE_NAMES.SENTRY_PLATFORM,
     "sentry.thread.id",
     "sentry.thread.name",
 )
@@ -75,11 +81,14 @@ class TreeEnricher:
         self._ttid_ts = _timestamp_by_op(spans, "ui.load.initial_display")
         self._ttfd_ts = _timestamp_by_op(spans, "ui.load.full_display")
 
-        self._span_map: dict[str, list[tuple[int, int]]] = {}
+        self._span_intervals: dict[str, list[tuple[int, int]]] = {}
+        self._spans_by_id: dict[str, SpanEvent] = {}
         for span in spans:
+            if "span_id" in span:
+                self._spans_by_id[span["span_id"]] = span
             if parent_span_id := span.get("parent_span_id"):
                 interval = _span_interval(span)
-                self._span_map.setdefault(parent_span_id, []).append(interval)
+                self._span_intervals.setdefault(parent_span_id, []).append(interval)
 
     def _attributes(self, span: SpanEvent) -> dict[str, Any]:
         attributes: dict[str, Any] = {**(span.get("attributes") or {})}
@@ -119,12 +128,48 @@ class TreeEnricher:
                 if attributes.get(key) is None:
                     attributes[key] = value
 
+            if is_gen_ai_span(span) and ATTRIBUTE_NAMES.GEN_AI_AGENT_NAME not in attributes:
+                if (parent_span_id := span.get("parent_span_id")) is not None:
+                    parent_span = self._spans_by_id.get(parent_span_id)
+                    if (
+                        parent_span is not None
+                        and get_span_op(parent_span) == "gen_ai.invoke_agent"
+                        and (
+                            agent_name := attribute_value(
+                                parent_span, ATTRIBUTE_NAMES.GEN_AI_AGENT_NAME
+                            )
+                        )
+                        is not None
+                    ):
+                        attributes[ATTRIBUTE_NAMES.GEN_AI_AGENT_NAME] = {
+                            "type": "string",
+                            "value": agent_name,
+                        }
+
         attributes["sentry.exclusive_time_ms"] = {
             "type": "double",
             "value": self._exclusive_time(span),
         }
 
         return attributes
+
+    def _iter_ancestors(self, span: SpanEvent) -> Iterator[SpanEvent]:
+        """
+        Iterates over the ancestors of a span in order towards the root using the "parent_span_id" attribute.
+        """
+        current: SpanEvent | None = span
+        parent_span_id: str | None = None
+
+        while current is not None:
+            parent_span_id = current.get("parent_span_id")
+            if parent_span_id is not None:
+                current = self._spans_by_id.get(parent_span_id)
+            else:
+                current = None
+            if current is not None:
+                yield current
+            else:
+                break
 
     def _exclusive_time(self, span: SpanEvent) -> float:
         """
@@ -134,7 +179,7 @@ class TreeEnricher:
         of all time intervals where no child span was active.
         """
 
-        intervals = self._span_map.get(span["span_id"], [])
+        intervals = self._span_intervals.get(span["span_id"], [])
         # Sort by start ASC, end DESC to skip over nested intervals efficiently
         intervals.sort(key=lambda x: (x[0], -x[1]))
 

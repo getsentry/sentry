@@ -22,6 +22,7 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models.incident import Incident, IncidentActivityType, IncidentStatus
 from sentry.incidents.typings.metric_detector import AlertContext, OpenPeriodContext
+from sentry.incidents.utils.process_update_helpers import calculate_event_date_from_update_date
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
 from sentry.snuba.dataset import Dataset
@@ -30,6 +31,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models import DetectorGroup
+from tests.sentry.incidents.utils.test_metric_issue_base import BaseMetricIssueTest
 
 now = "2022-05-16T20:00:00"
 frozen_time = f"{now}Z"
@@ -133,10 +135,9 @@ class BuildMetricAlertChartTest(TestCase):
         assert mock_client_get.call_args[1]["params"]["query"] == "span.op:pageload"
 
 
-class FetchOpenPeriodsTest(TestCase):
+class FetchOpenPeriodsTest(BaseMetricIssueTest):
     @freeze_time(frozen_time)
     @with_feature("organizations:incidents")
-    @with_feature("organizations:workflow-engine-single-process-metric-issues")
     def test_get_incidents_from_detector(self) -> None:
         self.create_detector()  # dummy so detector ID != alert rule ID
         detector = self.create_detector(project=self.project)
@@ -179,8 +180,7 @@ class FetchOpenPeriodsTest(TestCase):
 
     @freeze_time(frozen_time)
     @with_feature("organizations:incidents")
-    @with_feature("organizations:new-metric-issue-charts")
-    @with_feature("organizations:workflow-engine-single-process-metric-issues")
+    @with_feature("organizations:workflow-engine-ui")
     def test_use_open_period_serializer(self) -> None:
         detector = self.create_detector(project=self.project)
         group = self.create_group(type=MetricIssue.type_id, priority=PriorityLevel.HIGH)
@@ -205,6 +205,45 @@ class FetchOpenPeriodsTest(TestCase):
 
         assert chart_data[0]["id"] == str(group_open_period.id)
         assert chart_data[0]["start"] == group_open_period.date_started
+
+        activities = chart_data[0]["activities"]
+        assert activities[0]["id"] == str(opened_gopa.id)
+        assert activities[0]["type"] == OpenPeriodActivityType(opened_gopa.type).to_str()
+        assert activities[0]["value"] == PriorityLevel(group.priority).to_str()
+
+    @freeze_time(frozen_time)
+    @with_feature("organizations:incidents")
+    @with_feature("organizations:workflow-engine-ui")
+    def test_use_open_period_serializer_with_offset(self) -> None:
+        group = self.create_group(type=MetricIssue.type_id, priority=PriorityLevel.HIGH)
+
+        # Link detector to group
+        DetectorGroup.objects.create(detector=self.detector, group=group)
+
+        group_open_period = GroupOpenPeriod.objects.get(group=group)
+
+        opened_gopa = GroupOpenPeriodActivity.objects.create(
+            date_added=group_open_period.date_added,
+            group_open_period=group_open_period,
+            type=OpenPeriodActivityType.OPENED,
+            value=group.priority,
+        )
+
+        time_period = incident_date_range(
+            60, group_open_period.date_started, group_open_period.date_ended
+        )
+
+        chart_data = fetch_metric_issue_open_periods(
+            self.organization,
+            self.detector.id,
+            time_period,
+            time_window=self.snuba_query.time_window,
+        )
+
+        assert chart_data[0]["id"] == str(group_open_period.id)
+        assert chart_data[0]["start"] == calculate_event_date_from_update_date(
+            group_open_period.date_started, self.snuba_query.time_window
+        )
 
         activities = chart_data[0]["activities"]
         assert activities[0]["id"] == str(opened_gopa.id)

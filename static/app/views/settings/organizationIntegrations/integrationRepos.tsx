@@ -93,7 +93,7 @@ function IntegrationRepos(props: Props) {
     <Fragment>
       {integrationReposErrorStatus === 400 && (
         <Alert.Container>
-          <Alert type="error">
+          <Alert variant="danger">
             {t(
               'We were unable to fetch repositories for this integration. Try again later. If this error continues, please reconnect this integration by uninstalling and then reinstalling.'
             )}
@@ -116,15 +116,16 @@ function IntegrationRepos(props: Props) {
             <EmptyMessage
               icon={<IconCommit />}
               title={t('Sentry is better with commit data')}
-              description={t(
-                'Add a repository to begin tracking its commit data. Then, set up release tracking to unlock features like suspect commits, suggested issue owners, and deploy emails.'
-              )}
               action={
                 <LinkButton href="https://docs.sentry.io/product/releases/" external>
                   {t('Learn More')}
                 </LinkButton>
               }
-            />
+            >
+              {t(
+                'Add a repository to begin tracking its commit data. Then, set up release tracking to unlock features like suspect commits, suggested issue owners, and deploy emails.'
+              )}
+            </EmptyMessage>
           )}
           {itemList.map(repo => (
             <RepositoryRow

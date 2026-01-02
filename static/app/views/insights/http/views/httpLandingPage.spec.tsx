@@ -261,6 +261,7 @@ describe('HTTPLandingPage', () => {
           referrer: 'api.insights.http.landing-throughput-chart',
           statsPeriod: '10d',
           yAxis: ['epm()'],
+          caseInsensitive: undefined,
         },
       })
     );
@@ -302,6 +303,7 @@ describe('HTTPLandingPage', () => {
           referrer: 'api.insights.http.landing-duration-chart',
           statsPeriod: '10d',
           yAxis: ['avg(span.self_time)'],
+          caseInsensitive: undefined,
         },
       })
     );
@@ -328,6 +330,7 @@ describe('HTTPLandingPage', () => {
             'http_response_rate(4)',
             'http_response_rate(5)',
           ],
+          caseInsensitive: undefined,
         },
       })
     );

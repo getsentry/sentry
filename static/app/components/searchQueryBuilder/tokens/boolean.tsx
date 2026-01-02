@@ -75,7 +75,7 @@ function FilterDelete({token, state, item}: SearchQueryBuilderBooleanProps) {
 
   return (
     <DeleteButton
-      aria-label={t('Remove boolean: %s', token.text)}
+      aria-label={t('Remove logic operator: %s', token.text)}
       onClick={() => {
         dispatch({type: 'DELETE_TOKEN', token});
       }}
@@ -88,7 +88,7 @@ function FilterDelete({token, state, item}: SearchQueryBuilderBooleanProps) {
   );
 }
 
-const BOOLEAN_OPERATOR_OPTIONS = [
+const LOGIC_OPERATOR_OPTIONS = [
   {value: 'AND', label: 'AND'},
   {value: 'OR', label: 'OR'},
 ];
@@ -152,12 +152,13 @@ function SearchQueryBuilderBooleanSelect({
             disabled={disabled}
             size="sm"
             value={tokenText}
-            options={BOOLEAN_OPERATOR_OPTIONS}
+            options={LOGIC_OPERATOR_OPTIONS}
             trigger={triggerProps => {
               return (
+                // @ts-expect-error we don't allow arbitrary buttons as triggers
                 <OpButton
                   disabled={disabled}
-                  aria-label={t('Edit boolean operator: %s', tokenText)}
+                  aria-label={t('Edit logic operator: %s', tokenText)}
                   {...mergeProps(triggerProps, filterButtonProps, focusWithinProps)}
                 >
                   <InteractionStateLayer />
@@ -167,7 +168,7 @@ function SearchQueryBuilderBooleanSelect({
             }}
             onOpenChange={setFilterMenuOpen}
             onChange={option => {
-              dispatch({type: 'UPDATE_BOOLEAN_OPERATOR', token, value: option.value});
+              dispatch({type: 'UPDATE_LOGIC_OPERATOR', token, value: option.value});
             }}
           />
         </BaseGridCell>
@@ -188,7 +189,7 @@ const OpButton = styled(UnstyledButton, {shouldForwardProp: isPropValid})`
   border-radius: 3px 0 0 3px;
 
   :focus {
-    background-color: ${p => p.theme.translucentGray100};
+    background-color: ${p => p.theme.colors.gray100};
     border-right: 1px solid ${p => p.theme.innerBorder};
     border-left: 1px solid ${p => p.theme.innerBorder};
   }
@@ -201,7 +202,7 @@ const DeleteButton = styled(UnstyledButton)`
   border-left: 1px solid transparent;
 
   :focus {
-    background-color: ${p => p.theme.translucentGray100};
+    background-color: ${p => p.theme.colors.gray100};
     border-left: 1px solid ${p => p.theme.innerBorder};
   }
 `;

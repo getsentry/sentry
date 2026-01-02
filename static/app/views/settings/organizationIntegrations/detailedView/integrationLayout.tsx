@@ -54,7 +54,7 @@ function TopSection({
 }) {
   const tags = getCategories(featureData);
   return (
-    <TopSectionWrapper>
+    <Flex justify="between">
       <Flex>
         {integrationIcon}
         <NameContainer>
@@ -66,7 +66,9 @@ function TopSection({
           </Flex>
           <Flex align="center">
             {tags.map(feature => (
-              <StyledTag key={feature}>{startCase(feature)}</StyledTag>
+              <StyledTag key={feature} variant="muted">
+                {startCase(feature)}
+              </StyledTag>
             ))}
           </Flex>
         </NameContainer>
@@ -75,7 +77,7 @@ function TopSection({
         {addInstallButton}
         {additionalCTA}
       </Flex>
-    </TopSectionWrapper>
+    </Flex>
   );
 }
 
@@ -149,13 +151,11 @@ function Body({
 function EmptyConfigurations({action}: {action: React.ReactElement}) {
   return (
     <Panel>
-      <EmptyMessage
-        title={t("You haven't set anything up yet")}
-        description={t(
-          'But that doesn’t have to be the case for long! Add an installation to get started.'
+      <EmptyMessage title={t("You haven't set anything up yet")} action={action}>
+        {t(
+          "But that doesn't have to be the case for long! Add an installation to get started."
         )}
-        action={action}
-      />
+      </EmptyMessage>
     </Panel>
   );
 }
@@ -168,7 +168,7 @@ const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
     }}
     {...p}
   >
-    <IconCloseCircle isCircled />
+    <IconCloseCircle />
     <span>{reason}</span>
   </div>
 ))`
@@ -254,7 +254,7 @@ function InformationCard({
           {permissions}
           {alerts.map((alert, i) => (
             <Alert.Container key={i}>
-              <Alert key={i} type={alert.type}>
+              <Alert variant={alert.variant}>
                 <span
                   dangerouslySetInnerHTML={{__html: singleLineRenderer(alert.text)}}
                 />
@@ -269,8 +269,8 @@ function InformationCard({
               <div>{author}</div>
             </AuthorInfo>
           )}
-          {resourceLinks.map(({title, url}) => (
-            <ExternalLinkContainer key={url}>
+          {resourceLinks.map(({title, url}, index) => (
+            <ExternalLinkContainer key={index}>
               <ResourceIcon title={title} />
               <ExternalLink href={url}>{title}</ExternalLink>
             </ExternalLinkContainer>
@@ -311,11 +311,6 @@ export default IntegrationLayout;
 
 const IntegrationDescription = styled('div')`
   flex-grow: 1;
-`;
-
-const TopSectionWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
 `;
 
 const NameContainer = styled('div')`

@@ -85,16 +85,16 @@ const getEventTypes = memoize((app: SentryApp) => {
 });
 
 function ResponseCode({code}: {code: number}) {
-  let type: TagProps['type'] = 'error';
+  let variant: TagProps['variant'] = 'danger';
   if (code <= 399 && code >= 300) {
-    type = 'warning';
+    variant = 'warning';
   } else if (code <= 299 && code >= 100) {
-    type = 'success';
+    variant = 'success';
   }
 
   return (
     <Tags>
-      <StyledTag type={type}>{code === 0 ? 'timeout' : code}</StyledTag>
+      <StyledTag variant={variant}>{code === 0 ? 'timeout' : code}</StyledTag>
     </Tags>
   );
 }
@@ -240,7 +240,7 @@ export default function RequestLog({app}: RequestLogProps) {
                 </PanelItem>
               ))
             ) : (
-              <EmptyMessage icon={<IconFlag size="xl" />}>
+              <EmptyMessage icon={<IconFlag />}>
                 {t('No requests found in the last 30 days.')}
               </EmptyMessage>
             )}
@@ -301,7 +301,7 @@ const RequestLogFilters = styled('div')`
   padding-bottom: ${space(1)};
 
   > :first-child ${StyledButton} {
-    border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
   }
 `;
 

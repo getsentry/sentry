@@ -59,7 +59,7 @@ const SkeletonCell = styled('div')`
 const SkeletonLine = styled('div')<{width: string}>`
   height: 16px;
   width: ${p => p.width};
-  background: ${p => p.theme.blue200};
+  background: ${p => p.theme.colors.blue200};
   border-radius: 4px;
   animation: pulse 1.5s ease-in-out infinite;
 

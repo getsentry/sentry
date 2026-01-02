@@ -15,6 +15,8 @@ from sentry.rules.match import MatchType
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.taskworker.state import CurrentTaskState
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 from sentry.utils.snuba import RateLimitExceeded
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
@@ -39,6 +41,7 @@ from sentry.workflow_engine.models.data_condition import (
 )
 from sentry.workflow_engine.processors.data_condition_group import (
     ProcessedDataConditionGroup,
+    TriggerResult,
     get_slow_conditions_for_groups,
 )
 from sentry.workflow_engine.processors.delayed_workflow import (
@@ -175,7 +178,9 @@ class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
 
         return workflow, [workflow_action_slow_filter_group, workflow_action_filter_group]
 
-    def setup_event(self, project, environment, name) -> tuple[Event, Group]:
+    def setup_event(
+        self, project: Project, environment: Environment, name: str
+    ) -> tuple[Event, Group]:
         event = self.create_event(project.id, FROZEN_TIME, name, environment.name)
         assert event.group
         return event, event.group
@@ -718,7 +723,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
         self.dcg_to_slow_conditions = get_slow_conditions_for_groups(list(self.event_data.dcg_ids))
 
     def test_simple(self) -> None:
-        result = get_groups_to_fire(
+        result, _ = get_groups_to_fire(
             self.data_condition_groups,
             self.workflows_to_envs,
             self.event_data,
@@ -744,7 +749,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
             self.group1.id: existing_result[self.group1.id]
         }
 
-        result = get_groups_to_fire(
+        result, _ = get_groups_to_fire(
             self.data_condition_groups,
             self.workflows_to_envs,
             self.event_data,
@@ -768,7 +773,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
             }
         )
 
-        result = get_groups_to_fire(
+        result, _ = get_groups_to_fire(
             self.data_condition_groups,
             self.workflows_to_envs,
             self.event_data,
@@ -790,7 +795,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
             }
         )
 
-        result = get_groups_to_fire(
+        result, _ = get_groups_to_fire(
             self.data_condition_groups,
             self.workflows_to_envs,
             self.event_data,
@@ -818,7 +823,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
             + [self.workflow2_if_dcgs[0]]
         )
 
-        result = get_groups_to_fire(
+        result, _ = get_groups_to_fire(
             self.data_condition_groups,
             self.workflows_to_envs,
             self.event_data,
@@ -836,7 +841,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
 
         self.workflows_to_envs = {self.workflow2.id: None}
 
-        result = get_groups_to_fire(
+        result, _ = get_groups_to_fire(
             self.data_condition_groups,
             self.workflows_to_envs,
             self.event_data,
@@ -846,6 +851,73 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
 
         # NOTE: same result as test_simple but without the deleted workflow
         assert result == {self.group2.id: {self.workflow2_if_dcgs[1]}}
+
+    def test_tainted_when_condition_doesnt_trigger(self) -> None:
+        query_for_when = UniqueConditionQuery(
+            handler=EventFrequencyQueryHandler,
+            interval="1h",
+            environment_id=self.environment.id,
+        )
+        self.condition_group_results[query_for_when] = {self.group2.id: 101}
+
+        result, stats = get_groups_to_fire(
+            self.data_condition_groups,
+            self.workflows_to_envs,
+            self.event_data,
+            self.condition_group_results,
+            self.dcg_to_slow_conditions,
+        )
+
+        assert result == {
+            self.group2.id: {self.workflow2_if_dcgs[1]},
+        }
+        assert stats.tainted == 2
+        assert stats.untainted == 2
+
+    def test_when_untainted_doesnt_trigger(self) -> None:
+        query_for_when = UniqueConditionQuery(
+            handler=EventFrequencyQueryHandler,
+            interval="1h",
+            environment_id=self.environment.id,
+        )
+        self.condition_group_results[query_for_when] = {self.group1.id: 99, self.group2.id: 101}
+
+        result, stats = get_groups_to_fire(
+            self.data_condition_groups,
+            self.workflows_to_envs,
+            self.event_data,
+            self.condition_group_results,
+            self.dcg_to_slow_conditions,
+        )
+
+        assert result == {
+            self.group2.id: {self.workflow2_if_dcgs[1]},
+        }
+        assert stats.tainted == 0
+        assert stats.untainted == 4
+
+    def test_tainted_if_condition_counts(self) -> None:
+        query_for_if = UniqueConditionQuery(
+            handler=EventUniqueUserFrequencyQueryHandler,
+            interval="1h",
+            environment_id=self.environment.id,
+        )
+        self.condition_group_results[query_for_if] = {self.group2.id: 101}
+
+        result, stats = get_groups_to_fire(
+            self.data_condition_groups,
+            self.workflows_to_envs,
+            self.event_data,
+            self.condition_group_results,
+            self.dcg_to_slow_conditions,
+        )
+
+        assert result == {
+            self.group1.id: {self.workflow1_if_dcgs[1]},
+            self.group2.id: {self.workflow2_if_dcgs[1]},
+        }
+        assert stats.tainted == 1
+        assert stats.untainted == 3
 
 
 class TestFireActionsForGroups(TestDelayedWorkflowBase):
@@ -923,22 +995,22 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
 
         # First call should be for workflow1/group1
         first_call_kwargs = mock_trigger.call_args_list[0].kwargs["kwargs"]
-        assert first_call_kwargs["detector_id"] == self.detector.id
         assert first_call_kwargs["event_id"] == self.event1.event_id
         assert first_call_kwargs["group_id"] == self.group1.id
         assert first_call_kwargs["workflow_id"] == self.workflow1.id
 
         # Second call should be for workflow2/group2
         second_call_kwargs = mock_trigger.call_args_list[1].kwargs["kwargs"]
-        assert second_call_kwargs["detector_id"] == self.detector.id
         assert second_call_kwargs["event_id"] == self.event2.event_id
         assert second_call_kwargs["group_id"] == self.group2.id
         assert second_call_kwargs["workflow_id"] == self.workflow2.id
 
+    @with_feature("organizations:workflow-engine-single-process-workflows")
     @patch("sentry.workflow_engine.processors.workflow.process_data_condition_group")
+    @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
     def test_fire_actions_for_groups__workflow_fire_history(self, mock_process: MagicMock) -> None:
         mock_process.return_value = (
-            ProcessedDataConditionGroup(logic_result=True, condition_results=[]),
+            ProcessedDataConditionGroup(logic_result=TriggerResult.TRUE, condition_results=[]),
             [],
         )
 
@@ -1120,3 +1192,26 @@ class TestEventKeyAndInstance:
         # With continue_on_error=False, should raise on first error
         with pytest.raises(ValueError):
             EventRedisData.from_redis_data(redis_data, continue_on_error=False)
+
+    def test_dcg_to_timestamp(self) -> None:
+        timestamp1 = timezone.now()
+        timestamp2 = timestamp1 + timedelta(hours=1)
+        timestamp3 = timestamp2 + timedelta(hours=1)
+
+        redis_data = {
+            # DCG 1 -> ts1
+            "123:456:1::": json.dumps({"event_id": "event-1", "timestamp": timestamp1.isoformat()}),
+            # DCG 1 -> ts2 (now latest)
+            "123:457::1:": json.dumps({"event_id": "event-2", "timestamp": timestamp2.isoformat()}),
+            # DCG 2 -> ts3
+            "123:458::2:": json.dumps({"event_id": "event-3", "timestamp": timestamp3.isoformat()}),
+            # DCG 3 -> no timestamp
+            "123:459:::3": json.dumps({"event_id": "event-4"}),
+        }
+
+        event_data = EventRedisData.from_redis_data(redis_data, continue_on_error=True)
+        dcg_to_timestamp = event_data.dcg_to_timestamp
+
+        assert dcg_to_timestamp[1] == timestamp2
+        assert dcg_to_timestamp[2] == timestamp3
+        assert 3 not in dcg_to_timestamp

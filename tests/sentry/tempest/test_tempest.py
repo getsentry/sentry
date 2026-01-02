@@ -33,8 +33,11 @@ class TempestTasksTest(TestCase):
         fetch_latest_item_id(self.credentials.id)
 
         self.credentials.refresh_from_db()
-        assert self.credentials.message == "No crashes found"
-        assert self.credentials.message_type == MessageType.ERROR
+        assert (
+            self.credentials.message
+            == "Connection successful. No crashes found in the crash report system yet. New crashes will appear here automatically when they occur."
+        )
+        assert self.credentials.message_type == MessageType.WARNING
         assert self.credentials.latest_fetched_item_id is None
 
     @patch("sentry.tempest.tasks.fetch_latest_id_from_tempest")
@@ -210,16 +213,6 @@ class TempestTasksTest(TestCase):
 
         self.project.update_option("sentry:tempest_fetch_screenshots", False)
         assert self.project.get_option("sentry:tempest_fetch_screenshots") is False
-
-    def test_tempest_dump_option(self) -> None:
-        # Default should be False
-        assert self.project.get_option("sentry:tempest_fetch_dumps") is False
-
-        self.project.update_option("sentry:tempest_fetch_dumps", True)
-        assert self.project.get_option("sentry:tempest_fetch_dumps") is True
-
-        self.project.update_option("sentry:tempest_fetch_dumps", False)
-        assert self.project.get_option("sentry:tempest_fetch_dumps") is False
 
     @patch("sentry.tempest.tasks.schedule_invalidate_project_config")
     @patch("sentry.tempest.tasks.fetch_items_from_tempest")

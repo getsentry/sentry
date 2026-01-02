@@ -755,6 +755,30 @@ def snapshot_alert_rule(alert_rule: AlertRule, user: RpcUser | User | None = Non
         )
 
 
+def delete_anomaly_detection_rule(snuba_query: SnubaQuery, alert_rule: AlertRule) -> None:
+    """
+    Delete accompanying data in Seer for anomaly detection rules
+    """
+    try:
+        source_id = QuerySubscription.objects.get(snuba_query_id=snuba_query.id).id
+        success = delete_rule_in_seer(
+            organization=alert_rule.organization,
+            source_id=source_id,
+        )
+        if not success:
+            logger.error(
+                "Call to delete rule data in Seer failed",
+                extra={
+                    "source_id": source_id,
+                },
+            )
+    except QuerySubscription.DoesNotExist:
+        logger.exception(
+            "Snuba query missing query subscription",
+            extra={"snuba_query_id": snuba_query.id},
+        )
+
+
 def update_alert_rule(
     alert_rule: AlertRule,
     query_type: SnubaQuery.Type | None = None,
@@ -921,18 +945,8 @@ def update_alert_rule(
                 alert_rule, project, snuba_query, updated_fields, updated_query_fields
             )
         else:
-            # if this was a dynamic rule, delete the data in Seer
             if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
-                success = delete_rule_in_seer(
-                    alert_rule=alert_rule,
-                )
-                if not success:
-                    logger.error(
-                        "Call to delete rule data in Seer failed",
-                        extra={
-                            "rule_id": alert_rule.id,
-                        },
-                    )
+                delete_anomaly_detection_rule(snuba_query, alert_rule)
             # if this alert was previously a dynamic alert, then we should update the rule to be ready
             if alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value:
                 alert_rule.update(status=AlertRuleStatus.PENDING.value)
@@ -1088,20 +1102,11 @@ def delete_alert_rule(
             )
         subscriptions = _unpack_snuba_query(alert_rule).subscriptions.all()
 
+        if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
+            delete_anomaly_detection_rule(alert_rule.snuba_query, alert_rule)
+
         incidents = Incident.objects.filter(alert_rule=alert_rule)
         if incidents.exists():
-            # if this was a dynamic rule, delete the data in Seer
-            if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
-                success = delete_rule_in_seer(
-                    alert_rule=alert_rule,
-                )
-                if not success:
-                    logger.error(
-                        "Call to delete rule data in Seer failed",
-                        extra={
-                            "rule_id": alert_rule.id,
-                        },
-                    )
             AlertRuleActivity.objects.create(
                 alert_rule=alert_rule,
                 user_id=user.id if user else None,

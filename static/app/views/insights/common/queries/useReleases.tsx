@@ -125,21 +125,15 @@ export function useReleases(
 export function useReleaseSelection(): {
   isLoading: boolean;
   primaryRelease: string | undefined;
-  secondaryRelease: string | undefined;
 } {
   const location = useLocation();
 
-  const {data: releases, isLoading} = useReleases(undefined, undefined);
+  const {isLoading} = useReleases(undefined, undefined);
 
-  // If there are more than 1 release, the first one should be the older one
+  const primaryReleaseFromQuery = decodeScalar(location.query.primaryRelease);
+
   const primaryRelease =
-    decodeScalar(location.query.primaryRelease) ??
-    (releases && releases.length > 1 ? releases?.[1]?.version : releases?.[0]?.version);
+    primaryReleaseFromQuery === '' ? undefined : primaryReleaseFromQuery;
 
-  // If there are more than 1 release, the second one should be the newest one
-  const secondaryRelease =
-    decodeScalar(location.query.secondaryRelease) ??
-    (releases && releases.length > 1 ? releases?.[0]?.version : undefined);
-
-  return {primaryRelease, secondaryRelease, isLoading};
+  return {primaryRelease, isLoading};
 }

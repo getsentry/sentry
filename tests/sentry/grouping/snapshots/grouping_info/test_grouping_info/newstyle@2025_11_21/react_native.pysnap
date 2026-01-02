@@ -1,2057 +1,2018 @@
 ---
-created: '2025-10-29T21:19:29.395668+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouping_info.py
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
 ---
 {
-  "app_exception_stacktrace": {
-    "component": {
+  "grouping_config": "newstyle:2025-11-21",
+  "variants": {
+    "app_exception_stacktrace": {
+      "component": {
+        "contributes": true,
+        "hint": null,
+        "id": "app",
+        "name": "in-app",
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "exception",
+            "name": "exception",
+            "values": [
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "type",
+                "name": null,
+                "values": [
+                  "TypeError"
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": "ignored because stacktrace takes precedence",
+                "id": "value",
+                "name": null,
+                "values": [
+                  "undefined is not a function (evaluating '({}).invalidFunction()')"
+                ]
+              },
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "stacktrace",
+                "name": "stacktrace",
+                "values": [
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/BatchedBridge/MessageQueue"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "messagequeue.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "value"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "return this.flushedQueue();"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/BatchedBridge/MessageQueue"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "messagequeue.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "flushedQueue"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "this._inCall--;"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/BatchedBridge/MessageQueue"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "messagequeue.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_inCall"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "return this.flushedQueue();"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/BatchedBridge/MessageQueue"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "messagequeue.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "flushedQueue"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "this._lastFlush = new Date().getTime();"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "reactnativerenderer-prod.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_lastFlush"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "_receiveRootNodeIDEvent(index, eventTopLevelType, i);"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "reactnativerenderer-prod.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_receiveRootNodeIDEvent"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "batchedUpdates(function() {"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "reactnativerenderer-prod.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "batchedUpdates"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "return _batchedUpdates(fn, bookkeeping);"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "reactnativerenderer-prod.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_batchedUpdates"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "return fn(a);"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "reactnativerenderer-prod.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "fn"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "(forEachAccumulated(events, executeDispatchesAndReleaseTopLevel),"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "reactnativerenderer-prod.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "forEachAccumulated"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "Array.isArray(arr) ? arr.forEach(cb, scope) : arr && cb.call(scope, arr);"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "[native code] forEach"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "reactnativerenderer-prod.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "D"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "executeDispatch(e, !1, dispatchListeners, dispatchInstances);"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "reactnativerenderer-prod.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "executeDispatch"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "ReactErrorUtils.invokeGuardedCallbackAndCatchFirstError("
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "reactnativerenderer-prod.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "invokeGuardedCallbackAndCatchFirstError"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "ReactErrorUtils.invokeGuardedCallback.apply(this, arguments);"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "reactnativerenderer-prod.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "apply"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "invokeGuardedCallback.apply(ReactErrorUtils, arguments);"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "reactnativerenderer-prod.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "apply"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "var funcArgs = Array.prototype.slice.call(arguments, 3);"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/Components/Touchable/Touchable"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "touchable.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "arguments"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "touchableHandleResponderRelease: function(e) {"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/Components/Touchable/Touchable"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "touchable.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_receiveSignal"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "this._performSideEffectsForTransition(curState, nextState, signal, e);"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/Components/Touchable/Touchable"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "touchable.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_performSideEffectsForTransition"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "this.touchableHandlePress(e);"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/Components/Touchable/TouchableNativeFeedback.android"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "touchablenativefeedback.android.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "this"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "this.props.onPress && this.props.onPress(e);"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "App"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "app.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "onPress"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "<Button"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "App"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "app.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "Button"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "<Button"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
       "contributes": true,
+      "description": "exception stacktrace — in-app frames",
+      "hash": "33e3ac91fc256d3dfb789693be30a883",
       "hint": null,
-      "id": "app",
-      "name": "in-app",
-      "values": [
-        {
-          "contributes": true,
-          "hint": null,
-          "id": "exception",
-          "name": "exception",
-          "values": [
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "TypeError"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because stacktrace takes precedence",
-              "id": "value",
-              "name": null,
-              "values": [
-                "undefined is not a function (evaluating '({}).invalidFunction()')"
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "stacktrace",
-              "name": "stacktrace",
-              "values": [
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/BatchedBridge/MessageQueue"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "messagequeue.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "value"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "return this.flushedQueue();"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/BatchedBridge/MessageQueue"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "messagequeue.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "flushedQueue"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "this._inCall--;"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/BatchedBridge/MessageQueue"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "messagequeue.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_inCall"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "return this.flushedQueue();"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/BatchedBridge/MessageQueue"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "messagequeue.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "flushedQueue"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "this._lastFlush = new Date().getTime();"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "reactnativerenderer-prod.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_lastFlush"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "_receiveRootNodeIDEvent(index, eventTopLevelType, i);"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "reactnativerenderer-prod.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_receiveRootNodeIDEvent"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "batchedUpdates(function() {"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "reactnativerenderer-prod.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "batchedUpdates"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "return _batchedUpdates(fn, bookkeeping);"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "reactnativerenderer-prod.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_batchedUpdates"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "return fn(a);"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "reactnativerenderer-prod.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "fn"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "(forEachAccumulated(events, executeDispatchesAndReleaseTopLevel),"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "reactnativerenderer-prod.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "forEachAccumulated"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "Array.isArray(arr) ? arr.forEach(cb, scope) : arr && cb.call(scope, arr);"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "[native code] forEach"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "reactnativerenderer-prod.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "D"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "executeDispatch(e, !1, dispatchListeners, dispatchInstances);"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "reactnativerenderer-prod.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "executeDispatch"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "ReactErrorUtils.invokeGuardedCallbackAndCatchFirstError("
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "reactnativerenderer-prod.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "invokeGuardedCallbackAndCatchFirstError"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "ReactErrorUtils.invokeGuardedCallback.apply(this, arguments);"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "reactnativerenderer-prod.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "apply"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "invokeGuardedCallback.apply(ReactErrorUtils, arguments);"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "reactnativerenderer-prod.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "apply"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "var funcArgs = Array.prototype.slice.call(arguments, 3);"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/Components/Touchable/Touchable"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "touchable.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "arguments"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "touchableHandleResponderRelease: function(e) {"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/Components/Touchable/Touchable"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "touchable.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_receiveSignal"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "this._performSideEffectsForTransition(curState, nextState, signal, e);"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/Components/Touchable/Touchable"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "touchable.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_performSideEffectsForTransition"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "this.touchableHandlePress(e);"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/Components/Touchable/TouchableNativeFeedback.android"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "touchablenativefeedback.android.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "this"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "this.props.onPress && this.props.onPress(e);"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": "marked in-app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "App"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "app.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "onPress"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "<Button"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": "marked in-app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "App"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "app.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "Button"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "<Button"
-                      ]
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      ]
+      "key": "app_exception_stacktrace",
+      "type": "component"
     },
-    "config": {
-      "base": "newstyle:2023-01-11",
-      "delegates": [
-        "frame:v1",
-        "single-exception:v1",
-        "stacktrace:v1"
-      ],
-      "id": "newstyle:2025-11-21",
-      "strategies": [
-        "chained-exception:v1",
-        "csp:v1",
-        "expect-ct:v1",
-        "expect-staple:v1",
-        "hpkp:v1",
-        "message:v1",
-        "stacktrace:v1",
-        "template:v1",
-        "threads:v1"
-      ]
-    },
-    "contributes": true,
-    "description": "exception stacktrace — in-app frames",
-    "hash": "73470e545e51eea9cff8a6c006f68f57",
-    "hint": null,
-    "key": "app_exception_stacktrace",
-    "type": "component"
-  },
-  "system_exception_stacktrace": {
-    "component": {
+    "system_exception_stacktrace": {
+      "component": {
+        "contributes": true,
+        "hint": null,
+        "id": "system",
+        "name": null,
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "exception",
+            "name": "exception",
+            "values": [
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "type",
+                "name": null,
+                "values": [
+                  "TypeError"
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": "ignored because stacktrace takes precedence",
+                "id": "value",
+                "name": null,
+                "values": [
+                  "undefined is not a function (evaluating '({}).invalidFunction()')"
+                ]
+              },
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "stacktrace",
+                "name": "stacktrace",
+                "values": [
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/BatchedBridge/MessageQueue"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "messagequeue.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "value"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "return this.flushedQueue();"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/BatchedBridge/MessageQueue"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "messagequeue.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "flushedQueue"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "this._inCall--;"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/BatchedBridge/MessageQueue"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "messagequeue.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_inCall"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "return this.flushedQueue();"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/BatchedBridge/MessageQueue"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "messagequeue.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "flushedQueue"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "this._lastFlush = new Date().getTime();"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "reactnativerenderer-prod.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_lastFlush"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "_receiveRootNodeIDEvent(index, eventTopLevelType, i);"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "reactnativerenderer-prod.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_receiveRootNodeIDEvent"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "batchedUpdates(function() {"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "reactnativerenderer-prod.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "batchedUpdates"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "return _batchedUpdates(fn, bookkeeping);"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "reactnativerenderer-prod.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_batchedUpdates"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "return fn(a);"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "reactnativerenderer-prod.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "fn"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "(forEachAccumulated(events, executeDispatchesAndReleaseTopLevel),"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "reactnativerenderer-prod.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "forEachAccumulated"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "Array.isArray(arr) ? arr.forEach(cb, scope) : arr && cb.call(scope, arr);"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "[native code] forEach"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "reactnativerenderer-prod.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "D"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "executeDispatch(e, !1, dispatchListeners, dispatchInstances);"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "reactnativerenderer-prod.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "executeDispatch"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "ReactErrorUtils.invokeGuardedCallbackAndCatchFirstError("
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "reactnativerenderer-prod.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "invokeGuardedCallbackAndCatchFirstError"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "ReactErrorUtils.invokeGuardedCallback.apply(this, arguments);"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "reactnativerenderer-prod.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "apply"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "invokeGuardedCallback.apply(ReactErrorUtils, arguments);"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "reactnativerenderer-prod.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "apply"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "var funcArgs = Array.prototype.slice.call(arguments, 3);"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/Components/Touchable/Touchable"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "touchable.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "arguments"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "touchableHandleResponderRelease: function(e) {"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/Components/Touchable/Touchable"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "touchable.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_receiveSignal"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "this._performSideEffectsForTransition(curState, nextState, signal, e);"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/Components/Touchable/Touchable"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "touchable.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_performSideEffectsForTransition"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "this.touchableHandlePress(e);"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "react-native/Libraries/Components/Touchable/TouchableNativeFeedback.android"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "touchablenativefeedback.android.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "this"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "this.props.onPress && this.props.onPress(e);"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "App"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "app.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "onPress"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "<Button"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "App"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "app.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because sourcemap used and context line available",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "Button"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "<Button"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
       "contributes": true,
+      "description": "exception stacktrace — all frames",
+      "hash": "618e6a3beb1ecd7d01616b554f6c873a",
       "hint": null,
-      "id": "system",
-      "name": null,
-      "values": [
-        {
-          "contributes": true,
-          "hint": null,
-          "id": "exception",
-          "name": "exception",
-          "values": [
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "TypeError"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because stacktrace takes precedence",
-              "id": "value",
-              "name": null,
-              "values": [
-                "undefined is not a function (evaluating '({}).invalidFunction()')"
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "stacktrace",
-              "name": "stacktrace",
-              "values": [
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/BatchedBridge/MessageQueue"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "messagequeue.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "value"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "return this.flushedQueue();"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/BatchedBridge/MessageQueue"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "messagequeue.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "flushedQueue"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "this._inCall--;"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/BatchedBridge/MessageQueue"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "messagequeue.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_inCall"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "return this.flushedQueue();"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/BatchedBridge/MessageQueue"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "messagequeue.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "flushedQueue"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "this._lastFlush = new Date().getTime();"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "reactnativerenderer-prod.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_lastFlush"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "_receiveRootNodeIDEvent(index, eventTopLevelType, i);"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "reactnativerenderer-prod.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_receiveRootNodeIDEvent"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "batchedUpdates(function() {"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "reactnativerenderer-prod.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "batchedUpdates"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "return _batchedUpdates(fn, bookkeeping);"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "reactnativerenderer-prod.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_batchedUpdates"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "return fn(a);"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "reactnativerenderer-prod.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "fn"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "(forEachAccumulated(events, executeDispatchesAndReleaseTopLevel),"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "reactnativerenderer-prod.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "forEachAccumulated"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "Array.isArray(arr) ? arr.forEach(cb, scope) : arr && cb.call(scope, arr);"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "[native code] forEach"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "reactnativerenderer-prod.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "D"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "executeDispatch(e, !1, dispatchListeners, dispatchInstances);"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "reactnativerenderer-prod.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "executeDispatch"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "ReactErrorUtils.invokeGuardedCallbackAndCatchFirstError("
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "reactnativerenderer-prod.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "invokeGuardedCallbackAndCatchFirstError"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "ReactErrorUtils.invokeGuardedCallback.apply(this, arguments);"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "reactnativerenderer-prod.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "apply"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "invokeGuardedCallback.apply(ReactErrorUtils, arguments);"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "reactnativerenderer-prod.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "apply"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "var funcArgs = Array.prototype.slice.call(arguments, 3);"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/Components/Touchable/Touchable"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "touchable.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "arguments"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "touchableHandleResponderRelease: function(e) {"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/Components/Touchable/Touchable"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "touchable.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_receiveSignal"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "this._performSideEffectsForTransition(curState, nextState, signal, e);"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/Components/Touchable/Touchable"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "touchable.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_performSideEffectsForTransition"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "this.touchableHandlePress(e);"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "react-native/Libraries/Components/Touchable/TouchableNativeFeedback.android"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "touchablenativefeedback.android.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "this"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "this.props.onPress && this.props.onPress(e);"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "App"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "app.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "onPress"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "<Button"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "App"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "app.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because sourcemap used and context line available",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "Button"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "<Button"
-                      ]
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    "config": {
-      "base": "newstyle:2023-01-11",
-      "delegates": [
-        "frame:v1",
-        "single-exception:v1",
-        "stacktrace:v1"
-      ],
-      "id": "newstyle:2025-11-21",
-      "strategies": [
-        "chained-exception:v1",
-        "csp:v1",
-        "expect-ct:v1",
-        "expect-staple:v1",
-        "hpkp:v1",
-        "message:v1",
-        "stacktrace:v1",
-        "template:v1",
-        "threads:v1"
-      ]
-    },
-    "contributes": true,
-    "description": "exception stacktrace — all frames",
-    "hash": "ecd413627f0d90a5a25cb28d1ba9c39f",
-    "hint": null,
-    "key": "system_exception_stacktrace",
-    "type": "component"
+      "key": "system_exception_stacktrace",
+      "type": "component"
+    }
   }
 }

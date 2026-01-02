@@ -28,6 +28,7 @@ from sentry.conf.types.kafka_definition import get_topic_codec
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.group import Group, GroupStatus
+from sentry.quotas.base import SeatAssignmentResult
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
@@ -436,6 +437,23 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             assert synth_1.attributes["check_status"].string_value == "missed_window"
             assert synth_2.attributes["check_status"].string_value == "missed_window"
             assert synth_3.attributes["check_status"].string_value == "failure"
+
+            # Verify backfilled misses have the correct status_reason
+            assert synth_1.attributes["status_reason_type"].string_value == "miss_backfill"
+            assert (
+                synth_1.attributes["status_reason_description"].string_value
+                == "Miss was never reported for this scheduled check_time"
+            )
+            assert synth_2.attributes["status_reason_type"].string_value == "miss_backfill"
+            assert (
+                synth_2.attributes["status_reason_description"].string_value
+                == "Miss was never reported for this scheduled check_time"
+            )
+
+            # Verify backfilled misses use UUIDs without dashes (simple format)
+            assert "-" not in synth_1.attributes["guid"].string_value
+            assert "-" not in synth_1.trace_id
+            assert "-" not in synth_1.attributes["span_id"].string_value
 
             assert (
                 synth_1.attributes["scheduled_check_time_us"].int_value
@@ -859,7 +877,9 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             mock.patch("sentry.uptime.autodetect.result_handler.logger") as onboarding_logger,
             mock.patch(
                 "sentry.uptime.autodetect.result_handler.update_uptime_detector",
-                side_effect=UptimeMonitorNoSeatAvailable(None),
+                side_effect=UptimeMonitorNoSeatAvailable(
+                    SeatAssignmentResult(assignable=False, reason="Testing")
+                ),
             ),
             self.tasks(),
             self.feature(features),

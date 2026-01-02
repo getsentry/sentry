@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useId, type CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
+import {AiPrivacyTooltip} from 'sentry/components/aiPrivacyTooltip';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -69,7 +70,9 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
       <Flex align="center" wrap="wrap" gap="xs">
         {isAiSummaryEnabled && summary && (
           <Fragment>
-            <strong>{summary}</strong>
+            <AiPrivacyTooltip>
+              <strong>{summary}</strong>
+            </AiPrivacyTooltip>
             <Purple>•</Purple>
           </Fragment>
         )}
@@ -113,5 +116,5 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
 }
 
 const Purple = styled('span')`
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.colors.blue400};
 `;

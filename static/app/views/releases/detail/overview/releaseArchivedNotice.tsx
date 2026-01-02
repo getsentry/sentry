@@ -13,7 +13,7 @@ type Props = {
 function ReleaseArchivedNotice({onRestore, multi}: Props) {
   return (
     <Alert.Container>
-      <Alert type="warning" showIcon={false}>
+      <Alert variant="warning" showIcon={false}>
         {multi
           ? t('These releases have been archived.')
           : t('This release has been archived.')}
@@ -38,7 +38,7 @@ const UnarchiveButton = styled(Button)`
   &:hover,
   &:focus,
   &:active {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 

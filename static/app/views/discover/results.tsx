@@ -33,11 +33,9 @@ import {t, tct, tctCode} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import {SavedSearchType} from 'sentry/types/group';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
@@ -57,6 +55,8 @@ import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryCl
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
@@ -76,14 +76,15 @@ import {
 } from 'sentry/views/discover/savedQuery/utils';
 import Table from 'sentry/views/discover/table';
 import {generateTitle} from 'sentry/views/discover/utils';
+import {getExploreUrl} from 'sentry/views/explore/utils';
 import {addRoutePerformanceContext} from 'sentry/views/performance/utils';
 
 type Props = {
   api: Client;
   loading: boolean;
   location: Location;
+  navigate: ReturnType<typeof useNavigate>;
   organization: Organization;
-  router: InjectedRouter;
   selection: PageFilters;
   setSavedQuery: (savedQuery?: SavedQuery) => void;
   isHomepage?: boolean;
@@ -175,20 +176,26 @@ export class Results extends Component<Props, State> {
   };
 
   componentDidMount() {
-    const {organization, selection, location, isHomepage} = this.props;
+    const {organization, selection, location, isHomepage, navigate} = this.props;
     if (location.query.fromMetric) {
       this.setState({showMetricsAlert: true});
-      browserHistory.replace({
-        ...location,
-        query: {...location.query, fromMetric: undefined},
-      });
+      navigate(
+        {
+          ...location,
+          query: {...location.query, fromMetric: undefined},
+        },
+        {replace: true}
+      );
     }
     if (location.query[SHOW_UNPARAM_BANNER]) {
       this.setState({showUnparameterizedBanner: true});
-      browserHistory.replace({
-        ...location,
-        query: {...location.query, [SHOW_UNPARAM_BANNER]: undefined},
-      });
+      navigate(
+        {
+          ...location,
+          query: {...location.query, [SHOW_UNPARAM_BANNER]: undefined},
+        },
+        {replace: true}
+      );
     }
     loadOrganizationTags(this.tagsApi, organization.slug, selection);
     addRoutePerformanceContext(selection);
@@ -205,10 +212,13 @@ export class Results extends Component<Props, State> {
 
     if (location.query.incompatible) {
       this.setState({showQueryIncompatibleWithDataset: true});
-      browserHistory.replace({
-        ...location,
-        query: {...location.query, incompatible: undefined},
-      });
+      this.props.navigate(
+        {
+          ...location,
+          query: {...location.query, incompatible: undefined},
+        },
+        {replace: true}
+      );
     }
 
     this.checkEventView();
@@ -387,20 +397,20 @@ export class Results extends Component<Props, State> {
     if (isHomepage && !this.state.savedQuery) {
       this.setState({savedQuery, eventView: nextEventView});
     }
-    browserHistory.replace(
+    this.props.navigate(
       normalizeUrl(
         nextEventView.getResultsViewUrlTarget(
           organization,
           isHomepage,
           hasDatasetSelector(organization) ? savedQueryDataset : undefined
         )
-      )
+      ),
+      {replace: true}
     );
   }
 
   handleCursor: CursorHandler = (cursor, path, query, _direction) => {
-    const {router} = this.props;
-    router.push({
+    this.props.navigate({
       pathname: path,
       query: {...query, cursor},
     });
@@ -423,7 +433,7 @@ export class Results extends Component<Props, State> {
   };
 
   handleSearch = (query: string) => {
-    const {router, location} = this.props;
+    const {location, navigate} = this.props;
 
     const queryParams = normalizeDateTimeParams({
       ...location.query,
@@ -433,14 +443,14 @@ export class Results extends Component<Props, State> {
     // do not propagate pagination when making a new search
     const searchQueryParams = omit(queryParams, 'cursor');
 
-    router.push({
+    navigate({
       pathname: location.pathname,
       query: searchQueryParams,
     });
   };
 
   handleYAxisChange = (value: string[]) => {
-    const {router, location} = this.props;
+    const {navigate, location} = this.props;
     const isDisplayMultiYAxisSupported = MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES.includes(
       location.query.display as DisplayModes
     );
@@ -457,7 +467,7 @@ export class Results extends Component<Props, State> {
           : location.query.display,
     };
 
-    router.push({
+    navigate({
       pathname: location.pathname,
       query: newQuery,
     });
@@ -474,14 +484,14 @@ export class Results extends Component<Props, State> {
   };
 
   handleDisplayChange = (value: string) => {
-    const {router, location} = this.props;
+    const {navigate, location} = this.props;
 
     const newQuery = {
       ...location.query,
       display: value,
     };
 
-    router.push({
+    navigate({
       pathname: location.pathname,
       query: newQuery,
     });
@@ -493,7 +503,7 @@ export class Results extends Component<Props, State> {
   };
 
   handleIntervalChange = (value: string | undefined) => {
-    const {router, location} = this.props;
+    const {navigate, location} = this.props;
 
     const newQuery = {
       ...location.query,
@@ -501,7 +511,7 @@ export class Results extends Component<Props, State> {
     };
 
     if (location.query.interval !== value) {
-      router.push({
+      navigate({
         pathname: location.pathname,
         query: newQuery,
       });
@@ -514,14 +524,14 @@ export class Results extends Component<Props, State> {
   };
 
   handleTopEventsChange = (value: string) => {
-    const {router, location} = this.props;
+    const {navigate, location} = this.props;
 
     const newQuery = {
       ...location.query,
       topEvents: value,
     };
 
-    router.push({
+    navigate({
       pathname: location.pathname,
       query: newQuery,
     });
@@ -581,7 +591,7 @@ export class Results extends Component<Props, State> {
     }
     return (
       <Alert.Container>
-        <Alert type="error">{error}</Alert>
+        <Alert variant="danger">{error}</Alert>
       </Alert.Container>
     );
   }
@@ -598,7 +608,7 @@ export class Results extends Component<Props, State> {
     ) {
       return (
         <Alert.Container>
-          <Alert type="info">
+          <Alert variant="info">
             {t(
               "You've navigated to this page from a performance metric widget generated from processed events. The results here only show indexed events."
             )}
@@ -609,7 +619,7 @@ export class Results extends Component<Props, State> {
     if (this.state.showUnparameterizedBanner) {
       return (
         <Alert.Container>
-          <Alert type="info">
+          <Alert variant="info">
             {tct(
               'These are unparameterized transactions. To better organize your transactions, [link:set transaction names manually].',
               {
@@ -631,7 +641,7 @@ export class Results extends Component<Props, State> {
       return (
         <Alert.Container>
           <Alert
-            type="warning"
+            variant="warning"
             trailingItems={
               <StyledCloseButton
                 icon={<IconClose size="sm" />}
@@ -653,12 +663,49 @@ export class Results extends Component<Props, State> {
   }
 
   renderTransactionsDatasetDeprecationBanner() {
-    const {savedQueryDataset} = this.state;
-    const {location, organization} = this.props;
+    const {savedQueryDataset, savedQuery} = this.state;
+    const {location, organization, selection} = this.props;
     const dataset = getDatasetFromLocationOrSavedQueryDataset(
       location,
       savedQueryDataset
     );
+
+    if (dataset === DiscoverDatasets.TRANSACTIONS && savedQuery?.exploreQuery) {
+      const exploreUrl = getExploreUrl({
+        organization,
+        ...savedQuery.exploreQuery?.query?.[0],
+        field: savedQuery.exploreQuery?.query?.[0].fields,
+        sort: savedQuery.exploreQuery?.query?.[0].orderby,
+        groupBy: savedQuery.exploreQuery?.query?.[0].groupby,
+        id: savedQuery.exploreQuery.id,
+        title: savedQuery.exploreQuery.name,
+        selection: {
+          projects: savedQuery.exploreQuery.projects ?? selection.projects,
+          environments: savedQuery.exploreQuery.environment ?? selection.environments,
+          datetime: {
+            start: savedQuery.exploreQuery.start ?? null,
+            end: savedQuery.exploreQuery.end ?? null,
+            period: savedQuery.exploreQuery.range ?? null,
+            utc: selection.datetime.utc ?? null,
+          },
+        },
+        interval: savedQuery.exploreQuery?.interval,
+        referrer: 'discover_v2.transactions_query_migration_banner',
+      });
+      return (
+        <Alert.Container>
+          <Alert variant="warning">
+            {tct(
+              'This query has been migrated to Explore, the fancy new UI that will soon replace Discover. Try it out in [explore:Explore] instead.',
+              {
+                explore: <Link to={exploreUrl} />,
+              }
+            )}
+          </Alert>
+        </Alert.Container>
+      );
+    }
+
     if (
       this.state.showTransactionsDeprecationAlert &&
       organization.features.includes('performance-transaction-deprecation-banner') &&
@@ -667,7 +714,7 @@ export class Results extends Component<Props, State> {
       return (
         <Alert.Container>
           <Alert
-            type="warning"
+            variant="warning"
             trailingItems={
               <StyledCloseButton
                 icon={<IconClose size="sm" />}
@@ -701,7 +748,7 @@ export class Results extends Component<Props, State> {
     if (tips) {
       return tips.map((tip, index) => (
         <Alert.Container key={`tip-${index}`}>
-          <Alert type="info" key={`tip-${index}`}>
+          <Alert variant="info" key={`tip-${index}`}>
             <TipContainer as="span" text={tip} />
           </Alert>
         </Alert.Container>
@@ -967,12 +1014,12 @@ function SavedQueryAPI(props: Omit<Props, 'savedQuery' | 'loading' | 'setSavedQu
   );
 }
 
-export default function ResultsContainer(
-  props: Omit<Props, 'api' | 'organization' | 'selection' | 'loading' | 'setSavedQuery'>
-) {
+export default function ResultsContainer() {
   const api = useApi();
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   /**
    * Block `<Results>` from mounting until GSH is ready since there are API
@@ -988,10 +1035,9 @@ export default function ResultsContainer(
   return (
     <PageFiltersContainer
       disablePersistence={
-        organization.features.includes('discover-query') &&
-        !!(props.savedQuery || props.location.query.id)
+        organization.features.includes('discover-query') && !!location.query.id
       }
-      skipLoadLastUsed={!!props.savedQuery}
+      skipLoadLastUsed={false}
       // The Discover Results component will manage URL params, including page filters state
       // This avoids an unnecessary re-render when forcing a project filter for team plan users
       skipInitializeUrlParams
@@ -1000,7 +1046,8 @@ export default function ResultsContainer(
         api={api}
         organization={organization}
         selection={selection}
-        {...props}
+        location={location}
+        navigate={navigate}
       />
     </PageFiltersContainer>
   );

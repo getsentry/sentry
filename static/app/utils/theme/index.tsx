@@ -1,13 +1,2 @@
-import {darkTheme, lightTheme} from './theme';
-
-export type {
-  Color,
-  ColorOrAlias,
-  FormSize,
-  IconSize,
-  StrictCSSObject,
-  Theme,
-} from './theme';
-
-export {lightTheme, darkTheme};
-// @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
+export type * from './types';
+export type {Color, ColorOrAlias, StrictCSSObject, SentryTheme as Theme} from './theme';

@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import type {Query} from 'history';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import {REPLAY_LOADING_HEIGHT_LARGE} from 'sentry/components/events/eventReplay/constants';
@@ -21,10 +22,12 @@ interface Props {
   handleForwardClick: undefined | (() => void);
   overlayContent: React.ReactNode;
   replayReaderResult: ReturnType<typeof useLoadReplayReader>;
+  query?: Query;
 }
 
 export default function GroupReplaysPlayer({
   analyticsContext,
+  query,
   handleForwardClick,
   handleBackClick,
   overlayContent,
@@ -65,6 +68,7 @@ export default function GroupReplaysPlayer({
               <ReplayReaderProvider replay={replay}>
                 <ReplayPlayerStateContextProvider>
                   <ReplayPreviewPlayer
+                    query={query}
                     errorBeforeReplayStart={replay.getErrorBeforeReplayStart()}
                     replayId={replayReaderResult.replayId}
                     replayRecord={replayReaderResult.replayRecord!}
@@ -95,5 +99,5 @@ const PlayerContainer = styled(FluidHeight)`
 
 const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
   height: ${REPLAY_LOADING_HEIGHT_LARGE}px;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;

@@ -1,66 +1,85 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {DateTimeField} from 'sentry/components/deprecatedforms/dateTimeField';
-import Form from 'sentry/components/deprecatedforms/form';
-import withFormContext from 'sentry/components/deprecatedforms/withFormContext';
+import {Heading} from '@sentry/scraps/text';
 
-class DateFieldNoContext extends DateTimeField {
-  getType() {
-    return 'date';
-  }
+import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Button} from 'sentry/components/core/button';
+import InputField from 'sentry/components/forms/fields/inputField';
+import Form from 'sentry/components/forms/form';
+import type {OnSubmitCallback} from 'sentry/components/forms/types';
+
+interface ChangeContractEndDateModalProps extends ModalRenderProps {
+  contractPeriodEnd: string;
+  onAction: (data: Record<string, any>) => Promise<unknown> | unknown;
 }
 
-const DateField = withFormContext(DateFieldNoContext);
+function ChangeContractEndDateModal({
+  contractPeriodEnd,
+  onAction,
+  Header,
+  Body,
+  closeModal,
+}: ChangeContractEndDateModalProps) {
+  const onSubmit: OnSubmitCallback = async (formData, onSubmitSuccess, onSubmitError) => {
+    try {
+      const postData: Record<string, any> = {contractPeriodEnd};
 
-type Props = {
-  contractPeriodEnd: string;
-  onAction: (data: any) => void;
-};
+      for (const key in formData) {
+        if (formData[key] !== '' && formData[key] !== null) {
+          postData[key] = formData[key];
+        }
+      }
 
-const openActionModal = ({onAction, contractPeriodEnd}: Props) =>
-  openModal(({Header, Body, closeModal}) => (
+      await onAction(postData);
+      onSubmitSuccess(postData);
+      closeModal();
+    } catch (err: any) {
+      onSubmitError(err?.responseJSON ?? err);
+    }
+  };
+
+  return (
     <Fragment>
-      <Header>Update Contract End Date</Header>
+      <Header closeButton>
+        <Heading as="h3">Update Contract End Date</Heading>
+      </Header>
       <Body>
         <Form
-          onSubmit={formData => {
-            const postData = {contractPeriodEnd};
-
-            for (const k in formData) {
-              if (formData[k] !== '' && formData[k] !== null) {
-                // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                postData[k] = formData[k];
-              }
-            }
-
-            onAction(postData);
-            closeModal();
-          }}
+          onSubmit={onSubmit}
           onCancel={closeModal}
           submitLabel="Submit"
           cancelLabel="Cancel"
-          footerClass="modal-footer"
         >
           <DateField
             label="End Date"
             name="contractPeriodEnd"
             help="The date at which this contract should end."
             defaultValue={contractPeriodEnd}
+            type="date"
           />
         </Form>
       </Body>
     </Fragment>
-  ));
+  );
+}
 
-function ChangeContractEndDateAction(props: Props) {
+type Options = Omit<ChangeContractEndDateModalProps, keyof ModalRenderProps>;
+
+const openActionModal = (props: Options) =>
+  openModal(deps => <ChangeContractEndDateModal {...deps} {...props} />);
+
+function ChangeContractEndDateAction(props: Options) {
   return (
     <Button priority="link" size="zero" onClick={() => openActionModal(props)}>
       {moment(props.contractPeriodEnd).format('ll')}
     </Button>
   );
 }
+
+const DateField = styled(InputField)`
+  padding-left: 0;
+`;
 
 export default ChangeContractEndDateAction;

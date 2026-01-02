@@ -13,8 +13,8 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {PlanTier} from 'getsentry/types';
 import {displayBudgetName, isAmPlan} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
-import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
-import VolumeSliders from 'getsentry/views/amCheckout/steps/volumeSliders';
+import StepHeader from 'getsentry/views/amCheckout/components/stepHeader';
+import VolumeSliders from 'getsentry/views/amCheckout/components/volumeSliders';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 
 function AddDataVolume({
@@ -56,7 +56,7 @@ function AddDataVolume({
       <Flex direction="column" padding="xl" gap="0">
         <RowWithTag>
           <Title>{t('Monthly Reserved Volumes')}</Title>
-          <StyledTag type="promotion">{t('Plan ahead and save 20%')}</StyledTag>
+          <StyledTag variant="promotion">{t('Plan ahead and save 20%')}</StyledTag>
         </RowWithTag>
         <Description>
           {t('Prepay for usage by reserving volumes and save up to 20%')}

@@ -1,131 +1,3 @@
-## * The default configuration of stacktrace grouping enhancers
-
-# iOS known apps
-family:native package:/var/containers/Bundle/Application/**          +app
-family:native package:/private/var/containers/Bundle/Application/**  +app
-
-# iOS apps in simulator
-family:native package:**/Developer/CoreSimulator/Devices/**          +app
-family:native package:**/Containers/Bundle/Application/**            +app
-
-# well known path components for mac paths
-family:native package:**.app/Contents/**                             +app
-family:native package:/Users/**                                      +app
-
-# Unreal Engine
-
-## UE internal fatal log message handling
-
-family:native stack.function:UE::Logging::Private::BasicFatalLog     v+app -app ^-app
-
-## UE internal assertion handling
-family:native stack.function:FDebug::CheckVerifyFailedImpl*                                             v+app -app ^-app
-stack.function:*::Impl::ExecCheckImplInternal | [ stack.function:FDebug::CheckVerifyFailedImpl ]        -app
-stack.function:FDebug::CheckVerifyFailedImpl2 | [ stack.function:FDebug::CheckVerifyFailedImpl2V ]      -app
-
-## UE internal ensure handling
-
-### UE 5.2 and older
-family:native stack.function:FDebug::OptionallyLogFormattedEnsureMessageReturningFalse                  v+app -app ^-app
-category:indirection | [ stack.function:FDebug::OptionallyLogFormattedEnsureMessageReturningFalse ]     -app
-
-### UE 5.3
-family:native stack.function:DispatchCheckVerify*                          v+app -app ^-app
-
-### UE 5.4 and newer
-family:native stack.function:UE::Assert::Private::ExecCheckImplInternal*   v+app -app ^-app
-
-## UE SDK USentrySubsystem event capturing
-family:native stack.function:USentrySubsystem::CaptureMessage*             v+app -app ^-app
-family:native stack.function:USentrySubsystem::CaptureMessageWithScope*    v+app -app ^-app
-family:native stack.function:USentrySubsystem::CaptureEvent*               v+app -app ^-app
-family:native stack.function:USentrySubsystem::CaptureEventWithScope*      v+app -app ^-app
-family:native stack.function:USentrySubsystem::*execCapture*               v+app -app ^-app
-
-# known well locations for unix paths
-family:native package:/lib/**                                        -app
-family:native package:/usr/lib/**                                    -app
-family:native path:/usr/local/lib/**                                 -app
-family:native path:/usr/local/Cellar/**                              -app
-family:native package:linux-gate.so*                                 -app
-
-# rust common modules/functions
-family:native function:std::*                                     -app
-family:native function:core::*                                    -app
-family:native function:alloc::*                                   -app
-family:native function:__rust_*                                   -app
-family:native function:rust_begin_unwind                          -app
-
-# rust borders
-family:native function:std::panicking::begin_panic                ^-group -group ^-app -app
-family:native function:core::panicking::begin_panic               ^-group -group ^-app -app
-family:native function:failure::backtrace::Backtrace::new         ^-group -group ^-app -app
-family:native function:error_chain::make_backtrace                ^-group -group ^-app -app
-family:native function:std::panicking::panic_fmt                  ^-app -app
-family:native function:core::panicking::panic_fmt                 ^-app -app
-
-# C++ borders
-family:native function:_CxxThrowException                         ^-group -group ^-app -app
-family:native function:__cxa_throw                                ^-group -group ^-app -app
-family:native function:__assert_rtn                               ^-group -group ^-app -app
-
-# Objective-C
-family:native function:_NSRaiseError                              ^-group -group ^-app -app
-family:native function:_mh_execute_header                         -group -app
-
-# Breakpad
-family:native function:google_breakpad::*                         -app -group
-family:native function:google_breakpad::ExceptionHandler::SignalHandler ^-group -group
-family:native function:google_breakpad::ExceptionHandler::WriteMinidumpWithException ^-group -group
-
-# Support frameworks that are not in-app
-family:native package:**/Frameworks/libswift*.dylib                  -app
-family:native package:**/Frameworks/KSCrash.framework/**             -app
-family:native package:**/Frameworks/SentrySwift.framework/**         -app
-family:native package:**/Frameworks/Sentry.framework/**              -app
-
-# Needed for versions < sentry-cocoa 7.0.0 and static linking.
-# Before sentry-cocoa 7.0.0, we marked all packages located inside the application bundle as inApp.
-# Since 7.0.0, the Cocoa SKD only marks the main executable as inApp. This change doesn't impact
-# applications using static libraries, as when using static libraries, all of them end up in the
-# main executable.
-family:native function:kscm_*                                     -app -group
-family:native function:sentrycrashcm_*                            -app -group
-family:native function:kscrash_*                                  -app -group
-family:native function:*sentrycrash_*                             -app -group
-family:native function:"?[[]KSCrash*"                             -app -group
-family:native function:"?[[]RNSentry*"                            -app -group
-family:native function:"__*[[]Sentry*"                            -app -group
-
-# Projects shipping their own class called "SentryFoo" can then easily override this in their
-# own grouping enhancers.
-family:native function:"?[[]Sentry*"                              -app -group
-
-# Mark Dart Flutter Android stacktraces in-app by default, further not in-app rules are applied afterwards below
-family:native stack.package:/data/app/** stack.abs_path:**/*.dart +app
-# Dart/Flutter stacktraces that are not in-app
-family:javascript stack.abs_path:org-dartlang-sdk:///** -app -group
-family:javascript module:**/packages/flutter/** -app
-family:native stack.abs_path:**/packages/flutter/** -app
-family:native stack.abs_path:lib/ui/hooks.dart -app
-family:native stack.abs_path:lib/ui/platform_dispatcher.dart -app
-# sentry-dart SDK frames are not in app
-stack.abs_path:package:sentry/** -app -group
-stack.abs_path:package:sentry_flutter/** -app -group
-# other sentry-dart packages that are non in app
-stack.abs_path:package:sentry_logging/** -app -group
-stack.abs_path:package:sentry_dio/** -app -group
-stack.abs_path:package:sentry_file/** -app -group
-stack.abs_path:package:sentry_hive/** -app -group
-stack.abs_path:package:sentry_isar/** -app -group
-stack.abs_path:package:sentry_sqflite/** -app -group
-stack.abs_path:package:sentry_drift/** -app -group
-stack.abs_path:package:sentry_isar/** -app
-stack.abs_path:package:sentry_link/** -app
-stack.abs_path:package:sentry_firebase_remote_config/** -app
-# .pub-cache is the node_modules equivalent for Dart
-family:native stack.abs_path:**/.pub-cache/** -app
-
 # Categorization of frames
 family:native package:"/System/Library/Frameworks/**" category=system
 family:native package:"C:/Windows/**" category=system
@@ -149,6 +21,8 @@ module:com.android.* category=system
 family:native package:libdispatch.dylib category=system
 family:native package:WebKit category=system
 family:native package:**/libart.so category=system
+family:native package:linux-gate.so* category=system
+family:native package:linux-vdso.so* category=system
 package:/apex/com.android.*/lib*/** category=system
 
 # (Presumably) preinstalled stuff on Lenovo Android devices
@@ -328,16 +202,14 @@ family:native function:pthread_mutex_lock category=lock
 category:driver | [ category:driver ] category=internals
 
 # Only group by top-level GL operaton, not any helper functions it may have called.
-
 [ category:gl ] | category:gl category=internals
 [ category:av ] | category:av  category=internals
 
 # Only group by top-level malloc op, not any helper function it may have called.
 [ category:malloc ] | category:malloc category=internals
 
-# abort() and exception raising is technically the culprit for crashes, but not
-# the thing we want to show.
-category:throw ^-group
+# Python multi-processing creates a fake module to call `spawn_main` and spawn a new process
+function:<module> | [ function:spawn_main ] category=internals
 
 # On Windows, _purecall internally aborts when the function pointer is invalid.
 # We want to treat this the same as a segfault happening before calling
@@ -347,34 +219,12 @@ category:throw ^-group
 # raise() called by abort() should only group by abort()
 [ category:throw ] | category:throw category=internals
 
-# Frames from the OS should never be considered in-app
-category:system -app
-
-# Thread bases such as `main()` are just noise and are called by noise.
-category:threadbase -group v-group
-
-# handler frames typically call code for crash reporting, so the frames below
-# are noise and do not represent the actual crash. We usually expect something to
-# be above handler frames that represents the actual crash. The stackwalker
-# has a bug where it cannot walk past _sigtramp on OS X but that is expected to
-# be fixed eventually.
-category:handler ^-group -group
-
-# Crash reporting tools are noise that can occur outside of signal handlers
-# too, apparently (Apple's GPUSupport module)
-category:telemetry -group
-
-category:indirection -group
-category:internals -group
-category:threadbase v-group -group
-
 # system frames starting with underscore are likely garbage
 # unsymbolicated system frames are likely system frames starting with underscore
 # _purecall is an exception as it is often the only important frame in a block of system frames
 family:native category:system function:_* !function:_purecall category=internals
 family:native category:system function:"<unknown>" category=internals
 family:native function:_INTERNAL* category=internals
-
 
 # We should be able to write this, but unfortunately sentry-cocoa 6.x is so
 # buggy with detecting compiler-generated code that we have decided to go with a
@@ -414,6 +264,179 @@ family:native function:*.cold.1 category=indirection
 [ category:runtime ]    | category:runtime category=internals
 [ category:dtor ]       | category:dtor    category=internals
 
+## java
+module:akka.* category=framework
+module:com.fasterxml.* category=framework
+module:com.microsoft.* category=framework
+module:com.sun.* category=framework
+module:feign.* category=framework
+module:io.opentelemetry.* category=framework
+module:io.sentry.* category=framework -group
+module:jdk.* category=framework
+module:oauth.* category=framework
+module:org.apache.* category=framework
+module:org.glassfish.* category=framework
+module:org.jboss.* category=framework
+module:org.jdesktop.* category=framework
+module:org.postgresql.* category=framework
+module:org.springframework.* category=framework
+module:org.web3j.* category=framework
+module:reactor.core.* category=framework
+module:scala.* category=framework
+module:sun.* category=framework
+
+## * The default configuration of stacktrace grouping enhancers
+
+# iOS known apps
+family:native package:/var/containers/Bundle/Application/**          +app
+family:native package:/private/var/containers/Bundle/Application/**  +app
+
+# iOS apps in simulator
+family:native package:**/Developer/CoreSimulator/Devices/**          +app
+family:native package:**/Containers/Bundle/Application/**            +app
+
+# well known path components for mac paths
+family:native package:**.app/Contents/**                             +app
+family:native package:/Users/**                                      +app
+
+# Unreal Engine
+
+## UE internal fatal log message handling
+
+family:native stack.function:UE::Logging::Private::BasicFatalLog     v+app -app ^-app
+
+## UE internal assertion handling
+family:native stack.function:FDebug::CheckVerifyFailedImpl*                                             v+app -app ^-app
+stack.function:*::Impl::ExecCheckImplInternal | [ stack.function:FDebug::CheckVerifyFailedImpl ]        -app
+stack.function:FDebug::CheckVerifyFailedImpl2 | [ stack.function:FDebug::CheckVerifyFailedImpl2V ]      -app
+
+## UE internal ensure handling
+
+### UE 5.2 and older
+family:native stack.function:FDebug::OptionallyLogFormattedEnsureMessageReturningFalse                  v+app -app ^-app
+category:indirection | [ stack.function:FDebug::OptionallyLogFormattedEnsureMessageReturningFalse ]     -app
+
+### UE 5.3
+family:native stack.function:DispatchCheckVerify*                          v+app -app ^-app
+
+### UE 5.4 and newer
+family:native stack.function:UE::Assert::Private::ExecCheckImplInternal*   v+app -app ^-app
+
+## UE SDK USentrySubsystem event capturing
+family:native stack.function:USentrySubsystem::CaptureMessage*             v+app -app ^-app
+family:native stack.function:USentrySubsystem::CaptureMessageWithScope*    v+app -app ^-app
+family:native stack.function:USentrySubsystem::CaptureEvent*               v+app -app ^-app
+family:native stack.function:USentrySubsystem::CaptureEventWithScope*      v+app -app ^-app
+family:native stack.function:USentrySubsystem::*execCapture*               v+app -app ^-app
+
+# known well locations for unix paths
+package:/lib/**                                                   -app
+package:/usr/lib/**                                               -app
+path:/usr/local/lib/**                                            -app
+path:/usr/local/Cellar/**                                         -app
+path:**/.local/share/**                                           -app
+
+# rust common modules/functions
+family:native function:std::*                                     -app
+family:native function:core::*                                    -app
+family:native function:alloc::*                                   -app
+family:native function:__rust_*                                   -app
+family:native function:rust_begin_unwind                          -app
+
+# rust borders
+family:native function:std::panicking::begin_panic                ^-group -group ^-app -app
+family:native function:core::panicking::begin_panic               ^-group -group ^-app -app
+family:native function:failure::backtrace::Backtrace::new         ^-group -group ^-app -app
+family:native function:error_chain::make_backtrace                ^-group -group ^-app -app
+family:native function:std::panicking::panic_fmt                  ^-app -app
+family:native function:core::panicking::panic_fmt                 ^-app -app
+
+# C++ borders
+family:native function:_CxxThrowException                         ^-group -group ^-app -app
+family:native function:__cxa_throw                                ^-group -group ^-app -app
+family:native function:__assert_rtn                               ^-group -group ^-app -app
+
+# Objective-C
+family:native function:_NSRaiseError                              ^-group -group ^-app -app
+family:native function:_mh_execute_header                         -group -app
+
+# Breakpad
+family:native function:google_breakpad::*                         -app -group
+family:native function:google_breakpad::ExceptionHandler::SignalHandler ^-group -group
+family:native function:google_breakpad::ExceptionHandler::WriteMinidumpWithException ^-group -group
+
+# Support frameworks that are not in-app
+family:native package:**/Frameworks/libswift*.dylib                  -app
+family:native package:**/Frameworks/KSCrash.framework/**             -app
+family:native package:**/Frameworks/SentrySwift.framework/**         -app
+family:native package:**/Frameworks/Sentry.framework/**              -app
+
+# Needed for versions < sentry-cocoa 7.0.0 and static linking.
+# Before sentry-cocoa 7.0.0, we marked all packages located inside the application bundle as inApp.
+# Since 7.0.0, the Cocoa SKD only marks the main executable as inApp. This change doesn't impact
+# applications using static libraries, as when using static libraries, all of them end up in the
+# main executable.
+family:native function:kscm_*                                     -app -group
+family:native function:sentrycrashcm_*                            -app -group
+family:native function:kscrash_*                                  -app -group
+family:native function:*sentrycrash_*                             -app -group
+family:native function:"?[[]KSCrash*"                             -app -group
+family:native function:"?[[]RNSentry*"                            -app -group
+family:native function:"__*[[]Sentry*"                            -app -group
+
+# Projects shipping their own class called "SentryFoo" can then easily override this in their
+# own grouping enhancers.
+family:native function:"?[[]Sentry*"                              -app -group
+
+# Mark Dart Flutter Android stacktraces in-app by default, further not in-app rules are applied afterwards below
+family:native stack.package:/data/app/** stack.abs_path:**/*.dart +app
+# Dart/Flutter stacktraces that are not in-app
+family:javascript stack.abs_path:org-dartlang-sdk:///** -app -group
+family:javascript module:**/packages/flutter/** -app
+family:native stack.abs_path:**/packages/flutter/** -app
+family:native stack.abs_path:lib/ui/hooks.dart -app
+family:native stack.abs_path:lib/ui/platform_dispatcher.dart -app
+# sentry-dart SDK frames are not in app
+stack.abs_path:package:sentry/** -app -group
+stack.abs_path:package:sentry_flutter/** -app -group
+# other sentry-dart packages that are non in app
+stack.abs_path:package:sentry_logging/** -app -group
+stack.abs_path:package:sentry_dio/** -app -group
+stack.abs_path:package:sentry_file/** -app -group
+stack.abs_path:package:sentry_hive/** -app -group
+stack.abs_path:package:sentry_isar/** -app -group
+stack.abs_path:package:sentry_sqflite/** -app -group
+stack.abs_path:package:sentry_drift/** -app -group
+stack.abs_path:package:sentry_isar/** -app
+stack.abs_path:package:sentry_link/** -app
+stack.abs_path:package:sentry_firebase_remote_config/** -app
+# .pub-cache is the node_modules equivalent for Dart
+family:native stack.abs_path:**/.pub-cache/** -app
+
+# abort() and exception raising is technically the culprit for crashes, but not
+# the thing we want to show.
+category:throw ^-group -group ^-app -app
+
+# Frames from the OS should never be considered in-app
+category:system -app
+
+# Thread bases such as `main()` are just noise and are called by noise.
+category:threadbase -group v-group
+
+# handler frames typically call code for crash reporting, so the frames below
+# are noise and do not represent the actual crash. We usually expect something to
+# be above handler frames that represents the actual crash. The stackwalker
+# has a bug where it cannot walk past _sigtramp on OS X but that is expected to
+# be fixed eventually.
+category:handler ^-group -group
+
+# Crash reporting tools are noise that can occur outside of signal handlers
+# too, apparently (Apple's GPUSupport module)
+category:telemetry -app -group
+
+category:indirection -group
+category:internals -app -group
+category:threadbase v-group -group
 
 # SDK specific rules
 
@@ -452,27 +475,6 @@ function:nextTick -app -group
 
 ## go
 path:**/go/pkg/mod/** -app
-
-## java
-module:akka.* category=framework
-module:com.fasterxml.* category=framework
-module:com.microsoft.* category=framework
-module:com.sun.* category=framework
-module:feign.* category=framework
-module:io.opentelemetry.* category=framework
-module:io.sentry.* category=framework -group
-module:jdk.* category=framework
-module:oauth.* category=framework
-module:org.apache.* category=framework
-module:org.glassfish.* category=framework
-module:org.jboss.* category=framework
-module:org.jdesktop.* category=framework
-module:org.postgresql.* category=framework
-module:org.springframework.* category=framework
-module:org.web3j.* category=framework
-module:reactor.core.* category=framework
-module:scala.* category=framework
-module:sun.* category=framework
 
 category:framework -app
 

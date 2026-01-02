@@ -2,28 +2,9 @@ import {useCallback, useLayoutEffect, useRef, useState} from 'react';
 
 import localStorageWrapper from 'sentry/utils/localStorage';
 
-const SUPPORTS_QUEUE_MICROTASK = window && 'queueMicrotask' in window;
-const SUPPORTS_LOCAL_STORAGE = window && 'localStorage' in window;
+import {scheduleMicroTask} from './scheduleMicroTask';
 
-function scheduleMicroTask(callback: () => void) {
-  if (SUPPORTS_QUEUE_MICROTASK) {
-    window.queueMicrotask(callback);
-  } else {
-    Promise.resolve()
-      .then(callback)
-      .catch(e => {
-        // Escape the promise and throw the error so it gets reported
-        if (window) {
-          window.setTimeout(() => {
-            throw e;
-          });
-        } else {
-          // Best effort and just rethrow
-          throw e;
-        }
-      });
-  }
-}
+const SUPPORTS_LOCAL_STORAGE = window && 'localStorage' in window;
 
 // Attempt to parse JSON. If it fails, swallow the error and return null.
 // As an improvement, we should maybe allow users to intercept here or possibly use

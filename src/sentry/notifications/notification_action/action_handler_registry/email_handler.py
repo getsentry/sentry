@@ -42,7 +42,7 @@ class EmailActionHandler(ActionHandler):
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
-            "fallthroughType": {  # TODO: migrate to snake_case
+            "fallthrough_type": {
                 "type": "string",
                 "description": "The fallthrough type for issue owners email notifications",
                 "enum": [*FallthroughChoiceType],

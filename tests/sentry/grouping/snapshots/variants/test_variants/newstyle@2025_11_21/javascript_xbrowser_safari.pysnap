@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:18:53.558080+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: null
@@ -10,6 +8,10 @@ app:
   root_component:
     app (ignored because system exception takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        type*
+          "Error"
+        value*
+          "bad"
         stacktrace (ignored because it contains no in-app frames)
           frame (marked out of app by the client)
             filename*
@@ -62,18 +64,18 @@ app:
               "test.html"
             function*
               "aha"
-        type*
-          "Error"
-        value*
-          "bad"
 --------------------------------------------------------------------------
 system:
-  hash: "c63e8727af1a8fe75872b6a762797113"
+  hash: "811a408067f03b8eff2437a8e7515966"
   contributing component: exception
   hint: None
   root_component:
     system*
       exception*
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"
         stacktrace*
           frame*
             filename*
@@ -126,7 +128,3 @@ system:
               "test.html"
             function*
               "aha"
-        type*
-          "Error"
-        value (ignored because stacktrace takes precedence)
-          "bad"

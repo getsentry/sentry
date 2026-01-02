@@ -1,21 +1,26 @@
 import {Fragment, useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Container, Flex, Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tag} from '@sentry/scraps/badge/tag';
+import {Button} from '@sentry/scraps/button';
+import {ButtonBar} from '@sentry/scraps/button/buttonBar';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconInfo} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconFlag} from 'sentry/icons/iconFlag';
 import {t, tn} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import useOrganization from 'sentry/utils/useOrganization';
 import {openAlternativeIconsInsightModal} from 'sentry/views/preprod/buildDetails/main/insights/alternativeIconsInsightInfoModal';
+import {openMainBinaryExportedSymbolsModal} from 'sentry/views/preprod/buildDetails/main/insights/mainBinaryExportedSymbolsModal';
 import {openMinifyLocalizedStringsModal} from 'sentry/views/preprod/buildDetails/main/insights/minifyLocalizedStringsModal';
 import {openOptimizeImagesModal} from 'sentry/views/preprod/buildDetails/main/insights/optimizeImagesModal';
+import {openStripDebugSymbolsModal} from 'sentry/views/preprod/buildDetails/main/insights/stripDebugSymbolsModal';
 import type {
   FileSavingsResultGroup,
   OptimizableImageFile,
@@ -39,8 +44,11 @@ export function formatUpside(percentage: number): string {
 
 const INSIGHTS_WITH_MORE_INFO_MODAL = [
   'image_optimization',
+  'webp_optimization',
   'alternate_icons_optimization',
+  'main_binary_exported_symbols',
   'localized_strings_minify',
+  'strip_binary',
 ];
 
 const DEFAULT_ITEMS_PER_PAGE = 20;
@@ -51,14 +59,17 @@ export function AppSizeInsightsSidebarRow({
   onToggleExpanded,
   platform,
   itemsPerPage = DEFAULT_ITEMS_PER_PAGE,
+  projectType,
 }: {
   insight: ProcessedInsight;
   isExpanded: boolean;
   onToggleExpanded: () => void;
   itemsPerPage?: number;
   platform?: Platform;
+  projectType?: string | null;
 }) {
   const theme = useTheme();
+  const organization = useOrganization();
   const shouldShowTooltip = INSIGHTS_WITH_MORE_INFO_MODAL.includes(insight.key);
   const [currentPage, setCurrentPage] = useState(0);
 
@@ -69,12 +80,25 @@ export function AppSizeInsightsSidebarRow({
   const showPagination = insight.files.length > itemsPerPage;
 
   const handleOpenModal = () => {
+    trackAnalytics('preprod.builds.details.open_insight_details_modal', {
+      organization,
+      insight_key: insight.key,
+      platform: platform ?? null,
+      project_type: projectType,
+    });
     if (insight.key === 'alternate_icons_optimization') {
       openAlternativeIconsInsightModal();
-    } else if (insight.key === 'image_optimization') {
+    } else if (
+      insight.key === 'image_optimization' ||
+      insight.key === 'webp_optimization'
+    ) {
       openOptimizeImagesModal(platform);
+    } else if (insight.key === 'main_binary_exported_symbols') {
+      openMainBinaryExportedSymbolsModal();
     } else if (insight.key === 'localized_strings_minify') {
       openMinifyLocalizedStringsModal();
+    } else if (insight.key === 'strip_binary') {
+      openStripDebugSymbolsModal();
     }
   };
 
@@ -88,6 +112,18 @@ export function AppSizeInsightsSidebarRow({
     }
   }, [isExpanded]);
 
+  const handleToggleExpanded = () => {
+    if (!isExpanded) {
+      trackAnalytics('preprod.builds.details.expand_insight', {
+        organization,
+        insight_key: insight.key,
+        platform: platform ?? null,
+        project_type: projectType,
+      });
+    }
+    onToggleExpanded();
+  };
+
   return (
     <Flex border="muted" radius="md" padding="xl" direction="column" gap="md">
       <Flex align="start" justify="between">
@@ -98,7 +134,7 @@ export function AppSizeInsightsSidebarRow({
           <Text size="sm" tabular>
             {t('Potential savings %s', formatBytesBase10(insight.totalSavings))}
           </Text>
-          <Tag type="success" style={{minWidth: '56px', justifyContent: 'center'}}>
+          <Tag variant="success" style={{minWidth: '56px', justifyContent: 'center'}}>
             <Text size="sm" tabular variant="success">
               {formatUpside(insight.percentage / 100)}
             </Text>
@@ -121,7 +157,7 @@ export function AppSizeInsightsSidebarRow({
         <Container paddingTop="md">
           <Button
             size="sm"
-            onClick={onToggleExpanded}
+            onClick={handleToggleExpanded}
             style={{marginBottom: isExpanded ? '16px' : '0'}}
             icon={
               <IconChevron
@@ -279,9 +315,9 @@ function OptimizableImageFileRow({
   }
 
   const hasMinifySavings =
-    originalFile.minified_size !== null && originalFile.minify_savings > 0;
+    typeof originalFile.minified_size === 'number' && originalFile.minify_savings > 0;
   const hasHeicSavings =
-    originalFile.heic_size !== null && originalFile.conversion_savings > 0;
+    typeof originalFile.heic_size === 'number' && originalFile.conversion_savings > 0;
 
   const maxSavings = Math.max(
     originalFile.minify_savings || 0,

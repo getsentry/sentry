@@ -20,18 +20,29 @@ type Props = {
   replays: ReplayListRecord[];
   onSortClick?: (key: string) => void;
   sort?: Sort;
+  stickyHeader?: boolean;
 };
 
-export default function ReplayTableHeader({columns, replays, onSortClick, sort}: Props) {
+export default function ReplayTableHeader({
+  columns,
+  replays,
+  onSortClick,
+  sort,
+  stickyHeader,
+}: Props) {
   const listItemCheckboxState = useListItemCheckboxContext();
   const {countSelected, isAllSelected, isAnySelected, queryKey, selectAll, selectedIds} =
     listItemCheckboxState;
   const queryOptions = parseQueryKey(queryKey).options;
   const queryString = queryOptions?.query?.query;
 
+  const headerStyle: React.CSSProperties = stickyHeader
+    ? {position: 'sticky', top: 0}
+    : {};
+
   return (
     <Fragment>
-      <TableHeader>
+      <TableHeader style={headerStyle}>
         {columns.map(({Header, sortKey}, columnIndex) => (
           <SimpleTable.HeaderCell
             key={`${sortKey}-${columnIndex}`}
@@ -67,7 +78,7 @@ export default function ReplayTableHeader({columns, replays, onSortClick, sort}:
       ) : null}
 
       {isAllSelected === 'indeterminate' ? (
-        <FullGridAlert type="warning" system>
+        <FullGridAlert variant="warning" system>
           <Flex justify="center" wrap="wrap" gap="md">
             {tn(
               'Selected %s visible replay.',
@@ -86,7 +97,7 @@ export default function ReplayTableHeader({columns, replays, onSortClick, sort}:
       ) : null}
 
       {isAllSelected === true ? (
-        <FullGridAlert type="warning" system>
+        <FullGridAlert variant="warning" system>
           <Flex justify="center" wrap="wrap">
             <span>
               {queryString
@@ -111,6 +122,7 @@ export default function ReplayTableHeader({columns, replays, onSortClick, sort}:
 const TableHeader = styled(SimpleTable.Header)`
   grid-row: 1;
   z-index: ${p => p.theme.zIndex.initial};
+  height: min-content;
 `;
 
 const TableCellFirst = styled(SimpleTable.HeaderCell)`

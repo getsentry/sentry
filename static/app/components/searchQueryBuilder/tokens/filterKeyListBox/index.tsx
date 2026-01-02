@@ -14,6 +14,7 @@ import type {
   SelectOptionOrSectionWithKey,
 } from 'sentry/components/core/compactSelect/types';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {Overlay} from 'sentry/components/overlay';
 import {AskSeer} from 'sentry/components/searchQueryBuilder/askSeer/askSeer';
 import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
@@ -24,14 +25,12 @@ import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filter
 import type {Section} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
 import {
   createRecentFilterOptionKey,
+  LOGIC_CATEGORY_VALUE,
   RECENT_SEARCH_CATEGORY_VALUE,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
-import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import usePrevious from 'sentry/utils/usePrevious';
 
 interface FilterKeyListBoxProps<T> extends CustomComboboxMenuProps<T> {
@@ -80,30 +79,20 @@ function ListBoxSectionButton({
 
 function FeedbackFooter() {
   const {searchSource} = useSearchQueryBuilder();
-  const openForm = useFeedbackForm();
-
-  if (!openForm) {
-    return null;
-  }
 
   return (
     <SectionedOverlayFooter>
-      <Button
+      <FeedbackButton
         size="xs"
-        icon={<IconMegaphone />}
-        onClick={() =>
-          openForm({
-            messagePlaceholder: t('How can we make search better for you?'),
-            tags: {
-              search_source: searchSource,
-              ['feedback.source']: 'search_query_builder',
-              ['feedback.owner']: 'issues',
-            },
-          })
-        }
-      >
-        {t('Give Feedback')}
-      </Button>
+        feedbackOptions={{
+          messagePlaceholder: t('How can we make search better for you?'),
+          tags: {
+            search_source: searchSource,
+            ['feedback.source']: 'search_query_builder',
+            ['feedback.owner']: 'issues',
+          },
+        }}
+      />
     </SectionedOverlayFooter>
   );
 }
@@ -152,7 +141,10 @@ function useHighlightFirstOptionOnSectionChange({
   state: ComboBoxState<SelectOptionOrSectionWithKey<string>>;
 }) {
   const displayedListItems = useMemo(() => {
-    if (selectedSection === RECENT_SEARCH_CATEGORY_VALUE) {
+    if (
+      selectedSection === RECENT_SEARCH_CATEGORY_VALUE ||
+      selectedSection === LOGIC_CATEGORY_VALUE
+    ) {
       return [...state.collection].filter(item => !hiddenOptions.has(item.key));
     }
     const options = state.collection.getChildren?.(selectedSection ?? sections[0]!.value);
@@ -169,6 +161,7 @@ function useHighlightFirstOptionOnSectionChange({
     if (selectedSection === previousSection) {
       return;
     }
+
     const firstItem = displayedListItems[0];
     if (firstItem) {
       state.selectionManager.setFocusedKey(firstItem.key);
@@ -366,6 +359,10 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
           fullWidth
           showDetailsPane={showDetailsPane}
           hasAiFeatures={enableAISearch}
+          onMouseDown={e => {
+            // Prevent the input from losing focus when interacting with the menu
+            e.preventDefault();
+          }}
         >
           {isOpen ? (
             <FilterKeyMenuContent
@@ -392,6 +389,10 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
         ref={popoverRef}
         width={filterKeyMenuWidth}
         hasAiFeatures={enableAISearch}
+        onMouseDown={e => {
+          // Prevent the input from losing focus when interacting with the menu
+          e.preventDefault();
+        }}
       >
         {isOpen ? (
           <FilterKeyMenuContent
@@ -468,8 +469,7 @@ const SectionedOverlay = styled(Overlay, {
   overflow: hidden;
   height: 400px;
   width: ${p => (p.fullWidth ? '100%' : `${p.width}px`)};
-  ${p =>
-    p.fullWidth && `border-radius: 0 0 ${p.theme.borderRadius} ${p.theme.borderRadius}`};
+  ${p => p.fullWidth && `border-radius: 0 0 ${p.theme.radius.md} ${p.theme.radius.md}`};
 `;
 
 const SectionedOverlayFooter = styled('div')`
@@ -477,7 +477,7 @@ const SectionedOverlayFooter = styled('div')`
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   border-top: 1px solid ${p => p.theme.innerBorder};
 `;
 
@@ -486,8 +486,8 @@ const RecentFiltersPane = styled('ul')`
   display: flex;
   flex-wrap: wrap;
   background: ${p => p.theme.backgroundSecondary};
-  padding: ${space(1)} 10px;
-  gap: ${space(0.25)};
+  padding: ${p => p.theme.space.md} 10px;
+  gap: ${p => p.theme.space['2xs']};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
   margin: 0;
 `;
@@ -505,10 +505,10 @@ const DetailsPane = styled('div')`
 
 const SectionedListBoxTabPane = styled('div')`
   grid-area: tabs;
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space.xs};
   display: flex;
   flex-wrap: wrap;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
 `;
 
@@ -519,10 +519,10 @@ const RecentFilterPill = styled('li')`
   height: 22px;
   font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.md};
-  padding: 0 ${space(1.5)} 0 ${space(0.75)};
-  background-color: ${p => p.theme.background};
+  padding: 0 ${p => p.theme.space.lg} 0 ${p => p.theme.space.sm};
+  background-color: ${p => p.theme.tokens.background.primary};
   box-shadow: inset 0 0 0 1px ${p => p.theme.innerBorder};
-  border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
   cursor: pointer;
 
   /* Fade out on right side to represent that this is a filter key only */
@@ -536,7 +536,7 @@ const RecentFilterPill = styled('li')`
     background: linear-gradient(
       to left,
       ${p => p.theme.backgroundSecondary} 0 2px,
-      transparent ${space(2)} 100%
+      transparent ${p => p.theme.space.xl} 100%
     );
   }
 `;
@@ -551,14 +551,14 @@ const SectionButton = styled(Button)`
   text-align: left;
   font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.sm};
-  padding: 0 ${space(1.5)};
+  padding: 0 ${p => p.theme.space.lg};
   color: ${p => p.theme.subText};
   border: 0;
 
   &[aria-selected='true'] {
-    background-color: ${p => p.theme.purple100};
-    box-shadow: inset 0 0 0 1px ${p => p.theme.purple100};
-    color: ${p => p.theme.purple300};
+    background-color: ${p => p.theme.colors.blue100};
+    box-shadow: inset 0 0 0 1px ${p => p.theme.colors.blue100};
+    color: ${p => p.theme.colors.blue400};
     font-weight: ${p => p.theme.fontWeight.bold};
   }
 `;
@@ -574,7 +574,7 @@ const EmptyState = styled('div')`
   align-items: center;
   justify-content: center;
   height: 100%;
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
   text-align: center;
   color: ${p => p.theme.subText};
 

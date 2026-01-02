@@ -68,7 +68,7 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.services import eventstore
-from sentry.services.eventstore.models import Event
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.signals import (
     first_event_with_minified_stack_trace_received,
     first_insight_span_received,
@@ -441,9 +441,11 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         open_period = open_periods[0]
         assert open_period.date_started == regression_activity.datetime
         assert open_period.date_ended is None
+        assert open_period.event_id == event2.event_id
         open_period = open_periods[1]
         assert open_period.date_started == group.first_seen
         assert open_period.date_ended == resolved_at
+        assert open_period.event_id == event.event_id
 
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
     def test_unresolves_group_without_open_period(self, send_robust: mock.MagicMock) -> None:
@@ -2786,6 +2788,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             assert group.level == 40
             assert group.issue_category == GroupCategory.PERFORMANCE
             assert group.issue_type == PerformanceNPlusOneGroupType
+            assert isinstance(event, GroupEvent)
             assert event.occurrence
             assert event.occurrence.evidence_display == [
                 IssueEvidence(
@@ -2945,7 +2948,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         }
     )
     def test_perf_issue_slow_db_issue_is_created(self) -> None:
-        def attempt_to_generate_slow_db_issue() -> Event:
+        def attempt_to_generate_slow_db_issue() -> GroupEvent:
             return self.create_performance_issue(
                 event_data=make_event(**get_event("slow-db/slow-db-spans")),
                 issue_type=PerformanceSlowDBQueryGroupType,
@@ -4087,7 +4090,7 @@ class DSLatestReleaseBoostTest(TestCase):
 class TestSaveGroupHashAndGroup(TransactionTestCase):
     def test_simple(self) -> None:
         perf_data = load_data("transaction-n-plus-one", timestamp=before_now(minutes=10))
-        perf_data["event_id"] = str(uuid.uuid4())
+        perf_data["event_id"] = "a" * 32
         event = _get_event_instance(perf_data, project_id=self.project.id)
         group_hash = "some_group"
         group, created, _ = save_grouphash_and_group(self.project, event, group_hash)

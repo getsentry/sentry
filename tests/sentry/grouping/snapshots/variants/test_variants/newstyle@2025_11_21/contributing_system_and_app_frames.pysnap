@@ -1,58 +1,60 @@
 ---
-created: '2025-10-29T21:18:51.127940+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
-  hash: "161ce02ecc5d6685a72e8e520ab726b3"
+  hash: "9c580bff7b008113595f9f1e0ef1962f"
   contributing component: exception
   hint: None
   root_component:
     app*
       exception*
+        type*
+          "FailedToFetchError"
+        value (ignored because stacktrace takes precedence)
+          "FailedToFetchError: Charlie didn't bring the ball back!"
         stacktrace*
-          frame (marked out of app by stack trace rule (function:runApp -app))
+          frame (marked out of app by custom stack trace rule (function:runApp -app))
             filename*
               "app.js"
             function*
               "runApp"
             context_line*
               "return server.serve(port);"
-          frame (marked out of app by stack trace rule (function:handleRequest -app))
+          frame (marked out of app by custom stack trace rule (function:handleRequest -app))
             filename*
               "router.js"
             function*
               "handleRequest"
             context_line*
               "return handler(request);"
-          frame (marked in-app by stack trace rule (function:recordMetrics +app) but ignored by stack trace rule (function:recordMetrics -group))
+          frame (marked in-app by custom stack trace rule (function:recordMetrics +app) but ignored by custom stack trace rule (function:recordMetrics -group))
             filename*
               "metrics.js"
             function*
               "recordMetrics"
             context_line*
               "return withMetrics(handler, metricName, tags);"
-          frame* (marked in-app by stack trace rule (function:playFetch +app))
+          frame* (marked in-app by custom stack trace rule (function:playFetch +app))
             filename*
               "dogpark.js"
             function*
               "playFetch"
             context_line*
               "raise FailedToFetchError('Charlie didn't bring the ball back!');"
-        type*
-          "FailedToFetchError"
-        value (ignored because stacktrace takes precedence)
-          "FailedToFetchError: Charlie didn't bring the ball back!"
 --------------------------------------------------------------------------
 system:
-  hash: "c5e4b4a9ad1803c4d4ca7feee5e430ae"
+  hash: "27e4433059022647e4d83d344cbf738c"
   contributing component: exception
   hint: None
   root_component:
     system*
       exception*
+        type*
+          "FailedToFetchError"
+        value (ignored because stacktrace takes precedence)
+          "FailedToFetchError: Charlie didn't bring the ball back!"
         stacktrace*
-          frame (ignored by stack trace rule (function:runApp -group))
+          frame (ignored by custom stack trace rule (function:runApp -group))
             filename*
               "app.js"
             function*
@@ -66,7 +68,7 @@ system:
               "handleRequest"
             context_line*
               "return handler(request);"
-          frame (ignored by stack trace rule (function:recordMetrics -group))
+          frame (ignored by custom stack trace rule (function:recordMetrics -group))
             filename*
               "metrics.js"
             function*
@@ -80,7 +82,3 @@ system:
               "playFetch"
             context_line*
               "raise FailedToFetchError('Charlie didn't bring the ball back!');"
-        type*
-          "FailedToFetchError"
-        value (ignored because stacktrace takes precedence)
-          "FailedToFetchError: Charlie didn't bring the ball back!"

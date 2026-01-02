@@ -36,6 +36,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         assert response.data["file_io_on_main_thread_detection_enabled"]
         assert response.data["consecutive_db_queries_detection_enabled"]
         assert response.data["large_render_blocking_asset_detection_enabled"]
+        assert response.data["web_vitals_detection_enabled"]
 
         get_value.return_value = {
             "slow_db_queries_detection_enabled": False,
@@ -48,6 +49,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             "file_io_on_main_thread_detection_enabled": False,
             "consecutive_db_queries_detection_enabled": False,
             "large_render_blocking_asset_detection_enabled": False,
+            "web_vitals_detection_enabled": False,
         }
 
         response = self.get_success_response(
@@ -64,6 +66,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         assert not response.data["file_io_on_main_thread_detection_enabled"]
         assert not response.data["consecutive_db_queries_detection_enabled"]
         assert not response.data["large_render_blocking_asset_detection_enabled"]
+        assert not response.data["web_vitals_detection_enabled"]
 
     @patch("sentry.models.ProjectOption.objects.get_value")
     @with_feature("organizations:performance-view")
@@ -82,6 +85,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
                 "performance.issues.consecutive_db.min_time_saved_threshold": 300,
                 "performance.issues.n_plus_one_api_calls.total_duration": 300,
                 "performance.issues.consecutive_http.min_time_saved_threshold": 2000,
+                "performance.issues.web_vitals.count_threshold": 10,
             }
         ):
             response = self.get_success_response(
@@ -101,6 +105,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             assert response.data["consecutive_db_min_time_saved_threshold"] == 300
             assert response.data["n_plus_one_api_calls_total_duration_threshold"] == 300
             assert response.data["consecutive_http_spans_min_time_saved_threshold"] == 2000
+            assert response.data["web_vitals_count"] == 10
 
             get_value.return_value = {
                 "n_plus_one_db_duration_threshold": 10000,
@@ -115,6 +120,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
                 "consecutive_db_min_time_saved_threshold": 5000,
                 "n_plus_one_api_calls_total_duration_threshold": 500,
                 "consecutive_http_spans_min_time_saved_threshold": 1000,
+                "web_vitals_count": 10,
             }
 
             response = self.get_success_response(
@@ -134,6 +140,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             assert response.data["consecutive_db_min_time_saved_threshold"] == 5000
             assert response.data["n_plus_one_api_calls_total_duration_threshold"] == 500
             assert response.data["consecutive_http_spans_min_time_saved_threshold"] == 1000
+            assert response.data["web_vitals_count"] == 10
 
     def test_get_returns_error_without_feature_enabled(self) -> None:
         self.get_error_response(

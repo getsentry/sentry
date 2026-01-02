@@ -2,18 +2,17 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
   type Dispatch,
 } from 'react';
+import * as Sentry from '@sentry/react';
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import type {SearchQueryBuilderProps} from 'sentry/components/searchQueryBuilder';
-import type {
-  CaseInsensitive,
-  SetCaseInsensitive,
-} from 'sentry/components/searchQueryBuilder/hooks';
+import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {useHandleSearch} from 'sentry/components/searchQueryBuilder/hooks/useHandleSearch';
 import {
   useQueryBuilderState,
@@ -25,11 +24,14 @@ import type {
 } from 'sentry/components/searchQueryBuilder/types';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import type {ParseResult} from 'sentry/components/searchSyntax/parser';
-import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
+import type {SavedSearchType, TagCollection} from 'sentry/types/group';
+import {defined} from 'sentry/utils';
 import type {FieldDefinition, FieldKind} from 'sentry/utils/fields';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePrevious from 'sentry/utils/usePrevious';
+import type {GetTagValues} from 'sentry/views/dashboards/datasetConfig/base';
 
 interface SearchQueryBuilderContextData {
   actionBarRef: React.RefObject<HTMLDivElement | null>;
@@ -40,6 +42,7 @@ interface SearchQueryBuilderContextData {
   currentInputValueRef: React.RefObject<string>;
   disabled: boolean;
   disallowFreeText: boolean;
+  disallowLogicalOperators: boolean;
   disallowWildcard: boolean;
   dispatch: Dispatch<QueryBuilderActions>;
   displayAskSeer: boolean;
@@ -52,7 +55,7 @@ interface SearchQueryBuilderContextData {
   gaveSeerConsent: boolean;
   getFieldDefinition: (key: string, kind?: FieldKind) => FieldDefinition | null;
   getSuggestedFilterKey: (key: string) => string | null;
-  getTagValues: (tag: Tag, query: string) => Promise<string[]>;
+  getTagValues: GetTagValues;
   handleSearch: (query: string) => void;
   parseQuery: (query: string) => ParseResult | null;
   parsedQuery: ParseResult | null;
@@ -67,7 +70,7 @@ interface SearchQueryBuilderContextData {
   filterKeyAliases?: TagCollection;
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
   namespace?: string;
-  onCaseInsensitiveClick?: SetCaseInsensitive;
+  onCaseInsensitiveClick?: (value: CaseInsensitive) => void;
   placeholder?: string;
   /**
    * The element to render the combobox popovers into.
@@ -188,6 +191,35 @@ export function SearchQueryBuilderProvider({
   );
   const parsedQuery = useMemo(() => parseQuery(state.query), [parseQuery, state.query]);
 
+  const previousQuery = usePrevious(state.query);
+  const firstRender = useRef(true);
+  useEffect(() => {
+    // on the first render, we want to check the currently parsed query,
+    // then on subsequent renders, we want to ensure the parsedQuery hasnt changed
+    if (!firstRender.current && state.query === previousQuery) {
+      return;
+    }
+    firstRender.current = false;
+
+    const warnings = parsedQuery?.filter(
+      token => 'warning' in token && defined(token.warning)
+    )?.length;
+    if (warnings) {
+      Sentry.metrics.distribution('search-query-builder.token.warnings', warnings, {
+        attributes: {searchSource},
+      });
+    }
+
+    const invalids = parsedQuery?.filter(
+      token => 'invalid' in token && defined(token.invalid)
+    )?.length;
+    if (invalids) {
+      Sentry.metrics.distribution('search-query-builder.token.invalids', invalids, {
+        attributes: {searchSource},
+      });
+    }
+  }, [parsedQuery, state.query, previousQuery, searchSource]);
+
   const handleSearch = useHandleSearch({
     parsedQuery,
     recentSearches,
@@ -204,6 +236,7 @@ export function SearchQueryBuilderProvider({
       ...state,
       disabled,
       disallowFreeText: Boolean(disallowFreeText),
+      disallowLogicalOperators: Boolean(disallowLogicalOperators),
       disallowWildcard: Boolean(disallowWildcard),
       enableAISearch,
       parseQuery,
@@ -245,6 +278,7 @@ export function SearchQueryBuilderProvider({
     caseInsensitive,
     disabled,
     disallowFreeText,
+    disallowLogicalOperators,
     disallowWildcard,
     dispatch,
     displayAskSeer,

@@ -31,11 +31,12 @@ export function AddIntegrationButton({
   ...buttonProps
 }: AddIntegrationButtonProps) {
   const label =
-    (buttonText ?? reinstall)
+    buttonText ??
+    (reinstall
       ? t('Enable')
       : installStatus === 'Disabled'
         ? t('Reinstall')
-        : t('Add %s', provider.metadata.noun);
+        : t('Add %s', provider.metadata.noun));
 
   return (
     <Tooltip

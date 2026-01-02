@@ -52,7 +52,6 @@ export type Project = {
   isMember: boolean;
   name: string;
   organization: Organization;
-
   plugins: Plugin[];
   processingIssues: number;
   relayCustomMetricCardinalityLimit: number | null;
@@ -93,7 +92,6 @@ export type Project = {
   stats?: TimeseriesValue[];
   subjectPrefix?: string;
   symbolSources?: string;
-  tempestFetchDumps?: boolean;
   tempestFetchScreenshots?: boolean;
   transactionStats?: TimeseriesValue[];
 } & AvatarProject;

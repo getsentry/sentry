@@ -440,7 +440,7 @@ table.table.key-value {
 
 .theme-dark .loading .loading-indicator {
   // theme.tokens.background.primary
-  background: #241D2A;
+  background: #272433;
 }
 
 @-webkit-keyframes loading {
@@ -537,6 +537,71 @@ table.table.key-value {
   }
 }
 
+// UI2 loader
+.splash-loader {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  .loading-indicator {
+    height: 192px;
+    width: 192px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    animation: none;
+    border: 0;
+    overflow: hidden;
+    border-radius: 0;
+
+    margin-bottom: 16px;
+  }
+
+  .loading-message {
+    font-family: @font-family-code;
+    text-align: center;
+    font-weight: bold;
+
+    p:first-child {
+      margin-bottom: 8px;
+    }
+  }
+
+  small {
+    font-size: 12px;
+    opacity: .7;
+  }
+}
+.splash-loader code {
+  margin: 0;
+  padding: 0;
+  border: none;
+  padding-inline: 0.3ch;
+  margin-inline: -0.15ch;
+  border-radius: 2px;
+  text-box-edge: text text;
+  text-box-trim: trim-both;
+
+  color: #C8007E;
+  background: color-mix(in oklab, currentColor, transparent 92%);
+}
+.theme-dark .splash-loader code {
+  color: #EA95B9;
+}
+.splash-loader small {
+  color: #6A6772;
+}
+.theme-dark .splash-loader small {
+  color: #B5B0BD;
+}
+
 .theme-dark .loading.triangle .loading-indicator {
   filter: invert(100%);
   opacity: 0.8;
@@ -548,6 +613,45 @@ body.theme-system {
       opacity: 0.8;
     }
   }
+}
+scraps-bleep {
+  position: relative;
+  display: inline-block;
+  color: transparent;
+}
+scraps-bleep::before {
+  content: '$#!%';
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  animation: bleep 1.3s steps(1) infinite;
+  color: #3E3B46;
+}
+@media (prefers-reduced-motion: reduce) {
+  scraps-bleep::before {
+    animation: none;
+  }
+}
+body.theme-dark scraps-bleep::before {
+  // theme.tokens.content.primary
+  color: #E9E5EB;
+}
+body.theme-system scraps-bleep::before {
+  @media (prefers-color-scheme: dark) {
+    // theme.content.primary
+    color: #E9E5EB;
+  }
+}
+@keyframes bleep {
+  0% { content: '$#!%'; }
+  12% { content: '&*#%'; }
+  25% { content: '$◆*+'; }
+  37% { content: '!@#&'; }
+  50% { content: '%*$◆'; }
+  62% { content: '@+!#'; }
+  75% { content: '*&#$'; }
+  87% { content: '+%@*'; }
 }
 
 /**

@@ -3,7 +3,6 @@ import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
 import type {BuiltinSymbolSource, CustomRepo} from 'sentry/types/debugFiles';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
@@ -18,10 +17,9 @@ type Props = {
   location: Location;
   organization: Organization;
   project: Project;
-  router: InjectedRouter;
 };
 
-function Sources({
+export default function Sources({
   api,
   organization,
   customRepositories,
@@ -29,7 +27,6 @@ function Sources({
   builtinSymbolSourceOptions,
   project,
   location,
-  router,
 }: Props) {
   return (
     <Fragment>
@@ -43,7 +40,6 @@ function Sources({
       <CustomRepositories
         api={api}
         location={location}
-        router={router}
         organization={organization}
         customRepositories={customRepositories}
         project={project}
@@ -51,5 +47,3 @@ function Sources({
     </Fragment>
   );
 }
-
-export default Sources;

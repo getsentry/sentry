@@ -42,19 +42,19 @@ function StripeWrapper({
         appearance: {
           theme: prefersDarkMode ? 'night' : 'stripe',
           variables: {
-            borderRadius: theme.borderRadius,
-            colorBackground: theme.background,
-            colorText: theme.textColor,
+            colorBackground: theme.tokens.background.primary,
+            borderRadius: theme.radius.md,
+            colorText: theme.tokens.content.primary,
             colorDanger: theme.danger,
             colorSuccess: theme.success,
             colorWarning: theme.warning,
-            iconColor: theme.textColor,
+            iconColor: theme.tokens.content.primary,
           },
           rules: {
             '.Input': {
               fontSize: theme.fontSize.md,
               boxShadow: `0px 2px 0px 0px ${theme.tokens.border.primary} inset`,
-              backgroundColor: debossedBackground(theme as any).backgroundColor,
+              backgroundColor: debossedBackground(theme).backgroundColor,
               padding: `${theme.space.lg} ${theme.space.xl}`,
             },
             '.Label': {

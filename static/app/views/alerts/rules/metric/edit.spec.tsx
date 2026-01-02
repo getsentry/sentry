@@ -7,7 +7,13 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {metric} from 'sentry/utils/analytics';
 import {MetricRulesEdit} from 'sentry/views/alerts/rules/metric/edit';
-import {AlertRuleTriggerType} from 'sentry/views/alerts/rules/metric/types';
+import {
+  AlertRuleTriggerType,
+  Dataset,
+  EventTypes,
+  ExtrapolationMode,
+} from 'sentry/views/alerts/rules/metric/types';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 jest.mock('sentry/utils/analytics', () => ({
   metric: {
@@ -57,6 +63,14 @@ describe('MetricRulesEdit', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
       body: [MemberFixture()],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
     });
   });
 
@@ -251,5 +265,155 @@ describe('MetricRulesEdit', () => {
     expect(
       await screen.findByText('This alert rule could not be found.')
     ).toBeInTheDocument();
+  });
+
+  it('changes SERVER_WEIGHTED extrapolation mode to CLIENT_AND_SERVER_WEIGHTED when editing and saving', async () => {
+    const {organization, project} = initializeOrg();
+    const ruleWithExtrapolation = MetricRuleFixture({
+      id: '5',
+      name: 'Alert Rule with Extrapolation',
+      dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+      aggregate: 'count()',
+      query: '',
+      eventTypes: [EventTypes.TRACE_ITEM_SPAN],
+      extrapolationMode: ExtrapolationMode.SERVER_WEIGHTED,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/alert-rules/${ruleWithExtrapolation.id}/`,
+      body: ruleWithExtrapolation,
+    });
+
+    const eventsStatsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: null,
+    });
+
+    const editRule = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/alert-rules/${ruleWithExtrapolation.id}/`,
+      method: 'PUT',
+      body: ruleWithExtrapolation,
+    });
+
+    render(
+      <MetricRulesEdit
+        {...RouteComponentPropsFixture()}
+        params={{
+          projectId: project.slug,
+          ruleId: ruleWithExtrapolation.id,
+        }}
+        userTeamIds={[]}
+        organization={organization}
+        onChangeTitle={() => {}}
+        project={project}
+      />
+    );
+
+    // Wait for the rule to load
+    expect(await screen.findByTestId('critical-threshold')).toBeInTheDocument();
+
+    // Verify events-stats is called with 'serverOnly' extrapolation mode for the chart
+    expect(eventsStatsRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          extrapolationMode: 'sampleWeighted',
+          sampling: SAMPLING_MODE.NORMAL,
+        }),
+      })
+    );
+
+    // Make a change to the threshold
+    await userEvent.clear(screen.getByTestId('resolve-threshold'));
+    await userEvent.type(screen.getByTestId('resolve-threshold'), '40');
+
+    // Save the rule
+    await userEvent.click(screen.getByLabelText('Save Rule'));
+
+    // Verify the save request preserves the extrapolation mode
+    expect(editRule).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          extrapolationMode: ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED,
+        }),
+        method: 'PUT',
+      })
+    );
+  });
+
+  it('changes NONE extrapolation mode to CLIENT_AND_SERVER_WEIGHTED when editing and saving', async () => {
+    const {organization, project} = initializeOrg();
+    const ruleWithNoExtrapolation = MetricRuleFixture({
+      id: '6',
+      name: 'Alert Rule with No Extrapolation',
+      dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+      aggregate: 'count()',
+      query: '',
+      eventTypes: [EventTypes.TRACE_ITEM_SPAN],
+      extrapolationMode: ExtrapolationMode.NONE,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/alert-rules/${ruleWithNoExtrapolation.id}/`,
+      body: ruleWithNoExtrapolation,
+    });
+
+    const eventsStatsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: null,
+    });
+
+    const editRule = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/alert-rules/${ruleWithNoExtrapolation.id}/`,
+      method: 'PUT',
+      body: ruleWithNoExtrapolation,
+    });
+
+    render(
+      <MetricRulesEdit
+        {...RouteComponentPropsFixture()}
+        params={{
+          projectId: project.slug,
+          ruleId: ruleWithNoExtrapolation.id,
+        }}
+        userTeamIds={[]}
+        organization={organization}
+        onChangeTitle={() => {}}
+        project={project}
+      />
+    );
+
+    // Wait for the rule to load
+    expect(await screen.findByTestId('critical-threshold')).toBeInTheDocument();
+
+    // Verify events-stats is called with 'none' extrapolation mode for the chart
+    expect(eventsStatsRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          extrapolationMode: 'sampleWeighted',
+          sampling: SAMPLING_MODE.NORMAL,
+        }),
+      })
+    );
+
+    // Make a change to the threshold
+    await userEvent.clear(screen.getByTestId('resolve-threshold'));
+    await userEvent.type(screen.getByTestId('resolve-threshold'), '50');
+
+    // Save the rule
+    await userEvent.click(screen.getByLabelText('Save Rule'));
+
+    // Verify the save request preserves the extrapolation mode
+    expect(editRule).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          extrapolationMode: ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED,
+        }),
+        method: 'PUT',
+      })
+    );
   });
 });

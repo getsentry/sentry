@@ -19,9 +19,11 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
@@ -186,16 +188,18 @@ function AddToDashboardModal({
 
     const widgetAsQueryParams = convertWidgetToBuilderStateParams(widget);
 
-    navigate({
-      pathname,
-      query: {
-        ...widgetAsQueryParams,
-        title: newWidgetTitle,
-        sort: orderBy ?? widgetAsQueryParams.sort,
-        source,
-        ...(selectedDashboard ? getSavedPageFilters(selectedDashboard) : {}),
-      },
-    });
+    navigate(
+      normalizeUrl({
+        pathname,
+        query: {
+          ...widgetAsQueryParams,
+          title: newWidgetTitle,
+          sort: orderBy ?? widgetAsQueryParams.sort,
+          source,
+          ...(selectedDashboard ? getSavedPageFilters(selectedDashboard) : {}),
+        },
+      })
+    );
     closeModal();
   }
 
@@ -261,6 +265,7 @@ function AddToDashboardModal({
           tooltipOptions: {position: 'right', isHoverable: true},
         },
         ...dashboards
+          .filter(dashboard => !defined(dashboard.prebuiltId)) // Cannot add to prebuilt dashboards
           .filter(dashboard =>
             // if adding from a dashboard, currentDashboardId will be set and we'll remove it from the list of options
             currentDashboardId ? dashboard.id !== currentDashboardId : true

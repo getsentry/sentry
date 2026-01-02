@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout/flex';
+import {Container} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
@@ -178,10 +178,12 @@ function InnerContent({
       project?.platform
     )
   );
-  const exceptionValue = exception.value
-    ? renderLinksInText({exceptionText: exception.value})
-    : null;
+  const exceptionValue =
+    type === StackType.ORIGINAL ? exception.value : exception.rawValue || exception.value;
 
+  const renderedExceptionValue = exceptionValue
+    ? renderLinksInText({exceptionText: exceptionValue})
+    : null;
   const platform = getStacktracePlatform(event, exception.stacktrace);
 
   // The banners should appear on the top exception only
@@ -193,28 +195,27 @@ function InnerContent({
   return (
     <Fragment>
       <StyledPre>
-        {meta?.[exceptionIdx]?.value?.[''] && !exception.value ? (
+        {meta?.[exceptionIdx]?.value?.[''] && !exceptionValue ? (
           <AnnotatedText
-            value={exception.value}
+            value={exceptionValue}
             meta={meta?.[exceptionIdx]?.value?.['']}
           />
         ) : (
-          exceptionValue
+          renderedExceptionValue
         )}
       </StyledPre>
       <ToggleExceptionButton
         {...{hiddenExceptions, toggleRelatedExceptions, values, exception}}
       />
-      {exception.mechanism || hasCoverageData ? (
-        <RowWrapper direction="row" justify="between">
-          {exception.mechanism && (
-            <Mechanism
-              data={exception.mechanism}
-              meta={meta?.[exceptionIdx]?.mechanism}
-            />
-          )}
-          {hasCoverageData ? <LineCoverageLegend /> : null}
-        </RowWrapper>
+      {exception.mechanism ? (
+        <Container paddingTop="xl">
+          <Mechanism data={exception.mechanism} meta={meta?.[exceptionIdx]?.mechanism} />
+        </Container>
+      ) : null}
+      {hasCoverageData ? (
+        <Container paddingTop="md">
+          <LineCoverageLegend />
+        </Container>
       ) : null}
       <RelatedExceptions
         mechanism={exception.mechanism}
@@ -318,6 +319,10 @@ export function Content({
       />
     );
 
+    const exceptionType =
+      type === StackType.ORIGINAL ? exc.type : exc.rawType || exc.type;
+    const exceptionModule =
+      type === StackType.ORIGINAL ? exc.module : exc.rawModule || exc.module;
     if (hasChainedExceptions) {
       return (
         <StyledFoldSection
@@ -326,14 +331,12 @@ export function Content({
           dataTestId="exception-value"
           sectionKey={SectionKey.CHAINED_EXCEPTION}
           title={
-            defined(exc?.module) ? (
-              <Tooltip
-                title={tct('from [exceptionModule]', {exceptionModule: exc?.module})}
-              >
-                <Title id={id}>{exc.type}</Title>
+            defined(exceptionModule) ? (
+              <Tooltip title={tct('from [exceptionModule]', {exceptionModule})}>
+                <Title id={id}>{exceptionType}</Title>
               </Tooltip>
             ) : (
-              <Title id={id}>{exc.type}</Title>
+              <Title id={id}>{exceptionType}</Title>
             )
           }
           disableCollapsePersistence
@@ -349,12 +352,12 @@ export function Content({
 
     return (
       <div key={excIdx} className="exception" data-test-id="exception-value">
-        {defined(exc?.module) ? (
-          <Tooltip title={tct('from [exceptionModule]', {exceptionModule: exc?.module})}>
-            <Title id={id}>{exc.type}</Title>
+        {defined(exceptionModule) ? (
+          <Tooltip title={tct('from [exceptionModule]', {exceptionModule})}>
+            <Title id={id}>{exceptionType}</Title>
           </Tooltip>
         ) : (
-          <Title id={id}>{exc.type}</Title>
+          <Title id={id}>{exceptionType}</Title>
         )}
         {innerContent}
       </div>
@@ -410,8 +413,4 @@ const StyledFoldSection = styled(FoldSection)`
     margin-left: ${p => p.theme.space.xl};
     margin-right: ${p => p.theme.space.xl};
   }
-`;
-
-const RowWrapper = styled(Flex)`
-  margin: ${p => p.theme.space.xl} 0 ${p => p.theme.space.xs} 0;
 `;

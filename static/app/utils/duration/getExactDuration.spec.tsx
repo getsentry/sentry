@@ -29,6 +29,7 @@ describe('getExactDuration', () => {
 
   it('should abbreviate label', () => {
     expect(getExactDuration(234235435, true)).toBe('387wk 2d 1hr 23min 55s');
+    expect(getExactDuration(61, true, 'minutes')).toBe('1min');
   });
 
   it('should pin/truncate to the min suffix precision if provided', () => {
@@ -41,5 +42,6 @@ describe('getExactDuration', () => {
     expect(getExactDuration(234235435.2, false, 'seconds')).toBe(
       '387 weeks 2 days 1 hour 23 minutes 55 seconds'
     );
+    expect(getExactDuration(61, false, 'minutes')).toBe('1 minute');
   });
 });

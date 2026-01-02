@@ -1,28 +1,10 @@
-import {Fragment} from 'react';
-import {useTheme} from '@emotion/react';
-
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
 export function IconMeh(props: SVGIconProps) {
-  const theme = useTheme();
   return (
-    <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
-      {theme.isChonk ? (
-        <Fragment>
-          <circle cx="8" cy="8" r="5.75" />
-          <line x1="5.5" y1="9.75" x2="10.5" y2="9.75" />
-          <circle cx="10" cy="6.75" r=".25" />
-          <circle cx="6" cy="6.75" r=".25" />
-        </Fragment>
-      ) : (
-        <Fragment>
-          <path d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z" />
-          <circle cx="4.84" cy="6.79" r="0.99" />
-          <circle cx="11.32" cy="6.79" r="0.99" />
-          <path d="M12.32,10.78H3.85a.75.75,0,1,1,0-1.5h8.47a.75.75,0,0,1,0,1.5Z" />
-        </Fragment>
-      )}
+    <SvgIcon {...props}>
+      <path d="M8 0C12.42 0 16 3.58 16 8C16 12.42 12.42 16 8 16C3.58 16 0 12.42 0 8C0 3.58 3.58 0 8 0ZM8 1.5C4.41 1.5 1.5 4.41 1.5 8C1.5 11.59 4.41 14.5 8 14.5C11.59 14.5 14.5 11.59 14.5 8C14.5 4.41 11.59 1.5 8 1.5ZM10.25 9.5C10.66 9.5 11 9.84 11 10.25C11 10.66 10.66 11 10.25 11H5.75C5.34 11 5 10.66 5 10.25C5 9.84 5.34 9.5 5.75 9.5H10.25ZM5 6C5.55 6 6 6.45 6 7C6 7.55 5.55 8 5 8C4.45 8 4 7.55 4 7C4 6.45 4.45 6 5 6ZM11 6C11.55 6 12 6.45 12 7C12 7.55 11.55 8 11 8C10.45 8 10 7.55 10 7C10 6.45 10.45 6 11 6Z" />
     </SvgIcon>
   );
 }

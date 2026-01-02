@@ -816,6 +816,7 @@ class ApplyDelayedTest(ProcessDelayedAlertConditionsTestBase):
             )
         group5 = event5.group
         assert group5
+        assert isinstance(event5, GroupEvent)
         self.push_to_hash(
             self.project.id,
             rule5.id,

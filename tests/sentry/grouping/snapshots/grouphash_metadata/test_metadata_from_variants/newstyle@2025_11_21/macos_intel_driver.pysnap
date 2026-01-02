@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:19:58.294316+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: stacktrace
 hashing_metadata: {
@@ -24,7 +22,7 @@ metrics with tags: {
 ---
 contributing variants:
   system*
-    hash: "36be6e0b6123ef6ecfbef62f5cb88406"
+    hash: "22760595718fcd37489c365e30a5e166"
     contributing component: exception
     hint: None
     root_component:
@@ -52,6 +50,3 @@ contributing variants:
             frame*
               function*
                 "gpusSubmitDataBuffers"
-            frame*
-              function*
-                "abort"

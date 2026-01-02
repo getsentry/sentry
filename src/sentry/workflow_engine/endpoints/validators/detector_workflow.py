@@ -69,12 +69,37 @@ def can_edit_detector(detector: Detector, request: Request) -> bool:
     return can_edit_user_created_detectors(request, detector.project)
 
 
+def can_delete_detectors(detectors: QuerySet[Detector], request: Request) -> bool:
+    """
+    Determine if the requesting user has access to delete the given detectors.
+    Only user-created detectors can be deleted, and require "alerts:write" permission.
+    """
+    if any(is_system_created_detector(detector) for detector in detectors):
+        return False
+
+    projects = Project.objects.filter(
+        id__in=detectors.values_list("project_id", flat=True).distinct()
+    )
+    return all(can_edit_user_created_detectors(request, project) for project in projects)
+
+
+def can_delete_detector(detector: Detector, request: Request) -> bool:
+    """
+    Determine if the requesting user has access to delete the given detector.
+    Only user-created detectors can be deleted, and require "alerts:write" permission.
+    """
+    if is_system_created_detector(detector):
+        return False
+
+    return can_edit_user_created_detectors(request, detector.project)
+
+
 def can_edit_detector_workflow_connections(detector: Detector, request: Request) -> bool:
     """
     Anyone with alert write access to the project can connect/disconnect detectors of any type,
     which is slightly different from full edit access which differs by detector type.
     """
-    return can_edit_user_created_detectors(request, detector.project)
+    return request.access.has_scope("alerts:write")
 
 
 def validate_detectors_exist_and_have_permissions(

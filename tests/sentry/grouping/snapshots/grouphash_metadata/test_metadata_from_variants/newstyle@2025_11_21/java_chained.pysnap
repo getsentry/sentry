@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:19:57.675575+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: stacktrace
 hashing_metadata: {
@@ -24,13 +22,15 @@ metrics with tags: {
 ---
 contributing variants:
   system*
-    hash: "1959b227a7cf6acf7f3fd401b5d9f09b"
+    hash: "db7a5bf0e72c22eb770a3be8940782c6"
     contributing component: chained_exception
     hint: None
     root_component:
       system*
         chained_exception*
           exception*
+            type*
+              "BindException"
             stacktrace*
               frame*
                 module*
@@ -142,9 +142,9 @@ contributing variants:
                   "sun.nio.ch.Net"
                 function*
                   "bind0"
-            type*
-              "BindException"
           exception*
+            type*
+              "LifecycleException"
             stacktrace*
               frame*
                 module*
@@ -216,9 +216,9 @@ contributing variants:
                   "org.apache.catalina.connector.Connector"
                 function*
                   "startInternal"
+          exception*
             type*
               "LifecycleException"
-          exception*
             stacktrace*
               frame*
                 module*
@@ -285,5 +285,3 @@ contributing variants:
                   "org.apache.catalina.util.LifecycleBase"
                 function*
                   "start"
-            type*
-              "LifecycleException"

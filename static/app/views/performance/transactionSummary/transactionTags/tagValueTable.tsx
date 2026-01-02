@@ -226,7 +226,7 @@ export function TagValueTable({
               handleTagValueClick(dataRow.tags_value);
             }}
           >
-            <IconAdd isCircled />
+            <IconAdd />
             {t('Add to filter')}
           </LinkContainer>
         </AlignRight>

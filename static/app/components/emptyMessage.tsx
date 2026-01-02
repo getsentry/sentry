@@ -1,74 +1,49 @@
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
+import {useTheme} from '@emotion/react';
+import {mergeProps} from '@react-aria/utils';
 
-import {space} from 'sentry/styles/space';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {Container, Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
+import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 
 interface Props extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
-  action?: React.ReactElement;
-  description?: React.ReactNode;
+  action?: React.ReactNode;
   icon?: React.ReactNode;
-  leftAligned?: boolean;
-  size?: 'large' | 'medium';
+  size?: 'lg' | 'md';
   title?: React.ReactNode;
 }
 
-type WrapperProps = Pick<Props, 'size'>;
+function EmptyMessage({title, icon, children, action, size, ...props}: Props) {
+  const theme = useTheme();
 
-const EmptyMessage = styled(
-  ({
-    title,
-    description,
-    icon,
-    children,
-    action,
-    leftAligned: _leftAligned,
-    ...props
-  }: Props) => (
-    <div data-test-id="empty-message" {...props}>
-      {icon && <IconWrapper>{icon}</IconWrapper>}
-      {title && <Title noMargin={!description && !children && !action}>{title}</Title>}
-      {description && <Description>{description}</Description>}
-      {children && <Description noMargin>{children}</Description>}
-      {action && <Action>{action}</Action>}
-    </div>
-  )
-)<WrapperProps>`
-  display: flex;
-  ${p =>
-    p.leftAligned
-      ? css`
-          max-width: 70%;
-          align-items: flex-start;
-          padding: ${space(4)};
-        `
-      : css`
-          text-align: center;
-          align-items: center;
-          padding: ${space(4)} 15%;
-        `};
-  flex-direction: column;
-  color: ${p => p.theme.textColor};
-  font-size: ${p =>
-    p.size && p.size === 'large' ? p.theme.fontSize.xl : p.theme.fontSize.md};
-`;
-
-const IconWrapper = styled('div')`
-  color: ${p => (p.theme.isChonk ? p.theme.gray400 : p.theme.gray200)};
-  margin-bottom: ${space(1)};
-`;
-
-const Title = styled('strong')<{noMargin: boolean}>`
-  font-size: ${p => p.theme.fontSize.xl};
-  ${p => !p.noMargin && `margin-bottom: ${space(1)};`}
-`;
-
-const Description = styled(TextBlock)`
-  margin: 0;
-`;
-
-const Action = styled('div')`
-  margin-top: ${space(2)};
-`;
+  return (
+    <Flex gap="xl" direction="column" padding="3xl">
+      {stackProps => (
+        <Text
+          align="center"
+          size={size}
+          data-test-id="empty-message"
+          {...mergeProps(stackProps, props)}
+        >
+          {icon && (
+            <IconDefaultsProvider size="xl">
+              <Container color={theme.colors.gray500}>{icon}</Container>
+            </IconDefaultsProvider>
+          )}
+          {title && (
+            <Text bold size="xl" density="comfortable">
+              {title}
+            </Text>
+          )}
+          {children && (
+            <Text textWrap="balance" density="comfortable">
+              {children}
+            </Text>
+          )}
+          {action && <Container paddingTop="xl">{action}</Container>}
+        </Text>
+      )}
+    </Flex>
+  );
+}
 
 export default EmptyMessage;

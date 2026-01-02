@@ -1,11 +1,13 @@
 import {useRef, useState, type ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
+
+import {Flex} from '@sentry/scraps/layout/flex';
 
 import {Button} from 'sentry/components/core/button';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -16,10 +18,15 @@ import {FieldValueType} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {TimestampRenderer} from 'sentry/views/explore/logs/fieldRenderers';
 import {getLogColors} from 'sentry/views/explore/logs/styles';
 import {SeverityLevel} from 'sentry/views/explore/logs/utils';
+import {
+  NoPaddingColumns,
+  type AlwaysPresentTraceMetricFields,
+} from 'sentry/views/explore/metrics/constants';
 import {useTraceTelemetry} from 'sentry/views/explore/metrics/hooks/useTraceTelemetry';
 import {MetricDetails} from 'sentry/views/explore/metrics/metricInfoTabs/metricDetails';
 import {
@@ -27,6 +34,7 @@ import {
   NumericSimpleTableRowCell,
   StickyTableRow,
   StyledSimpleTableRowCell,
+  TableRowContainer,
   WrappingText,
 } from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
 import {stripMetricParamsFromLocation} from 'sentry/views/explore/metrics/metricQuery';
@@ -69,7 +77,7 @@ function FieldCellWrapper({
   embedded?: boolean;
 }) {
   const columnType = getMetricTableColumnType(field);
-  const hasPadding = field !== VirtualTableSampleColumnKey.EXPAND_ROW;
+  const hasPadding = !NoPaddingColumns.includes(field as VirtualTableSampleColumnKey);
   if (columnType === 'stat') {
     return (
       <NumericSimpleTableRowCell
@@ -115,6 +123,11 @@ export function SampleTableRow({
   const theme = useTheme();
   const [isExpanded, setIsExpanded] = useState(false);
   const measureRef = useRef<HTMLTableRowElement>(null);
+  const projects = useProjects();
+  const projectId: (typeof AlwaysPresentTraceMetricFields)[1] =
+    row[TraceMetricKnownFieldKey.PROJECT_ID];
+  const project = projects.projects.find(p => p.id === '' + projectId);
+  const projectSlug = project?.slug ?? '';
 
   const traceId = row[TraceMetricKnownFieldKey.TRACE];
   const telemetry = telemetryData?.get?.(traceId);
@@ -137,9 +150,9 @@ export function SampleTableRow({
     const spanId = row[TraceMetricKnownFieldKey.SPAN_ID];
     const oldSpanId = row[TraceMetricKnownFieldKey.OLD_SPAN_ID] as string;
     const spanIdToUse = oldSpanId || spanId;
-    const hasSpans = (telemetry?.spansCount ?? 0) > 0;
     const strippedLocation = stripMetricParamsFromLocation(location);
 
+    const hasSpans = (telemetry?.spansCount ?? 0) > 0;
     const shouldGoToSpans = spanIdToUse && hasSpans;
 
     const target = getTraceDetailsUrl({
@@ -154,8 +167,8 @@ export function SampleTableRow({
       location: strippedLocation,
       source: TraceViewSources.TRACE_METRICS,
       spanId: shouldGoToSpans ? spanIdToUse : undefined,
-      // tab: shouldGoToSpans ? TraceLayoutTabKeys.WATERFALL : TraceLayoutTabKeys.METRICS, // TODO: Add metrics tab to trace view
-      tab: TraceLayoutTabKeys.WATERFALL,
+      // tab: shouldGoToSpans ? TraceLayoutTabKeys.WATERFALL : TraceLayoutTabKeys.METRICS, // TODO: Can use this if want to go to the waterfall view if we add metrics to span details.
+      tab: TraceLayoutTabKeys.METRICS,
     });
 
     return (
@@ -172,7 +185,7 @@ export function SampleTableRow({
       <WrappingText
         style={{
           maxWidth: MAX_TELEMETRY_WIDTH,
-          color: theme.gray400,
+          color: theme.colors.gray500,
           alignItems: 'center',
           justifyContent: 'flex-end',
         }}
@@ -187,7 +200,7 @@ export function SampleTableRow({
       <WrappingText
         style={{
           maxWidth: MAX_TELEMETRY_WIDTH,
-          color: theme.purple400,
+          color: theme.colors.blue500,
           alignItems: 'center',
           justifyContent: 'flex-end',
         }}
@@ -202,7 +215,7 @@ export function SampleTableRow({
       <WrappingText
         style={{
           maxWidth: MAX_TELEMETRY_WIDTH,
-          color: theme.red300,
+          color: theme.colors.red400,
           alignItems: 'center',
           justifyContent: 'flex-end',
         }}
@@ -263,6 +276,14 @@ export function SampleTableRow({
     );
   };
 
+  const renderProjectCell = () => {
+    return (
+      <Flex align="center" justify="center" style={{minWidth: '18px'}}>
+        <ProjectBadge avatarSize={14} project={project ?? {slug: projectSlug}} hideName />
+      </Flex>
+    );
+  };
+
   const renderMap: Record<SampleTableColumnKey, () => ReactNode> = {
     [VirtualTableSampleColumnKey.EXPAND_ROW]: renderExpandRowCell,
     [TraceMetricKnownFieldKey.TRACE]: renderTraceCell,
@@ -271,6 +292,7 @@ export function SampleTableRow({
     [VirtualTableSampleColumnKey.LOGS]: renderLogsCell,
     [VirtualTableSampleColumnKey.SPANS]: renderSpansCell,
     [VirtualTableSampleColumnKey.ERRORS]: renderErrorsCell,
+    [VirtualTableSampleColumnKey.PROJECT_BADGE]: renderProjectCell,
     [TraceMetricKnownFieldKey.METRIC_TYPE]: renderMetricTypeCell,
   };
 
@@ -280,7 +302,7 @@ export function SampleTableRow({
 
   return (
     <TableRowContainer ref={ref}>
-      <StickyTableRow isSticky={isExpanded}>
+      <StickyTableRow sticky={isExpanded ? true : undefined}>
         {columns.map((field, i) => {
           const isValueColumn = field === TraceMetricKnownFieldKey.METRIC_VALUE;
           const cellContent = renderFieldCell(field);
@@ -315,14 +337,3 @@ export function SampleTableRow({
     </TableRowContainer>
   );
 }
-
-const TableRowContainer = styled('div')`
-  display: grid;
-  grid-template-columns: subgrid;
-  grid-auto-rows: min-content;
-  grid-column: 1 / -1;
-
-  :not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
-  }
-`;

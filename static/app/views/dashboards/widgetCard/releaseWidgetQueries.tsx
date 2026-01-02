@@ -27,6 +27,7 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import {dashboardFiltersToString} from 'sentry/views/dashboards/utils';
+import type {WidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import {
   DERIVED_STATUS_METRICS_PATTERN,
   DerivedStatusFields,
@@ -52,6 +53,7 @@ interface ReleaseWidgetQueriesProps {
     tableResults?: TableDataWithTitle[];
     timeseriesResults?: Series[];
   }) => void;
+  queue?: WidgetQueryQueue;
 }
 
 export function derivedMetricsToField(field: string): string {
@@ -215,6 +217,7 @@ function ReleaseWidgetQueries({
   onDataFetched,
   onDataFetchStart,
   children,
+  queue,
 }: ReleaseWidgetQueriesProps) {
   const config = ReleasesConfig;
 
@@ -371,6 +374,7 @@ function ReleaseWidgetQueries({
 
   return (
     <GenericWidgetQueries<SessionApiResponse, SessionApiResponse>
+      queue={queue}
       config={config}
       api={api}
       organization={organization}

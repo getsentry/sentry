@@ -18,6 +18,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
@@ -42,7 +43,8 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
     source_root = gen_path_regex_field()
     default_branch = serializers.RegexField(
         r"^(^(?![\/]))([\w\.\/-]+)(?<![\/])$",
-        required=True,
+        required=False,  # Validated in validate_default_branch based on integration type
+        allow_blank=True,  # Perforce allows empty streams
         error_messages={"invalid": _(BRANCH_NAME_ERROR_MESSAGE)},
     )
     instance: RepositoryProjectPathConfig | None
@@ -97,6 +99,23 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
         if not project_query.exists():
             raise serializers.ValidationError("Project does not exist")
         return project_id
+
+    def validate_default_branch(self, default_branch):
+        # Get the integration to check if it's Perforce
+        integration = integration_service.get_integration(
+            integration_id=self.org_integration.integration_id
+        )
+
+        # For Perforce, allow empty branch (streams are part of depot path)
+        # For other integrations, branch is required
+        if (
+            not default_branch
+            and integration
+            and integration.provider != IntegrationProviderSlug.PERFORCE
+        ):
+            raise serializers.ValidationError("This field is required.")
+
+        return default_branch
 
     def create(self, validated_data):
         return RepositoryProjectPathConfig.objects.create(
@@ -157,16 +176,13 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
 
         integration_id = request.GET.get("integrationId")
 
-        queryset = RepositoryProjectPathConfig.objects.all()
+        # Always filter by projects the user can access
+        projects = self.get_projects(request, organization)
+        queryset = RepositoryProjectPathConfig.objects.filter(project__in=projects)
 
         if integration_id:
-            # get_organization_integration will raise a 404 if no org_integration is found
             org_integration = self.get_organization_integration(organization, integration_id)
             queryset = queryset.filter(organization_integration_id=org_integration.id)
-        else:
-            # Filter by project
-            projects = self.get_projects(request, organization)
-            queryset = queryset.filter(project__in=projects)
 
         return self.paginate(
             request=request,

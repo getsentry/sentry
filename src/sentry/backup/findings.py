@@ -95,6 +95,13 @@ class ComparatorFindingKind(FindingKind):
     # or `None`.
     ForeignKeyComparatorExistenceCheck = auto()
 
+    # DataSource.source_id field comparison failed (dynamic foreign key).
+    DataSourceComparator = auto()
+
+    # Failed to compare DataSource.source_id field because one of the fields being compared was not present
+    # or `None`.
+    DataSourceComparatorExistenceCheck = auto()
+
     # Failed to compare an ignored field.
     IgnoredComparator = auto()
 

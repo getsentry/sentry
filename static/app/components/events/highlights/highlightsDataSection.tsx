@@ -30,8 +30,8 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
-import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -307,9 +307,9 @@ const HighlightContainer = styled(TreeContainer)<{columnCount: number}>`
 
 const EmptyHighlights = styled('div')`
   padding: ${space(2)} ${space(1)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border: 1px dashed ${p => p.theme.translucentBorder};
-  background: ${p => p.theme.bodyBackground};
+  background: ${p => p.theme.tokens.background.secondary};
   grid-column: 1 / -1;
   display: flex;
   text-align: center;

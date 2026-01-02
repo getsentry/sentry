@@ -31,6 +31,7 @@ import DashboardDetail from 'sentry/views/dashboards/detail';
 import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
 import * as types from 'sentry/views/dashboards/types';
 import {DashboardState} from 'sentry/views/dashboards/types';
+import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import ViewEditDashboard from 'sentry/views/dashboards/view';
 import useWidgetBuilderState from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -240,7 +241,6 @@ describe('Dashboards > Detail', () => {
       render(
         <CreateDashboard
           {...RouteComponentPropsFixture()}
-          organization={initialData.organization}
           params={{templateId: 'default-template', widgetId: '2'}}
           router={initialData.router}
           location={{...initialData.router.location, pathname: '/widget/2/'}}
@@ -987,7 +987,6 @@ describe('Dashboards > Detail', () => {
       render(
         <CreateDashboard
           {...RouteComponentPropsFixture()}
-          organization={initialData.organization}
           params={{templateId: undefined}}
           router={initialData.router}
           location={{
@@ -1031,7 +1030,6 @@ describe('Dashboards > Detail', () => {
       render(
         <CreateDashboard
           {...RouteComponentPropsFixture()}
-          organization={initialData.organization}
           params={{templateId: 'default-template'}}
           router={initialData.router}
           location={{
@@ -1079,7 +1077,6 @@ describe('Dashboards > Detail', () => {
       render(
         <CreateDashboard
           {...RouteComponentPropsFixture()}
-          organization={initialData.organization}
           params={{templateId: 'default-template'}}
           router={initialData.router}
           location={initialData.router.location}
@@ -1809,7 +1806,7 @@ describe('Dashboards > Detail', () => {
       );
 
       await userEvent.click(await screen.findByText('All Releases'));
-      await userEvent.type(screen.getAllByPlaceholderText('Search\u2026')[2]!, 's');
+      await userEvent.type(screen.getByPlaceholderText('Search\u2026'), 's');
       await userEvent.click(await screen.findByRole('option', {name: 'search-result'}));
 
       // Validate that after search is cleared, search result still appears
@@ -2285,6 +2282,32 @@ describe('Dashboards > Detail', () => {
       expect(await screen.findByLabelText('Star')).toBeInTheDocument();
     });
 
+    it('does not render save or edit features on prebuilt insights dashboards', async () => {
+      render(
+        <DashboardDetail
+          {...RouteComponentPropsFixture()}
+          initialState={DashboardState.VIEW}
+          dashboard={DashboardFixture([], {
+            prebuiltId: PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
+          })}
+          dashboards={[]}
+          onDashboardUpdate={jest.fn()}
+        />,
+        {
+          deprecatedRouterMocks: true,
+        }
+      );
+
+      await userEvent.click(await screen.findByText('24H'));
+      await userEvent.click(screen.getByText('Last 7 days'));
+      await screen.findByText('7D');
+
+      expect(screen.queryByTestId('filter-bar-cancel')).not.toBeInTheDocument();
+      expect(screen.queryByText('Save')).not.toBeInTheDocument();
+      expect(screen.queryByText('Editors:')).not.toBeInTheDocument();
+      expect(screen.queryByText('Add Widget')).not.toBeInTheDocument();
+    });
+
     describe('widget builder redesign', () => {
       let mockUpdateDashboard!: jest.SpyInstance;
       beforeEach(() => {
@@ -2319,8 +2342,6 @@ describe('Dashboards > Detail', () => {
             dashboard={DashboardFixture([])}
             dashboards={[]}
             onDashboardUpdate={jest.fn()}
-            newWidget={undefined}
-            onSetNewWidget={() => {}}
           />,
           {
             organization: initialData.organization,
@@ -2342,8 +2363,6 @@ describe('Dashboards > Detail', () => {
             dashboard={DashboardFixture([])}
             dashboards={[]}
             onDashboardUpdate={jest.fn()}
-            newWidget={undefined}
-            onSetNewWidget={() => {}}
           />,
           {
             organization: initialData.organization,
@@ -2365,8 +2384,6 @@ describe('Dashboards > Detail', () => {
             dashboard={DashboardFixture([])}
             dashboards={[]}
             onDashboardUpdate={jest.fn()}
-            newWidget={undefined}
-            onSetNewWidget={() => {}}
           />,
           {
             organization: initialData.organization,
@@ -2388,8 +2405,6 @@ describe('Dashboards > Detail', () => {
             dashboard={DashboardFixture([])}
             dashboards={[]}
             onDashboardUpdate={jest.fn()}
-            newWidget={undefined}
-            onSetNewWidget={() => {}}
           />,
           {
             organization: initialData.organization,
@@ -2422,8 +2437,6 @@ describe('Dashboards > Detail', () => {
             dashboard={mockDashboard}
             dashboards={[]}
             onDashboardUpdate={jest.fn()}
-            newWidget={undefined}
-            onSetNewWidget={() => {}}
           />,
           {
             organization: initialData.organization,
@@ -2469,8 +2482,6 @@ describe('Dashboards > Detail', () => {
             dashboard={mockDashboard}
             dashboards={[]}
             onDashboardUpdate={jest.fn()}
-            newWidget={undefined}
-            onSetNewWidget={() => {}}
           />,
           {
             organization: initialData.organization,
@@ -2516,8 +2527,6 @@ describe('Dashboards > Detail', () => {
             dashboard={mockDashboard}
             dashboards={[]}
             onDashboardUpdate={jest.fn()}
-            newWidget={undefined}
-            onSetNewWidget={() => {}}
           />,
           {
             organization: initialData.organization,
@@ -2573,11 +2582,10 @@ describe('Dashboards > Detail', () => {
             dashboard={mockDashboard}
             dashboards={[]}
             onDashboardUpdate={jest.fn()}
-            newWidget={undefined}
-            onSetNewWidget={() => {}}
           />,
           {
             organization: initialData.organization,
+
             deprecatedRouterMocks: true,
           }
         );

@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:19:57.702564+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: stacktrace
 hashing_metadata: {
@@ -24,12 +22,14 @@ metrics with tags: {
 ---
 contributing variants:
   system*
-    hash: "ef2555bf7958ada8eefafbfdaed1c409"
+    hash: "6c27831782d10c44d7d0a01ef3f9c71e"
     contributing component: exception
     hint: None
     root_component:
       system*
         exception*
+          type*
+            "ArithmeticException"
           stacktrace*
             frame*
               module*
@@ -276,5 +276,3 @@ contributing variants:
                 "jdk.internal.reflect.NativeMethodAccessorImpl"
               function*
                 "invoke0"
-          type*
-            "ArithmeticException"

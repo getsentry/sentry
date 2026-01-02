@@ -3,7 +3,7 @@ from __future__ import annotations
 import builtins
 import logging
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, TypedDict
 
 from django.conf import settings
 from django.db import models
@@ -29,8 +29,17 @@ from .json_config import JSONConfigBase
 
 if TYPE_CHECKING:
     from sentry.workflow_engine.handlers.detector import DetectorHandler
+    from sentry.workflow_engine.models.data_condition_group import DataConditionGroupSnapshot
 
 logger = logging.getLogger(__name__)
+
+
+class DetectorSnapshot(TypedDict):
+    id: int
+    type: str
+    enabled: bool
+    status: int
+    trigger_condition: DataConditionGroupSnapshot | None
 
 
 class DetectorManager(BaseManager["Detector"]):
@@ -40,6 +49,17 @@ class DetectorManager(BaseManager["Detector"]):
             .get_queryset()
             .exclude(status__in=(ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS))
         )
+
+    def with_type_filters(self) -> BaseQuerySet[Detector]:
+        """
+        Returns a queryset with detector type-specific filters applied. This
+        filters out detectors based on their type settings
+
+        Use this instead of get_queryset() in API endpoints and user-facing
+        code to ensure filtered detectors are hidden. This is the recommended
+        way to query detectors.
+        """
+        return self.get_queryset().filter(grouptype.registry.get_detector_type_filters())
 
 
 @region_silo_model
@@ -97,16 +117,25 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         return f"detector:by_proj_type:{project_id}:{detector_type}"
 
     @classmethod
-    def get_error_detector_for_project(cls, project_id: int) -> Detector:
-        from sentry.grouping.grouptype import ErrorGroupType
-
-        detector_type = ErrorGroupType.slug
+    def get_default_detector_for_project(cls, project_id: int, detector_type: str) -> Detector:
         cache_key = cls._get_detector_project_type_cache_key(project_id, detector_type)
         detector = cache.get(cache_key)
         if detector is None:
-            detector = cls.objects.get(project_id=project_id, type=ErrorGroupType.slug)
+            detector = cls.objects.get(project_id=project_id, type=detector_type)
             cache.set(cache_key, detector, cls.CACHE_TTL)
         return detector
+
+    @classmethod
+    def get_error_detector_for_project(cls, project_id: int) -> Detector:
+        from sentry.grouping.grouptype import ErrorGroupType
+
+        return cls.get_default_detector_for_project(project_id, ErrorGroupType.slug)
+
+    @classmethod
+    def get_issue_stream_detector_for_project(cls, project_id: int) -> Detector:
+        from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
+
+        return cls.get_default_detector_for_project(project_id, IssueStreamGroupType.slug)
 
     @property
     def group_type(self) -> builtins.type[GroupType]:
@@ -140,6 +169,19 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
             raise ValueError("Registered grouptype has no detector settings")
 
         return settings
+
+    def get_snapshot(self) -> DetectorSnapshot:
+        trigger_condition = None
+        if self.workflow_condition_group:
+            trigger_condition = self.workflow_condition_group.get_snapshot()
+
+        return {
+            "id": self.id,
+            "type": self.type,
+            "enabled": self.enabled,
+            "status": self.status,
+            "trigger_condition": trigger_condition,
+        }
 
     def get_audit_log_data(self) -> dict[str, Any]:
         return {"name": self.name}

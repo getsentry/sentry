@@ -1,8 +1,14 @@
+import {uuid4} from '@sentry/core';
+
 import type {FieldValue} from 'sentry/components/forms/model';
 import {t} from 'sentry/locale';
-import type {Action} from 'sentry/types/workflowEngine/actions';
+import {ActionType, type Action} from 'sentry/types/workflowEngine/actions';
 import type {Automation, NewAutomation} from 'sentry/types/workflowEngine/automations';
-import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
+import type {
+  DataCondition,
+  DataConditionGroup,
+  Subfilter,
+} from 'sentry/types/workflowEngine/dataConditions';
 import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
 import type {AutomationBuilderState} from 'sentry/views/automations/components/automationBuilderContext';
 import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
@@ -13,6 +19,11 @@ export interface AutomationFormData {
   environment: string | null;
   frequency: number | null;
   name: string;
+  /**
+   * Derived field used for project-based monitor selection.
+   * Maps to issue stream detector IDs for the selected projects.
+   */
+  projectIds: string[];
 }
 
 const stripDataConditionId = (condition: any) => {
@@ -35,8 +46,17 @@ const stripSubfilterId = (subfilter: any) => {
   return subfilterWithoutId;
 };
 
-const stripActionId = (action: any) => {
+export const stripActionFields = (action: Action) => {
   const {id: _id, ...actionWithoutId} = action;
+
+  // Strip targetDisplay from email action config
+  if ([ActionType.EMAIL, ActionType.WEBHOOK].includes(action.type) && action.config) {
+    return {
+      ...actionWithoutId,
+      config: {...action.config, targetDisplay: null},
+    };
+  }
+
   return actionWithoutId;
 };
 
@@ -45,7 +65,7 @@ const stripDataConditionGroupId = (group: any) => {
   return {
     ...groupWithoutId,
     conditions: group.conditions?.map(stripDataConditionId) || [],
-    actions: group.actions?.map(stripActionId) || [],
+    actions: group.actions?.map(stripActionFields) || [],
   };
 };
 
@@ -54,7 +74,7 @@ export function getNewAutomationData(
   state: AutomationBuilderState
 ): NewAutomation {
   const result = {
-    name: data.name,
+    name: data.name || 'New Alert',
     triggers: stripDataConditionGroupId(state.triggers),
     environment: data.environment,
     actionFilters: state.actionFilters.map(stripDataConditionGroupId),
@@ -76,6 +96,7 @@ export function getAutomationFormData(
     frequency: automation.config.frequency || null,
     name: automation.name,
     enabled: automation.enabled,
+    projectIds: [],
   };
 }
 
@@ -131,4 +152,42 @@ export function validateActions({actions}: {actions: Action[]}): Record<string, 
     }
   }
   return errors;
+}
+
+/**
+ * Subfilter IDs are stripped on form submission, so they need to be re-assigned
+ * when loading the edit form for the remove/update logic to work correctly.
+ */
+export function assignSubfilterIds(
+  actionFilters: DataConditionGroup[]
+): DataConditionGroup[] {
+  return actionFilters.map(assignConditionGroupSubfilterIds);
+}
+
+function assignConditionGroupSubfilterIds(group: DataConditionGroup): DataConditionGroup {
+  return {
+    ...group,
+    conditions: group.conditions.map(assignConditionSubfilterIds),
+  };
+}
+
+function assignConditionSubfilterIds(condition: DataCondition): DataCondition {
+  const filters = condition.comparison?.filters;
+  if (!filters) {
+    return condition;
+  }
+  return {
+    ...condition,
+    comparison: {
+      ...condition.comparison,
+      filters: filters.map(assignSubfilterId),
+    },
+  };
+}
+
+function assignSubfilterId(filter: Subfilter): Subfilter {
+  return {
+    ...filter,
+    id: filter.id ?? uuid4(),
+  };
 }

@@ -1,12 +1,12 @@
-import type {SentryRouteObject} from 'sentry/components/route';
 import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
+import type {SentryRouteObject} from 'sentry/router/types';
 
 export const detectorRoutes: SentryRouteObject = {
   path: 'monitors/',
   children: [
     {
       index: true,
-      component: make(() => import('sentry/views/detectors/list')),
+      component: make(() => import('sentry/views/detectors/list/allMonitors')),
     },
     {
       path: 'new',

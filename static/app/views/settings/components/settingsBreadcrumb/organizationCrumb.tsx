@@ -1,4 +1,3 @@
-import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
 import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
@@ -6,6 +5,7 @@ import IdBadge from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import {resolveRoute} from 'sentry/utils/resolveRoute';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
@@ -18,7 +18,7 @@ import findFirstRouteWithoutRouteParam from './findFirstRouteWithoutRouteParam';
 import type {SettingsBreadcrumbProps} from './types';
 import {CrumbLink} from '.';
 
-function OrganizationCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
+export function OrganizationCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
   const navigate = useNavigate();
   const {organizations} = useLegacyStore(OrganizationsStore);
   const organization = useOrganization();
@@ -70,12 +70,15 @@ function OrganizationCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
     <BreadcrumbDropdown
       name={
         <CrumbLink to={orgSettings}>
-          <BadgeWrapper>
-            <IdBadge avatarSize={18} organization={organization} />
-          </BadgeWrapper>
+          <IdBadge avatarSize={18} organization={organization} />
         </CrumbLink>
       }
       onCrumbSelect={handleSelect}
+      onOpenChange={open => {
+        if (open) {
+          trackAnalytics('breadcrumbs.menu.opened', {organization: null});
+        }
+      }}
       hasMenu={hasMenu}
       route={route}
       value={organization.slug}
@@ -91,10 +94,3 @@ function OrganizationCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
     />
   );
 }
-
-const BadgeWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-export {OrganizationCrumb};

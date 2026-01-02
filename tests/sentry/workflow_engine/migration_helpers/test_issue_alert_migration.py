@@ -7,6 +7,8 @@ from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.rule import Rule, RuleSource
 from sentry.models.rulesnooze import RuleSnooze
+from sentry.monitors.models import Monitor, ScheduleType
+from sentry.monitors.utils import ensure_cron_detector, get_detector_for_monitor
 from sentry.rules.age import AgeComparisonType
 from sentry.rules.conditions.event_frequency import (
     ComparisonType,
@@ -438,6 +440,41 @@ class IssueAlertMigratorTest(TestCase):
         workflow = IssueAlertMigrator(self.issue_alert, self.user.id).run()
         assert AlertRuleWorkflow.objects.filter(rule_id=self.issue_alert.id).exists()
         assert not DetectorWorkflow.objects.filter(workflow=workflow).exists()
+
+    def test_run__cron_rule_with_monitor(self) -> None:
+        """
+        Cron rule WITH monitor.slug filter should be connected to the cron detector
+        """
+        monitor = Monitor.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            name="Test Monitor",
+            slug="test-monitor",
+            config={"schedule_type": ScheduleType.CRONTAB, "schedule": "0 * * * *"},
+        )
+        ensure_cron_detector(monitor)
+
+        # Update rule to be cron monitor source with monitor.slug filter
+        self.issue_alert.source = RuleSource.CRON_MONITOR
+        self.issue_alert.data["conditions"].append(
+            {
+                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                "key": "monitor.slug",
+                "match": "eq",
+                "value": "test-monitor",
+            }
+        )
+        self.issue_alert.save()
+
+        workflow = IssueAlertMigrator(self.issue_alert, self.user.id).run()
+
+        # Verify workflow created
+        assert AlertRuleWorkflow.objects.filter(rule_id=self.issue_alert.id).exists()
+
+        # Verify detector is linked to workflow
+        detector = get_detector_for_monitor(monitor)
+        assert detector is not None
+        assert DetectorWorkflow.objects.filter(detector=detector, workflow=workflow).exists()
 
     def test_dry_run(self) -> None:
         IssueAlertMigrator(self.issue_alert, self.user.id, is_dry_run=True).run()

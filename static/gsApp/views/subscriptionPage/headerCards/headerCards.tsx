@@ -1,6 +1,7 @@
 import {Grid} from 'sentry/components/core/layout';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import type {Organization} from 'sentry/types/organization';
+import {useNavContext} from 'sentry/views/nav/context';
 
 import type {Subscription} from 'getsentry/types';
 import {
@@ -77,6 +78,7 @@ function getCards(organization: Organization, subscription: Subscription) {
 function HeaderCards({organization, subscription}: HeaderCardsProps) {
   const isNewBillingUI = hasNewBillingUI(organization);
   const cards = getCards(organization, subscription);
+  const {isCollapsed: navIsCollapsed} = useNavContext();
 
   return (
     <ErrorBoundary mini>
@@ -86,9 +88,11 @@ function HeaderCards({organization, subscription}: HeaderCardsProps) {
           columns={{
             xs: '1fr',
             sm: `repeat(min(${cards.length}, 2), minmax(0, 1fr))`,
-            md: `repeat(${cards.length}, minmax(0, 1fr))`,
+            md: navIsCollapsed ? `repeat(${cards.length}, minmax(0, 1fr))` : undefined,
+            lg: `repeat(${cards.length}, minmax(0, 1fr))`,
           }}
           gap="xl"
+          data-test-id="subscription-header-cards"
         >
           {cards}
         </Grid>

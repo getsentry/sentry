@@ -12,7 +12,7 @@ import sentry_sdk
 from sentry_relay.processing import StoreNormalizer
 
 from sentry import options, reprocessing2
-from sentry.attachments import delete_ratelimited_attachments, get_attachments_for_event
+from sentry.attachments import delete_cached_and_ratelimited_attachments, get_attachments_for_event
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.feedback.usecases.ingest.save_event_feedback import (
     save_event_feedback as save_event_feedback_impl,
@@ -368,7 +368,7 @@ def do_process_event(
         has_changed = True
         data = new_data
 
-    attachments = data.pop("_attachments", None)
+    attachments = data.get("_attachments", None)
 
     # Second round of datascrubbing after stacktrace and language-specific
     # processing. First round happened as part of ingest.
@@ -533,7 +533,7 @@ def _do_save_event(
         event_data=data,
     )
 
-    with metrics.global_tags(event_type=event_type):
+    with metrics.global_tags(tags={"event_type": event_type}):
         if event_id is None and data is not None:
             event_id = data["event_id"]
 
@@ -627,7 +627,7 @@ def _do_save_event(
 
             reprocessing2.mark_event_reprocessed(data)
             if all_attachments and project:
-                delete_ratelimited_attachments(project, data, all_attachments)
+                delete_cached_and_ratelimited_attachments(project, all_attachments)
 
             if start_time:
                 metrics.timing(

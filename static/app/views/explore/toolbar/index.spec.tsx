@@ -1,7 +1,6 @@
 import type {ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
   act,
@@ -61,6 +60,29 @@ describe('ExploreToolbar', () => {
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
       body: [],
+      match: [MockApiClient.matchQuery({attributeType: 'number'})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [
+        {
+          key: 'span.op',
+          name: 'span.op',
+          attributeSource: {source_type: 'sentry'},
+        },
+        {
+          key: 'span.description',
+          name: 'span.description',
+          attributeSource: {source_type: 'sentry'},
+        },
+        {
+          key: 'project',
+          name: 'project',
+          attributeSource: {source_type: 'sentry'},
+        },
+      ],
+      match: [MockApiClient.matchQuery({attributeType: 'string'})],
     });
   });
 
@@ -304,16 +326,17 @@ describe('ExploreToolbar', () => {
 
     let options: HTMLElement[];
     const section = screen.getByTestId('section-group-by');
+    const spanOpColumn = screen.getAllByTestId('editor-column')[0]!;
 
     expect(groupBys).toEqual(['']);
 
-    await userEvent.click(within(section).getByRole('button', {name: '\u2014'}));
+    await userEvent.click(within(spanOpColumn).getByRole('button', {name: '\u2014'}));
     options = await within(section).findAllByRole('option');
     expect(options.length).toBeGreaterThan(0);
     await userEvent.click(within(section).getByRole('option', {name: 'span.op'}));
     expect(groupBys).toEqual(['span.op']);
 
-    await userEvent.click(within(section).getByRole('button', {name: 'span.op'}));
+    await userEvent.click(within(spanOpColumn).getByRole('button', {name: 'span.op'}));
     options = await within(section).findAllByRole('option');
     expect(options.length).toBeGreaterThan(0);
     await userEvent.click(within(section).getByRole('option', {name: 'project'}));
@@ -322,7 +345,12 @@ describe('ExploreToolbar', () => {
     await userEvent.click(within(section).getByRole('button', {name: 'Add Group'}));
     expect(groupBys).toEqual(['project', '']);
 
-    await userEvent.click(within(section).getByRole('button', {name: '\u2014'}));
+    const projectColumn = screen.getAllByTestId('editor-column')[1]!;
+    await userEvent.click(
+      within(projectColumn).getByRole('button', {
+        name: '\u2014',
+      })
+    );
     options = await within(section).findAllByRole('option');
     expect(options.length).toBeGreaterThan(0);
     await userEvent.click(
@@ -356,8 +384,9 @@ describe('ExploreToolbar', () => {
     expect(groupBys).toEqual(['']);
 
     const section = screen.getByTestId('section-group-by');
+    const editorColumn = screen.getAllByTestId('editor-column')[0]!;
 
-    await userEvent.click(within(section).getByRole('button', {name: '\u2014'}));
+    await userEvent.click(within(editorColumn).getByRole('button', {name: '\u2014'}));
     await userEvent.click(within(section).getByRole('option', {name: 'span.op'}));
 
     expect(mode).toEqual(Mode.AGGREGATE);
@@ -591,64 +620,64 @@ describe('ExploreToolbar', () => {
   });
 
   it('opens compare queries', async () => {
-    const router = RouterFixture({
-      location: {
-        pathname: '/traces/',
-        query: {
-          visualize: encodeURIComponent('{"chartType":1,"yAxes":["p95(span.duration)"]}'),
-        },
-      },
-    });
-
     function Component() {
       return <ExploreToolbar />;
     }
-    render(
+    const {router} = render(
       <Wrapper>
         <Component />
       </Wrapper>,
       {
-        router,
         organization,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: '/traces/',
+            query: {
+              visualize: encodeURIComponent(
+                '{"chartType":1,"yAxes":["p95(span.duration)"]}'
+              ),
+            },
+          },
+        },
       }
     );
 
     const section = screen.getByTestId('section-save-as');
 
     await userEvent.click(within(section).getByText(/Compare/));
-    expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/explore/traces/compare/',
-      query: expect.objectContaining({
+    expect(router.location.pathname).toBe(
+      '/organizations/org-slug/explore/traces/compare/'
+    );
+    expect(router.location.query).toEqual(
+      expect.objectContaining({
         queries: [
           '{"chartType":0,"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["count(span.duration)"]}',
           '{"fields":["id","span.duration","timestamp"],"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["count(span.duration)"]}',
         ],
-      }),
-    });
+      })
+    );
   });
 
   it('opens the right alert', async () => {
-    const router = RouterFixture({
-      location: {
-        pathname: '/traces/',
-        query: {
-          visualize: encodeURIComponent('{"chartType":1,"yAxes":["avg(span.duration)"]}'),
-        },
-      },
-    });
-
     function Component() {
       return <ExploreToolbar />;
     }
-    render(
+    const {router} = render(
       <Wrapper>
         <Component />
       </Wrapper>,
       {
-        router,
         organization,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: '/traces/',
+            query: {
+              visualize: encodeURIComponent(
+                '{"chartType":1,"yAxes":["avg(span.duration)"]}'
+              ),
+            },
+          },
+        },
       }
     );
 
@@ -661,24 +690,21 @@ describe('ExploreToolbar', () => {
     await userEvent.click(
       await within(section).findByRole('menuitemradio', {name: 'count(spans)'})
     );
-    expect(router.push).toHaveBeenCalledWith({
-      pathname:
-        '/organizations/org-slug/issues/alerts/new/metric/?aggregate=count%28span.duration%29&dataset=events_analytics_platform&eventTypes=transaction&interval=1h&project=proj-slug&query=&statsPeriod=7d',
+    expect(router.location.pathname).toBe(
+      '/organizations/org-slug/issues/alerts/new/metric/'
+    );
+    expect(router.location.query).toEqual({
+      aggregate: 'count(span.duration)',
+      dataset: 'events_analytics_platform',
+      eventTypes: 'transaction',
+      interval: '1h',
+      project: 'proj-slug',
+      query: '',
+      statsPeriod: '7d',
     });
   });
 
   it('add to dashboard options correctly', async () => {
-    const router = RouterFixture({
-      location: {
-        pathname: '/traces/',
-        query: {
-          visualize: encodeURIComponent(
-            '{"chartType":1,"yAxes":["count(span.duration)"]}'
-          ),
-        },
-      },
-    });
-
     function Component() {
       return <ExploreToolbar />;
     }
@@ -687,9 +713,17 @@ describe('ExploreToolbar', () => {
         <Component />
       </Wrapper>,
       {
-        router,
         organization,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: '/traces/',
+            query: {
+              visualize: encodeURIComponent(
+                '{"chartType":1,"yAxes":["count(span.duration)"]}'
+              ),
+            },
+          },
+        },
       }
     );
 
@@ -746,61 +780,43 @@ describe('ExploreToolbar', () => {
       },
     });
 
-    const router = RouterFixture({
-      location: {
-        pathname: '/traces/',
-        query: {
-          query: '',
-          visualize: '{"chartType":1,"yAxes":["count(span.duration)"]}',
-          groupBy: ['span.op'],
-          sort: ['-count(span.duration)'],
-          field: ['count(span.duration)'],
-          id: '123',
-          mode: 'aggregate',
-        },
-      },
-    });
-
     function Component() {
       return <ExploreToolbar />;
     }
 
-    render(
+    const {router} = render(
       <Wrapper>
         <Component />
       </Wrapper>,
       {
-        router,
         organization,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: '/traces/',
+            query: {
+              query: '',
+              visualize: '{"chartType":1,"yAxes":["count(span.duration)"]}',
+              groupBy: 'span.op',
+              sort: '-count(span.duration)',
+              field: 'count(span.duration)',
+              id: '123',
+              mode: 'aggregate',
+            },
+          },
+        },
       }
     );
     screen.getByText('Save as\u2026');
     const section = screen.getByTestId('section-sort-by');
     await userEvent.click(within(section).getByRole('button', {name: 'Desc'}));
     await userEvent.click(within(section).getByRole('option', {name: 'Asc'}));
-    expect(router.push).toHaveBeenCalledWith(
+    expect(router.location.query).toEqual(
       expect.objectContaining({
-        query: expect.objectContaining({
-          aggregateSort: ['count(span.duration)'],
-        }),
+        aggregateSort: 'count(span.duration)',
       })
     );
 
-    // Simulate navigation from sort change
-    router.location.query.aggregateSort = ['count(span.duration)'];
-    router.push(router.location);
-    render(
-      <Wrapper>
-        <Component />
-      </Wrapper>,
-      {
-        router,
-        organization,
-        deprecatedRouterMocks: true,
-      }
-    );
-
+    // After navigation, the UI should update to show "Save" instead of "Save as…"
     await waitFor(() => {
       expect(screen.getByText('Save')).toBeInTheDocument();
     });

@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {Outlet} from 'react-router-dom';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -8,15 +9,19 @@ import GlobalModal from 'sentry/components/globalModal';
 import Indicators from 'sentry/components/indicators';
 import ListLink from 'sentry/components/links/listLink';
 import {IconSentry, IconSliders} from 'sentry/icons';
+import {ScrapsProviders} from 'sentry/scrapsProviders';
 import {space} from 'sentry/styles/space';
 import localStorage from 'sentry/utils/localStorage';
-// eslint-disable-next-line no-restricted-imports -- @TODO(jonasbadalic): Remove theme import
-import {darkTheme, lightTheme} from 'sentry/utils/theme';
+// eslint-disable-next-line no-restricted-imports
+import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 import SystemAlerts from 'sentry/views/app/systemAlerts';
 
 import GlobalStyles from 'admin/globalStyles';
 
-const themes = {darkTheme, lightTheme};
+const themes = {
+  darkTheme,
+  lightTheme,
+};
 
 type ThemeName = keyof typeof themes;
 
@@ -30,77 +35,73 @@ const useToggleTheme = () => {
     localStorage.setItem('getsentryAdminTheme', newThemeName);
   };
 
-  return [
-    themeName === 'darkTheme',
-    themes[themeName] ?? lightTheme,
-    toggleTheme,
-  ] as const;
+  return [themeName === 'darkTheme', themes[themeName], toggleTheme] as const;
 };
 
-type Props = {
-  children: React.ReactNode;
-};
-
-function Layout({children}: Props) {
+export default function Layout() {
   const [isDark, theme, toggleTheme] = useToggleTheme();
 
   return (
     <ThemeProvider theme={theme}>
-      <GlobalStyles theme={theme} />
-      <GlobalModal />
-      <SystemAlerts className="messages-container" />
-      <Indicators className="indicators-container" />
-      <AppContainer>
-        <Sidebar>
-          <Logo to="/_admin/">
-            <IconSentry size="xl" />
-            Admin
-          </Logo>
-          <Navigation>
-            <NavLink to="/_admin/" index>
-              Home
-            </NavLink>
-            <NavLink to="/_admin/customers/">Customers</NavLink>
-            <NavLink to="/_admin/users/">Users</NavLink>
-            <NavLink to="/_admin/sentry-apps/">Sentry Apps</NavLink>
-            <NavLink to="/_admin/doc-integrations/">Doc Integrations</NavLink>
-            <NavLink to="/_admin/broadcasts/">Broadcasts</NavLink>
-            <NavLink to="/_admin/promocodes/">Promos</NavLink>
-            <NavLink to="/_admin/beacons/">Beacons</NavLink>
-            <NavLink to="/_admin/policies/">Policies</NavLink>
-            <NavLink to="/_admin/options/">Options</NavLink>
-            <NavLink to="/_admin/debugging-tools/">Debugging Tools</NavLink>
-            <NavLink to="/_admin/instance-level-oauth">
-              Instance level OAuth Clients
-            </NavLink>
-            <NavLink to="/_admin/private-apis/">Private APIs</NavLink>
-            <NavLink to="/_admin/relocations/">Relocations</NavLink>
-            <NavLink to="/_admin/employees/">Sentry Employees</NavLink>
-            <NavLink to="/_admin/billing-plans/">Billing Plans</NavLink>
-            <NavLink to="/_admin/invoices/">Invoices</NavLink>
-            <NavLink to="/_admin/spike-projection-generation/">
-              Spike Projection Generation
-            </NavLink>
-            <NavLink to="/_admin/launchpad/">Launchpad (Emerge) Related</NavLink>
-          </Navigation>
-          <div>
-            <ThemeToggle
-              borderless
-              size="zero"
-              onClick={toggleTheme}
-              icon={
-                <IconSliders
-                  size="sm"
-                  style={{transform: isDark ? 'scaleX(-1)' : 'none'}}
-                />
-              }
-            >
-              {isDark ? 'Light mode' : 'Dark mode'}
-            </ThemeToggle>
-          </div>
-        </Sidebar>
-        <Content>{children}</Content>
-      </AppContainer>
+      <ScrapsProviders>
+        <GlobalStyles theme={theme} />
+        <GlobalModal />
+        <SystemAlerts className="messages-container" />
+        <Indicators className="indicators-container" />
+        <AppContainer>
+          <Sidebar>
+            <Logo to="/_admin/">
+              <IconSentry size="xl" />
+              Admin
+            </Logo>
+            <Navigation>
+              <NavLink to="/_admin/" index>
+                Home
+              </NavLink>
+              <NavLink to="/_admin/customers/">Customers</NavLink>
+              <NavLink to="/_admin/users/">Users</NavLink>
+              <NavLink to="/_admin/sentry-apps/">Sentry Apps</NavLink>
+              <NavLink to="/_admin/doc-integrations/">Doc Integrations</NavLink>
+              <NavLink to="/_admin/broadcasts/">Broadcasts</NavLink>
+              <NavLink to="/_admin/promocodes/">Promos</NavLink>
+              <NavLink to="/_admin/beacons/">Beacons</NavLink>
+              <NavLink to="/_admin/policies/">Policies</NavLink>
+              <NavLink to="/_admin/options/">Options</NavLink>
+              <NavLink to="/_admin/debugging-tools/">Debugging Tools</NavLink>
+              <NavLink to="/_admin/instance-level-oauth">
+                Instance level OAuth Clients
+              </NavLink>
+              <NavLink to="/_admin/private-apis/">Private APIs</NavLink>
+              <NavLink to="/_admin/relocations/">Relocations</NavLink>
+              <NavLink to="/_admin/employees/">Sentry Employees</NavLink>
+              <NavLink to="/_admin/billing-plans/">Billing Plans</NavLink>
+              <NavLink to="/_admin/invoices/">Invoices</NavLink>
+              <NavLink to="/_admin/spike-projection-generation/">
+                Spike Projection Generation
+              </NavLink>
+              <NavLink to="/_admin/launchpad/">Launchpad (Emerge) Related</NavLink>
+            </Navigation>
+            <div>
+              <ThemeToggle
+                borderless
+                size="zero"
+                onClick={toggleTheme}
+                icon={
+                  <IconSliders
+                    size="sm"
+                    style={{transform: isDark ? 'scaleX(-1)' : 'none'}}
+                  />
+                }
+              >
+                {isDark ? 'Light mode' : 'Dark mode'}
+              </ThemeToggle>
+            </div>
+          </Sidebar>
+          <Content>
+            <Outlet />
+          </Content>
+        </AppContainer>
+      </ScrapsProviders>
     </ThemeProvider>
   );
 }
@@ -131,7 +132,7 @@ const Sidebar = styled('section')`
   width: var(--sidebarWidth);
   padding: ${space(3)} 0;
   gap: ${space(3)};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border-right: 1px solid ${p => p.theme.border};
 
   > * {
@@ -144,7 +145,7 @@ const Logo = styled(Link)`
   align-items: center;
   gap: ${space(1)};
   text-transform: uppercase;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.xl};
   font-weight: bold;
 `;
@@ -170,7 +171,7 @@ const NavLink = styled(ListLink)`
   --activeIndicatorWidth: ${space(0.5)};
 
   padding: ${space(0.25)} 0;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   display: flex;
   align-items: center;
   gap: ${space(1)};
@@ -194,5 +195,3 @@ const NavLink = styled(ListLink)`
     color: ${p => p.theme.active};
   }
 `;
-
-export default Layout;

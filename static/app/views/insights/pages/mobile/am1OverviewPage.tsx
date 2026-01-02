@@ -4,7 +4,10 @@ import styled from '@emotion/styled';
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {
+  DatePageFilter,
+  type DatePageFilterProps,
+} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
@@ -76,14 +79,18 @@ const REACT_NATIVE_COLUMN_TITLES = [
   {title: 'user misery'},
 ];
 
+interface Am1MobileOverviewPageProps {
+  datePageFilterProps: DatePageFilterProps;
+}
+
 // Am1 customers do not have EAP, so we need to use the old frontend overview page for now
-export function Am1MobileOverviewPage() {
+export function Am1MobileOverviewPage({datePageFilterProps}: Am1MobileOverviewPageProps) {
   useOverviewPageTrackPageload();
 
   const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
-  const {setPageError} = usePageAlert();
+  const {setPageDanger} = usePageAlert();
   const {projects} = useProjects();
   const onboardingProject = useOnboardingProject();
   const navigate = useNavigate();
@@ -206,7 +213,7 @@ export function Am1MobileOverviewPage() {
                 <PageFilterBar condensed>
                   <ProjectPageFilter />
                   <EnvironmentPageFilter />
-                  <DatePageFilter />
+                  <DatePageFilter {...datePageFilterProps} />
                 </PageFilterBar>
                 {!showOnboarding && (
                   <StyledTransactionNameSearchBar
@@ -249,7 +256,7 @@ export function Am1MobileOverviewPage() {
                     <Table
                       projects={projects}
                       columnTitles={columnTitles}
-                      setError={setPageError}
+                      setError={setPageDanger}
                       theme={theme}
                       {...sharedProps}
                     />

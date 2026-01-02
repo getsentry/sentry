@@ -1,4 +1,4 @@
-import {AppleInsightResultsFixture} from 'sentry-fixture/preProdAppSize';
+import {InsightResultsFixture} from 'sentry-fixture/preProdAppSize';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -8,7 +8,7 @@ import {AppSizeInsightsSidebar} from './appSizeInsightsSidebar';
 
 describe('AppSizeInsightsSidebar', () => {
   const getDefaultProps = () => {
-    const insights = AppleInsightResultsFixture({
+    const insights = InsightResultsFixture({
       large_images: {
         total_savings: 128000,
         files: [

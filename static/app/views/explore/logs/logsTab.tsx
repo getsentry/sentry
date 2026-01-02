@@ -5,6 +5,7 @@ import {Button} from 'sentry/components/core/button';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
+import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
@@ -12,6 +13,7 @@ import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/c
 import {IconChevron, IconEdit, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {HOUR} from 'sentry/utils/formatters';
 import {useQueryClient, type InfiniteData} from 'sentry/utils/queryClient';
@@ -38,10 +40,7 @@ import {usePersistedLogsPageParams} from 'sentry/views/explore/contexts/logs/log
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useLogAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
-import {
-  ChartIntervalUnspecifiedStrategy,
-  useChartInterval,
-} from 'sentry/views/explore/hooks/useChartInterval';
+import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
   HiddenColumnEditorLogFields,
   HiddenLogSearchFields,
@@ -64,10 +63,7 @@ import {LogsAggregateTable} from 'sentry/views/explore/logs/tables/logsAggregate
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {type OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {useLogsAggregatesTable} from 'sentry/views/explore/logs/useLogsAggregatesTable';
-import {
-  getMaxIngestDelayTimestamp,
-  useLogsRawCounts,
-} from 'sentry/views/explore/logs/useLogsQuery';
+import {getMaxIngestDelayTimestamp} from 'sentry/views/explore/logs/useLogsQuery';
 import {useLogsSearchQueryBuilderProps} from 'sentry/views/explore/logs/useLogsSearchQueryBuilderProps';
 import {useLogsTimeseries} from 'sentry/views/explore/logs/useLogsTimeseries';
 import {usePersistentLogsPageParameters} from 'sentry/views/explore/logs/usePersistentLogsPageParameters';
@@ -86,18 +82,16 @@ import {
   useSetQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
-import type {PickableDays} from 'sentry/views/explore/utils';
+import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 
 // eslint-disable-next-line no-restricted-imports,boundaries/element-types
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
-type LogsTabProps = PickableDays;
+type LogsTabProps = {
+  datePageFilterProps: DatePageFilterProps;
+};
 
-export function LogsTabContent({
-  defaultPeriod,
-  maxPickableDays,
-  relativeOptions,
-}: LogsTabProps) {
+export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
   const pageFilters = usePageFilters();
   const logsSearch = useQueryParamsSearch();
   const fields = useQueryParamsFields();
@@ -119,9 +113,7 @@ export function LogsTabContent({
 
   const columnEditorButtonRef = useRef<HTMLButtonElement>(null);
   // always use the smallest interval possible (the most bars)
-  const [interval] = useChartInterval({
-    unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
-  });
+  const [interval] = useChartInterval();
   const visualizes = useQueryParamsVisualizes();
 
   const [sidebarOpen, setSidebarOpen] = useState(mode === Mode.AGGREGATE);
@@ -132,7 +124,7 @@ export function LogsTabContent({
     }
   }, [autorefreshEnabled]);
 
-  const rawLogCounts = useLogsRawCounts();
+  const rawLogCounts = useRawCounts({dataset: DiscoverDatasets.OURLOGS});
 
   const yAxes = useMemo(() => {
     const uniqueYAxes = new Set(visualizes.map(visualize => visualize.yAxis));
@@ -291,9 +283,7 @@ export function LogsTabContent({
               <ProjectPageFilter />
               <EnvironmentPageFilter />
               <DatePageFilter
-                defaultPeriod={defaultPeriod}
-                maxPickableDays={maxPickableDays}
-                relativeOptions={relativeOptions}
+                {...datePageFilterProps}
                 searchPlaceholder={t('Custom range: 2h, 4d, 3w')}
               />
             </StyledPageFilterBar>
@@ -362,9 +352,7 @@ export function LogsTabContent({
               error={tableData.error}
             />
           </OverChartButtonGroup>
-          {!tableData.isPending && tableData.isEmpty && (
-            <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
-          )}
+          <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
           <LogsDownSamplingAlert
             timeseriesResult={timeseriesResult}
             tableResult={infiniteLogsQueryResult}
@@ -374,7 +362,7 @@ export function LogsTabContent({
           </LogsGraphContainer>
           <LogsTableActionsContainer>
             <Tabs value={tableTab} onChange={setTableTab} size="sm">
-              <TabList hideBorder variant="floating">
+              <TabList variant="floating">
                 <TabList.Item key="logs">{t('Logs')}</TabList.Item>
                 <TabList.Item key="aggregates">{t('Aggregates')}</TabList.Item>
               </TabList>

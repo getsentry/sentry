@@ -1,178 +1,125 @@
-import styled from '@emotion/styled';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
-import {useChartZoom} from 'sentry/components/charts/useChartZoom';
-import {Alert} from 'sentry/components/core/alert';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import type {Group} from 'sentry/types/group';
+import type {Group, GroupOpenPeriod} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import useOrganization from 'sentry/utils/useOrganization';
-import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
-import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
-import {useMetricRule} from 'sentry/views/alerts/rules/metric/utils/useMetricRule';
-import type {Incident} from 'sentry/views/alerts/types';
-import {useMetricIncidents} from 'sentry/views/issueDetails/metricIssues/useMetricIncidents';
-import {useMetricStatsChart} from 'sentry/views/issueDetails/metricIssues/useMetricStatsChart';
-import {
-  useMetricIssueAlertId,
-  useMetricIssueLegend,
-  useMetricTimePeriod,
-} from 'sentry/views/issueDetails/metricIssues/utils';
+import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
+import type RequestError from 'sentry/utils/requestError/requestError';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import {useMetricDetectorChart} from 'sentry/views/detectors/components/details/metric/chart';
+import {useDetectorQuery} from 'sentry/views/detectors/hooks';
+import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
+import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
+import {GraphAlert} from 'sentry/views/issueDetails/streamline/eventGraph';
 
 interface MetricIssueChartProps {
   group: Group;
   project: Project;
 }
 
-export function MetricIssueChart({group, project}: MetricIssueChartProps) {
-  const organization = useOrganization();
-  const ruleId = useMetricIssueAlertId({groupId: group.id});
-  const timePeriod = useMetricTimePeriod();
+const CHART_HEIGHT = 180;
+
+function getDetectorErrorMessage(detectorError: RequestError): string {
+  if (detectorError.status === 404) {
+    return t('The metric monitor which created this issue no longer exists.');
+  }
+  if (detectorError.responseJSON?.detail) {
+    return t(
+      'The metric monitor could not be loaded: %s',
+      detectorError.responseJSON.detail
+    );
+  }
+  return t('The metric monitor could not be loaded.');
+}
+
+export function MetricIssueChart({group, project: _project}: MetricIssueChartProps) {
+  const {detectorDetails} = useIssueDetails();
+  const detectorId = detectorDetails?.detectorId;
+
   const {
-    data: rule,
-    isLoading: isRuleLoading,
-    isError: isRuleError,
-  } = useMetricRule(
-    {
-      orgSlug: organization.slug,
-      ruleId: ruleId ?? '',
-      query: {
-        expand: 'latestIncident',
-      },
-    },
-    {
-      staleTime: Infinity,
-      retry: false,
-      enabled: !!ruleId,
-    }
-  );
+    data: detector,
+    isPending: isDetectorPending,
+    isError: isDetectorError,
+    error: detectorError,
+  } = useDetectorQuery<MetricDetector>(detectorId ?? '', {
+    enabled: !!detectorId && detectorDetails?.detectorType === 'metric_alert',
+    retry: false,
+  });
+  const {data: openPeriods = []} = useOpenPeriods({groupId: group.id});
 
-  const {data: incidents = [], isLoading: isIncidentsLoading} = useMetricIncidents(
-    {
-      orgSlug: organization.slug,
-      query: {
-        alertRule: ruleId ?? '',
-        start: timePeriod.start,
-        end: timePeriod.end,
-        project: project.id,
-      },
-    },
-    {
-      enabled: !!ruleId,
-    }
-  );
-
-  if (isRuleLoading || isIncidentsLoading || !rule) {
+  if (isDetectorError) {
     return (
-      <MetricChartSection>
-        <MetricIssuePlaceholder type="loading" />
-      </MetricChartSection>
+      <Container width="100%">
+        <GraphAlert variant="danger">{getDetectorErrorMessage(detectorError)}</GraphAlert>
+      </Container>
     );
   }
 
-  if (isRuleError) {
-    return <MetricIssuePlaceholder type="error" />;
+  if (isDetectorPending) {
+    return <MetricIssueChartPlaceholder />;
+  }
+
+  return <MetricIssueChartContent detector={detector} openPeriods={openPeriods} />;
+}
+
+function MetricIssueChartContent({
+  detector,
+  openPeriods,
+}: {
+  detector: MetricDetector;
+  openPeriods: GroupOpenPeriod[];
+}) {
+  const {selection} = usePageFilters();
+
+  const {
+    chartProps,
+    isLoading,
+    error: chartError,
+  } = useMetricDetectorChart({
+    detector,
+    openPeriods,
+    height: CHART_HEIGHT,
+    ...normalizeDateTimeParams(selection.datetime),
+  });
+
+  if (isLoading) {
+    return <MetricIssueChartPlaceholder />;
+  }
+
+  if (chartError) {
+    return (
+      <Container width="100%">
+        <GraphAlert variant="danger">
+          {t('Error loading metric monitor: %s', chartError?.message)}
+        </GraphAlert>
+      </Container>
+    );
   }
 
   return (
     <MetricChartSection>
-      <MetricIssueChartContent
-        rule={rule}
-        timePeriod={timePeriod}
-        project={project}
-        incidents={incidents}
-      />
+      <AreaChart {...chartProps} />
     </MetricChartSection>
   );
 }
 
-/**
- * This component is nested to avoid trying to fetch data without a rule or time period.
- */
-function MetricIssueChartContent({
-  rule,
-  timePeriod,
-  project,
-  incidents,
-}: {
-  project: Project;
-  rule: MetricRule;
-  timePeriod: TimePeriodType;
-  incidents?: Incident[];
-}) {
-  const chartZoomProps = useChartZoom({saveOnZoom: true});
-  const {chartProps, queryResult} = useMetricStatsChart({
-    project,
-    rule,
-    timePeriod,
-    incidents,
-    referrer: 'metric-issue-chart',
-  });
-  const {series = [], yAxis, ...otherChartProps} = chartProps;
-  const legend = useMetricIssueLegend({rule, series});
-
-  if (queryResult?.isLoading) {
-    return <MetricIssuePlaceholder type="loading" />;
-  }
-
-  if (queryResult?.isError) {
-    return <MetricIssuePlaceholder type="error" />;
-  }
-
+function MetricIssueChartPlaceholder() {
   return (
-    <ChartContainer role="figure">
-      <AreaChart
-        {...otherChartProps}
-        series={series}
-        legend={{...legend, top: 4, right: 4}}
-        height={100}
-        grid={{
-          top: 20,
-          right: 0,
-          left: 0,
-          bottom: 0,
-        }}
-        yAxis={{
-          ...yAxis,
-          splitNumber: 2,
-        }}
-        {...chartZoomProps}
-      />
-    </ChartContainer>
+    <MetricChartSection>
+      <Flex align="center" justify="center" padding="md 0" height={`${CHART_HEIGHT}px`}>
+        <Placeholder height="100%" />
+      </Flex>
+    </MetricChartSection>
   );
 }
 
-function MetricIssuePlaceholder({type}: {type: 'loading' | 'error'}) {
-  return type === 'loading' ? (
-    <PlaceholderContainer>
-      <Placeholder height="96px" testId="metric-issue-chart-loading" />
-    </PlaceholderContainer>
-  ) : (
-    <MetricChartAlert type="error" showIcon data-test-id="metric-issue-chart-error">
-      {t('Unable to load the metric history')}
-    </MetricChartAlert>
+function MetricChartSection({children}: {children: React.ReactNode}) {
+  return (
+    <Container width="100%" padding="0 lg sm lg">
+      {children}
+    </Container>
   );
 }
-
-const MetricChartSection = styled('div')`
-  display: block;
-  padding-right: ${p => p.theme.space.lg};
-  padding-left: ${p => p.theme.space.lg};
-  width: 100%;
-`;
-
-const PlaceholderContainer = styled('div')`
-  padding: ${p => p.theme.space.md} 0;
-`;
-
-const ChartContainer = styled('div')`
-  position: relative;
-  padding: ${p => p.theme.space.sm} 0;
-`;
-
-const MetricChartAlert = styled(Alert)`
-  width: 100%;
-  border: 0;
-  border-radius: 0;
-`;

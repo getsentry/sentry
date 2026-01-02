@@ -59,6 +59,8 @@ Glossary for types of keys:
     * span-buf:q:* -- the priority queue, used to determine which segments are ready to be flushed.
     * span-buf:hrs:* -- simple bool key to flag a segment as "has root span" (HRS)
     * span-buf:sr:* -- redirect mappings so that each incoming span ID can be mapped to the right span-buf:z: set.
+    * span-buf:ic:* -- ingested count, tracks total number of spans originally ingested for a segment (used to calculate dropped spans for outcome tracking)
+    * span-buf:ibc:* -- ingested byte count, tracks total bytes originally ingested for a segment
 """
 
 from __future__ import annotations
@@ -76,9 +78,12 @@ from django.utils.functional import cached_property
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry import options
+from sentry.constants import DataCategory
+from sentry.models.project import Project
 from sentry.processing.backpressure.memory import ServiceMemory, iter_cluster_memory_usage
 from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.utils import metrics, redis
+from sentry.utils.outcomes import Outcome, track_outcome
 
 # SegmentKey is an internal identifier used by the redis buffer that is also
 # directly used as raw redis key. the format is
@@ -218,6 +223,7 @@ class SpansBuffer:
 
             with self.client.pipeline(transaction=False) as p:
                 for (project_and_trace, parent_span_id), subsegment in trees.items():
+                    byte_count = sum(len(span.payload) for span in subsegment)
                     p.execute_command(
                         "EVALSHA",
                         add_buffer_sha,
@@ -228,6 +234,7 @@ class SpansBuffer:
                         "true" if any(span.is_segment_span for span in subsegment) else "false",
                         redis_ttl,
                         max_segment_bytes,
+                        byte_count,
                         *[span.span_id for span in subsegment],
                     )
 
@@ -284,6 +291,8 @@ class SpansBuffer:
                 p.execute()
 
         metrics.timing("spans.buffer.process_spans.num_spans", len(spans))
+        # This incr metric is needed to get a rate overall.
+        metrics.incr("spans.buffer.process_spans.count_spans", amount=len(spans))
         metrics.timing("spans.buffer.process_spans.num_is_root_spans", is_root_span_count)
         metrics.timing("spans.buffer.process_spans.num_subsegments", len(trees))
         metrics.gauge("spans.buffer.min_redirect_depth", min_redirect_depth)
@@ -428,6 +437,8 @@ class SpansBuffer:
             output_spans = []
             has_root_span = False
             metrics.timing("spans.buffer.flush_segments.num_spans_per_segment", len(segment))
+            # This incr metric is needed to get a rate overall.
+            metrics.incr("spans.buffer.flush_segments.count_spans_per_segment", amount=len(segment))
             for payload in segment:
                 span = orjson.loads(payload)
 
@@ -482,9 +493,9 @@ class SpansBuffer:
                         p.sscan(key, cursor=cursor, count=page_size)
                     current_keys.append(key)
 
-                results = p.execute()
+                scan_results = p.execute()
 
-            for key, (cursor, scan_values) in zip(current_keys, results):
+            for key, (cursor, scan_values) in zip(current_keys, scan_results):
                 decompressed_spans = []
 
                 for scan_value in scan_values:
@@ -506,6 +517,57 @@ class SpansBuffer:
                 else:
                     cursors[key] = cursor
 
+        # Fetch ingested counts for all segments to calculate dropped spans
+        with self.client.pipeline(transaction=False) as p:
+            for key in segment_keys:
+                ingested_count_key = b"span-buf:ic:" + key
+                p.get(ingested_count_key)
+                ingested_byte_count_key = b"span-buf:ibc:" + key
+                p.get(ingested_byte_count_key)
+
+            ingested_results = p.execute()
+
+        # Calculate dropped counts: total ingested - successfully loaded
+        for i, key in enumerate(segment_keys):
+            ingested_count = ingested_results[i * 2]
+            ingested_byte_count = ingested_results[i * 2 + 1]
+
+            if ingested_byte_count:
+                metrics.timing(
+                    "spans.buffer.flush_segments.ingested_bytes_per_segment",
+                    int(ingested_byte_count),
+                )
+
+            if ingested_count:
+                total_ingested = int(ingested_count)
+                metrics.timing(
+                    "spans.buffer.flush_segments.ingested_spans_per_segment", total_ingested
+                )
+                successfully_loaded = len(payloads.get(key, []))
+                dropped = total_ingested - successfully_loaded
+                if dropped <= 0:
+                    continue
+
+                project_id_bytes, _, _ = parse_segment_key(key)
+                project_id = int(project_id_bytes)
+                try:
+                    project = Project.objects.get_from_cache(id=project_id)
+                except Project.DoesNotExist:
+                    logger.warning(
+                        "Project does not exist for segment with dropped spans",
+                        extra={"project_id": project_id},
+                    )
+                else:
+                    track_outcome(
+                        org_id=project.organization_id,
+                        project_id=project_id,
+                        key_id=None,
+                        outcome=Outcome.INVALID,
+                        reason="segment_too_large",
+                        category=DataCategory.SPAN_INDEXED,
+                        quantity=dropped,
+                    )
+
         for key, spans in payloads.items():
             if not spans:
                 # This is a bug, most likely the input topic is not
@@ -522,6 +584,8 @@ class SpansBuffer:
             with self.client.pipeline(transaction=False) as p:
                 for segment_key, flushed_segment in segment_keys.items():
                     p.delete(b"span-buf:hrs:" + segment_key)
+                    p.delete(b"span-buf:ic:" + segment_key)
+                    p.delete(b"span-buf:ibc:" + segment_key)
                     p.unlink(segment_key)
                     p.zrem(flushed_segment.queue_key, segment_key)
 

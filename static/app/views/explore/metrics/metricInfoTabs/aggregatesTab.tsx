@@ -4,12 +4,12 @@ import styled from '@emotion/styled';
 import throttle from 'lodash/throttle';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import {parseFunction} from 'sentry/utils/discover/fields';
+import {prettifyTagKey} from 'sentry/utils/fields';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
@@ -35,19 +35,21 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {FieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 const RESULT_LIMIT = 50;
 
 interface AggregatesTabProps {
   traceMetric: TraceMetric;
+  isMetricOptionsEmpty?: boolean;
 }
 
-export function AggregatesTab({traceMetric}: AggregatesTabProps) {
+export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTabProps) {
   const topEvents = useTopEvents();
   const tableRef = useRef<HTMLDivElement>(null);
 
   const {result, eventView, fields} = useMetricAggregatesTable({
-    enabled: Boolean(traceMetric.name),
+    enabled: Boolean(traceMetric.name) && !isMetricOptionsEmpty,
     limit: RESULT_LIMIT,
     traceMetric,
   });
@@ -150,21 +152,23 @@ export function AggregatesTab({traceMetric}: AggregatesTabProps) {
     };
   }, [result.data, fields.length]);
 
+  const isPending = result.isPending && !isMetricOptionsEmpty;
+
   return (
     <StickyCompatibleSimpleTable ref={tableRef} style={tableStyle}>
-      {result.isPending && <TransparentLoadingMask />}
+      {isPending && <TransparentLoadingMask />}
 
       <StickyCompatibleStyledHeader>
         {fields.map((field, i) => {
           let label = field;
           const tag = stringTags?.[field] ?? numberTags?.[field] ?? null;
-          if (tag) {
-            label = tag.name;
-          }
-
           const func = parseFunction(field);
           if (func) {
             label = `${func.name}(…)`;
+          } else if (tag) {
+            label = tag.name;
+          } else {
+            label = prettifyTagKey(field);
           }
 
           const direction = sorts.find(s => s.field === field)?.kind;
@@ -220,15 +224,13 @@ export function AggregatesTab({traceMetric}: AggregatesTabProps) {
               ))}
             </SimpleTable.Row>
           ))
-        ) : result.isPending ? (
+        ) : isPending ? (
           <SimpleTable.Empty>
             <LoadingIndicator />
           </SimpleTable.Empty>
         ) : (
           <SimpleTable.Empty>
-            <EmptyStateWarning>
-              <p>{t('No aggregates found')}</p>
-            </EmptyStateWarning>
+            <GenericWidgetEmptyStateWarning title={t('No aggregates found')} message="" />
           </SimpleTable.Empty>
         )}
       </StickyCompatibleTableBody>
@@ -260,7 +262,7 @@ const StickyCompatibleStyledHeaderCell = styled(StyledSimpleTableHeaderCell)<{
     css`
       position: sticky;
       right: 0;
-      background: ${p.theme.bodyBackground};
+      background: ${p.theme.tokens.background.secondary};
       height: 100%;
       z-index: 2;
     `};
@@ -280,7 +282,7 @@ const StickyCompatibleStyledRowCell = styled(StyledSimpleTableRowCell)<{
     css`
       position: sticky;
       right: 0;
-      background: ${p.theme.background};
+      background: ${p.theme.tokens.background.primary};
       height: 100%;
       z-index: 1;
       justify-self: end;

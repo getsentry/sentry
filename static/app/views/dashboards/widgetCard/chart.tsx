@@ -70,14 +70,18 @@ import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegen
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {ALLOWED_CELL_ACTIONS} from 'sentry/views/dashboards/widgets/common/settings';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
+import {DetailsWidgetVisualization} from 'sentry/views/dashboards/widgets/detailsWidget/detailsWidgetVisualization';
+import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {
   convertTableDataToTabularData,
   decodeColumnAliases,
 } from 'sentry/views/dashboards/widgets/tableWidget/utils';
+import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWidget/wheelWidgetVisualization';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
+import type {SpanResponse} from 'sentry/views/insights/types';
 
 import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
 
@@ -198,6 +202,24 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     );
   }
 
+  if (widget.displayType === DisplayType.DETAILS) {
+    return (
+      <TransitionChart loading={loading} reloading={loading}>
+        <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
+        <DetailsComponent tableResults={tableResults} {...props} />
+      </TransitionChart>
+    );
+  }
+
+  if (widget.displayType === DisplayType.WHEEL) {
+    return (
+      <TransitionChart loading={loading} reloading={loading}>
+        <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
+        <WheelComponent tableResults={tableResults} {...props} />
+      </TransitionChart>
+    );
+  }
+
   const {start, end, period, utc} = selection.datetime;
   const {projects, environments} = selection;
 
@@ -212,7 +234,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     : [];
   // TODO(wmak): Need to change this when updating dashboards to support variable topEvents
   if (shouldColorOther) {
-    colors[colors.length] = theme.chartOther;
+    colors[colors.length] = theme.tokens.content.muted;
   }
 
   // Create a list of series based on the order of the fields,
@@ -303,6 +325,8 @@ function WidgetCardChart(props: WidgetCardChartProps) {
   };
 
   const chartOptions = {
+    animation: false, // Turn off all chart animations. This turns off all ZRender hooks that might `requestAnimationFrame`
+    notMerge: false, // Enable ECharts option merging. Chart components are only re-drawn if they've changed
     autoHeightResize: shouldResize ?? true,
     useMultilineDate: true,
     grid: {
@@ -342,7 +366,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     },
     yAxis: {
       axisLabel: {
-        color: theme.chartLabel,
+        color: theme.tokens.content.muted,
         formatter: (value: number) => {
           if (timeseriesResultsTypes) {
             return axisLabelFormatterUsingAggregateOutputType(
@@ -557,7 +581,11 @@ function TableComponent({
           tableData={tableData}
           frameless
           scrollable
-          fit="max-content"
+          fit={
+            widget?.tableWidths?.length && widget?.tableWidths?.length > 0
+              ? undefined
+              : 'max-content'
+          }
           aliases={aliases}
           onChangeSort={onWidgetTableSort}
           sort={sort}
@@ -650,10 +678,37 @@ function BigNumberComponent({
         type={meta.fields?.[field] ?? null}
         unit={(meta.units?.[field] as DataUnit) ?? null}
         thresholds={widget.thresholds ?? undefined}
-        preferredPolarity="-"
+        // TODO: preferredPolarity has been added to ThresholdsConfig as a property,
+        // we should remove this prop fromBigNumberWidgetVisualization
+        preferredPolarity={widget.thresholds?.preferredPolarity ?? '-'}
       />
     );
   });
+}
+
+function DetailsComponent(props: TableComponentProps): React.ReactNode {
+  const {tableResults} = props;
+
+  const singleSpan = tableResults?.[0]?.data?.[0] as
+    | Pick<SpanResponse, DefaultDetailWidgetFields>
+    | undefined;
+
+  // TODO: Handle this case gracefully
+  if (!singleSpan) {
+    return null;
+  }
+
+  return <DetailsWidgetVisualization span={singleSpan} />;
+}
+
+function WheelComponent(props: TableComponentProps): React.ReactNode {
+  return (
+    <WheelWidgetVisualization
+      tableResults={props.tableResults}
+      loading={props.loading}
+      selection={props.selection}
+    />
+  );
 }
 
 function getChartComponent(chartProps: any, widget: Widget): React.ReactNode {
@@ -661,7 +716,7 @@ function getChartComponent(chartProps: any, widget: Widget): React.ReactNode {
 
   switch (widget.displayType) {
     case 'bar':
-      return <BarChart {...chartProps} stacked={stacked} animation={false} />;
+      return <BarChart {...chartProps} stacked={stacked} />;
     case 'area':
     case 'top_n':
       return <AreaChart stacked {...chartProps} />;
@@ -740,7 +795,7 @@ function LoadingScreen({
 const LoadingPlaceholder = styled(({className}: PlaceholderProps) => (
   <Placeholder height="200px" className={className} />
 ))`
-  background-color: ${p => p.theme.surface300};
+  background-color: ${p => p.theme.colors.surface400};
 `;
 
 const BigNumberResizeWrapper = styled('div')<{noPadding?: boolean}>`
@@ -758,7 +813,7 @@ const BigNumber = styled('div')`
   width: 100%;
   min-height: 0;
   font-size: 32px;
-  color: ${p => p.theme.headingColor};
+  color: ${p => p.theme.tokens.content.primary};
 
   * {
     text-align: left !important;
@@ -777,8 +832,8 @@ const ChartWrapper = styled('div')<{autoHeightResize: boolean; noPadding?: boole
 const TableWrapper = styled('div')`
   margin-top: ${space(1.5)};
   min-height: 0;
-  border-bottom-left-radius: ${p => p.theme.borderRadius};
-  border-bottom-right-radius: ${p => p.theme.borderRadius};
+  border-bottom-left-radius: ${p => p.theme.radius.md};
+  border-bottom-right-radius: ${p => p.theme.radius.md};
 `;
 
 const StyledErrorPanel = styled(ErrorPanel)`

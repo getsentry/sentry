@@ -48,11 +48,6 @@ describe('ProjectTeams', () => {
     TeamStore.loadInitialData([team1WithAdmin, team2WithAdmin]);
 
     MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/`,
-      method: 'GET',
-      body: project,
-    });
-    MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/teams/`,
       method: 'GET',
       body: [team1WithAdmin],
@@ -89,7 +84,10 @@ describe('ProjectTeams', () => {
       statusCode: 200,
     });
 
-    render(<ProjectTeams organization={org} project={project} />);
+    render(<ProjectTeams />, {
+      outletContext: {project},
+      organization: org,
+    });
 
     expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
@@ -145,7 +143,10 @@ describe('ProjectTeams', () => {
       statusCode: 200,
     });
 
-    render(<ProjectTeams organization={org} project={project} />);
+    render(<ProjectTeams />, {
+      outletContext: {project},
+      organization: org,
+    });
 
     expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
@@ -193,7 +194,10 @@ describe('ProjectTeams', () => {
       body: [team3NoAdmin],
     });
 
-    render(<ProjectTeams organization={org} project={project} />);
+    render(<ProjectTeams />, {
+      outletContext: {project},
+      organization: org,
+    });
 
     expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
@@ -240,7 +244,10 @@ describe('ProjectTeams', () => {
       statusCode: 200,
     });
 
-    render(<ProjectTeams organization={org} project={project} />);
+    render(<ProjectTeams />, {
+      outletContext: {project},
+      organization: org,
+    });
 
     expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
@@ -279,12 +286,15 @@ describe('ProjectTeams', () => {
       body: TeamFixture({slug: 'new-team'}),
     });
 
-    render(<ProjectTeams project={project} organization={org} />);
+    render(<ProjectTeams />, {
+      outletContext: {project},
+      organization: org,
+    });
 
     expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
     // Add new team
-    await userEvent.click(screen.getAllByRole('button', {name: 'Add Team'})[1]!);
+    await userEvent.click(screen.getByRole('button', {name: 'Add Team'}));
 
     await userEvent.click(screen.getByRole('button', {name: 'Create Team'}));
 

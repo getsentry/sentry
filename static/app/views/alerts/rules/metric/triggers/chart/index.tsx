@@ -46,13 +46,17 @@ import {
 import {capitalize} from 'sentry/utils/string/capitalize';
 import withApi from 'sentry/utils/withApi';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
-import type {MetricRule, Trigger} from 'sentry/views/alerts/rules/metric/types';
+import {getIsMigratedExtrapolationMode} from 'sentry/views/alerts/rules/metric/details/utils';
 import {
   AlertRuleComparisonType,
   Dataset,
+  EAP_EXTRAPOLATION_MODE_MAP,
+  ExtrapolationMode,
   SessionsAggregate,
   TimePeriod,
   TimeWindow,
+  type MetricRule,
+  type Trigger,
 } from 'sentry/views/alerts/rules/metric/types';
 import type {SeriesSamplingInfo} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {getMetricDatasetQueryExtras} from 'sentry/views/alerts/rules/metric/utils/getMetricDatasetQueryExtras';
@@ -97,6 +101,7 @@ type Props = {
   anomalies?: Anomaly[];
   comparisonDelta?: number;
   confidence?: Confidence;
+  extrapolationMode?: ExtrapolationMode;
   formattedAggregate?: string;
   header?: React.ReactNode;
   includeHistorical?: boolean;
@@ -116,6 +121,7 @@ const SESSION_AGGREGATE_TO_HEADING = {
 const noop: any = () => {};
 
 type State = {
+  adjustedExtrapolationMode: ExtrapolationMode | undefined;
   extrapolationSampleCount: number | null;
   sampleRate: number;
   statsPeriod: TimePeriod;
@@ -156,18 +162,39 @@ class TriggersChart extends PureComponent<Props, State> {
     totalCount: null,
     sampleRate: 1,
     extrapolationSampleCount: null,
+    adjustedExtrapolationMode: undefined,
   };
 
   componentDidMount() {
-    const {aggregate, showTotalCount} = this.props;
+    const {aggregate, showTotalCount, extrapolationMode, dataset, traceItemType} =
+      this.props;
     if (showTotalCount && !isSessionAggregate(aggregate)) {
       this.fetchTotalCount();
+    }
+
+    // we want to show the regular extrapolated chart as we are changing the extrapolation to UNKNOWN
+    // once a migrated alert is saved
+    if (getIsMigratedExtrapolationMode(extrapolationMode, dataset, traceItemType)) {
+      this.setState({
+        adjustedExtrapolationMode: ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED,
+      });
+    } else {
+      this.setState({adjustedExtrapolationMode: extrapolationMode});
     }
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
-    const {query, environment, timeWindow, aggregate, projects, showTotalCount} =
-      this.props;
+    const {
+      query,
+      environment,
+      timeWindow,
+      aggregate,
+      projects,
+      showTotalCount,
+      extrapolationMode,
+      dataset,
+      traceItemType,
+    } = this.props;
     const {statsPeriod} = this.state;
     if (
       !isEqual(prevProps.projects, projects) ||
@@ -178,6 +205,19 @@ class TriggersChart extends PureComponent<Props, State> {
     ) {
       if (showTotalCount && !isSessionAggregate(aggregate)) {
         this.fetchTotalCount();
+      }
+    }
+    if (
+      prevProps.extrapolationMode !== this.props.extrapolationMode ||
+      prevProps.dataset !== dataset ||
+      prevProps.traceItemType !== traceItemType
+    ) {
+      if (getIsMigratedExtrapolationMode(extrapolationMode, dataset, traceItemType)) {
+        this.setState({
+          adjustedExtrapolationMode: ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED,
+        });
+      } else {
+        this.setState({adjustedExtrapolationMode: extrapolationMode});
       }
     }
   }
@@ -429,6 +469,8 @@ class TriggersChart extends PureComponent<Props, State> {
       traceItemType,
     } = this.props;
 
+    const {adjustedExtrapolationMode} = this.state;
+
     const period = this.getStatsPeriod()!;
     const renderComparisonStats = Boolean(
       organization.features.includes('change-alerts') && comparisonDelta
@@ -463,6 +505,13 @@ class TriggersChart extends PureComponent<Props, State> {
         partial: false,
         limit: 15,
         children: noop,
+        extrapolationMode: adjustedExtrapolationMode
+          ? EAP_EXTRAPOLATION_MODE_MAP[adjustedExtrapolationMode]
+          : undefined,
+        sampling:
+          adjustedExtrapolationMode === ExtrapolationMode.NONE
+            ? SAMPLING_MODE.HIGH_ACCURACY
+            : SAMPLING_MODE.NORMAL,
       };
 
       return (
@@ -589,6 +638,17 @@ class TriggersChart extends PureComponent<Props, State> {
       includePrevious: false,
       currentSeriesNames: [formattedAggregate || aggregate],
       partial: false,
+      sampling:
+        dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
+        this.props.traceItemType === TraceItemDataset.SPANS
+          ? adjustedExtrapolationMode === ExtrapolationMode.NONE
+            ? SAMPLING_MODE.HIGH_ACCURACY
+            : SAMPLING_MODE.NORMAL
+          : undefined,
+
+      extrapolationMode: adjustedExtrapolationMode
+        ? EAP_EXTRAPOLATION_MODE_MAP[adjustedExtrapolationMode]
+        : undefined,
     };
 
     return (
@@ -615,17 +675,7 @@ class TriggersChart extends PureComponent<Props, State> {
             {noop}
           </EventsRequest>
         ) : null}
-        <EventsRequest
-          {...baseProps}
-          period={period}
-          dataLoadedCallback={onDataLoaded}
-          sampling={
-            dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
-            this.props.traceItemType === TraceItemDataset.SPANS
-              ? SAMPLING_MODE.NORMAL
-              : undefined
-          }
-        >
+        <EventsRequest {...baseProps} period={period} dataLoadedCallback={onDataLoaded}>
           {({
             loading,
             errored,
@@ -702,7 +752,7 @@ export function ErrorChart({
 }: ErrorChartProps) {
   return (
     <ChartErrorWrapper {...props}>
-      <PanelAlert type="error">
+      <PanelAlert variant="danger">
         {!isAllowIndexed && !isQueryValid
           ? t('Your filter conditions contain an unsupported field - please review.')
           : typeof errorMessage === 'string'

@@ -35,7 +35,6 @@ def is_spam_seer(message: str, organization_id: int) -> bool | None:
             timeout=SEER_TIMEOUT_S,
             retries=SEER_RETRIES,
         )
-        response_data = response.json()
     except Exception:
         logger.exception("Seer failed to check if message is spam")
         return None
@@ -47,6 +46,7 @@ def is_spam_seer(message: str, organization_id: int) -> bool | None:
         )
         return None
 
+    response_data = response.json()
     if (
         not isinstance(response_data, dict)
         or "is_spam" not in response_data

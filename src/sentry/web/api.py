@@ -6,10 +6,10 @@ from rest_framework.request import Request
 
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.models.project import Project
-from sentry.silo.base import SiloMode
 from sentry.utils import json
 from sentry.utils.http import get_origins
 from sentry.web.client_config import get_client_config
+from sentry.web.frontend.base import all_silo_view, region_silo_view
 from sentry.web.helpers import render_to_response
 
 # Paths to pages should not be added here, otherwise crawlers will
@@ -67,11 +67,13 @@ MCP_CONFIG = {
 }
 
 
+@all_silo_view
 class ClientConfigView(BaseView):
     def get(self, request: Request) -> HttpResponse:
         return HttpResponse(json.dumps(get_client_config(request)), content_type="application/json")
 
 
+@all_silo_view
 @cache_control(max_age=3600, public=True)
 def robots_txt(request):
     if settings.SENTRY_MODE == SentryMode.SAAS and not request.subdomain:
@@ -80,6 +82,7 @@ def robots_txt(request):
     return HttpResponse(ROBOTS_DISALLOW_ALL, content_type="text/plain")
 
 
+@all_silo_view
 @cache_control(max_age=3600, public=True)
 def security_txt(request):
     if settings.SENTRY_MODE == SentryMode.SELF_HOSTED:
@@ -88,6 +91,7 @@ def security_txt(request):
     return HttpResponse(SECURITY, content_type="text/plain")
 
 
+@all_silo_view
 @cache_control(max_age=3600, public=True)
 def mcp_json(request):
     if settings.SENTRY_MODE == SentryMode.SELF_HOSTED:
@@ -96,11 +100,9 @@ def mcp_json(request):
     return HttpResponse(json.dumps(MCP_CONFIG), content_type="application/json")
 
 
+@region_silo_view
 @cache_control(max_age=60)
 def crossdomain_xml(request, project_id):
-    if SiloMode.get_current_mode() == SiloMode.CONTROL or (not project_id.isdigit()):
-        return HttpResponse(status=404)
-
     try:
         project = Project.objects.get_from_cache(id=project_id)
     except Project.DoesNotExist:
@@ -113,6 +115,7 @@ def crossdomain_xml(request, project_id):
     return response
 
 
+@all_silo_view
 @cache_control(max_age=3600, public=True)
 def not_found(request):
     return HttpResponse(status=404)

@@ -8,9 +8,9 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {t, tct} from 'sentry/locale';
 import type {Plugin} from 'sentry/types/integrations';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import RouteError from 'sentry/views/routeError';
 
 import ProjectPluginRow from './projectPluginRow';
@@ -22,17 +22,18 @@ type Props = {
   organization: Organization;
   plugins: Plugin[];
   project: Project;
-} & RouteComponentProps;
+};
 
-function ProjectPlugins({
+export default function ProjectPlugins({
   plugins,
   loading,
   error,
   onChange,
-  routes,
   organization,
   project,
 }: Props) {
+  const routes = useRoutes();
+
   const hasError = error;
   const isLoading = !hasError && loading;
 
@@ -54,7 +55,7 @@ function ProjectPlugins({
             <div />
           </PanelHeader>
           <PanelBody>
-            <PanelAlert type="warning">
+            <PanelAlert variant="warning">
               {hasAccess
                 ? tct(
                     "Legacy Integrations must be configured per-project. It's recommended to prefer organization integrations over the legacy project integrations when available. Visit the [link:organization integrations] settings to manage them.",
@@ -88,5 +89,3 @@ function ProjectPlugins({
     </Access>
   );
 }
-
-export default ProjectPlugins;

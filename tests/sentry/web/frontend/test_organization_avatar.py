@@ -5,7 +5,7 @@ from django.urls import reverse
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.files.file import File
 from sentry.testutils.cases import TestCase
-from sentry.web.frontend.generic import FOREVER_CACHE
+from sentry.web.constants import FOREVER_CACHE
 
 
 class OrganizationAvatarTest(TestCase):

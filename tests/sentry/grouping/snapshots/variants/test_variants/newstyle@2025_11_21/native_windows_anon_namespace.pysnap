@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:18:53.998737+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: null
@@ -10,6 +8,10 @@ app:
   root_component:
     app (ignored because system exception takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_WRITE"
+        value*
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
         stacktrace (ignored because it contains no in-app frames)
           frame (marked out of app by the client)
             filename*
@@ -36,10 +38,6 @@ app:
               "main.cpp"
             function*
               "`anonymous namespace'::crash"
-        type (ignored because exception is synthetic)
-          "EXCEPTION_ACCESS_VIOLATION_WRITE"
-        value*
-          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
 --------------------------------------------------------------------------
 system:
   hash: "46b84e4da51648cc9f9741abd2bdad51"
@@ -48,13 +46,17 @@ system:
   root_component:
     system*
       exception*
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_WRITE"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             filename*
               "exe_common.inl"
             function*
               "__scrt_common_main_seh"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             filename*
               "exe_common.inl"
             function*
@@ -74,7 +76,3 @@ system:
               "main.cpp"
             function*
               "`anonymous namespace'::crash"
-        type (ignored because exception is synthetic)
-          "EXCEPTION_ACCESS_VIOLATION_WRITE"
-        value (ignored because stacktrace takes precedence)
-          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"

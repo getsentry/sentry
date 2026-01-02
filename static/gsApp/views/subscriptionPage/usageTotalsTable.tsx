@@ -3,7 +3,7 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import {Flex, Grid} from 'sentry/components/core/layout';
+import {Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import type {TooltipProps} from 'sentry/components/core/tooltip';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -310,12 +310,7 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
   const hasSpikeProtection = categoryInfo?.hasSpikeProtection ?? false;
 
   return (
-    <Grid
-      gap="md"
-      padding={isNewBillingUI ? 'md' : 'md 0'}
-      border={isNewBillingUI ? 'primary' : undefined}
-      radius={isNewBillingUI ? 'md' : undefined}
-    >
+    <Flex direction="column" gap="md" padding={isNewBillingUI ? 'md' : 'md 0'}>
       {isNewBillingUI && (
         <IngestionSummary
           category={category}
@@ -372,7 +367,7 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
           />
         </OutcomeSection>
       </OutcomeTable>
-    </Grid>
+    </Flex>
   );
 }
 
@@ -404,6 +399,7 @@ const TextWithQuestionTooltip = styled('div')`
 `;
 
 const StyledTable = styled(StripedTable)`
+  width: unset;
   table-layout: fixed;
 
   th,
@@ -430,10 +426,10 @@ const Bar = styled('div')<{
   width: ${p => `${p.fillPercentage}%`};
   height: 7px;
   background: ${p => p.barColor ?? p.theme.gray200};
-  border-top-left-radius: ${p => (p.hasLeftBorderRadius ? p.theme.borderRadius : 0)};
-  border-bottom-left-radius: ${p => (p.hasLeftBorderRadius ? p.theme.borderRadius : 0)};
-  border-top-right-radius: ${p => (p.hasRightBorderRadius ? p.theme.borderRadius : 0)};
-  border-bottom-right-radius: ${p => (p.hasRightBorderRadius ? p.theme.borderRadius : 0)};
+  border-top-left-radius: ${p => (p.hasLeftBorderRadius ? p.theme.radius.md : 0)};
+  border-bottom-left-radius: ${p => (p.hasLeftBorderRadius ? p.theme.radius.md : 0)};
+  border-top-right-radius: ${p => (p.hasRightBorderRadius ? p.theme.radius.md : 0)};
+  border-bottom-right-radius: ${p => (p.hasRightBorderRadius ? p.theme.radius.md : 0)};
 `;
 
 const OutcomeLegend = styled('div')<{color: string}>`

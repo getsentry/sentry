@@ -874,6 +874,45 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             resp = self.get_error_response(self.organization.slug, **self.alert_rule_dict)
             assert resp.data[0] == "You may not exceed 1 metric alerts per organization"
 
+    @override_settings(MAX_QUERY_SUBSCRIPTIONS_PER_ORG=1)
+    def test_enforce_max_subscriptions_with_override(self) -> None:
+        with self.options(
+            {
+                "metric_alerts.extended_max_subscriptions_orgs": [self.organization.id],
+                "metric_alerts.extended_max_subscriptions": 3,
+            }
+        ):
+            with self.feature("organizations:incidents"):
+                resp = self.get_success_response(
+                    self.organization.slug, status_code=201, **self.alert_rule_dict
+                )
+            alert_rule = AlertRule.objects.get(id=resp.data["id"])
+            assert resp.data == serialize(alert_rule, self.user)
+
+            alert_rule_dict_2 = self.alert_rule_dict.copy()
+            alert_rule_dict_2["name"] = "Test Rule 2"
+            with self.feature("organizations:incidents"):
+                resp = self.get_success_response(
+                    self.organization.slug, status_code=201, **alert_rule_dict_2
+                )
+            alert_rule_2 = AlertRule.objects.get(id=resp.data["id"])
+            assert resp.data == serialize(alert_rule_2, self.user)
+
+            alert_rule_dict_3 = self.alert_rule_dict.copy()
+            alert_rule_dict_3["name"] = "Test Rule 3"
+            with self.feature("organizations:incidents"):
+                resp = self.get_success_response(
+                    self.organization.slug, status_code=201, **alert_rule_dict_3
+                )
+            alert_rule_3 = AlertRule.objects.get(id=resp.data["id"])
+            assert resp.data == serialize(alert_rule_3, self.user)
+
+            alert_rule_dict_4 = self.alert_rule_dict.copy()
+            alert_rule_dict_4["name"] = "Test Rule 4"
+            with self.feature("organizations:incidents"):
+                resp = self.get_error_response(self.organization.slug, **alert_rule_dict_4)
+                assert resp.data[0] == "You may not exceed 3 metric alerts per organization"
+
     def test_sentry_app(self) -> None:
         other_org = self.create_organization(owner=self.user)
         sentry_app = self.create_sentry_app(
@@ -1612,6 +1651,13 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
     @with_feature("organizations:workflow-engine-metric-detector-limit")
     @patch("sentry.quotas.backend.get_metric_detector_limit")
     def test_metric_alert_limit(self, mock_get_limit: MagicMock) -> None:
+        # create orphaned metric alert
+        project_to_delete = self.create_project(organization=self.organization)
+        alert_rule = self.create_alert_rule(
+            organization=self.organization, projects=[project_to_delete]
+        )
+        project_to_delete.delete()
+
         # Set limit to 2 alert rules
         mock_get_limit.return_value = 2
 
@@ -1646,6 +1692,13 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
     @with_feature("organizations:incidents")
     @with_feature("organizations:workflow-engine-metric-detector-limit")
     def test_metric_alert_limit_unlimited_plan(self) -> None:
+        # create orphaned metric alert
+        project_to_delete = self.create_project(organization=self.organization)
+        alert_rule = self.create_alert_rule(
+            organization=self.organization, projects=[project_to_delete]
+        )
+        project_to_delete.delete()
+
         # Create many alert rules
         for _ in range(5):
             self.create_alert_rule(organization=self.organization)
@@ -1704,6 +1757,15 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             resp.data[0]
             == "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
         )
+
+    def test_invalid_extrapolation_mode(self) -> None:
+        data = deepcopy(self.alert_rule_dict)
+        data["dataset"] = "events_analytics_platform"
+        data["alertType"] = "eap_metrics"
+        data["extrapolation_mode"] = "server_weighted"
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert resp.data[0] == "server_weighted extrapolation mode is not supported for new alerts."
 
 
 @freeze_time()

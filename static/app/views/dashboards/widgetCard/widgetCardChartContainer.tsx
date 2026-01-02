@@ -14,6 +14,7 @@ import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {isChartDisplayType} from 'sentry/views/dashboards/utils';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
@@ -96,10 +97,7 @@ export function WidgetCardChartContainer({
     widgetType: DisplayType
   ) {
     // non-chart widgets need to look at tableResults
-    const results =
-      widgetType === DisplayType.BIG_NUMBER || widgetType === DisplayType.TABLE
-        ? tableResults
-        : timeseriesResults;
+    const results = isChartDisplayType(widgetType) ? timeseriesResults : tableResults;
 
     return errorMessage
       ? errorMessage

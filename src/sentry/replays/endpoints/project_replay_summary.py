@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 from typing import Any
 
 import sentry_sdk
@@ -11,27 +12,22 @@ from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
+from sentry.api.bases.project import ProjectPermission
 from sentry.api.utils import default_start_end_dates
 from sentry.models.project import Project
+from sentry.replays.endpoints.project_replay_endpoint import ProjectReplayEndpoint
 from sentry.replays.lib.seer_api import seer_summarization_connection_pool
 from sentry.replays.lib.storage import storage
 from sentry.replays.post_process import process_raw_response
-from sentry.replays.query import get_replay_range, query_replay_instance
-from sentry.replays.usecases.reader import fetch_segments_metadata, iter_segment_data
-from sentry.replays.usecases.summarize import (
-    fetch_error_details,
-    fetch_trace_connected_errors,
-    get_summary_logs,
-)
+from sentry.replays.query import query_replay_instance
 from sentry.seer.seer_setup import has_seer_access
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
-from sentry.utils import json, metrics
+from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
 
-MAX_SEGMENTS_TO_SUMMARIZE = 100
+MAX_SEGMENTS_TO_SUMMARIZE = 150
 SEER_REQUEST_SIZE_LOG_THRESHOLD = 1e5  # Threshold for logging large Seer requests.
 
 SEER_START_TASK_ENDPOINT_PATH = "/v1/automation/summarize/replay/breadcrumbs/start"
@@ -49,7 +45,7 @@ class ReplaySummaryPermission(ProjectPermission):
 
 @region_silo_endpoint
 @extend_schema(tags=["Replays"])
-class ProjectReplaySummaryEndpoint(ProjectEndpoint):
+class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
     owner = ApiOwner.REPLAY
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -132,6 +128,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
                 {"sample_rate": self.sample_rate_get} if self.sample_rate_get else None
             ),
         ):
+            self.check_replay_access(request, project)
 
             if not self.has_replay_summary_access(project, request):
                 return self.respond(
@@ -159,6 +156,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
                 {"sample_rate": self.sample_rate_post} if self.sample_rate_post else None
             ),
         ):
+            self.check_replay_access(request, project)
 
             if not self.has_replay_summary_access(project, request):
                 return self.respond(
@@ -166,9 +164,9 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
                     status=403,
                 )
 
+            # We use the frontend's segment count to keep summaries consistent with the video displayed in the UI.
             num_segments = request.data.get("num_segments", 0)
             temperature = request.data.get("temperature", None)
-            start, end = default_start_end_dates()
 
             # Limit data with the frontend's segment count, to keep summaries consistent with the video displayed in the UI.
             # While the replay is live, the FE and BE may have different counts.
@@ -180,118 +178,60 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
                         "project_id": project.id,
                         "organization_id": project.organization.id,
                         "segment_limit": MAX_SEGMENTS_TO_SUMMARIZE,
+                        "num_segments": num_segments,
                     },
                 )
                 num_segments = MAX_SEGMENTS_TO_SUMMARIZE
 
-            if features.has(
-                "organizations:replay-ai-summaries-rpc", project.organization, actor=request.user
-            ):
-                snuba_response = query_replay_instance(
-                    project_id=project.id,
-                    replay_id=replay_id,
-                    start=start,
-                    end=end,
-                    organization=project.organization,
-                    request_user_id=request.user.id,
-                )
-                if not snuba_response:
-                    return self.respond(
-                        {"detail": "Replay not found."},
-                        status=404,
-                    )
-
-                return self.make_seer_request(
-                    SEER_START_TASK_ENDPOINT_PATH,
-                    {
-                        "logs": [],
-                        "use_rpc": True,
-                        "num_segments": num_segments,
-                        "replay_id": replay_id,
-                        "organization_id": project.organization.id,
-                        "project_id": project.id,
-                        "temperature": temperature,
-                    },
-                )
-
-            # Fetch the replay's error and trace IDs from the replay_id.
+            # Query for replay existence and start/end times, to prevent spawning a Seer task and DB entry for non-existent replays.
+            start, end = default_start_end_dates()  # Query last 90d.
             snuba_response = query_replay_instance(
                 project_id=project.id,
                 replay_id=replay_id,
                 start=start,
                 end=end,
                 organization=project.organization,
-                request_user_id=request.user.id,
             )
-            processed_response = process_raw_response(
-                snuba_response,
-                fields=[],  # Defaults to all fields.
-            )
-
-            if not processed_response:
+            if not snuba_response:
                 return self.respond(
                     {"detail": "Replay not found."},
                     status=404,
                 )
 
-            error_ids = processed_response[0].get("error_ids", [])
-            trace_ids = processed_response[0].get("trace_ids", [])
+            # Extract start and end times from the replay (pass None if missing or invalid).
+            replay = process_raw_response(snuba_response, fields=[])[0]
 
-            result = get_replay_range(
-                organization_id=project.organization.id, project_id=project.id, replay_id=replay_id
-            )
+            def validate_iso_timestamp(timestamp: str | None) -> str | None:
+                """Validate that timestamp is a valid ISO format string, return None if invalid."""
+                if not timestamp:
+                    return None
+                try:
+                    datetime.fromisoformat(timestamp)
+                    return timestamp
+                except (ValueError, TypeError):
+                    return None
 
-            if result is not None:
-                start, end = result
+            replay_start = validate_iso_timestamp(replay.get("started_at"))
+            replay_end = validate_iso_timestamp(replay.get("finished_at"))
 
-            # Fetch same-trace errors.
-            trace_connected_errors = fetch_trace_connected_errors(
-                project=project,
-                trace_ids=trace_ids,
-                start=start,
-                end=end,
-                limit=100,
-            )
-            trace_connected_error_ids = {x["id"] for x in trace_connected_errors}
+            if not replay_start or not replay_end:
+                logger.warning(
+                    "Replay start or end time missing or invalid.",
+                    extra={
+                        "started_at": replay.get("started_at"),
+                        "finished_at": replay.get("finished_at"),
+                        "replay_id": replay_id,
+                        "organization_id": project.organization.id,
+                    },
+                )
 
-            # Fetch directly linked errors, if they weren't returned by the trace query.
-            direct_errors = fetch_error_details(
-                project_id=project.id,
-                error_ids=[x for x in error_ids if x not in trace_connected_error_ids],
-            )
-
-            error_events = direct_errors + trace_connected_errors
-
-            metrics.distribution(
-                "replays.endpoints.project_replay_summary.direct_errors",
-                value=len(direct_errors),
-            )
-            metrics.distribution(
-                "replays.endpoints.project_replay_summary.trace_connected_errors",
-                value=len(trace_connected_errors),
-            )
-            metrics.distribution(
-                "replays.endpoints.project_replay_summary.num_trace_ids",
-                value=len(trace_ids),
-            )
-
-            # Download segment data.
-            # XXX: For now this is capped to 100 and blocking. DD shows no replays with >25 segments, but we should still stress test and figure out how to deal with large replays.
-            segment_md = fetch_segments_metadata(project.id, replay_id, 0, num_segments)
-            segment_data = iter_segment_data(segment_md)
-
-            # Combine replay and error data and parse into logs.
-            logs = get_summary_logs(segment_data, error_events, project.id)
-
-            # Post to Seer to start a summary task.
-            # XXX: Request isn't streaming. Limitation of Seer authentication. Would be much faster if we
-            # could stream the request data since the GCS download will (likely) dominate latency.
             return self.make_seer_request(
                 SEER_START_TASK_ENDPOINT_PATH,
                 {
-                    "logs": logs,
-                    "num_segments": num_segments,
                     "replay_id": replay_id,
+                    "replay_start": replay_start,
+                    "replay_end": replay_end,
+                    "num_segments": num_segments,
                     "organization_id": project.organization.id,
                     "project_id": project.id,
                     "temperature": temperature,

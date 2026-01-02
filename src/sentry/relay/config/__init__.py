@@ -73,13 +73,14 @@ EXPOSABLE_FEATURES = [
     "organizations:indexed-spans-extraction",
     "organizations:relay-otlp-traces-endpoint",
     "organizations:relay-otel-logs-endpoint",
-    "organizations:relay-vercel-log-drain-endpoint",
     "organizations:ourlogs-ingestion",
     "organizations:tracemetrics-ingestion",
     "organizations:view-hierarchy-scrubbing",
     "organizations:performance-issues-spans",
     "organizations:relay-playstation-ingestion",
     "projects:span-v2-experimental-processing",
+    "projects:span-v2-attachment-processing",
+    "projects:trace-attachment-processing",
 ]
 
 EXTRACT_METRICS_VERSION = 1

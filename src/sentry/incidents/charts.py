@@ -136,23 +136,20 @@ def fetch_metric_issue_open_periods(
     open_period_identifier: int,
     time_period: Mapping[str, str],
     user: User | RpcUser | None = None,
+    time_window: int = 0,
 ) -> list[Any]:
     detector_id = open_period_identifier
     try:
-        if features.has(
-            "organizations:workflow-engine-single-process-metric-issues",
-            organization,  # Metric issue single processing
-        ):
-            # temporarily fetch the alert rule ID from the detector ID
-            alert_rule_detector = AlertRuleDetector.objects.filter(
-                detector_id=open_period_identifier, alert_rule_id__isnull=False
-            ).first()
-            if alert_rule_detector is not None:
-                # open_period_identifier is a metric detector ID -> get the alert rule ID
-                open_period_identifier = alert_rule_detector.alert_rule_id
+        # temporarily fetch the alert rule ID from the detector ID
+        alert_rule_detector = AlertRuleDetector.objects.filter(
+            detector_id=open_period_identifier, alert_rule_id__isnull=False
+        ).first()
+        if alert_rule_detector is not None:
+            # open_period_identifier is a metric detector ID -> get the alert rule ID
+            open_period_identifier = alert_rule_detector.alert_rule_id
 
         if features.has(
-            "organizations:new-metric-issue-charts",
+            "organizations:workflow-engine-ui",
             organization,
         ):
             resp = client.get(
@@ -161,6 +158,7 @@ def fetch_metric_issue_open_periods(
                 path=f"/organizations/{organization.slug}/open-periods/",
                 params={
                     "detectorId": detector_id,
+                    "bucketSize": time_window,
                     **time_period,
                 },
             )
@@ -221,7 +219,7 @@ def build_metric_alert_chart(
     query_type = SnubaQuery.Type(snuba_query.type)
     is_crash_free_alert = query_type == SnubaQuery.Type.CRASH_RATE
     using_new_charts = features.has(
-        "organizations:new-metric-issue-charts",
+        "organizations:workflow-engine-ui",
         organization,
     )
     if is_crash_free_alert:
@@ -252,7 +250,7 @@ def build_metric_alert_chart(
             "end": timezone.now().strftime(TIME_FORMAT),
         }
     if features.has(
-        "organizations:new-metric-issue-charts",
+        "organizations:workflow-engine-ui",
         organization,
     ):
         # TODO(mifu67): create detailed serializer for open period, pass here.
@@ -264,6 +262,7 @@ def build_metric_alert_chart(
                 alert_context.action_identifier_id,
                 time_period,
                 user,
+                snuba_query.time_window,
             ),
         }
     else:

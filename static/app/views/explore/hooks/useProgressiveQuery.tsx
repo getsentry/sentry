@@ -1,5 +1,4 @@
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
-import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
 export const SAMPLING_MODE = {
   NORMAL: 'NORMAL',
@@ -24,8 +23,10 @@ export type SamplingMode = (typeof SAMPLING_MODE)[keyof typeof SAMPLING_MODE];
 export type RPCQueryExtras = {
   caseInsensitive?: CaseInsensitive;
   disableAggregateExtrapolation?: string;
+  logQuery?: string[];
+  metricQuery?: string[];
   samplingMode?: SamplingMode;
-  traceMetric?: TraceMetric;
+  spanQuery?: string[];
 };
 
 interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {

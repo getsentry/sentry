@@ -82,6 +82,7 @@ from sentry.users.models.useremail import UserEmail
 from sentry.users.models.userip import UserIP
 from sentry.users.models.userpermission import UserPermission
 from sentry.users.models.userrole import UserRole, UserRoleUser
+from sentry.workflow_engine.models import DataSource
 from tests.sentry.backup import (
     expect_models,
     get_matching_exportable_models,
@@ -1627,6 +1628,43 @@ class CollisionTests(ImportTestCase):
                 import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
 
             assert SavedSearch.objects.count() == 1
+
+            with open(tmp_path, "rb") as tmp_file:
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
+
+    @expect_models(COLLISION_TESTED, DataSource)
+    def test_colliding_data_source(self, expected_models: list[type[Model]]) -> None:
+        owner = self.create_exhaustive_user("owner")
+        invited = self.create_exhaustive_user("invited")
+        self.create_exhaustive_organization("some-org", owner, invited)
+
+        # Get a DataSource that was created - it should have (type, source_id) as unique
+        colliding = DataSource.objects.first()
+        assert colliding is not None
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+
+            # After exporting and clearing, insert a DataSource with the same (type, source_id)
+            # but different organization
+            new_org = self.create_organization()
+            colliding.organization_id = new_org.id
+            colliding.save()
+
+            assert DataSource.objects.count() == 1
+            assert (
+                DataSource.objects.filter(
+                    type=colliding.type, source_id=colliding.source_id
+                ).count()
+                == 1
+            )
+
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
+
+            # After import, the incoming DataSource should get a new source_id to avoid collision
+            # with the existing one (since the referenced source model will be remapped)
+            assert DataSource.objects.count() == 2
 
             with open(tmp_path, "rb") as tmp_file:
                 verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))

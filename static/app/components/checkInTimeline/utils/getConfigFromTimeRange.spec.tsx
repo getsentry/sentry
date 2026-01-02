@@ -6,11 +6,12 @@ import {getConfigFromTimeRange} from './getConfigFromTimeRange';
 
 describe('getConfigFromTimeRange', () => {
   const timelineWidth = 800;
+  const timezone = 'UTC';
 
   it('divides into minutes for small intervals', () => {
     const start = new Date('2023-06-15T11:00:00Z');
     const end = new Date('2023-06-15T11:05:00Z');
-    const config = getConfigFromTimeRange(start, end, timelineWidth);
+    const config = getConfigFromTimeRange(start, end, timelineWidth, timezone);
     expect(config).toEqual({
       periodStart: start,
       start,
@@ -32,13 +33,14 @@ describe('getConfigFromTimeRange', () => {
       },
       dateTimeProps: {timeOnly: true},
       timelineWidth,
+      timezone,
     });
   });
 
   it('displays dates when more than 1 day window size', () => {
     const start = new Date('2023-06-15T11:00:00Z');
     const end = new Date('2023-06-16T11:05:00Z');
-    const config = getConfigFromTimeRange(start, end, timelineWidth);
+    const config = getConfigFromTimeRange(start, end, timelineWidth, timezone);
     expect(config).toEqual({
       periodStart: start,
       start: moment(start)
@@ -62,13 +64,14 @@ describe('getConfigFromTimeRange', () => {
       },
       dateTimeProps: {timeOnly: false},
       timelineWidth: 723,
+      timezone,
     });
   });
 
   it('divides into minutes without showing seconds for medium intervals', () => {
     const start = new Date('2023-06-15T08:00:00Z');
     const end = new Date('2023-06-15T23:00:00Z');
-    const config = getConfigFromTimeRange(start, end, timelineWidth);
+    const config = getConfigFromTimeRange(start, end, timelineWidth, timezone);
     expect(config).toEqual({
       periodStart: start,
       start: moment(start)
@@ -92,13 +95,14 @@ describe('getConfigFromTimeRange', () => {
       },
       dateTimeProps: {timeOnly: true},
       timelineWidth: 780,
+      timezone,
     });
   });
 
   it('divides into days for larger intervals', () => {
     const start = new Date('2023-05-15T11:00:00Z');
     const end = new Date('2023-06-15T11:00:00Z');
-    const config = getConfigFromTimeRange(start, end, timelineWidth);
+    const config = getConfigFromTimeRange(start, end, timelineWidth, timezone);
     expect(config).toEqual({
       periodStart: start,
       start: moment(start)
@@ -124,13 +128,14 @@ describe('getConfigFromTimeRange', () => {
       },
       dateTimeProps: {dateOnly: true},
       timelineWidth: 744,
+      timezone,
     });
   });
 
   it('Includes dates when the window spans days', () => {
     const start = new Date('2023-05-14T20:00:00Z');
     const end = new Date('2023-05-15T10:00:00Z');
-    const config = getConfigFromTimeRange(start, end, timelineWidth);
+    const config = getConfigFromTimeRange(start, end, timelineWidth, timezone);
     expect(config).toEqual({
       periodStart: start,
       start: moment(start)
@@ -155,6 +160,7 @@ describe('getConfigFromTimeRange', () => {
       },
       dateTimeProps: {timeOnly: false},
       timelineWidth: 784,
+      timezone,
     });
   });
 });

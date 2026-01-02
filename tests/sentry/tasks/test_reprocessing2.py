@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from time import time
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -18,7 +19,7 @@ from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupredirect import GroupRedirect
 from sentry.models.userreport import UserReport
 from sentry.plugins.base.v2 import Plugin2
-from sentry.reprocessing2 import is_group_finished
+from sentry.reprocessing2 import is_group_finished, start_group_reprocessing
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
 from sentry.services.eventstore.processing import event_processing_store
@@ -31,18 +32,6 @@ from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 
 pytestmark = [requires_snuba]
-
-
-def _create_event_attachment(evt, type):
-    EventAttachment.objects.create(
-        event_id=evt.event_id,
-        group_id=evt.group_id,
-        project_id=evt.project_id,
-        type=type,
-        name="foo",
-        size=len("hello world"),
-        blob_path=":hello world",
-    )
 
 
 def _create_user_report(evt):
@@ -384,7 +373,7 @@ def test_attachments_and_userfeedback(
         extra["processing_counter"] += 1
 
         attachments = get_attachments_for_event(data)
-        extra.setdefault("attachments", []).append([attachment.type for attachment in attachments])
+        extra.setdefault("attachments", []).extend(attachment.type for attachment in attachments)
 
         return data
 
@@ -405,9 +394,18 @@ def test_attachments_and_userfeedback(
     event = eventstore.backend.get_event_by_id(default_project.id, event_id)
     assert event is not None
 
-    for evt in (event, event_to_delete):
+    events: list[Any] = [event, event_to_delete]
+    for evt in events:
         for type in ("event.attachment", "event.minidump"):
-            _create_event_attachment(evt, type)
+            EventAttachment.objects.create(
+                event_id=evt.event_id,
+                group_id=evt.group_id,
+                project_id=evt.project_id,
+                type=type,
+                name="foo",
+                size=len("hello world"),
+                blob_path=":hello world",
+            )
 
         _create_user_report(evt)
 
@@ -422,7 +420,7 @@ def test_attachments_and_userfeedback(
     assert new_event.group_id is not None
     assert new_event.group_id != event.group_id
 
-    assert new_event.data["extra"]["attachments"] == [["event.minidump"]]
+    assert new_event.data["extra"]["attachments"] == ["event.minidump"]
 
     att, mdmp = EventAttachment.objects.filter(project_id=default_project.id).order_by("type")
     assert att.group_id == mdmp.group_id == new_event.group_id
@@ -694,3 +692,20 @@ def test_finish_reprocessing(default_project) -> None:
     )
     assert len(redirects) == 1
     assert redirects[0].group_id == new_group.id
+
+
+@django_db_all
+def test_reprocessing_an_ongoing_reprocessing(default_project) -> None:
+    # Pretend that the old group has more than one activity still connected:
+    old_group = Group.objects.create(project=default_project, data={})
+
+    new_group_id = start_group_reprocessing(default_project.id, old_group.id, "delete")
+
+    with pytest.raises(RuntimeError) as e:
+        start_group_reprocessing(default_project.id, new_group_id, "delete")
+    assert "Cannot reprocess group that is being reprocessed to" in str(e)
+
+    finish_reprocessing(default_project.id, old_group.id)
+    assert Group.objects.get(id=new_group_id).data == {}
+    # This should work now, i.e. not raise an exception like above
+    start_group_reprocessing(default_project.id, new_group_id, "delete")

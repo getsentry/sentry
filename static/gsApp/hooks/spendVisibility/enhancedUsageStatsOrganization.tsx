@@ -29,7 +29,7 @@ import {
 } from 'sentry/views/organizationStats/utils';
 
 import withSubscription from 'getsentry/components/withSubscription';
-import {PlanTier, type Subscription} from 'getsentry/types';
+import {type Subscription} from 'getsentry/types';
 import {SPIKE_PROTECTION_OPTION_DISABLED} from 'getsentry/views/spikeProtection/constants';
 import {SpikeProtectionRangeLimitation} from 'getsentry/views/spikeProtection/spikeProtectionCallouts';
 import SpikeProtectionHistoryTable from 'getsentry/views/spikeProtection/spikeProtectionHistoryTable';
@@ -308,19 +308,6 @@ function EnhancedUsageStatsOrganization({
     has_spike_data: isSingleProject && hasAccurateSpikes,
   });
 
-  const newEndpointQuery = useMemo(() => {
-    const query = endpointQuery;
-
-    if (
-      dataCategoryApiName === 'profile_duration' &&
-      subscription.planTier !== PlanTier.AM2
-    ) {
-      query.category.push('profile');
-    }
-
-    return query;
-  }, [endpointQuery, dataCategoryApiName, subscription.planTier]);
-
   return (
     <UsageStatsOrganization
       organization={organization}
@@ -329,7 +316,7 @@ function EnhancedUsageStatsOrganization({
       dataCategoryName={dataCategoryName}
       dataDatetime={dataDatetime}
       projectIds={projectIds}
-      endpointQuery={newEndpointQuery}
+      endpointQuery={endpointQuery}
       handleChangeState={handleChangeState}
       clientDiscard={clientDiscard}
       chartTransform={chartTransform}

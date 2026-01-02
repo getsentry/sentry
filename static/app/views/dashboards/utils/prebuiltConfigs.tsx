@@ -1,134 +1,47 @@
-import {t} from 'sentry/locale';
-import {
-  DisplayType,
-  WidgetType,
-  type DashboardDetails,
-} from 'sentry/views/dashboards/types';
+import {type DashboardDetails} from 'sentry/views/dashboards/types';
+import {HTTP_DOMAIN_SUMMARY_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/http/domainSummary';
+import {HTTP_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/http/http';
+import {MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/appStarts';
+import {MOBILE_VITALS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/mobileVitals';
+import {MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/screenLoads';
+import {MOBILE_VITALS_SCREEN_RENDERING_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/screenRendering';
+import {QUERIES_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/queries';
+import {QUERIES_SUMMARY_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/querySummary';
+import {SESSION_HEALTH_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/sessionHealth';
+import {WEB_VITALS_SUMMARY_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/pageSummary';
+import {WEB_VITALS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
 
 export enum PrebuiltDashboardId {
   FRONTEND_SESSION_HEALTH = 1,
+  BACKEND_QUERIES = 2,
+  BACKEND_QUERIES_SUMMARY = 3,
+  HTTP = 4,
+  HTTP_DOMAIN_SUMMARY = 5,
+  WEB_VITALS = 6,
+  WEB_VITALS_SUMMARY = 7,
+  MOBILE_VITALS = 8,
+  MOBILE_VITALS_APP_STARTS = 9,
+  MOBILE_VITALS_SCREEN_LOADS = 10,
+  MOBILE_VITALS_SCREEN_RENDERING = 11,
 }
 
-export const PREBUILT_DASHBOARDS: Record<
-  PrebuiltDashboardId,
-  Omit<DashboardDetails, 'id'>
-> = {
-  [PrebuiltDashboardId.FRONTEND_SESSION_HEALTH]: {
-    dateCreated: '',
-    filters: {},
-    projects: [],
-    title: 'Frontend Session Health',
-    widgets: [
-      {
-        id: 'unhealthy-sessions',
-        title: t('Unhealthy Sessions'),
-        displayType: DisplayType.LINE,
-        widgetType: WidgetType.RELEASE,
-        interval: '',
-        queries: [
-          {
-            name: '',
-            conditions: '',
-            fields: ['unhealthy_rate(session)'],
-            aggregates: ['unhealthy_rate(session)'],
-            columns: [],
-            orderby: '',
-          },
-        ],
-        layout: {x: 0, y: 0, w: 3, h: 3, minH: 2},
-      },
-      {
-        id: 'user-health',
-        title: t('User Health'),
-        displayType: DisplayType.AREA,
-        widgetType: WidgetType.RELEASE,
-        interval: '',
-        queries: [
-          {
-            name: '',
-            conditions: '',
-            fields: [
-              'abnormal_rate(user)',
-              'crash_rate(user)',
-              'errored_rate(user)',
-              'unhandled_rate(user)',
-            ],
-            aggregates: [
-              'abnormal_rate(user)',
-              'crash_rate(user)',
-              'errored_rate(user)',
-              'unhandled_rate(user)',
-            ],
-            columns: [],
-            orderby: '',
-          },
-        ],
-        layout: {x: 3, y: 0, w: 3, h: 3, minH: 2},
-      },
-      {
-        id: 'session-health',
-        title: t('Session Health'),
-        displayType: DisplayType.AREA,
-        widgetType: WidgetType.RELEASE,
-        interval: '',
-        queries: [
-          {
-            name: '',
-            conditions: '',
-            fields: [
-              'abnormal_rate(session)',
-              'crash_rate(session)',
-              'errored_rate(session)',
-              'unhandled_rate(session)',
-            ],
-            aggregates: [
-              'abnormal_rate(session)',
-              'crash_rate(session)',
-              'errored_rate(session)',
-              'unhandled_rate(session)',
-            ],
-            columns: [],
-            orderby: '',
-          },
-        ],
-        layout: {x: 0, y: 3, w: 2, h: 3, minH: 2},
-      },
-      {
-        id: 'session-counts',
-        title: t('Session Counts'),
-        displayType: DisplayType.LINE,
-        widgetType: WidgetType.RELEASE,
-        interval: '',
-        queries: [
-          {
-            name: '',
-            conditions: '',
-            fields: ['session.status', 'sum(session)'],
-            aggregates: ['sum(session)'],
-            columns: ['session.status'],
-            orderby: '',
-          },
-        ],
-        layout: {x: 2, y: 3, w: 2, h: 3, minH: 2},
-      },
-      {
-        id: 'user-counts',
-        title: t('User Counts'),
-        displayType: DisplayType.LINE,
-        widgetType: WidgetType.RELEASE,
-        interval: '4h',
-        queries: [
-          {
-            name: '',
-            conditions: '',
-            fields: ['session.status', 'count_unique(user)'],
-            aggregates: ['count_unique(user)'],
-            columns: ['session.status'],
-            orderby: '',
-          },
-        ],
-        layout: {x: 4, y: 3, w: 2, h: 3, minH: 2},
-      },
-    ],
-  },
+export type PrebuiltDashboard = Omit<DashboardDetails, 'id'>;
+
+// NOTE: These configs must be in sync with the prebuilt dashboards declared in
+// the backend in the `PREBUILT_DASHBOARDS` constant.
+export const PREBUILT_DASHBOARDS: Record<PrebuiltDashboardId, PrebuiltDashboard> = {
+  [PrebuiltDashboardId.FRONTEND_SESSION_HEALTH]: SESSION_HEALTH_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.BACKEND_QUERIES]: QUERIES_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.BACKEND_QUERIES_SUMMARY]: QUERIES_SUMMARY_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.HTTP]: HTTP_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.HTTP_DOMAIN_SUMMARY]: HTTP_DOMAIN_SUMMARY_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.WEB_VITALS]: WEB_VITALS_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.WEB_VITALS_SUMMARY]: WEB_VITALS_SUMMARY_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.MOBILE_VITALS]: MOBILE_VITALS_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.MOBILE_VITALS_APP_STARTS]:
+    MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.MOBILE_VITALS_SCREEN_LOADS]:
+    MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.MOBILE_VITALS_SCREEN_RENDERING]:
+    MOBILE_VITALS_SCREEN_RENDERING_PREBUILT_CONFIG,
 };

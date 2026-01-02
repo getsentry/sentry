@@ -1,10 +1,10 @@
 import {t} from 'sentry/locale';
 import type {
-  AppleInsightResults,
   FileSavingsResult,
   FileSavingsResultGroup,
   FilesInsightResult,
   GroupsInsightResult,
+  InsightResults,
   OptimizableImageFile,
   StripBinaryFileInfo,
 } from 'sentry/views/preprod/types/appSizeTypes';
@@ -50,6 +50,11 @@ const INSIGHT_CONFIGS: InsightConfig[] = [
     description: t(
       'We determine how much size could be reduced if images were better optimized. In some cases you can convert to HEIC for better compression.'
     ),
+  },
+  {
+    key: 'webp_optimization',
+    name: t('WebP Optimization'),
+    description: t('Images can be converted to WebP to reduce size.'),
   },
   {
     key: 'duplicate_files',
@@ -131,7 +136,24 @@ const INSIGHT_CONFIGS: InsightConfig[] = [
       "Alternate icons don't need full size quality because they are only shown downscaled in the homescreen."
     ),
   },
+  {
+    key: 'multiple_native_library_archs',
+    name: t('Multiple native library architectures'),
+    description: t(
+      'Only one native library architecture is needed. Non-arm64 architectures can be removed.'
+    ),
+  },
 ];
+
+export function getInsightConfig(insightType: string): InsightConfig {
+  return (
+    INSIGHT_CONFIGS.find(config => config.key === insightType) ?? {
+      name: insightType,
+      key: insightType,
+      description: '',
+    }
+  );
+}
 
 function markDuplicateImageVariants(processedInsights: ProcessedInsight[]): void {
   const imageInsightTypes = ['image_optimization', 'alternate_icons_optimization'];
@@ -163,7 +185,7 @@ function markDuplicateImageVariants(processedInsights: ProcessedInsight[]): void
  * Process all insights into a standardized format for display
  */
 export function processInsights(
-  insights: AppleInsightResults,
+  insights: InsightResults,
   totalSize: number
 ): ProcessedInsight[] {
   const processedInsights: ProcessedInsight[] = [];
@@ -326,6 +348,8 @@ export function processInsights(
     'hermes_debug_info',
     'audio_compression',
     'video_compression',
+    'multiple_native_library_archs',
+    'webp_optimization',
   ] as const;
 
   regularInsightKeys.forEach(key => {
@@ -340,15 +364,17 @@ export function processInsights(
           description: config.description,
           totalSavings: insight.total_savings,
           percentage: (insight.total_savings / totalSize) * 100,
-          files: files.map((file: FileSavingsResult) => ({
-            path: file.file_path,
-            savings: file.total_savings,
-            percentage: (file.total_savings / totalSize) * 100,
-            data: {
-              fileType: 'regular' as const,
-              originalFile: file,
-            },
-          })),
+          files: files
+            .sort((a, b) => b.total_savings - a.total_savings)
+            .map((file: FileSavingsResult) => ({
+              path: file.file_path,
+              savings: file.total_savings,
+              percentage: (file.total_savings / totalSize) * 100,
+              data: {
+                fileType: 'regular' as const,
+                originalFile: file,
+              },
+            })),
         });
       }
     }

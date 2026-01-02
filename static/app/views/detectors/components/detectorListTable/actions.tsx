@@ -19,6 +19,7 @@ interface DetectorsTableActionsProps {
   allResultsVisible: boolean;
   canEdit: boolean;
   detectorLimitReached: boolean;
+  hasSystemCreatedDetectors: boolean;
   pageSelected: boolean;
   queryCount: string;
   selected: Set<string>;
@@ -36,10 +37,13 @@ export function DetectorsTableActions({
   showEnable,
   showDisable,
   canEdit,
+  hasSystemCreatedDetectors,
   detectorLimitReached,
 }: DetectorsTableActionsProps) {
   const [allInQuerySelected, setAllInQuerySelected] = useState(false);
   const anySelected = selected.size > 0;
+
+  const canDelete = canEdit && !hasSystemCreatedDetectors;
 
   const {selection} = usePageFilters();
   const {query} = useLocationQuery({
@@ -199,14 +203,18 @@ export function DetectorsTableActions({
             </Tooltip>
           )}
           <Tooltip
-            title={t('You do not have permission to delete the selected monitors.')}
-            disabled={canEdit}
+            title={
+              hasSystemCreatedDetectors
+                ? t('Monitors managed by Sentry cannot be deleted.')
+                : t('You do not have permission to delete the selected monitors.')
+            }
+            disabled={canDelete}
           >
             <Button
               size="xs"
               priority="danger"
               onClick={handleDelete}
-              disabled={isDeleting || !canEdit}
+              disabled={isDeleting || !canDelete}
             >
               {t('Delete')}
             </Button>
@@ -214,7 +222,7 @@ export function DetectorsTableActions({
         </ActionsBarWrapper>
       </SimpleTable.Header>
       {pageSelected && !allResultsVisible && (
-        <FullWidthAlert type="warning" showIcon={false}>
+        <FullWidthAlert variant="warning" system showIcon={false}>
           <Flex justify="center" wrap="wrap" gap="md">
             {allInQuerySelected ? (
               tct('Selected all [count] monitors that match this search query.', {

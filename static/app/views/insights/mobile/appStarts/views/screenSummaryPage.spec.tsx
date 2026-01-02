@@ -1,57 +1,41 @@
-import type {Location} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
-import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {ScreenSummaryContentPage} from 'sentry/views/insights/mobile/appStarts/views/screenSummaryPage';
 import {SpanFields} from 'sentry/views/insights/types';
-
-jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useLocation');
 
 describe('Screen Summary', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
 
-  jest.mocked(useLocation).mockReturnValue({
-    action: 'PUSH',
-    hash: '',
-    key: '',
-    pathname: '/organizations/org-slug/performance/mobile/screens/spans/',
-    query: {
-      project: project.id,
-      transaction: 'MainActivity',
-      primaryRelease: 'com.example.vu.android@2.10.5',
-      secondaryRelease: 'com.example.vu.android@2.10.3+42',
-    },
-    search: '',
-    state: undefined,
-  } as Location);
-
-  jest.mocked(usePageFilters).mockReturnValue(
-    PageFilterStateFixture({
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [parseInt(project.id, 10)],
+  const initialRouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/insights/screens/spans/`,
+      query: {
+        project: project.id,
+        transaction: 'MainActivity',
+        primaryRelease: 'com.example.vu.android@2.10.5',
+        [SpanFields.APP_START_TYPE]: 'cold',
       },
-    })
-  );
+    },
+    route: `/organizations/:orgId/insights/screens/spans/`,
+  };
 
   describe('Native Project', () => {
     let eventsMock: jest.Mock;
 
     beforeEach(() => {
+      PageFiltersStore.init();
+      PageFiltersStore.onInitializeUrlState({
+        projects: [parseInt(project.id, 10)],
+        environments: [],
+        datetime: {period: '10d', start: null, end: null, utc: false},
+      });
+
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/releases/`,
         body: [
@@ -88,21 +72,6 @@ describe('Screen Summary', () => {
     });
 
     it('renders the top level metrics data correctly', async () => {
-      jest.mocked(useLocation).mockReturnValue({
-        action: 'PUSH',
-        hash: '',
-        key: '',
-        pathname: '/organizations/org-slug/insights/screens/spans/',
-        query: {
-          project: project.id,
-          transaction: 'MainActivity',
-          primaryRelease: 'com.example.vu.android@2.10.5',
-          secondaryRelease: 'com.example.vu.android@2.10.3+42',
-          [SpanFields.APP_START_TYPE]: 'cold',
-        },
-        search: '',
-        state: undefined,
-      } as Location);
       eventsMock = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events/`,
         body: {
@@ -110,11 +79,7 @@ describe('Screen Summary', () => {
             {
               'span.op': 'app.start.cold',
               'avg_if(span.duration,release,equals,com.example.vu.android@2.10.5)': 1000,
-              'avg_if(span.duration,release,equals,com.example.vu.android@2.10.3+42)': 2000,
-              'avg_compare(span.duration,release,com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42)':
-                -0.5,
               'count_if(release,equals,com.example.vu.android@2.10.5)': 20,
-              'count_if(release,equals,com.example.vu.android@2.10.3+42)': 10,
             },
           ],
         },
@@ -123,26 +88,24 @@ describe('Screen Summary', () => {
         ],
       });
 
-      render(<ScreenSummaryContentPage />, {organization, deprecatedRouterMocks: true});
+      render(<ScreenSummaryContentPage />, {
+        initialRouterConfig,
+        organization,
+      });
 
       await waitFor(() => {
         expect(eventsMock).toHaveBeenCalled();
       });
 
       const blocks = [
-        {header: 'Avg Cold Start (R1)', value: '1.00s'},
-        {header: 'Avg Cold Start (R2)', value: '2.00s'},
-        {header: 'Change', value: '-50%'},
-        {header: 'Count (R1)', value: '20'},
-        {header: 'Count (R2)', value: '10'},
+        {header: 'Avg Cold Start', value: '1.00s'},
+        {header: 'Count', value: '20'},
       ];
 
       for (const block of blocks) {
         const blockEl = screen.getByRole('heading', {name: block.header}).closest('div');
         await within(blockEl!).findByText(block.value);
       }
-
-      expect(screen.getByText('-50%')).toHaveAttribute('data-rating', 'good');
     });
   });
 });

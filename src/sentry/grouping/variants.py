@@ -154,7 +154,7 @@ class ComponentVariant(BaseVariant):
         return self.root_component.get_hash()
 
     def _get_metadata_as_dict(self) -> Mapping[str, Any]:
-        return {"component": self.root_component.as_dict(), "config": self.config.as_dict()}
+        return {"component": self.root_component.as_dict()}
 
     def __repr__(self) -> str:
         return super().__repr__() + f" contributes={self.contributes} ({self.description})"

@@ -1,15 +1,17 @@
 ---
-created: '2025-10-29T21:18:53.578976+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
-  hash: "4a3cf3893b6485428dd02da116c8370e"
+  hash: "b5165008246a0897e1e7d18eb1df4d33"
   contributing component: exception
   hint: None
   root_component:
     app*
       exception*
+        type*
+          "NotFoundError"
+        value (ignored because stacktrace takes precedence)
+          "GET /issues/<int>/events/latest/ <int>"
         stacktrace*
           frame (marked out of app by the client)
             module*
@@ -173,18 +175,18 @@ app:
               "fetchGroupEventAndMarkSeen"
             context_line*
               "const preservedError = new Error();"
-        type*
-          "NotFoundError"
-        value (ignored because stacktrace takes precedence)
-          "GET /issues/<int>/events/latest/ <int>"
 --------------------------------------------------------------------------
 system:
-  hash: "d5456487ea8dccfe96c1968b19870978"
+  hash: "f9e1efa045242909883a37dc74e4fc97"
   contributing component: exception
   hint: None
   root_component:
     system*
       exception*
+        type*
+          "NotFoundError"
+        value (ignored because stacktrace takes precedence)
+          "GET /issues/<int>/events/latest/ <int>"
         stacktrace*
           frame*
             module*
@@ -348,7 +350,3 @@ system:
               "fetchGroupEventAndMarkSeen"
             context_line*
               "const preservedError = new Error();"
-        type*
-          "NotFoundError"
-        value (ignored because stacktrace takes precedence)
-          "GET /issues/<int>/events/latest/ <int>"

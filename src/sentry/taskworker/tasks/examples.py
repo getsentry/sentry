@@ -6,7 +6,7 @@ from typing import Any
 
 from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.namespaces import exampletasks
-from sentry.taskworker.retry import LastAction, NoRetriesRemainingError, Retry, RetryError
+from sentry.taskworker.retry import LastAction, NoRetriesRemainingError, Retry, RetryTaskError
 from sentry.taskworker.retry import retry_task as retry_task_helper
 from sentry.utils.redis import redis_clusters
 
@@ -22,7 +22,7 @@ def say_hello(name: str, *args: list[Any], **kwargs: dict[str, Any]) -> None:
     name="examples.retry_deadletter", retry=Retry(times=2, times_exceeded=LastAction.Deadletter)
 )
 def retry_deadletter() -> None:
-    raise RetryError
+    raise RetryTaskError
 
 
 @exampletasks.register(
@@ -43,7 +43,7 @@ def retry_state() -> None:
 def will_retry(failure: str) -> None:
     if failure == "retry":
         logger.debug("going to retry with explicit retry error")
-        raise RetryError
+        raise RetryTaskError
     if failure == "raise":
         logger.debug("raising runtimeerror")
         raise RuntimeError("oh no")
@@ -71,7 +71,7 @@ def simple_task_wait_delivery() -> None:
 
 @exampletasks.register(name="examples.retry_task", retry=Retry(times=2))
 def retry_task() -> None:
-    raise RetryError
+    raise RetryTaskError
 
 
 @exampletasks.register(name="examples.fail_task")

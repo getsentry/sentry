@@ -564,6 +564,9 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
             ]
 
     def test_noise_reduction(self) -> None:
+        # Access project before patching registry to ensure it's created with grouptypes registered
+        project_id = self.project.id
+
         with patch("sentry.issues.grouptype.registry", new=GroupTypeRegistry()):
 
             @dataclass(frozen=True)
@@ -575,7 +578,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
                 category_v2 = GroupCategory.MOBILE.value
                 noise_config = NoiseConfig(ignore_limit=2)
 
-            event = self.store_event(data={}, project_id=self.project.id)
+            event = self.store_event(data={}, project_id=project_id)
             occurrence = self.build_occurrence(type=TestGroupType.type_id)
             with mock.patch("sentry.issues.ingest.metrics") as metrics:
                 assert save_issue_from_occurrence(occurrence, event, None) is None
@@ -583,7 +586,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
                     "issues.issue.dropped.noise_reduction", tags={"group_type": "test"}
                 )
 
-            new_event = self.store_event(data={}, project_id=self.project.id)
+            new_event = self.store_event(data={}, project_id=project_id)
             new_occurrence = self.build_occurrence(type=TestGroupType.type_id)
             group_info = save_issue_from_occurrence(new_occurrence, new_event, None)
             assert group_info is not None

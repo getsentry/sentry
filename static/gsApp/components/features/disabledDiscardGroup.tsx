@@ -24,23 +24,6 @@ function DisabledDiscardGroup({organization, features}: Props) {
         <StyledEmptyMessage
           icon={<IconDelete />}
           title={t('Keep the noise down')}
-          description={
-            plan === null
-              ? t(
-                  `Discard and Delete is not available on your plan. Contact
-                 us to migrate to a plan that supports discarding any
-                 future events like this before they reach your stream.`
-                )
-              : tct(
-                  '[strong:Discard and Delete] allows you to discard any future events before they reach your stream. This feature [planRequirement] or above.',
-                  {
-                    strong: <strong />,
-                    planRequirement: (
-                      <strong>{t('requires a %s Plan', displayPlanName(plan))}</strong>
-                    ),
-                  }
-                )
-          }
           action={
             <ButtonGroup>
               <Button
@@ -67,7 +50,23 @@ function DisabledDiscardGroup({organization, features}: Props) {
               </LearnMoreButton>
             </ButtonGroup>
           }
-        />
+        >
+          {plan === null
+            ? t(
+                `Discard and Delete is not available on your plan. Contact
+                 us to migrate to a plan that supports discarding any
+                 future events like this before they reach your stream.`
+              )
+            : tct(
+                '[strong:Discard and Delete] allows you to discard any future events before they reach your stream. This feature [planRequirement] or above.',
+                {
+                  strong: <strong />,
+                  planRequirement: (
+                    <strong>{t('requires a %s Plan', displayPlanName(plan))}</strong>
+                  ),
+                }
+              )}
+        </StyledEmptyMessage>
       )}
     </PlanFeature>
   );

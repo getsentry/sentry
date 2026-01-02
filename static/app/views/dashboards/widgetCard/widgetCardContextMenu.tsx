@@ -31,10 +31,8 @@ import {
   isUsingPerformanceScore,
   performanceScoreTooltip,
 } from 'sentry/views/dashboards/utils';
-import {
-  getWidgetExploreUrl,
-  getWidgetLogURL,
-} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {getWidgetExploreUrl} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetricsUrl';
 import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
@@ -249,7 +247,7 @@ export function getMenuOptions(
     }
   }
 
-  if (widget.widgetType === WidgetType.SPANS) {
+  if (widget.widgetType === WidgetType.SPANS || widget.widgetType === WidgetType.LOGS) {
     menuOptions.push({
       key: 'open-in-explore',
       label: t('Open in Explore'),
@@ -264,17 +262,17 @@ export function getMenuOptions(
     });
   }
 
-  if (widget.widgetType === WidgetType.LOGS) {
+  if (widget.widgetType === WidgetType.TRACEMETRICS) {
     menuOptions.push({
-      key: 'open-in-explore',
-      label: t('Open in Explore'),
-      to: getWidgetLogURL(
-        widget,
-        dashboardFilters,
-        selection,
-        organization,
-        getReferrer(widget.displayType)
-      ),
+      key: 'open-in-metrics',
+      label: t('Open in Metrics'),
+      to: getWidgetMetricsUrl(widget, dashboardFilters, selection, organization),
+      onAction: () => {
+        trackAnalytics('dashboards_views.open_in_metrics.opened', {
+          organization,
+          widget_type: widget.displayType,
+        });
+      },
     });
   }
 

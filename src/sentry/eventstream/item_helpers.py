@@ -42,6 +42,10 @@ def _encode_value(value: Any) -> AnyValue:
         # Note: bool check must come before int check since bool is a subclass of int
         return AnyValue(bool_value=value)
     elif isinstance(value, int):
+        # int_value is a signed int64, so it has a range of valid values.
+        # if value doesn't fit into an int64, cast it to string.
+        if abs(value) >= (2**63):
+            return AnyValue(string_value=str(value))
         return AnyValue(int_value=value)
     elif isinstance(value, float):
         return AnyValue(double_value=value)
@@ -81,9 +85,21 @@ def encode_attributes(
     if event.group_id:
         attributes["group_id"] = AnyValue(int_value=event.group_id)
 
-    for key, value in event_data["tags"]:
-        if value is None:
-            continue
-        attributes[f"tags[{key}]"] = _encode_value(value)
+    format_tag_key = lambda key: f"tags[{key}]"
+
+    tag_keys = set()
+    tags = event_data.get("tags")
+    if tags is not None:
+        for tag in tags:
+            if tag is None:
+                continue
+            key, value = tag
+            if value is None:
+                continue
+            formatted_key = format_tag_key(key)
+            attributes[formatted_key] = _encode_value(value)
+            tag_keys.add(formatted_key)
+
+    attributes["tag_keys"] = _encode_value(sorted(tag_keys))
 
     return attributes

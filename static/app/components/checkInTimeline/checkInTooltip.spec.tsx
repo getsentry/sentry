@@ -18,6 +18,7 @@ const tickConfig: TimeWindowConfig = {
     minimumMarkerInterval: 5,
   },
   timelineWidth: 1000,
+  timezone: 'UTC',
   dateTimeProps: {timeOnly: true},
   rollupConfig: {
     bucketPixels: 0,

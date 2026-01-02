@@ -1,13 +1,10 @@
 from __future__ import annotations
 
 import logging
-from enum import StrEnum
-from typing import Literal
 
 import orjson
 import requests
 from django.conf import settings
-from pydantic import BaseModel
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -20,7 +17,7 @@ from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
-from sentry.seer.models import SeerRepoDefinition
+from sentry.seer.models import PreferenceResponse, SeerProjectPreference
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -61,6 +58,7 @@ class SeerAutomationHandoffConfigurationSerializer(CamelSnakeSerializer):
         required=True,
     )
     integration_id = serializers.IntegerField(required=True)
+    auto_create_pr = serializers.BooleanField(required=False, default=False)
 
 
 class ProjectSeerPreferencesSerializer(CamelSnakeSerializer):
@@ -69,29 +67,6 @@ class ProjectSeerPreferencesSerializer(CamelSnakeSerializer):
     automation_handoff = SeerAutomationHandoffConfigurationSerializer(
         required=False, allow_null=True
     )
-
-
-class AutofixHandoffPoint(StrEnum):
-    ROOT_CAUSE = "root_cause"
-
-
-class SeerAutomationHandoffConfiguration(BaseModel):
-    handoff_point: AutofixHandoffPoint
-    target: Literal["cursor_background_agent"]
-    integration_id: int
-
-
-class SeerProjectPreference(BaseModel):
-    organization_id: int
-    project_id: int
-    repositories: list[SeerRepoDefinition]
-    automated_run_stopping_point: str | None = None
-    automation_handoff: SeerAutomationHandoffConfiguration | None = None
-
-
-class PreferenceResponse(BaseModel):
-    preference: SeerProjectPreference | None
-    code_mapping_repos: list[SeerRepoDefinition]
 
 
 @region_silo_endpoint
@@ -138,6 +113,7 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
             {
                 "preference": SeerProjectPreference.validate(
                     {
+                        # TODO: this should allow passing a partial preference object, upserting the rest.
                         **serializer.validated_data,
                         "organization_id": project.organization.id,
                         "project_id": project.id,

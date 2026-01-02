@@ -51,7 +51,7 @@ import UsageChart, {
   SeriesTypes,
 } from './usageChart';
 import UsageStatsPerMin from './usageStatsPerMin';
-import {isContinuousProfiling, isDisplayUtc} from './utils';
+import {isDisplayUtc} from './utils';
 
 type ChartData = {
   cardStats: {
@@ -109,12 +109,6 @@ export function getEndpointQuery({
   if (hasDynamicSamplingCustomFeature(organization) && dataCategoryApiName === 'span') {
     groupBy.push('category');
     category.push('span_indexed');
-  }
-  if (['profile_duration', 'profile_duration_ui'].includes(dataCategoryApiName)) {
-    groupBy.push('category');
-    category.push(
-      dataCategoryApiName === 'profile_duration' ? 'profile_chunk' : 'profile_chunk_ui'
-    );
   }
 
   return {
@@ -293,7 +287,6 @@ function ScoreCards({
       score={loading ? undefined : card.score}
       help={card.help}
       trend={card.trend}
-      isEstimate={card.isEstimate}
       isTooltipHoverable
     />
   ));
@@ -342,7 +335,6 @@ type CardMetadata = Record<
   {
     title: React.ReactNode;
     help?: React.ReactNode;
-    isEstimate?: boolean;
     score?: string;
     trend?: React.ReactNode;
   }
@@ -530,7 +522,6 @@ function UsageStatsOrganization({
   const cardMetadata: CardMetadata = useMemo(() => {
     const {total, accepted, accepted_stored, invalid, rateLimited, filtered} =
       chartData.cardStats;
-    const shouldShowEstimate = isContinuousProfiling(dataCategory);
 
     return {
       total: {
@@ -582,7 +573,6 @@ function UsageStatsOrganization({
           }
         ),
         score: filtered,
-        isEstimate: shouldShowEstimate,
       },
       rateLimited: {
         title: tct('Rate Limited [dataCategory]', {dataCategory: dataCategoryName}),
@@ -599,7 +589,6 @@ function UsageStatsOrganization({
           }
         ),
         score: rateLimited,
-        isEstimate: shouldShowEstimate,
       },
       invalid: {
         title: tct('Invalid [dataCategory]', {dataCategory: dataCategoryName}),
@@ -616,7 +605,6 @@ function UsageStatsOrganization({
           }
         ),
         score: invalid,
-        isEstimate: shouldShowEstimate,
       },
     };
   }, [

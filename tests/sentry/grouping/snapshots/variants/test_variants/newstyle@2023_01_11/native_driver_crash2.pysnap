@@ -1,7 +1,5 @@
 ---
-created: '2025-10-07T20:41:49.128980+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: null
@@ -41,13 +39,13 @@ system:
           frame*
             function*
               "CUseCountedObject<T>::UCDestroy"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "CContext::LUCBeginLayerDestruction"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "NDXGI::CDevice::DestroyDriverInstance"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "OpenAdapter10"
           frame

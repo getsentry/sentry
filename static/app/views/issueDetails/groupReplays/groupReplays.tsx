@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import type {Location, Query} from 'history';
 
 import {Button} from 'sentry/components/core/button';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -10,6 +10,10 @@ import {
   SelectedReplayIndexProvider,
   useSelectedReplayIndex,
 } from 'sentry/components/replays/queryParams/selectedReplayIndex';
+import {
+  ReplayAccess,
+  ReplayAccessFallbackAlert,
+} from 'sentry/components/replays/replayAccess';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayTable from 'sentry/components/replays/table/replayTable';
 import {
@@ -22,6 +26,7 @@ import {
   ReplayPlayPauseColumn,
   ReplaySessionColumn,
 } from 'sentry/components/replays/table/replayTableColumns';
+import {usePlaylistQuery} from 'sentry/components/replays/usePlaylistQuery';
 import {replayMobilePlatforms} from 'sentry/data/platformCategories';
 import {IconPlay, IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -76,6 +81,14 @@ function ReplayFilterMessage() {
 }
 
 export default function GroupReplays({group}: Props) {
+  return (
+    <ReplayAccess fallback={<ReplayAccessFallbackAlert />}>
+      <GroupReplaysContent group={group} />
+    </ReplayAccess>
+  );
+}
+
+function GroupReplaysContent({group}: Props) {
   const organization = useOrganization();
   const location = useLocation<ReplayListLocationQuery>();
   const hasStreamlinedUI = useHasStreamlinedUI();
@@ -165,6 +178,7 @@ export default function GroupReplays({group}: Props) {
 
 function SelectedReplayWrapper({
   children,
+  query,
   group,
   replaySlug,
   overlayContent,
@@ -175,6 +189,7 @@ function SelectedReplayWrapper({
   overlayContent: React.ReactNode;
   replaySlug: string;
   replays: ReplayListRecord[] | undefined;
+  query?: Query;
 }) {
   const organization = useOrganization();
   const readerResult = useLoadReplayReader({
@@ -195,6 +210,7 @@ function SelectedReplayWrapper({
       autoStart
     >
       <GroupReplaysPlayer
+        query={query}
         replayReaderResult={readerResult}
         overlayContent={overlayContent}
         handleForwardClick={
@@ -234,6 +250,7 @@ function GroupReplaysTable({
   });
 
   const replayListData = useReplayList({
+    enabled: true,
     eventView,
     location: useMemo(() => ({query: {}}) as Location<ReplayListLocationQuery>, []),
     organization,
@@ -241,9 +258,11 @@ function GroupReplaysTable({
   });
   const {replays} = replayListData;
   const selectedReplay = replays?.[selectedReplayIndex];
+  const playlistQuery = usePlaylistQuery('issueReplays', eventView);
 
   const replayTable = (
     <ReplayTable
+      query={playlistQuery}
       columns={[
         ...(selectedReplay ? [ReplayPlayPauseColumn] : []),
         ...(allMobileProj ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS),
@@ -264,6 +283,7 @@ function GroupReplaysTable({
         group={group}
         replaySlug={selectedReplay.id}
         replays={replays}
+        query={playlistQuery}
       >
         {replayTable}
       </SelectedReplayWrapper>
@@ -308,14 +328,14 @@ function ReplayOverlay({
 }
 
 const StyledLayoutPage = styled(Layout.Page)<{hasStreamlinedUI?: boolean}>`
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   gap: ${space(1.5)};
 
   ${p =>
     p.hasStreamlinedUI &&
     css`
       border: 1px solid ${p.theme.border};
-      border-radius: ${p.theme.borderRadius};
+      border-radius: ${p.theme.radius.md};
       padding: ${space(1.5)};
     `}
 `;

@@ -7,7 +7,7 @@ import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {Hovercard} from 'sentry/components/hovercard';
 import {DiffCompareContextProvider} from 'sentry/components/replays/diff/diffCompareContext';
@@ -82,14 +82,14 @@ export default function ReplayComparisonModal({
                 >
                   <Button
                     aria-label={t('Adjust diff')}
-                    icon={<IconSliders size="md" direction="up" />}
+                    icon={<IconSliders size="md" />}
                     borderless
                   />
                 </AutoWideHovercard>
               ) : null}
               {focusTrap ? (
-                <FeedbackWidgetButton
-                  optionOverrides={{
+                <FeedbackButton
+                  feedbackOptions={{
                     onFormOpen: () => {
                       focusTrap.pause();
                     },
@@ -105,7 +105,7 @@ export default function ReplayComparisonModal({
         <Body>
           {isSameTimestamp ? (
             <Alert.Container>
-              <Alert type="warning">
+              <Alert variant="warning">
                 {t(
                   "Cannot display diff for this hydration error. Sentry wasn't able to identify the correct event."
                 )}
@@ -145,12 +145,12 @@ const Title = styled('h4')`
 `;
 
 const Before = styled('span')`
-  color: ${p => p.theme.red300};
+  color: ${p => p.theme.colors.red400};
   font-weight: bold;
 `;
 
 const After = styled('span')`
-  color: ${p => p.theme.green300};
+  color: ${p => p.theme.colors.green400};
   font-weight: bold;
 `;
 

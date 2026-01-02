@@ -7,19 +7,20 @@ import {
   useRef,
   useState,
 } from 'react';
+import * as React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {useKeyboard} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
-import type {ListState} from '@react-stately/list';
 import type {OverlayTriggerState} from '@react-stately/overlays';
+
+import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
 
 import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
-import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import DropdownButton from 'sentry/components/dropdownButton';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
@@ -32,7 +33,8 @@ import useOverlay from 'sentry/utils/useOverlay';
 import usePrevious from 'sentry/utils/usePrevious';
 
 import type {SingleListProps} from './list';
-import type {SelectKey, SelectOption} from './types';
+import {type ButtonTriggerProps, type SelectTriggerProps} from './trigger';
+import type {SelectKey, SelectOptionOrSection} from './types';
 
 // autoFocus react attribute is sync called on render, this causes
 // layout thrashing and is bad for performance. This thin wrapper function
@@ -51,35 +53,19 @@ function nextFrameCallback(cb: () => void) {
 interface SelectContextValue {
   overlayIsOpen: boolean;
   /**
-   * Function to be called once when a list is initialized, to register its state in
-   * SelectContext. In composite selectors, where there can be multiple lists, the
-   * `index` parameter is the list's index number (the order in which it appears). In
-   * non-composite selectors, where there's only one list, that list's index is 0.
-   */
-  registerListState: (index: number, listState: ListState<any>) => void;
-  /**
-   * Function to be called when a list's selection state changes. We need a complete
-   * list of all selected options to label the trigger button. The `index` parameter
-   * indentifies the list, in the same way as in `registerListState`.
-   */
-  saveSelectedOptions: (
-    index: number,
-    newSelectedOptions: SelectOption<SelectKey> | Array<SelectOption<SelectKey>>
-  ) => void;
-  /**
    * Search string to determine whether an option should be rendered in the select list.
    */
   search: string;
+  disabled?: boolean;
   /**
    * The control's overlay state. Useful for opening/closing the menu from inside the
    * selector.
    */
   overlayState?: OverlayTriggerState;
+  size?: FormSize;
 }
 
 export const SelectContext = createContext<SelectContextValue>({
-  registerListState: () => {},
-  saveSelectedOptions: () => {},
   overlayIsOpen: false,
   search: '',
 });
@@ -88,10 +74,8 @@ export interface ControlProps
   extends Omit<
       React.BaseHTMLAttributes<HTMLDivElement>,
       // omit keys from SingleListProps because those will be passed to <List /> instead
-      keyof Omit<
-        SingleListProps<SelectKey>,
-        'children' | 'items' | 'grid' | 'compositeIndex' | 'label'
-      >
+      | keyof Omit<SingleListProps<SelectKey>, 'children' | 'items' | 'grid' | 'label'>
+      | 'defaultValue'
     >,
     Pick<
       UseOverlayProps,
@@ -146,7 +130,6 @@ export interface ControlProps
    */
   loading?: boolean;
   maxMenuHeight?: number | string;
-  maxMenuWidth?: number | string;
   /**
    * Optional content to display below the menu's header and above the options.
    */
@@ -165,6 +148,7 @@ export interface ControlProps
   menuHeaderTrailingItems?:
     | React.ReactNode
     | ((actions: {closeOverlay: () => void}) => React.ReactNode);
+  menuHeight?: number | string;
   /**
    * Title to display in the menu's header. Keep the title as short as possible.
    */
@@ -174,7 +158,7 @@ export interface ControlProps
    * Called when the clear button is clicked (applicable only when `clearable` is
    * true).
    */
-  onClear?: () => void;
+  onClear?: (props: {overlayState: OverlayTriggerState}) => void;
   /**
    * Called when the menu is opened or closed.
    */
@@ -194,21 +178,18 @@ export interface ControlProps
    */
   searchable?: boolean;
   size?: FormSize;
+
   /**
    * Optional replacement for the default trigger button. Note that the replacement must
    * forward `props` and `ref` its outer wrap, otherwise many accessibility features
    * won't work correctly.
    */
-  trigger?: (
-    props: Omit<React.HTMLAttributes<HTMLButtonElement>, 'children'> & {
-      ref?: React.Ref<HTMLButtonElement | null>;
-    },
-    isOpen: boolean
-  ) => React.ReactNode;
+  trigger?: (props: SelectTriggerProps, isOpen: boolean) => React.ReactNode;
+
   /**
    * Props to be passed to the default trigger button.
    */
-  triggerProps?: DropdownButtonProps;
+  triggerProps?: Partial<ButtonTriggerProps>;
 }
 
 /**
@@ -234,12 +215,14 @@ export function Control({
   hideOptions,
   menuTitle,
   maxMenuHeight = '32rem',
-  maxMenuWidth,
   menuWidth,
+  menuHeight,
   menuHeaderTrailingItems,
   menuBody,
   menuFooter,
   onOpenChange,
+  items = [],
+  value,
 
   // Select props
   size = 'md',
@@ -252,13 +235,14 @@ export function Control({
   loading = false,
   grid = false,
   children,
+  menuRef,
   ...wrapperProps
-}: ControlProps) {
+}: ControlProps & {
+  items?: Array<SelectOptionOrSection<SelectKey>>;
+  menuRef?: React.Ref<HTMLDivElement>;
+  value?: SelectKey | SelectKey[] | undefined;
+}) {
   const wrapperRef = useRef<HTMLDivElement>(null);
-  // Set up list states (in composite selects, each region has its own state, that way
-  // selection values are contained within each region).
-  const [listStates, setListStates] = useState<Array<ListState<any>>>([]);
-
   /**
    * Search/filter value, used to filter out the list of displayed elements
    */
@@ -296,13 +280,10 @@ export function Control({
     },
   });
 
-  /**
-   * Clears selection values across all list states
-   */
-  const clearSelection = () => {
-    listStates.forEach(listState => listState.selectionManager.clearSelection());
-    onClear?.();
-  };
+  const overflowBoundaryId = useBoundaryContext();
+  const overflowBoundary = overflowBoundaryId
+    ? document.getElementById(overflowBoundaryId)
+    : null;
 
   // Manage overlay position
   const {
@@ -323,7 +304,15 @@ export function Control({
     onInteractOutside,
     shouldCloseOnInteractOutside,
     shouldCloseOnBlur,
-    preventOverflowOptions,
+    preventOverflowOptions: {
+      ...preventOverflowOptions,
+      boundary:
+        preventOverflowOptions?.boundary ??
+        overflowBoundary ??
+        document.querySelector('main') ??
+        document.getElementById('main') ??
+        undefined,
+    },
     flipOptions,
     strategy,
     onOpenChange: open => {
@@ -424,24 +413,6 @@ export function Control({
   );
 
   /**
-   * A list of selected options across all select regions, to be used to generate the
-   * trigger label.
-   */
-  const [selectedOptions, setSelectedOptions] = useState<
-    Array<SelectOption<SelectKey> | Array<SelectOption<SelectKey>>>
-  >([]);
-  const saveSelectedOptions = useCallback<SelectContextValue['saveSelectedOptions']>(
-    (index, newSelectedOptions) => {
-      setSelectedOptions(current => [
-        ...current.slice(0, index),
-        newSelectedOptions,
-        ...current.slice(index + 1),
-      ]);
-    },
-    []
-  );
-
-  /**
    * Trigger label, generated from current selection values. If more than one option is
    * selected, then a count badge will appear.
    */
@@ -450,7 +421,13 @@ export function Control({
       return triggerLabelProp;
     }
 
-    const options = selectedOptions.flat().filter(Boolean);
+    const values = Array.isArray(value) ? value : [value];
+    const options = items
+      .flatMap(item => {
+        if ('options' in item) return item.options;
+        return item;
+      })
+      .filter(item => values.includes(item.value));
 
     if (options.length === 0) {
       return <TriggerLabel>{t('None')}</TriggerLabel>;
@@ -460,11 +437,11 @@ export function Control({
       <Fragment>
         <TriggerLabel>{options[0]?.label}</TriggerLabel>
         {options.length > 1 && (
-          <StyledBadge type="default">{`+${options.length - 1}`}</StyledBadge>
+          <StyledBadge variant="muted">{`+${options.length - 1}`}</StyledBadge>
         )}
       </Fragment>
     );
-  }, [triggerLabelProp, selectedOptions]);
+  }, [triggerLabelProp, value, items]);
 
   const {keyboardProps: triggerKeyboardProps} = useKeyboard({
     onKeyDown: e => {
@@ -478,31 +455,21 @@ export function Control({
     },
   });
 
-  const showClearButton = useMemo(
-    () => selectedOptions.flat().length > 0,
-    [selectedOptions]
-  );
+  const hasSelection = useMemo(() => {
+    if (value === undefined) return false;
+    if (Array.isArray(value)) return value.length > 0;
+    return true;
+  }, [value]);
 
   const contextValue = useMemo(() => {
-    const registerListState: SelectContextValue['registerListState'] = (
-      index,
-      listState
-    ) => {
-      setListStates(current => [
-        ...current.slice(0, index),
-        listState,
-        ...current.slice(index + 1),
-      ]);
-    };
-
     return {
-      registerListState,
-      saveSelectedOptions,
       overlayState,
       overlayIsOpen,
       search,
+      size,
+      disabled,
     };
-  }, [saveSelectedOptions, overlayState, overlayIsOpen, search]);
+  }, [overlayState, overlayIsOpen, search, size, disabled]);
 
   const theme = useTheme();
 
@@ -510,7 +477,10 @@ export function Control({
     <SelectContext value={contextValue}>
       <ControlWrap {...wrapperProps}>
         {trigger ? (
-          trigger(mergeProps(triggerKeyboardProps, overlayTriggerProps), overlayIsOpen)
+          trigger(
+            mergeProps({id: triggerProps.id}, triggerKeyboardProps, overlayTriggerProps),
+            overlayIsOpen
+          )
         ) : (
           <DropdownButton
             size={size}
@@ -522,67 +492,79 @@ export function Control({
           </DropdownButton>
         )}
         <StyledPositionWrapper
-          zIndex={theme.zIndex?.dropdown}
           visible={overlayIsOpen}
+          zIndex={theme.zIndex?.dropdown}
           {...overlayProps}
         >
-          <StyledOverlay
-            width={menuWidth ?? menuFullWidth}
-            minWidth={overlayProps.style!.minWidth}
-            maxWidth={maxMenuWidth}
-            maxHeight={overlayProps.style!.maxHeight}
-            maxHeightProp={maxMenuHeight}
-            data-menu-has-header={!!menuTitle || clearable}
-            data-menu-has-search={searchable}
-            data-menu-has-footer={!!menuFooter}
-          >
-            <FocusScope contain={overlayIsOpen}>
-              {(menuTitle ||
-                menuHeaderTrailingItems ||
-                (clearable && showClearButton)) && (
-                <MenuHeader size={size}>
-                  <MenuTitle>{menuTitle}</MenuTitle>
-                  <MenuHeaderTrailingItems>
-                    {loading && <StyledLoadingIndicator size={12} />}
-                    {typeof menuHeaderTrailingItems === 'function'
-                      ? menuHeaderTrailingItems({closeOverlay: overlayState.close})
-                      : menuHeaderTrailingItems}
-                    {clearable && showClearButton && (
-                      <ClearButton onClick={clearSelection} size="zero" borderless>
-                        {t('Clear')}
-                      </ClearButton>
-                    )}
-                  </MenuHeaderTrailingItems>
-                </MenuHeader>
-              )}
-              {searchable && (
-                <SearchInput
-                  ref={searchRef}
-                  placeholder={searchPlaceholder}
-                  value={searchInputValue}
-                  onFocus={onSearchFocus}
-                  onBlur={onSearchBlur}
-                  onChange={e => updateSearch(e.target.value)}
-                  size="xs"
-                  {...searchKeyboardProps}
-                />
-              )}
-              {typeof menuBody === 'function'
-                ? menuBody({closeOverlay: overlayState.close})
-                : menuBody}
-              {!hideOptions && <OptionsWrap>{children}</OptionsWrap>}
-              {menuFooter && (
-                <MenuFooter>
-                  {typeof menuFooter === 'function'
-                    ? menuFooter({
-                        closeOverlay: overlayState.close,
-                        resetSearch: () => updateSearch(''),
-                      })
-                    : menuFooter}
-                </MenuFooter>
-              )}
-            </FocusScope>
-          </StyledOverlay>
+          {overlayIsOpen && (
+            <StyledOverlay
+              ref={menuRef}
+              width={menuWidth ?? menuFullWidth}
+              height={menuHeight}
+              minWidth={overlayProps.style!.minWidth}
+              maxWidth={
+                overlayProps.style?.maxWidth
+                  ? `calc(${withUnits(overlayProps.style.maxWidth)} * 0.9)`
+                  : undefined
+              }
+              maxHeight={overlayProps.style!.maxHeight}
+              maxHeightProp={maxMenuHeight}
+              data-menu-has-header={!!menuTitle || clearable}
+              data-menu-has-search={searchable}
+              data-menu-has-footer={!!menuFooter}
+            >
+              <FocusScope contain>
+                {(menuTitle ||
+                  menuHeaderTrailingItems ||
+                  (clearable && hasSelection)) && (
+                  <MenuHeader size={size}>
+                    <MenuTitle>{menuTitle}</MenuTitle>
+                    <MenuHeaderTrailingItems>
+                      {loading && <StyledLoadingIndicator size={12} />}
+                      {typeof menuHeaderTrailingItems === 'function'
+                        ? menuHeaderTrailingItems({closeOverlay: overlayState.close})
+                        : menuHeaderTrailingItems}
+                      {clearable && hasSelection && (
+                        <ClearButton
+                          onClick={() => onClear?.({overlayState})}
+                          size="zero"
+                          borderless
+                        >
+                          {t('Clear')}
+                        </ClearButton>
+                      )}
+                    </MenuHeaderTrailingItems>
+                  </MenuHeader>
+                )}
+                {searchable && (
+                  <SearchInput
+                    ref={searchRef}
+                    placeholder={searchPlaceholder}
+                    value={searchInputValue}
+                    onFocus={onSearchFocus}
+                    onBlur={onSearchBlur}
+                    onChange={e => updateSearch(e.target.value)}
+                    size="xs"
+                    {...searchKeyboardProps}
+                  />
+                )}
+                {typeof menuBody === 'function'
+                  ? menuBody({closeOverlay: overlayState.close})
+                  : menuBody}
+                {!hideOptions && <OptionsWrap>{children}</OptionsWrap>}
+                {menuFooter && (
+                  <MenuFooter>
+                    {typeof menuFooter === 'function'
+                      ? menuFooter({
+                          closeOverlay: overlayState.close,
+                          resetSearch: () => updateSearch(''),
+                        })
+                      : menuFooter}
+                  </MenuFooter>
+                )}
+              </FocusScope>
+            </StyledOverlay>
+          )}
         </StyledPositionWrapper>
       </ControlWrap>
     </SelectContext>
@@ -597,7 +579,6 @@ const ControlWrap = styled('div')`
 export const TriggerLabel = styled('span')`
   ${p => p.theme.overflowEllipsis}
   text-align: left;
-  ${p => !p.theme.isChonk && 'line-height: normal;'}
 `;
 
 const StyledBadge = styled(Badge)`
@@ -623,11 +604,11 @@ const MenuHeader = styled('div')<{size: NonNullable<ControlProps['size']>}>`
     box-shadow: none;
   }
 
-  line-height: ${p => p.theme.text.lineHeightBody};
+  line-height: ${p => p.theme.font.lineHeight.comfortable};
   z-index: 2;
 
   font-size: ${p => (p.size === 'xs' ? p.theme.fontSize.xs : p.theme.fontSize.sm)};
-  color: ${p => p.theme.headingColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const MenuHeaderTrailingItems = styled('div')`
@@ -638,7 +619,7 @@ const MenuHeaderTrailingItems = styled('div')`
 
 const MenuTitle = styled('span')`
   font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   white-space: nowrap;
   margin-right: ${space(2)};
 `;
@@ -653,7 +634,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 const ClearButton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.subText};
   padding: 0 ${space(0.5)};
   margin: -${space(0.25)} -${space(0.5)};
@@ -670,12 +651,13 @@ const SearchInput = styled(Input)`
     margin-top: calc(${space(0.5)} + 1px);
   }
 `;
-const withUnits = (value: any) => (typeof value === 'string' ? value : `${value}px`);
+const withUnits = (value: unknown) => (typeof value === 'string' ? value : `${value}px`);
 
 const StyledOverlay = styled(Overlay, {
-  shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
+  shouldForwardProp: prop => isPropValid(prop),
 })<{
   maxHeightProp: string | number;
+  height?: string | number;
   maxHeight?: string | number;
   maxWidth?: string | number;
   minWidth?: string | number;
@@ -688,6 +670,7 @@ const StyledOverlay = styled(Overlay, {
   overflow: hidden;
 
   ${p => p.width && `width: ${withUnits(p.width)};`}
+  ${p => p.height && `height: ${withUnits(p.height)};`}
   ${p => p.minWidth && `min-width: ${withUnits(p.minWidth)};`}
   max-width: ${p => (p.maxWidth ? `min(${withUnits(p.maxWidth)}, 100%)` : `100%`)};
   max-height: ${p =>

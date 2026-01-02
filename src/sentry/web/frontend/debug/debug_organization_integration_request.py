@@ -8,10 +8,12 @@ from sentry.notifications.notifications.organization_request.integration_request
     IntegrationRequestNotification,
 )
 from sentry.users.models.user import User
+from sentry.web.frontend.base import internal_region_silo_view
 
 from .mail import render_preview_email_for_notification
 
 
+@internal_region_silo_view
 class DebugOrganizationIntegrationRequestEmailView(View):
     def get(self, request: HttpRequest) -> HttpResponse:
         org = Organization(id=1, slug="default", name="Default")

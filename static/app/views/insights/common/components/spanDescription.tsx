@@ -29,6 +29,8 @@ interface Props {
   groupId: SpanResponse[SpanFields.SPAN_GROUP];
   op: SpanResponse[SpanFields.SPAN_OP];
   preliminaryDescription?: string;
+  shouldClipHeight?: boolean;
+  showBorder?: boolean;
 }
 
 const formatter = new SQLishFormatter();
@@ -36,6 +38,8 @@ const formatter = new SQLishFormatter();
 export function DatabaseSpanDescription({
   groupId,
   preliminaryDescription,
+  showBorder = true,
+  shouldClipHeight = true,
 }: Omit<Props, 'op'>) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -130,17 +134,21 @@ export function DatabaseSpanDescription({
   }, [preliminaryDescription, indexedSpan, system]);
 
   return (
-    <Frame>
+    <Frame showBorder={showBorder}>
       {areIndexedSpansLoading ? (
         <WithPadding>
           <LoadingIndicator mini />
         </WithPadding>
       ) : (
-        <QueryClippedBox clipHeight={500} isExpanded={isExpanded}>
+        <QueryWrapper
+          clipHeight={500}
+          isExpanded={isExpanded}
+          shouldClipHeight={shouldClipHeight}
+        >
           <CodeBlock language={system === 'mongodb' ? 'json' : 'sql'} isRounded={false}>
             {formattedDescription ?? ''}
           </CodeBlock>
-        </QueryClippedBox>
+        </QueryWrapper>
       )}
 
       {!areIndexedSpansLoading && (
@@ -164,19 +172,25 @@ export function DatabaseSpanDescription({
   );
 }
 
-function QueryClippedBox(props: any) {
-  const {isExpanded, children} = props;
+function QueryWrapper(props: any) {
+  const {isExpanded, children, shouldClipHeight} = props;
+
+  if (!shouldClipHeight) {
+    return <StyledFullBox>{children}</StyledFullBox>;
+  }
 
   if (isExpanded) {
     return children;
   }
-
   return <StyledClippedBox {...props} />;
 }
 
-const Frame = styled('div')`
-  border: solid 1px ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+const Frame = styled('div')<{showBorder: boolean}>`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border: ${p => (p.showBorder ? `solid 1px ${p.theme.border}` : 'none')};
+  border-radius: ${p => (p.showBorder ? p.theme.radius.md : '0')};
   overflow: hidden;
 `;
 
@@ -191,4 +205,10 @@ const StyledClippedBox = styled(ClippedBox)`
   > div > div {
     z-index: 1;
   }
+`;
+
+const StyledFullBox = styled('div')`
+  padding: 0;
+  height: 100%;
+  overflow-y: auto;
 `;

@@ -1,7 +1,12 @@
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
+import Feature from 'sentry/components/acl/feature';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {IconSettings} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -51,6 +56,16 @@ export default function BuildList() {
       <Layout.Page>
         <Layout.Header>
           <Layout.Title>Builds</Layout.Title>
+          <Layout.HeaderActions>
+            <Feature features="organizations:preprod-issues">
+              <LinkButton
+                size="sm"
+                icon={<IconSettings />}
+                aria-label={t('Settings')}
+                to={`/settings/${organization.slug}/projects/${projectId}/preprod/`}
+              />
+            </Feature>
+          </Layout.HeaderActions>
         </Layout.Header>
 
         <Layout.Body>
@@ -62,7 +77,6 @@ export default function BuildList() {
                 error={!!error}
                 pageLinks={pageLinks}
                 organizationSlug={organization.slug}
-                projectSlug={projectId}
               />
             </Flex>
           </Layout.Main>

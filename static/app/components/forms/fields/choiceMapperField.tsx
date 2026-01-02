@@ -1,6 +1,9 @@
-import {Component, Fragment} from 'react';
+import {Component, Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
+import type {DistributedOmit} from 'type-fest';
 
+import {Client} from 'sentry/api';
 import {Button} from 'sentry/components/core/button';
 import {
   CompactSelect,
@@ -16,6 +19,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import type {InputFieldProps} from './inputField';
@@ -48,9 +52,15 @@ export interface ChoiceMapperProps extends DefaultProps {
   /**
    * Props forwarded to the add mapping dropdown.
    */
-  addDropdown: Omit<SingleSelectProps<string>, 'options'> & {
+  addDropdown: DistributedOmit<SingleSelectProps<string>, 'options' | 'clearable'> & {
     items: Array<SelectOption<string>>;
     noResultsMessage?: string;
+    /**
+     * Optional URL for async search. When provided, the dropdown will fetch
+     * results from this endpoint instead of using the prepopulated items.
+     */
+    searchField?: string;
+    url?: string;
   };
   /**
    * A list of column labels (headers) for the multichoice table. This should
@@ -111,6 +121,104 @@ export interface ChoiceMapperFieldProps
       'onBlur' | 'onChange' | 'value' | 'formatMessageValue' | 'disabled'
     > {}
 
+type AsyncCompactSelectProps<Value extends string> = Omit<
+  SingleSelectProps<Value>,
+  'options' | 'searchable' | 'disableSearchFilter' | 'loading' | 'onSearch'
+> & {
+  /**
+   * Function to transform query string into API params
+   */
+  buildQueryParams: (query: string) => Record<string, unknown>;
+  /**
+   * Function to transform API response into options
+   */
+  formatOptions: (data: unknown) => Array<SelectOption<Value>>;
+  /**
+   * URL to fetch options from
+   */
+  url: string;
+  /**
+   * Initial options to show before search
+   */
+  defaultOptions?: Array<SelectOption<Value>>;
+};
+
+/**
+ * AsyncCompactSelect combines CompactSelect's button-trigger UI with async search capabilities.
+ * It fetches options from an API endpoint as the user types.
+ *
+ * This component is specific to Integration Configuration page's needs and is not exported for general use.
+ */
+function AsyncCompactSelectForIntegrationConfig<Value extends string = string>({
+  url,
+  buildQueryParams,
+  formatOptions,
+  defaultOptions,
+  clearable: _clearable,
+  onChange,
+  onOpenChange,
+  emptyMessage,
+  ...compactSelectProps
+}: AsyncCompactSelectProps<Value>) {
+  const [query, setQuery] = useState('');
+  const debouncedQuery = useDebouncedValue(query, 250);
+
+  // Use empty baseUrl since /extensions/ endpoints are not under /api/0/
+  const [api] = useState(() => new Client({baseUrl: '', headers: {}}));
+  useEffect(() => {
+    return () => {
+      api.clear();
+    };
+  }, [api]);
+
+  const {data, isFetching} = useQuery({
+    queryKey: [url, buildQueryParams(debouncedQuery)],
+    queryFn: async () => {
+      // This exists because /extensions/type/search API is not prefixed with /api/0/
+      // We do this in the externalIssues modal as well unfortunately.
+      const response = await api.requestPromise(url, {
+        query: buildQueryParams(debouncedQuery),
+      });
+      return response;
+    },
+    enabled: !!debouncedQuery,
+    staleTime: 30_000,
+  });
+
+  const options = data ? formatOptions(data) : defaultOptions || [];
+
+  const handleSearch = (value: string) => {
+    setQuery(value);
+  };
+
+  const handleChange = (option: SelectOption<Value>) => {
+    setQuery('');
+    onChange?.(option);
+  };
+
+  const handleOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
+      setQuery('');
+    }
+    onOpenChange?.(isOpen);
+  };
+
+  return (
+    <CompactSelect
+      {...compactSelectProps}
+      searchable
+      disableSearchFilter
+      clearable={false}
+      options={options}
+      onSearch={handleSearch}
+      onChange={handleChange}
+      onOpenChange={handleOpenChange}
+      loading={isFetching}
+      emptyMessage={isFetching ? t('Loading\u2026') : debouncedQuery ? emptyMessage : ''}
+    />
+  );
+}
+
 export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps> {
   static defaultProps = defaultProps;
 
@@ -149,7 +257,11 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
     };
 
     const addRow = (data: SelectOption<string>) => {
-      saveChanges({...value, [data.value]: emptyValue});
+      // Include the label in the value for async-loaded items
+      const newValue = addDropdown.url
+        ? {...emptyValue, __label: data.label}
+        : emptyValue;
+      saveChanges({...value, [data.value]: newValue});
     };
 
     const removeRow = (itemKey: string) => {
@@ -176,9 +288,53 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
         return map;
       }, {}) ?? {};
 
-    const dropdown = (
+    const {
+      url: asyncUrl,
+      searchField,
+      items: _items,
+      noResultsMessage,
+      ...restDropdownProps
+    } = addDropdown;
+
+    const buildAsyncQueryParams = (query: string) => ({
+      field: searchField,
+      query,
+    });
+
+    const formatAsyncOptions = (data: any) =>
+      data
+        .filter((item: SelectOption<string>) => !value.hasOwnProperty(item.value))
+        .map((item: SelectOption<string>) => ({
+          value: item.value,
+          label: item.label,
+        }));
+
+    const dropdown = asyncUrl ? (
+      <AsyncCompactSelectForIntegrationConfig
+        {...restDropdownProps}
+        url={asyncUrl}
+        value={undefined}
+        buildQueryParams={buildAsyncQueryParams}
+        formatOptions={formatAsyncOptions}
+        defaultOptions={selectableValues}
+        onChange={addRow}
+        size="xs"
+        menuWidth={250}
+        disabled={false}
+        emptyMessage={noResultsMessage ?? t('No results found')}
+        triggerProps={{
+          ...restDropdownProps.triggerProps,
+          children: (
+            <Flex gap="xs">
+              <IconAdd /> {addButtonText}
+            </Flex>
+          ),
+        }}
+      />
+    ) : (
       <CompactSelect
         {...addDropdown}
+        value={undefined}
         emptyMessage={
           selectableValues.length === 0
             ? addDropdown.emptyMessage
@@ -194,7 +350,7 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
           ...addDropdown.triggerProps,
           children: (
             <Flex gap="xs">
-              <IconAdd isCircled /> {addButtonText}
+              <IconAdd /> {addButtonText}
             </Flex>
           ),
         }}
@@ -209,7 +365,7 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
 
     return (
       <Fragment>
-        <Header>
+        <Flex align="center">
           <LabelColumn>
             <HeadingItem>{mappedColumnLabel}</HeadingItem>
           </LabelColumn>
@@ -219,10 +375,10 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
               {i === mappedKeys.length - 1 && dropdown}
             </Heading>
           ))}
-        </Header>
+        </Flex>
         {Object.keys(value).map(itemKey => (
           <Row key={itemKey}>
-            <LabelColumn>{valueMap[itemKey]}</LabelColumn>
+            <LabelColumn>{value[itemKey].__label ?? valueMap[itemKey]}</LabelColumn>
             {mappedKeys.map((fieldKey, i) => (
               <Column key={fieldKey}>
                 <Control>
@@ -266,11 +422,6 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
     );
   }
 }
-
-const Header = styled('div')`
-  display: flex;
-  align-items: center;
-`;
 
 const Heading = styled('div')`
   display: flex;

@@ -50,6 +50,7 @@ import {StackTrace} from 'sentry/components/events/interfaces/stackTrace';
 import {Template} from 'sentry/components/events/interfaces/template';
 import {Threads} from 'sentry/components/events/interfaces/threads';
 import {UptimeDataSection} from 'sentry/components/events/interfaces/uptime/uptimeDataSection';
+import {MetricsSection} from 'sentry/components/events/metrics/metricsSection';
 import {OurlogsSection} from 'sentry/components/events/ourlogs/ourlogsSection';
 import {EventPackageData} from 'sentry/components/events/packageData';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
@@ -75,6 +76,7 @@ import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
 import {useCopyIssueDetails} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {MetricDetectorTriggeredSection} from 'sentry/views/issueDetails/streamline/sidebar/metricDetectorTriggeredSection';
 import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
@@ -330,6 +332,9 @@ export function EventDetailsContent({
           </ErrorBoundary>
         </Fragment>
       )}
+      <ErrorBoundary customComponent={() => null}>
+        <MetricDetectorTriggeredSection event={event} />
+      </ErrorBoundary>
       <EventHydrationDiff event={event} group={group} />
       <EventReplay event={event} group={group} projectSlug={project.slug} />
       {defined(eventEntries[EntryType.HPKP]) && (
@@ -371,6 +376,11 @@ export function EventDetailsContent({
       <ErrorBoundary mini message={t('There was a problem loading logs.')}>
         <Feature features="ourlogs-enabled" organization={organization}>
           <OurlogsSection event={event} group={group} project={project} />
+        </Feature>
+      </ErrorBoundary>
+      <ErrorBoundary mini message={t('There was a problem loading metrics.')}>
+        <Feature features="tracemetrics-enabled" organization={organization}>
+          <MetricsSection event={event} group={group} project={project} />
         </Feature>
       </ErrorBoundary>
       {hasStreamlinedUI &&
@@ -422,7 +432,7 @@ export function EventDetailsContent({
             />
           </EntryErrorBoundary>
         )}
-      {event.groupID && (
+      {event.groupID && issueTypeConfig.groupingInfo.enabled && (
         <EventGroupingInfoSection
           projectSlug={project.slug}
           event={event}

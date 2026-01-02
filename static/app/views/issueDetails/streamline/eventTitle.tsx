@@ -10,7 +10,7 @@ import {useActionableItemsWithProguardErrors} from 'sentry/components/events/int
 import {useGroupSummaryData} from 'sentry/components/group/groupSummary';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCopy, IconWarning} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -53,6 +53,7 @@ function GroupMarkdownButton({group, event}: {event: Event; group: Group}) {
   const markdownText = useMemo(() => {
     return issueAndEventToMarkdown(group, event, groupSummaryData, autofixData);
   }, [group, event, groupSummaryData, autofixData]);
+  const markdownLines = markdownText.trim().split('\n').length.toLocaleString();
 
   const {copy} = useCopyToClipboard();
 
@@ -79,7 +80,15 @@ function GroupMarkdownButton({group, event}: {event: Event; group: Group}) {
   ]);
 
   return (
-    <MarkdownButton onClick={handleCopyMarkdown}>{t('Copy to Clipboard')}</MarkdownButton>
+    <MarkdownButton
+      title={tct('Copies [numLines] lines of Markdown', {
+        numLines: <strong>{markdownLines}</strong>,
+      })}
+      priority="link"
+      onClick={handleCopyMarkdown}
+    >
+      {t('Copy as Markdown')}
+    </MarkdownButton>
   );
 }
 
@@ -224,11 +233,11 @@ const EventInfo = styled('div')`
 `;
 
 const ProcessingErrorButton = styled(Button)`
-  color: ${p => p.theme.red300};
+  color: ${p => p.theme.colors.red400};
   font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.sm};
   :hover {
-    color: ${p => p.theme.red300};
+    color: ${p => p.theme.colors.red400};
   }
 `;
 
@@ -241,7 +250,7 @@ const JsonLinkWrapper = styled('div')`
 const JsonLink = styled(ExternalLink)`
   color: ${p => p.theme.subText};
   text-decoration: underline;
-  text-decoration-color: ${p => Color(p.theme.gray300).alpha(0.5).string()};
+  text-decoration-color: ${p => Color(p.theme.colors.gray400).alpha(0.5).string()};
 
   :hover {
     color: ${p => p.theme.subText};
@@ -250,14 +259,12 @@ const JsonLink = styled(ExternalLink)`
   }
 `;
 
-const MarkdownButton = styled('button')`
-  background: none;
-  border: none;
-  padding: 0;
+const MarkdownButton = styled(Button)`
   color: ${p => p.theme.subText};
   text-decoration: underline;
-  text-decoration-color: ${p => Color(p.theme.gray300).alpha(0.5).string()};
+  text-decoration-color: ${p => Color(p.theme.colors.gray400).alpha(0.5).string()};
   font-size: inherit;
+  font-weight: normal;
   cursor: pointer;
   white-space: nowrap;
 

@@ -1,7 +1,5 @@
 ---
-created: '2025-10-07T20:41:47.829462+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: null
@@ -10,37 +8,37 @@ app:
   root_component:
     app
       stacktrace (ignored because it contains no in-app frames)
-        frame (marked out of app by stack trace rule (path:package:sentry_logging/** -app))
+        frame (marked out of app by built-in stack trace rule (path:package:sentry_logging/** -app))
           filename*
             "sentry_logging.dart"
           function*
             "SentryLogging.log"
-        frame (marked out of app by stack trace rule (path:package:sentry_dio/** -app))
+        frame (marked out of app by built-in stack trace rule (path:package:sentry_dio/** -app))
           filename*
             "sentry_dio.dart"
           function*
             "SentryDio.dio"
-        frame (marked out of app by stack trace rule (path:package:sentry_file/** -app))
+        frame (marked out of app by built-in stack trace rule (path:package:sentry_file/** -app))
           filename*
             "sentry_file.dart"
           function*
             "SentryFile.file"
-        frame (marked out of app by stack trace rule (path:package:sentry_hive/** -app))
+        frame (marked out of app by built-in stack trace rule (path:package:sentry_hive/** -app))
           filename*
             "sentry_hive.dart"
           function*
             "SentryHive.hive"
-        frame (marked out of app by stack trace rule (path:package:sentry_isar/** -app))
+        frame (marked out of app by built-in stack trace rule (path:package:sentry_isar/** -app))
           filename*
             "sentry_isar.dart"
           function*
             "SentryIsar.isar"
-        frame (marked out of app by stack trace rule (path:package:sentry_sqflite/** -app))
+        frame (marked out of app by built-in stack trace rule (path:package:sentry_sqflite/** -app))
           filename*
             "sentry_sqflite.dart"
           function*
             "SentrySqflite.sqflite"
-        frame (marked out of app by stack trace rule (path:package:sentry_drift/** -app))
+        frame (marked out of app by built-in stack trace rule (path:package:sentry_drift/** -app))
           filename*
             "sentry_drift.dart"
           function*
@@ -56,37 +54,37 @@ system:
   root_component:
     system
       stacktrace (ignored because it contains no contributing frames)
-        frame (ignored by stack trace rule (path:package:sentry_logging/** -group))
+        frame (ignored by built-in stack trace rule (path:package:sentry_logging/** -group))
           filename*
             "sentry_logging.dart"
           function*
             "SentryLogging.log"
-        frame (ignored by stack trace rule (path:package:sentry_dio/** -group))
+        frame (ignored by built-in stack trace rule (path:package:sentry_dio/** -group))
           filename*
             "sentry_dio.dart"
           function*
             "SentryDio.dio"
-        frame (ignored by stack trace rule (path:package:sentry_file/** -group))
+        frame (ignored by built-in stack trace rule (path:package:sentry_file/** -group))
           filename*
             "sentry_file.dart"
           function*
             "SentryFile.file"
-        frame (ignored by stack trace rule (path:package:sentry_hive/** -group))
+        frame (ignored by built-in stack trace rule (path:package:sentry_hive/** -group))
           filename*
             "sentry_hive.dart"
           function*
             "SentryHive.hive"
-        frame (ignored by stack trace rule (path:package:sentry_isar/** -group))
+        frame (ignored by built-in stack trace rule (path:package:sentry_isar/** -group))
           filename*
             "sentry_isar.dart"
           function*
             "SentryIsar.isar"
-        frame (ignored by stack trace rule (path:package:sentry_sqflite/** -group))
+        frame (ignored by built-in stack trace rule (path:package:sentry_sqflite/** -group))
           filename*
             "sentry_sqflite.dart"
           function*
             "SentrySqflite.sqflite"
-        frame (ignored by stack trace rule (path:package:sentry_drift/** -group))
+        frame (ignored by built-in stack trace rule (path:package:sentry_drift/** -group))
           filename*
             "sentry_drift.dart"
           function*

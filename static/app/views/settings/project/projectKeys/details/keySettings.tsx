@@ -72,9 +72,6 @@ export function KeySettings({
   const showOtlpTraces =
     useOTelFriendlyUI() && organization.features.includes('relay-otlp-traces-endpoint');
   const showOtlpLogs = organization.features.includes('relay-otel-logs-endpoint');
-  const showVercelLogDrainEndpoint = organization.features.includes(
-    'relay-vercel-log-drain-endpoint'
-  );
 
   return (
     <Fragment>
@@ -126,7 +123,7 @@ export function KeySettings({
             <Panel>
               <PanelHeader>{t('JavaScript Loader Script')}</PanelHeader>
               <PanelBody>
-                <PanelAlert type="info">
+                <PanelAlert variant="info">
                   {t(
                     'Note that it can take a few minutes until changed options are live.'
                   )}
@@ -145,7 +142,7 @@ export function KeySettings({
             <Panel>
               <PanelHeader>{t('Credentials')}</PanelHeader>
               <PanelBody>
-                <PanelAlert type="info">
+                <PanelAlert variant="info">
                   {t(
                     'Your credentials are coupled to a public and secret key. Different clients will require different credentials, so make sure you check the documentation before plugging things in.'
                   )}
@@ -156,7 +153,6 @@ export function KeySettings({
                   data={data}
                   showOtlpTraces={showOtlpTraces}
                   showOtlpLogs={showOtlpLogs}
-                  showVercelLogDrainEndpoint={showVercelLogDrainEndpoint}
                   showPublicKey
                   showSecretKey
                   showProjectId

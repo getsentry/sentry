@@ -1,16 +1,18 @@
 ---
-created: '2025-10-29T21:18:51.802701+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
-  hash: "d505dfb9059ac63c11955233323a9100"
+  hash: "1ddf9a146f61f3c8667d7312727caff2"
   contributing component: chained_exception
   hint: None
   root_component:
     app*
       chained_exception*
         exception*
+          type*
+            "DoStuffException"
+          value (ignored because stacktrace takes precedence)
+            "Can't do the stuff"
           stacktrace*
             frame* (marked in-app by the client)
               module*
@@ -22,11 +24,11 @@ app:
                 "dostuff"
               function*
                 "do_different_stuff"
-          type*
-            "DoStuffException"
-          value (ignored because stacktrace takes precedence)
-            "Can't do the stuff"
         exception*
+          type*
+            "DoOtherStuffException"
+          value (ignored because stacktrace takes precedence)
+            "Can't do the other stuff"
           stacktrace*
             frame* (marked in-app by the client)
               module*
@@ -38,10 +40,6 @@ app:
                 "dostuff"
               function*
                 "do_other_stuff"
-          type*
-            "DoOtherStuffException"
-          value (ignored because stacktrace takes precedence)
-            "Can't do the other stuff"
         exception*
           type*
             "System.AggregateException"
@@ -49,13 +47,17 @@ app:
             "One or more errors occurred."
 --------------------------------------------------------------------------
 system:
-  hash: "4f9cc6a81f4eb34f9e917374f281b9dc"
+  hash: "f9f80cec48a38448579e3c41b9c525f5"
   contributing component: chained_exception
   hint: None
   root_component:
     system*
       chained_exception*
         exception*
+          type*
+            "DoStuffException"
+          value (ignored because stacktrace takes precedence)
+            "Can't do the stuff"
           stacktrace*
             frame*
               module*
@@ -67,11 +69,11 @@ system:
                 "dostuff"
               function*
                 "do_different_stuff"
-          type*
-            "DoStuffException"
-          value (ignored because stacktrace takes precedence)
-            "Can't do the stuff"
         exception*
+          type*
+            "DoOtherStuffException"
+          value (ignored because stacktrace takes precedence)
+            "Can't do the other stuff"
           stacktrace*
             frame*
               module*
@@ -83,7 +85,3 @@ system:
                 "dostuff"
               function*
                 "do_other_stuff"
-          type*
-            "DoOtherStuffException"
-          value (ignored because stacktrace takes precedence)
-            "Can't do the other stuff"

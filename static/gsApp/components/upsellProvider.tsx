@@ -50,7 +50,6 @@ type Props = {
    * if true, non-billing users clicking will trigger trial and plan upgrade requests
    */
   triggerMemberRequests?: boolean;
-  upsellDefaultSelection?: string;
 };
 
 function LoadingButton(props: {
@@ -84,7 +83,6 @@ function UpsellProvider({
   extraAnalyticsParams,
   triggerMemberRequests,
   showConfirmation,
-  upsellDefaultSelection,
   children,
 }: Props) {
   // if the org or subscription isn't loaded yet, don't render anything
@@ -213,7 +211,7 @@ function UpsellProvider({
               } else {
                 // for self-serve can send them to checkout
                 const baseUrl = subscription.canSelfServe
-                  ? `/settings/${organization.slug}/billing/checkout/`
+                  ? `/checkout/${organization.slug}/`
                   : `/settings/${organization.slug}/billing/overview/`;
                 browserHistory.push(`${normalizeUrl(baseUrl)}?referrer=upsell-${source}`);
               }
@@ -224,7 +222,6 @@ function UpsellProvider({
                 openUpsellModal({
                   organization,
                   source,
-                  defaultSelection: upsellDefaultSelection,
                 });
               }
             }

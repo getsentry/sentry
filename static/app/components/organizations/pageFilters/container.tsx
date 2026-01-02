@@ -14,6 +14,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -86,6 +87,9 @@ function PageFiltersContainer({
   const nonMemberProjects = isSuperuser
     ? []
     : specifiedProjects.filter(project => !project.isMember);
+
+  const defaultMaxPickableDays = useDefaultMaxPickableDays();
+  maxPickableDays = maxPickableDays ?? defaultMaxPickableDays;
 
   const doInitialization = () => {
     initializeUrlState({

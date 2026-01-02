@@ -368,12 +368,10 @@ function ReleaseOverview() {
                 releaseSessions={thisRelease}
                 allSessions={allReleases}
                 platform={project.platform}
-                location={location}
                 loading={loading}
                 reloading={reloading}
                 errored={errored}
                 project={project}
-                organization={organization}
                 api={api}
                 hasHealthData={hasHealthData}
               />

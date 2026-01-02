@@ -4,6 +4,7 @@ import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
 
 import {
   updateDashboardFavorite,
@@ -27,6 +28,7 @@ import {IconCopy, IconDelete, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -229,7 +231,11 @@ function DashboardTable({
           <UserAvatar hasTooltip user={dataRow[ResponseKeys.OWNER]} size={26} />
         </BodyCellContainer>
       ) : (
-        <ActivityAvatar type="system" size={26} />
+        <BodyCellContainer>
+          <Tooltip title="Sentry">
+            <ActivityAvatar type="system" size={26} />
+          </Tooltip>
+        </BodyCellContainer>
       );
     }
 
@@ -253,6 +259,7 @@ function DashboardTable({
           dashboard={dataRow}
           onChangeEditAccess={onChangeEditAccess}
           listOnly
+          disabled={defined(dataRow.prebuiltId)} // Prebuilt dashboards cannot be edited
         />
       );
     }
@@ -290,8 +297,18 @@ function DashboardTable({
                   data-test-id="dashboard-duplicate"
                   icon={<IconCopy />}
                   size="sm"
-                  disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
-                  title={limitMessage}
+                  disabled={
+                    hasReachedDashboardLimit ||
+                    isLoadingDashboardsLimit ||
+                    (defined(dataRow.prebuiltId) &&
+                      !organization.features.includes('dashboards-prebuilt-controls'))
+                  }
+                  title={
+                    defined(dataRow.prebuiltId) &&
+                    !organization.features.includes('dashboards-prebuilt-controls')
+                      ? t('Prebuilt dashboards cannot be duplicated')
+                      : limitMessage
+                  }
                 />
               )}
             </DashboardCreateLimitWrapper>
@@ -309,7 +326,14 @@ function DashboardTable({
               data-test-id="dashboard-delete"
               icon={<IconDelete />}
               size="sm"
-              disabled={dashboards && dashboards.length <= 1}
+              disabled={
+                (dashboards && dashboards.length <= 1) || defined(dataRow.prebuiltId)
+              }
+              title={
+                defined(dataRow.prebuiltId)
+                  ? t('Prebuilt dashboards cannot be deleted')
+                  : undefined
+              }
             />
           </Flex>
         </BodyCellContainer>
@@ -368,12 +392,12 @@ const DateSelected = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   display: grid;
   grid-column-gap: ${space(1)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   ${p => p.theme.overflowEllipsis};
 `;
 
 const DateStatus = styled('span')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   padding-left: ${space(1)};
 `;
 

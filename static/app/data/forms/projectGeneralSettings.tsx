@@ -50,28 +50,24 @@ const StyledPlatformIcon = styled(PlatformIcon)`
 `;
 
 export const fields = {
-  name: {
-    name: 'name',
+  slug: {
+    name: 'slug',
     type: 'string',
     required: true,
     label: t('Slug'),
-    placeholder: t('my-awesome-project'),
     help: t('A unique ID used to identify this project'),
-    transformInput: slugify,
-    getData: (data: {name?: string}) => {
+    transformInput: slugify as (str: string) => string,
+    getData: (data: {slug?: string}) => {
       return {
-        name: data.name,
-        slug: data.name,
+        slug: data.slug,
       };
     },
-
     saveOnBlur: false,
-    saveMessageAlertType: 'warning',
+    saveMessageAlertVariant: 'warning',
     saveMessage: t(
       "Changing a project's slug can break your build scripts! Please proceed carefully."
     ),
   },
-
   platform: {
     name: 'platform',
     type: 'select',
@@ -130,7 +126,7 @@ export const fields = {
         strong: <strong />,
       }
     ),
-    saveMessageAlertType: 'warning',
+    saveMessageAlertVariant: 'warning',
   },
   allowedDomains: {
     name: 'allowedDomains',
@@ -156,8 +152,27 @@ export const fields = {
         </Hovercard>
       ),
     }),
-    getValue: val => extractMultilineFields(val),
-    setValue: val => convertMultilineFieldValue(val),
+    getValue: (val: unknown) => {
+      if (typeof val === 'string') {
+        return extractMultilineFields(val);
+      }
+
+      if (Array.isArray(val) && val.every(item => typeof item === 'string')) {
+        return val;
+      }
+
+      return [];
+    },
+    setValue: (val: unknown) => {
+      if (
+        typeof val === 'string' ||
+        (Array.isArray(val) && val.every(item => typeof item === 'string'))
+      ) {
+        return convertMultilineFieldValue(val);
+      }
+
+      return '';
+    },
   },
   scrapeJavaScript: {
     name: 'scrapeJavaScript',

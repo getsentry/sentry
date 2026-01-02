@@ -11,6 +11,7 @@ from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.search.events.types import SnubaParams
 from sentry.testutils.cases import UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.options import override_options
 from sentry.utils.samples import load_data
 from tests.snuba.api.endpoints.test_organization_events_trace import (
     OrganizationEventsTraceEndpointBase,
@@ -271,6 +272,26 @@ class OrganizationEventsTraceEndpointTest(
         assert response.status_code == 404, response.content
 
     def test_simple(self) -> None:
+        self.load_trace(is_eap=True)
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"timestamp": self.day_ago},
+            )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert len(data) == 1
+        self.assert_trace_data(data[0])
+
+    @override_options(
+        {
+            "performance.traces.pagination.max-iterations": 30,
+            "performance.traces.pagination.max-timeout": 15,
+            "performance.traces.pagination.query-limit": 5,
+        }
+    )
+    def test_pagination(self) -> None:
+        """Test is identical to test_simple, but with the limit override, we'll need to make multiple requests to get
+        all of the trace"""
         self.load_trace(is_eap=True)
         with self.feature(self.FEATURES):
             response = self.client_get(

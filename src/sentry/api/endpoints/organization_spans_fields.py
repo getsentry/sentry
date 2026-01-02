@@ -17,7 +17,7 @@ from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.event_search import translate_escape_sequences
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
@@ -54,11 +54,11 @@ def as_tag_key(name: str, type: Literal["string", "number"]):
     }
 
 
-class OrganizationSpansFieldsEndpointBase(OrganizationEventsV2EndpointBase):
+class OrganizationSpansFieldsEndpointBase(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.VISIBILITY
+    owner = ApiOwner.DATA_BROWSING
 
 
 class OrganizationSpansFieldsEndpointSerializer(serializers.Serializer):
@@ -184,7 +184,7 @@ class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
         with handle_query_errors():
             tag_values = executor.execute()
 
-        tag_values.sort(key=lambda tag: tag.value)
+        tag_values.sort(key=lambda tag: tag.value or "")
 
         paginator = ChainPaginator([tag_values], max_limit=max_span_tag_values)
 

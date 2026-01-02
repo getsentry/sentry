@@ -200,8 +200,12 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
         ).hexdigest()
 
     def show_auth_info(self, access):
+        from sentry.conf.server import SENTRY_TOKEN_ONLY_SCOPES
+
         encoded_scopes = set({"%s" % scope for scope in list(access.scopes)})
-        return set(self.scope_list).issubset(encoded_scopes)
+        # Exclude token-only scopes from the check since users don't have them in their roles
+        integration_scopes = set(self.scope_list) - SENTRY_TOKEN_ONLY_SCOPES
+        return integration_scopes.issubset(encoded_scopes)
 
     def outboxes_for_update(self) -> list[ControlOutbox]:
         return [

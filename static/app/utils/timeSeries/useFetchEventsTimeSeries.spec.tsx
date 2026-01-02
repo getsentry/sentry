@@ -140,6 +140,7 @@ describe('useFetchEventsTimeSeries', () => {
           interval: '1h',
           query: 'span.op:db*',
           sampling: 'NORMAL',
+          caseInsensitive: undefined,
         },
       })
     );
@@ -193,6 +194,7 @@ describe('useFetchEventsTimeSeries', () => {
           project: [420],
           interval: '2h',
           sampling: 'NORMAL',
+          caseInsensitive: undefined,
         },
       })
     );
@@ -242,7 +244,38 @@ describe('useFetchEventsTimeSeries', () => {
           topEvents: 5,
           groupBy: ['span.category', 'transaction'],
           sort: '-p50(span.duration)',
+          caseInsensitive: undefined,
         },
+      })
+    );
+  });
+
+  it('supports cross-event querying', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      method: 'GET',
+      body: [],
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useFetchEventsTimeSeries(
+        DiscoverDatasets.SPANS,
+        {yAxis: 'epm()', logQuery: ['span.op:db*'], metricQuery: ['span.op:db*']},
+        REFERRER
+      )
+    );
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(request).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-timeseries/',
+      expect.objectContaining({
+        method: 'GET',
+        query: expect.objectContaining({
+          logQuery: ['span.op:db*'],
+          metricQuery: ['span.op:db*'],
+        }),
       })
     );
   });

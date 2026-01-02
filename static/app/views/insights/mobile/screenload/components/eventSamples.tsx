@@ -9,12 +9,7 @@ import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {
-  PRIMARY_RELEASE_ALIAS,
-  SECONDARY_RELEASE_ALIAS,
-} from 'sentry/views/insights/common/components/releaseSelector';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {EventSamplesTable} from 'sentry/views/insights/mobile/screenload/components/tables/eventSamplesTable';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -27,10 +22,9 @@ const DEFAULT_SORT = {
 
 type Props = {
   cursorName: string;
-  release: string;
+  release: string | undefined;
   sortKey: string;
   transaction: string;
-  showDeviceClassSelector?: boolean;
 };
 
 export function ScreenLoadEventSamples({
@@ -38,11 +32,9 @@ export function ScreenLoadEventSamples({
   transaction,
   release,
   sortKey,
-  showDeviceClassSelector,
 }: Props) {
   const location = useLocation();
   const {selection} = usePageFilters();
-  const {primaryRelease} = useReleaseSelection();
   const cursor = decodeScalar(location.query?.[cursorName]);
   const {selectedPlatform: platform, isProjectCrossPlatform} = useCrossPlatformProject();
 
@@ -50,12 +42,18 @@ export function ScreenLoadEventSamples({
   const subregions = decodeList(location.query[SpanFields.USER_GEO_SUBREGION]);
 
   const searchQuery = useMemo(() => {
-    const mutableQuery = new MutableSearch([
+    const baseFilters = [
       'span.op:[ui.load,navigation]',
       `is_transaction:true`,
       `transaction:${transaction}`,
-      `release:${release}`,
-    ]);
+    ];
+
+    // Only add release filter if release is not empty (not "All")
+    if (release) {
+      baseFilters.push(`release:${release}`);
+    }
+
+    const mutableQuery = new MutableSearch(baseFilters);
 
     if (subregions.length > 0) {
       mutableQuery.addDisjunctionFilterValues(SpanFields.USER_GEO_SUBREGION, subregions);
@@ -79,10 +77,7 @@ export function ScreenLoadEventSamples({
   const sort = decodeSorts(location.query[sortKey])[0] ?? DEFAULT_SORT;
 
   const columnNameMap = {
-    id: t(
-      'Event ID (%s)',
-      release === primaryRelease ? PRIMARY_RELEASE_ALIAS : SECONDARY_RELEASE_ALIAS
-    ),
+    id: t('Event ID'),
     'profile.id': t('Profile'),
     'measurements.time_to_initial_display': t('TTID'),
     'measurements.time_to_full_display': t('TTFD'),
@@ -138,9 +133,9 @@ export function ScreenLoadEventSamples({
       eventView={eventView}
       sortKey={sortKey}
       data={{data, meta}}
-      showDeviceClassSelector={showDeviceClassSelector}
       columnNameMap={columnNameMap}
       sort={sort}
+      footerAlignedPagination
     />
   );
 }

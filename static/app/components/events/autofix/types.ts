@@ -315,11 +315,17 @@ interface SeerAutomationHandoffConfiguration {
   handoff_point: 'root_cause';
   integration_id: number;
   target: 'cursor_background_agent';
+  auto_create_pr?: boolean;
 }
 
 export interface ProjectSeerPreferences {
   repositories: SeerRepoDefinition[];
-  automated_run_stopping_point?: 'root_cause' | 'solution' | 'code_changes' | 'open_pr';
+  automated_run_stopping_point?:
+    | 'root_cause'
+    | 'solution'
+    | 'code_changes'
+    | 'open_pr'
+    | 'background_agent';
   automation_handoff?: SeerAutomationHandoffConfiguration;
 }
 

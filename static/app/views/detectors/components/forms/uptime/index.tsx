@@ -1,9 +1,11 @@
-import styled from '@emotion/styled';
+import {useTheme} from '@emotion/react';
 
+import {Stack} from 'sentry/components/core/layout';
 import {t} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
+import {DescribeSection} from 'sentry/views/detectors/components/forms/common/describeSection';
 import {useSetAutomaticName} from 'sentry/views/detectors/components/forms/common/useSetAutomaticName';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
@@ -16,6 +18,8 @@ import {UptimeRegionWarning} from 'sentry/views/detectors/components/forms/uptim
 import {UptimeDetectorResolveSection} from 'sentry/views/detectors/components/forms/uptime/resolve';
 
 function UptimeDetectorForm() {
+  const theme = useTheme();
+
   useSetAutomaticName(form => {
     const url = form.getValue('url');
 
@@ -35,13 +39,14 @@ function UptimeDetectorForm() {
   });
 
   return (
-    <FormStack>
+    <Stack gap="2xl" maxWidth={theme.breakpoints.lg}>
       <UptimeRegionWarning />
       <UptimeDetectorFormDetectSection />
       <UptimeDetectorResolveSection />
       <AssignSection />
+      <DescribeSection />
       <AutomateSection />
-    </FormStack>
+    </Stack>
   );
 }
 
@@ -50,7 +55,8 @@ export function NewUptimeDetectorForm() {
     <NewDetectorLayout
       detectorType="uptime_domain_failure"
       formDataToEndpointPayload={uptimeFormDataToEndpointPayload}
-      initialFormData={{name: 'New Monitor'}}
+      initialFormData={{}}
+      envFieldProps={{required: true}}
     >
       <UptimeDetectorForm />
     </NewDetectorLayout>
@@ -63,15 +69,9 @@ export function EditExistingUptimeDetectorForm({detector}: {detector: UptimeDete
       detector={detector}
       formDataToEndpointPayload={uptimeFormDataToEndpointPayload}
       savedDetectorToFormData={uptimeSavedDetectorToFormData}
+      envFieldProps={{required: true}}
     >
       <UptimeDetectorForm />
     </EditDetectorLayout>
   );
 }
-
-const FormStack = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space['2xl']};
-  max-width: ${p => p.theme.breakpoints.lg};
-`;

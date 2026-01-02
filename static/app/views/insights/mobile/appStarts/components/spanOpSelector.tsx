@@ -10,27 +10,25 @@ import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {COLD_START_TYPE} from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
-import {TTID_CONTRIBUTING_SPAN_OPS} from 'sentry/views/insights/mobile/screenload/components/spanOpSelector';
 import {MobileCursors} from 'sentry/views/insights/mobile/screenload/constants';
 import {SpanFields} from 'sentry/views/insights/types';
 
 export const APP_START_SPANS = [
-  ...TTID_CONTRIBUTING_SPAN_OPS,
   'app.start.cold',
   'app.start.warm',
   'contentprovider.load',
   'application.load',
   'activity.load',
+  'ui.load',
   'process.load',
 ];
 
 type Props = {
   primaryRelease?: string;
-  secondaryRelease?: string;
   transaction?: string;
 };
 
-export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: Props) {
+export function SpanOpSelector({transaction, primaryRelease}: Props) {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
@@ -60,11 +58,7 @@ export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: 
     searchQuery.addFilterValue('os.name', selectedPlatform);
   }
 
-  const queryStringPrimary = appendReleaseFilters(
-    searchQuery,
-    primaryRelease,
-    secondaryRelease
-  );
+  const queryStringPrimary = appendReleaseFilters(searchQuery, primaryRelease);
 
   const {data} = useSpans(
     {

@@ -33,9 +33,10 @@ register(
     epoch_defaults={1: "4.x", 2: "5.x", 7: "6.x", 8: "7.x", 13: "8.x", 14: "9.x", 15: "10.x"},
 )
 
-# Default symbol sources.  The ios source does not exist by default and
-# will be skipped later.  The microsoft source exists by default and is
-# unlikely to be disabled.
+# Default symbol sources. The ios source does not exist by default and
+# will be skipped later. The microsoft source exists by default and is
+# unlikely to be disabled. Platform-specific sources may be added via
+# set_default_symbol_sources() when a project is created.
 register(
     key="sentry:builtin_symbol_sources",
     epoch_defaults={
@@ -101,6 +102,7 @@ DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS = {
     "transaction_duration_regression_detection_enabled": True,
     "function_duration_regression_detection_enabled": True,
     "db_query_injection_detection_enabled": False,
+    "web_vitals_detection_enabled": True,
 }
 
 DEFAULT_PROJECT_PERFORMANCE_GENERAL_SETTINGS = {
@@ -174,9 +176,6 @@ register(key="sentry:target_sample_rate", default=TARGET_SAMPLE_RATE_DEFAULT)
 
 # Should tempest fetch screenshots for this project
 register(key="sentry:tempest_fetch_screenshots", default=False)
-
-# Should tempest fetch dumps for this project
-register(key="sentry:tempest_fetch_dumps", default=False)
 
 # Should autofix run automatically on new issues
 register(key="sentry:autofix_automation_tuning", default=AutofixAutomationTuningSettings.OFF)

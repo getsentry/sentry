@@ -1,7 +1,5 @@
 ---
-created: '2025-10-07T20:41:48.680544+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: "be36642f41f047346396f018f62375d3"
@@ -11,17 +9,17 @@ app:
     app*
       exception*
         stacktrace (ignored because it contains no in-app frames)
-          frame (marked out of app by stack trace rule (module:@babel/** -app))
+          frame (marked out of app by built-in stack trace rule (module:@babel/** -app))
             module*
               "@babel/runtime/helpers/asyncToGenerator"
             function (ignored unknown function name)
               "<anonymous>"
-          frame (marked out of app by stack trace rule (module:core-js/** -app))
+          frame (marked out of app by built-in stack trace rule (module:core-js/** -app))
             module*
               "core-js/internals/task"
             function*
               "listener"
-          frame (marked out of app by stack trace rule (module:tslib/** -app))
+          frame (marked out of app by built-in stack trace rule (module:tslib/** -app))
             module*
               "tslib/tslib.es6"
             function* (trimmed javascript function)
@@ -39,17 +37,17 @@ system:
     system (ignored because app exception takes precedence)
       exception (ignored because hash matches app variant)
         stacktrace (ignored because it contains no contributing frames)
-          frame (ignored by stack trace rule (module:@babel/** -group))
+          frame (ignored by built-in stack trace rule (module:@babel/** -group))
             module*
               "@babel/runtime/helpers/asyncToGenerator"
             function (ignored unknown function name)
               "<anonymous>"
-          frame (ignored by stack trace rule (module:core-js/** -group))
+          frame (ignored by built-in stack trace rule (module:core-js/** -group))
             module*
               "core-js/internals/task"
             function*
               "listener"
-          frame (ignored by stack trace rule (module:tslib/** -group))
+          frame (ignored by built-in stack trace rule (module:tslib/** -group))
             module*
               "tslib/tslib.es6"
             function* (trimmed javascript function)

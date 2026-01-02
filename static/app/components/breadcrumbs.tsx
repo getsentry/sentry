@@ -1,31 +1,19 @@
 import {Fragment} from 'react';
-import type {Theme} from '@emotion/react';
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
 
-import {Chevron} from 'sentry/components/chevron';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import type {LinkProps} from 'sentry/components/core/link';
 import {Link} from 'sentry/components/core/link';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
-import {space} from 'sentry/styles/space';
-
-const BreadcrumbList = styled('nav')`
-  display: flex;
-  align-items: center;
-  padding: ${space(1)} 0;
-`;
+import {IconSlashForward} from 'sentry/icons';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 export interface Crumb {
   /**
    * Label of the crumb
    */
-  label: React.ReactNode;
-
-  /**
-   * Component will try to come up with unique key, but you can provide your own
-   * (used when mapping over crumbs)
-   */
-  key?: string;
+  label: NonNullable<React.ReactNode>;
 
   /**
    * It will keep the page filter values (projects, environments, time) in the
@@ -39,103 +27,98 @@ export interface Crumb {
   to?: LinkProps['to'] | null;
 }
 
-interface Props extends React.HTMLAttributes<HTMLDivElement> {
-  /**
-   * Array of crumbs that will be rendered
-   */
+interface BreadcrumbsProps extends React.HTMLAttributes<HTMLDivElement> {
   crumbs: Crumb[];
-
-  /**
-   * As a general rule of thumb we don't want the last item to be link as it most likely
-   * points to the same page we are currently on. This is by default false, so that
-   * people don't have to check if crumb is last in the array and then manually
-   * assign `to: null/undefined` when passing props to this component.
-   */
-  linkLastItem?: boolean;
 }
 
 /**
  * Page breadcrumbs used for navigation, not to be confused with sentry's event breadcrumbs
  */
-export function Breadcrumbs({crumbs, linkLastItem = false, ...props}: Props) {
+export function Breadcrumbs({crumbs, ...props}: BreadcrumbsProps) {
   if (crumbs.length === 0) {
     return null;
   }
 
-  if (!linkLastItem) {
-    crumbs[crumbs.length - 1]!.to = null;
-  }
-
   return (
-    <BreadcrumbList {...props} data-test-id="breadcrumb-list">
+    <Flex
+      as="nav"
+      gap="xs"
+      align="center"
+      padding="md 0"
+      data-test-id="breadcrumb-list"
+      {...props}
+    >
       {crumbs.map((crumb, index) => {
-        const {label, to, preservePageFilters, key} = crumb;
-        const labelKey = typeof label === 'string' ? label : '';
-        const mapKey =
-          key ?? (typeof to === 'string' ? `${labelKey}${to}` : `${labelKey}${index}`);
-
         return (
-          <Fragment key={mapKey}>
-            {to ? (
-              <BreadcrumbLink
-                to={to}
-                preservePageFilters={preservePageFilters}
-                data-test-id="breadcrumb-link"
-              >
-                {label}
-              </BreadcrumbLink>
-            ) : (
-              <BreadcrumbItem data-test-id="breadcrumb-item">{label}</BreadcrumbItem>
-            )}
-
-            {index < crumbs.length - 1 && <BreadcrumbDividerIcon direction="right" />}
+          <Fragment key={index}>
+            <BreadCrumbItem
+              crumb={{...crumb, to: index === crumbs.length - 1 ? undefined : crumb.to}}
+              variant={index === crumbs.length - 1 ? 'primary' : 'muted'}
+            />
+            {index < crumbs.length - 1 ? (
+              <Flex align="center" justify="center" flexShrink={0}>
+                <IconSlashForward size="xs" color="subText" />
+              </Flex>
+            ) : null}
           </Fragment>
         );
       })}
-    </BreadcrumbList>
+    </Flex>
   );
 }
 
-const getBreadcrumbListItemStyles = (p: {theme: Theme}) => css`
-  ${p.theme.overflowEllipsis}
-  color: ${p.theme.subText};
-  width: auto;
+interface BreadCrumbItemProps {
+  crumb: Crumb;
+  variant: 'primary' | 'muted';
+}
 
-  &:last-child {
-    color: ${p.theme.textColor};
+function BreadCrumbItem(props: BreadCrumbItemProps) {
+  function onBreadcrumbLinkClick() {
+    if (props.crumb.to) {
+      trackAnalytics('breadcrumbs.link.clicked', {organization: null});
+    }
   }
-`;
 
-interface BreadcrumbLinkProps {
-  to: LinkProps['to'];
+  return (
+    <Container maxWidth="400px" width="auto">
+      {styleProps => {
+        return props.crumb.to ? (
+          <BreadcrumbLink
+            to={props.crumb.to}
+            preservePageFilters={props.crumb.preservePageFilters}
+            data-test-id="breadcrumb-link"
+            onClick={onBreadcrumbLinkClick}
+            {...styleProps}
+          >
+            <Text ellipsis variant={props.variant}>
+              {props.crumb.label}
+            </Text>
+          </BreadcrumbLink>
+        ) : (
+          <Text
+            ellipsis
+            variant={props.variant}
+            data-test-id="breadcrumb-item"
+            {...styleProps}
+          >
+            {props.crumb.label}
+          </Text>
+        );
+      }}
+    </Container>
+  );
+}
+
+interface BreadcrumbLinkProps extends LinkProps {
   children?: React.ReactNode;
   preservePageFilters?: boolean;
 }
 
-const BreadcrumbLink = styled(
-  ({preservePageFilters, to, ...props}: BreadcrumbLinkProps) =>
-    preservePageFilters ? (
-      <GlobalSelectionLink to={to} {...props} />
-    ) : (
-      <Link to={to} {...props} />
-    )
-)`
-  ${getBreadcrumbListItemStyles}
-  max-width: 400px;
-
-  &:hover,
-  &:active {
-    color: ${p => p.theme.subText};
+function BreadcrumbLink(props: BreadcrumbLinkProps) {
+  const {preservePageFilters, ...rest} = props;
+  if (preservePageFilters) {
+    return <GlobalSelectionLink {...rest} />;
   }
-`;
 
-const BreadcrumbItem = styled('span')`
-  ${getBreadcrumbListItemStyles}
-  max-width: 400px;
-`;
-
-const BreadcrumbDividerIcon = styled(Chevron)`
-  color: ${p => p.theme.subText};
-  margin: 0 ${space(0.5)};
-  flex-shrink: 0;
-`;
+  return <Link {...rest} />;
+}

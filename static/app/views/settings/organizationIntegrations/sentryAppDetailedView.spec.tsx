@@ -1,5 +1,4 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
   render,
@@ -31,9 +30,13 @@ describe('SentryAppDetailedView', () => {
     integrationSlug: string;
   }) {
     render(<SentryAppDetailedView />, {
-      router: {...RouterFixture(), params: {integrationSlug}},
+      initialRouterConfig: {
+        route: '/settings/:orgId/integrations/:integrationSlug/',
+        location: {
+          pathname: `/settings/${organization.slug}/integrations/${integrationSlug}/`,
+        },
+      },
       organization,
-      deprecatedRouterMocks: true,
     });
     renderGlobalModal();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();

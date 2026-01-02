@@ -82,6 +82,18 @@ class QuerySubscriptionDataSourceHandlerTest(TestCase):
         with self.settings(MAX_QUERY_SUBSCRIPTIONS_PER_ORG=42):
             assert QuerySubscriptionDataSourceHandler.get_instance_limit(self.organization) == 42
 
+    def test_get_instance_limit_with_override(self) -> None:
+        with self.settings(MAX_QUERY_SUBSCRIPTIONS_PER_ORG=42):
+            with self.options(
+                {
+                    "metric_alerts.extended_max_subscriptions_orgs": [self.organization.id],
+                    "metric_alerts.extended_max_subscriptions": 100,
+                }
+            ):
+                assert (
+                    QuerySubscriptionDataSourceHandler.get_instance_limit(self.organization) == 100
+                )
+
     def test_get_current_instance_count(self) -> None:
         new_org = self.create_organization()
         new_project = self.create_project(organization=new_org)

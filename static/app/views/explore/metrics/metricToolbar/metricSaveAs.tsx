@@ -12,8 +12,8 @@ export function MetricSaveAs() {
     return null;
   }
 
-  if (items.length === 1) {
-    const item = items[0]!;
+  if (items.length === 1 && 'onAction' in items[0]! && !('children' in items[0])) {
+    const item = items[0];
     return (
       <Button size="sm" onClick={item.onAction} aria-label={item.textValue}>
         {t('Save as')}…

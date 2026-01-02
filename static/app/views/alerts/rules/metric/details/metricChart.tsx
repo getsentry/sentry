@@ -50,9 +50,14 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
+import {getIsMigratedExtrapolationMode} from 'sentry/views/alerts/rules/metric/details/utils';
 import {makeDefaultCta} from 'sentry/views/alerts/rules/metric/metricRulePresets';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
-import {AlertRuleTriggerType, Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {
+  AlertRuleTriggerType,
+  Dataset,
+  ExtrapolationMode,
+} from 'sentry/views/alerts/rules/metric/types';
 import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
 import {
   isEapAlertType,
@@ -99,7 +104,7 @@ function formatTooltipDate(date: moment.MomentInput, format: string): string {
   return moment(date).format(format);
 }
 
-export function getRuleChangeSeries(
+function getRuleChangeSeries(
   rule: MetricRule,
   data: AreaChartSeries[],
   theme: Theme
@@ -123,7 +128,7 @@ export function getRuleChangeSeries(
       markLine: MarkLine({
         silent: true,
         animation: false,
-        lineStyle: {color: theme.gray200, type: 'solid', width: 1},
+        lineStyle: {color: theme.colors.gray200, type: 'solid', width: 1},
         data: [{xAxis: ruleChanged}],
         label: {
           show: false,
@@ -132,7 +137,7 @@ export function getRuleChangeSeries(
       markArea: MarkArea({
         silent: true,
         itemStyle: {
-          color: color(theme.gray100).alpha(0.42).rgb().string(),
+          color: color(theme.colors.gray100).alpha(0.42).rgb().string(),
         },
         data: [[{xAxis: seriesStart}, {xAxis: ruleChanged}]],
       }),
@@ -242,6 +247,18 @@ export default function MetricChart({
         traceItemType,
       });
 
+      const disableEapButton = getIsMigratedExtrapolationMode(
+        rule.extrapolationMode,
+        rule.dataset,
+        traceItemType
+      );
+
+      const disabledTooltip = disableEapButton
+        ? t(
+            'This alert cannot be opened in Explore until you update thresholds and resave.'
+          )
+        : undefined;
+
       const resolvedPercent =
         (100 *
           Math.max(
@@ -265,7 +282,7 @@ export default function MetricChart({
               <SectionHeading>{t('Summary')}</SectionHeading>
               <StyledSectionValue>
                 <ValueItem>
-                  <IconCheckmark color="successText" isCircled />
+                  <IconCheckmark color="successText" />
                   {resolvedPercent ? resolvedPercent.toFixed(2) : 0}%
                 </ValueItem>
                 <ValueItem>
@@ -302,7 +319,12 @@ export default function MetricChart({
               })
             ) ? (
               <Feature features="visibility-explore-view">
-                <LinkButton size="sm" {...props}>
+                <LinkButton
+                  size="sm"
+                  disabled={disableEapButton}
+                  title={disabledTooltip}
+                  {...props}
+                >
                   {buttonText}
                 </LinkButton>
               </Feature>
@@ -371,8 +393,8 @@ export default function MetricChart({
           LineSeries({
             name: comparisonSeriesName,
             data: _data.map(({name, value}) => [name, value]),
-            lineStyle: {color: theme.gray200, type: 'dashed', width: 1},
-            itemStyle: {color: theme.gray200},
+            lineStyle: {color: theme.colors.gray200, type: 'dashed', width: 1},
+            itemStyle: {color: theme.colors.gray200},
             animation: false,
             animationThreshold: 1,
             animationDuration: 0,
@@ -475,7 +497,9 @@ export default function MetricChart({
       referrer: 'api.alerts.alert-rule-chart',
       samplingMode:
         rule.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
-          ? SAMPLING_MODE.NORMAL
+          ? rule.extrapolationMode === ExtrapolationMode.NONE
+            ? SAMPLING_MODE.HIGH_ACCURACY
+            : SAMPLING_MODE.NORMAL
           : undefined,
     },
     {enabled: !shouldUseSessionsStats}
@@ -517,7 +541,7 @@ export default function MetricChart({
   );
 }
 
-export function getMetricChartTooltipFormatter({
+function getMetricChartTooltipFormatter({
   interval,
   rule,
   theme,
@@ -582,10 +606,10 @@ export function getMetricChartTooltipFormatter({
 
     const changeStatusColor =
       changeStatus === AlertRuleTriggerType.CRITICAL
-        ? theme.red300
+        ? theme.colors.red400
         : changeStatus === AlertRuleTriggerType.WARNING
-          ? theme.yellow300
-          : theme.green300;
+          ? theme.colors.yellow400
+          : theme.colors.green400;
 
     return [
       `<div class="tooltip-series">`,
@@ -643,7 +667,7 @@ const StyledCircleIndicator = styled(CircleIndicator)`
 const ChartFilters = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   font-family: ${p => p.theme.text.family};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   display: inline-grid;
   grid-template-columns: max-content max-content auto;
   align-items: center;

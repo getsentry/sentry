@@ -55,8 +55,14 @@ export const SENTRY_SPAN_STRING_TAGS: string[] = [
   SpanFields.NORMALIZED_DESCRIPTION,
   SpanFields.RELEASE, // temporary as orgs with >1k keys still want releases
   SpanFields.PROJECT_ID,
+  SpanFields.SDK_NAME,
+  SpanFields.SDK_VERSION,
   SpanFields.SPAN_SYSTEM,
   SpanFields.SPAN_CATEGORY,
+  SpanFields.USER_ID,
+  SpanFields.USER_IP,
+  SpanFields.USER_EMAIL,
+  SpanFields.USER_USERNAME,
 ];
 
 export const SENTRY_SPAN_NUMBER_TAGS: string[] = [...SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS];
@@ -70,3 +76,5 @@ export const SENTRY_LOG_STRING_TAGS: string[] = [
 ];
 
 export const SENTRY_LOG_NUMBER_TAGS: string[] = [OurLogKnownFieldKey.SEVERITY_NUMBER];
+
+export const MAX_CROSS_EVENT_QUERIES = 2;

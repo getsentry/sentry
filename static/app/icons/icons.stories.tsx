@@ -1,7 +1,11 @@
-import React, {Fragment, isValidElement, useState} from 'react';
+import React, {Fragment, isValidElement} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import lowerFirst from 'lodash/lowerFirst';
+import {parseAsString, useQueryState} from 'nuqs';
 import {PlatformIcon, platforms} from 'platformicons';
+
+import {InlineCode} from '@sentry/scraps/code';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Input} from 'sentry/components/core/input';
@@ -86,13 +90,6 @@ const SECTIONS: TSection[] = [
         groups: ['product'],
         keywords: ['stack', 'versions', 'deploy', 'deployment'],
         name: 'Releases',
-        defaultProps: {},
-      },
-      {
-        id: 'archive',
-        groups: ['product'],
-        keywords: ['box', 'storage', 'old', 'save'],
-        name: 'Archive',
         defaultProps: {},
       },
       {
@@ -197,14 +194,14 @@ const SECTIONS: TSection[] = [
         groups: ['product', 'seer'],
         keywords: ['seer', 'ai', 'eye', 'pyramid'],
         name: 'Seer',
-        defaultProps: {variant: 'waiting'},
+        defaultProps: {animation: 'waiting'},
       },
       {
         id: 'seer-loading',
         groups: ['product', 'seer'],
         keywords: ['seer', 'ai', 'eye', 'pyramid'],
         name: 'Seer',
-        defaultProps: {variant: 'loading'},
+        defaultProps: {animation: 'loading'},
       },
       {
         id: 'my-projects',
@@ -305,7 +302,7 @@ const SECTIONS: TSection[] = [
         id: 'github',
         groups: ['logo'],
         keywords: ['git', 'repository', 'code', 'microsoft'],
-        name: 'Github',
+        name: 'GitHub',
         defaultProps: {},
       },
       {
@@ -365,10 +362,10 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'teamwork',
+        id: 'linear',
         groups: ['logo'],
-        keywords: ['project', 'collaboration', 'management'],
-        name: 'Teamwork',
+        keywords: ['tickets', 'issues', 'project', 'linear'],
+        name: 'Linear',
         defaultProps: {},
       },
     ],
@@ -390,10 +387,9 @@ const SECTIONS: TSection[] = [
           'previous',
           'west',
         ],
-        additionalProps: ['isCircled', 'direction', 'isDouble'],
+        additionalProps: ['direction', 'isDouble'],
         name: 'Chevron',
         defaultProps: {
-          isCircled: false,
           direction: 'left',
           isDouble: false,
         },
@@ -413,7 +409,6 @@ const SECTIONS: TSection[] = [
         ],
         name: 'Chevron',
         defaultProps: {
-          isCircled: false,
           direction: 'right',
         },
       },
@@ -423,7 +418,6 @@ const SECTIONS: TSection[] = [
         keywords: ['up', 'point', 'direct', 'move', 'arrow', 'top', 'north', 'collapse'],
         name: 'Chevron',
         defaultProps: {
-          isCircled: false,
           direction: 'up',
         },
       },
@@ -442,7 +436,6 @@ const SECTIONS: TSection[] = [
         ],
         name: 'Chevron',
         defaultProps: {
-          isCircled: false,
           direction: 'down',
         },
       },
@@ -641,6 +634,13 @@ const SECTIONS: TSection[] = [
           direction: 'down',
         },
       },
+      {
+        id: 'slashFoward',
+        groups: ['navigation'],
+        keywords: ['breadcrumbs', 'directory'],
+        name: 'SlashForward',
+        defaultProps: {},
+      },
     ],
   },
   {
@@ -721,13 +721,6 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'dead',
-        groups: ['status'],
-        keywords: ['dead', 'face', 'x', 'eyes', 'emotion'],
-        name: 'Dead',
-        defaultProps: {},
-      },
-      {
         id: 'diamond',
         groups: ['status'],
         keywords: ['shape', 'alert', 'diamond', 'gem', 'precious'],
@@ -763,10 +756,10 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'slow',
+        id: 'bot',
         groups: ['status'],
-        keywords: ['frame', 'mobile', 'snail', 'performance', 'lag'],
-        name: 'Slow',
+        keywords: ['bot', 'ai'],
+        name: 'Bot',
         defaultProps: {},
       },
     ],
@@ -779,41 +772,29 @@ const SECTIONS: TSection[] = [
         id: 'add',
         groups: ['action'],
         keywords: ['plus', 'create', 'new', 'insert', 'math'],
-        additionalProps: ['isCircled'],
         name: 'Add',
-        defaultProps: {
-          isCircled: false,
-        },
+        defaultProps: {},
       },
       {
         id: 'subtract',
         groups: ['action'],
         keywords: ['minus', 'remove', 'decrease', 'delete', 'math'],
-        additionalProps: ['isCircled'],
         name: 'Subtract',
-        defaultProps: {
-          isCircled: false,
-        },
+        defaultProps: {},
       },
       {
         id: 'checkmark',
         groups: ['action'],
         keywords: ['done', 'finish', 'success', 'confirm', 'resolve'],
-        additionalProps: ['isCircled'],
         name: 'Checkmark',
-        defaultProps: {
-          isCircled: false,
-        },
+        defaultProps: {},
       },
       {
         id: 'close',
         groups: ['action'],
         keywords: ['cross', 'deny', 'terminate', 'x', 'cancel', 'exit'],
-        additionalProps: ['isCircled'],
         name: 'Close',
-        defaultProps: {
-          isCircled: false,
-        },
+        defaultProps: {},
       },
       {
         id: 'divide',
@@ -951,13 +932,6 @@ const SECTIONS: TSection[] = [
         },
       },
       {
-        id: 'archive',
-        groups: ['product'],
-        keywords: [],
-        name: 'Archive',
-        defaultProps: {},
-      },
-      {
         id: 'play',
         groups: ['action'],
         keywords: ['video', 'audio', 'unpause'],
@@ -1053,7 +1027,18 @@ const SECTIONS: TSection[] = [
         groups: ['action'],
         keywords: ['order', 'arrange', 'organize', 'rank'],
         name: 'Sort',
-        defaultProps: {},
+        defaultProps: {
+          rotated: false,
+        },
+      },
+      {
+        id: 'sort',
+        groups: ['action'],
+        keywords: ['order', 'arrange', 'organize', 'rank'],
+        name: 'Sort',
+        defaultProps: {
+          rotated: true,
+        },
       },
       {
         id: 'case',
@@ -1147,21 +1132,9 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'sliders-direction-left',
-        groups: ['action'],
-        keywords: ['settings', 'slide', 'adjust', 'controls', 'config'],
-        additionalProps: ['direction'],
+        id: 'sliders',
         name: 'Sliders',
-        defaultProps: {
-          direction: 'left',
-        },
-      },
-      {
-        id: 'sliders-direction-up',
-        name: 'Sliders',
-        defaultProps: {
-          direction: 'up',
-        },
+        defaultProps: {},
       },
       {
         id: 'fix',
@@ -1295,16 +1268,17 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'thumb',
-        keywords: ['feedback', 'good'],
+        id: 'thumb-direction-up',
+        keywords: ['feedback', 'good', 'like', 'approve'],
         additionalProps: ['direction'],
         name: 'Thumb',
-        defaultProps: {},
+        defaultProps: {
+          direction: 'up',
+        },
       },
       {
-        id: 'thumb',
-        keywords: ['feedback', 'bad', 'poor'],
-        additionalProps: ['direction'],
+        id: 'thumb-direction-down',
+        keywords: ['feedback', 'bad', 'poor', 'dislike', 'disapprove'],
         name: 'Thumb',
         defaultProps: {
           direction: 'down',
@@ -1454,13 +1428,6 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'laptop',
-        groups: ['device'],
-        keywords: ['computer', 'macbook', 'notebook', 'portable'],
-        name: 'Laptop',
-        defaultProps: {},
-      },
-      {
         id: 'mobile',
         groups: ['device'],
         keywords: ['phone', 'iphone', 'smartphone', 'cell'],
@@ -1509,12 +1476,30 @@ const SECTIONS: TSection[] = [
         name: 'Image',
         defaultProps: {},
       },
+      {
+        id: 'creditCard',
+        groups: ['device'],
+        keywords: ['creditCard', 'card', 'payment'],
+        name: 'CreditCard',
+        defaultProps: {},
+      },
+      {
+        id: 'receipt',
+        groups: ['device'],
+        keywords: ['receipt', 'invoice', 'payment'],
+        name: 'Receipt',
+        defaultProps: {},
+      },
     ],
   },
 ];
 
 export default function IconsStories() {
-  const [searchTerm, setSearchTerm] = useState('');
+  const theme = useTheme();
+  const [searchTerm, setSearchTerm] = useQueryState(
+    'search',
+    parseAsString.withDefault('')
+  );
 
   const definedWithPrefix = new Set<string>();
 
@@ -1550,16 +1535,41 @@ export default function IconsStories() {
       <StyledSticky>
         <Flex padding="xl 0" direction="column" gap="lg">
           <Input
+            value={searchTerm}
             placeholder="Search icons by name or keyword"
             onChange={e => setSearchTerm(e.target.value.toLowerCase())}
           />
         </Flex>
       </StyledSticky>
-
+      <Heading as="h5" size="xl" variant="primary">
+        Icon Variants
+      </Heading>
+      <Text as="p" density="comfortable" size="md" variant="primary">
+        Just like other Core components, Icons support a set of variants that control the
+        color of the icon. The full list of variants is{' '}
+        {Object.keys(theme.tokens.content).map((v, idx) => (
+          <Fragment key={v}>
+            <InlineCode>{v}</InlineCode>
+            {idx < Object.keys(theme.tokens.content).length - 1 ? ', ' : ''}
+          </Fragment>
+        ))}
+        .
+      </Text>
+      <Flex direction="row" gap="md" justify="between" width="100%">
+        {Object.keys(theme.tokens.content).map(v => (
+          <Stack key={v} align="center" gap="md">
+            <Icons.IconSentry size="md" variant={v as any} />
+            <InlineCode>
+              <Text size="xs" monospace>
+                {v}
+              </Text>
+            </InlineCode>
+          </Stack>
+        ))}
+      </Flex>
       {SECTIONS.map(section => (
         <CoreSection searchTerm={searchTerm} key={section.id} section={section} />
       ))}
-
       <CoreSection searchTerm={searchTerm} section={unclassifiedSection} />
       <PluginIconsSection searchTerm={searchTerm} />
       <IdentityIconsSection searchTerm={searchTerm} />
@@ -1829,7 +1839,7 @@ function IconCard(props: IconCardProps) {
           <Flex gap="lg">
             <Flex align="center" gap="sm">
               <Tag
-                type={action === 'element' ? 'info' : 'default'}
+                variant={action === 'element' ? 'info' : 'muted'}
                 style={{width: 'max-content'}}
               >
                 click
@@ -1843,7 +1853,7 @@ function IconCard(props: IconCardProps) {
               </Text>
             </Flex>
             <Flex align="center" gap="sm">
-              <Tag type={action === 'import' ? 'info' : 'default'}>shift+click</Tag>
+              <Tag variant={action === 'import' ? 'info' : 'muted'}>shift+click</Tag>
               <Text
                 monospace
                 size="sm"
@@ -1892,7 +1902,7 @@ function propsToVariant(props: Record<string, unknown>): string | null {
     if (['type', 'direction', 'variant'].includes(key)) {
       return typeof value === 'string' ? value : null;
     }
-    // isSolid, isCircled, isZoomIn
+    // isSolid, isZoomIn
     if (key.startsWith('is') && value) {
       return lowerFirst(key.replace('is', ''));
     }
@@ -1927,7 +1937,7 @@ function serializeProps(props: Record<string, unknown>) {
 }
 
 const StyledSticky = styled(Sticky)`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   z-index: ${p => p.theme.zIndex.initial};
   top: 52px;
 `;
@@ -1949,7 +1959,7 @@ const Cell = styled('button')`
   gap: ${p => p.theme.space.md};
   align-items: center;
   border: 0;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space.md};
   cursor: pointer;
   text-align: left;

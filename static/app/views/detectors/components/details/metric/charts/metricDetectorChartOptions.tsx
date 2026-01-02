@@ -18,7 +18,6 @@ import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {getAnomalyMarkerSeries} from 'sentry/views/alerts/rules/metric/utils/anomalyChart';
 import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
 import type {Anomaly} from 'sentry/views/alerts/types';
-import {IncidentStatus} from 'sentry/views/alerts/types';
 import {
   ALERT_CHART_MIN_MAX_BUFFER,
   alertAxisFormatter,
@@ -226,7 +225,7 @@ export function getMetricDetectorChartOption(
   let warningDuration = 0;
 
   series.push(
-    createStatusAreaSeries(theme.green300, firstPoint, lastPoint, minChartValue)
+    createStatusAreaSeries(theme.colors.green400, firstPoint, lastPoint, minChartValue)
   );
 
   if (showWaitingForData) {
@@ -236,7 +235,9 @@ export function getMetricDetectorChartOption(
 
     waitingForDataDuration = Math.abs(endTime - startTime);
 
-    series.push(createStatusAreaSeries(theme.gray200, startTime, endTime, minChartValue));
+    series.push(
+      createStatusAreaSeries(theme.colors.gray200, startTime, endTime, minChartValue)
+    );
   }
 
   if (openPeriods) {
@@ -248,7 +249,8 @@ export function getMetricDetectorChartOption(
         const statusChanges = openPeriod.activities
           .filter(
             ({type, value}) =>
-              type === 'status_change' && (value === 'medium' || value === 'high')
+              (type === 'status_change' || type === 'opened') &&
+              (value === 'medium' || value === 'high')
           )
           .sort(
             (a, b) =>
@@ -257,12 +259,11 @@ export function getMetricDetectorChartOption(
 
         const incidentEnd = openPeriod.end ?? Date.now();
 
-        const timeWindowMs = snubaQuery.timeWindow * 60 * 1000;
+        const timeWindowMs = snubaQuery.timeWindow * 1000;
         const incidentColor =
-          warningCondition &&
-          statusChanges.some(({value}) => Number(value) === IncidentStatus.CRITICAL)
-            ? theme.red300
-            : theme.yellow300;
+          warningCondition && !statusChanges.some(({value}) => value === 'high')
+            ? theme.colors.yellow400
+            : theme.colors.red400;
 
         const incidentStartDate = new Date(openPeriod.start).getTime();
         const incidentCloseDate = openPeriod.end
@@ -288,13 +289,14 @@ export function getMetricDetectorChartOption(
             : new Date(incidentEnd).getTime(),
           lastPoint
         );
-        const areaColor = warningCondition ? theme.yellow300 : theme.red300;
+        const areaColor = warningCondition ? theme.colors.yellow400 : theme.colors.red400;
+
         if (areaEnd > areaStart) {
           series.push(
             createStatusAreaSeries(areaColor, areaStart, areaEnd, minChartValue)
           );
 
-          if (areaColor === theme.yellow300) {
+          if (areaColor === theme.colors.yellow400) {
             warningDuration += Math.abs(areaEnd - areaStart);
           } else {
             criticalDuration += Math.abs(areaEnd - areaStart);
@@ -313,7 +315,7 @@ export function getMetricDetectorChartOption(
             lastPoint
           );
           const statusAreaColor =
-            activity.value === 'high' ? theme.red300 : theme.yellow300;
+            activity.value === 'high' ? theme.colors.red400 : theme.colors.yellow400;
           if (statusAreaEnd > statusAreaStart) {
             series.push(
               createStatusAreaSeries(
@@ -323,7 +325,7 @@ export function getMetricDetectorChartOption(
                 minChartValue
               )
             );
-            if (statusAreaColor === theme.yellow300) {
+            if (statusAreaColor === theme.colors.yellow400) {
               warningDuration += Math.abs(statusAreaEnd - statusAreaStart);
             } else {
               criticalDuration += Math.abs(statusAreaEnd - statusAreaStart);
@@ -333,7 +335,9 @@ export function getMetricDetectorChartOption(
 
         if (selectedOpenPeriod && openPeriod.id === selectedOpenPeriod.id) {
           const selectedIncidentColor =
-            incidentColor === theme.yellow300 ? theme.yellow100 : theme.red100;
+            incidentColor === theme.colors.yellow400
+              ? theme.colors.yellow100
+              : theme.colors.red100;
 
           // Is areaSeries used anywhere?
           areaSeries.push({
@@ -360,7 +364,10 @@ export function getMetricDetectorChartOption(
     typeof warningCondition?.comparison === 'number'
   ) {
     const warningThreshold = warningCondition.comparison;
-    const warningThresholdLine = createThresholdSeries(theme.yellow300, warningThreshold);
+    const warningThresholdLine = createThresholdSeries(
+      theme.colors.yellow400,
+      warningThreshold
+    );
     series.push(warningThresholdLine);
     maxThresholdValue = Math.max(maxThresholdValue, warningThreshold);
   }
@@ -370,7 +377,10 @@ export function getMetricDetectorChartOption(
     typeof criticalCondition?.comparison === 'number'
   ) {
     const criticalThreshold = criticalCondition.comparison;
-    const criticalThresholdLine = createThresholdSeries(theme.red300, criticalThreshold);
+    const criticalThresholdLine = createThresholdSeries(
+      theme.colors.red400,
+      criticalThreshold
+    );
     series.push(criticalThresholdLine);
     maxThresholdValue = Math.max(maxThresholdValue, criticalThreshold);
   }
@@ -380,7 +390,7 @@ export function getMetricDetectorChartOption(
     typeof resolutionCondition?.comparison === 'number'
   ) {
     const resolveThresholdLine = createThresholdSeries(
-      theme.green300,
+      theme.colors.green400,
       resolutionCondition.comparison
     );
     series.push(resolveThresholdLine);

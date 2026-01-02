@@ -1,10 +1,12 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ReplayListFixture} from 'sentry-fixture/replayList';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
+import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {
   SPAN_OP_BREAKDOWN_FIELDS,
@@ -21,6 +23,8 @@ type InitializeOrgProps = {
   };
   organizationProps?: {
     features?: string[];
+    hasGranularReplayPermissions?: boolean;
+    replayAccessMembers?: number[];
   };
 };
 
@@ -45,6 +49,8 @@ const renderComponent = ({
 
   ProjectsStore.init();
   ProjectsStore.loadInitialData(projects);
+  const user = UserFixture({id: '1'});
+  ConfigStore.set('user', user);
 
   return render(<TransactionSummaryLayout />, {
     organization,
@@ -72,7 +78,6 @@ const renderComponent = ({
 
 describe('TransactionReplays', () => {
   let eventsMockApi: jest.Mock<any, any>;
-  let replaysMockApi: jest.Mock<any, any>;
   beforeEach(() => {
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -92,13 +97,6 @@ describe('TransactionReplays', () => {
     });
     eventsMockApi = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [],
-      },
-      statusCode: 200,
-    });
-    replaysMockApi = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/replays/',
       body: {
         data: [],
       },
@@ -140,29 +138,10 @@ describe('TransactionReplays', () => {
     });
   });
 
-  it('should snapshot empty state', async () => {
-    const mockApi = MockApiClient.addMockResponse({
-      url: mockReplaysUrl,
-      body: {
-        data: [],
-      },
-      statusCode: 200,
-    });
-
-    renderComponent();
-
-    await waitFor(() => {
-      expect(mockApi).toHaveBeenCalledTimes(1);
-    });
-  });
-
   it('should show empty message when no replays are found', async () => {
     renderComponent();
 
-    await waitFor(() => {
-      expect(replaysMockApi).toHaveBeenCalledTimes(1);
-    });
-    expect(screen.getByText('No replays found')).toBeInTheDocument();
+    await screen.findByText('No replays found');
   });
 
   it('should show loading indicator when loading replays', async () => {
@@ -234,7 +213,7 @@ describe('TransactionReplays', () => {
     expect(screen.getAllByText('testDisplayName')).toHaveLength(2);
 
     const expectedQuery =
-      'project=1&query=test&referrer=replays%2F&statsPeriod=14d&yAxis=count%28%29';
+      'playlistEnd=2022-09-28T23%3A29%3A13&playlistStart=2022-09-14T23%3A29%3A13&query=test&referrer=transactionReplays';
     // Expect the first row to have the correct href
     expect(
       screen.getByRole('link', {
@@ -290,5 +269,24 @@ describe('TransactionReplays', () => {
         screen.getByText("You don't have access to this feature")
       ).toBeInTheDocument();
     });
+  });
+
+  it('should hide replay content when user does not have granular replay permissions', async () => {
+    renderComponent({
+      organizationProps: {
+        features: ['performance-view', 'session-replay', 'granular-replay-permissions'],
+        hasGranularReplayPermissions: true,
+        replayAccessMembers: [999], // User ID 1 is not in this list
+      },
+    });
+
+    // hack: Wait for any pending updates to complete
+    // without await the test fails with "An update to _GenericDiscoverQuery inside a test was not wrapped in act(...)"
+    await waitFor(() => {
+      expect(screen.queryByTestId('replay-table')).not.toBeInTheDocument();
+    });
+
+    // Content should be hidden, not showing a message or table
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
   });
 });

@@ -3,11 +3,10 @@ from time import time
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.grouping.ingest.grouphash_metadata import create_or_update_grouphash_metadata_if_needed
 from sentry.grouping.ingest.seer import get_seer_similar_issues, should_call_seer_for_grouping
 from sentry.models.grouphash import GroupHash
-from sentry.seer.similarity.types import SeerSimilarIssueData
+from sentry.seer.similarity.types import GroupingVersion, SeerSimilarIssueData
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.pytest.mocking import capture_results
@@ -205,7 +204,7 @@ class StoredSeerMetadataTest(TestCase):
                 event_grouphash,
                 event_grouphash.metadata.date_added,
                 event.event_id,
-                SEER_SIMILARITY_MODEL_VERSION,
+                GroupingVersion.V1.value,
                 None,
                 None,
             )
@@ -248,7 +247,7 @@ class StoredSeerMetadataTest(TestCase):
                 new_event_grouphash,
                 new_event_grouphash.metadata.date_added,
                 new_event.event_id,
-                SEER_SIMILARITY_MODEL_VERSION,
+                GroupingVersion.V1.value,
                 existing_event_grouphash,
                 seer_result_data.stacktrace_distance,
             )

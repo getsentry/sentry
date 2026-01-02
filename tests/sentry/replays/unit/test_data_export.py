@@ -1,5 +1,5 @@
 import base64
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from google.cloud import storage_transfer_v1
 from google.cloud.storage_transfer_v1 import (
@@ -24,13 +24,13 @@ from sentry.utils import json
 def test_export_blob_data() -> None:
     # Function parameters which could be abstracted to test multiple variations of this behavior.
     gcs_project_id = "1"
-    pubsub_topic = "PUBSUB_TOPIC"
+    notification_topic = "PUBSUB_TOPIC"
+    pubsub_topic = f"projects/{gcs_project_id}/topics/{notification_topic}"
     bucket_name = "BUCKET"
     bucket_prefix = "PREFIX"
     start_date = datetime(year=2025, month=1, day=31)
     job_description = "something"
-    job_duration = timedelta(days=5)
-    end_date = start_date + job_duration
+    end_date = start_date
 
     result = create_transfer_job(
         gcp_project_id=gcs_project_id,
@@ -38,9 +38,8 @@ def test_export_blob_data() -> None:
         source_prefix=bucket_prefix,
         destination_bucket="b",
         destination_prefix="destination_prefix/",
-        notification_topic=pubsub_topic,
+        notification_topic=notification_topic,
         job_description=job_description,
-        job_duration=job_duration,
         transfer_job_name=None,
         do_create_transfer_job=lambda event: event,
         get_current_datetime=lambda: start_date,
@@ -102,12 +101,10 @@ def test_retry_export_blob_data() -> None:
 
 def test_export_replay_blob_data() -> None:
     jobs = []
-    export_replay_blob_data(
-        1, "1", "test", "dest_prefix/", timedelta(days=1), lambda job: jobs.append(job)
-    )
+    export_replay_blob_data(1, "1", "test", "dest_prefix/", lambda job: jobs.append(job))
 
     # Assert a job is created for each retention-period.
     assert len(jobs) == 3
-    assert jobs[0].transfer_job.transfer_spec.gcs_data_source.path == "30/1"
-    assert jobs[1].transfer_job.transfer_spec.gcs_data_source.path == "60/1"
-    assert jobs[2].transfer_job.transfer_spec.gcs_data_source.path == "90/1"
+    assert jobs[0].transfer_job.transfer_spec.gcs_data_source.path == "30/1/"
+    assert jobs[1].transfer_job.transfer_spec.gcs_data_source.path == "60/1/"
+    assert jobs[2].transfer_job.transfer_spec.gcs_data_source.path == "90/1/"

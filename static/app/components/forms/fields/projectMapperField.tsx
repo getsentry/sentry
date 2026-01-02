@@ -131,7 +131,7 @@ export class RenderField extends Component<RenderProps, State> {
     }));
 
     const projectOptions = [
-      {label: t('Create a Project'), value: -1, leadingItems: <IconAdd isCircled />},
+      {label: t('Create a Project'), value: -1, leadingItems: <IconAdd />},
       ...sentryProjectOptions,
     ];
 
@@ -278,7 +278,7 @@ export class RenderField extends Component<RenderProps, State> {
           </FieldControlWrapper>
         </Item>
         {nextUrl && (
-          <NextButtonPanelAlert type="muted">
+          <NextButtonPanelAlert variant="muted">
             <NextButtonWrapper>
               {nextDescription ?? ''}
               <LinkButton
@@ -376,8 +376,8 @@ const FieldControlWrapper = styled('div')`
 const NextButtonPanelAlert = styled(PanelAlert)`
   align-items: center;
   margin-bottom: -1px;
-  border-bottom-left-radius: ${p => p.theme.borderRadius};
-  border-bottom-right-radius: ${p => p.theme.borderRadius};
+  border-bottom-left-radius: ${p => p.theme.radius.md};
+  border-bottom-right-radius: ${p => p.theme.radius.md};
 `;
 
 const NextButtonWrapper = styled('div')`

@@ -1,8 +1,14 @@
 from __future__ import annotations
 
+import logging
+from collections import defaultdict
 from enum import IntEnum
+from typing import ClassVar, Self
 
+import sentry_sdk
 from django.db import models
+from django.db.models import IntegerField, Sum
+from django.db.models.functions import Coalesce
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models.base import DefaultFieldsModel, region_silo_model
@@ -12,7 +18,27 @@ from sentry.db.models.fields.bounded import (
     BoundedPositiveIntegerField,
 )
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
+from sentry.db.models.manager.base import BaseManager
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.commitcomparison import CommitComparison
+
+logger = logging.getLogger(__name__)
+
+
+class PreprodArtifactQuerySet(BaseQuerySet["PreprodArtifact"]):
+    def annotate_download_count(self) -> Self:
+        return self.annotate(
+            download_count=Coalesce(
+                Sum("installablepreprodartifact__download_count"),
+                0,
+                output_field=IntegerField(),
+            )
+        )
+
+
+class PreprodArtifactModelManager(BaseManager["PreprodArtifact"]):
+    def get_queryset(self) -> PreprodArtifactQuerySet:
+        return PreprodArtifactQuerySet(self.model, using=self._db)
 
 
 @region_silo_model
@@ -62,6 +88,9 @@ class PreprodArtifact(DefaultFieldsModel):
                 (cls.APK, "apk"),
             )
 
+        def to_str(self) -> str:
+            return self.name.lower()
+
     class ErrorCode(IntEnum):
         UNKNOWN = 0
         """The error code is unknown. Try to use a descriptive error code if possible."""
@@ -82,6 +111,7 @@ class PreprodArtifact(DefaultFieldsModel):
             )
 
     __relocation_scope__ = RelocationScope.Excluded
+    objects: ClassVar[PreprodArtifactModelManager] = PreprodArtifactModelManager()
 
     project = FlexibleForeignKey("sentry.Project")
 
@@ -111,6 +141,11 @@ class PreprodArtifact(DefaultFieldsModel):
     # E.g. 9999
     build_number = BoundedBigIntegerField(null=True)
 
+    # Version of tooling used to upload/build the artifact, extracted from metadata files
+    cli_version = models.CharField(max_length=255, null=True)
+    fastlane_plugin_version = models.CharField(max_length=255, null=True)
+    gradle_plugin_version = models.CharField(max_length=255, null=True)
+
     # Miscellaneous fields that we don't need columns for, e.g. enqueue/dequeue times, user-agent, etc.
     extras = models.JSONField(null=True)
 
@@ -138,23 +173,47 @@ class PreprodArtifact(DefaultFieldsModel):
     # The objectstore id of the app icon
     app_icon_id = models.CharField(max_length=255, null=True)
 
-    def get_sibling_artifacts_for_commit(self) -> models.QuerySet[PreprodArtifact]:
+    def get_sibling_artifacts_for_commit(self) -> list[PreprodArtifact]:
         """
-        Get all artifacts for the same commit comparison (monorepo scenario).
+        Get sibling artifacts for the same commit, deduplicated by (app_id, artifact_type).
 
-        Note: Always includes the calling artifact itself along with any siblings.
+        When multiple artifacts exist for the same (app_id, artifact_type) combination
+        (e.g., due to reprocessing or CI retries), this method returns only one artifact
+        per combination to prevent duplicate rows in status checks:
+        - For the calling artifact's (app_id, artifact_type): Returns the calling artifact itself
+        - For other combinations: Returns the earliest (oldest) artifact for that combination
+
+        Note: Deduplication by both app_id and artifact_type is necessary because
+        iOS and Android apps can share the same app_id (e.g., "com.example.app").
+
         Results are filtered by the current artifact's organization for security.
 
         Returns:
-            QuerySet of PreprodArtifact objects, ordered by app_id for stable results
+            List of PreprodArtifact objects, deduplicated by (app_id, artifact_type),
+            ordered by app_id
         """
         if not self.commit_comparison:
-            return PreprodArtifact.objects.none()
+            return []
 
-        return PreprodArtifact.objects.filter(
+        all_artifacts = PreprodArtifact.objects.filter(
             commit_comparison=self.commit_comparison,
             project__organization_id=self.project.organization_id,
-        ).order_by("app_id")
+        ).order_by("app_id", "artifact_type", "date_added")
+
+        artifacts_by_key = defaultdict(list)
+        for artifact in all_artifacts:
+            key = (artifact.app_id, artifact.artifact_type)
+            artifacts_by_key[key].append(artifact)
+
+        selected_artifacts = []
+        for (app_id, artifact_type), artifacts in artifacts_by_key.items():
+            if self.app_id == app_id and self.artifact_type == artifact_type:
+                selected_artifacts.append(self)
+            else:
+                selected_artifacts.append(artifacts[0])
+
+        selected_artifacts.sort(key=lambda a: a.app_id or "")
+        return selected_artifacts
 
     def get_base_artifact_for_commit(
         self, artifact_type: ArtifactType | None = None
@@ -167,13 +226,34 @@ class PreprodArtifact(DefaultFieldsModel):
         if not self.commit_comparison:
             return PreprodArtifact.objects.none()
 
-        try:
-            base_commit_comparison = CommitComparison.objects.get(
-                head_sha=self.commit_comparison.base_sha,
-                organization_id=self.project.organization_id,
-            )
-        except CommitComparison.DoesNotExist:
+        base_commit_comparisons_qs = CommitComparison.objects.filter(
+            head_sha=self.commit_comparison.base_sha,
+            organization_id=self.project.organization_id,
+        ).order_by("date_added")
+        base_commit_comparisons = list(base_commit_comparisons_qs)
+
+        if len(base_commit_comparisons) == 0:
             return PreprodArtifact.objects.none()
+        elif len(base_commit_comparisons) == 1:
+            base_commit_comparison = base_commit_comparisons[0]
+        else:
+            logger.warning(
+                "preprod.models.get_base_artifact_for_commit.multiple_base_commit_comparisons",
+                extra={
+                    "head_sha": self.commit_comparison.head_sha,
+                    "organization_id": self.project.organization_id,
+                    "base_commit_comparison_ids": [c.id for c in base_commit_comparisons],
+                },
+            )
+            sentry_sdk.capture_message(
+                "Multiple base commitcomparisons found",
+                level="error",
+                extras={
+                    "sha": self.commit_comparison.head_sha,
+                },
+            )
+            # Take first (oldest) commit comparison
+            base_commit_comparison = base_commit_comparisons[0]
 
         return PreprodArtifact.objects.filter(
             commit_comparison=base_commit_comparison,
@@ -268,6 +348,13 @@ class PreprodArtifact(DefaultFieldsModel):
 
     def is_ios(self) -> bool:
         return self.artifact_type == self.ArtifactType.XCARCHIVE
+
+    def get_platform_label(self) -> str | None:
+        if self.is_android():
+            return "Android"
+        elif self.is_ios():
+            return "iOS"
+        return None
 
     class Meta:
         app_label = "preprod"

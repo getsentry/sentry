@@ -127,6 +127,17 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           id: 'audit-log',
         },
         {
+          path: `${organizationSettingsPathPrefix}/data-forwarding/`,
+          title: t('Data Forwarding'),
+          description: t('Manage data forwarding across your organization'),
+          id: 'data-forwarding',
+          badge: () => <FeatureBadge type="beta" />,
+          recordAnalytics: true,
+          show: ({organization}) =>
+            !!organization &&
+            organization.features.includes('data-forwarding-revamp-access'),
+        },
+        {
           path: `${organizationSettingsPathPrefix}/relay/`,
           title: t('Relay'),
           description: t('Manage relays connected to the organization'),
@@ -142,7 +153,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           path: `${organizationSettingsPathPrefix}/integrations/`,
           title: t('Integrations'),
           description: t(
-            'Manage organization-level integrations, including: Slack, Github, Bitbucket, Jira, and Azure DevOps'
+            'Manage organization-level integrations, including: Slack, GitHub, Bitbucket, Jira, and Azure DevOps'
           ),
           id: 'integrations',
           recordAnalytics: true,
@@ -171,7 +182,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         },
         {
           path: `${organizationSettingsPathPrefix}/seer/`,
-          title: t('Seer Automation'),
+          title: t('Seer'),
           description: t(
             "Manage settings for Seer's automated analysis across your organization"
           ),

@@ -84,6 +84,11 @@ export type FeedbackModalProps<T extends Data> = (
   useNewUserFeedback?: boolean;
 };
 
+/**
+ * A modal that allows users to submit feedback to Sentry (feedbacks project).
+ *
+ * @deprecated Use `<FeedbackButton/>` instead.
+ */
 export function FeedbackModal<T extends Data>({
   Header,
   Body,
@@ -256,7 +261,7 @@ export function FeedbackModal<T extends Data>({
           {bodyChildren}
           {isSelfHosted && showSelfHostedMessage && (
             <Alert.Container>
-              <Alert type="info" showIcon={false}>
+              <Alert variant="info" showIcon={false}>
                 {tct(
                   "You agree that any feedback you submit is subject to Sentry's [privacyPolicy:Privacy Policy] and Sentry may use such feedback without restriction or obligation.",
                   {

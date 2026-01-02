@@ -33,7 +33,9 @@ function DisabledAuthProvider({organization, features, children, ...props}: Prop
               organization,
               features,
               renderDisabled: () => (
-                <Tag icon={<IconBusiness />}>{t('%s Plan', displayPlanName(plan))}</Tag>
+                <Tag variant="muted" icon={<IconBusiness />}>
+                  {t('%s Plan', displayPlanName(plan))}
+                </Tag>
               ),
               renderInstallButton: p => (
                 <Button
@@ -44,7 +46,6 @@ function DisabledAuthProvider({organization, features, children, ...props}: Prop
                     openUpsellModal({
                       organization,
                       source: `feature.auth_provider.${p.provider.key}`,
-                      defaultSelection: 'sso',
                     })
                   }
                 >

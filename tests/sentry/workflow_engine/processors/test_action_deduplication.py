@@ -330,7 +330,7 @@ class TestActionDeduplication(TestCase):
             type=Action.Type.EMAIL,
             config={"target_type": ActionTarget.USER, "target_identifier": str(self.user.id)},
             data={
-                "fallthroughType": FallthroughChoiceType.ACTIVE_MEMBERS.value,
+                "fallthrough_type": FallthroughChoiceType.ACTIVE_MEMBERS.value,
             },
         )
 
@@ -360,7 +360,7 @@ class TestActionDeduplication(TestCase):
                 "target_identifier": str(self.user.id),
             },
             data={
-                "fallthroughType": FallthroughChoiceType.ACTIVE_MEMBERS.value,
+                "fallthrough_type": FallthroughChoiceType.ACTIVE_MEMBERS.value,
             },
         )
 
@@ -371,7 +371,7 @@ class TestActionDeduplication(TestCase):
                 "target_identifier": str(self.user.id),
             },
             data={
-                "fallthroughType": FallthroughChoiceType.ACTIVE_MEMBERS.value,
+                "fallthrough_type": FallthroughChoiceType.ACTIVE_MEMBERS.value,
             },
         )
 

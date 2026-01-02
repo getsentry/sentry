@@ -16,8 +16,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import type {Plugin} from 'sentry/types/integrations';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {
   setApiQueryData,
   useApiQuery,
@@ -25,14 +23,10 @@ import {
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
-import {useParams} from 'sentry/utils/useParams';
+import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-
-type Props = {
-  organization: Organization;
-  project: Project;
-};
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 type TokenResponse = {
   token: string;
@@ -53,36 +47,40 @@ function getReleaseTokenQueryKey(
   return [`/projects/${organizationSlug}/${projectSlug}/releases/token/`];
 }
 
-export default function ProjectReleaseTracking({organization, project}: Props) {
+export default function ProjectReleaseTracking() {
   const api = useApi({persistInFlight: true});
-  const {projectId} = useParams<{projectId: string}>();
   const queryClient = useQueryClient();
+  const organization = useOrganization();
+  const {project} = useProjectSettingsOutlet();
 
   const {
     data: releaseTokenData = placeholderData,
     isFetching,
     isError,
     error,
-  } = useApiQuery<TokenResponse>(getReleaseTokenQueryKey(organization.slug, projectId), {
-    staleTime: 0,
-    retry: false,
-  });
+  } = useApiQuery<TokenResponse>(
+    getReleaseTokenQueryKey(organization.slug, project.slug),
+    {
+      staleTime: 0,
+      retry: false,
+    }
+  );
 
   const {data: fetchedPlugins = [], isPending: isPluginsLoading} = useApiQuery<Plugin[]>(
-    [`/projects/${organization.slug}/${projectId}/plugins/`],
+    [`/projects/${organization.slug}/${project.slug}/plugins/`],
     {
       staleTime: 0,
     }
   );
 
   const handleRegenerateToken = () => {
-    api.request(`/projects/${organization.slug}/${projectId}/releases/token/`, {
+    api.request(`/projects/${organization.slug}/${project.slug}/releases/token/`, {
       method: 'POST',
-      data: {project: projectId},
+      data: {project: project.slug},
       success: data => {
         setApiQueryData<TokenResponse>(
           queryClient,
-          getReleaseTokenQueryKey(organization.slug, projectId),
+          getReleaseTokenQueryKey(organization.slug, project.slug),
           data
         );
         addSuccessMessage(
@@ -137,7 +135,7 @@ export default function ProjectReleaseTracking({organization, project}: Props) {
 
       {!hasWrite && (
         <Alert.Container>
-          <Alert type="warning" showIcon={false}>
+          <Alert variant="warning" showIcon={false}>
             {t(
               'You do not have sufficient permissions to access Release tokens, placeholders are displayed below.'
             )}

@@ -82,10 +82,16 @@ export const GrowLink = styled(Link)`
   display: inherit;
 `;
 
-export function GenericWidgetEmptyStateWarning({message}: {message: React.ReactNode}) {
+export function GenericWidgetEmptyStateWarning({
+  message,
+  title,
+}: {
+  message: React.ReactNode;
+  title?: string;
+}) {
   return (
     <StyledEmptyStateWarning>
-      <PrimaryMessage>{t('No results found')}</PrimaryMessage>
+      <PrimaryMessage>{title ?? t('No results found')}</PrimaryMessage>
       <SecondaryMessage>{message}</SecondaryMessage>
     </StyledEmptyStateWarning>
   );
@@ -239,7 +245,7 @@ const StyledTooltip = styled(Tooltip)`
 
 const StyledIconClose = styled(IconClose)`
   cursor: pointer;
-  color: ${p => p.theme.gray200};
+  color: ${p => p.theme.colors.gray200};
 `;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`

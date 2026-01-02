@@ -140,7 +140,7 @@ interface UseHoverOverlayProps {
   underlineColor?: ColorOrAlias;
 }
 
-function isOverflown(el: Element): boolean {
+export function isOverflown(el: Element): boolean {
   // Safari seems to calculate scrollWidth incorrectly, causing isOverflown to always return true in some cases.
   // Adding a 2 pixel tolerance seems to account for this discrepancy.
   const tolerance =

@@ -343,11 +343,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "deletions.group-hashes-metadata.update-seer-matched-grouphash-ids",
-    default=False,
-    type=Bool,
+    "deletions.group-hash-metadata.batch-size",
+    default=1000,
+    type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
 
 register(
     "cleanup.abort_execution",
@@ -381,7 +382,15 @@ register("fileblob.upload.use_lock", default=True, flags=FLAG_AUTOMATOR_MODIFIAB
 # Whether to use redis to cache `FileBlob.id` lookups
 register("fileblob.upload.use_blobid_cache", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# New `objectstore` service configuration
+# New `objectstore` service configuration. Additional supported options and
+# their defaults:
+#  - propagate_traces: bool = False,
+#  - retries: int | None = None,
+#  - timeout_ms: float | None = None,
+#  - connection_kwargs: Mapping[str, Any] | None = None,
+#
+# For an always up-to-date list, see:
+# https://getsentry.github.io/objectstore/python/objectstore_client.html#objectstore_client.Client
 register(
     "objectstore.config",
     default={"base_url": "http://127.0.0.1:8888"},
@@ -661,6 +670,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Coding Workflows
+register(
+    "coding_workflows.code_review.github.check_run.rerun.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Codecov Integration
 register("codecov.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("codecov.base-url", default="https://api.codecov.io")
@@ -670,6 +687,14 @@ register("codecov.forward-webhooks.rollout", default=0.0, flags=FLAG_AUTOMATOR_M
 register("codecov.forward-webhooks.regions", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 # if a region is in this list, it's safe to forward to overwatch
 register("overwatch.enabled-regions", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+# enable verbose debug logging for overwatch webhook forwarding
+register("overwatch.forward-webhooks.verbose", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Control forwarding of specific GitHub webhook types to overwatch (True) or seer (False)
+register("github.webhook.issue-comment", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("github.webhook.pr", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("github.webhook.pr-review-comment", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("github.webhook.pr-review", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # GitHub Integration
 register("github-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -839,7 +864,6 @@ register(
 )
 register("snuba.search.hits-sample-size", default=100, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("snuba.track-outcomes-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("snuba.preprocess-group-redirects", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
 register(
@@ -1155,6 +1179,14 @@ register(
     type=Bool,
     default=True,
     flags=FLAG_MODIFIABLE_BOOL,
+)
+
+# Maximum token count for stacktraces sent to Seer for similarity analysis
+register(
+    "seer.similarity.max_token_count",
+    type=Int,
+    default=7000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # seer nearest neighbour endpoint timeout
@@ -1544,16 +1576,18 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# default brownout crontab for api deprecations
+# Default brownout crontab for api deprecations
+# Used when a deprecation doesn't have a custom key defined.
 register(
     "api.deprecation.brownout-cron",
     default="0 12 * * *",
     type=String,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Brownout duration to be stored in ISO8601 format for durations (See https://en.wikipedia.org/wiki/ISO_8601#Durations)
+# Brownout duration fallback in seconds.
+# Used when a deprecation doesn't have a custom key defined.
 register(
-    "api.deprecation.brownout-duration-seconds",
+    "api.deprecation.brownout-duration",
     type=Int,
     default=60,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -1850,11 +1884,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "performance.issues.experimental_m_n_plus_one_db_queries.problem-creation",
-    default=1.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "performance.issues.http_overhead.problem-creation",
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -1976,8 +2005,32 @@ register(
     default=3,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "performance.issues.web_vitals.count_threshold",
+    default=10,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Adjusting some time buffers in the trace endpoint
+register(
+    "performance.traces.pagination.max-iterations",
+    type=Int,
+    default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.traces.pagination.query-limit",
+    type=Int,
+    default=10_000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.traces.pagination.max-timeout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "performance.traces.transaction_query_timebuffer_days",
     type=Float,
@@ -2171,6 +2224,14 @@ register(
     "dynamic-sampling.check_span_feature_flag",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
+)
+
+# List of organization IDs that should be using spans for rebalancing in dynamic sampling.
+register(
+    "dynamic-sampling.measure.spans",
+    default=[],
+    type=Sequence,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # === Hybrid cloud subsystem options ===
@@ -2478,6 +2539,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register("metric_alerts.extended_max_subscriptions", default=1250, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register(
+    "metric_alerts.extended_max_subscriptions_orgs", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+
 # SDK Crash Detection
 #
 # The project ID belongs to the sentry organization: https://sentry.sentry.io/projects/cocoa-sdk-crashes/?project=4505469596663808.
@@ -2724,6 +2790,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "profiling.killswitch.ingest-profiles",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # max number of profiles to use for computing
 # the aggregated flamegraph.
 register(
@@ -2835,6 +2908,55 @@ register(
     "grouping.config_transition.config_upgrade_sample_rate",
     type=Float,
     default=1.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# When handling grouphashes during ingest, use the cache to reduce postgres load. With secondary
+# grouphashes we want to use ones which are already there but not create new ones, so we track the
+# boolean result of their `.exists()` check. For all existing grouphashes, secondary or not, we know
+# that if they already have a group assigned they won't be modified, so in that case we also cache
+# the full `GroupHash` object. The killswitch below controls both caches, but they have separate
+# expiry times because the secondary grouphash existence cache is used less frequently and has a
+# lighter memory footprint, so we can afford to cache things there for longer.
+#
+# TODO: Check hit/miss rates for both caches and adjust the two expiry options accordingly.
+register(
+    "grouping.use_ingest_grouphash_caching",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# How long to cache a boolean indicating whether or not a grouphash exists for a given secondary
+# hash value
+register(
+    "grouping.ingest_grouphash_existence_cache_expiry",
+    type=Int,
+    default=60,  # seconds
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# How long to cache actual `GroupHash` objects
+register(
+    "grouping.ingest_grouphash_object_cache_expiry",
+    type=Int,
+    default=60,  # seconds
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# TODO: Temporary options to let us play around with expiry times and see what hit rates they give
+# us. Once we've decided, we can stick our values into the two expiry options above and get rid of
+# these two options.
+register(
+    "grouping.ingest_grouphash_existence_cache_expiry.trial_values",
+    type=Sequence,
+    default=[60, 120, 600],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "grouping.ingest_grouphash_object_cache_expiry.trial_values",
+    type=Sequence,
+    default=[60, 120, 600],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2986,6 +3108,41 @@ register(
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Notification Options - Start
+# Options for migrating to the notification platform
+# Notifications for internal testing
+register(
+    "notifications.platform-rollout.internal-testing",
+    type=Dict,
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Notifications for Sentry organizations
+register(
+    "notifications.platform-rollout.is-sentry",
+    type=Dict,
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Notifications for early adopter organizations
+register(
+    "notifications.platform-rollout.early-adopter",
+    type=Dict,
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Notifications for general access organizations
+register(
+    "notifications.platform-rollout.general-access",
+    type=Dict,
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Notification Options - End
 
 # List of organizations with increased rate limits for organization_events API
 register(
@@ -3155,6 +3312,20 @@ register(
 )
 
 register(
+    "workflow_engine.ensure_detector_association",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "workflow_engine.exclude_issue_stream_detector",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "grouping.grouphash_metadata.ingestion_writes_enabled",
     type=Bool,
     default=True,
@@ -3190,15 +3361,23 @@ register(
 )
 
 register(
-    "workflow_engine.use_cohort_selection",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "workflow_engine.schedule.min_cohort_scheduling_age_seconds",
     type=Int,
     default=50,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "workflow_engine.evaluation_log_sample_rate",
+    type=Float,
+    default=0.1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Whether to directly log workflow evaluation logs to Sentry instead of using the stdlib
+# logger (which also logs to Sentry).
+register(
+    "workflow_engine.evaluation_logs_direct_to_sentry",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3292,6 +3471,13 @@ register(
     default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Secret Scanning. Email allowlist for notifications.
+register(
+    "secret-scanning.github.notifications.email-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Rate limiting for the occurrence consumer
 register(
@@ -3345,15 +3531,6 @@ register(
 register(
     "visibility.tag-key-max-date-range.days",
     default=14,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# option used to enable/disable applying
-# stack trace rules in profiles
-register(
-    "profiling.stack_trace_rules.enabled",
-    default=False,
-    type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3465,24 +3642,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Enable adding the `Reporting-Endpoints` header, which will in turn enable the sending of Reporting
-# API reports from the browser (as long as it's Chrome).
-register(
-    "issues.browser_reporting.reporting_endpoints_header_enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Enable the collection of Reporting API reports via the `/api/0/reporting-api-experiment/`
-# endpoint. When this is false, the endpoint will just 404.
-register(
-    "issues.browser_reporting.collector_endpoint_enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Enable experimental message parameterization in grouping.
 register(
     "grouping.experimental_parameterization",
@@ -3496,8 +3655,8 @@ register(
 register("objectstore.double_write.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Fraction of attachments that are being stored exclusively in the new objectstore.
 register("objectstore.enable_for.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# Fraction of events that use the processing store (the transient event payload) for attachment metadata (independant from payloads).
-register("objectstore.processing_store.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Fraction of attachments that are being stored on objectstore for processing and long-term storage.
+register("objectstore.enable_for.cached_attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # This forces symbolication to use the "stored attachment" codepath,
 # regardless of whether the attachment has already been stored.
 register("objectstore.force-stored-symbolication", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -3513,13 +3672,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Killswitch for linking identities for demo users
-register(
-    "identity.prevent-link-identity-for-demo-users.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 register(
     "sentry.send_onboarding_task_metrics",
@@ -3559,14 +3711,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Killswitch for treating demo user as unauthenticated
-# in our auth pipelines.
-register(
-    "demo-user.auth.pipelines.always.unauthenticated.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Rate at which to forward events to eap_items. 1.0
 # means that 100% of projects will forward events to eap_items.
@@ -3592,12 +3736,12 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# The allowlist of organization IDs for which deletion from EAP is enabled.
+# Controls whether deletion from EAP is enabled.
 register(
-    "eventstream.eap.deletion_enabled.organization_allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+    "eventstream.eap.deletion-enabled",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Send logs for sentry app webhooks sent. Should only be enabled for debugging a specific app or installation.
@@ -3625,6 +3769,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Manual option for disabling misbehaving sentry apps from sending webhooks.
+register(
+    "sentry-apps.webhook.restricted-webhook-sending",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Killswitch for web vital issue detection
 register(
     "issue-detection.web-vitals-detection.enabled",
@@ -3641,18 +3793,51 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Enables or disables Github webhook routing based on the type of webhook
-register(
-    "github.webhook-type-routing.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Sets the sample rate for profiles collected via the JoinProfiler arroyo strategy
 register(
     "consumer.join.profiling.rate",
     type=Float,
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "seer.scanner_no_consent.rollout_rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enabled Prebuilt Dashboard IDs
+register(
+    "dashboards.prebuilt-dashboard-ids",
+    default=[],
+    type=Sequence,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Project ID allowlist to enable detailed search debug logging for diagnosing
+# bugs with issue feed search.
+register(
+    "snuba.search.debug-log-project-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Project ID allowlist to enable truncation of group IDs in Snuba query
+# when search filters are selective.
+register(
+    "snuba.search.truncate-group-ids-for-selective-filters-project-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Organization slug allowlist to enable Autopilot for specific organizations.
+register(
+    "autopilot.organization-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )

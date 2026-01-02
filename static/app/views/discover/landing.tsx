@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Link} from '@sentry/scraps/link';
+
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Alert} from 'sentry/components/core/alert';
@@ -11,7 +13,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {NewQuery, SavedQuery} from 'sentry/types/organization';
@@ -45,7 +47,7 @@ function NoAccess() {
   return (
     <Layout.Page withPadding>
       <Alert.Container>
-        <Alert type="warning" showIcon={false}>
+        <Alert variant="warning" showIcon={false}>
           {t("You don't have access to this feature")}
         </Alert>
       </Alert.Container>
@@ -187,12 +189,10 @@ function DiscoverLanding() {
               <Breadcrumbs
                 crumbs={[
                   {
-                    key: 'discover-homepage',
                     label: t('Discover'),
                     to: getDiscoverLandingUrl(organization),
                   },
                   {
-                    key: 'discover-saved-queries',
                     label: t('Saved Queries'),
                   },
                 ]}
@@ -245,15 +245,27 @@ function DiscoverLanding() {
               ) : status === 'error' ? (
                 <LoadingError message={error.message} />
               ) : (
-                <QueryList
-                  pageLinks={savedQueriesPageLinks ?? ''}
-                  savedQueries={savedQueries}
-                  savedQuerySearchQuery={savedSearchQuery}
-                  renderPrebuilt={renderPrebuilt}
-                  location={location}
-                  organization={organization}
-                  refetchSavedQueries={refreshSavedQueries}
-                />
+                <QueriesContainer>
+                  {organization.features.includes('expose-migrated-discover-queries') && (
+                    <Alert variant="info">
+                      {tct(
+                        'Your saved transactions queries are also available in the new Explore UI. Try them out in [exploreLink:Explore] instead.',
+                        {
+                          exploreLink: <Link to="/explore/saved-queries/" />,
+                        }
+                      )}
+                    </Alert>
+                  )}
+                  <QueryList
+                    pageLinks={savedQueriesPageLinks ?? ''}
+                    savedQueries={savedQueries}
+                    savedQuerySearchQuery={savedSearchQuery}
+                    renderPrebuilt={renderPrebuilt}
+                    location={location}
+                    organization={organization}
+                    refetchSavedQueries={refreshSavedQueries}
+                  />
+                </QueriesContainer>
               )}
             </Layout.Main>
           </Layout.Body>
@@ -285,6 +297,12 @@ const StyledActions = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: auto;
   }
+`;
+
+const QueriesContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.xl};
 `;
 
 export default DiscoverLanding;

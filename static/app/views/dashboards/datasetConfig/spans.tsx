@@ -54,15 +54,18 @@ import {
   renderTraceAsLinkable,
   transformEventsResponseToTable,
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
+import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {DisplayType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {isMultiSeriesEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
 import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
 import SpansSearchBar from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/spansSearchBar';
+import {isPerformanceScoreBreakdownChart} from 'sentry/views/dashboards/widgetBuilder/utils/isPerformanceScoreBreakdownChart';
+import {transformPerformanceScoreBreakdownSeries} from 'sentry/views/dashboards/widgetBuilder/utils/transformPerformanceScoreBreakdownSeries';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
-import {generateFieldOptions} from 'sentry/views/discover/utils';
-import {useSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {useTraceItemSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceItemAttributesWithConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -150,17 +153,18 @@ function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): Searc
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number');
 
-  const {filterKeys, filterKeySections, getTagValues} = useSearchQueryBuilderProps({
-    itemType: TraceItemDataset.SPANS,
-    numberAttributes,
-    stringAttributes,
-    numberSecondaryAliases,
-    stringSecondaryAliases,
-    searchSource: 'dashboards',
-    initialQuery: widgetQuery?.conditions ?? '',
-    projects: pageFilters.projects,
-    supportedAggregates: ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
-  });
+  const {filterKeys, filterKeySections, getTagValues} =
+    useTraceItemSearchQueryBuilderProps({
+      itemType: TraceItemDataset.SPANS,
+      numberAttributes,
+      stringAttributes,
+      numberSecondaryAliases,
+      stringSecondaryAliases,
+      searchSource: 'dashboards',
+      initialQuery: widgetQuery?.conditions ?? '',
+      projects: pageFilters.projects,
+      supportedAggregates: ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+    });
   return {
     getFilterKeys: () => filterKeys,
     getFilterKeySections: () => filterKeySections,
@@ -193,6 +197,7 @@ export const SpansConfig: DatasetConfig<
     DisplayType.LINE,
     DisplayType.TABLE,
     DisplayType.TOP_N,
+    DisplayType.DETAILS,
   ],
   getTableRequest: (
     api: Client,
@@ -222,7 +227,7 @@ export const SpansConfig: DatasetConfig<
   },
   getSeriesRequest,
   transformTable: transformEventsResponseToTable,
-  transformSeries: transformEventsResponseToSeries,
+  transformSeries,
   filterAggregateParams,
   getCustomFieldRenderer: (field, meta, widget, _organization, dashboardFilters) => {
     if (field === 'id') {
@@ -240,32 +245,7 @@ function getPrimaryFieldOptions(
   tags?: TagCollection,
   _customMeasurements?: CustomMeasurementCollection
 ): Record<string, FieldValueOption> {
-  const baseFieldOptions = generateFieldOptions({
-    organization,
-    tagKeys: [],
-    fieldKeys: [],
-    aggregations: EAP_AGGREGATIONS,
-  });
-
-  const spanTags = Object.values(tags ?? {}).reduce(
-    (acc, tag) => ({
-      ...acc,
-      [`${tag.kind}:${tag.key}`]: {
-        label: tag.name,
-        value: {
-          kind: FieldValueKind.TAG,
-
-          // We have numeric and string tags which have the same
-          // display name, but one is used for aggregates and the other
-          // is used for grouping.
-          meta: {name: tag.key, dataType: tag.kind === 'tag' ? 'string' : 'number'},
-        },
-      },
-    }),
-    {}
-  );
-
-  return {...baseFieldOptions, ...spanTags};
+  return combineBaseFieldsWithTags(organization, tags, EAP_AGGREGATIONS);
 }
 
 function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryFieldValue) {
@@ -315,6 +295,9 @@ function getEventsRequest(
 ) {
   const url = `/organizations/${organization.slug}/events/`;
   const eventView = eventViewFromWidget('', query, pageFilters);
+  const hasQueueFeature = organization.features.includes(
+    'visibility-dashboards-async-queue'
+  );
 
   const params: DiscoverQueryRequestParams = {
     per_page: limit,
@@ -349,10 +332,13 @@ function getEventsRequest(
     },
     // Tries events request up to 3 times on rate limit
     {
-      retry: {
-        statusCodes: [429],
-        tries: 10,
-      },
+      retry: hasQueueFeature
+        ? // The queue will handle retries, so we don't need to retry here
+          undefined
+        : {
+            statusCodes: [429],
+            tries: 10,
+          },
     }
   );
 }
@@ -443,4 +429,19 @@ function renderEventInTraceView(
       <Container>{getShortEventId(spanId)}</Container>
     </Link>
   );
+}
+
+function transformSeries(
+  data: EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
+  widgetQuery: WidgetQuery
+) {
+  let eventsStats = data;
+  // Kind of a hack, but performance score breakdown charts need a special transformation to display correctly.
+  if (
+    isMultiSeriesEventsStats(eventsStats) &&
+    isPerformanceScoreBreakdownChart(widgetQuery)
+  ) {
+    eventsStats = transformPerformanceScoreBreakdownSeries(eventsStats);
+  }
+  return transformEventsResponseToSeries(eventsStats, widgetQuery);
 }

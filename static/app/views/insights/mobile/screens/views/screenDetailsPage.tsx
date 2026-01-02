@@ -1,5 +1,6 @@
 import type React from 'react';
 import {useState} from 'react';
+import omit from 'lodash/omit';
 
 import {
   FeatureBadge,
@@ -90,12 +91,12 @@ function ScreenDetailsPage() {
 
     navigate({
       pathname: location.pathname,
-      query: newQuery,
+      query: omit(newQuery, 'field', 'query', 'referrer', 'sampling', 'sort', 'span.op'),
     });
   }
 
   const tabList = (
-    <TabList hideBorder>
+    <TabList>
       {tabs.map(tab => {
         const visible =
           tab.feature === undefined || organization.features.includes(tab.feature);

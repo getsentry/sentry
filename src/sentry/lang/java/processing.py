@@ -6,7 +6,7 @@ from sentry.lang.java.exceptions import Exceptions
 from sentry.lang.java.utils import JAVA_PLATFORMS, get_jvm_images, get_proguard_images
 from sentry.lang.java.view_hierarchies import ViewHierarchies
 from sentry.lang.native.error import SymbolicationFailed, write_error
-from sentry.lang.native.symbolicator import Symbolicator
+from sentry.lang.native.symbolicator import FrameOrder, Symbolicator
 from sentry.models.eventerror import EventError
 from sentry.models.project import Project
 from sentry.models.release import Release
@@ -191,7 +191,7 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         for sinfo in stacktrace_infos
     ]
 
-    view_hierarchies = ViewHierarchies(data)
+    view_hierarchies = ViewHierarchies(symbolicator.project, data)
     window_class_names = view_hierarchies.get_window_class_names()
 
     exceptions = Exceptions(data)
@@ -220,6 +220,9 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         modules=modules,
         release_package=release_package,
         classes=window_class_names + exception_class_names,
+        # We are sending frames in the same order in which
+        # they were stored in the event, so this has to be "caller_first".
+        frame_order=FrameOrder.caller_first,
     )
 
     if not _handle_response_status(data, response):
@@ -243,7 +246,7 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
                     new_frame = dict(raw_frame)
                     _merge_frame(new_frame, returned)
                     new_frames.append(new_frame)
-            else:
+            elif not _handles_frame(raw_frame, data.get("platform", "unknown")):
                 new_frames.append(raw_frame)
 
         sinfo.stacktrace["frames"] = new_frames

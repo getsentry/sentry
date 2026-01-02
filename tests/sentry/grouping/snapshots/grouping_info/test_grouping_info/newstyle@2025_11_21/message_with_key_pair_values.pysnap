@@ -1,52 +1,33 @@
 ---
-created: '2025-10-29T21:19:28.893011+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouping_info.py
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
 ---
 {
-  "message": {
-    "component": {
+  "grouping_config": "newstyle:2025-11-21",
+  "variants": {
+    "message": {
+      "component": {
+        "contributes": true,
+        "hint": null,
+        "id": "default",
+        "name": null,
+        "values": [
+          {
+            "contributes": true,
+            "hint": "stripped event-specific values",
+            "id": "message",
+            "name": "message",
+            "values": [
+              "Error key1=<quoted_str> key2=<int> key3=<bool> key4=<date> key5=<quoted_str> other_date=datetime.datetime(<int>, <int>, <int>, <int>, <int>, tzinfo=d..."
+            ]
+          }
+        ]
+      },
       "contributes": true,
+      "description": "message",
+      "hash": "d2ab1028e9cb44352a824e878951f412",
       "hint": null,
-      "id": "default",
-      "name": null,
-      "values": [
-        {
-          "contributes": true,
-          "hint": "stripped event-specific values",
-          "id": "message",
-          "name": "message",
-          "values": [
-            "Error key1=<quoted_str> key2=<int> key3=<bool> key4=<date> key5=<quoted_str> other_date=datetime.datetime(<int>, <int>, <int>, <int>, <int>, tzinfo=d..."
-          ]
-        }
-      ]
-    },
-    "config": {
-      "base": "newstyle:2023-01-11",
-      "delegates": [
-        "frame:v1",
-        "single-exception:v1",
-        "stacktrace:v1"
-      ],
-      "id": "newstyle:2025-11-21",
-      "strategies": [
-        "chained-exception:v1",
-        "csp:v1",
-        "expect-ct:v1",
-        "expect-staple:v1",
-        "hpkp:v1",
-        "message:v1",
-        "stacktrace:v1",
-        "template:v1",
-        "threads:v1"
-      ]
-    },
-    "contributes": true,
-    "description": "message",
-    "hash": "d2ab1028e9cb44352a824e878951f412",
-    "hint": null,
-    "key": "message",
-    "type": "component"
+      "key": "message",
+      "type": "component"
+    }
   }
 }

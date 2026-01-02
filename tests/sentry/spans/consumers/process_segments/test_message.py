@@ -4,12 +4,14 @@ from typing import Any
 from unittest import mock
 
 import pytest
+from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
 from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
 from sentry.models.environment import Environment
 from sentry.models.release import Release
 from sentry.spans.consumers.process_segments.message import _verify_compatibility, process_segment
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.issue_detection.experiments import exclude_experimental_detectors
 from tests.sentry.spans.consumers.process import build_mock_span
@@ -239,6 +241,81 @@ class TestSpansTask(TestCase):
 
         signals = [args[0][1] for args in mock_track.call_args_list]
         assert signals == ["has_transactions", "has_insights_http"]
+
+    def test_segment_name_propagation(self):
+        child_span, segment_span = self.generate_basic_spans()
+        segment_span["name"] = "my segment name"
+
+        processed_spans = process_segment([child_span, segment_span])
+
+        assert len(processed_spans) == 2
+        child_span, segment_span = processed_spans
+        segment_attributes = segment_span["attributes"] or {}
+        assert segment_attributes["sentry.segment.name"] == {
+            "type": "string",
+            "value": "my segment name",
+        }
+        child_attributes = child_span["attributes"] or {}
+        assert child_attributes["sentry.segment.name"] == {
+            "type": "string",
+            "value": "my segment name",
+        }
+
+    def test_segment_name_propagation_when_name_missing(self):
+        child_span, segment_span = self.generate_basic_spans()
+        del segment_span["name"]
+
+        processed_spans = process_segment([child_span, segment_span])
+
+        assert len(processed_spans) == 2
+        child_span, segment_span = processed_spans
+        segment_attributes = segment_span["attributes"] or {}
+        assert segment_attributes.get("sentry.segment.name") is None
+        child_attributes = child_span["attributes"] or {}
+        assert child_attributes.get("sentry.segment.name") is None
+
+    @mock.patch("sentry.spans.consumers.process_segments.message.record_segment_name")
+    def test_segment_name_normalization_with_feature(
+        self, mock_record_segment_name: mock.MagicMock
+    ):
+        _, segment_span = self.generate_basic_spans()
+        segment_span["name"] = "/foo/2fd4e1c67a2d28fced849ee1bb76e7391b93eb12/user/123/0"
+
+        with self.feature("organizations:normalize_segment_names_in_span_enrichment"):
+            processed_spans = process_segment([segment_span])
+
+        assert processed_spans[0]["name"] == "/foo/*/user/*/0"
+        mock_record_segment_name.assert_called_once()
+
+    @mock.patch("sentry.spans.consumers.process_segments.message.record_segment_name")
+    def test_segment_name_normalization_without_feature(
+        self, mock_record_segment_name: mock.MagicMock
+    ):
+        _, segment_span = self.generate_basic_spans()
+        segment_span["name"] = "/foo/2fd4e1c67a2d28fced849ee1bb76e7391b93eb12/user/123/0"
+
+        with Feature({"organizations:normalize_segment_names_in_span_enrichment": False}):
+            processed_spans = process_segment([segment_span])
+
+        assert (
+            processed_spans[0]["name"] == "/foo/2fd4e1c67a2d28fced849ee1bb76e7391b93eb12/user/123/0"
+        )
+        mock_record_segment_name.assert_not_called()
+
+    def test_segment_name_normalization_checks_source(self):
+        _, segment_span = self.generate_basic_spans()
+        segment_span["name"] = "/foo/2fd4e1c67a2d28fced849ee1bb76e7391b93eb12/user/123/0"
+        segment_span["attributes"][ATTRIBUTE_NAMES.SENTRY_SPAN_SOURCE] = {
+            "type": "string",
+            "value": "route",
+        }
+
+        with self.feature("organizations:normalize_segment_names_in_span_enrichment"):
+            processed_spans = process_segment([segment_span])
+
+        assert (
+            processed_spans[0]["name"] == "/foo/2fd4e1c67a2d28fced849ee1bb76e7391b93eb12/user/123/0"
+        )
 
 
 def test_verify_compatibility():

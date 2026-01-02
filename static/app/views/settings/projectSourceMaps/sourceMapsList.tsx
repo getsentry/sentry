@@ -23,7 +23,6 @@ import {IconDelete, IconUpload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {KeyValueListData} from 'sentry/types/group';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Release, SourceMapsArchive} from 'sentry/types/release';
@@ -31,17 +30,15 @@ import type {DebugIdBundle, DebugIdBundleAssociation} from 'sentry/types/sourceM
 import {defined} from 'sentry/utils';
 import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {AssociatedReleases} from 'sentry/views/settings/projectSourceMaps/associatedReleases';
 import {useDeleteDebugIdBundle} from 'sentry/views/settings/projectSourceMaps/useDeleteDebugIdBundle';
 
-type Props = RouteComponentProps<{
-  orgId: string;
-  projectId: string;
-  bundleId?: string;
-}> & {
+type Props = {
   project: Project;
 };
 
@@ -171,11 +168,13 @@ function useSourceMapUploads({
   };
 }
 
-export function SourceMapsList({location, router, project}: Props) {
+export function SourceMapsList({project}: Props) {
   const organization = useOrganization();
-  const query = decodeScalar(location.query.query) ?? '';
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  const cursor = location.query.cursor ?? '';
+  const query = decodeScalar(location.query.query);
+  const cursor = decodeScalar(location.query.cursor);
 
   const {
     data: sourceMapUploads,
@@ -195,12 +194,12 @@ export function SourceMapsList({location, router, project}: Props) {
 
   const handleSearch = useCallback(
     (newQuery: string) => {
-      router.push({
+      navigate({
         ...location,
         query: {...location.query, cursor: undefined, query: newQuery},
       });
     },
-    [router, location]
+    [navigate, location]
   );
 
   const platformByProject = defined(project.platform)
@@ -297,29 +296,28 @@ function SourceMapsEmptyState({
             ? t('No source maps uploads matching your search')
             : t('No source maps uploaded')
         }
-        description={
-          query
-            ? tct(
-                'Try to modify or [clear:clear] your search to see all source maps uploads.',
-                {
-                  clear: (
-                    <Button
-                      priority="link"
-                      aria-label={t('Clear Search')}
-                      onClick={onClearSearch}
-                    />
-                  ),
-                }
-              )
-            : tct(
-                'Source maps allow Sentry to map your production code to your source code. See our [docs:docs] to learn more about configuring your application to upload source maps to Sentry.',
-                {
-                  docs: <ExternalLink href={docsLink} />,
-                }
-              )
-        }
         action={project.platform === 'react-native' ? <ReactNativeCallOut /> : undefined}
-      />
+      >
+        {query
+          ? tct(
+              'Try to modify or [clear:clear] your search to see all source maps uploads.',
+              {
+                clear: (
+                  <Button
+                    priority="link"
+                    aria-label={t('Clear Search')}
+                    onClick={onClearSearch}
+                  />
+                ),
+              }
+            )
+          : tct(
+              'Source maps allow Sentry to map your production code to your source code. See our [docs:docs] to learn more about configuring your application to upload source maps to Sentry.',
+              {
+                docs: <ExternalLink href={docsLink} />,
+              }
+            )}
+      </EmptyMessage>
     </Panel>
   );
 }

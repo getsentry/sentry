@@ -2,6 +2,9 @@ import time
 from datetime import datetime, timedelta, timezone
 from unittest import mock
 
+from django.core import mail
+from django.utils.html import escape
+
 from sentry.dynamic_sampling.tasks.custom_rule_notifications import (
     MIN_SAMPLES_FOR_NOTIFICATION,
     clean_custom_rule_notifications,
@@ -9,8 +12,11 @@ from sentry.dynamic_sampling.tasks.custom_rule_notifications import (
     get_num_samples,
 )
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
+from sentry.notifications.platform.templates.custom_rule import format_datetime
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.utils.samples import load_data
 
 
@@ -46,6 +52,13 @@ class CustomRuleNotificationsTest(TestCase, SnubaTestCase):
             created_by_id=self.user.id,
         )
 
+    def _generate_samples(self, num_samples: int) -> None:
+        for idx in range(num_samples):
+            self.create_transaction()
+
+        # (RaduW) not sure why I need this, store_event seems to take a while
+        time.sleep(1.0)
+
     def test_get_num_samples(self) -> None:
         """
         Tests that the num_samples function returns the correct number of samples
@@ -64,11 +77,7 @@ class CustomRuleNotificationsTest(TestCase, SnubaTestCase):
     def test_email_is_sent_when_enough_samples_have_been_collected(
         self, send_notification_mock: mock.MagicMock
     ) -> None:
-        for idx in range(MIN_SAMPLES_FOR_NOTIFICATION):
-            self.create_transaction()
-
-        # (RaduW) not sure why I need this, store_event seems to take a while
-        time.sleep(1.0)
+        self._generate_samples(MIN_SAMPLES_FOR_NOTIFICATION)
 
         # the rule should not have notified anybody yet
         self.rule.refresh_from_db()
@@ -119,3 +128,68 @@ class CustomRuleNotificationsTest(TestCase, SnubaTestCase):
 
         expired_rule.refresh_from_db()
         assert not expired_rule.is_active
+
+    @override_options(
+        {"notifications.platform-rollout.internal-testing": {"custom-rule-samples-fulfilled": 1.0}}
+    )
+    @with_feature("organizations:notification-platform.internal-testing")
+    def test_custom_rule_samples_with_notification_platform(self) -> None:
+        self._generate_samples(MIN_SAMPLES_FOR_NOTIFICATION)
+
+        # the rule should not have notified anybody yet
+        self.rule.refresh_from_db()
+        assert not self.rule.notification_sent
+
+        # we have enough samples now so an email should be sent
+        with self.tasks():
+            custom_rule_notifications()
+
+        # Verify email was sent
+        assert len(mail.outbox) == 1
+        email = mail.outbox[0]
+        assert isinstance(email, mail.EmailMultiAlternatives)
+
+        query_text = self.rule.query if self.rule.query else "your custom rule"
+        assert (
+            email.subject
+            == f"We've collected {MIN_SAMPLES_FOR_NOTIFICATION} samples for the query: {query_text} you made"
+        )
+
+        text_content = email.body
+        assert escape("We have samples!") in text_content
+        assert (
+            escape(
+                f"We've collected {MIN_SAMPLES_FOR_NOTIFICATION} samples for your custom sampling rule, from {format_datetime(self.rule.start_date)} to {format_datetime(self.rule.end_date)}, with the query:"
+            )
+            in text_content
+        )
+        assert query_text in text_content
+        assert (
+            escape(
+                "We'll stop giving special priority to samples for your query once we collected 100 samples matching your query or 48 hours have passed from rule creation."
+            )
+            in text_content
+        )
+        # Check for the action link
+        assert "View in Discover" in text_content
+
+        [html_alternative] = email.alternatives
+        [html_content, content_type] = html_alternative
+        assert content_type == "text/html"
+
+        # Check HTML content
+        assert "We have samples!" in str(html_content)
+        assert (
+            f"We've collected {MIN_SAMPLES_FOR_NOTIFICATION} samples for your custom sampling rule, from {format_datetime(self.rule.start_date)} to {format_datetime(self.rule.end_date)}, with the query:"
+            in str(html_content)
+        )
+        assert query_text in str(html_content)
+        assert (
+            "We'll stop giving special priority to samples for your query once we collected 100 samples matching your query or 48 hours have passed from rule creation."
+            in str(html_content)
+        )
+        assert "View in Discover" in str(html_content)
+
+        # test the rule was marked as notification_sent
+        self.rule.refresh_from_db()
+        assert self.rule.notification_sent is True

@@ -3,9 +3,10 @@ from __future__ import annotations
 import abc
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Any, Protocol, Self
+from typing import Any, Literal, Protocol, Self
 
 from sentry.integrations.types import ExternalProviderEnum
+from sentry.notifications.platform.templates.types import NotificationTemplateSource
 
 
 class NotificationCategory(StrEnum):
@@ -17,6 +18,10 @@ class NotificationCategory(StrEnum):
 
     # TODO(ecosystem): Connect this to NotificationSettingEnum
     DEBUG = "debug"
+    DATA_EXPORT = "data-export"
+    DYNAMIC_SAMPLING = "dynamic-sampling"
+    REPOSITORY = "repository"
+    SEER = "seer"
 
     def get_sources(self) -> list[str]:
         return NOTIFICATION_SOURCE_MAP[self]
@@ -30,6 +35,22 @@ NOTIFICATION_SOURCE_MAP = {
         "slow-load-metric-alert",
         "performance-monitoring",
         "team-communication",
+    ],
+    NotificationCategory.DATA_EXPORT: [
+        "data-export-success",
+        "data-export-failure",
+    ],
+    NotificationCategory.DYNAMIC_SAMPLING: [
+        "custom-rule-samples-fulfilled",
+    ],
+    NotificationCategory.REPOSITORY: [
+        "unable-to-delete-repository",
+    ],
+    NotificationCategory.SEER: [
+        "seer-autofix-trigger",
+        "seer-autofix-error",
+        "seer-context-input",
+        "seer-context-input-complete",
     ],
 }
 
@@ -85,7 +106,7 @@ class NotificationData(Protocol):
     All data passing through the notification platform must adhere to this protocol.
     """
 
-    source: str
+    source: NotificationTemplateSource
     """
     The source is uniquely attributable to the way this notification was sent. It will be tracked in
     metrics/analytics to determine the egress from a given code-path or service.
@@ -133,11 +154,10 @@ class NotificationRenderedTemplate:
     expected content of the notification based on this alone, and it will be the first thing
     they see. This string should not contain any formatting, and will be displayed as is.
     """
-    body: str
+    body: list[NotificationBodyFormattingBlock]
     """
     The full contents of the notification. Put the details of the notification here, but consider
-    keeping it concise and useful to the receiver. This string should not contain any formatting,
-    and will be displayed as is.
+    keeping it concise and useful to the receiver.
     """
     actions: list[NotificationRenderedAction] = field(default_factory=list)
     """
@@ -172,6 +192,106 @@ class NotificationRenderedTemplate:
     """
 
 
+class NotificationBodyTextBlockType(StrEnum):
+    """
+    Represents a block of text to be rendered in the notification body.
+    """
+
+    PLAIN_TEXT = "plain_text"
+    """
+    A plain text block.
+    """
+    BOLD_TEXT = "bold_text"
+    """
+    A bolded section of text.
+    """
+    CODE = "code"
+    """
+    Inline block of code.
+    """
+
+
+class NotificationBodyFormattingBlockType(StrEnum):
+    """
+    The type of formatting to be applied to the encapsulated blocks.
+    """
+
+    PARAGRAPH = "paragraph"
+    """
+    A block of text with a line break before.
+    """
+    CODE_BLOCK = "code_block"
+    """
+    A new section of code with a line break before.
+    """
+
+
+class NotificationBodyFormattingBlock(Protocol):
+    """
+    A block that applies formatting such as a newline and encapsulates other text.
+    """
+
+    type: NotificationBodyFormattingBlockType
+    """
+    The type of the block, such as ParagraphBlock, BoldTextBlock, etc.
+    """
+    blocks: list[NotificationBodyTextBlock]
+    """
+    Some blocks may want to contain other blocks, such as a ParagraphBlock containing a BoldTextBlock.
+    """
+
+
+class NotificationBodyTextBlock(Protocol):
+    """
+    Represents a block of text to be rendered in the notification body.
+    """
+
+    type: NotificationBodyTextBlockType
+    """
+    The type of the block, such as BoldTextBlock, CodeBlock, etc.
+    """
+    text: str
+    """
+    Text to be rendered in the body.
+    """
+
+
+@dataclass
+class ParagraphBlock(NotificationBodyFormattingBlock):
+    blocks: list[NotificationBodyTextBlock]
+    type: Literal[NotificationBodyFormattingBlockType.PARAGRAPH] = (
+        NotificationBodyFormattingBlockType.PARAGRAPH
+    )
+
+
+@dataclass
+class CodeBlock(NotificationBodyFormattingBlock):
+    blocks: list[NotificationBodyTextBlock]
+    type: Literal[NotificationBodyFormattingBlockType.CODE_BLOCK] = (
+        NotificationBodyFormattingBlockType.CODE_BLOCK
+    )
+
+
+@dataclass
+class BoldTextBlock(NotificationBodyTextBlock):
+    type: Literal[NotificationBodyTextBlockType.BOLD_TEXT]
+    text: str
+
+
+@dataclass
+class CodeTextBlock(NotificationBodyTextBlock):
+    text: str
+    type: Literal[NotificationBodyTextBlockType.CODE] = NotificationBodyTextBlockType.CODE
+
+
+@dataclass
+class PlainTextBlock(NotificationBodyTextBlock):
+    text: str
+    type: Literal[NotificationBodyTextBlockType.PLAIN_TEXT] = (
+        NotificationBodyTextBlockType.PLAIN_TEXT
+    )
+
+
 class NotificationTemplate[T: NotificationData](abc.ABC):
     category: NotificationCategory
     """
@@ -181,6 +301,11 @@ class NotificationTemplate[T: NotificationData](abc.ABC):
     example_data: T
     """
     The example data for this notification.
+    """
+    hide_from_debugger: bool = False
+    """
+    Set 'true' to omit these templates from the internal debugger (sentry.io/debug/notifications).
+    This is useful for templates that only use custom renderers and bypass NotificationRenderedTemplates.
     """
 
     @abc.abstractmethod
@@ -197,3 +322,10 @@ class NotificationTemplate[T: NotificationData](abc.ABC):
         implementation should be pure, and not populate with any live data.
         """
         return self.render(data=self.example_data)
+
+    @classmethod
+    def get_data_class(cls) -> type[NotificationData]:
+        """
+        Returns NotificationData type for this template.
+        """
+        return cls.example_data.__class__

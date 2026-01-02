@@ -23,7 +23,6 @@ import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/feat
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {droppedProfileChunkMultiplier} from 'sentry/views/organizationStats/mapSeriesToChart';
 
 import type {UsageSeries} from './types';
 import type {TableStat} from './usageTable';
@@ -97,17 +96,6 @@ export function UsageStatsProjects({
     ) {
       groupBy.push('category');
       category.push(DataCategoryExact.SPAN_INDEXED);
-    }
-    if (
-      dataCategory.name === DataCategoryExact.PROFILE_DURATION ||
-      dataCategory.name === DataCategoryExact.PROFILE_DURATION_UI
-    ) {
-      groupBy.push('category');
-      category.push(
-        dataCategory.name === DataCategoryExact.PROFILE_DURATION
-          ? DataCategoryExact.PROFILE_CHUNK
-          : DataCategoryExact.PROFILE_CHUNK_UI
-      );
     }
 
     // We do not need more granularity in the data so interval is '1d'
@@ -283,9 +271,6 @@ export function UsageStatsProjects({
         const {outcome, category, project: projectId} = group.by;
         // Backend enum is singlar. Frontend enum is plural.
 
-        const multiplier = droppedProfileChunkMultiplier(category, outcome);
-        const value = group.totals['sum(quantity)']! * multiplier;
-
         if (category === 'span_indexed' && outcome !== Outcome.ACCEPTED) {
           // we need `span_indexed` data for `accepted_stored` only
           return;
@@ -300,11 +285,11 @@ export function UsageStatsProjects({
         }
 
         if (outcome !== Outcome.CLIENT_DISCARD && category !== 'span_indexed') {
-          stats[projectId!]!.total += value;
+          stats[projectId!]!.total += group.totals['sum(quantity)']!;
         }
 
         if (category === 'span_indexed' && outcome === Outcome.ACCEPTED) {
-          stats[projectId!]!.accepted_stored += value;
+          stats[projectId!]!.accepted_stored += group.totals['sum(quantity)']!;
           return;
         }
 
@@ -313,7 +298,7 @@ export function UsageStatsProjects({
           outcome === Outcome.FILTERED ||
           outcome === Outcome.INVALID
         ) {
-          stats[projectId!]![outcome] += value;
+          stats[projectId!]![outcome] += group.totals['sum(quantity)']!;
         }
 
         if (
@@ -321,7 +306,7 @@ export function UsageStatsProjects({
           outcome === Outcome.CARDINALITY_LIMITED ||
           outcome === Outcome.ABUSE
         ) {
-          stats[projectId!]![SortBy.RATE_LIMITED] += value;
+          stats[projectId!]![SortBy.RATE_LIMITED] += group.totals['sum(quantity)']!;
         }
       });
 
@@ -529,7 +514,7 @@ const Container = styled('div')`
 const Title = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.lg};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
   display: flex;
   flex: 1;
   align-items: center;

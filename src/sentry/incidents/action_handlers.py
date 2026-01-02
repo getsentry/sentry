@@ -27,6 +27,7 @@ from sentry.incidents.endpoints.serializers.incident import (
     DetailedIncidentSerializerResponse,
     IncidentSerializer,
 )
+from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import (
     AlertRuleDetectionType,
@@ -603,15 +604,19 @@ def generate_incident_trigger_email_context(
             incident_group_open_period = IncidentGroupOpenPeriod.objects.get(
                 group_open_period_id=metric_issue_context.open_period_identifier
             )
+            incident_identifier = incident_group_open_period.incident_identifier
         except IncidentGroupOpenPeriod.DoesNotExist:
-            raise ValueError("IncidentGroupOpenPeriod does not exist")
+            # the corresponding metric detector was not dual written
+            incident_identifier = get_fake_id_from_object_id(
+                metric_issue_context.open_period_identifier
+            )
 
         alert_link = organization.absolute_url(
             reverse(
                 "sentry-metric-alert",
                 kwargs={
                     "organization_slug": organization.slug,
-                    "incident_id": incident_group_open_period.incident_identifier,
+                    "incident_id": incident_identifier,
                 },
             ),
             query=urlencode(alert_link_params),

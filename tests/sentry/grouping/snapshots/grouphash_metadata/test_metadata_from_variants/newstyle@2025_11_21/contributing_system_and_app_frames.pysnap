@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:19:55.551797+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: stacktrace
 hashing_metadata: {
@@ -24,29 +22,31 @@ metrics with tags: {
 ---
 contributing variants:
   app*
-    hash: "161ce02ecc5d6685a72e8e520ab726b3"
+    hash: "9c580bff7b008113595f9f1e0ef1962f"
     contributing component: exception
     hint: None
     root_component:
       app*
         exception*
+          type*
+            "FailedToFetchError"
           stacktrace*
-            frame* (marked in-app by stack trace rule (function:playFetch +app))
+            frame* (marked in-app by custom stack trace rule (function:playFetch +app))
               filename*
                 "dogpark.js"
               function*
                 "playFetch"
               context_line*
                 "raise FailedToFetchError('Charlie didn't bring the ball back!');"
-          type*
-            "FailedToFetchError"
   system*
-    hash: "c5e4b4a9ad1803c4d4ca7feee5e430ae"
+    hash: "27e4433059022647e4d83d344cbf738c"
     contributing component: exception
     hint: None
     root_component:
       system*
         exception*
+          type*
+            "FailedToFetchError"
           stacktrace*
             frame*
               filename*
@@ -62,5 +62,3 @@ contributing variants:
                 "playFetch"
               context_line*
                 "raise FailedToFetchError('Charlie didn't bring the ball back!');"
-          type*
-            "FailedToFetchError"

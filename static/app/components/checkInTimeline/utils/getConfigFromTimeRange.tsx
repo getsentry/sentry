@@ -196,7 +196,8 @@ function computeRollup(elapsedSeconds: number, timelineWidth: number) {
 export function getConfigFromTimeRange(
   start: Date,
   end: Date,
-  containerWidth: number
+  containerWidth: number,
+  timezone: string
 ): TimeWindowConfig {
   const elapsedMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
   const elapsedSeconds = elapsedMinutes * 60;
@@ -249,6 +250,7 @@ export function getConfigFromTimeRange(
       intervals: {...intervals, normalMarkerInterval: minutes},
       dateTimeProps: {timeOnly},
       dateLabelFormat: getFormat({timeOnly, seconds: displaySeconds}),
+      timezone,
     };
   }
 
@@ -265,5 +267,6 @@ export function getConfigFromTimeRange(
     intervals: {...intervals, normalMarkerInterval},
     dateTimeProps: {dateOnly: true},
     dateLabelFormat: getFormat(),
+    timezone,
   };
 }

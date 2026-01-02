@@ -6,7 +6,6 @@ import {loadStripe} from '@stripe/stripe-js';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import moment from 'moment-timezone';
-import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
@@ -40,21 +39,17 @@ import {
   PAYG_BUSINESS_DEFAULT,
   PAYG_TEAM_DEFAULT,
 } from 'getsentry/constants';
-import {
-  CheckoutType,
-  InvoiceItemType,
-  OnDemandBudgetMode,
-  PlanName,
-  PlanTier,
-  type BillingConfig,
-  type CheckoutAddOns,
-  type EventBucket,
-  type Invoice,
-  type OnDemandBudgets,
-  type Plan,
-  type PreviewData,
-  type PromotionData,
-  type Subscription,
+import {CheckoutType, OnDemandBudgetMode, PlanName, PlanTier} from 'getsentry/types';
+import type {
+  BillingConfig,
+  CheckoutAddOns,
+  EventBucket,
+  Invoice,
+  OnDemandBudgets,
+  Plan,
+  PreviewData,
+  PromotionData,
+  Subscription,
 } from 'getsentry/types';
 import {
   hasActiveVCFeature,
@@ -69,16 +64,16 @@ import {getCompletedOrActivePromotion} from 'getsentry/utils/promotions';
 import {showSubscriptionDiscount} from 'getsentry/utils/promotionUtils';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import withPromotions from 'getsentry/utils/withPromotions';
-import Cart from 'getsentry/views/amCheckout/cart';
-import CheckoutOverview from 'getsentry/views/amCheckout/checkoutOverview';
-import CheckoutOverviewV2 from 'getsentry/views/amCheckout/checkoutOverviewV2';
-import CheckoutSuccess from 'getsentry/views/amCheckout/checkoutSuccess';
+import Cart from 'getsentry/views/amCheckout/components/cart';
+import CheckoutOverview from 'getsentry/views/amCheckout/components/checkoutOverview';
+import CheckoutOverviewV2 from 'getsentry/views/amCheckout/components/checkoutOverviewV2';
+import CheckoutSuccess from 'getsentry/views/amCheckout/components/checkoutSuccess';
 import AddBillingDetails from 'getsentry/views/amCheckout/steps/addBillingDetails';
+import AddBillingInformation from 'getsentry/views/amCheckout/steps/addBillingInfo';
 import AddDataVolume from 'getsentry/views/amCheckout/steps/addDataVolume';
 import AddPaymentMethod from 'getsentry/views/amCheckout/steps/addPaymentMethod';
-import AddBillingInformation from 'getsentry/views/amCheckout/steps/checkoutV3/addBillingInfo';
-import BuildYourPlan from 'getsentry/views/amCheckout/steps/checkoutV3/buildYourPlan';
-import ChooseYourBillingCycle from 'getsentry/views/amCheckout/steps/checkoutV3/chooseYourBillingCycle';
+import BuildYourPlan from 'getsentry/views/amCheckout/steps/buildYourPlan';
+import ChooseYourBillingCycle from 'getsentry/views/amCheckout/steps/chooseYourBillingCycle';
 import ContractSelect from 'getsentry/views/amCheckout/steps/contractSelect';
 import OnDemandBudgetsStep from 'getsentry/views/amCheckout/steps/onDemandBudgets';
 import OnDemandSpend from 'getsentry/views/amCheckout/steps/onDemandSpend';
@@ -134,21 +129,7 @@ class AMCheckout extends Component<Props, State> {
     ) {
       props.onToggleLegacy(props.subscription.planTier);
     }
-    const query = props.location?.query;
-    const queryString =
-      query && Object.keys(query).length > 0 ? `?${qs.stringify(query)}` : '';
 
-    // TODO(checkout v3): remove these checks once checkout v3 is GA'd and we've remove the legacy checkout route
-    if (props.location?.pathname.includes('checkout-v3') && !props.isNewCheckout) {
-      props.navigate(
-        `/settings/${props.organization.slug}/billing/checkout/${queryString}`,
-        {
-          replace: true,
-        }
-      );
-    } else if (!props.location?.pathname.includes('checkout-v3') && props.isNewCheckout) {
-      props.navigate(`/checkout-v3/${queryString}`, {replace: true});
-    }
     let step = 1;
     if (props.location?.hash) {
       const stepMatch = /^#step(\d)$/.exec(props.location.hash);
@@ -167,9 +148,7 @@ class AMCheckout extends Component<Props, State> {
       const selectedAll = Object.values(props.subscription.addOns ?? {}).every(
         addOn =>
           // add-on is enabled or not launched yet
-          // if there's no billing flag, we assume it's launched
-          addOn.enabled ||
-          (addOn.billingFlag && !props.organization.features.includes(addOn.billingFlag))
+          addOn.enabled || !addOn.isAvailable
       );
 
       if (selectedAll) {
@@ -278,6 +257,22 @@ class AMCheckout extends Component<Props, State> {
   }
 
   getPlans(billingConfig: BillingConfig) {
+    const {subscription} = this.props;
+    const isTestOrg = subscription.planDetails.isTestPlan;
+    if (isTestOrg) {
+      const testPlans = billingConfig.planList.filter(
+        plan =>
+          plan.isTestPlan &&
+          (plan.id.includes(billingConfig.freePlan) ||
+            (plan.basePrice &&
+              ((plan.billingInterval === MONTHLY && plan.contractInterval === MONTHLY) ||
+                (plan.billingInterval === ANNUAL && plan.contractInterval === ANNUAL))))
+      );
+
+      if (testPlans.length > 0) {
+        return testPlans;
+      }
+    }
     const plans = billingConfig.planList.filter(
       plan =>
         plan.id === billingConfig.freePlan ||
@@ -527,7 +522,7 @@ class AMCheckout extends Component<Props, State> {
       addOns: Object.values(subscription.addOns ?? {})
         .filter(
           // only populate add-ons that are launched
-          addOn => !addOn.billingFlag || organization.features.includes(addOn.billingFlag)
+          addOn => addOn.isAvailable
         )
         .reduce((acc, addOn) => {
           acc[addOn.apiName] = {
@@ -758,7 +753,7 @@ class AMCheckout extends Component<Props, State> {
 
     return (
       <Alert.Container>
-        <Alert type="info">
+        <Alert variant="info">
           <Stack gap="md">
             <Text bold>
               {tct('Billing handled externally through [partnerName]', {
@@ -811,9 +806,7 @@ class AMCheckout extends Component<Props, State> {
     }
 
     if (isSubmitted && isNewCheckout) {
-      const purchasedPlanItem = invoice?.items.find(
-        item => item.type === InvoiceItemType.SUBSCRIPTION
-      );
+      const purchasedPlanItem = invoice?.items.find(item => item.type === 'subscription');
       const basePlan = purchasedPlanItem
         ? this.getPlan(purchasedPlanItem.data.plan)
         : this.getPlan(formData.plan);
@@ -970,7 +963,7 @@ class AMCheckout extends Component<Props, State> {
         />
         {isOnSponsoredPartnerPlan && (
           <Alert.Container>
-            <Alert type="info">
+            <Alert variant="info">
               {t(
                 'Your promotional plan with %s ends on %s.',
                 subscription.partner?.partnership.displayName,
@@ -981,7 +974,7 @@ class AMCheckout extends Component<Props, State> {
         )}
         {promotionDisclaimerText && (
           <Alert.Container>
-            <Alert type="info">{promotionDisclaimerText}</Alert>
+            <Alert variant="info">{promotionDisclaimerText}</Alert>
           </Alert.Container>
         )}
         {isNewCheckout && (
@@ -1044,7 +1037,7 @@ const CheckoutHeader = styled('header')`
   right: 0;
   z-index: 100;
   width: 100%;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border-bottom: 1px solid ${p => p.theme.border};
   display: flex;
   justify-content: center;
@@ -1100,7 +1093,7 @@ const SidePanel = styled('aside')<{isNewCheckout: boolean}>`
             max-width: 26rem;
             border-top: none;
             padding-left: ${p.theme.space['3xl']};
-            background-color: ${p.theme.background};
+            background-color: ${p.theme.tokens.background.primary};
             padding-bottom: ${p.theme.space['3xl']};
           }
         `

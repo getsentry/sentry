@@ -1,4 +1,5 @@
-from typing import TypedDict
+from enum import StrEnum
+from typing import Literal, TypedDict
 
 from pydantic import BaseModel
 
@@ -65,6 +66,38 @@ class SummarizePageWebVitalsResponse(BaseModel):
     suggested_investigations: list[PageWebVitalsInsight]
 
 
+class AutofixHandoffPoint(StrEnum):
+    ROOT_CAUSE = "root_cause"
+
+
+class SeerAutomationHandoffConfiguration(BaseModel):
+    handoff_point: AutofixHandoffPoint
+    target: Literal["cursor_background_agent"]
+    integration_id: int
+    auto_create_pr: bool = False
+
+
+class SeerProjectPreference(BaseModel):
+    organization_id: int
+    project_id: int
+    repositories: list[SeerRepoDefinition]
+    automated_run_stopping_point: str | None = None
+    automation_handoff: SeerAutomationHandoffConfiguration | None = None
+
+
+class SeerRawPreferenceResponse(BaseModel):
+    """Response model for Seer's /v1/project-preference endpoint."""
+
+    preference: SeerProjectPreference | None
+
+
+class PreferenceResponse(BaseModel):
+    """Response model used by ProjectSeerPreferencesEndpoint which adds code_mapping_repos."""
+
+    preference: SeerProjectPreference | None
+    code_mapping_repos: list[SeerRepoDefinition]
+
+
 class SeerApiError(Exception):
     def __init__(self, message: str, status: int):
         self.message = message
@@ -72,6 +105,14 @@ class SeerApiError(Exception):
 
     def __str__(self):
         return f"Seer API error: {self.message} (status: {self.status})"
+
+
+class SeerApiResponseValidationError(Exception):
+    def __init__(self, message: str):
+        self.message = message
+
+    def __str__(self):
+        return f"Seer API response validation error: {self.message}"
 
 
 class SeerPermissionError(Exception):

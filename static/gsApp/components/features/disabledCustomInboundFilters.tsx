@@ -22,7 +22,7 @@ function DisabledAlert({organization, features}: Props) {
   return (
     <PlanFeature {...{organization, features}}>
       {({plan}) => (
-        <StyledPanelAlert type="muted">
+        <StyledPanelAlert variant="muted">
           <Container>
             {plan === null ? (
               t(
@@ -48,7 +48,6 @@ function DisabledAlert({organization, features}: Props) {
                 openUpsellModal({
                   organization,
                   source: 'feature.custom_inbound_filters',
-                  defaultSelection: 'event-volume',
                 })
               }
             >

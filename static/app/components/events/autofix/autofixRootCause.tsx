@@ -15,12 +15,14 @@ import {
   AutofixStatus,
   type AutofixRootCauseData,
   type AutofixRootCauseSelection,
+  type CodingAgentState,
   type CommentThread,
 } from 'sentry/components/events/autofix/types';
 import {
   makeAutofixQueryKey,
   useCodingAgentIntegrations,
   useLaunchCodingAgent,
+  type CodingAgentIntegration,
 } from 'sentry/components/events/autofix/useAutofix';
 import {formatRootCauseWithEvent} from 'sentry/components/events/autofix/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -85,6 +87,7 @@ type AutofixRootCauseProps = {
   runId: string;
   status: AutofixStatus;
   agentCommentThread?: CommentThread;
+  codingAgents?: Record<string, CodingAgentState>;
   event?: Event;
   isRootCauseFirstAppearance?: boolean;
   previousDefaultStepIndex?: number;
@@ -245,6 +248,143 @@ function CopyRootCauseButton({
   );
 }
 
+function SolutionActionButton({
+  cursorIntegrations,
+  preferredAction,
+  primaryButtonPriority,
+  isSelectingRootCause,
+  isLaunchingAgent,
+  isLoadingAgents,
+  submitFindSolution,
+  handleLaunchCodingAgent,
+  findSolutionTitle,
+}: {
+  cursorIntegrations: CodingAgentIntegration[];
+  findSolutionTitle: string;
+  handleLaunchCodingAgent: (integrationId: string, integrationName: string) => void;
+  isLaunchingAgent: boolean;
+  isLoadingAgents: boolean;
+  isSelectingRootCause: boolean;
+  preferredAction: string;
+  primaryButtonPriority: React.ComponentProps<typeof Button>['priority'];
+  submitFindSolution: () => void;
+}) {
+  const preferredIntegration = preferredAction.startsWith('cursor:')
+    ? cursorIntegrations.find(i => i.id === preferredAction.replace('cursor:', ''))
+    : null;
+
+  const effectivePreference =
+    preferredAction === 'seer_solution' || !preferredIntegration
+      ? 'seer_solution'
+      : preferredAction;
+
+  const isSeerPreferred = effectivePreference === 'seer_solution';
+
+  // Check if there are duplicate names among integrations (need to show ID to distinguish)
+  const hasDuplicateNames =
+    cursorIntegrations.length > 1 &&
+    new Set(cursorIntegrations.map(i => i.name)).size < cursorIntegrations.length;
+
+  // If no integrations, show simple Seer button
+  if (cursorIntegrations.length === 0) {
+    return (
+      <Button
+        size="sm"
+        priority={primaryButtonPriority}
+        busy={isSelectingRootCause}
+        onClick={submitFindSolution}
+        title={findSolutionTitle}
+      >
+        {t('Find Solution')}
+      </Button>
+    );
+  }
+
+  const dropdownItems = [
+    ...(isSeerPreferred
+      ? []
+      : [
+          {
+            key: 'seer_solution',
+            label: t('Find Solution with Seer'),
+            onAction: submitFindSolution,
+            disabled: isSelectingRootCause,
+          },
+        ]),
+    // Show all integrations except the currently preferred one
+    ...cursorIntegrations
+      .filter(integration => `cursor:${integration.id}` !== effectivePreference)
+      .map(integration => ({
+        key: `cursor:${integration.id}`,
+        label: (
+          <Flex gap="md" align="center">
+            <PluginIcon pluginId="cursor" size={20} />
+            <div>{t('Send to %s', integration.name)}</div>
+            {hasDuplicateNames && (
+              <SmallIntegrationIdText>({integration.id})</SmallIntegrationIdText>
+            )}
+          </Flex>
+        ),
+        onAction: () => handleLaunchCodingAgent(integration.id, integration.name),
+        disabled: isLoadingAgents || isLaunchingAgent,
+      })),
+  ];
+
+  const primaryButtonLabel = isSeerPreferred
+    ? t('Find Solution with Seer')
+    : hasDuplicateNames
+      ? t('Send to %s (%s)', preferredIntegration!.name, preferredIntegration!.id)
+      : t('Send to %s', preferredIntegration!.name);
+
+  const primaryButtonProps = isSeerPreferred
+    ? {
+        onClick: submitFindSolution,
+        busy: isSelectingRootCause,
+        icon: undefined,
+        children: primaryButtonLabel,
+      }
+    : {
+        onClick: () =>
+          handleLaunchCodingAgent(preferredIntegration!.id, preferredIntegration!.name),
+        busy: isLaunchingAgent,
+        icon: <PluginIcon pluginId="cursor" size={16} />,
+        children: primaryButtonLabel,
+      };
+
+  return (
+    <ButtonBar merged gap="0">
+      <Button
+        size="sm"
+        priority={primaryButtonPriority}
+        disabled={isLoadingAgents}
+        {...primaryButtonProps}
+      >
+        {primaryButtonProps.children}
+      </Button>
+      <DropdownMenu
+        items={dropdownItems}
+        trigger={(triggerProps, isOpen) => (
+          <DropdownTrigger
+            {...triggerProps}
+            size="sm"
+            priority={primaryButtonPriority}
+            busy={isSelectingRootCause || isLaunchingAgent}
+            disabled={isLoadingAgents}
+            aria-label={t('More solution options')}
+            icon={
+              isSelectingRootCause || isLaunchingAgent ? (
+                <LoadingIndicator size={12} />
+              ) : (
+                <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />
+              )
+            }
+          />
+        )}
+      />
+    </ButtonBar>
+  );
+}
+
 function AutofixRootCauseDisplay({
   causes,
   groupId,
@@ -254,6 +394,7 @@ function AutofixRootCauseDisplay({
   previousDefaultStepIndex,
   previousInsightCount,
   agentCommentThread,
+  codingAgents,
   event,
 }: AutofixRootCauseProps) {
   const cause = causes[0];
@@ -273,9 +414,11 @@ function AutofixRootCauseDisplay({
     runId
   );
 
-  const [preferredAction, setPreferredAction] = useLocalStorageState<
-    'seer_solution' | 'cursor_background_agent'
-  >('autofix:rootCauseActionPreference', 'seer_solution');
+  // Stores 'seer_solution' or an integration ID (e.g., 'cursor:123')
+  const [preferredAction, setPreferredAction] = useLocalStorageState<string>(
+    'autofix:rootCauseActionPreference',
+    'seer_solution'
+  );
 
   const handleSelectDescription = () => {
     if (descriptionRef.current) {
@@ -320,27 +463,34 @@ function AutofixRootCauseDisplay({
     });
   };
 
-  // Find Cursor integration specifically
-  const cursorIntegration = codingAgentIntegrations.find(
+  const cursorIntegrations = codingAgentIntegrations.filter(
     integration => integration.provider === 'cursor'
   );
 
-  const handleLaunchCodingAgent = () => {
-    if (!cursorIntegration) {
+  const handleLaunchCodingAgent = (integrationId: string, integrationName: string) => {
+    const targetIntegration = cursorIntegrations.find(i => i.id === integrationId);
+
+    if (!targetIntegration) {
       return;
     }
 
-    // Save user preference
-    setPreferredAction('cursor_background_agent');
+    // Save user preference with specific integration ID
+    setPreferredAction(`cursor:${integrationId}`);
 
-    // Show immediate loading toast
-    addLoadingMessage(t('Launching %s...', cursorIntegration.name));
+    addLoadingMessage(t('Launching %s...', integrationName), {
+      duration: 60000,
+    });
+
+    const instruction = solutionText.trim();
 
     launchCodingAgent({
-      integrationId: cursorIntegration.id,
-      agentName: cursorIntegration.name,
+      integrationId: targetIntegration.id,
+      agentName: targetIntegration.name,
       triggerSource: 'root_cause',
+      instruction: instruction || undefined,
     });
+
+    setSolutionText('');
 
     trackAnalytics('autofix.coding_agent.launch_from_root_cause', {
       organization,
@@ -352,16 +502,15 @@ function AutofixRootCauseDisplay({
   const isRootCauseAlreadySelected = Boolean(
     rootCauseSelection && 'cause_id' in rootCauseSelection
   );
+  const hasCodingAgents = Boolean(codingAgents && Object.keys(codingAgents).length > 0);
   const primaryButtonPriority: React.ComponentProps<typeof Button>['priority'] =
-    isRootCauseAlreadySelected ? 'default' : 'primary';
+    isRootCauseAlreadySelected || hasCodingAgents ? 'default' : 'primary';
   const findSolutionTitle = t('Let Seer plan a solution to this issue');
 
   if (!cause) {
     return (
       <Alert.Container>
-        <Alert type="error" showIcon={false}>
-          {t('No root cause available.')}
-        </Alert>
+        <Alert variant="danger">{t('No root cause available.')}</Alert>
       </Alert.Container>
     );
   }
@@ -372,9 +521,9 @@ function AutofixRootCauseDisplay({
         <CustomRootCausePadding>
           <HeaderWrapper>
             <HeaderText>
-              <IconWrapper ref={iconFocusRef}>
+              <Flex justify="center" align="center" ref={iconFocusRef}>
                 <IconFocus size="md" color="pink400" />
-              </IconWrapper>
+              </Flex>
               {t('Custom Root Cause')}
             </HeaderText>
           </HeaderWrapper>
@@ -404,9 +553,9 @@ function AutofixRootCauseDisplay({
     <CausesContainer>
       <HeaderWrapper>
         <HeaderText>
-          <IconWrapper ref={iconFocusRef}>
+          <Flex justify="center" align="center" ref={iconFocusRef}>
             <IconFocus size="md" color="pink400" />
-          </IconWrapper>
+          </Flex>
           {t('Root Cause')}
           <Button
             size="zero"
@@ -469,107 +618,17 @@ function AutofixRootCauseDisplay({
         />
         <ButtonBar>
           <CopyRootCauseButton cause={cause} event={event} />
-          {cursorIntegration ? (
-            <ButtonBar merged gap="0">
-              {preferredAction === 'cursor_background_agent' ? (
-                <Fragment>
-                  <Button
-                    size="sm"
-                    priority={primaryButtonPriority}
-                    busy={isLaunchingAgent}
-                    disabled={isLoadingAgents}
-                    onClick={handleLaunchCodingAgent}
-                    title={t('Send to Cursor Background Agent')}
-                    icon={<PluginIcon pluginId="cursor" size={16} />}
-                  >
-                    {t('Send to Cursor Background Agent')}
-                  </Button>
-                  <DropdownMenu
-                    items={[
-                      {
-                        key: 'seer-solution',
-                        label: t('Find Solution with Seer'),
-                        onAction: submitFindSolution,
-                        disabled: isSelectingRootCause,
-                      },
-                    ]}
-                    trigger={(triggerProps, isOpen) => (
-                      <DropdownTrigger
-                        {...triggerProps}
-                        size="sm"
-                        priority={primaryButtonPriority}
-                        busy={isSelectingRootCause}
-                        disabled={isLoadingAgents}
-                        aria-label={t('More solution options')}
-                        icon={
-                          isSelectingRootCause ? (
-                            <LoadingIndicator size={12} />
-                          ) : (
-                            <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />
-                          )
-                        }
-                      />
-                    )}
-                  />
-                </Fragment>
-              ) : (
-                <Fragment>
-                  <Button
-                    size="sm"
-                    priority={primaryButtonPriority}
-                    busy={isSelectingRootCause}
-                    disabled={isLoadingAgents}
-                    onClick={submitFindSolution}
-                    title={findSolutionTitle}
-                  >
-                    {t('Find Solution with Seer')}
-                  </Button>
-                  <DropdownMenu
-                    items={[
-                      {
-                        key: 'cursor-agent',
-                        label: (
-                          <Flex gap="md" align="center">
-                            <PluginIcon pluginId="cursor" size={20} />
-                            <div>{t('Send to Cursor Background Agent')}</div>
-                          </Flex>
-                        ),
-                        onAction: handleLaunchCodingAgent,
-                        disabled: isLoadingAgents || isLaunchingAgent,
-                      },
-                    ]}
-                    trigger={(triggerProps, isOpen) => (
-                      <DropdownTrigger
-                        {...triggerProps}
-                        size="sm"
-                        priority={primaryButtonPriority}
-                        busy={isLaunchingAgent}
-                        disabled={isLoadingAgents}
-                        aria-label={t('More solution options')}
-                        icon={
-                          isLaunchingAgent ? (
-                            <LoadingIndicator size={12} />
-                          ) : (
-                            <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />
-                          )
-                        }
-                      />
-                    )}
-                  />
-                </Fragment>
-              )}
-            </ButtonBar>
-          ) : (
-            <Button
-              size="sm"
-              priority={primaryButtonPriority}
-              busy={isSelectingRootCause}
-              onClick={submitFindSolution}
-              title={findSolutionTitle}
-            >
-              {t('Find Solution')}
-            </Button>
-          )}
+          <SolutionActionButton
+            cursorIntegrations={cursorIntegrations}
+            preferredAction={preferredAction}
+            primaryButtonPriority={primaryButtonPriority}
+            isSelectingRootCause={isSelectingRootCause}
+            isLaunchingAgent={isLaunchingAgent}
+            isLoadingAgents={isLoadingAgents}
+            submitFindSolution={submitFindSolution}
+            handleLaunchCodingAgent={handleLaunchCodingAgent}
+            findSolutionTitle={findSolutionTitle}
+          />
         </ButtonBar>
         {status === AutofixStatus.COMPLETED && (
           <AutofixStepFeedback stepType="root_cause" groupId={groupId} runId={runId} />
@@ -586,7 +645,7 @@ export function AutofixRootCause(props: AutofixRootCauseProps) {
         <AnimationWrapper key="card" {...cardAnimationProps}>
           <NoCausesPadding>
             <Alert.Container>
-              <Alert type="warning" showIcon={false}>
+              <Alert variant="warning">
                 {t('No root cause found.\n\n%s', props.terminationReason ?? '')}
               </Alert>
             </Alert.Container>
@@ -617,11 +676,11 @@ const NoCausesPadding = styled('div')`
 
 const CausesContainer = styled('div')`
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   box-shadow: ${p => p.theme.dropShadowMedium};
   padding: ${p => p.theme.space.lg};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const Content = styled('div')`
@@ -634,12 +693,6 @@ const HeaderWrapper = styled('div')`
   align-items: center;
   gap: ${space(1)};
   flex-wrap: wrap;
-`;
-
-const IconWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
 `;
 
 const HeaderText = styled('div')`
@@ -685,6 +738,11 @@ const SolutionInput = styled(TextArea)`
 
 const DropdownTrigger = styled(Button)`
   box-shadow: none;
-  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+  border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
   border-left: none;
+`;
+
+const SmallIntegrationIdText = styled('div')`
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
 `;

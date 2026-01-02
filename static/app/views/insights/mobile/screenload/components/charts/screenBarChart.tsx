@@ -6,6 +6,7 @@ import type {BaseChartProps} from 'sentry/components/charts/baseChart';
 import {Button} from 'sentry/components/core/button';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {
   axisLabelFormatter,
   getDurationUnit,
@@ -41,18 +42,18 @@ export function ScreensBarChart({
   chartProps?: BaseChartProps;
 }) {
   const theme = useTheme();
-  const {
-    isLoading: isReleasesLoading,
-    primaryRelease,
-    secondaryRelease,
-  } = useReleaseSelection();
+  const {isLoading: isReleasesLoading, primaryRelease} = useReleaseSelection();
 
+  const groupBy: SpanProperty[] = [SpanFields.DEVICE_CLASS];
+  if (defined(primaryRelease)) {
+    groupBy.push(SpanFields.RELEASE);
+  }
   const breakdownMetric: SpanProperty =
     type === 'ttid'
       ? 'avg(measurements.time_to_initial_display)'
       : 'avg(measurements.time_to_full_display)';
+  groupBy.push(breakdownMetric);
 
-  const groupBy = [SpanFields.DEVICE_CLASS, SpanFields.RELEASE] as const;
   const referrer = Referrer.SCREEN_BAR_CHART;
 
   const {
@@ -64,7 +65,7 @@ export function ScreensBarChart({
       enabled: !isReleasesLoading,
       search,
       orderby: breakdownMetric,
-      fields: [...groupBy, breakdownMetric],
+      fields: groupBy,
     },
     referrer
   );
@@ -72,7 +73,6 @@ export function ScreensBarChart({
   const transformedEvents = transformDeviceClassEvents({
     yAxes: [type === 'ttid' ? YAxis.TTID : YAxis.TTFD],
     primaryRelease,
-    secondaryRelease,
     data: deviceClassEvents,
     theme,
   });
@@ -128,7 +128,7 @@ export function ScreensBarChart({
           interval: 0,
         },
       }}
-      legend={{show: true, top: 0, left: 0}}
+      legend={{show: primaryRelease !== undefined, top: 0, left: 0}}
       yAxis={{
         axisLabel: {
           formatter(value: number) {
@@ -159,7 +159,7 @@ export function ScreensBarChart({
             <ChartActionDropdown
               chartType={ChartType.LINE}
               yAxes={[breakdownMetric]}
-              groupBy={[...groupBy]}
+              groupBy={[...groupBy] as SpanFields[]}
               title={title}
               search={search}
               referrer={referrer}

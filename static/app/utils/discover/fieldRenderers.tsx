@@ -3,6 +3,7 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import partial from 'lodash/partial';
+import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
 import {Tag} from 'sentry/components/core/badge/tag';
@@ -58,7 +59,6 @@ import toPercent from 'sentry/utils/number/toPercent';
 import Projects from 'sentry/utils/projects';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {isUrl} from 'sentry/utils/string/isUrl';
-import {hasDrillDownFlowsFeature} from 'sentry/views/dashboards/hooks/useHasDrillDownFlows';
 import {
   DashboardFilterKeys,
   type DashboardFilters,
@@ -68,7 +68,6 @@ import {
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import type {TraceItemDetailsMeta} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {ModelName} from 'sentry/views/insights/agents/components/modelName';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {CurrencyCell} from 'sentry/views/insights/common/components/tableCells/currencyCell';
 import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
@@ -76,6 +75,7 @@ import {ResponseStatusCodeCell} from 'sentry/views/insights/common/components/ta
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import {StarredSegmentCell} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
+import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {
   filterToLocationQuery,
@@ -295,7 +295,9 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       const {unit} = baggage ?? {};
       return (
         <NumberContainer>
-          {formatRate(data[field], unit as RateUnit, {minimumValue: 0.01})}
+          {typeof data[field] === 'number'
+            ? formatRate(data[field], unit as RateUnit, {minimumValue: 0.01})
+            : emptyValue}
         </NumberContainer>
       );
     },
@@ -420,6 +422,8 @@ const DownloadCount = styled('span')`
 const RightAlignedContainer = styled('span')`
   margin-left: auto;
   margin-right: 0;
+  display: block;
+  text-align: right;
 `;
 
 /**
@@ -781,7 +785,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       const label = ADOPTION_STAGE_LABELS[data.adoption_stage];
       return data.adoption_stage && label ? (
         <Tooltip title={label.tooltipTitle} isHoverable>
-          <Tag type={label.type}>{label.name}</Tag>
+          <Tag variant={label.variant}>{label.name}</Tag>
         </Tooltip>
       ) : (
         <Container>{emptyValue}</Container>
@@ -914,6 +918,18 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         <RightAlignedContainer>
           <PerformanceBadge score={Math.round(score * 100)} />
         </RightAlignedContainer>
+      );
+    },
+  },
+  'opportunity_score(measurements.score.total)': {
+    sortField: 'opportunity_score(measurements.score.total)',
+    renderFunc: data => {
+      const score = data['opportunity_score(measurements.score.total)'];
+      if (typeof score !== 'number') {
+        return <Container>{emptyValue}</Container>;
+      }
+      return (
+        <RightAlignedContainer>{Math.round(score * 10000) / 100}</RightAlignedContainer>
       );
     },
   },
@@ -1319,7 +1335,7 @@ const RectangleRelativeOpsBreakdown = styled(RowRectangle)`
 `;
 
 const OtherRelativeOpsBreakdown = styled(RectangleRelativeOpsBreakdown)`
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.colors.gray100};
 `;
 
 const StyledLink = styled(Link)`
@@ -1394,16 +1410,17 @@ function wrapFieldRendererInDashboardLink(
   dashboardFilters: DashboardFilters | undefined = undefined
 ): FieldFormatterRenderFunctionPartial {
   return function (data, baggage) {
-    const {organization} = baggage;
+    const {organization, location} = baggage;
     const value = data[field];
     const dashboardUrl = getDashboardUrl(
       field,
       value,
       organization,
+      location,
       widget,
       dashboardFilters
     );
-    if (hasDrillDownFlowsFeature(organization) && dashboardUrl) {
+    if (dashboardUrl) {
       return <Link to={dashboardUrl}>{renderer(data, baggage)}</Link>;
     }
     return renderer(data, baggage);
@@ -1414,6 +1431,7 @@ function getDashboardUrl(
   field: string,
   value: any,
   organization: Organization,
+  location: Location,
   widget: Widget | undefined = undefined,
   dashboardFilters: DashboardFilters | undefined = undefined
 ) {
@@ -1422,9 +1440,14 @@ function getDashboardUrl(
     const dashboardLink = widget.queries[0]?.linkedDashboards?.find(
       linkedDashboard => linkedDashboard.field === field
     );
-    if (dashboardLink) {
-      const newTemporaryFilters: GlobalFilter[] =
-        dashboardFilters[DashboardFilterKeys.GLOBAL_FILTER] ?? [];
+    if (dashboardLink && dashboardLink.dashboardId !== '-1') {
+      const newTemporaryFilters: GlobalFilter[] = [
+        ...(dashboardFilters[DashboardFilterKeys.GLOBAL_FILTER] ?? []),
+      ].filter(
+        filter =>
+          Boolean(filter.value) &&
+          !(filter.tag.key === field && filter.dataset === widget.widgetType)
+      );
 
       // Format the value as a proper filter condition string
       const mutableSearch = new MutableSearch('');
@@ -1434,10 +1457,23 @@ function getDashboardUrl(
         dataset: widget.widgetType,
         tag: {key: field, name: field, kind: FieldKind.TAG},
         value: formattedValue,
+        isTemporary: true,
       });
+
+      // Preserve project, environment, and time range query params
+      const filterParams = pick(location.query, [
+        'release',
+        'environment',
+        'project',
+        'statsPeriod',
+        'start',
+        'end',
+      ]);
+
       const url = `/organizations/${organization.slug}/dashboard/${dashboardLink.dashboardId}/?${qs.stringify(
         {
-          [DashboardFilterKeys.TEMPORARY_FILTERS]: newTemporaryFilters.map(filter =>
+          ...filterParams,
+          [DashboardFilterKeys.GLOBAL_FILTER]: newTemporaryFilters.map(filter =>
             JSON.stringify(filter)
           ),
         }

@@ -24,7 +24,6 @@ import {
 import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
-import {isEAPTraceNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
   TRACE_VIEW_MOBILE_VITALS,
@@ -39,7 +38,11 @@ type Props = {
 };
 
 export function TraceContextVitals({rootEventResults, tree, containerWidth}: Props) {
-  const {hasVitals} = useTraceContextSections({tree, logs: undefined});
+  const {hasVitals} = useTraceContextSections({
+    tree,
+    logs: undefined,
+    metrics: undefined,
+  });
   const traceNode = tree.root.children[0];
   const theme = useTheme();
 
@@ -52,9 +55,8 @@ export function TraceContextVitals({rootEventResults, tree, containerWidth}: Pro
     ? TRACE_VIEW_WEB_VITALS
     : TRACE_VIEW_MOBILE_VITALS;
 
-  const isEAPTrace = isEAPTraceNode(traceNode);
   const collectedVitals =
-    isEAPTrace && tree.vital_types.has('mobile')
+    traceNode.isEAPEvent && tree.vital_types.has('mobile')
       ? getMobileVitalsFromRootEventResults(rootEventResults.data)
       : Array.from(tree.vitals.values()).flat();
 
@@ -167,7 +169,7 @@ const VitalPillName = styled('div')<{status: PerformanceScore}>`
       p.status === 'none'
         ? p.theme.border
         : makePerformanceScoreColors(p.theme)[p.status].border};
-  border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
   background-color: ${p => makePerformanceScoreColors(p.theme)[p.status].light};
   color: ${p => makePerformanceScoreColors(p.theme)[p.status].normal};
   font-size: ${p => p.theme.fontSize.sm};
@@ -185,9 +187,9 @@ const VitalPillValue = styled('div')`
   justify-content: center;
   border: 1px solid ${p => p.theme.border};
   border-left: none;
-  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
-  background: ${p => p.theme.background};
-  color: ${p => p.theme.textColor};
+  background: ${p => p.theme.tokens.background.primary};
+  border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.lg};
   padding: 0 ${space(1)};
 `;

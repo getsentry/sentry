@@ -1,6 +1,7 @@
+import type {Simplify} from 'type-fest';
+
 import type {PlatformKey} from 'sentry/types/project';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import type {Flatten} from 'sentry/utils/types/flatten';
 import type {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
 
 export enum ModuleName {
@@ -12,9 +13,12 @@ export enum ModuleName {
   SCREEN_LOAD = 'screen_load',
   APP_START = 'app_start',
   RESOURCE = 'resource',
-  AGENTS = 'agents',
+  AGENT_MODELS = 'agent-models',
+  AGENT_TOOLS = 'agent-tools',
   AI_GENERATIONS = 'ai-generations',
-  MCP = 'mcp',
+  MCP_TOOLS = 'mcp-tools',
+  MCP_RESOURCES = 'mcp-resources',
+  MCP_PROMPTS = 'mcp-prompts',
   MOBILE_UI = 'mobile-ui',
   MOBILE_VITALS = 'mobile-vitals',
   SCREEN_RENDERING = 'screen-rendering',
@@ -107,9 +111,10 @@ export enum SpanFields {
   GEN_AI_USAGE_INPUT_TOKENS_CACHED = 'gen_ai.usage.input_tokens.cached',
   GEN_AI_USAGE_OUTPUT_TOKENS = 'gen_ai.usage.output_tokens',
   GEN_AI_USAGE_OUTPUT_TOKENS_REASONING = 'gen_ai.usage.output_tokens.reasoning',
-  GEN_AI_USAGE_TOTAL_COST = 'gen_ai.usage.total_cost',
   GEN_AI_USAGE_TOTAL_TOKENS = 'gen_ai.usage.total_tokens',
   GEN_AI_OPERATION_TYPE = 'gen_ai.operation.type',
+  GEN_AI_OPERATION_NAME = 'gen_ai.operation.name',
+  GEN_AI_CONVERSATION_ID = 'gen_ai.conversation.id',
   MCP_CLIENT_NAME = 'mcp.client.name',
   MCP_TRANSPORT = 'mcp.transport',
   MCP_TOOL_NAME = 'mcp.tool.name',
@@ -203,12 +208,14 @@ export type SpanNumberFields =
   | SpanFields.MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH
   | SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY
   | SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY
+  | SpanFields.GEN_AI_COST_INPUT_TOKENS
+  | SpanFields.GEN_AI_COST_OUTPUT_TOKENS
+  | SpanFields.GEN_AI_COST_TOTAL_TOKENS
   | SpanFields.GEN_AI_USAGE_INPUT_TOKENS
-  | SpanFields.GEN_AI_USAGE_INPUT_TOKENS_CACHED
   | SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS
-  | SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS_REASONING
   | SpanFields.GEN_AI_USAGE_TOTAL_TOKENS
-  | SpanFields.GEN_AI_USAGE_TOTAL_COST
+  | SpanFields.GEN_AI_USAGE_INPUT_TOKENS_CACHED
+  | SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS_REASONING
   | SpanFields.TOTAL_SCORE
   | SpanFields.INP
   | SpanFields.INP_SCORE
@@ -496,7 +503,7 @@ type SpanResponseRaw = {
     [Property in SpanFields as `${SpanFunction.COUNT_IF}(${Property},${string},${string})`]: number;
   };
 
-export type SpanResponse = Flatten<SpanResponseRaw>;
+export type SpanResponse = Simplify<SpanResponseRaw>;
 export type SpanProperty = keyof SpanResponse;
 
 export type SpanQueryFilters = Partial<Record<SpanStringFields, string>> & {
@@ -533,7 +540,7 @@ type ErrorResponseRaw = {
   [Property in NoArgErrorFunction as `${Property}()`]: number;
 };
 
-export type ErrorResponse = Flatten<ErrorResponseRaw>;
+export type ErrorResponse = Simplify<ErrorResponseRaw>;
 export type ErrorProperty = keyof ErrorResponse;
 
 // Maps the subregion code to the subregion name according to UN m49 standard

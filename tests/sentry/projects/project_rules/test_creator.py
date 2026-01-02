@@ -1,11 +1,7 @@
-import pytest
-
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.locks import locks
-from sentry.models.rule import Rule, RuleSource
+from sentry.models.rule import RuleSource
 from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.types.actor import Actor
 from sentry.workflow_engine.models import (
     Action,
@@ -16,7 +12,6 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector import Detector
-from sentry.workflow_engine.processors.detector import UnableToAcquireLockApiError
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 
@@ -32,15 +27,20 @@ class TestProjectRuleCreator(TestCase):
             name="New Cool Rule",
             owner=Actor.from_id(user_id=self.user.id),
             project=self.project,
-            action_match="all",
-            filter_match="any",
+            action_match="any",
+            filter_match="all",
             conditions=[
                 {
                     "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
                     "key": "foo",
                     "match": "eq",
                     "value": "bar",
-                }
+                },
+                {
+                    "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                    "key": "foo",
+                    "match": "is",
+                },
             ],
             actions=[
                 {
@@ -48,72 +48,13 @@ class TestProjectRuleCreator(TestCase):
                     "name": "Send a notification (for all legacy integrations)",
                 }
             ],
+            environment=self.environment.id,
             frequency=5,
             source=RuleSource.ISSUE,
         )
 
-    def test_creates_rule(self) -> None:
-        r = self.creator.run()
-        rule = Rule.objects.get(id=r.id)
-        assert rule.label == "New Cool Rule"
-        assert rule.owner_user_id == self.user.id
-        assert rule.owner_team_id is None
-        assert rule.project == self.project
-        assert rule.environment_id is None
-        assert rule.data == {
-            "actions": [
-                {
-                    "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                }
-            ],
-            "conditions": [
-                {
-                    "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
-                    "key": "foo",
-                    "match": "eq",
-                    "value": "bar",
-                }
-            ],
-            "action_match": "all",
-            "filter_match": "any",
-            "frequency": 5,
-        }
-
-        assert not AlertRuleDetector.objects.filter(rule_id=rule.id).exists()
-        assert not AlertRuleWorkflow.objects.filter(rule_id=rule.id).exists()
-
-    @with_feature("organizations:workflow-engine-issue-alert-dual-write")
-    def test_dual_create_workflow_engine(self) -> None:
-        conditions = [
-            {
-                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
-                "key": "foo",
-                "match": "eq",
-                "value": "bar",
-            },
-            {
-                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
-                "key": "foo",
-                "match": "is",
-            },
-        ]
-
-        rule = ProjectRuleCreator(
-            name="New Cool Rule",
-            owner=Actor.from_id(user_id=self.user.id),
-            project=self.project,
-            action_match="any",
-            filter_match="all",
-            conditions=conditions,
-            environment=self.environment.id,
-            actions=[
-                {
-                    "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                    "name": "Send a notification (for all legacy integrations)",
-                }
-            ],
-            frequency=5,
-        ).run()
+    def test_create_rule_and_workflow(self) -> None:
+        rule = self.creator.run()
 
         rule_id = rule.id
         alert_rule_detector = AlertRuleDetector.objects.get(rule_id=rule_id)
@@ -149,44 +90,3 @@ class TestProjectRuleCreator(TestCase):
 
         action = DataConditionGroupAction.objects.get(condition_group=action_filter).action
         assert action.type == Action.Type.PLUGIN
-
-    @with_feature("organizations:workflow-engine-issue-alert-dual-write")
-    def test_dual_create_workflow_engine__cant_acquire_lock(self) -> None:
-        lock = locks.get(
-            f"workflow-engine-project-error-detector:{self.project.id}",
-            duration=10,
-            name="workflow_engine_issue_alert",
-        )
-        lock.acquire()
-
-        conditions = [
-            {
-                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
-                "key": "foo",
-                "match": "eq",
-                "value": "bar",
-            },
-            {
-                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
-                "key": "foo",
-                "match": "is",
-            },
-        ]
-
-        with pytest.raises(UnableToAcquireLockApiError):
-            ProjectRuleCreator(
-                name="New Cool Rule",
-                owner=Actor.from_id(user_id=self.user.id),
-                project=self.project,
-                action_match="any",
-                filter_match="all",
-                conditions=conditions,
-                environment=self.environment.id,
-                actions=[
-                    {
-                        "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                        "name": "Send a notification (for all legacy integrations)",
-                    }
-                ],
-                frequency=5,
-            ).run()

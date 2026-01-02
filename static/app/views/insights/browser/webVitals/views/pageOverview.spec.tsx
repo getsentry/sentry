@@ -1,5 +1,4 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -7,18 +6,21 @@ import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {PageFilters} from 'sentry/types/core';
-import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import PageOverview from 'sentry/views/insights/browser/webVitals/views/pageOverview';
-
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
 
 describe('PageOverview', () => {
   const organization = OrganizationFixture({
     features: ['insight-modules'],
   });
+
+  const baseRouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/insights/frontend/pageloads/overview/`,
+      query: {},
+    },
+    route: `/organizations/:orgId/insights/frontend/pageloads/overview/`,
+  };
 
   let eventsMock: jest.Mock;
 
@@ -36,18 +38,6 @@ describe('PageOverview', () => {
     PageFiltersStore.onInitializeUrlState(pageFilters);
     const project = ProjectFixture({id: '1', slug: 'project-slug'});
     ProjectsStore.loadInitialData([project]);
-
-    jest.mocked(useLocation).mockReturnValue({
-      pathname: '',
-      search: '',
-      query: {},
-      hash: '',
-      state: undefined,
-      action: 'PUSH',
-      key: '',
-    });
-
-    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/seer/setup-check/',
       method: 'GET',
@@ -91,7 +81,10 @@ describe('PageOverview', () => {
   });
 
   it('renders', () => {
-    render(<PageOverview />, {organization, deprecatedRouterMocks: true});
+    render(<PageOverview />, {
+      organization,
+      initialRouterConfig: baseRouterConfig,
+    });
     // Raw web vital metric tile queries
     expect(eventsMock).toHaveBeenNthCalledWith(
       1,
@@ -108,7 +101,7 @@ describe('PageOverview', () => {
             'count()',
           ],
           query:
-            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] !transaction:"<< unparameterized >>"',
+            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""]',
         }),
       })
     );
@@ -140,7 +133,7 @@ describe('PageOverview', () => {
             `count_scores(measurements.score.inp)`,
           ],
           query:
-            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] !transaction:"<< unparameterized >>"',
+            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""]',
         }),
       })
     );
@@ -150,18 +143,15 @@ describe('PageOverview', () => {
     const organizationWithInp = OrganizationFixture({
       features: ['insight-modules'],
     });
-    jest.mocked(useLocation).mockReturnValue({
-      pathname: '',
-      search: '',
-      query: {transaction: '/', type: 'interactions'},
-      hash: '',
-      state: undefined,
-      action: 'PUSH',
-      key: '',
-    });
     render(<PageOverview />, {
       organization: organizationWithInp,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        ...baseRouterConfig,
+        location: {
+          ...baseRouterConfig.location,
+          query: {transaction: '/', type: 'interactions'},
+        },
+      },
     });
     await waitFor(() =>
       expect(eventsMock).toHaveBeenCalledWith(
@@ -205,21 +195,18 @@ describe('PageOverview', () => {
     const organizationWithInp = OrganizationFixture({
       features: ['insight-modules'],
     });
-    jest.mocked(useLocation).mockReturnValue({
-      pathname: '',
-      search: '',
-      query: {
-        transaction: '/page-with-a-*/',
-        type: 'interactions',
-      },
-      hash: '',
-      state: undefined,
-      action: 'PUSH',
-      key: '',
-    });
     render(<PageOverview />, {
       organization: organizationWithInp,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        ...baseRouterConfig,
+        location: {
+          ...baseRouterConfig.location,
+          query: {
+            transaction: '/page-with-a-*/',
+            type: 'interactions',
+          },
+        },
+      },
     });
     await waitFor(() =>
       expect(eventsMock).toHaveBeenCalledWith(

@@ -1,37 +1,31 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {IconMegaphone} from 'sentry/icons';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {useFeedbackSDKIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {t} from 'sentry/locale';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 
 export default function DynamicAlertsFeedbackButton() {
-  const openForm = useFeedbackForm();
+  const {feedback} = useFeedbackSDKIntegration();
 
-  if (!openForm) {
+  if (!feedback) {
     return null;
   }
 
   return (
     <ButtonContainer>
-      <Button
-        onClick={() => {
-          openForm({
-            formTitle: 'Anomaly Detection Feedback',
-            messagePlaceholder: t(
-              'How can we make alerts using anomaly detection more useful?'
-            ),
-            tags: {
-              ['feedback.source']: 'dynamic_thresholding',
-              ['feedback.owner']: 'ml-ai',
-            },
-          });
+      <FeedbackButton
+        feedbackOptions={{
+          formTitle: t('Anomaly Detection Feedback'),
+          messagePlaceholder: t(
+            'How can we make alerts using anomaly detection more useful?'
+          ),
+          tags: {
+            ['feedback.source']: 'dynamic_thresholding',
+            ['feedback.owner']: 'ml-ai',
+          },
         }}
         size="xs"
-        icon={<IconMegaphone />}
-      >
-        Give Feedback
-      </Button>
+      />
     </ButtonContainer>
   );
 }

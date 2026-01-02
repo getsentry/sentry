@@ -41,6 +41,8 @@ import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import useOrganization from 'sentry/utils/useOrganization';
 
+import type {FilterKeyItem} from './filterKeyListBox/types';
+
 type SearchQueryBuilderInputProps = {
   item: Node<ParseResultToken>;
   state: ListState<ParseResultToken>;
@@ -99,13 +101,12 @@ function replaceFocusedWordWithFilter(
   value: string,
   cursorPosition: number,
   key: string,
-  getFieldDefinition: FieldDefinitionGetter,
-  hasWildcardOperators: boolean
+  getFieldDefinition: FieldDefinitionGetter
 ) {
   return replaceFocusedWord(
     value,
     cursorPosition,
-    getInitialFilterText(key, getFieldDefinition(key), hasWildcardOperators)
+    getInitialFilterText(key, getFieldDefinition(key))
   );
 }
 
@@ -271,9 +272,6 @@ function SearchQueryBuilderInputInternal({
   const hasInputChangeFlows = organization.features.includes(
     'search-query-builder-input-flow-changes'
   );
-  const hasWildcardOperators =
-    organization.features.includes('search-query-builder-wildcard-operators') &&
-    organization.features.includes('search-query-builder-default-to-contains');
 
   const updateSelectionIndex = useCallback(() => {
     setSelectionIndex(inputRef.current?.selectionStart ?? 0);
@@ -409,6 +407,24 @@ function SearchQueryBuilderInputInternal({
     updateSelectionIndex();
   }, [updateSelectionIndex]);
 
+  const renderItem = useCallback(
+    (keyItem: FilterKeyItem) =>
+      itemIsSection(keyItem) ? (
+        <Section title={keyItem.label} key={keyItem.key}>
+          {keyItem.options.map(child => (
+            <Item {...child} key={child.key}>
+              {child.label}
+            </Item>
+          ))}
+        </Section>
+      ) : (
+        <Item {...keyItem} key={keyItem.key}>
+          {keyItem.label}
+        </Item>
+      ),
+    []
+  );
+
   return (
     <Fragment>
       <HiddenText
@@ -437,6 +453,18 @@ function SearchQueryBuilderInputInternal({
               query: option.value,
               focusOverride: {itemKey: 'end'},
             });
+            return;
+          }
+
+          if (option.type === 'logic-filter') {
+            dispatch({
+              type: 'UPDATE_FREE_TEXT_ON_SELECT',
+              tokens: [token],
+              text: option.value,
+              shouldCommitQuery: true,
+              focusOverride: calculateNextFocusForInsertedToken(item),
+            });
+            resetInputValue();
             return;
           }
 
@@ -484,8 +512,7 @@ function SearchQueryBuilderInputInternal({
               inputValue,
               selectionIndex,
               value,
-              getFieldDefinition,
-              hasWildcardOperators
+              getFieldDefinition
             ),
             focusOverride: calculateNextFocusForFilter(
               state,
@@ -588,8 +615,7 @@ function SearchQueryBuilderInputInternal({
                     inputValue,
                     selectionIndex,
                     filterValue,
-                    getFieldDefinition,
-                    hasWildcardOperators
+                    getFieldDefinition
                   ),
                   focusOverride: calculateNextFocusForFilter(
                     state,
@@ -632,8 +658,7 @@ function SearchQueryBuilderInputInternal({
                 inputValue,
                 selectionIndex,
                 filterKey,
-                getFieldDefinition,
-                hasWildcardOperators
+                getFieldDefinition
               ),
               focusOverride: calculateNextFocusForFilter(
                 state,
@@ -678,21 +703,12 @@ function SearchQueryBuilderInputInternal({
           state.collection.getLastKey() === item.key ? 'query-builder-input' : undefined
         }
       >
-        {keyItem =>
-          itemIsSection(keyItem) ? (
-            <Section title={keyItem.label} key={keyItem.key}>
-              {keyItem.options.map(child => (
-                <Item {...child} key={child.key}>
-                  {child.label}
-                </Item>
-              ))}
-            </Section>
-          ) : (
-            <Item {...keyItem} key={keyItem.key}>
-              {keyItem.label}
-            </Item>
-          )
-        }
+        {/* `useComboBoxState` inside the combo box component eagerly iterates
+        `children`, which can be very slow if there are many items. If the combo
+        box is not even open, do not pass any `children`. This prevents the
+        combo box from iterating anything while it's closed, which improves
+        render performance when the combo box is closed. */}
+        {isOpen ? renderItem : null}
       </SearchQueryBuilderCombobox>
     </Fragment>
   );
@@ -746,7 +762,7 @@ const Row = styled('div')`
 
   &[aria-invalid='true'] {
     input {
-      color: ${p => p.theme.red400};
+      color: ${p => p.theme.colors.red500};
     }
   }
 
@@ -758,7 +774,7 @@ const Row = styled('div')`
       right: ${p => p.theme.space.xs};
       top: 0;
       bottom: 0;
-      background-color: ${p => p.theme.gray100};
+      background-color: ${p => p.theme.colors.gray100};
     }
   }
 `;

@@ -20,7 +20,7 @@ import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
 import ProductTrialTag from 'getsentry/components/productTrial/productTrialTag';
 import StartTrialButton from 'getsentry/components/startTrialButton';
 import type {ProductTrial, Subscription} from 'getsentry/types';
-import {UsageAction} from 'getsentry/utils/billing';
+import {isBizPlanFamily, UsageAction} from 'getsentry/utils/billing';
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 import titleCase from 'getsentry/utils/titleCase';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
@@ -167,9 +167,7 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
           <Button
             priority="primary"
             onClick={() => {
-              browserHistory.push(
-                normalizeUrl(`/settings/${organization.slug}/billing/checkout/`)
-              );
+              browserHistory.push(normalizeUrl(`/checkout/${organization.slug}/`));
             }}
           >
             {t('Update Plan')}
@@ -178,10 +176,20 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
     }
   } else if (daysLeft < 0 && daysLeft >= -7 && trial.isStarted) {
     alertHeader = t('%s Trial', titleCase(getProductName(trial.category)));
-    alertText = t(
-      'Your unlimited %s trial ended. Keep using more by upgrading your plan.',
-      getProductName(product ?? trial.category)
-    );
+
+    if (isPaid && isBizPlanFamily(subscription.planDetails)) {
+      // For Business plan users, just say the trial ended without upgrade prompt
+      alertText = t(
+        'Your unlimited %s trial ended.',
+        getProductName(product ?? trial.category)
+      );
+    } else {
+      // For free and Team plan users, show the upgrade prompt
+      alertText = t(
+        'Your unlimited %s trial ended. Keep using more by upgrading your plan.',
+        getProductName(product ?? trial.category)
+      );
+    }
 
     alertButton =
       isPaid && !hasBillingRole ? (
@@ -202,9 +210,7 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
         <Button
           priority="primary"
           onClick={() => {
-            browserHistory.push(
-              normalizeUrl(`/settings/${organization.slug}/billing/checkout/`)
-            );
+            browserHistory.push(normalizeUrl(`/checkout/${organization.slug}/`));
           }}
         >
           {t('Update Plan')}
@@ -236,12 +242,12 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
   );
 
   return (
-    <TrialAlert system type="muted" trailingItems={actions}>
+    <TrialAlert system variant="muted" trailingItems={actions}>
       <React.Fragment>
         {alertHeader && (
           <Heading>
             <h4>{alertHeader}</h4>
-            <ProductTrialTag trial={trial} type="default" showTrialEnded />
+            <ProductTrialTag trial={trial} variant="muted" showTrialEnded />
           </Heading>
         )}
         {alertText && <div>{alertText}</div>}
@@ -254,7 +260,7 @@ export default ProductTrialAlert;
 
 const TrialAlert = styled(Alert)`
   align-items: center;
-  background: ${p => p.theme.backgroundElevated};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const Heading = styled('div')`

@@ -1,6 +1,5 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {QRCodeCanvas} from 'qrcode.react';
 
 import {
   addErrorMessage,
@@ -25,12 +24,12 @@ import type {FieldObject} from 'sentry/components/forms/types';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelItem from 'sentry/components/panels/panelItem';
+import {QuietZoneQRCode} from 'sentry/components/quietZoneQRCode';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {WebAuthnEnroll} from 'sentry/components/webAuthn/webAuthnEnroll';
 import {t} from 'sentry/locale';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
-import {space} from 'sentry/styles/space';
 import type {Authenticator} from 'sentry/types/auth';
 import {generateOrgSlugUrl} from 'sentry/utils';
 import getPendingInvite from 'sentry/utils/getPendingInvite';
@@ -80,7 +79,7 @@ const getFields = ({
     return [
       () => (
         <CodeContainer key="qrcode">
-          <StyledQRCode
+          <QuietZoneQRCode
             aria-label={t('Enrollment QR Code')}
             value={authenticator.qrcode}
             size={228}
@@ -455,7 +454,7 @@ export default function AccountSecurityEnroll() {
 
       {authenticator.rotationWarning && authenticator.status === 'rotation' && (
         <Alert.Container>
-          <Alert type="warning">{authenticator.rotationWarning}</Alert>
+          <Alert variant="warning">{authenticator.rotationWarning}</Alert>
         </Alert.Container>
       )}
 
@@ -481,9 +480,4 @@ const CodeContainer = styled(PanelItem)`
 
 const Actions = styled(PanelItem)`
   justify-content: flex-end;
-`;
-
-const StyledQRCode = styled(QRCodeCanvas)`
-  background: white;
-  padding: ${space(2)};
 `;

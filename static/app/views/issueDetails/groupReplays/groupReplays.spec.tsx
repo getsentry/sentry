@@ -5,10 +5,12 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
 import {ReplayListFixture} from 'sentry-fixture/replayList';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
+import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import ReplayReader from 'sentry/utils/replays/replayReader';
@@ -76,6 +78,7 @@ type InitializeOrgProps = {
 
 describe('GroupReplays', () => {
   const mockGroup = GroupFixture();
+  const user = UserFixture({id: '1'});
 
   const initialRouterConfig = {
     route: '/organizations/:orgId/issues/:groupId/replays/',
@@ -100,6 +103,7 @@ describe('GroupReplays', () => {
   }
 
   beforeEach(() => {
+    ConfigStore.set('user', user);
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${mockGroup.id}/`,
       body: mockGroup,
@@ -126,6 +130,24 @@ describe('GroupReplays', () => {
 
       expect(
         screen.getByText("You don't have access to this feature")
+      ).toBeInTheDocument();
+    });
+
+    it('should show access denied when user does not have granular replay permissions', async () => {
+      const {organization} = init({
+        organizationProps: {
+          features: ['session-replay', 'granular-replay-permissions'],
+          hasGranularReplayPermissions: true,
+          replayAccessMembers: [999], // User ID 1 is not in this list
+        },
+      });
+      render(<GroupReplays />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      expect(
+        await screen.findByText("You don't have access to this feature")
       ).toBeInTheDocument();
     });
   });
@@ -414,7 +436,7 @@ describe('GroupReplays', () => {
       expect(await screen.findAllByText('testDisplayName')).toHaveLength(2);
 
       const expectedQuery =
-        'query=&referrer=%2Forganizations%2F%3AorgId%2Fissues%2F%3AgroupId%2Freplays%2F&statsPeriod=14d&yAxis=count%28%29';
+        'playlistEnd=2022-09-28T23%3A29%3A13&playlistStart=2022-06-30T23%3A29%3A13&query=id%3A%5B346789a703f6454384f1de473b8b9fcc%2Cb05dae9b6be54d21a4d5ad9f8f02b780%5D&referrer=issueReplays';
 
       // Expect the first row to have the correct href
       expect(

@@ -410,7 +410,7 @@ export function ProjectPageFilter({
             size="xs"
             aria-label={t('Add Project')}
             to={makeProjectsPathname({path: '/new/', organization})}
-            icon={<IconAdd isCircled />}
+            icon={<IconAdd />}
           >
             {t('Project')}
           </LinkButton>
@@ -419,11 +419,9 @@ export function ProjectPageFilter({
       menuFooterMessage={menuFooterMessage}
       trigger={
         trigger ??
-        ((triggerProps, isOpen) => (
+        (triggerProps => (
           <ProjectPageFilterTrigger
             {...triggerProps}
-            isOpen={isOpen}
-            size={selectProps.size}
             value={value}
             memberProjects={memberProjects}
             nonMemberProjects={nonMemberProjects}

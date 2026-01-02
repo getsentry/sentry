@@ -946,6 +946,7 @@ PULL_REQUEST_OPENED_EVENT_EXAMPLE = b"""{
     "state": "open",
     "locked": false,
     "title": "Update the README with new information",
+    "author_association": "MEMBER",
     "user": {
       "login": "baxterthehacker",
       "id": 6752317,
@@ -1362,6 +1363,7 @@ PULL_REQUEST_EDITED_EVENT_EXAMPLE = b"""{
     "state": "open",
     "locked": false,
     "title": "new edited title",
+    "author_association": "MEMBER",
     "user": {
       "login": "baxterthehacker",
       "id": 6752317,
@@ -1778,6 +1780,7 @@ PULL_REQUEST_CLOSED_EVENT_EXAMPLE = b"""{
     "state": "open",
     "locked": false,
     "title": "new closed title",
+    "author_association": "MEMBER",
     "user": {
       "login": "baxterthehacker",
       "id": 6752317,
@@ -3012,7 +3015,27 @@ ISSUES_ASSIGNED_EVENT_EXAMPLE = r"""{
       "type": "User",
       "site_admin": false
     },
-    "assignees": [],
+    "assignees": [
+      {
+        "login": "octocat",
+        "id": 1,
+        "avatar_url": "https://avatars.githubusercontent.com/u/1?v=3",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/octocat",
+        "html_url": "https://github.com/octocat",
+        "followers_url": "https://api.github.com/users/octocat/followers",
+        "following_url": "https://api.github.com/users/octocat/following{/other_user}",
+        "gists_url": "https://api.github.com/users/octocat/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/octocat/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/octocat/subscriptions",
+        "organizations_url": "https://api.github.com/users/octocat/orgs",
+        "repos_url": "https://api.github.com/users/octocat/repos",
+        "events_url": "https://api.github.com/users/octocat/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/octocat/received_events",
+        "type": "User",
+        "site_admin": false
+      }
+    ],
     "milestone": null,
     "comments": 0,
     "created_at": "2015-05-05T23:40:28Z",
@@ -3520,4 +3543,31 @@ ISSUES_REOPENED_EVENT_EXAMPLE = r"""{
     "type": "User",
     "site_admin": false
   }
+}"""
+
+# Simplified example of a check_run rerequested action event
+# Note: installation.id must match the external_id used in create_github_integration (default: "12345")
+# Note: repository.id must match a Repository created for the organization (use create_repo in tests)
+CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE = b"""{
+    "action": "rerequested",
+    "installation": {"id": 12345},
+    "repository": {
+        "id": 35129377,
+        "full_name": "getsentry/sentry",
+        "html_url": "https://github.com/getsentry/sentry"
+    },
+    "check_run": {
+        "external_id": "4663713",
+        "html_url": "https://github.com/test/repo/runs/4"
+    }
+}"""
+
+CHECK_RUN_COMPLETED_EVENT_EXAMPLE = b"""{
+    "action": "completed",
+    "installation": {"id": 12345},
+    "repository": {
+        "id": 35129377,
+        "full_name": "getsentry/sentry",
+        "html_url": "https://github.com/getsentry/sentry"
+    }
 }"""

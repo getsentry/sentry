@@ -1,5 +1,6 @@
 import unittest
 import uuid
+from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock, call
 
@@ -17,6 +18,7 @@ from sentry.models.group import GroupStatus
 from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
@@ -27,8 +29,9 @@ from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.processors.detector import (
     associate_new_group_with_detector,
+    ensure_association_with_detector,
     get_detector_by_event,
-    get_detectors_by_groupevents_bulk,
+    get_detectors_for_event,
     process_detectors,
 )
 from sentry.workflow_engine.types import (
@@ -36,6 +39,7 @@ from sentry.workflow_engine.types import (
     DetectorPriorityLevel,
     WorkflowEventData,
 )
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from tests.sentry.workflow_engine.handlers.detector.test_base import (
     BaseDetectorHandlerTest,
     MockDetectorStateHandler,
@@ -72,9 +76,9 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
     def setUp(self) -> None:
         super().setUp()
 
-    def build_data_packet(self, **kwargs):
+    def build_data_packet(self, **kwargs: Any) -> DataPacket[dict[str, Any]]:
         source_id = "1234"
-        return DataPacket[dict](
+        return DataPacket[dict[str, Any]](
             source_id, {"source_id": source_id, "group_vals": {"group_1": 6}, **kwargs}
         )
 
@@ -219,17 +223,25 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         with mock.patch("sentry.utils.metrics.incr") as mock_incr:
             process_detectors(data_packet, [detector])
 
-            mock_incr.assert_called_once_with(
+            mock_incr.assert_any_call(
                 "workflow_engine.process_detector",
                 tags={"detector_type": detector.type},
+            )
+            mock_incr.assert_any_call(
+                "workflow_engine_detector.evaluation",
+                tags={"detector_type": detector.type, "result": "success"},
+                sample_rate=1.0,
             )
 
     @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
     @mock.patch("sentry.workflow_engine.processors.detector.metrics")
     @mock.patch("sentry.workflow_engine.processors.detector.logger")
     def test_metrics_and_logs_fire(
-        self, mock_logger, mock_metrics, mock_produce_occurrence_to_kafka
-    ):
+        self,
+        mock_logger: mock.MagicMock,
+        mock_metrics: mock.MagicMock,
+        mock_produce_occurrence_to_kafka: mock.MagicMock,
+    ) -> None:
         detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
         results = process_detectors(data_packet, [detector])
@@ -281,8 +293,11 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
     @mock.patch("sentry.workflow_engine.processors.detector.metrics")
     @mock.patch("sentry.workflow_engine.processors.detector.logger")
     def test_metrics_and_logs_resolve(
-        self, mock_logger, mock_metrics, mock_produce_occurrence_to_kafka
-    ):
+        self,
+        mock_logger: mock.MagicMock,
+        mock_metrics: mock.MagicMock,
+        mock_produce_occurrence_to_kafka: mock.MagicMock,
+    ) -> None:
         detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
         process_detectors(data_packet, [detector])
@@ -751,7 +766,7 @@ class TestEvaluateGroupValue(BaseDetectorHandlerTest):
             handler.state_manager.enqueue_dedupe_update("group_key", 99)
             handler.state_manager.commit_state_updates()
 
-            data_packet = DataPacket[dict](
+            data_packet = DataPacket[dict[str, Any]](
                 source_id="1234",
                 packet={"id": "1234", "group_vals": {"group_key": 10}, "dedupe": 100},
             )
@@ -778,7 +793,7 @@ class TestEvaluateGroupValue(BaseDetectorHandlerTest):
             handler.state_manager.commit_state_updates()
 
             handler.evaluate(
-                DataPacket[dict](
+                DataPacket[dict[str, Any]](
                     source_id="1234",
                     packet={"id": "1234", "group_vals": {"group_key": 10}, "dedupe": 100},
                 ),
@@ -789,7 +804,7 @@ class TestEvaluateGroupValue(BaseDetectorHandlerTest):
 
     def test_status_change(self) -> None:
         handler = self.build_handler()
-        data_packet = DataPacket[dict](
+        data_packet = DataPacket[dict[str, Any]](
             source_id="1234", packet={"id": "1234", "group_vals": {"group_key": 10}, "dedupe": 100}
         )
 
@@ -819,12 +834,125 @@ class TestEvaluateGroupValue(BaseDetectorHandlerTest):
         }
 
 
+class TestGetDetectorsForEvent(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.project = self.create_project()
+        self.group = self.create_group(project=self.project)
+        self.detector = self.create_detector(project=self.project, type=MetricIssue.slug)
+        self.error_detector = self.create_detector(project=self.project, type=ErrorGroupType.slug)
+        self.issue_stream_detector = self.create_detector(
+            project=self.project, type=IssueStreamGroupType.slug
+        )
+        self.event = self.store_event(project_id=self.project.id, data={})
+        self.occurrence = IssueOccurrence(
+            id=uuid.uuid4().hex,
+            project_id=1,
+            event_id="asdf",
+            fingerprint=["asdf"],
+            issue_title="title",
+            subtitle="subtitle",
+            resource_id=None,
+            evidence_data={"detector_id": self.detector.id},
+            evidence_display=[],
+            type=MetricIssue,
+            detection_time=timezone.now(),
+            level="error",
+            culprit="",
+        )
+        self.group_event = GroupEvent.from_event(self.event, self.group)
+
+    @override_options({"workflow_engine.exclude_issue_stream_detector": False})
+    def test_activity_update(self) -> None:
+        activity = Activity.objects.create(
+            project=self.project,
+            group=self.group,
+            type=ActivityType.SET_RESOLVED.value,
+            user_id=self.user.id,
+        )
+        event_data = WorkflowEventData(event=activity, group=self.group)
+        result = get_detectors_for_event(event_data, detector=self.detector)
+        assert result is not None
+        assert result.preferred_detector == self.detector
+        assert result.detectors == {self.issue_stream_detector, self.detector}
+
+    @override_options({"workflow_engine.exclude_issue_stream_detector": False})
+    def test_error_event(self) -> None:
+        event_data = WorkflowEventData(event=self.group_event, group=self.group)
+        result = get_detectors_for_event(event_data)
+        assert result is not None
+        assert result.preferred_detector == self.error_detector
+        assert result.detectors == {self.issue_stream_detector, self.error_detector}
+
+    @override_options({"workflow_engine.exclude_issue_stream_detector": False})
+    def test_metric_issue(self) -> None:
+        self.group_event.occurrence = self.occurrence
+
+        event_data = WorkflowEventData(event=self.group_event, group=self.group)
+        result = get_detectors_for_event(event_data)
+        assert result is not None
+        assert result.preferred_detector == self.detector
+        assert result.detectors == {self.issue_stream_detector, self.detector}
+
+    @override_options({"workflow_engine.exclude_issue_stream_detector": False})
+    def test_event_without_detector(self) -> None:
+        occurrence = IssueOccurrence(
+            id=uuid.uuid4().hex,
+            project_id=1,
+            event_id="asdf",
+            fingerprint=["asdf"],
+            issue_title="title",
+            subtitle="subtitle",
+            resource_id=None,
+            evidence_data={},  # no detector id
+            evidence_display=[],
+            type=PerformanceNPlusOneAPICallsGroupType,
+            detection_time=timezone.now(),
+            level="error",
+            culprit="",
+        )
+        self.group_event.occurrence = occurrence
+
+        event_data = WorkflowEventData(event=self.group_event, group=self.group)
+        result = get_detectors_for_event(event_data)
+        assert result is not None
+        assert result.preferred_detector == self.issue_stream_detector
+        assert result.detectors == {self.issue_stream_detector}
+
+    def test_no_detectors(self) -> None:
+        self.issue_stream_detector.delete()
+        self.error_detector.delete()
+        event_data = WorkflowEventData(event=self.group_event, group=self.group)
+        result = get_detectors_for_event(event_data)
+        assert result is None
+
+    def test_exclude_issue_stream_detector(self) -> None:
+        event_data = WorkflowEventData(event=self.group_event, group=self.group)
+
+        # Default behavior: issue stream detector is included
+        result = get_detectors_for_event(event_data)
+
+        assert result is not None
+        assert result.issue_stream_detector == self.issue_stream_detector
+        assert result.event_detector == self.error_detector
+        assert result.preferred_detector == self.error_detector
+
+        # With flag enabled: issue stream detector is excluded
+        with override_options({"workflow_engine.exclude_issue_stream_detector": True}):
+            result_excluded = get_detectors_for_event(event_data)
+
+            assert result_excluded is not None
+            assert result_excluded.issue_stream_detector is None
+            assert result_excluded.event_detector == self.error_detector
+            assert result_excluded.preferred_detector == self.error_detector
+
+
 class TestGetDetectorByEvent(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(project=self.project)
-        self.detector = self.create_detector(project=self.project, type="metric_issue")
-        self.error_detector = self.create_detector(project=self.project, type="error")
+        self.detector = self.create_detector(project=self.project, type=MetricIssue.slug)
+        self.error_detector = self.create_detector(project=self.project, type=ErrorGroupType.slug)
         self.event = self.store_event(project_id=self.project.id, data={})
         self.occurrence = IssueOccurrence(
             id=uuid.uuid4().hex,
@@ -928,89 +1056,6 @@ class TestGetDetectorByEvent(TestCase):
         assert result == self.error_detector
 
 
-class TestGetDetectorsByGroupEventsBulk(TestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.project1 = self.create_project()
-        self.project2 = self.create_project()
-        self.group1 = self.create_group(project=self.project1)
-        self.group2 = self.create_group(project=self.project2)
-
-        self.detector1 = self.create_detector(project=self.project1, type="metric_issue")
-        self.detector2 = self.create_detector(project=self.project2, type="error")
-        self.detector3 = self.create_detector(project=self.project2, type="metric_issue")
-
-        self.event1 = self.store_event(project_id=self.project1.id, data={})
-        self.event2 = self.store_event(project_id=self.project2.id, data={})
-
-    def test_empty_list(self) -> None:
-        result = get_detectors_by_groupevents_bulk([])
-        assert result == {}
-
-    def test_mixed_occurrences(self) -> None:
-        """Test bulk fetch with mixed events (some with occurrences, some without)"""
-        occurrence = IssueOccurrence(
-            id=uuid.uuid4().hex,
-            project_id=1,
-            event_id="asdf",
-            fingerprint=["asdf"],
-            issue_title="title",
-            subtitle="subtitle",
-            resource_id=None,
-            evidence_data={"detector_id": self.detector1.id},
-            evidence_display=[],
-            type=MetricIssue,
-            detection_time=timezone.now(),
-            level="error",
-            culprit="",
-        )
-
-        group_event1 = GroupEvent.from_event(self.event1, self.group1)
-        group_event1.occurrence = occurrence
-
-        group_event2 = GroupEvent.from_event(self.event2, self.group2)
-        group_event2.occurrence = None
-
-        events = [group_event1, group_event2]
-        result = get_detectors_by_groupevents_bulk(events)
-
-        assert result[group_event1.event_id] == self.detector1
-        assert result[group_event2.event_id] == self.detector2
-        assert len(result) == 2
-
-    def test_mixed_occurrences_missing_detectors(self) -> None:
-        occurrence = IssueOccurrence(
-            id=uuid.uuid4().hex,
-            project_id=1,
-            event_id="asdf",
-            fingerprint=["asdf"],
-            issue_title="title",
-            subtitle="subtitle",
-            resource_id=None,
-            evidence_data={},
-            evidence_display=[],
-            type=MetricIssue,
-            detection_time=timezone.now(),
-            level="error",
-            culprit="",
-        )
-        self.detector2.delete()
-
-        group_event1 = GroupEvent.from_event(self.event1, self.group1)
-        group_event1.occurrence = occurrence
-
-        group_event2 = GroupEvent.from_event(self.event2, self.group2)
-        group_event2.occurrence = None
-
-        events = [group_event1, group_event2]
-
-        with mock.patch("sentry.workflow_engine.processors.detector.metrics") as mock_metrics:
-            result = get_detectors_by_groupevents_bulk(events)
-
-            assert result == {}
-            mock_metrics.incr.assert_called_with("workflow_engine.detectors.error", amount=1)
-
-
 class TestAssociateNewGroupWithDetector(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -1045,4 +1090,98 @@ class TestAssociateNewGroupWithDetector(TestCase):
     def test_feedback_group_returns_false(self) -> None:
         group = self.create_group(project=self.project, type=FeedbackGroup.type_id)
         assert not associate_new_group_with_detector(group)
+        assert not DetectorGroup.objects.filter(group_id=group.id).exists()
+
+    def test_deleted_detector_creates_null_association(self) -> None:
+        group = self.create_group(project=self.project, type=MetricIssue.type_id)
+        deleted_detector_id = self.metric_detector.id
+
+        self.metric_detector.delete()
+
+        assert associate_new_group_with_detector(group, deleted_detector_id)
+
+        detector_group = DetectorGroup.objects.get(group_id=group.id)
+        assert detector_group.detector_id is None
+        assert detector_group.group_id == group.id
+
+
+class TestEnsureAssociationWithDetector(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.metric_detector = self.create_detector(project=self.project, type="metric_issue")
+        self.error_detector = self.create_detector(project=self.project, type="error")
+        self.options_context = self.options({"workflow_engine.ensure_detector_association": True})
+        self.options_context.__enter__()
+
+    def tearDown(self) -> None:
+        self.options_context.__exit__(None, None, None)
+        super().tearDown()
+
+    def test_feature_disabled_returns_false(self) -> None:
+        group = self.create_group(project=self.project, type=ErrorGroupType.type_id)
+
+        with self.options({"workflow_engine.ensure_detector_association": False}):
+            assert not ensure_association_with_detector(group)
+            assert not DetectorGroup.objects.filter(group_id=group.id).exists()
+
+    def test_already_exists_returns_true(self) -> None:
+        group = self.create_group(project=self.project, type=ErrorGroupType.type_id)
+        DetectorGroup.objects.create(detector=self.error_detector, group=group)
+
+        assert ensure_association_with_detector(group)
+        assert DetectorGroup.objects.filter(group_id=group.id).count() == 1
+
+    def test_error_group_creates_association(self) -> None:
+        group = self.create_group(project=self.project, type=ErrorGroupType.type_id)
+
+        assert ensure_association_with_detector(group)
+        detector_group = DetectorGroup.objects.get(group_id=group.id)
+        assert detector_group.detector_id == self.error_detector.id
+        assert detector_group.group_id == group.id
+
+    def test_metric_group_with_detector_id(self) -> None:
+        group = self.create_group(project=self.project, type=MetricIssue.type_id)
+
+        assert ensure_association_with_detector(group, self.metric_detector.id)
+        detector_group = DetectorGroup.objects.get(group_id=group.id)
+        assert detector_group.detector_id == self.metric_detector.id
+        assert detector_group.group_id == group.id
+
+    def test_feedback_group_returns_false(self) -> None:
+        group = self.create_group(project=self.project, type=FeedbackGroup.type_id)
+
+        assert not ensure_association_with_detector(group)
+        assert not DetectorGroup.objects.filter(group_id=group.id).exists()
+
+    def test_deleted_detector_creates_null_association(self) -> None:
+        group = self.create_group(project=self.project, type=MetricIssue.type_id)
+        deleted_detector_id = self.metric_detector.id
+
+        self.metric_detector.delete()
+
+        assert ensure_association_with_detector(group, deleted_detector_id)
+
+        detector_group = DetectorGroup.objects.get(group_id=group.id)
+        assert detector_group.detector_id is None
+        assert detector_group.group_id == group.id
+
+    def test_backdates_date_added_to_group_first_seen(self) -> None:
+        group = self.create_group(project=self.project, type=ErrorGroupType.type_id)
+
+        assert ensure_association_with_detector(group)
+        detector_group = DetectorGroup.objects.get(group_id=group.id)
+        assert detector_group.date_added == group.first_seen
+
+    def test_race_condition_handled(self) -> None:
+        group = self.create_group(project=self.project, type=ErrorGroupType.type_id)
+
+        assert ensure_association_with_detector(group)
+        assert ensure_association_with_detector(group)
+        assert DetectorGroup.objects.filter(group_id=group.id).count() == 1
+
+    def test_detector_not_found(self) -> None:
+        group = self.create_group(project=self.project, type=ErrorGroupType.type_id)
+        self.error_detector.delete()
+
+        assert not ensure_association_with_detector(group)
         assert not DetectorGroup.objects.filter(group_id=group.id).exists()

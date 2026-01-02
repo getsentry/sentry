@@ -24,6 +24,7 @@ class TestEvaluateMetricDetector(BaseMetricIssueTest):
         detector_trigger: DataCondition,
         extra_trigger: DataCondition | None = None,
     ):
+        self.query_subscription.refresh_from_db()
 
         conditions = [
             {
@@ -50,6 +51,30 @@ class TestEvaluateMetricDetector(BaseMetricIssueTest):
             "alert_id": self.alert_rule.id,
             "data_packet_source_id": str(self.query_subscription.id),
             "conditions": conditions,
+            "config": self.detector.config,
+            "data_sources": [
+                {
+                    "id": str(self.data_source.id),
+                    "organization_id": str(self.organization.id),
+                    "type": self.data_source.type,
+                    "source_id": str(self.query_subscription.id),
+                    "query_obj": {
+                        "id": str(self.query_subscription.id),
+                        "status": self.query_subscription.status,
+                        "subscription": self.query_subscription.subscription_id,
+                        "snuba_query": {
+                            "id": str(self.snuba_query.id),
+                            "dataset": self.snuba_query.dataset,
+                            "query": self.snuba_query.query,
+                            "aggregate": self.snuba_query.aggregate,
+                            "time_window": self.snuba_query.time_window,
+                            "environment": self.environment.name,
+                            "event_types": ["error"],
+                            "extrapolation_mode": "unknown",
+                        },
+                    },
+                }
+            ],
         }
 
         return evidence_data
@@ -68,7 +93,7 @@ class TestEvaluateMetricDetector(BaseMetricIssueTest):
         assert occurrence.level == "error"
         assert occurrence.priority == detector_trigger.condition_result
         assert occurrence.assignee
-        assert occurrence.assignee.id == self.detector.created_by_id
+        assert occurrence.assignee.id == self.detector.owner_user_id
 
     def test_metric_issue_occurrence(self) -> None:
         value = self.critical_detector_trigger.comparison + 1

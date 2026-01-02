@@ -259,7 +259,7 @@ def translate_wildcard_as_clickhouse_pattern(pattern: str) -> str:
         i += 1
         if c == "\\" and i < n:
             c = pattern[i]
-            if c not in {"*"}:
+            if c not in {"*", "\\"}:
                 raise InvalidSearchQuery(f"Unexpected escape character: {c}")
             chars.append(c)
             i += 1
@@ -406,9 +406,37 @@ def add_trailing_wildcard(value: str) -> str:
     return f"{value}*"
 
 
+def handle_backslash(value: str) -> str:
+    # when working with one of the wildcard operators,
+    # we need to ensure we properly handle backslashes
+    # by escaping them
+
+    v = []
+    n = len(value)
+
+    i = 0
+    while i < n:
+        c = value[i]
+        if c == "\\":
+            j = i + 1
+            if j < n and value[j] in {"*", "\\"}:
+                # found an escaped * or \
+                v.append(c)
+                i += 1
+                c = value[i]
+            else:
+                # found just a \
+                v.append("\\")
+        v.append(c)
+        i += 1
+
+    return "".join(v)
+
+
 def gen_wildcard_value(value: str, wildcard_op: str) -> str:
     if value == "" or wildcard_op == "":
         return value
+    value = handle_backslash(value)
     value = re.sub(r"(?<!\\)\*", r"\\*", value)
     if wildcard_op == WILDCARD_OPERATOR_MAP["contains"]:
         value = add_leading_wildcard(value)
@@ -485,6 +513,11 @@ class SearchValue(NamedTuple):
             return f"({"|".join(map(translate_wildcard, self.raw_value))})"
         elif isinstance(self.raw_value, str):
             return translate_escape_sequences(self.raw_value)
+        elif isinstance(self.raw_value, (list, tuple)):
+            # Non-wildcard lists should also have escape sequences translated
+            return [
+                translate_escape_sequences(v) if isinstance(v, str) else v for v in self.raw_value
+            ]
         return self.raw_value
 
     def to_query_string(self) -> str:

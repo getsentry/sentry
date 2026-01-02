@@ -7,7 +7,7 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
-import {InvoiceItemType, PlanTier} from 'getsentry/types';
+import {PlanTier} from 'getsentry/types';
 import PaymentHistory from 'getsentry/views/subscriptionPage/paymentHistory';
 
 describe('Subscription > PaymentHistory', () => {
@@ -57,7 +57,7 @@ describe('Subscription > PaymentHistory', () => {
         dateCreated: '2021-09-20T22:33:38.042Z',
         items: [
           {
-            type: InvoiceItemType.SUBSCRIPTION,
+            type: 'subscription',
             description: 'Subscription to Business',
             amount: 8900,
             periodEnd: '2021-10-21',

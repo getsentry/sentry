@@ -1,7 +1,5 @@
 ---
-created: '2025-10-07T20:41:46.396283+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: null
@@ -796,693 +794,693 @@ system:
     system*
       exception*
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "com.android.internal.os.ZygoteInit"
             filename (ignored because module takes precedence)
               "zygoteinit.java"
             function*
               "main"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "com.android.internal.os.ZygoteInit$MethodAndArgsCaller"
             filename (ignored because module takes precedence)
               "zygoteinit.java"
             function*
               "run"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "java.lang.reflect.Method"
             filename (ignored because module takes precedence)
               "method.java"
             function*
               "invoke"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "java.lang.reflect.Method"
             filename (ignored because module takes precedence)
               "method.java"
             function*
               "invoke"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.app.ActivityThread"
             filename (ignored because module takes precedence)
               "activitythread.java"
             function*
               "main"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.os.Looper"
             filename (ignored because module takes precedence)
               "looper.java"
             function*
               "loop"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.os.Handler"
             filename (ignored because module takes precedence)
               "handler.java"
             function*
               "dispatchMessage"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.os.Handler"
             filename (ignored because module takes precedence)
               "handler.java"
             function*
               "handleCallback"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.Choreographer$FrameDisplayEventReceiver"
             filename (ignored because module takes precedence)
               "choreographer.java"
             function*
               "run"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.Choreographer"
             filename (ignored because module takes precedence)
               "choreographer.java"
             function*
               "doFrame"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.Choreographer"
             filename (ignored because module takes precedence)
               "choreographer.java"
             function*
               "doCallbacks"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.Choreographer$CallbackRecord"
             filename (ignored because module takes precedence)
               "choreographer.java"
             function*
               "run"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.ViewRootImpl$TraversalRunnable"
             filename (ignored because module takes precedence)
               "viewrootimpl.java"
             function*
               "run"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.ViewRootImpl"
             filename (ignored because module takes precedence)
               "viewrootimpl.java"
             function*
               "doTraversal"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.ViewRootImpl"
             filename (ignored because module takes precedence)
               "viewrootimpl.java"
             function*
               "performTraversals"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.ViewRootImpl"
             filename (ignored because module takes precedence)
               "viewrootimpl.java"
             function*
               "performLayout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.ViewGroup"
             filename (ignored because module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.View"
             filename (ignored because module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.FrameLayout"
             filename (ignored because module takes precedence)
               "framelayout.java"
             function*
               "onLayout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.FrameLayout"
             filename (ignored because module takes precedence)
               "framelayout.java"
             function*
               "layoutChildren"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.ViewGroup"
             filename (ignored because module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.View"
             filename (ignored because module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.LinearLayout"
             filename (ignored because module takes precedence)
               "linearlayout.java"
             function*
               "onLayout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.LinearLayout"
             filename (ignored because module takes precedence)
               "linearlayout.java"
             function*
               "layoutVertical"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.LinearLayout"
             filename (ignored because module takes precedence)
               "linearlayout.java"
             function*
               "setChildFrame"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.ViewGroup"
             filename (ignored because module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.View"
             filename (ignored because module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.FrameLayout"
             filename (ignored because module takes precedence)
               "framelayout.java"
             function*
               "onLayout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.FrameLayout"
             filename (ignored because module takes precedence)
               "framelayout.java"
             function*
               "layoutChildren"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.ViewGroup"
             filename (ignored because module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.View"
             filename (ignored because module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.LinearLayout"
             filename (ignored because module takes precedence)
               "linearlayout.java"
             function*
               "onLayout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.LinearLayout"
             filename (ignored because module takes precedence)
               "linearlayout.java"
             function*
               "layoutVertical"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.LinearLayout"
             filename (ignored because module takes precedence)
               "linearlayout.java"
             function*
               "setChildFrame"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.ViewGroup"
             filename (ignored because module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.View"
             filename (ignored because module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.FrameLayout"
             filename (ignored because module takes precedence)
               "framelayout.java"
             function*
               "onLayout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.FrameLayout"
             filename (ignored because module takes precedence)
               "framelayout.java"
             function*
               "layoutChildren"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.ViewGroup"
             filename (ignored because module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.View"
             filename (ignored because module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.FrameLayout"
             filename (ignored because module takes precedence)
               "framelayout.java"
             function*
               "onLayout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.FrameLayout"
             filename (ignored because module takes precedence)
               "framelayout.java"
             function*
               "layoutChildren"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.ViewGroup"
             filename (ignored because module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.View"
             filename (ignored because module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.FrameLayout"
             filename (ignored because module takes precedence)
               "framelayout.java"
             function*
               "onLayout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.FrameLayout"
             filename (ignored because module takes precedence)
               "framelayout.java"
             function*
               "layoutChildren"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.ViewGroup"
             filename (ignored because module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.View"
             filename (ignored because module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.FrameLayout"
             filename (ignored because module takes precedence)
               "framelayout.java"
             function*
               "onLayout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.FrameLayout"
             filename (ignored because module takes precedence)
               "framelayout.java"
             function*
               "layoutChildren"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.ViewGroup"
             filename (ignored because module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.View"
             filename (ignored because module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.FrameLayout"
             filename (ignored because module takes precedence)
               "framelayout.java"
             function*
               "onLayout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.FrameLayout"
             filename (ignored because module takes precedence)
               "framelayout.java"
             function*
               "layoutChildren"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.ViewGroup"
             filename (ignored because module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.View"
             filename (ignored because module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.FrameLayout"
             filename (ignored because module takes precedence)
               "framelayout.java"
             function*
               "onLayout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.FrameLayout"
             filename (ignored because module takes precedence)
               "framelayout.java"
             function*
               "layoutChildren"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.ViewGroup"
             filename (ignored because module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.View"
             filename (ignored because module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.FrameLayout"
             filename (ignored because module takes precedence)
               "framelayout.java"
             function*
               "onLayout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.FrameLayout"
             filename (ignored because module takes precedence)
               "framelayout.java"
             function*
               "layoutChildren"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.ViewGroup"
             filename (ignored because module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.View"
             filename (ignored because module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.FrameLayout"
             filename (ignored because module takes precedence)
               "framelayout.java"
             function*
               "onLayout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.FrameLayout"
             filename (ignored because module takes precedence)
               "framelayout.java"
             function*
               "layoutChildren"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.ViewGroup"
             filename (ignored because module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.View"
             filename (ignored because module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.LinearLayout"
             filename (ignored because module takes precedence)
               "linearlayout.java"
             function*
               "onLayout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.LinearLayout"
             filename (ignored because module takes precedence)
               "linearlayout.java"
             function*
               "layoutVertical"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.LinearLayout"
             filename (ignored because module takes precedence)
               "linearlayout.java"
             function*
               "setChildFrame"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.ViewGroup"
             filename (ignored because module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.View"
             filename (ignored because module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.FrameLayout"
             filename (ignored because module takes precedence)
               "framelayout.java"
             function*
               "onLayout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.FrameLayout"
             filename (ignored because module takes precedence)
               "framelayout.java"
             function*
               "layoutChildren"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.ViewGroup"
             filename (ignored because module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.View"
             filename (ignored because module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.FrameLayout"
             filename (ignored because module takes precedence)
               "framelayout.java"
             function*
               "onLayout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.FrameLayout"
             filename (ignored because module takes precedence)
               "framelayout.java"
             function*
               "layoutChildren"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.ViewGroup"
             filename (ignored because module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.View"
             filename (ignored because module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.LinearLayout"
             filename (ignored because module takes precedence)
               "linearlayout.java"
             function*
               "onLayout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.LinearLayout"
             filename (ignored because module takes precedence)
               "linearlayout.java"
             function*
               "layoutVertical"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.LinearLayout"
             filename (ignored because module takes precedence)
               "linearlayout.java"
             function*
               "setChildFrame"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.ViewGroup"
             filename (ignored because module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.View"
             filename (ignored because module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.FrameLayout"
             filename (ignored because module takes precedence)
               "framelayout.java"
             function*
               "onLayout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.FrameLayout"
             filename (ignored because module takes precedence)
               "framelayout.java"
             function*
               "layoutChildren"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.ViewGroup"
             filename (ignored because module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.View"
             filename (ignored because module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.LinearLayout"
             filename (ignored because module takes precedence)
               "linearlayout.java"
             function*
               "onLayout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.LinearLayout"
             filename (ignored because module takes precedence)
               "linearlayout.java"
             function*
               "layoutVertical"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.LinearLayout"
             filename (ignored because module takes precedence)
               "linearlayout.java"
             function*
               "setChildFrame"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.ViewGroup"
             filename (ignored because module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.View"
             filename (ignored because module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.FrameLayout"
             filename (ignored because module takes precedence)
               "framelayout.java"
             function*
               "onLayout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.widget.FrameLayout"
             filename (ignored because module takes precedence)
               "framelayout.java"
             function*
               "layoutChildren"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.ViewGroup"
             filename (ignored because module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "android.view.View"
             filename (ignored because module takes precedence)
@@ -1496,56 +1494,56 @@ system:
               "sourcefile"
             function*
               "onLayout"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             module*
               "androidx.recyclerview.widget.RecyclerView"
             filename (ignored because module takes precedence)
               "sourcefile"
             function*
               "dispatchLayout"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             module*
               "androidx.recyclerview.widget.RecyclerView"
             filename (ignored because module takes precedence)
               "sourcefile"
             function*
               "dispatchLayoutStep1"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             module*
               "androidx.recyclerview.widget.RecyclerView"
             filename (ignored because module takes precedence)
               "sourcefile"
             function*
               "processAdapterUpdatesAndSetAnimationFlags"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             module*
               "androidx.recyclerview.widget.AdapterHelper"
             filename (ignored because module takes precedence)
               "sourcefile"
             function*
               "consumeUpdatesInOnePass"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             module*
               "androidx.recyclerview.widget.RecyclerView$6"
             filename (ignored because module takes precedence)
               "sourcefile"
             function*
               "offsetPositionsForAdd"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             module*
               "androidx.recyclerview.widget.RecyclerView"
             filename (ignored because module takes precedence)
               "sourcefile"
             function*
               "offsetPositionRecordsForInsert"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             module*
               "androidx.recyclerview.widget.ChildHelper"
             filename (ignored because module takes precedence)
               "sourcefile"
             function*
               "getUnfilteredChildAt"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             module*
               "androidx.recyclerview.widget.RecyclerView$5"
             filename (ignored because module takes precedence)
@@ -1565,7 +1563,7 @@ system:
               "thread.java"
             function*
               "getStackTrace"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             module*
               "dalvik.system.VMStack"
             filename (ignored because module takes precedence)

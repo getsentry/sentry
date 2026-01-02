@@ -34,7 +34,7 @@ export default function DetailsSplitDivider({
         <Button
           aria-label={t('Hide details')}
           borderless
-          icon={<IconClose isCircled size="sm" color="subText" />}
+          icon={<IconClose size="sm" color="subText" />}
           onClick={(e: MouseEvent) => {
             e.preventDefault();
             onClose();
@@ -63,8 +63,6 @@ const CloseButtonWrapper = styled('div')`
 `;
 
 const StyledSplitDivider = styled(SplitDivider)`
-  padding: ${space(0.75)};
-
   :hover,
   &[data-is-held='true'] {
     z-index: ${p => p.theme.zIndex.initial};

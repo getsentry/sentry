@@ -3,7 +3,7 @@ from typing import Literal
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import AggregationComparisonFilter, Column
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, ExtrapolationMode
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter
 
 from sentry.search.eap.types import SupportedTraceItemType
@@ -16,7 +16,12 @@ SUPPORTED_TRACE_ITEM_TYPE_MAP = {
     SupportedTraceItemType.SPANS: TraceItemType.TRACE_ITEM_TYPE_SPAN,
     SupportedTraceItemType.UPTIME_RESULTS: TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT,
     SupportedTraceItemType.TRACEMETRICS: TraceItemType.TRACE_ITEM_TYPE_METRIC,
+    SupportedTraceItemType.PROFILE_FUNCTIONS: TraceItemType.TRACE_ITEM_TYPE_PROFILE_FUNCTION,
+    SupportedTraceItemType.PREPROD: TraceItemType.TRACE_ITEM_TYPE_PREPROD,
+    SupportedTraceItemType.ATTACHMENTS: TraceItemType.TRACE_ITEM_TYPE_ATTACHMENT,
 }
+
+SUPPORTED_STATS_TYPES = {"attributeDistributions"}
 
 OPERATOR_MAP = {
     "=": ComparisonFilter.OP_EQUALS,
@@ -45,6 +50,13 @@ AGGREGATION_OPERATOR_MAP = {
     "<": AggregationComparisonFilter.OP_LESS_THAN,
     ">=": AggregationComparisonFilter.OP_GREATER_THAN_OR_EQUALS,
     "<=": AggregationComparisonFilter.OP_LESS_THAN_OR_EQUALS,
+}
+
+EXTRAPOLATION_MODE_MAP = {
+    "sampleWeighted": ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
+    "serverOnly": ExtrapolationMode.EXTRAPOLATION_MODE_SERVER_ONLY,
+    "unspecified": ExtrapolationMode.EXTRAPOLATION_MODE_UNSPECIFIED,
+    "none": ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
 }
 
 SearchType = (
@@ -105,9 +117,9 @@ TYPE_MAP: dict[SearchType, AttributeKey.Type.ValueType] = {
 }
 
 # https://github.com/getsentry/snuba/blob/master/snuba/web/rpc/v1/endpoint_time_series.py
-# The RPC limits us to 2689 points per timeseries
-# MAX 15 minute granularity over 28 days (2688 buckets) + 1 bucket to allow for partial time buckets on
-MAX_ROLLUP_POINTS = 2689
+# The RPC limits us to 10081 points per timeseries
+# MAX 1 minute granularity over 7 days (10080 buckets) + 1 bucket to allow for partial time buckets on
+MAX_ROLLUP_POINTS = 10081
 # Copied from snuba, a number of total seconds
 VALID_GRANULARITIES = frozenset(
     {

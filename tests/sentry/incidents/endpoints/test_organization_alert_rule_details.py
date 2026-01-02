@@ -1416,6 +1416,51 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             )
         assert len(audit_log_entry) == 1
 
+    def test_invalid_extrapolation_mode(self) -> None:
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        alert_rule_dict = deepcopy(self.alert_rule_dict)
+        alert_rule_dict["dataset"] = "events_analytics_platform"
+        alert_rule_dict["alertType"] = "eap_metrics"
+        alert_rule_dict["extrapolation_mode"] = "server_weighted"
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_error_response(
+                self.organization.slug, alert_rule.id, status_code=400, **alert_rule_dict
+            )
+        assert resp.data[0] == "Invalid extrapolation mode for this alert type."
+
+    def test_update_marks_query_as_user_updated_when_snapshot_exists(self) -> None:
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+
+        alert_rule.snuba_query.query_snapshot = {
+            "type": alert_rule.snuba_query.type,
+            "dataset": alert_rule.snuba_query.dataset,
+            "query": alert_rule.snuba_query.query,
+            "aggregate": alert_rule.snuba_query.aggregate,
+        }
+        alert_rule.snuba_query.save()
+
+        serialized_alert_rule = self.get_serialized_alert_rule()
+        serialized_alert_rule["query"] = "user.modified:query"
+
+        with self.feature("organizations:incidents"), outbox_runner():
+            self.get_success_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+
+        alert_rule.snuba_query.refresh_from_db()
+        assert alert_rule.snuba_query.query_snapshot is not None
+        assert alert_rule.snuba_query.query_snapshot.get("user_updated") is True
+
 
 class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
     method = "put"

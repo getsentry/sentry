@@ -31,6 +31,8 @@ class InternalRegisteredTemplatesEndpoint(Endpoint):
         response: dict[str, list[dict[str, Any]]] = defaultdict(list)
         for source, template_cls in template_registry.registrations.items():
             template = template_cls()
+            if template.hide_from_debugger:
+                continue
             response[template.category.value].append(
                 serialize_template(template=template, source=source)
             )
@@ -40,7 +42,16 @@ class InternalRegisteredTemplatesEndpoint(Endpoint):
 def serialize_rendered_example(rendered_template: NotificationRenderedTemplate) -> dict[str, Any]:
     response: dict[str, Any] = {
         "subject": rendered_template.subject,
-        "body": rendered_template.body,
+        "body": [
+            {
+                "type": block.type,
+                "blocks": [
+                    {"type": text_block.type, "text": text_block.text}
+                    for text_block in block.blocks
+                ],
+            }
+            for block in rendered_template.body
+        ],
         "actions": [
             {"label": action.label, "link": action.link} for action in rendered_template.actions
         ],

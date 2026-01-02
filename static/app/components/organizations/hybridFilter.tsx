@@ -53,6 +53,11 @@ export interface HybridFilterProps<Value extends SelectKey>
    */
   disableCommit?: boolean;
   /**
+   * Additional staged changes from external state that should trigger
+   * the Apply/Cancel buttons.
+   */
+  hasExternalChanges?: boolean;
+  /**
    * Message to show in the menu footer
    */
   menuFooterMessage?: ((hasStagedChanges: any) => React.ReactNode) | React.ReactNode;
@@ -96,6 +101,7 @@ export function HybridFilter<Value extends SelectKey>({
   checkboxWrapper,
   checkboxPosition,
   disableCommit,
+  hasExternalChanges = false,
   ...selectProps
 }: HybridFilterProps<Value>) {
   /**
@@ -115,11 +121,13 @@ export function HybridFilter<Value extends SelectKey>({
   }, [onStagedValueChange, stagedValue]);
 
   /**
-   * Whether there are staged, uncommitted changes. Used to determine whether we should
-   * show the "Cancel"/"Apply" buttons.
+   * Whether there are staged, uncommitted changes, or external changes. Used to determine
+   * whether we should show the "Cancel"/"Apply" buttons.
    */
   const hasStagedChanges =
-    stagedValue.length !== value.length || !stagedValue.every(val => value.includes(val));
+    stagedValue.length !== value.length ||
+    !stagedValue.every(val => value.includes(val)) ||
+    hasExternalChanges;
 
   const commit = useCallback(
     (val: Value[]) => {
@@ -430,10 +438,7 @@ const ResetButton = styled(Button)`
   font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.subText};
   padding: 0 ${space(0.5)};
-  margin: ${p =>
-    p.theme.isChonk
-      ? `-${space(0.5)} -${space(0.5)}`
-      : `-${space(0.25)} -${space(0.25)}`};
+  margin: -${space(0.5)} -${space(0.5)};
 `;
 
 const ItemsWrap = styled('div')`
@@ -447,7 +452,6 @@ const CheckWrap = styled('div')<{visible: boolean}>`
   display: flex;
   justify-content: center;
   align-items: center;
-  opacity: ${p => (p.theme.isChonk ? undefined : p.visible ? 1 : 0.5)};
   padding: ${space(0.25)} 0 ${space(0.25)} ${space(0.25)};
 `;
 
@@ -465,10 +469,10 @@ const FooterWrap = styled('div')`
 const FooterMessage = styled('p')`
   padding: ${space(0.75)} ${space(1)};
   margin: ${space(0.5)} 0;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border: solid 1px ${p => p.theme.alert.warning.border};
   background: ${p => p.theme.alert.warning.backgroundLight};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.sm};
 `;
 

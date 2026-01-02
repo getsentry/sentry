@@ -35,7 +35,14 @@ class CreateEventTestCase(TestCase):
         super().setUp()
         self.batch_client = DelayedWorkflowClient()
 
-    def push_to_hash(self, project_id, rule_id, group_id, event_id=None, occurrence_id=None):
+    def push_to_hash(
+        self,
+        project_id: int,
+        rule_id: str | int,
+        group_id: str | int,
+        event_id: str | int | None = None,
+        occurrence_id: str | int | None = None,
+    ) -> None:
         value = json.dumps({"event_id": event_id, "occurrence_id": occurrence_id})
         self.batch_client.for_project(project_id).push_to_hash(
             batch_key=None,
@@ -48,9 +55,7 @@ class ProcessBufferedWorkflowsTest(CreateEventTestCase):
         {"delayed_workflow.rollout": True},
     )
     @patch("sentry.workflow_engine.processors.schedule.process_in_batches")
-    def test_fetches_from_buffer_and_executes_with_conditional_delete(
-        self, mock_process_in_batches: MagicMock
-    ) -> None:
+    def test_fetches_from_buffer_and_executes(self, mock_process_in_batches: MagicMock) -> None:
         project = self.create_project()
         project_two = self.create_project()
         group = self.create_group(project)
@@ -81,7 +86,7 @@ class ProcessBufferedWorkflowsTest(CreateEventTestCase):
 
     @patch("sentry.workflow_engine.processors.schedule.process_in_batches")
     @override_options({"delayed_workflow.rollout": False})
-    def test_skips_processing_with_option(self, mock_process_in_batches) -> None:
+    def test_skips_processing_with_option(self, mock_process_in_batches: MagicMock) -> None:
         project = self.create_project()
         self.batch_client.add_project_ids([project.id])
 
@@ -197,12 +202,12 @@ def run_to_timestamp(run: int, interval_sec: int, jitter: bool = True) -> float:
 
 class TestProjectChooser:
     @pytest.fixture
-    def mock_buffer(self):
+    def mock_buffer(self) -> Mock:
         mock_buffer = Mock(spec=DelayedWorkflowClient)
         return mock_buffer
 
     @pytest.fixture
-    def project_chooser(self, mock_buffer):
+    def project_chooser(self, mock_buffer: Mock) -> ProjectChooser:
         return ProjectChooser(mock_buffer, num_cohorts=6, min_scheduling_age=timedelta(seconds=50))
 
     def _find_projects_for_cohorts(self, chooser: ProjectChooser, num_cohorts: int) -> list[int]:
@@ -218,7 +223,7 @@ class TestProjectChooser:
             project_id += 1
         return all_project_ids
 
-    def test_project_id_to_cohort_distribution(self, project_chooser):
+    def test_project_id_to_cohort_distribution(self, project_chooser: ProjectChooser) -> None:
         project_ids = list(range(1, 1001))  # 1000 project IDs
         cohorts = [project_chooser._project_id_to_cohort(pid) for pid in project_ids]
 
@@ -230,7 +235,7 @@ class TestProjectChooser:
         assert all(count > 0 for count in cohort_counts)
         assert all(count < 1000 for count in cohort_counts)
 
-    def test_project_id_to_cohort_consistent(self, project_chooser):
+    def test_project_id_to_cohort_consistent(self, project_chooser: ProjectChooser) -> None:
         for project_id in [123, 999, 4, 193848493]:
             cohort1 = project_chooser._project_id_to_cohort(project_id)
             cohort2 = project_chooser._project_id_to_cohort(project_id)
@@ -239,7 +244,9 @@ class TestProjectChooser:
             assert cohort1 == cohort2 == cohort3
             assert 0 <= cohort1 < 6
 
-    def test_project_ids_to_process_must_process_over_minute(self, project_chooser):
+    def test_project_ids_to_process_must_process_over_minute(
+        self, project_chooser: ProjectChooser
+    ) -> None:
         fetch_time = 1000.0
         cohort_updates = CohortUpdates(
             values={
@@ -260,7 +267,9 @@ class TestProjectChooser:
         # cohort_updates should be updated with fetch_time for processed cohorts
         assert 0 in cohort_updates.values
 
-    def test_project_ids_to_process_may_process_fallback(self, project_chooser):
+    def test_project_ids_to_process_may_process_fallback(
+        self, project_chooser: ProjectChooser
+    ) -> None:
         fetch_time = 1000.0
         cohort_updates = CohortUpdates(
             values={
@@ -282,7 +291,9 @@ class TestProjectChooser:
         for cohort in processed_cohorts:
             assert cohort_updates.values[cohort] == fetch_time
 
-    def test_project_ids_to_process_no_processing_needed(self, project_chooser):
+    def test_project_ids_to_process_no_processing_needed(
+        self, project_chooser: ProjectChooser
+    ) -> None:
         fetch_time = 1000.0
         cohort_updates = CohortUpdates(
             values={
@@ -369,7 +380,7 @@ class TestProjectChooser:
                 ), f"Run {run} should process all cohorts, got {processed_in_last_cycle}"
             processed_cohorts_over_time.append(processed_cohorts)
 
-    def test_scenario_once_per_minute_cohort_count_1(self, mock_buffer) -> None:
+    def test_scenario_once_per_minute_cohort_count_1(self, mock_buffer: Mock) -> None:
         """
         Scenario test: Running once per minute with cohort count of 1 (production default).
         This demonstrates that all projects are processed together every minute.
@@ -411,7 +422,7 @@ class TestProjectChooser:
                 f"but got {len(processed_projects)}: {sorted(processed_projects)}"
             )
 
-    def test_cohort_count_change_uses_eldest_freshness(self, mock_buffer) -> None:
+    def test_cohort_count_change_uses_eldest_freshness(self, mock_buffer: Mock) -> None:
         """
         Test that when num_cohorts changes, all new cohorts use the eldest stored cohort freshness,
         then cohorts that need processing are scheduled and updated to current time.
@@ -440,11 +451,11 @@ class TestProjectChooser:
 
 class TestChosenProjects:
     @pytest.fixture
-    def mock_project_chooser(self):
+    def mock_project_chooser(self) -> Mock:
         """Create a mock ProjectChooser."""
         return Mock(spec=ProjectChooser)
 
-    def test_chosen_projects_context_manager(self, mock_project_chooser):
+    def test_chosen_projects_context_manager(self, mock_project_chooser: Mock) -> None:
         """Test chosen_projects as a context manager."""
         # Setup mocks
         mock_cohort_updates = Mock(spec=CohortUpdates)
@@ -476,7 +487,7 @@ class TestChosenProjects:
         # Verify persist_updates was called after context exit
         mock_buffer_client.persist_updates.assert_called_once_with(mock_cohort_updates)
 
-    def test_chosen_projects_fetch_updates_exception(self, mock_project_chooser):
+    def test_chosen_projects_fetch_updates_exception(self, mock_project_chooser: Mock) -> None:
         """Test that exception during fetch_updates is properly handled."""
         # Setup mocks
         mock_buffer_client = Mock(spec=DelayedWorkflowClient)
@@ -495,7 +506,7 @@ class TestChosenProjects:
         # persist_updates should not be called if fetch_updates fails
         mock_buffer_client.persist_updates.assert_not_called()
 
-    def test_chosen_projects_exception_during_processing(self, mock_project_chooser):
+    def test_chosen_projects_exception_during_processing(self, mock_project_chooser: Mock) -> None:
         mock_buffer_client = Mock(spec=DelayedWorkflowClient)
         mock_project_chooser.client = mock_buffer_client
         mock_buffer_client.fetch_updates.return_value = Mock(spec=CohortUpdates)
@@ -508,7 +519,6 @@ class TestChosenProjects:
         mock_buffer_client.persist_updates.assert_not_called()
 
 
-@override_options({"workflow_engine.scheduler.use_conditional_delete": True})
 def test_mark_projects_processed_only_cleans_up_processed_projects() -> None:
     """Test that mark_projects_processed only cleans up processed projects, not all projects."""
     processed_project_id = 5000

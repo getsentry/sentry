@@ -4,6 +4,7 @@ import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -65,6 +66,11 @@ function ProjectCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
       }
       value={activeProject?.slug ?? ''}
       onCrumbSelect={handleSelect}
+      onOpenChange={open => {
+        if (open) {
+          trackAnalytics('breadcrumbs.menu.opened', {organization: null});
+        }
+      }}
       onSearch={onSearch}
       options={projects.map(project => ({
         value: project.slug,

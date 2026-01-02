@@ -10,7 +10,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.tasks import sync_assignee_outbound
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
-from sentry.taskworker.retry import RetryError
+from sentry.taskworker.retry import RetryTaskError
 from sentry.testutils.asserts import assert_halt_metric, assert_success_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode_of
@@ -72,7 +72,7 @@ class TestSyncAssigneeOutbound(TestCase):
     ) -> None:
         mock_sync_assignee.side_effect = raise_sync_assignee_exception
 
-        with pytest.raises(RetryError):
+        with pytest.raises(RetryTaskError):
             sync_assignee_outbound(self.external_issue.id, self.user.id, True, None)
 
         mock_record_failure.assert_called_once()

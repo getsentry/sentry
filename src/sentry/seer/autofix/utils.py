@@ -4,21 +4,33 @@ from enum import StrEnum
 from typing import TypedDict
 
 import orjson
+import pydantic
 import requests
 from django.conf import settings
 from pydantic import BaseModel
+from rest_framework import serializers
+from urllib3 import Retry
 
 from sentry import features, options, ratelimits
 from sentry.constants import DataCategory
 from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
+from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, AutofixStatus
-from sentry.seer.models import SeerApiError, SeerPermissionError, SeerRepoDefinition
+from sentry.seer.models import (
+    SeerApiError,
+    SeerApiResponseValidationError,
+    SeerPermissionError,
+    SeerProjectPreference,
+    SeerRawPreferenceResponse,
+    SeerRepoDefinition,
+)
 from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
 from sentry.utils import json
+from sentry.utils.cache import cache
 from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger(__name__)
@@ -130,6 +142,168 @@ class CodingAgentStateUpdateRequest(BaseModel):
 autofix_connection_pool = connection_from_url(
     settings.SEER_AUTOFIX_URL,
 )
+
+
+class SeerAutofixSettingsSerializer(serializers.Serializer):
+    """Base serializer for autofixAutomationTuning and automatedRunStoppingPoint"""
+
+    autofixAutomationTuning = serializers.ChoiceField(
+        choices=[opt.value for opt in AutofixAutomationTuningSettings],
+        required=False,
+        help_text="The tuning setting for the projects.",
+    )
+    automatedRunStoppingPoint = serializers.ChoiceField(
+        choices=[opt.value for opt in AutofixStoppingPoint],
+        required=False,
+        help_text="The stopping point for the projects.",
+    )
+
+    def validate(self, data):
+        if "autofixAutomationTuning" not in data and "automatedRunStoppingPoint" not in data:
+            raise serializers.ValidationError(
+                "At least one of 'autofixAutomationTuning' or 'automatedRunStoppingPoint' must be provided."
+            )
+        return data
+
+
+def default_seer_project_preference(project: Project) -> SeerProjectPreference:
+    return SeerProjectPreference(
+        organization_id=project.organization.id,
+        project_id=project.id,
+        repositories=[],
+        automated_run_stopping_point=AutofixStoppingPoint.CODE_CHANGES.value,
+        automation_handoff=None,
+    )
+
+
+def get_project_seer_preferences(project_id: int) -> SeerRawPreferenceResponse:
+    """
+    Fetch Seer project preferences from the Seer API.
+
+    Args:
+        project_id: The project ID to fetch preferences for
+
+    Returns:
+        SeerRawPreferenceResponse object if successful
+    """
+    path = "/v1/project-preference"
+    body = orjson.dumps({"project_id": project_id})
+
+    response = make_signed_seer_api_request(
+        autofix_connection_pool,
+        path,
+        body=body,
+        timeout=5,
+        retries=Retry(total=2, backoff_factor=0.5),
+    )
+
+    if response.status == 200:
+        try:
+            result = orjson.loads(response.data)
+            return SeerRawPreferenceResponse.validate(result)
+        except (pydantic.ValidationError, orjson.JSONDecodeError, UnicodeDecodeError) as e:
+            raise SeerApiResponseValidationError(str(e)) from e
+
+    raise SeerApiError(response.data.decode("utf-8"), response.status)
+
+
+def set_project_seer_preference(preference: SeerProjectPreference) -> None:
+    """Set Seer project preference for a single project."""
+    path = "/v1/project-preference/set"
+    body = orjson.dumps({"preference": preference.dict()})
+
+    response = make_signed_seer_api_request(
+        autofix_connection_pool,
+        path,
+        body=body,
+        timeout=15,
+    )
+
+    if response.status >= 400:
+        raise SeerApiError(response.data.decode("utf-8"), response.status)
+
+
+def has_project_connected_repos(
+    organization_id: int, project_id: int, *, skip_cache: bool = False
+) -> bool:
+    """
+    Check if a project has connected repositories for Seer automation.
+    Checks Seer preferences first, then falls back to Sentry code mappings.
+    Results are cached for 15 minutes to minimize API calls.
+    """
+    cache_key = f"seer-project-has-repos:{organization_id}:{project_id}"
+    if not skip_cache:
+        cached_value = cache.get(cache_key)
+        if cached_value is not None:
+            return cached_value
+
+    has_repos = False
+
+    try:
+        project_preferences = get_project_seer_preferences(project_id)
+        has_repos = bool(
+            project_preferences.preference and project_preferences.preference.repositories
+        )
+    except (SeerApiError, SeerApiResponseValidationError):
+        pass
+
+    if not has_repos:
+        # If it's the first autofix run of project we check code mapping.
+        try:
+            project = Project.objects.get(id=project_id)
+            has_repos = bool(get_autofix_repos_from_project_code_mappings(project))
+        except Project.DoesNotExist:
+            pass
+
+    logger.info(
+        "Checking if project has repositories connected",
+        extra={
+            "org_id": organization_id,
+            "project_id": project_id,
+            "has_repos": has_repos,
+        },
+    )
+
+    cache.set(cache_key, has_repos, timeout=60 * 15)  # Cache for 15 minutes
+    return has_repos
+
+
+def bulk_get_project_preferences(organization_id: int, project_ids: list[int]) -> dict[str, dict]:
+    """Bulk fetch Seer project preferences. Returns dict mapping project ID (string) to preference dict."""
+    path = "/v1/project-preference/bulk"
+    body = orjson.dumps({"organization_id": organization_id, "project_ids": project_ids})
+
+    response = make_signed_seer_api_request(
+        autofix_connection_pool,
+        path,
+        body=body,
+        timeout=10,
+    )
+
+    if response.status >= 400:
+        raise SeerApiError(response.data.decode("utf-8"), response.status)
+
+    result = orjson.loads(response.data)
+    return result.get("preferences", {})
+
+
+def bulk_set_project_preferences(organization_id: int, preferences: list[dict]) -> None:
+    """Bulk set Seer project preferences for multiple projects."""
+    if not preferences:
+        return
+
+    path = "/v1/project-preference/bulk-set"
+    body = orjson.dumps({"organization_id": organization_id, "preferences": preferences})
+
+    response = make_signed_seer_api_request(
+        autofix_connection_pool,
+        path,
+        body=body,
+        timeout=15,
+    )
+
+    if response.status >= 400:
+        raise SeerApiError(response.data.decode("utf-8"), response.status)
 
 
 def get_autofix_repos_from_project_code_mappings(project: Project) -> list[dict]:
@@ -286,6 +460,82 @@ def is_seer_scanner_rate_limited(project: Project, organization: Organization) -
     return is_rate_limited
 
 
+def get_seer_seat_based_tier_cache_key(organization_id: int) -> str:
+    """Get the cache key for seat-based Seer tier check."""
+    return f"seer:seat-based-tier:{organization_id}"
+
+
+def is_seer_seat_based_tier_enabled(organization: Organization) -> bool:
+    """
+    Check if organization has Seer seat-based pricing via billing.
+    """
+    if features.has("organizations:triage-signals-v0-org", organization):
+        return True
+
+    cache_key = get_seer_seat_based_tier_cache_key(organization.id)
+    cached_value = cache.get(cache_key)
+    if cached_value is not None:
+        return cached_value
+
+    try:
+        has_seat_based_seer = features.has("organizations:seat-based-seer-enabled", organization)
+    except Exception:
+        # This flag will throw an error for self hosted Sentry since it lives in getsentry.
+        has_seat_based_seer = False
+
+    cache.set(cache_key, has_seat_based_seer, timeout=60 * 60 * 4)  # 4 hours TTL
+
+    return has_seat_based_seer
+
+
+def is_issue_eligible_for_seer_automation(group: Group) -> bool:
+    """Check if Seer automation is allowed for a given group based on permissions and issue type."""
+    from sentry import quotas
+    from sentry.issues.grouptype import GroupCategory
+
+    # check currently supported issue categories for Seer
+    if group.issue_category not in [
+        GroupCategory.ERROR,
+        GroupCategory.PERFORMANCE,
+        GroupCategory.MOBILE,
+        GroupCategory.FRONTEND,
+        GroupCategory.DB_QUERY,
+        GroupCategory.HTTP_CLIENT,
+    ] or group.issue_category in [
+        GroupCategory.REPLAY,
+        GroupCategory.FEEDBACK,
+    ]:
+        return False
+
+    if not features.has("organizations:gen-ai-features", group.organization):
+        return False
+
+    gen_ai_allowed = not group.organization.get_option("sentry:hide_ai_features")
+    if not gen_ai_allowed:
+        return False
+
+    project = group.project
+    if (
+        not project.get_option("sentry:seer_scanner_automation")
+        and not group.issue_type.always_trigger_seer_automation
+    ):
+        return False
+
+    from sentry.seer.seer_setup import get_seer_org_acknowledgement_for_scanner
+
+    seer_enabled = get_seer_org_acknowledgement_for_scanner(group.organization)
+    if not seer_enabled:
+        return False
+
+    has_budget: bool = quotas.backend.check_seer_quota(
+        org_id=group.organization.id, data_category=DataCategory.SEER_SCANNER
+    )
+    if not has_budget:
+        return False
+
+    return True
+
+
 AUTOFIX_AUTOTRIGGED_RATE_LIMIT_OPTION_MULTIPLIERS = {
     AutofixAutomationTuningSettings.OFF: 5,
     AutofixAutomationTuningSettings.SUPER_LOW: 5,
@@ -378,7 +628,9 @@ def get_autofix_prompt(run_id: int, include_root_cause: bool, include_solution: 
     return response_data.get("prompt")
 
 
-def get_coding_agent_prompt(run_id: int, trigger_source: AutofixTriggerSource) -> str:
+def get_coding_agent_prompt(
+    run_id: int, trigger_source: AutofixTriggerSource, instruction: str | None = None
+) -> str:
     """Get the coding agent prompt with prefix from Seer API."""
     include_root_cause = trigger_source in [
         AutofixTriggerSource.ROOT_CAUSE,
@@ -388,7 +640,12 @@ def get_coding_agent_prompt(run_id: int, trigger_source: AutofixTriggerSource) -
 
     autofix_prompt = get_autofix_prompt(run_id, include_root_cause, include_solution)
 
-    return f"Please fix the following issue:\n\n{autofix_prompt}"
+    base_prompt = "Please fix the following issue. Ensure that your fix is fully working."
+
+    if instruction and instruction.strip():
+        base_prompt = f"{base_prompt}\n\n{instruction.strip()}"
+
+    return f"{base_prompt}\n\n{autofix_prompt}"
 
 
 def update_coding_agent_state(

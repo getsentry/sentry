@@ -58,6 +58,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert "range" not in response.data[0]
         assert response.data[0]["query"] == [
             {
+                "caseInsensitive": False,
                 "fields": [
                     "id",
                     "span.op",
@@ -618,6 +619,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert data["environment"] == ["dev"]
         assert data["query"] == [
             {
+                "caseInsensitive": False,
                 "fields": ["span.op", "count(span.duration)"],
                 "mode": "samples",
                 "query": "span.op:pageload",
@@ -1139,6 +1141,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert data["dataset"] == "metrics"
         assert data["query"] == [
             {
+                "caseInsensitive": False,
                 "fields": ["count()"],
                 "mode": "aggregate",
                 "metric": {
@@ -1175,6 +1178,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert data["dataset"] == "metrics"
         assert data["query"] == [
             {
+                "caseInsensitive": False,
                 "fields": ["avg()"],
                 "mode": "aggregate",
                 "metric": {
@@ -1270,3 +1274,42 @@ class ExploreSavedQueriesTest(APITestCase):
             )
         assert response.status_code == 400, response.content
         assert "Metric field is required for metrics dataset" in str(response.data)
+
+    def test_save_with_start_and_end_time(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Start and end time query",
+                    "projects": self.project_ids,
+                    "dataset": "spans",
+                    "start": "2025-11-12T23:00:00.000Z",
+                    "end": "2025-11-20T22:59:59.000Z",
+                },
+            )
+        assert response.status_code == 201, response.content
+        data = response.data
+        assert data["start"] is not None
+        assert data["end"] is not None
+
+    def test_save_with_case_insensitive(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Case insensitive query",
+                    "projects": self.project_ids,
+                    "dataset": "spans",
+                    "query": [
+                        {
+                            "fields": ["span.op"],
+                            "mode": "samples",
+                            "caseInsensitive": 1,
+                        }
+                    ],
+                    "range": "24h",
+                },
+            )
+        assert response.status_code == 201, response.content
+        data = response.data
+        assert data["query"][0]["caseInsensitive"] is True

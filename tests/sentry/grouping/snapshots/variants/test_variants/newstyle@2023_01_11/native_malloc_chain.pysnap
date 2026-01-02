@@ -1,7 +1,5 @@
 ---
-created: '2025-10-07T20:41:49.180905+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: null
@@ -48,16 +46,16 @@ system:
           frame*
             function*
               "malloc_zone_malloc"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "nanov2_malloc"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "nanov2_allocate"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "nanov2_allocate_from_block"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame (ignored by built-in stack trace rule (category:indirection -group))
             function*
               "nanov2_allocate_from_block.cold.1"
         type (ignored because exception is synthetic)

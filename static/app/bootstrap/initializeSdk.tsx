@@ -8,7 +8,7 @@ import {
 import type {Event} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
-import {SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
+import {NODE_ENV, SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
 import type {Config} from 'sentry/types/system';
 import {addExtraMeasurements, addUIElementTag} from 'sentry/utils/performanceForSentry';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -36,10 +36,18 @@ export function getLastEventId(): string | undefined {
 // pollute our breadcrumbs since they may occur a LOT.
 //
 // XXX(epurkhiser): Note some of these hosts may only apply to sentry.io.
-const IGNORED_BREADCRUMB_FETCH_HOSTS = ['amplitude.com', 'reload.getsentry.net'];
+const IGNORED_BREADCRUMB_FETCH_HOSTS = [
+  'amplitude.com',
+  'pendo.io',
+  'reload.getsentry.net',
+];
 
 // Ignore analytics in spans as well
-const IGNORED_SPANS_BY_DESCRIPTION = ['amplitude.com', 'reload.getsentry.net'];
+const IGNORED_SPANS_BY_DESCRIPTION = [
+  'amplitude.com',
+  'pendo.io',
+  'reload.getsentry.net',
+];
 
 // We check for `window.__initialData.user` property and only enable profiling
 // for Sentry employees. This is to prevent a Violation error being visible in
@@ -69,7 +77,7 @@ function getSentryIntegrations() {
       },
       linkPreviousTrace: 'session-storage',
     }),
-    Sentry.browserProfilingIntegration(),
+    ...(NODE_ENV === 'production' ? [Sentry.browserProfilingIntegration()] : []),
     Sentry.thirdPartyErrorFilterIntegration({
       filterKeys: ['sentry-spa'],
       behaviour: 'apply-tag-if-contains-third-party-frames',
@@ -111,7 +119,8 @@ export function initializeSdk(config: Config) {
     allowUrls: SPA_DSN ? SPA_MODE_ALLOW_URLS : sentryConfig?.allowUrls,
     integrations: getSentryIntegrations(),
     tracesSampleRate,
-    profilesSampleRate: shouldOverrideBrowserProfiling ? 1 : 0.1,
+    profileSessionSampleRate: shouldOverrideBrowserProfiling ? 1 : 0.1,
+    profileLifecycle: 'trace',
     tracePropagationTargets: ['localhost', /^\//, ...extraTracePropagationTargets],
     tracesSampler: context => {
       const op = context.attributes?.[Sentry.SEMANTIC_ATTRIBUTE_SENTRY_OP] || '';

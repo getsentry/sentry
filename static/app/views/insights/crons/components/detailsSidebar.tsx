@@ -136,7 +136,7 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
       </KeyValueTable>
       {monitor.isUpserting && (
         <Alert.Container>
-          <Alert type="muted" icon={<IconJson />}>
+          <Alert variant="muted" icon={<IconJson />}>
             {t(
               'This monitor is managed in code and updates automatically with each check-in.'
             )}
@@ -207,7 +207,7 @@ const MonitorSlug = styled('button')`
   background: transparent;
   border: none;
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 

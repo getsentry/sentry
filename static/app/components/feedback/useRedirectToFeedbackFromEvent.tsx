@@ -6,7 +6,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {makeFeedbackPathname} from 'sentry/views/userFeedback/pathnames';
+import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
 
 export default function useRedirectToFeedbackFromEvent() {
   const organization = useOrganization();

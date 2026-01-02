@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:18:53.875925+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: null
@@ -10,6 +8,10 @@ app:
   root_component:
     app (ignored because system exception takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_READ"
+        value*
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
         stacktrace (ignored because it contains no in-app frames)
           frame (marked out of app by the client)
             function*
@@ -25,10 +27,6 @@ app:
               "OpenAdapter10"
           frame (marked out of app by the client)
           frame (marked out of app by the client)
-        type (ignored because exception is synthetic)
-          "EXCEPTION_ACCESS_VIOLATION_READ"
-        value*
-          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
 --------------------------------------------------------------------------
 system:
   hash: "c85e23e804b52ea4b9f290ba838e77a0"
@@ -37,22 +35,22 @@ system:
   root_component:
     system*
       exception*
-        stacktrace*
-          frame*
-            function*
-              "CUseCountedObject<T>::UCDestroy"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "CContext::LUCBeginLayerDestruction"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "NDXGI::CDevice::DestroyDriverInstance"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "OpenAdapter10"
-          frame
-          frame (ignored due to recursion)
         type (ignored because exception is synthetic)
           "EXCEPTION_ACCESS_VIOLATION_READ"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
+        stacktrace*
+          frame*
+            function*
+              "CUseCountedObject<T>::UCDestroy"
+          frame (ignored by built-in stack trace rule (category:internals -group))
+            function*
+              "CContext::LUCBeginLayerDestruction"
+          frame (ignored by built-in stack trace rule (category:internals -group))
+            function*
+              "NDXGI::CDevice::DestroyDriverInstance"
+          frame (ignored by built-in stack trace rule (category:internals -group))
+            function*
+              "OpenAdapter10"
+          frame
+          frame (ignored due to recursion)

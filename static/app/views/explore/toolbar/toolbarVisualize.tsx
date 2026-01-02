@@ -21,7 +21,6 @@ import {VisualizeEquation as VisualizeEquationInput} from 'sentry/views/explore/
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
   DEFAULT_VISUALIZATION,
-  MAX_VISUALIZES,
   updateVisualizeAggregate,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
@@ -29,6 +28,7 @@ import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields'
 import {
   isVisualizeEquation,
   isVisualizeFunction,
+  MAX_VISUALIZES,
   Visualize,
   VisualizeEquation,
   VisualizeFunction,
@@ -251,9 +251,9 @@ export function VisualizeLabel({index, onClick, visualize}: VisualizeLabelProps)
 
 const Label = styled('div')`
   cursor: pointer;
-  border-radius: ${p => p.theme.borderRadius};
-  background-color: ${p => p.theme.purple100};
-  color: ${p => p.theme.purple300};
+  border-radius: ${p => p.theme.radius.md};
+  background-color: ${p => p.theme.colors.blue100};
+  color: ${p => p.theme.colors.blue400};
   font-weight: ${p => p.theme.fontWeight.bold};
   width: 24px;
   height: 36px;

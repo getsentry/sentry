@@ -150,18 +150,18 @@ const storeConfig: GroupStoreDefinition = {
   },
 
   mergeItems(items: Item[]) {
-    const itemsById = items.reduce((acc, item) => ({...acc, [item.id]: item}), {});
+    const itemsById = items.reduce<Record<string, Item>>((acc, item) => {
+      acc[item.id] = item;
+      return acc;
+    }, {});
 
     // Merge these items into the store and return a mapping of any that aren't already in the store
     this.items.forEach((item, itemIndex) => {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       if (itemsById[item.id]) {
         this.items[itemIndex] = {
           ...item,
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           ...itemsById[item.id],
         };
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         delete itemsById[item.id];
       }
     });
@@ -188,9 +188,11 @@ const storeConfig: GroupStoreDefinition = {
    */
   addToFront(items) {
     items = toArray(items);
-    const itemMap = items.reduce((acc, item) => ({...acc, [item.id]: item}), {});
+    const itemMap = items.reduce<Record<string, Item>>((acc, item) => {
+      acc[item.id] = item;
+      return acc;
+    }, {});
 
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     this.items = [...items, ...this.items.filter(item => !itemMap[item.id])];
 
     this.updateItems(items.map(item => item.id));
@@ -484,10 +486,10 @@ const storeConfig: GroupStoreDefinition = {
 
   onPopulateStats(itemIds, response) {
     // Organize stats by id
-    const groupStatsMap = response.reduce<Record<string, GroupStats>>(
-      (map, stats) => ({...map, [stats.id]: stats}),
-      {}
-    );
+    const groupStatsMap = response.reduce<Record<string, GroupStats>>((map, stats) => {
+      map[stats.id] = stats;
+      return map;
+    }, {});
 
     this.items.forEach((item, idx) => {
       if (itemIds?.includes(item.id)) {

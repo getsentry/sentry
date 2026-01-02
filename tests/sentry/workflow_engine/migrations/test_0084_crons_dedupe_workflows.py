@@ -1,3 +1,5 @@
+import pytest
+
 from sentry.models.rule import Rule, RuleSource
 from sentry.testutils.cases import TestMigrations
 from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
@@ -10,6 +12,7 @@ from sentry.workflow_engine.models import (
 )
 
 
+@pytest.mark.skip(reason="Already run, fails when defaulting dual write in workflow engine")
 class DedupeCronWorkflowsTest(TestMigrations):
     migrate_from = "0083_add_status_to_action"
     migrate_to = "0084_crons_dedupe_workflows"

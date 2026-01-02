@@ -14,16 +14,16 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TimezoneProvider, useTimezone} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import {DetailsSidebar} from 'sentry/views/insights/crons/components/detailsSidebar';
 import {DetailsTimeline} from 'sentry/views/insights/crons/components/detailsTimeline';
 import {MonitorCheckIns} from 'sentry/views/insights/crons/components/monitorCheckIns';
 import {MonitorHeader} from 'sentry/views/insights/crons/components/monitorHeader';
 import {MonitorIssues} from 'sentry/views/insights/crons/components/monitorIssues';
-import {MonitorStats} from 'sentry/views/insights/crons/components/monitorStats';
 import {MonitorOnboarding} from 'sentry/views/insights/crons/components/onboarding';
 import {MonitorProcessingErrors} from 'sentry/views/insights/crons/components/processingErrors/monitorProcessingErrors';
 import {StatusToggleButton} from 'sentry/views/insights/crons/components/statusToggleButton';
@@ -34,17 +34,16 @@ import {makeMonitorDetailsQueryKey} from 'sentry/views/insights/crons/utils';
 
 import {getMonitorRefetchInterval, getNextCheckInEnv} from './utils';
 
-type Props = RouteComponentProps<{monitorSlug: string; projectId: string}>;
-
 function hasLastCheckIn(monitor: Monitor) {
   return monitor.environments.some(e => e.lastCheckIn);
 }
 
-function MonitorDetails({params, location}: Props) {
+export default function MonitorDetails() {
   const api = useApi();
-
   const organization = useOrganization();
   const queryClient = useQueryClient();
+  const params = useParams<{monitorSlug: string; projectId: string}>();
+  const location = useLocation();
 
   const queryKey = makeMonitorDetailsQueryKey(
     organization,
@@ -74,26 +73,19 @@ function MonitorDetails({params, location}: Props) {
     monitorSlug: params.monitorSlug,
   });
 
-  function onUpdate(data: Monitor) {
-    const updatedMonitor = {
-      ...data,
-      // TODO(davidenwang): This is a bit of a hack, due to the PUT request
-      // which pauses/unpauses a monitor not returning monitor environments
-      // we should reuse the environments retrieved from the initial request
-      environments: monitor?.environments,
-    };
-    setApiQueryData(queryClient, queryKey, updatedMonitor);
+  function onUpdate() {
+    // Invalidate the query to refetch the monitor with updated environment data.
+    // The PUT request doesn't return environments, so we need to refetch to get
+    // the latest environment muting status and other environment data.
+    queryClient.invalidateQueries({queryKey});
   }
 
   const handleUpdate = async (data: Partial<Monitor>) => {
     if (monitor === undefined) {
       return;
     }
-    const resp = await updateMonitor(api, organization.slug, monitor, data);
-
-    if (resp !== null) {
-      onUpdate(resp);
-    }
+    await updateMonitor(api, organization.slug, monitor, data);
+    onUpdate();
   };
 
   const userTimezone = useTimezone();
@@ -145,7 +137,7 @@ function MonitorDetails({params, location}: Props) {
             {monitor.status === 'disabled' && (
               <Alert.Container>
                 <Alert
-                  type="muted"
+                  variant="muted"
                   trailingItems={
                     <StatusToggleButton
                       monitor={monitor}
@@ -175,7 +167,6 @@ function MonitorDetails({params, location}: Props) {
             {hasLastCheckIn(monitor) ? (
               <Fragment>
                 <DetailsTimeline monitor={monitor} onStatsLoaded={checkHasUnknown} />
-                <MonitorStats monitor={monitor} monitorEnvs={monitor.environments} />
                 <MonitorIssues monitor={monitor} monitorEnvs={monitor.environments} />
                 <SectionHeading>{t('Recent Check-Ins')}</SectionHeading>
                 <MonitorCheckIns
@@ -211,5 +202,3 @@ const MainActions = styled('div')`
 const StyledPageFilterBar = styled(PageFilterBar)`
   margin-bottom: ${space(2)};
 `;
-
-export default MonitorDetails;

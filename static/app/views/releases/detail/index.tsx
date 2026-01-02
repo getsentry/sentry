@@ -1,4 +1,5 @@
 import {createContext, useCallback, useEffect, useMemo} from 'react';
+import {Outlet} from 'react-router-dom';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 
@@ -148,7 +149,7 @@ function ReleasesDetail({
         <SentryDocumentTitle title={pageTitle}>
           <Layout.Page>
             <Alert.Container>
-              <Alert type="error">
+              <Alert variant="danger">
                 {possiblyWrongProject
                   ? t('This release may not be in your selected project.')
                   : t('There was an error loading the release details')}
@@ -224,7 +225,7 @@ function ReleasesDetail({
 // ========================================================================
 // RELEASE DETAIL CONTAINER
 // ========================================================================
-function ReleasesDetailContainer({children}: {children: React.ReactNode}) {
+function ReleasesDetailContainer() {
   const params = useParams<{release: string}>();
   const location = useLocation();
   const navigate = useNavigate();
@@ -264,7 +265,7 @@ function ReleasesDetailContainer({children}: {children: React.ReactNode}) {
     return (
       <Layout.Page withPadding>
         <Alert.Container>
-          <Alert type="error">{t('This release could not be found.')}</Alert>
+          <Alert variant="danger">{t('This release could not be found.')}</Alert>
         </Alert.Container>
       </Layout.Page>
     );
@@ -308,7 +309,9 @@ function ReleasesDetailContainer({children}: {children: React.ReactNode}) {
       }
       specificProjectSlugs={projects.map((p: ReleaseProject) => p.slug)}
     >
-      <ReleasesDetail releaseMeta={releaseMeta}>{children}</ReleasesDetail>
+      <ReleasesDetail releaseMeta={releaseMeta}>
+        <Outlet />
+      </ReleasesDetail>
     </PageFiltersContainer>
   );
 }

@@ -1,67 +1,81 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo, useState} from 'react';
+import {css} from '@emotion/react';
+import styled from '@emotion/styled';
 import {parseAsString, useQueryState} from 'nuqs';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
-import * as Layout from 'sentry/components/layouts/thirds';
+import {openModal} from 'sentry/actionCreators/modal';
+import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {
-  EAPSpanSearchQueryBuilder,
-  useEAPSpanSearchQueryBuilderProps,
+  useSpanSearchQueryBuilderProps,
+  type UseSpanSearchQueryBuilderProps,
 } from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
-import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
+import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
+import {IconChevron, IconEdit} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {DataCategory} from 'sentry/types/core';
+import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
+import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaHintsList';
+import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
+import {TableActionButton} from 'sentry/views/explore/components/tableActionButton';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
+import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {limitMaxPickableDays} from 'sentry/views/explore/utils';
-import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
-import {Onboarding} from 'sentry/views/insights/agents/views/onboarding';
 import {GenerationsChart} from 'sentry/views/insights/aiGenerations/views/components/generationsChart';
 import {GenerationsTable} from 'sentry/views/insights/aiGenerations/views/components/generationsTable';
+import {GenerationsToolbar} from 'sentry/views/insights/aiGenerations/views/components/generationsToolbar';
+import {INPUT_OUTPUT_FIELD} from 'sentry/views/insights/aiGenerations/views/utils/constants';
+import {useFieldsQueryParam} from 'sentry/views/insights/aiGenerations/views/utils/useFieldsQueryParam';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
-import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
-import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {ModuleName} from 'sentry/views/insights/types';
+import {useAgentMonitoringTrackPageView} from 'sentry/views/insights/pages/agents/hooks/useAgentMonitoringTrackPageView';
+import {useShowAgentOnboarding} from 'sentry/views/insights/pages/agents/hooks/useShowAgentOnboarding';
+import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
+import {Onboarding} from 'sentry/views/insights/pages/agents/onboarding';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
-function useShowOnboarding() {
-  const {projects} = useProjects();
-  const pageFilters = usePageFilters();
-  const selectedProjects = getSelectedProjectList(
-    pageFilters.selection.projects,
-    projects
-  );
+const DISABLE_AGGREGATES: never[] = [];
 
-  return !selectedProjects.some(p => p.hasInsightsAgentMonitoring);
+interface AIGenerationsPageProps {
+  datePageFilterProps: DatePageFilterProps;
 }
 
-function AIGenerationsPage() {
+function AIGenerationsPage({datePageFilterProps}: AIGenerationsPageProps) {
   const organization = useOrganization();
-  const showOnboarding = useShowOnboarding();
-  const datePageFilterProps = limitMaxPickableDays(organization);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const showOnboarding = useShowAgentOnboarding();
+  const [caseInsensitive, setCaseInsensitive] = useCaseInsensitivity();
+
+  useAgentMonitoringTrackPageView();
+
   const [searchQuery, setSearchQuery] = useQueryState(
     'query',
     parseAsString.withOptions({history: 'replace'})
   );
   const {unsetCursor} = useTableCursor();
 
-  const {tags: numberTags, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemTags('number');
-  const {tags: stringTags, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemTags('string');
+  const [fields, setFields] = useFieldsQueryParam();
+
+  const {tags: numberTags, isLoading: numberTagsLoading} = useTraceItemTags('number');
+  const {tags: stringTags, isLoading: stringTagsLoading} = useTraceItemTags('string');
 
   const hasRawSearchReplacement = organization.features.includes(
     'search-query-builder-raw-search-replacement'
   );
 
-  const eapSpanSearchQueryBuilderProps = useMemo(
+  const searchQueryBuilderProps: UseSpanSearchQueryBuilderProps = useMemo(
     () => ({
       initialQuery: searchQuery ?? '',
       onSearch: (newQuery: string) => {
@@ -69,79 +83,193 @@ function AIGenerationsPage() {
         unsetCursor();
       },
       searchSource: 'ai-generations',
-      numberTags,
-      stringTags,
-      numberSecondaryAliases,
-      stringSecondaryAliases,
       replaceRawSearchKeys: hasRawSearchReplacement ? ['span.description'] : undefined,
       matchKeySuggestions: [
         {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
         {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
       ],
+      caseInsensitive,
+      onCaseInsensitiveClick: setCaseInsensitive,
     }),
     [
+      caseInsensitive,
       hasRawSearchReplacement,
-      numberSecondaryAliases,
-      numberTags,
       searchQuery,
+      setCaseInsensitive,
       setSearchQuery,
-      stringSecondaryAliases,
-      stringTags,
       unsetCursor,
     ]
   );
 
-  const eapSpanSearchQueryProviderProps = useEAPSpanSearchQueryBuilderProps(
-    eapSpanSearchQueryBuilderProps
-  );
+  const {spanSearchQueryBuilderProviderProps, spanSearchQueryBuilderProps} =
+    useSpanSearchQueryBuilderProps(searchQueryBuilderProps);
+
+  const openColumnEditor = useCallback(() => {
+    openModal(
+      modalProps => (
+        <ColumnEditorModal
+          {...modalProps}
+          columns={fields.slice()}
+          requiredTags={[SpanFields.ID, INPUT_OUTPUT_FIELD]}
+          onColumnsChange={setFields as any}
+          stringTags={stringTags}
+          numberTags={numberTags}
+          handleReset={() => setFields(null)}
+          isDocsButtonHidden
+        />
+      ),
+      {closeEvents: 'escape-key'}
+    );
+  }, [fields, setFields, stringTags, numberTags]);
 
   return (
-    <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
+    <SearchQueryBuilderProvider {...spanSearchQueryBuilderProviderProps}>
       <ModuleFeature moduleName={ModuleName.AI_GENERATIONS}>
-        <Layout.Body>
-          <Layout.Main width="full">
-            <ModuleLayout.Layout>
-              <ModuleLayout.Full>
-                <ToolRibbon>
-                  <PageFilterBar condensed>
-                    <InsightsProjectSelector />
-                    <InsightsEnvironmentSelector />
-                    <DatePageFilter {...datePageFilterProps} />
-                  </PageFilterBar>
-                  {!showOnboarding && (
-                    <Flex flex={2}>
-                      <EAPSpanSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} />
-                    </Flex>
-                  )}
-                </ToolRibbon>
-              </ModuleLayout.Full>
+        <Stack
+          direction="column"
+          gap="md"
+          borderBottom="muted"
+          padding={{
+            xs: 'xl xl xl xl',
+            md: 'xl 2xl xl 2xl',
+          }}
+        >
+          <Flex gap="md" wrap="wrap">
+            <PageFilterBar condensed>
+              <InsightsProjectSelector />
+              <InsightsEnvironmentSelector />
+              <DatePageFilter {...datePageFilterProps} />
+            </PageFilterBar>
+            {!showOnboarding && (
+              <Flex flex={2} minWidth="50%">
+                <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
+              </Flex>
+            )}
+          </Flex>
+          <SchemaHintsList
+            supportedAggregates={DISABLE_AGGREGATES}
+            numberTags={numberTags}
+            stringTags={stringTags}
+            isLoading={numberTagsLoading || stringTagsLoading}
+            exploreQuery={searchQuery ?? ''}
+            source={SchemaHintsSources.AI_GENERATIONS}
+          />
+        </Stack>
 
-              <ModuleLayout.Full>
-                {showOnboarding ? (
-                  <Onboarding />
-                ) : (
-                  <Stack direction="column" gap="xl">
-                    <GenerationsChart />
-                    <GenerationsTable />
-                  </Stack>
-                )}
-              </ModuleLayout.Full>
-            </ModuleLayout.Layout>
-          </Layout.Main>
-        </Layout.Body>
+        {showOnboarding ? (
+          <Onboarding />
+        ) : (
+          <Flex direction={{xs: 'column', md: 'row'}} height="100%">
+            {sidebarOpen && (
+              <Container
+                as="aside"
+                padding={{xs: 'md xl', md: 'xl 2xl md 3xl'}}
+                width={{xs: 'full', md: '343px'}}
+                background="primary"
+                borderRight={{md: 'muted'}}
+              >
+                <GenerationsToolbar numberTags={numberTags} stringTags={stringTags} />
+              </Container>
+            )}
+
+            <Container
+              flex={1}
+              padding={{
+                xs: 'lg xl 2xl xl',
+                md: sidebarOpen ? 'md 2xl xl lg' : 'md 2xl xl 2xl',
+              }}
+              borderTop="muted"
+              background="secondary"
+            >
+              <Stack direction="column" gap="md">
+                <Container alignSelf="start">
+                  <SidebarCollapseButton
+                    sidebarOpen={sidebarOpen}
+                    onClick={() => setSidebarOpen(!sidebarOpen)}
+                    aria-label={sidebarOpen ? t('Collapse sidebar') : t('Expand sidebar')}
+                    size="xs"
+                    icon={
+                      <IconChevron
+                        isDouble
+                        direction={sidebarOpen ? 'left' : 'right'}
+                        size="xs"
+                      />
+                    }
+                  >
+                    {sidebarOpen ? null : t('Advanced')}
+                  </SidebarCollapseButton>
+                </Container>
+                <GenerationsChart />
+                <Container alignSelf="end">
+                  <TableActionButton
+                    mobile={
+                      <Button
+                        onClick={openColumnEditor}
+                        icon={<IconEdit />}
+                        size="sm"
+                        aria-label={t('Edit Table')}
+                      />
+                    }
+                    desktop={
+                      <Button
+                        onClick={openColumnEditor}
+                        icon={<IconEdit />}
+                        size="sm"
+                        aria-label={t('Edit Table')}
+                      >
+                        {t('Edit Table')}
+                      </Button>
+                    }
+                  />
+                </Container>
+                <GenerationsTable />
+              </Stack>
+            </Container>
+          </Flex>
+        )}
       </ModuleFeature>
     </SearchQueryBuilderProvider>
   );
 }
 
 function PageWithProviders() {
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.SPANS],
+  });
+  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
+
   return (
-    <ModulePageProviders moduleName={ModuleName.AI_GENERATIONS}>
+    <ModulePageProviders
+      moduleName={ModuleName.AI_GENERATIONS}
+      maxPickableDays={datePageFilterProps.maxPickableDays}
+    >
       <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <AIGenerationsPage />
+        <SpansQueryParamsProvider>
+          <AIGenerationsPage datePageFilterProps={datePageFilterProps} />
+        </SpansQueryParamsProvider>
       </TraceItemAttributeProvider>
     </ModulePageProviders>
   );
 }
 
 export default PageWithProviders;
+
+// TODO: This needs streamlining over the explore pages
+const SidebarCollapseButton = styled(Button)<{sidebarOpen: boolean}>`
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    display: inline-flex;
+  }
+
+  ${p =>
+    p.sidebarOpen &&
+    css`
+      display: none;
+      margin-left: -13px;
+
+      &::after {
+        border-left-color: ${p.theme.tokens.background.primary};
+        border-top-left-radius: 0px;
+        border-bottom-left-radius: 0px;
+      }
+    `}
+`;

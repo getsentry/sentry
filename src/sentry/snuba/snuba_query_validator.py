@@ -31,6 +31,7 @@ from sentry.snuba.entity_subscription import (
 )
 from sentry.snuba.metrics.naming_layer.mri import is_mri
 from sentry.snuba.models import (
+    ExtrapolationMode,
     QuerySubscription,
     QuerySubscriptionDataSourceHandler,
     SnubaQuery,
@@ -86,6 +87,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
         required=False,
         allow_empty=False,
     )
+    extrapolation_mode = serializers.CharField(required=False, allow_null=True)
 
     class Meta:
         model = QuerySubscription
@@ -98,6 +100,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             "environment",
             "event_types",
             "group_by",
+            "extrapolation_mode",
         ]
 
     data_source_type_handler = QuerySubscriptionDataSourceHandler
@@ -163,6 +166,15 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             raise serializers.ValidationError("You do not have access to the log alerts feature.")
 
         return validated
+
+    def validate_extrapolation_mode(self, extrapolation_mode: str) -> ExtrapolationMode | None:
+        if extrapolation_mode is not None:
+            extrapolation_mode_enum = ExtrapolationMode.from_str(extrapolation_mode)
+            if extrapolation_mode_enum is None:
+                raise serializers.ValidationError(
+                    f"Invalid extrapolation mode: {extrapolation_mode}"
+                )
+            return extrapolation_mode_enum
 
     def validate(self, data):
         data = super().validate(data)
@@ -281,6 +293,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                 extra_fields={
                     "org_id": projects[0].organization_id,
                     "event_types": data.get("event_types"),
+                    "extrapolation_mode": data.get("extrapolation_mode"),
                 },
             )
         except UnsupportedQuerySubscription as e:
@@ -412,6 +425,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             environment=validated_data["environment"],
             event_types=validated_data["event_types"],
             group_by=validated_data.get("group_by"),
+            extrapolation_mode=validated_data.get("extrapolation_mode"),
         )
         return create_snuba_subscription(
             project=self.context["project"],

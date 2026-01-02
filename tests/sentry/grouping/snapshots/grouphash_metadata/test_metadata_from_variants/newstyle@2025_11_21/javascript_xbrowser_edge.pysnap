@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:19:57.921909+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: stacktrace
 hashing_metadata: {
@@ -24,12 +22,14 @@ metrics with tags: {
 ---
 contributing variants:
   system*
-    hash: "c63e8727af1a8fe75872b6a762797113"
+    hash: "811a408067f03b8eff2437a8e7515966"
     contributing component: exception
     hint: None
     root_component:
       system*
         exception*
+          type*
+            "Error"
           stacktrace*
             frame*
               filename*
@@ -67,5 +67,3 @@ contributing variants:
                 "test.html"
               function*
                 "aha"
-          type*
-            "Error"

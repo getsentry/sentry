@@ -392,7 +392,9 @@ def update_issue_alert_rule(
     return issue_alert_rule.id
 
 
-def ensure_cron_detector(monitor: Monitor):
+def ensure_cron_detector(monitor: Monitor) -> Detector | None:
+    from sentry.monitors.grouptype import MonitorIncidentType
+
     try:
         with atomic_transaction(using=router.db_for_write(DataSource)):
             data_source, created = DataSource.objects.get_or_create(
@@ -401,8 +403,6 @@ def ensure_cron_detector(monitor: Monitor):
                 source_id=str(monitor.id),
             )
             if created:
-                from sentry.monitors.grouptype import MonitorIncidentType
-
                 detector = Detector.objects.create(
                     type=MonitorIncidentType.slug,
                     project_id=monitor.project_id,
@@ -412,8 +412,18 @@ def ensure_cron_detector(monitor: Monitor):
                     config={},
                 )
                 DataSourceDetector.objects.create(data_source=data_source, detector=detector)
+                return detector
+            else:
+                return Detector.objects.get(
+                    type=MonitorIncidentType.slug,
+                    project_id=monitor.project_id,
+                    data_sources=data_source,
+                )
+
     except Exception:
         logger.exception("Error creating cron detector")
+
+    return None
 
 
 def ensure_cron_detector_deletion(monitor: Monitor):

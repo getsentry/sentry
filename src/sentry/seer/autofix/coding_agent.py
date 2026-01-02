@@ -23,8 +23,9 @@ from sentry.seer.autofix.utils import (
     CodingAgentState,
     get_autofix_state,
     get_coding_agent_prompt,
+    get_project_seer_preferences,
 )
-from sentry.seer.models import SeerApiError
+from sentry.seer.models import SeerApiError, SeerApiResponseValidationError
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -193,8 +194,31 @@ def _launch_agents_for_repos(
     run_id: int,
     organization,
     trigger_source: AutofixTriggerSource,
-) -> list[dict]:
-    """Launch coding agents for all repositories in the solution."""
+    instruction: str | None = None,
+) -> dict[str, list]:
+    """
+    Launch coding agents for all repositories in the solution.
+
+    Returns:
+        Dictionary with 'successes' and 'failures' lists
+    """
+
+    # Fetch project preferences to get auto_create_pr setting from automation_handoff
+    auto_create_pr = False
+    try:
+        preference_response = get_project_seer_preferences(autofix_state.request.project_id)
+        if preference_response and preference_response.preference:
+            if preference_response.preference.automation_handoff:
+                auto_create_pr = preference_response.preference.automation_handoff.auto_create_pr
+    except (SeerApiError, SeerApiResponseValidationError):
+        logger.exception(
+            "coding_agent.get_project_seer_preferences_error",
+            extra={
+                "organization_id": organization.id,
+                "run_id": run_id,
+                "project_id": autofix_state.request.project_id,
+            },
+        )
 
     repos = set(
         _extract_repos_from_root_cause(autofix_state)
@@ -220,14 +244,17 @@ def _launch_agents_for_repos(
     repos_to_launch = validated_repos or autofix_state_repos
 
     if not repos_to_launch:
-        raise NotFound("No repos to run agents")
+        raise NotFound(
+            "There are no repos in the Seer state to launch coding agents with, make sure you have repos connected to Seer and rerun this Issue Fix."
+        )
 
-    prompt = get_coding_agent_prompt(run_id, trigger_source)
+    prompt = get_coding_agent_prompt(run_id, trigger_source, instruction)
 
     if not prompt:
-        raise APIException("No prompt to send to agents.")
+        raise APIException("Issue fetching prompt to send to coding agents.")
 
-    results = []
+    successes = []
+    failures = []
     states_to_store: list[CodingAgentState] = []
 
     for repo_name in repos_to_launch:
@@ -248,18 +275,24 @@ def _launch_agents_for_repos(
                     "repo_name": repo_name,
                 },
             )
-            # Continue with other repos instead of failing entirely
+            failures.append(
+                {
+                    "repo_name": repo_name,
+                    "error_message": f"Repository {repo_name} not found in autofix state",
+                }
+            )
             continue
 
         launch_request = CodingAgentLaunchRequest(
             prompt=prompt,
             repository=repo,
             branch_name=sanitize_branch_name(autofix_state.request.issue["title"]),
+            auto_create_pr=auto_create_pr,
         )
 
         try:
             coding_agent_state = installation.launch(launch_request)
-        except (HTTPError, ApiError):
+        except (HTTPError, ApiError) as e:
             logger.exception(
                 "coding_agent.repo_launch_error",
                 extra={
@@ -268,11 +301,17 @@ def _launch_agents_for_repos(
                     "repo_name": repo_name,
                 },
             )
+            failures.append(
+                {
+                    "repo_name": repo_name,
+                    "error_message": str(e),
+                }
+            )
             continue
 
         states_to_store.append(coding_agent_state)
 
-        results.append(
+        successes.append(
             {
                 "repo_name": repo_name,
                 "coding_agent_state": coding_agent_state,
@@ -291,7 +330,7 @@ def _launch_agents_for_repos(
             },
         )
 
-    return results
+    return {"successes": successes, "failures": failures}
 
 
 def launch_coding_agents_for_run(
@@ -299,7 +338,8 @@ def launch_coding_agents_for_run(
     integration_id: int,
     run_id: int,
     trigger_source: AutofixTriggerSource = AutofixTriggerSource.SOLUTION,
-) -> None:
+    instruction: str | None = None,
+) -> dict[str, list]:
     """
     Launch coding agents for an autofix run.
 
@@ -308,6 +348,10 @@ def launch_coding_agents_for_run(
         integration_id: The coding agent integration ID
         run_id: The autofix run ID
         trigger_source: The trigger source (ROOT_CAUSE or SOLUTION)
+        instruction: Optional custom instruction to append to the prompt
+
+    Returns:
+        Dictionary with 'successes' and 'failures' lists
 
     Raises:
         NotFound: If organization, integration, autofix state, or repos are not found
@@ -339,19 +383,22 @@ def launch_coding_agents_for_run(
     )
 
     results = _launch_agents_for_repos(
-        installation, autofix_state, run_id, organization, trigger_source
+        installation, autofix_state, run_id, organization, trigger_source, instruction
     )
 
-    if not results:
+    if not results["successes"] and not results["failures"]:
         raise APIException("No agents were launched")
 
     logger.info(
-        "coding_agent.launch_success",
+        "coding_agent.launch_result",
         extra={
             "organization_id": organization.id,
             "integration_id": integration.id,
             "provider": integration.provider,
             "run_id": run_id,
-            "repos_processed": len(results),
+            "repos_succeeded": len(results["successes"]),
+            "repos_failed": len(results["failures"]),
         },
     )
+
+    return results

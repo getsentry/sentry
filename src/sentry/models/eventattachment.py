@@ -18,7 +18,7 @@ from sentry.db.models import BoundedBigIntegerField, Model, region_silo_model, s
 from sentry.db.models.fields.bounded import BoundedIntegerField
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.files.utils import get_size_and_checksum, get_storage
-from sentry.objectstore import get_attachments_client
+from sentry.objectstore import get_attachments_session
 from sentry.objectstore.metrics import measure_storage_operation
 from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics
@@ -130,15 +130,15 @@ class EventAttachment(Model):
                 if blob_path.startswith(V2_PREFIX):
                     try:
                         organization_id = _get_organization(self.project_id)
-                        get_attachments_client().for_project(
-                            organization_id, self.project_id
-                        ).delete(blob_path.removeprefix(V2_PREFIX))
+                        get_attachments_session(organization_id, self.project_id).delete(
+                            blob_path.removeprefix(V2_PREFIX)
+                        )
                     except Exception:
                         sentry_sdk.capture_exception()
 
             elif self.blob_path.startswith(V2_PREFIX):
                 organization_id = _get_organization(self.project_id)
-                get_attachments_client().for_project(organization_id, self.project_id).delete(
+                get_attachments_session(organization_id, self.project_id).delete(
                     self.blob_path.removeprefix(V2_PREFIX)
                 )
 
@@ -169,9 +169,7 @@ class EventAttachment(Model):
         elif self.blob_path.startswith(V2_PREFIX):
             id = self.blob_path.removeprefix(V2_PREFIX)
             organization_id = _get_organization(self.project_id)
-            response = (
-                get_attachments_client().for_project(organization_id, self.project_id).get(id)
-            )
+            response = get_attachments_session(organization_id, self.project_id).get(id)
             return response.payload
 
         raise NotImplementedError()
@@ -188,7 +186,7 @@ class EventAttachment(Model):
                 content_type=content_type, size=attachment.size, sha1=checksum, blob_path=blob_path
             )
 
-        data = attachment.data
+        data = attachment.load_data()
         blob = BytesIO(data)
         size, checksum = get_size_and_checksum(blob)
 
@@ -203,9 +201,7 @@ class EventAttachment(Model):
             if in_random_rollout("objectstore.double_write.attachments"):
                 try:
                     organization_id = _get_organization(project_id)
-                    get_attachments_client().for_project(organization_id, project_id).put(
-                        data, id=object_key
-                    )
+                    get_attachments_session(organization_id, project_id).put(data, key=object_key)
                     metrics.incr("storage.attachments.double_write")
                     blob_path += V2_PREFIX
                 except Exception:
@@ -220,9 +216,7 @@ class EventAttachment(Model):
 
         else:
             organization_id = _get_organization(project_id)
-            blob_path = V2_PREFIX + get_attachments_client().for_project(
-                organization_id, project_id
-            ).put(data)
+            blob_path = V2_PREFIX + get_attachments_session(organization_id, project_id).put(data)
 
         return PutfileResult(
             content_type=content_type, size=size, sha1=checksum, blob_path=blob_path

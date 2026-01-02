@@ -44,10 +44,12 @@ export function MotionPlayground() {
         <Grid columns="160px 192px" gap="lg" align="center" justify="center">
           <Control label="Easing">
             <CompactSelect
-              options={(['smooth', 'snap', 'enter', 'exit'] as const).map(value => ({
-                value,
-                label: value,
-              }))}
+              options={(['smooth', 'snap', 'spring', 'enter', 'exit'] as const).map(
+                value => ({
+                  value,
+                  label: value,
+                })
+              )}
               value={easing}
               onChange={opt => setEasing(opt.value)}
             />
@@ -87,7 +89,7 @@ const Box = styled(motion.div)`
   height: 128px;
   background: ${p => p.theme.tokens.border.accent};
   border: 1px solid ${p => p.theme.tokens.border.accent};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 function Control({label, children}: React.PropsWithChildren<{label: string}>) {
@@ -156,12 +158,14 @@ interface TargetStateOptions {
 const TARGET_OPACITY: TargetConfig = {
   smooth: {start: 1, end: 1},
   snap: {start: 1, end: 1},
+  spring: {start: 1, end: 1},
   enter: {start: 0, end: 1},
   exit: {start: 1, end: 0},
 };
 const TARGET_AXIS: TargetConfig = {
   smooth: {start: -16, end: 16},
   snap: {start: -16, end: 16},
+  spring: {start: -16, end: 16},
   enter: {start: -16, end: 0},
   exit: {start: 0, end: 16},
 };
@@ -169,12 +173,14 @@ const TARGET_CONFIGS: Record<string, TargetConfig> = {
   rotate: {
     smooth: {start: 0, end: 90},
     snap: {start: 0, end: 90},
+    spring: {start: 0, end: 90},
     enter: {start: -90, end: 0},
     exit: {start: 0, end: 90},
   },
   scale: {
     smooth: {start: 1, end: 1.125},
     snap: {start: 1, end: 1.125},
+    spring: {start: 1, end: 1.125},
     enter: {start: 1.125, end: 1},
     exit: {start: 1, end: 0.8},
   },

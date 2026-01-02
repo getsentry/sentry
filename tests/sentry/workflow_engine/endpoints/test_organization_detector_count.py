@@ -21,14 +21,14 @@ class OrganizationDetectorCountTest(APITestCase):
     def test_simple(self) -> None:
         # Create active detectors
         self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Active Detector 1",
             type=MetricIssue.slug,
             enabled=True,
             config={"detection_type": AlertRuleDetectionType.STATIC.value},
         )
         self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Active Detector 2",
             type=ErrorGroupType.slug,
             enabled=True,
@@ -37,7 +37,7 @@ class OrganizationDetectorCountTest(APITestCase):
 
         # Create inactive detector
         self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Inactive Detector",
             type=UptimeDomainCheckFailure.slug,
             enabled=False,
@@ -60,28 +60,28 @@ class OrganizationDetectorCountTest(APITestCase):
     def test_filtered_by_type(self) -> None:
         # Create detectors of different types
         self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Metric Detector 1",
             type=MetricIssue.slug,
             enabled=True,
             config={"detection_type": AlertRuleDetectionType.STATIC.value},
         )
         self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Metric Detector 2",
             type=MetricIssue.slug,
             enabled=False,
             config={"detection_type": AlertRuleDetectionType.STATIC.value},
         )
         self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Error Detector",
             type=ErrorGroupType.slug,
             enabled=True,
             config={},
         )
         self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Uptime Detector",
             type=UptimeDomainCheckFailure.slug,
             enabled=True,

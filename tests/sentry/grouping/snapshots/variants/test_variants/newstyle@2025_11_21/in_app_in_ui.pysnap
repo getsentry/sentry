@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:18:53.214678+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: "5b032559156688c9eabe4e4bd5ae6bd4"
@@ -10,11 +8,15 @@ app:
   root_component:
     app*
       exception*
+        type (ignored because exception is synthetic)
+          "EXC_BREAKPOINT"
+        value (ignored because stacktrace takes precedence)
+          "autoplayOption"
         stacktrace*
           frame (marked out of app by the client)
             function*
               "start"
-          frame (marked in-app by the client but ignored by stack trace rule (category:threadbase -group v-group))
+          frame (marked in-app by the client but ignored by built-in stack trace rule (category:threadbase -group v-group))
             filename*
               "main.m"
             function*
@@ -90,7 +92,7 @@ app:
               "anytableviewcontroller.swift"
             function*
               "AnyTableViewController.tableView"
-          frame (marked in-app by the client but ignored by stack trace rule (category:internals -group))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             filename*
               "<compiler-generated>"
             function*
@@ -115,7 +117,7 @@ app:
               "<compiler-generated>"
             function*
               "Sequence.compactMap<T>"
-          frame (marked in-app by the client but ignored by stack trace rule (category:internals -group))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             filename*
               "<compiler-generated>"
             function*
@@ -145,10 +147,6 @@ app:
               "currentuserprofile.swift"
             function*
               "value"
-        type (ignored because exception is synthetic)
-          "EXC_BREAKPOINT"
-        value (ignored because stacktrace takes precedence)
-          "autoplayOption"
 --------------------------------------------------------------------------
 system:
   hash: "1921b991270e24c19ea1ed6863892d71"
@@ -157,55 +155,59 @@ system:
   root_component:
     system*
       exception*
+        type (ignored because exception is synthetic)
+          "EXC_BREAKPOINT"
+        value (ignored because stacktrace takes precedence)
+          "autoplayOption"
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             function*
               "start"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             filename*
               "main.m"
             function*
               "main"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             function*
               "UIApplicationMain"
           frame*
             function*
               "-[UIApplication _run]"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "GSEventRunModal"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame (ignored by built-in stack trace rule (category:indirection -group))
             function*
               "CFRunLoopRunSpecific"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "__CFRunLoopRun"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "__CFRunLoopDoObservers"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "__CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "CA::Transaction::observer_callback"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "CA::Transaction::commit"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "CA::Context::commit_transaction"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "CA::Layer::layout_and_display_if_needed"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "CA::Layer::layout_if_needed"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "-[CALayer layoutSublayers]"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "-[UIView(CALayerDelegate) layoutSublayersOfLayer:]"
           frame*
@@ -216,10 +218,10 @@ system:
           frame*
             function*
               "-[UITableView layoutSubviews]"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "-[UITableView _updateVisibleCellsNow:]"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "-[UITableView _createPreparedCellForGlobalRow:withIndexPath:willDisplay:]"
           frame*
@@ -237,7 +239,7 @@ system:
               "anytableviewcontroller.swift"
             function*
               "AnyTableViewController.tableView"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             filename*
               "<compiler-generated>"
             function*
@@ -262,7 +264,7 @@ system:
               "<compiler-generated>"
             function*
               "Sequence.compactMap<T>"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             filename*
               "<compiler-generated>"
             function*
@@ -292,7 +294,3 @@ system:
               "currentuserprofile.swift"
             function*
               "value"
-        type (ignored because exception is synthetic)
-          "EXC_BREAKPOINT"
-        value (ignored because stacktrace takes precedence)
-          "autoplayOption"

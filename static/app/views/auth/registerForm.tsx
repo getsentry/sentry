@@ -42,7 +42,7 @@ function RegisterForm({authConfig}: Props) {
     >
       {error && (
         <Alert.Container>
-          <Alert type="error" showIcon={false}>
+          <Alert variant="danger" showIcon={false}>
             {error}
           </Alert>
         </Alert.Container>
@@ -99,7 +99,7 @@ const PrivacyPolicyLink = styled(ExternalLink)`
   color: ${p => p.theme.subText};
 
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 

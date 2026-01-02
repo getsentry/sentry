@@ -123,7 +123,7 @@ function AccountAuthorizations() {
 export default AccountAuthorizations;
 
 const Description = styled('p')`
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   margin-bottom: ${space(4)};
 `;
 
@@ -148,10 +148,10 @@ const ApplicationName = styled('div')`
  */
 const Url = styled('div')`
   margin-bottom: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const DetailRow = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;

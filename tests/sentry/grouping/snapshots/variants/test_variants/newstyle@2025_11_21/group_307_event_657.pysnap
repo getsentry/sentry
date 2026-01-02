@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:18:52.934142+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: null
@@ -10,54 +8,54 @@ app:
   root_component:
     app (ignored because system exception takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace (ignored because it contains no in-app frames)
-          frame (non app frame)
-            function*
-              "stripped_application_code"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-          frame (non app frame)
-            function*
-              "stripped_application_code"
-          frame (non app frame)
-            function*
-              "stripped_application_code"
-          frame (non app frame)
-            function*
-              "stripped_application_code"
-          frame (non app frame)
-            function*
-              "stripped_application_code"
-          frame (non app frame)
-            function*
-              "stripped_application_code"
-          frame (non app frame)
-            function*
-              "stripped_application_code"
-          frame (non app frame)
-            function*
-              "stripped_application_code"
-          frame (non app frame)
-            function*
-              "stripped_application_code"
-          frame (non app frame)
-            function*
-              "stripped_application_code"
-          frame (non app frame)
-            function*
-              "stripped_application_code"
-          frame (non app frame)
-            function*
-              "stripped_application_code"
-          frame (non app frame)
-            function*
-              "stripped_application_code"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
         type (ignored because exception is synthetic)
           "EXC_BAD_ACCESS / EXC_I386_GPFLT"
         value*
           "Fatal Error: EXC_BAD_ACCESS / EXC_I386_GPFLT"
+        stacktrace (ignored because it contains no in-app frames)
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (marked out of app by built-in stack trace rule (package:/usr/lib/** -app))
+          frame (marked out of app by built-in stack trace rule (package:/usr/lib/** -app))
+          frame (marked out of app by built-in stack trace rule (package:/usr/lib/** -app))
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
 --------------------------------------------------------------------------
 system:
   hash: "aeed765d29d1a60cb094f66d2cd8efb2"
@@ -66,8 +64,12 @@ system:
   root_component:
     system*
       exception*
+        type (ignored because exception is synthetic)
+          "EXC_BAD_ACCESS / EXC_I386_GPFLT"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXC_BAD_ACCESS / EXC_I386_GPFLT"
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             function*
               "stripped_application_code"
           frame
@@ -110,7 +112,3 @@ system:
             function*
               "stripped_application_code"
           frame
-        type (ignored because exception is synthetic)
-          "EXC_BAD_ACCESS / EXC_I386_GPFLT"
-        value (ignored because stacktrace takes precedence)
-          "Fatal Error: EXC_BAD_ACCESS / EXC_I386_GPFLT"

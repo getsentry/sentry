@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:18:53.311339+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: null
@@ -10,6 +8,10 @@ app:
   root_component:
     app (ignored because system exception takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        type*
+          "ReferenceError"
+        value*
+          "varant is not defined"
         stacktrace (ignored because it contains no in-app frames)
           frame (marked out of app by the client)
             filename*
@@ -71,18 +73,18 @@ app:
               "react-dom.development.js"
             function* (trimmed javascript function)
               "callCallback"
-        type*
-          "ReferenceError"
-        value*
-          "varant is not defined"
 --------------------------------------------------------------------------
 system:
-  hash: "c0f3f7d6deb17aec9d07259ac684fad0"
+  hash: "e734632ed44ebbaaeee1d0f589397a1a"
   contributing component: exception
   hint: None
   root_component:
     system*
       exception*
+        type*
+          "ReferenceError"
+        value (ignored because stacktrace takes precedence)
+          "varant is not defined"
         stacktrace*
           frame*
             filename*
@@ -144,7 +146,3 @@ system:
               "react-dom.development.js"
             function* (trimmed javascript function)
               "callCallback"
-        type*
-          "ReferenceError"
-        value (ignored because stacktrace takes precedence)
-          "varant is not defined"

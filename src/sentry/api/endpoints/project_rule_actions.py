@@ -25,7 +25,7 @@ from sentry.workflow_engine.endpoints.utils.test_fire_action import test_fire_ac
 from sentry.workflow_engine.migration_helpers.rule_action import (
     translate_rule_data_actions_to_notification_actions,
 )
-from sentry.workflow_engine.models import Detector, Workflow
+from sentry.workflow_engine.models import Workflow
 from sentry.workflow_engine.types import WorkflowEventData
 
 logger = logging.getLogger(__name__)
@@ -161,14 +161,6 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
             organization=rule.project.organization,
         )
 
-        detector = Detector(
-            id=TEST_NOTIFICATION_ID,
-            project=rule.project,
-            name=rule.label,
-            enabled=True,
-            type=ErrorGroupType.slug,
-        )
-
         event_data = WorkflowEventData(
             event=test_event,
             group=test_event.group,
@@ -190,7 +182,7 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
                 action_exceptions.append(f"An unexpected error occurred. Error ID: '{error_id}'")
                 continue
 
-            action_exceptions.extend(test_fire_action(action, event_data, detector))
+            action_exceptions.extend(test_fire_action(action, event_data))
 
         status = None
         data = None

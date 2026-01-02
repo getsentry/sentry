@@ -13,6 +13,7 @@ import type {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {isEquation} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {FieldKind} from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import type {
@@ -33,6 +34,7 @@ import {IssuesConfig} from './issues';
 import {LogsConfig} from './logs';
 import {ReleasesConfig} from './releases';
 import {SpansConfig} from './spans';
+import {TraceMetricsConfig} from './traceMetrics';
 import {TransactionsConfig} from './transactions';
 
 export type WidgetBuilderSearchBarProps = {
@@ -43,6 +45,7 @@ export type WidgetBuilderSearchBarProps = {
   widgetQuery: WidgetQuery;
   dataset?: DiscoverDatasets;
   disabled?: boolean;
+  index?: number;
   portalTarget?: HTMLElement | null;
 };
 
@@ -51,10 +54,15 @@ export type SearchBarDataProviderProps = {
   widgetQuery?: WidgetQuery;
 };
 
+export type GetTagValues = (
+  tag: Pick<Tag, 'key' | 'name'> & {kind: FieldKind | undefined},
+  searchQuery: string
+) => Promise<string[]>;
+
 export interface SearchBarData {
   getFilterKeySections: () => FilterKeySection[];
   getFilterKeys: () => TagCollection;
-  getTagValues: (tag: Tag, searchQuery: string) => Promise<string[]>;
+  getTagValues: GetTagValues;
 }
 
 export interface DatasetConfig<SeriesResponse, TableResponse> {
@@ -84,7 +92,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     organization: Organization,
     tags?: TagCollection,
     customMeasurements?: CustomMeasurementCollection,
-    api?: Client
+    api?: Client,
+    displayType?: DisplayType
   ) => Record<string, SelectValue<FieldValue>>;
   /**
    * List of supported display types for dataset.
@@ -100,6 +109,16 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     organization: Organization,
     pageFilters: PageFilters
   ) => TableData;
+  /**
+   * Default field to add to the widget query when adding a new field for series display type.
+   */
+  defaultSeriesField?: QueryFieldValue;
+  /**
+   * Default query to display when dataset is selected in the
+   * Widget Builder for series display type. Currently only used
+   * by the issues dataset.
+   */
+  defaultSeriesWidgetQuery?: WidgetQuery;
   /**
    * Configure enabling/disabling sort/direction options with an
    * optional message for why it is disabled.
@@ -264,7 +283,9 @@ export function getDatasetConfig<T extends WidgetType | undefined>(
           ? typeof LogsConfig
           : T extends WidgetType.SPANS
             ? typeof SpansConfig
-            : typeof ErrorsAndTransactionsConfig;
+            : T extends WidgetType.TRACEMETRICS
+              ? typeof TraceMetricsConfig
+              : typeof ErrorsAndTransactionsConfig;
 
 export function getDatasetConfig(
   widgetType?: WidgetType
@@ -275,7 +296,8 @@ export function getDatasetConfig(
   | typeof ErrorsConfig
   | typeof TransactionsConfig
   | typeof LogsConfig
-  | typeof SpansConfig {
+  | typeof SpansConfig
+  | typeof TraceMetricsConfig {
   switch (widgetType) {
     case WidgetType.ISSUE:
       return IssuesConfig;
@@ -289,6 +311,8 @@ export function getDatasetConfig(
       return LogsConfig;
     case WidgetType.SPANS:
       return SpansConfig;
+    case WidgetType.TRACEMETRICS:
+      return TraceMetricsConfig;
     case WidgetType.DISCOVER:
     default:
       return ErrorsAndTransactionsConfig;

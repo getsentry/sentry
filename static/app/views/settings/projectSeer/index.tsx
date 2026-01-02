@@ -2,13 +2,22 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Link} from 'sentry/components/core/link';
-import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
+import {CursorIntegrationCta} from 'sentry/components/events/autofix/cursorIntegrationCta';
+import {
+  makeProjectSeerPreferencesQueryKey,
+  useProjectSeerPreferences,
+} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
-import {useCodingAgentIntegrations} from 'sentry/components/events/autofix/useAutofix';
+import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
+import {
+  useCodingAgentIntegrations,
+  type CodingAgentIntegration,
+} from 'sentry/components/events/autofix/useAutofix';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -22,14 +31,15 @@ import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import {DataCategoryExact} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 import {AutofixRepositories} from './autofixRepositories';
 import {SEER_THRESHOLD_OPTIONS} from './constants';
@@ -38,10 +48,6 @@ const AiSetupDataConsent = HookOrDefault({
   hookName: 'component:ai-setup-data-consent',
   defaultComponent: () => <div data-test-id="ai-setup-data-consent" />,
 });
-
-interface ProjectSeerProps {
-  project: Project;
-}
 
 export const SEER_THRESHOLD_MAP = [
   'off',
@@ -85,18 +91,122 @@ export const autofixAutomatingTuningField = {
   visible: ({model}) => model?.getValue('seerScannerAutomation') === true,
 } satisfies FieldObject;
 
-function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
+const autofixAutomationToggleField = {
+  name: 'autofixAutomationTuning',
+  label: t('Auto-Trigger Fixes'),
+  help: () =>
+    t(
+      'When enabled, Seer will automatically analyze actionable issues in the background.'
+    ),
+  type: 'boolean',
+  saveOnBlur: true,
+  saveMessage: t('Automatic Seer settings updated'),
+  // For triage signals V0: toggle ON maps to 'medium' threshold (fixability >= 0.40)
+  getData: (data: Record<PropertyKey, unknown>) => ({
+    autofixAutomationTuning: data.autofixAutomationTuning ? 'medium' : 'off',
+  }),
+} satisfies FieldObject;
+
+function CodingAgentSettings({
+  preference,
+  handleAutoCreatePrChange,
+  handleIntegrationChange,
+  canWriteProject,
+  isAutomationOn,
+  cursorIntegrations,
+}: {
+  canWriteProject: boolean;
+  cursorIntegrations: CodingAgentIntegration[];
+  handleAutoCreatePrChange: (value: boolean) => void;
+  handleIntegrationChange: (integrationId: number) => void;
+  preference: ProjectSeerPreferences | null | undefined;
+  isAutomationOn?: boolean;
+}) {
+  if (!preference?.automation_handoff || !isAutomationOn) {
+    return null;
+  }
+
+  const autoCreatePrValue = preference?.automation_handoff?.auto_create_pr ?? false;
+  const selectedIntegrationId = preference?.automation_handoff?.integration_id;
+
+  const integrationOptions = cursorIntegrations.map(integration => ({
+    value: integration.id,
+    label: `${integration.name} (${integration.id})`,
+  }));
+
+  const fields: FieldObject[] = [];
+
+  // Only show integration selector if there are multiple integrations
+  if (cursorIntegrations.length > 1) {
+    fields.push({
+      name: 'integration_id',
+      label: t('Select Configuration'),
+      help: t(
+        'You have multiple configurations installed. Select which one to use for hand off.'
+      ),
+      type: 'choice',
+      options: integrationOptions,
+      saveOnBlur: true,
+      getData: () => ({}),
+      getValue: () => String(selectedIntegrationId),
+      disabled: !canWriteProject,
+      onChange: (value: string) => handleIntegrationChange(parseInt(value, 10)),
+    } satisfies FieldObject);
+  }
+
+  fields.push({
+    name: 'auto_create_pr',
+    label: t('Auto-Create Pull Requests'),
+    help: t(
+      'When enabled, Cursor Cloud Agents will automatically create pull requests after hand off.'
+    ),
+    saveOnBlur: true,
+    type: 'boolean',
+    getData: () => ({}),
+    getValue: () => autoCreatePrValue,
+    disabled: !canWriteProject,
+    onChange: handleAutoCreatePrChange,
+  } satisfies FieldObject);
+
+  return (
+    <Form
+      key={`coding-agent-settings-${autoCreatePrValue}-${selectedIntegrationId}`}
+      apiMethod="POST"
+      saveOnBlur
+      initialData={{
+        auto_create_pr: autoCreatePrValue,
+        integration_id: String(selectedIntegrationId),
+      }}
+    >
+      <JsonForm
+        forms={[
+          {
+            title: t('Cursor Agent Settings'),
+            fields,
+          },
+        ]}
+      />
+    </Form>
+  );
+}
+
+function ProjectSeerGeneralForm({project}: {project: Project}) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const {preference} = useProjectSeerPreferences(project);
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
   const {data: codingAgentIntegrations} = useCodingAgentIntegrations();
 
+  const isTriageSignalsFeatureOn = project.features.includes('triage-signals-v0');
   const canWriteProject = hasEveryAccess(['project:read'], {organization, project});
 
-  const cursorIntegration = codingAgentIntegrations?.integrations.find(
-    integration => integration.provider === 'cursor'
-  );
+  const cursorIntegrations =
+    codingAgentIntegrations?.integrations.filter(
+      integration => integration.provider === 'cursor'
+    ) ?? [];
+
+  // For backwards compatibility, use the first cursor integration as default
+  const cursorIntegration = cursorIntegrations[0];
 
   const handleSubmitSuccess = useCallback(
     (resp: Project) => {
@@ -130,6 +240,7 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
             handoff_point: 'root_cause',
             target: 'cursor_background_agent',
             integration_id: parseInt(cursorIntegration.id, 10),
+            auto_create_pr: false,
           },
         });
       } else {
@@ -141,6 +252,147 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
       }
     },
     [updateProjectSeerPreferences, preference?.repositories, cursorIntegration]
+  );
+
+  // Handler for Cursor's "Auto-Create PR" toggle (from PR #103730)
+  // Controls whether Cursor agent auto-creates PRs
+  const handleAutoCreatePrChange = useCallback(
+    (value: boolean) => {
+      if (!preference?.automation_handoff) {
+        return;
+      }
+      updateProjectSeerPreferences({
+        repositories: preference?.repositories || [],
+        automated_run_stopping_point: preference?.automated_run_stopping_point,
+        automation_handoff: {
+          ...preference.automation_handoff,
+          auto_create_pr: value,
+        },
+      });
+    },
+    [preference, updateProjectSeerPreferences]
+  );
+
+  // Handler for changing which integration is used for automation handoff
+  const handleIntegrationChange = useCallback(
+    (integrationId: number) => {
+      if (!preference?.automation_handoff) {
+        return;
+      }
+      updateProjectSeerPreferences({
+        repositories: preference?.repositories || [],
+        automated_run_stopping_point: preference?.automated_run_stopping_point,
+        automation_handoff: {
+          ...preference.automation_handoff,
+          integration_id: integrationId,
+        },
+      });
+    },
+    [preference, updateProjectSeerPreferences]
+  );
+
+  // Handler for Auto-open PR toggle (triage-signals-v0)
+  // Controls whether Seer auto-opens PRs
+  // OFF = stop at code_changes, ON = stop at open_pr
+  const handleAutoOpenPrChange = useCallback(
+    (value: boolean) => {
+      updateProjectSeerPreferences(
+        {
+          repositories: preference?.repositories || [],
+          automated_run_stopping_point: value ? 'open_pr' : 'code_changes',
+          automation_handoff: undefined, // Clear cursor handoff when using Seer PR
+        },
+        {
+          onError: () => {
+            addErrorMessage(t('Failed to update auto-open PR setting'));
+            // Refetch to reset form state to backend value
+            queryClient.invalidateQueries({
+              queryKey: makeProjectSeerPreferencesQueryKey(
+                organization.slug,
+                project.slug
+              ),
+            });
+          },
+        }
+      );
+    },
+    [
+      updateProjectSeerPreferences,
+      preference?.repositories,
+      queryClient,
+      organization.slug,
+      project.slug,
+    ]
+  );
+
+  // Handler for Cursor handoff toggle (triage-signals-v0)
+  // When ON: stops at root_cause and hands off to Cursor
+  // When OFF: defaults to code_changes (user can then enable auto-open PR if desired)
+  const handleCursorHandoffChange = useCallback(
+    (value: boolean) => {
+      if (value) {
+        if (!cursorIntegration) {
+          addErrorMessage(
+            t('Cursor integration not found. Please refresh the page and try again.')
+          );
+          return;
+        }
+        updateProjectSeerPreferences(
+          {
+            repositories: preference?.repositories || [],
+            automated_run_stopping_point: 'root_cause',
+            automation_handoff: {
+              handoff_point: 'root_cause',
+              target: 'cursor_background_agent',
+              integration_id: parseInt(cursorIntegration.id, 10),
+              auto_create_pr: false,
+            },
+          },
+          {
+            onError: () => {
+              addErrorMessage(t('Failed to update Cursor handoff setting'));
+              // Refetch to reset form state to backend value
+              queryClient.invalidateQueries({
+                queryKey: makeProjectSeerPreferencesQueryKey(
+                  organization.slug,
+                  project.slug
+                ),
+              });
+            },
+          }
+        );
+      } else {
+        // When turning OFF, default to code_changes
+        // User can then manually enable auto-open PR if desired
+        updateProjectSeerPreferences(
+          {
+            repositories: preference?.repositories || [],
+            automated_run_stopping_point: 'code_changes',
+            automation_handoff: undefined,
+          },
+          {
+            onError: () => {
+              addErrorMessage(t('Failed to update Cursor handoff setting'));
+              // Refetch to reset form state to backend value
+              queryClient.invalidateQueries({
+                queryKey: makeProjectSeerPreferencesQueryKey(
+                  organization.slug,
+                  project.slug
+                ),
+              });
+            },
+          }
+        );
+      }
+    },
+    [
+      updateProjectSeerPreferences,
+      preference?.repositories,
+      cursorIntegration,
+      queryClient,
+      organization.slug,
+      project.slug,
+    ]
   );
 
   const automatedRunStoppingPointField = {
@@ -162,12 +414,10 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
             {
               value: 'cursor_handoff',
               label: (
-                <SeerSelectLabel>
-                  {t('Hand off to Cursor Background Agent')}
-                </SeerSelectLabel>
+                <SeerSelectLabel>{t('Hand off to Cursor Cloud Agent')}</SeerSelectLabel>
               ),
               details: t(
-                "Seer will identify the root cause and hand off the fix to Cursor's background agent."
+                "Seer will identify the root cause and hand off the fix to Cursor's cloud agent."
               ),
             },
           ]
@@ -191,9 +441,64 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
     saveOnBlur: true,
     saveMessage: t('Stopping point updated'),
     onChange: handleStoppingPointChange,
-    visible: ({model}) =>
-      model?.getValue('seerScannerAutomation') === true &&
-      model?.getValue('autofixAutomationTuning') !== 'off',
+    getData: () => ({}),
+    visible: ({model}) => {
+      const tuningValue = model?.getValue('autofixAutomationTuning');
+      // Handle both boolean (toggle) and string (dropdown) values
+      const automationEnabled =
+        typeof tuningValue === 'boolean' ? tuningValue : tuningValue !== 'off';
+
+      // When feature flag is ON (toggle mode): only check automation
+      // When feature flag is OFF (dropdown mode): check both scanner and automation
+      if (isTriageSignalsFeatureOn) {
+        return automationEnabled;
+      }
+
+      const scannerEnabled = model?.getValue('seerScannerAutomation') === true;
+      return scannerEnabled && automationEnabled;
+    },
+  } satisfies FieldObject;
+
+  // For triage-signals-v0: Simple toggle for Auto-open PR
+  // OFF = stop at code_changes, ON = stop at open_pr
+  const autoOpenPrToggleField = {
+    name: 'autoOpenPr',
+    label: t('Auto-open PR'),
+    help: () =>
+      t(
+        'When enabled, Seer will automatically open a pull request after writing code changes.'
+      ),
+    type: 'boolean',
+    saveOnBlur: true,
+    onChange: handleAutoOpenPrChange,
+    getData: () => ({}), // Prevent default form submission, onChange handles it
+    visible: ({model}) => {
+      const tuningValue = model?.getValue('autofixAutomationTuning');
+      return typeof tuningValue === 'boolean' ? tuningValue : tuningValue !== 'off';
+    },
+    disabled: ({model}) => model?.getValue('cursorHandoff') === true,
+  } satisfies FieldObject;
+
+  // For triage-signals-v0: Simple toggle for Cursor handoff
+  // When ON: stops at root_cause and hands off to Cursor
+  const cursorHandoffToggleField = {
+    name: 'cursorHandoff',
+    label: t('Hand off to Cursor'),
+    help: () =>
+      t(
+        "When enabled, Seer will identify the root cause and hand off the fix to Cursor's cloud agent."
+      ),
+    type: 'boolean',
+    saveOnBlur: true,
+    onChange: handleCursorHandoffChange,
+    getData: () => ({}), // Prevent default form submission, onChange handles it
+    visible: ({model}) => {
+      const tuningValue = model?.getValue('autofixAutomationTuning');
+      const automationEnabled =
+        typeof tuningValue === 'boolean' ? tuningValue : tuningValue !== 'off';
+      return automationEnabled && hasCursorIntegration;
+    },
+    disabled: ({model}) => model?.getValue('autoOpenPr') === true,
   } satisfies FieldObject;
 
   const seerFormGroups: JsonFormObject[] = [
@@ -220,31 +525,51 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
         </div>
       ),
       fields: [
-        seerScannerAutomationField,
-        autofixAutomatingTuningField,
-        automatedRunStoppingPointField,
+        ...(isTriageSignalsFeatureOn ? [] : [seerScannerAutomationField]),
+        isTriageSignalsFeatureOn
+          ? autofixAutomationToggleField
+          : autofixAutomatingTuningField,
+        // Flag ON: show new toggles; Flag OFF: show old dropdown
+        ...(isTriageSignalsFeatureOn
+          ? [autoOpenPrToggleField, cursorHandoffToggleField]
+          : [automatedRunStoppingPointField]),
       ],
     },
   ];
 
+  // When triage signals flag is on, toggle defaults to checked unless explicitly 'off'
+  // - New orgs (undefined): shows checked, persists on form interaction
+  // - Existing orgs with 'off': shows unchecked, preserves their choice
+  const automationTuning = isTriageSignalsFeatureOn
+    ? project.autofixAutomationTuning !== 'off'
+    : (project.autofixAutomationTuning ?? 'off');
+
   return (
     <Fragment>
       <Form
-        key={
+        key={`${project.seerScannerAutomation}-${project.autofixAutomationTuning}-${
           preference?.automation_handoff
             ? 'cursor_handoff'
             : (preference?.automated_run_stopping_point ?? 'root_cause')
-        }
+        }-${isTriageSignalsFeatureOn}`}
         saveOnBlur
         apiMethod="PUT"
         apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
         allowUndo
         initialData={{
           seerScannerAutomation: project.seerScannerAutomation ?? false,
-          autofixAutomationTuning: project.autofixAutomationTuning ?? 'off',
+          // Same DB field, different UI: toggle (boolean) vs dropdown (string)
+          // When triage signals flag is on, default to true (ON)
+          autofixAutomationTuning: automationTuning,
+          // For non-flag mode (dropdown)
           automated_run_stopping_point: preference?.automation_handoff
             ? 'cursor_handoff'
             : (preference?.automated_run_stopping_point ?? 'root_cause'),
+          // For triage-signals-v0 mode (toggles) - only include when flag is on
+          ...(isTriageSignalsFeatureOn && {
+            autoOpenPr: preference?.automated_run_stopping_point === 'open_pr',
+            cursorHandoff: Boolean(preference?.automation_handoff),
+          }),
         }}
         onSubmitSuccess={handleSubmitSuccess}
         additionalFieldProps={{organization}}
@@ -259,12 +584,25 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
           )}
         />
       </Form>
+      <CodingAgentSettings
+        preference={preference}
+        handleAutoCreatePrChange={handleAutoCreatePrChange}
+        isAutomationOn={automationTuning && automationTuning !== 'off'}
+        handleIntegrationChange={handleIntegrationChange}
+        canWriteProject={canWriteProject}
+        cursorIntegrations={cursorIntegrations}
+      />
     </Fragment>
   );
 }
 
-function ProjectSeer({project}: ProjectSeerProps) {
-  const organization = useOrganization();
+function ProjectSeer({
+  organization,
+  project,
+}: {
+  organization: Organization;
+  project: Project;
+}) {
   const {setupAcknowledgement, billing, isLoading} = useOrganizationSeerSetup();
 
   const needsSetup =
@@ -311,16 +649,11 @@ function ProjectSeer({project}: ProjectSeerProps) {
       />
       <SettingsPageHeader
         title={tct('Seer Settings for [projectName]', {
-          projectName: (
-            <span
-              dangerouslySetInnerHTML={{
-                __html: singleLineRenderer(`\`${project.slug}\``),
-              }}
-            />
-          ),
+          projectName: <code>{project.slug}</code>,
         })}
       />
       <ProjectSeerGeneralForm project={project} />
+      <CursorIntegrationCta project={project} />
       <AutofixRepositories project={project} />
       <Center>
         <LinkButton
@@ -334,8 +667,9 @@ function ProjectSeer({project}: ProjectSeerProps) {
   );
 }
 
-export default function ProjectSeerContainer({project}: ProjectSeerProps) {
+export default function ProjectSeerContainer() {
   const organization = useOrganization();
+  const {project} = useProjectSettingsOutlet();
 
   if (!organization.features.includes('autofix-seer-preferences')) {
     return (
@@ -348,7 +682,7 @@ export default function ProjectSeerContainer({project}: ProjectSeerProps) {
     );
   }
 
-  return <ProjectSeer project={project} />;
+  return <ProjectSeer organization={organization} project={project} />;
 }
 
 const Subheading = styled('div')`

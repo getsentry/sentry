@@ -134,7 +134,7 @@ class ReleaseModelManager(BaseManager["Release"]):
         operator: str,
         value,
         project_ids: Sequence[int] | None = None,
-        environments: list[str] | None = None,
+        environments: Sequence[str | int] | None = None,
     ) -> models.QuerySet:
         return self.get_queryset().filter_by_stage(
             organization_id, operator, value, project_ids, environments
@@ -722,7 +722,7 @@ class Release(Model):
             from sentry.models.releasecommit import ReleaseCommit
             from sentry.models.releaseheadcommit import ReleaseHeadCommit
 
-            ReleaseHeadCommit.objects.get(
+            ReleaseHeadCommit.objects.filter(
                 organization_id=self.organization_id, release=self
             ).delete()
             ReleaseCommit.objects.filter(
@@ -785,10 +785,9 @@ class Release(Model):
             GroupRelease.objects.filter(release_id=OuterRef("id"), last_seen__gte=cutoff_date)
         )
 
-        # Subquery for checking if there are recent group resolutions (within 90 days)
-        recent_group_resolutions_exist = Exists(
-            GroupResolution.objects.filter(release_id=OuterRef("id"), datetime__gte=cutoff_date)
-        )
+        # Check ALL GroupResolutions (not just recent) - needed by GroupResolution.has_resolution()
+        # Deleting releases with GroupResolutions breaks regression detection for resolved issues.
+        group_resolutions_exist = Exists(GroupResolution.objects.filter(release_id=OuterRef("id")))
 
         # Subquery for checking if GroupEnvironment has this release as first_release
         group_environment_first_release_exists = Exists(
@@ -808,8 +807,8 @@ class Release(Model):
             | group_environment_first_release_exists
             # Releases referenced by group history
             | group_history_exists
-            # Releases with recent group resolutions (only recent ones, old ones can be cleaned up)
-            | recent_group_resolutions_exist
+            # Releases with any group resolutions (keeps resolution tracking intact)
+            | group_resolutions_exist
             # Releases with recent distributions (only recent ones, old ones can be cleaned up)
             | recent_distributions_exist
             # Releases with recent deploys (only recent ones, old ones can be cleaned up)

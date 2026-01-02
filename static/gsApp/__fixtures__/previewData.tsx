@@ -1,5 +1,4 @@
 import type {PreviewData} from 'getsentry/types';
-import {InvoiceItemType} from 'getsentry/types';
 
 export function PreviewDataFixture(fields: Partial<PreviewData>): PreviewData {
   return {
@@ -11,7 +10,7 @@ export function PreviewDataFixture(fields: Partial<PreviewData>): PreviewData {
     invoiceItems: [
       {
         amount: 8900,
-        type: InvoiceItemType.SUBSCRIPTION,
+        type: 'subscription',
         description: 'Subscription to Business',
         data: {},
         period_end: '',

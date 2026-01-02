@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import functools
+from datetime import datetime
 from typing import Any, ClassVar, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
@@ -28,7 +29,16 @@ class TagType:
         )
 
     def __lt__(self, other: object) -> bool:
-        return getattr(self, self._sort_key) < getattr(other, self._sort_key)
+        self_val = getattr(self, self._sort_key)
+        other_val = getattr(other, self._sort_key)
+        # Handle None values in sorting - None sorts before any non-None value
+        if self_val is None and other_val is None:
+            return False
+        if self_val is None:
+            return True
+        if other_val is None:
+            return False
+        return self_val < other_val
 
     def __getstate__(self) -> dict[str, Any]:
         return {name: getattr(self, name) for name in self.__slots__}
@@ -43,7 +53,12 @@ class TagKey(TagType):
     _sort_key = "values_seen"
 
     def __init__(
-        self, key, values_seen=None, status=TagKeyStatus.ACTIVE, count=None, top_values=None
+        self,
+        key: str,
+        values_seen: int | None = None,
+        status: int = TagKeyStatus.ACTIVE,
+        count: int | None = None,
+        top_values=None,
     ):
         self.key = key
         self.values_seen = values_seen
@@ -59,7 +74,14 @@ class TagValue(TagType):
     __slots__ = ("key", "value", "times_seen", "first_seen", "last_seen")
     _sort_key = "value"
 
-    def __init__(self, key, value, times_seen, first_seen, last_seen):
+    def __init__(
+        self,
+        key: str,
+        value: str | None,
+        times_seen: int | None,
+        first_seen: datetime | None,
+        last_seen: datetime | None,
+    ):
         self.key = key
         self.value = value
         self.times_seen = times_seen
@@ -71,7 +93,14 @@ class GroupTagKey(TagType):
     __slots__ = ("group_id", "key", "values_seen", "count", "top_values")
     _sort_key = "values_seen"
 
-    def __init__(self, group_id, key, values_seen=None, count=None, top_values=None):
+    def __init__(
+        self,
+        group_id: int,
+        key: str,
+        values_seen: int | None = None,
+        count: int | None = None,
+        top_values=None,
+    ):
         self.group_id = group_id
         self.key = key
         self.values_seen = values_seen
@@ -83,7 +112,15 @@ class GroupTagValue(TagType):
     __slots__ = ("group_id", "key", "value", "times_seen", "first_seen", "last_seen")
     _sort_key = "value"
 
-    def __init__(self, group_id, key, value, times_seen, first_seen, last_seen):
+    def __init__(
+        self,
+        group_id: int,
+        key: str,
+        value: str | None,
+        times_seen: int,
+        first_seen,
+        last_seen,
+    ):
         self.group_id = group_id
         self.key = key
         self.value = value

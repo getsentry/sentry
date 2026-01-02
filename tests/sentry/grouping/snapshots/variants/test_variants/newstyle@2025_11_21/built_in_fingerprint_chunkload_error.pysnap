@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:18:50.987914+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: null
@@ -10,6 +8,10 @@ app:
   root_component:
     app (ignored because built-in fingerprint takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        type*
+          "ChunkLoadError"
+        value*
+          "ChunkLoadError: something something..."
         stacktrace (ignored because it contains no in-app frames)
           frame (marked out of app by the client)
             module*
@@ -18,10 +20,6 @@ app:
               "bar.tsx"
             function*
               "main"
-        type*
-          "ChunkLoadError"
-        value*
-          "ChunkLoadError: something something..."
 --------------------------------------------------------------------------
 built_in_fingerprint:
   hash: "5d731dcf8ecc4f042eeacf528d8d8da9"
@@ -35,6 +33,10 @@ system:
   root_component:
     system (ignored because built-in fingerprint takes precedence)
       exception*
+        type*
+          "ChunkLoadError"
+        value (ignored because stacktrace takes precedence)
+          "ChunkLoadError: something something..."
         stacktrace*
           frame*
             module*
@@ -43,7 +45,3 @@ system:
               "bar.tsx"
             function*
               "main"
-        type*
-          "ChunkLoadError"
-        value (ignored because stacktrace takes precedence)
-          "ChunkLoadError: something something..."

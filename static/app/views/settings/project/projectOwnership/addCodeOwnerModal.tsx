@@ -1,6 +1,8 @@
 import {Fragment, useState, type Dispatch, type SetStateAction} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/core/alert';
@@ -246,11 +248,11 @@ function LinkCodeOwners({
   return (
     <Fragment>
       <div>{t('Install a GitHub or GitLab integration to use this feature.')}</div>
-      <Container style={{paddingTop: space(2)}}>
+      <Flex justify="center" paddingTop="xl">
         <LinkButton priority="primary" size="sm" to={baseUrl}>
           Setup Integration
         </LinkButton>
-      </Container>
+      </Flex>
     </Fragment>
   );
 }
@@ -259,7 +261,7 @@ function SourceFile({codeownersFile}: {codeownersFile: CodeownersFile}) {
   return (
     <Panel>
       <SourceFileBody>
-        <IconCheckmark size="md" isCircled color="green200" />
+        <IconCheckmark size="md" color="green200" />
         {codeownersFile.filepath}
         <LinkButton size="sm" href={codeownersFile.html_url} external>
           {t('Preview File')}
@@ -295,7 +297,7 @@ function ErrorMessage({
   const errActors = errorJSON?.raw?.[0]!.split('\n').map((el, i) => <p key={i}>{el}</p>);
   return (
     <Alert.Container>
-      <Alert type="error">
+      <Alert variant="danger">
         {errActors}
         {codeMapping && (
           <p>
@@ -354,9 +356,4 @@ const IntegrationsList = styled('div')`
 
 const IntegrationName = styled('p')`
   padding-left: 10px;
-`;
-
-const Container = styled('div')`
-  display: flex;
-  justify-content: center;
 `;

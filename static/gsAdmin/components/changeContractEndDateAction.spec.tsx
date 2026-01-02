@@ -3,27 +3,46 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
 } from 'sentry-test/reactTestingLibrary';
+
+import ModalStore from 'sentry/stores/modalStore';
 
 import ChangeContractEndDateAction from 'admin/components/changeContractEndDateAction';
 
 describe('ChangeContractEndDateAction', () => {
   const onAction = jest.fn();
+  const contractPeriodEnd = '2024-04-01';
 
-  it('renders empty', () => {
-    render(
-      <ChangeContractEndDateAction contractPeriodEnd="2020-01-04" onAction={onAction} />
-    );
+  beforeEach(() => {
+    ModalStore.reset();
+    jest.clearAllMocks();
   });
 
-  it('renders default end date value', async () => {
+  it('submits updated contract end date', async () => {
+    onAction.mockResolvedValue(undefined);
+
     render(
-      <ChangeContractEndDateAction contractPeriodEnd="2020-01-04" onAction={onAction} />
+      <ChangeContractEndDateAction
+        contractPeriodEnd={contractPeriodEnd}
+        onAction={onAction}
+      />
     );
+    const {waitForModalToHide} = renderGlobalModal();
 
-    await userEvent.click(screen.getByRole('button'));
-    renderGlobalModal();
+    await userEvent.click(screen.getByRole('button', {name: /2024/}));
 
-    expect(screen.getByLabelText('End Date')).toHaveValue('2020-01-04');
+    const endDateInput = await screen.findByLabelText('End Date');
+    await userEvent.click(endDateInput);
+    await userEvent.keyboard('{Control>}a{/Control}');
+    await userEvent.keyboard('2024-06-15');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
+
+    await waitForModalToHide();
+
+    await waitFor(() =>
+      expect(onAction).toHaveBeenCalledWith({contractPeriodEnd: '2024-06-15'})
+    );
   });
 });

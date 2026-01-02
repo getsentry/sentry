@@ -9,6 +9,7 @@ from copy import deepcopy
 from typing import Any, cast
 
 import sentry_sdk
+from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
 from sentry.issue_detection.types import SentryTags as PerformanceIssuesSentryTags
@@ -78,12 +79,14 @@ def build_shim_event_data(
         },
         "event_id": uuid.uuid4().hex,
         "project_id": segment_span["project_id"],
-        "transaction": attribute_value(segment_span, "sentry.transaction"),
-        "release": attribute_value(segment_span, "sentry.release"),
-        "dist": attribute_value(segment_span, "sentry.dist"),
-        "environment": attribute_value(segment_span, "sentry.environment"),
-        "platform": attribute_value(segment_span, "sentry.platform"),
-        "tags": [["environment", attribute_value(segment_span, "sentry.environment")]],
+        "transaction": attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_TRANSACTION),
+        "release": attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_RELEASE),
+        "dist": attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_DIST),
+        "environment": attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT),
+        "platform": attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_PLATFORM),
+        "tags": [
+            ["environment", attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT)]
+        ],
         "received": segment_span["received"],
         "timestamp": segment_span["end_timestamp"],
         "start_timestamp": segment_span["start_timestamp"],
@@ -91,16 +94,26 @@ def build_shim_event_data(
         "spans": [],
     }
 
-    if (profile_id := attribute_value(segment_span, "sentry.profile_id")) is not None:
+    if (profile_id := attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_PROFILE_ID)) is not None:
         event["contexts"]["profile"] = {"profile_id": profile_id, "type": "profile"}
 
     # Add legacy span attributes required only by issue detectors. As opposed to
     # real event payloads, this also adds the segment span so detectors can run
     # topological sorting on the span tree.
+    #
+    # TODO: Remove this code once `organizations:performance-issues-spans` has graduated
+    # and performance issue detection runs 100% on spans.
     for span in spans:
         event_span = cast(dict[str, Any], deepcopy(span))
-        event_span["start_timestamp"] = span["start_timestamp"]
         event_span["timestamp"] = span["end_timestamp"]
+        event_span["data"] = {}
+        for key, value in (span.get("attributes") or {}).items():
+            if (value := attribute_value(event_span, key)) is not None:
+                if key == ATTRIBUTE_NAMES.SENTRY_DESCRIPTION:
+                    event_span["description"] = value
+                else:
+                    event_span["data"][key] = value
+
         event["spans"].append(event_span)
 
     return event

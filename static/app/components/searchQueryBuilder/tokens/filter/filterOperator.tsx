@@ -90,12 +90,10 @@ function FilterKeyOperatorLabel({
 
 export function getOperatorInfo({
   filterToken,
-  hasWildcardOperators,
   fieldDefinition,
 }: {
   fieldDefinition: FieldDefinition | null;
   filterToken: TokenResult<Token.FILTER>;
-  hasWildcardOperators: boolean;
 }): {
   label: ReactNode;
   operator: TermOperator;
@@ -121,10 +119,7 @@ export function getOperatorInfo({
     };
   }
 
-  const {operator, label} = getLabelAndOperatorFromToken(
-    filterToken,
-    hasWildcardOperators
-  );
+  const {operator, label} = getLabelAndOperatorFromToken(filterToken);
 
   if (filterToken.filter === FilterType.IS) {
     return {
@@ -207,11 +202,7 @@ export function getOperatorInfo({
   return {
     operator,
     label: <OpLabel>{label}</OpLabel>,
-    options: getValidOpsForFilter({
-      filterToken,
-      hasWildcardOperators,
-      fieldDefinition,
-    })
+    options: getValidOpsForFilter({filterToken, fieldDefinition})
       .filter(op => op !== TermOperator.EQUAL)
       .map((op): SelectOption<TermOperator> => {
         const optionOpLabel = OP_LABELS[op] ?? op;
@@ -227,9 +218,6 @@ export function getOperatorInfo({
 
 export function FilterOperator({state, item, token, onOpenChange}: FilterOperatorProps) {
   const organization = useOrganization();
-  const hasWildcardOperators = organization.features.includes(
-    'search-query-builder-wildcard-operators'
-  );
   const {
     dispatch,
     searchSource,
@@ -246,10 +234,9 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
     () =>
       getOperatorInfo({
         filterToken: token,
-        hasWildcardOperators,
         fieldDefinition: getFieldDefinition(token.key.text),
       }),
-    [token, hasWildcardOperators, getFieldDefinition]
+    [token, getFieldDefinition]
   );
 
   const onlyOperator = token.filter === FilterType.IS || token.filter === FilterType.HAS;
@@ -352,7 +339,7 @@ const OpButton = styled(UnstyledButton, {
   border-radius: ${p => (p.onlyOperator ? '3px 0 0 3px' : 0)};
 
   :focus {
-    background-color: ${p => p.theme.translucentGray100};
+    background-color: ${p => p.theme.colors.gray100};
     border-right: 1px solid ${p => p.theme.innerBorder};
     border-left: 1px solid ${p => p.theme.innerBorder};
   }

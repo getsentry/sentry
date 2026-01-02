@@ -174,6 +174,9 @@ function getEventsRequest(
   queryExtras?: DiscoverQueryExtras
 ) {
   const isMEPEnabled = defined(mepSetting) && mepSetting !== MEPState.TRANSACTIONS_ONLY;
+  const hasQueueFeature = organization.features.includes(
+    'visibility-dashboards-async-queue'
+  );
   const url = `/organizations/${organization.slug}/events/`;
 
   // To generate the target url for TRACE ID links we always include a timestamp,
@@ -215,10 +218,13 @@ function getEventsRequest(
     },
     // Tries events request up to 3 times on rate limit
     {
-      retry: {
-        statusCodes: [429],
-        tries: 10,
-      },
+      retry: hasQueueFeature
+        ? // The queue will handle retries, so we don't need to retry here
+          undefined
+        : {
+            statusCodes: [429],
+            tries: 10,
+          },
     }
   );
 }

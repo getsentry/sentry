@@ -1,8 +1,7 @@
-import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
 
-from django.db import models
+from django.db import connection, models
 from django.db.models import Case, Value, When
 from django.utils import timezone
 
@@ -28,15 +27,17 @@ from sentry.workflow_engine.models import (
     Workflow,
     WorkflowActionGroupStatus,
 )
-from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.tasks.actions import build_trigger_action_task_params, trigger_action
 from sentry.workflow_engine.types import WorkflowEventData
-from sentry.workflow_engine.utils import scopedstats
+from sentry.workflow_engine.utils import log_context, scopedstats
 
-logger = logging.getLogger(__name__)
+logger = log_context.get_logger(__name__)
 
 EnqueuedAction = tuple[DataConditionGroup, list[DataCondition]]
+UpdatedStatuses = int
+CreatedStatuses = int
+ConflictedStatuses = list[tuple[int, int]]  # (workflow_id, action_id)
 
 
 def get_workflow_action_group_statuses(
@@ -72,13 +73,13 @@ def process_workflow_action_group_statuses(
     workflows: BaseQuerySet[Workflow],
     group: Group,
     now: datetime,
-) -> tuple[dict[int, int], set[int], list[WorkflowActionGroupStatus]]:
+) -> tuple[dict[int, set[int]], set[int], list[WorkflowActionGroupStatus]]:
     """
     Determine which workflow actions should be fired based on their statuses.
     Prepare the statuses to update and create.
     """
 
-    action_to_workflow_ids: dict[int, int] = {}  # will dedupe because there can be only 1
+    updated_action_to_workflows_ids: dict[int, set[int]] = defaultdict(set)
     workflow_frequencies: dict[int, timedelta] = {
         workflow.id: workflow.config.get("frequency", 0) * timedelta(minutes=1)
         for workflow in workflows
@@ -92,7 +93,7 @@ def process_workflow_action_group_statuses(
                 status.workflow_id, zero_timedelta
             ):
                 # we should fire the workflow for this action
-                action_to_workflow_ids[action_id] = status.workflow_id
+                updated_action_to_workflows_ids[action_id].add(status.workflow_id)
                 statuses_to_update.add(status.id)
 
     missing_statuses: list[WorkflowActionGroupStatus] = []
@@ -108,23 +109,62 @@ def process_workflow_action_group_statuses(
                     workflow_id=workflow_id, action_id=action_id, group=group, date_updated=now
                 )
             )
-            action_to_workflow_ids[action_id] = workflow_id
+            updated_action_to_workflows_ids[action_id].add(workflow_id)
 
-    return action_to_workflow_ids, statuses_to_update, missing_statuses
+    return updated_action_to_workflows_ids, statuses_to_update, missing_statuses
 
 
 def update_workflow_action_group_statuses(
     now: datetime, statuses_to_update: set[int], missing_statuses: list[WorkflowActionGroupStatus]
-) -> None:
-    WorkflowActionGroupStatus.objects.filter(
+) -> tuple[UpdatedStatuses, CreatedStatuses, ConflictedStatuses]:
+    updated_count = WorkflowActionGroupStatus.objects.filter(
         id__in=statuses_to_update, date_updated__lt=now
     ).update(date_updated=now)
 
-    WorkflowActionGroupStatus.objects.bulk_create(
-        missing_statuses,
-        batch_size=1000,
-        ignore_conflicts=True,
+    if not missing_statuses:
+        return updated_count, 0, []
+
+    # Use raw SQL: only returns successfully created rows
+    # XXX: the query does not currently include batch size limit like bulk_create does
+    with connection.cursor() as cursor:
+        # Build values for batch insert
+        values_placeholders = []
+        values_data = []
+        for s in missing_statuses:
+            values_placeholders.append("(%s, %s, %s, %s, %s)")
+            values_data.extend([s.workflow_id, s.action_id, s.group_id, now, now])
+
+        sql = f"""
+            INSERT INTO workflow_engine_workflowactiongroupstatus
+            (workflow_id, action_id, group_id, date_added, date_updated)
+            VALUES {', '.join(values_placeholders)}
+            ON CONFLICT (workflow_id, action_id, group_id) DO NOTHING
+            RETURNING workflow_id, action_id
+        """
+
+        cursor.execute(sql, values_data)
+        created_rows = set(cursor.fetchall())  # Only returns newly inserted rows
+
+    # Figure out which ones conflicted (weren't returned)
+    conflicted_statuses = [
+        (s.workflow_id, s.action_id)
+        for s in missing_statuses
+        if (s.workflow_id, s.action_id) not in created_rows
+    ]
+
+    # Log action_ids for debugging
+    attempted_action_ids = {s.action_id for s in missing_statuses}
+    created_action_ids = {action_id for _, action_id in created_rows}
+    logger.debug(
+        "workflow_action_group_status.creation",
+        extra={
+            "attempted_action_ids": list(attempted_action_ids),
+            "created_action_ids": list(created_action_ids),
+        },
     )
+
+    created_count = len(created_rows)
+    return updated_count, created_count, conflicted_statuses
 
 
 def get_unique_active_actions(
@@ -149,13 +189,11 @@ def get_unique_active_actions(
 
 
 @scopedstats.timer()
-def fire_actions(
-    actions: BaseQuerySet[Action], detector: Detector, event_data: WorkflowEventData
-) -> None:
+def fire_actions(actions: BaseQuerySet[Action], event_data: WorkflowEventData) -> None:
     deduped_actions = get_unique_active_actions(actions)
 
     for action in deduped_actions:
-        task_params = build_trigger_action_task_params(action, detector, event_data)
+        task_params = build_trigger_action_task_params(action, event_data)
         trigger_action.apply_async(kwargs=task_params, headers={"sentry-propagate-traces": False})
 
 
@@ -185,7 +223,7 @@ def filter_recently_fired_workflow_actions(
         workflow_ids=workflow_ids,
     )
     now = timezone.now()
-    action_to_workflow_ids, statuses_to_update, missing_statuses = (
+    action_to_workflows_ids, statuses_to_update, missing_statuses = (
         process_workflow_action_group_statuses(
             action_to_workflows_ids=action_to_workflows_ids,
             action_to_statuses=action_to_statuses,
@@ -194,14 +232,24 @@ def filter_recently_fired_workflow_actions(
             now=now,
         )
     )
-    update_workflow_action_group_statuses(now, statuses_to_update, missing_statuses)
+    _, _, conflicted_statuses = update_workflow_action_group_statuses(
+        now, statuses_to_update, missing_statuses
+    )
 
-    actions_queryset = Action.objects.filter(id__in=list(action_to_workflow_ids.keys()))
+    # if statuses were not created for some reason, we should not fire for them
+    for workflow_id, action_id in conflicted_statuses:
+        action_to_workflows_ids[action_id].remove(workflow_id)
+        if not action_to_workflows_ids[action_id]:
+            action_to_workflows_ids.pop(action_id)
+
+    actions_queryset = Action.objects.filter(id__in=list(action_to_workflows_ids.keys()))
 
     # annotate actions with workflow_id they are firing for (deduped)
     workflow_id_cases = [
-        When(id=action_id, then=Value(workflow_id))
-        for action_id, workflow_id in action_to_workflow_ids.items()
+        When(
+            id=action_id, then=Value(min(list(workflow_ids)))
+        )  # select 1 workflow to fire for, this is arbitrary but deterministic
+        for action_id, workflow_ids in action_to_workflows_ids.items()
     ]
 
     return actions_queryset.annotate(

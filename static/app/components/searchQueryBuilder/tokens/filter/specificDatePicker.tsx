@@ -112,7 +112,7 @@ function SpecificDatePicker({
                 if (newDate instanceof Date) {
                   handleSelectDateTime(
                     createDateStringFromSelection({
-                      date: getInternalDate(newDate, utc),
+                      date: newDate,
                       time,
                       utc,
                     })
@@ -284,7 +284,7 @@ const TimeUtcWrapper = styled('div')`
 `;
 
 const UtcPickerLabel = styled('label')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   white-space: nowrap;
   display: flex;
   align-items: center;
@@ -307,7 +307,7 @@ const CheckboxLabel = styled('label')`
   margin: 0;
   gap: ${space(1)};
   font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   cursor: pointer;
 `;
 

@@ -146,7 +146,7 @@ function SubscriptionHeader(props: Props) {
               {subscription.canSelfServe && hasBillingPerms && (
                 <LinkButton
                   size="md"
-                  to={`/settings/${organization.slug}/billing/checkout/?referrer=manage_subscription`}
+                  to={`/checkout/${organization.slug}/?referrer=manage_subscription`}
                   aria-label="Manage subscription"
                 >
                   {t('Manage Subscription')}
@@ -210,7 +210,7 @@ function SubscriptionHeader(props: Props) {
             {subscription.canSelfServe && hasBillingPerms && (
               <LinkButton
                 size="md"
-                to={`/settings/${organization.slug}/billing/checkout/?referrer=manage_subscription`}
+                to={`/checkout/${organization.slug}/?referrer=manage_subscription`}
                 aria-label="Manage plan"
                 priority="primary"
               >
@@ -229,7 +229,7 @@ function SubscriptionHeader(props: Props) {
           </Flex>
         </Flex>
       </Flex>
-      <Flex direction="column" padding="0 2xl xl" gap="xl">
+      <Flex direction="column" padding="0 2xl xl" gap="xl" borderBottom="primary">
         <SubscriptionUpsellBanner
           organization={organization}
           subscription={subscription}

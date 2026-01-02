@@ -6,7 +6,7 @@ import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import type {TabListItemProps} from 'sentry/components/core/tabs';
 import {TabList} from 'sentry/components/core/tabs';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import {IconBusiness} from 'sentry/icons';
@@ -42,6 +42,7 @@ export type Props = {
   headerTitle?: React.ReactNode;
   hideDefaultTabs?: boolean;
   tabs?: {onTabChange: (key: string) => void; tabList: React.ReactNode; value: string};
+  unified?: boolean;
 };
 
 export function DomainViewHeader({
@@ -55,6 +56,7 @@ export function DomainViewHeader({
   additionalBreadCrumbs = [],
   domainBaseUrl,
   tabs,
+  unified,
 }: Props) {
   const organization = useOrganization();
   const location = useLocation();
@@ -65,7 +67,7 @@ export function DomainViewHeader({
 
   const isLaravelInsights = isLaravelInsightsAvailable && isInOverviewPage;
   const isNextJsInsights = isNextJsInsightsAvailable && isInOverviewPage;
-  const isAgentMonitoring = view === 'ai';
+  const isAgentMonitoring = view === 'ai-agents';
   const isSessionsInsights = selectedModule === ModuleName.SESSIONS;
 
   const crumbs: Crumb[] = [
@@ -124,20 +126,20 @@ export function DomainViewHeader({
       : undefined;
   return (
     <Fragment>
-      <Layout.Header>
+      <Layout.Header unified={unified}>
         <Layout.HeaderContent>
           {crumbs.length > 1 && <Breadcrumbs crumbs={crumbs} />}
           <Layout.Title>{headerTitle || domainTitle}</Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar>
-            <FeedbackWidgetButton optionOverrides={feedbackOptions} />
+            <FeedbackButton feedbackOptions={feedbackOptions} />
             {additonalHeaderActions}
           </ButtonBar>
         </Layout.HeaderActions>
         <Layout.HeaderTabs value={tabValue} onChange={tabs?.onTabChange}>
           {!hideDefaultTabs && (
-            <TabList hideBorder>
+            <TabList>
               {tabList.map(tab => (
                 <TabList.Item {...tab} key={tab.key} />
               ))}

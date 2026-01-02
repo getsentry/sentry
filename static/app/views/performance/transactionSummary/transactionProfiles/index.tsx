@@ -7,10 +7,13 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {space} from 'sentry/styles/space';
+import {DataCategory} from 'sentry/types/core';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -67,12 +70,17 @@ function Profiles({transaction}: ProfilesProps) {
     [project]
   );
 
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.PROFILE_DURATION, DataCategory.PROFILE_DURATION_UI],
+  });
+  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
+
   return (
     <StyledMain width="full">
       <FilterActions>
         <PageFilterBar condensed>
           <EnvironmentPageFilter />
-          <DatePageFilter />
+          <DatePageFilter {...datePageFilterProps} />
         </PageFilterBar>
         <TransactionSearchQueryBuilder
           projects={projectIds}

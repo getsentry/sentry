@@ -22,7 +22,7 @@ function DisabledAlert({organization, features}: Props) {
   return (
     <PlanFeature {...{organization, features}}>
       {({plan}) => (
-        <StyledPanelAlert type="muted">
+        <StyledPanelAlert variant="muted">
           <Container>
             <span>
               {plan === null
@@ -45,7 +45,6 @@ function DisabledAlert({organization, features}: Props) {
                 openUpsellModal({
                   organization,
                   source: 'feature.rate_limits',
-                  defaultSelection: 'event-volume',
                 })
               }
             >

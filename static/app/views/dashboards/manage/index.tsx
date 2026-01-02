@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Query} from 'history';
 import debounce from 'lodash/debounce';
@@ -15,7 +15,7 @@ import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {Switch} from 'sentry/components/core/switch';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
@@ -50,6 +50,7 @@ import OwnedDashboardsTable, {
 } from 'sentry/views/dashboards/manage/tableView/ownedDashboardsTable';
 import type {DashboardsLayout} from 'sentry/views/dashboards/manage/types';
 import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboards/types';
+import {PREBUILT_DASHBOARDS} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import RouteError from 'sentry/views/routeError';
 
 import DashboardGrid from './dashboardGrid';
@@ -155,7 +156,7 @@ function ManageDashboards() {
   });
 
   const {
-    data: dashboards,
+    data: dashboardsWithoutPrebuiltConfigs,
     isLoading,
     isError,
     error,
@@ -181,6 +182,29 @@ function ManageDashboards() {
         dashboardsLayout === TABLE
       ),
     }
+  );
+
+  const dashboards = useMemo(
+    () =>
+      dashboardsWithoutPrebuiltConfigs?.map(dashboard => {
+        if (dashboard.prebuiltId && dashboard.prebuiltId in PREBUILT_DASHBOARDS) {
+          return {
+            ...dashboard,
+            widgetDisplay: PREBUILT_DASHBOARDS[dashboard.prebuiltId].widgets.map(
+              widget => widget.displayType
+            ),
+            widgetPreview: PREBUILT_DASHBOARDS[dashboard.prebuiltId].widgets.map(
+              widget => ({
+                displayType: widget.displayType,
+                layout: widget.layout ?? null,
+              })
+            ),
+            projects: [],
+          };
+        }
+        return dashboard;
+      }),
+    [dashboardsWithoutPrebuiltConfigs]
   );
 
   const ownedDashboards = useOwnedDashboards({
@@ -401,7 +425,7 @@ function ManageDashboards() {
     return (
       <Layout.Page>
         <Alert.Container>
-          <Alert type="warning" showIcon={false}>
+          <Alert variant="warning" showIcon={false}>
             {t("You don't have access to this feature")}
           </Alert>
         </Alert.Container>
@@ -560,7 +584,7 @@ function ManageDashboards() {
                           onChange={toggleTemplates}
                         />
                       </TemplateSwitch>
-                      <FeedbackWidgetButton />
+                      <FeedbackButton />
                       <DashboardCreateLimitWrapper>
                         {({
                           hasReachedDashboardLimit,
@@ -599,7 +623,7 @@ function ManageDashboards() {
                           }}
                           size="sm"
                           priority="primary"
-                          icon={<IconAdd isCircled />}
+                          icon={<IconAdd />}
                         >
                           {t('Import Dashboard from JSON')}
                         </Button>

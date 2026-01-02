@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
-from typing import Any, TypedDict
+from typing import Any, Self, TypedDict
 from urllib.parse import urlencode
 
 import sentry_sdk
@@ -28,6 +28,7 @@ from sentry.pipeline.views.base import PipelineView
 from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.projects.services.project.model import RpcProject
 from sentry.projects.services.project_key import project_key_service
+from sentry.projects.services.project_key.model import RpcProjectKey
 from sentry.sentry_apps.logic import SentryAppCreator
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
@@ -107,50 +108,105 @@ class VercelEnvVarDefinition(TypedDict):
     target: list[str]
 
 
-def get_env_var_map(
-    organization: RpcOrganization,
-    project: RpcProject,
-    project_dsn: str,
-    auth_token: str | None,
-    framework: str,
-) -> dict[str, VercelEnvVarDefinition]:
+class VercelEnvVarMapBuilder:
     """
-    Returns a dictionary of environment variables to be set in Vercel for a given project.
+    Builder for creating Vercel environment variable maps.
+
+    env_var_map = (
+        VercelEnvVarMapBuilder()
+        .with_organization(organization)
+        .with_project(project)
+        .with_project_key(project_key)
+        .with_auth_token(auth_token)
+        .with_framework(framework)
+        .build()
+    )
     """
 
-    is_next_js = framework == "nextjs"
-    dsn_env_name = "NEXT_PUBLIC_SENTRY_DSN" if is_next_js else "SENTRY_DSN"
-    return {
-        "SENTRY_ORG": {
-            "type": "encrypted",
-            "value": organization.slug,
-            "target": ["production", "preview"],
-        },
-        "SENTRY_PROJECT": {
-            "type": "encrypted",
-            "value": project.slug,
-            "target": ["production", "preview"],
-        },
-        dsn_env_name: {
-            "type": "encrypted",
-            "value": project_dsn,
-            "target": [
-                "production",
-                "preview",
-                "development",  # The DSN is the only value that makes sense to have available locally via Vercel CLI's `vercel dev` command
-            ],
-        },
-        "SENTRY_AUTH_TOKEN": {
-            "type": "encrypted",
-            "value": auth_token,
-            "target": ["production", "preview"],
-        },
-        "VERCEL_GIT_COMMIT_SHA": {
-            "type": "system",
-            "value": "VERCEL_GIT_COMMIT_SHA",
-            "target": ["production", "preview"],
-        },
-    }
+    def __init__(self) -> None:
+        self._organization: RpcOrganization | None = None
+        self._project: RpcProject | None = None
+        self._project_key: RpcProjectKey | None = None
+        self._auth_token: str | None = None
+        self._framework: str | None = None
+
+    def with_organization(self, organization: RpcOrganization) -> Self:
+        self._organization = organization
+        return self
+
+    def with_project(self, project: RpcProject) -> Self:
+        self._project = project
+        return self
+
+    def with_project_key(self, project_key: RpcProjectKey) -> Self:
+        self._project_key = project_key
+        return self
+
+    def with_auth_token(self, auth_token: str | None) -> Self:
+        self._auth_token = auth_token
+        return self
+
+    def with_framework(self, framework: str | None) -> Self:
+        self._framework = framework
+        return self
+
+    def build(self) -> dict[str, VercelEnvVarDefinition]:
+        if self._organization is None:
+            raise ValueError("organization is required")
+        if self._project is None:
+            raise ValueError("project is required")
+        if self._project_key is None:
+            raise ValueError("project_key is required")
+
+        is_next_js = self._framework == "nextjs"
+        dsn_env_name = "NEXT_PUBLIC_SENTRY_DSN" if is_next_js else "SENTRY_DSN"
+
+        return {
+            "SENTRY_ORG": {
+                "type": "encrypted",
+                "value": self._organization.slug,
+                "target": ["production", "preview"],
+            },
+            "SENTRY_PROJECT": {
+                "type": "encrypted",
+                "value": self._project.slug,
+                "target": ["production", "preview"],
+            },
+            dsn_env_name: {
+                "type": "encrypted",
+                "value": self._project_key.dsn_public,
+                "target": [
+                    "production",
+                    "preview",
+                    "development",  # The DSN is the only value that makes sense to have available locally via Vercel CLI's `vercel dev` command
+                ],
+            },
+            "SENTRY_AUTH_TOKEN": {
+                "type": "encrypted",
+                "value": self._auth_token,
+                "target": ["production", "preview"],
+            },
+            "VERCEL_GIT_COMMIT_SHA": {
+                "type": "system",
+                "value": "VERCEL_GIT_COMMIT_SHA",
+                "target": ["production", "preview"],
+            },
+            "SENTRY_VERCEL_LOG_DRAIN_URL": {
+                "type": "encrypted",
+                "value": f"{self._project_key.integration_endpoint}vercel/logs/",
+                "target": ["production", "preview"],
+            },
+            "SENTRY_OTLP_TRACES_URL": {
+                "type": "encrypted",
+                "value": f"{self._project_key.integration_endpoint}otlp/v1/traces",
+                "target": ["production", "preview"],
+            },
+            "SENTRY_PUBLIC_KEY": {
+                "type": "encrypted",
+                "value": self._project_key.public_key,
+                "target": ["production", "preview"],
+            },
+        }
 
 
 class VercelIntegration(IntegrationInstallation):
@@ -264,27 +320,28 @@ class VercelIntegration(IntegrationInstallation):
             [sentry_project_id, vercel_project_id] = mapping
             sentry_project = sentry_projects[sentry_project_id]
 
-            enabled_dsn = project_key_service.get_default_project_key(
+            project_key = project_key_service.get_default_project_key(
                 organization_id=self.organization_id, project_id=sentry_project_id
             )
-            if not enabled_dsn:
+            if not project_key:
                 raise ValidationError(
                     {"project_mappings": ["You must have an enabled DSN to continue!"]}
                 )
 
-            sentry_project_dsn = enabled_dsn.dsn_public
             vercel_project = vercel_client.get_project(vercel_project_id)
             sentry_auth_token = SentryAppInstallationToken.objects.get_token(
                 sentry_project.organization_id,
                 "vercel",
             )
 
-            env_var_map = get_env_var_map(
-                organization=self.organization,
-                project=sentry_project,
-                project_dsn=sentry_project_dsn,
-                auth_token=sentry_auth_token,
-                framework=vercel_project.get("framework"),
+            env_var_map = (
+                VercelEnvVarMapBuilder()
+                .with_organization(self.organization)
+                .with_project(sentry_project)
+                .with_project_key(project_key)
+                .with_auth_token(sentry_auth_token)
+                .with_framework(vercel_project.get("framework"))
+                .build()
             )
 
             for env_var, details in env_var_map.items():

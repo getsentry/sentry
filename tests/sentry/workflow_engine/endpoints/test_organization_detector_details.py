@@ -10,6 +10,7 @@ from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
+from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.silo.base import SiloMode
@@ -18,6 +19,7 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventTy
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.asserts import assert_status_code
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_kafka, requires_snuba
@@ -31,11 +33,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
-from sentry.workflow_engine.types import (
-    DetectorLifeCycleHooks,
-    DetectorPriorityLevel,
-    DetectorSettings,
-)
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba, requires_kafka]
 
@@ -79,8 +77,14 @@ class OrganizationDetectorDetailsBaseTest(APITestCase):
             comparison=50,
             condition_result=DetectorPriorityLevel.LOW,
         )
+        self.resolve_condition = self.create_data_condition(
+            condition_group=self.data_condition_group,
+            type=Condition.GREATER_OR_EQUAL,
+            comparison=50,
+            condition_result=DetectorPriorityLevel.OK,
+        )
         self.detector = self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Test Detector",
             type=MetricIssue.slug,
             workflow_condition_group=self.data_condition_group,
@@ -180,28 +184,35 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
                         "conditionResult": DetectorPriorityLevel.HIGH,
                         "conditionGroupId": self.condition.condition_group.id,
                     },
+                    {
+                        "id": self.resolve_condition.id,
+                        "comparison": 100,
+                        "type": Condition.LESS_OR_EQUAL,
+                        "conditionResult": DetectorPriorityLevel.OK,
+                        "conditionGroupId": self.condition.condition_group.id,
+                    },
                 ],
             },
             "config": self.detector.config,
         }
         assert SnubaQuery.objects.get(id=self.snuba_query.id)
 
-    def assert_detector_updated(self, detector):
+    def assert_detector_updated(self, detector: Detector) -> None:
         assert detector.name == "Updated Detector"
         assert detector.type == MetricIssue.slug
         assert detector.project_id == self.project.id
 
-    def assert_condition_group_updated(self, condition_group):
+    def assert_condition_group_updated(self, condition_group: DataConditionGroup | None) -> None:
         assert condition_group
         assert condition_group.logic_type == DataConditionGroup.Type.ANY
         assert condition_group.organization_id == self.organization.id
 
-    def assert_data_condition_updated(self, condition):
+    def assert_data_condition_updated(self, condition: DataCondition) -> None:
         assert condition.type == Condition.GREATER.value
         assert condition.comparison == 100
         assert condition.condition_result == DetectorPriorityLevel.HIGH
 
-    def assert_snuba_query_updated(self, snuba_query):
+    def assert_snuba_query_updated(self, snuba_query: SnubaQuery) -> None:
         assert snuba_query.query == "updated query"
         assert snuba_query.time_window == 300
 
@@ -223,7 +234,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         self.assert_condition_group_updated(condition_group)
 
         conditions = list(DataCondition.objects.filter(condition_group=condition_group))
-        assert len(conditions) == 1
+        assert len(conditions) == 2
         condition = conditions[0]
         self.assert_data_condition_updated(condition)
 
@@ -276,7 +287,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         condition_group = detector.workflow_condition_group
         assert condition_group
         conditions = list(DataCondition.objects.filter(condition_group=condition_group))
-        assert len(conditions) == 2
+        assert len(conditions) == 3
 
     def test_update_bad_schema(self) -> None:
         """
@@ -700,6 +711,129 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
                 == 0
             )
 
+    def test_update_config_valid(self) -> None:
+        """Test updating detector config with valid schema data"""
+        # Initial config
+        initial_config = {"detection_type": "static", "comparison_delta": None}
+        self.detector.config = initial_config
+        self.detector.save()
+
+        # Update with valid new config
+        updated_config = {"detection_type": "percent", "comparison_delta": 3600}
+        data = {
+            "config": updated_config,
+        }
+
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+
+        self.detector.refresh_from_db()
+        # Verify config was updated in database (snake_case)
+        assert self.detector.config == updated_config
+        # API returns camelCase
+        assert response.data["config"] == {
+            "detectionType": "percent",
+            "comparisonDelta": 3600,
+        }
+
+    def test_update_config_invalid_schema(self) -> None:
+        """Test updating detector config with invalid schema data fails validation"""
+        # Config missing required field 'detection_type'
+        invalid_config = {"comparison_delta": 3600}
+        data = {
+            "config": invalid_config,
+        }
+
+        with self.tasks():
+            response = self.get_error_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=400,
+            )
+
+        assert "config" in response.data
+        assert "detection_type" in str(response.data["config"])
+
+        # Verify config was not updated
+        self.detector.refresh_from_db()
+        assert self.detector.config != invalid_config
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @mock.patch("sentry.seer.anomaly_detection.delete_rule.delete_rule_in_seer")
+    def test_anomaly_detection_to_static(self, mock_seer_request: mock.MagicMock) -> None:
+        self.detector.config = {"detection_type": AlertRuleDetectionType.DYNAMIC}
+        self.detector.save()
+
+        updated_config = {"detection_type": AlertRuleDetectionType.STATIC}
+        data = {"config": updated_config}
+        mock_seer_request.return_value = True
+
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+        self.detector.refresh_from_db()
+        # Verify config was updated in database (snake_case)
+        assert self.detector.config == updated_config
+        # API returns camelCase
+        assert response.data["config"] == {"detectionType": "static"}
+        mock_seer_request.assert_called_once_with(
+            source_id=int(self.data_source.source_id), organization=self.organization
+        )
+
+    @mock.patch("sentry.incidents.metric_issue_detector.schedule_update_project_config")
+    def test_update_data_source_marks_user_updated_when_snapshot_exists(
+        self, mock_schedule_update_project_config: mock.MagicMock
+    ) -> None:
+        data_source_detector = DataSourceDetector.objects.get(detector=self.detector)
+        data_source = DataSource.objects.get(id=data_source_detector.data_source.id)
+        query_subscription = QuerySubscription.objects.get(id=data_source.source_id)
+        snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query.id)
+
+        snuba_query.query_snapshot = {
+            "type": snuba_query.type,
+            "dataset": snuba_query.dataset,
+            "query": snuba_query.query,
+            "aggregate": snuba_query.aggregate,
+        }
+        snuba_query.save()
+
+        data = {
+            **self.valid_data,
+            "dataSources": [
+                {
+                    "queryType": self.snuba_query.type,
+                    "dataset": self.snuba_query.dataset,
+                    "query": "user modified query",
+                    "aggregate": self.snuba_query.aggregate,
+                    "timeWindow": 300,
+                    "environment": self.environment.name,
+                    "eventTypes": [event_type.name for event_type in self.snuba_query.event_types],
+                }
+            ],
+        }
+
+        with self.tasks():
+            self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+
+        snuba_query.refresh_from_db()
+        assert snuba_query.query_snapshot is not None
+        assert snuba_query.query_snapshot.get("user_updated") is True
+
 
 @region_silo_test
 class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest):
@@ -708,7 +842,7 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
     @mock.patch(
         "sentry.workflow_engine.endpoints.organization_detector_details.schedule_update_project_config"
     )
-    def test_simple(self, mock_schedule_update_project_config) -> None:
+    def test_simple(self, mock_schedule_update_project_config: mock.MagicMock) -> None:
         with outbox_runner():
             self.get_success_response(self.organization.slug, self.detector.id)
 
@@ -731,7 +865,7 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         """
         data_condition_group = self.create_data_condition_group()
         error_detector = self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Error Monitor",
             type=ErrorGroupType.slug,
             workflow_condition_group=data_condition_group,
@@ -749,28 +883,49 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
                 actor=self.user,
             ).exists()
 
-    def test_detector_life_cycle_delete_hook(self) -> None:
-        detector_settings = DetectorSettings(
-            hooks=DetectorLifeCycleHooks(pending_delete=mock.Mock())
+    @with_feature("organizations:anomaly-detection-alerts")
+    @mock.patch("sentry.seer.anomaly_detection.delete_rule.delete_rule_in_seer")
+    @mock.patch(
+        "sentry.workflow_engine.endpoints.organization_detector_details.schedule_update_project_config"
+    )
+    def test_anomaly_detection(
+        self, mock_schedule_update_project_config: mock.MagicMock, mock_seer_request: mock.MagicMock
+    ) -> None:
+        self.detector.config = {"detection_type": AlertRuleDetectionType.DYNAMIC}
+        self.detector.save()
+
+        mock_seer_request.return_value = True
+
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, self.detector.id)
+
+        assert RegionScheduledDeletion.objects.filter(
+            model_name="Detector", object_id=self.detector.id
+        ).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert AuditLogEntry.objects.filter(
+                target_object=self.detector.id,
+                event=audit_log.get_event_id("DETECTOR_REMOVE"),
+                actor=self.user,
+            ).exists()
+        self.detector.refresh_from_db()
+        assert self.detector.status == ObjectStatus.PENDING_DELETION
+        mock_seer_request.assert_called_once_with(
+            source_id=int(self.data_source.source_id), organization=self.organization
         )
 
-        with mock.patch.object(
-            Detector, "settings", new_callable=mock.PropertyMock
-        ) as mock_settings:
-            mock_settings.return_value = detector_settings
+    def test_cannot_delete_system_created_detector(self) -> None:
+        error_detector = self.create_detector(
+            project=self.project,
+            name="Error Detector",
+            type=ErrorGroupType.slug,
+        )
 
-            with outbox_runner():
-                self.get_success_response(self.organization.slug, self.detector.id)
+        self.get_error_response(self.organization.slug, error_detector.id, status_code=403)
 
-            detector_settings.hooks.pending_delete.assert_called_with(self.detector)  # type: ignore[union-attr]
-
-    def test_detector_life_cycle__no_delete_hook(self) -> None:
-        detector_settings = DetectorSettings(hooks=DetectorLifeCycleHooks())
-
-        with mock.patch.object(
-            Detector, "settings", new_callable=mock.PropertyMock
-        ) as mock_settings:
-            mock_settings.return_value = detector_settings
-
-            with outbox_runner():
-                self.get_success_response(self.organization.slug, self.detector.id)
+        # Verify detector was not deleted
+        error_detector.refresh_from_db()
+        assert error_detector.status != ObjectStatus.PENDING_DELETION
+        assert not RegionScheduledDeletion.objects.filter(
+            model_name="Detector", object_id=error_detector.id
+        ).exists()

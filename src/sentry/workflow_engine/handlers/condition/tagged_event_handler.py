@@ -6,6 +6,9 @@ from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
+from sentry.workflow_engine.utils import log_context
+
+logger = log_context.get_logger(__name__)
 
 
 @condition_handler_registry.register(Condition.TAGGED_EVENT)
@@ -90,4 +93,17 @@ class TaggedEventConditionHandler(DataConditionHandler[WorkflowEventData]):
             if k.lower() == key or tagstore.backend.get_standardized_key(k) == key
         )
 
-        return match_values(group_values=tag_values, match_value=value, match_type=match)
+        result = match_values(group_values=tag_values, match_value=value, match_type=match)
+
+        logger.debug(
+            "workflow_engine.handlers.tagged_event_handler",
+            extra={
+                "evaluation_result": result,
+                "event": event,
+                "event_tags": event.tags,
+                "processed_values": tag_values,
+                "comparison_type": match,
+            },
+        )
+
+        return result

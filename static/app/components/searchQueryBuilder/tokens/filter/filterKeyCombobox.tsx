@@ -54,10 +54,6 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
     getFieldDefinition(getKeyName(token.key))
   );
 
-  const hasWildcardOperators =
-    organization.features.includes('search-query-builder-wildcard-operators') &&
-    organization.features.includes('search-query-builder-default-to-contains');
-
   const handleSelectKey = useCallback(
     (keyName: string) => {
       const newFieldDef = getFieldDefinition(keyName);
@@ -112,7 +108,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       dispatch({
         type: 'REPLACE_TOKENS_WITH_TEXT_ON_SELECT',
         tokens: [token],
-        text: getInitialFilterText(keyName, newFieldDef, hasWildcardOperators),
+        text: getInitialFilterText(keyName, newFieldDef),
         focusOverride: {
           itemKey: item.key.toString(),
           part: 'value',
@@ -126,7 +122,6 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       currentInputValueRef,
       dispatch,
       getFieldDefinition,
-      hasWildcardOperators,
       item.key,
       onCommit,
       organization,

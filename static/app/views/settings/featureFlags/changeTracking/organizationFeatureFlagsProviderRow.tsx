@@ -37,7 +37,7 @@ export function OrganizationFeatureFlagsProviderRow({
 
       <Flex align="center">{isUserPending ? <LoadingIndicator mini /> : user?.name}</Flex>
 
-      <Actions>
+      <Flex justify="end">
         <Tooltip
           title={t(
             'You must be an organization owner, manager or admin to remove a secret.'
@@ -56,27 +56,16 @@ export function OrganizationFeatureFlagsProviderRow({
               size="sm"
               disabled={isRemoving || !removeSecret}
               aria-label={t('Remove secret for %s provider', secret.provider)}
-              icon={
-                isRemoving ? (
-                  <LoadingIndicator mini />
-                ) : (
-                  <IconSubtract isCircled size="xs" />
-                )
-              }
+              icon={isRemoving ? <LoadingIndicator mini /> : <IconSubtract size="xs" />}
             >
               {t('Remove')}
             </Button>
           </Confirm>
         </Tooltip>
-      </Actions>
+      </Flex>
     </Fragment>
   );
 }
-
-const Actions = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-`;
 
 const DateTime = styled('div')`
   display: flex;

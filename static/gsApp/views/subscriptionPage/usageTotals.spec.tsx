@@ -10,7 +10,7 @@ import {
 import {
   Am3DsEnterpriseSubscriptionFixture,
   SubscriptionFixture,
-  SubscriptionWithSeerFixture,
+  SubscriptionWithLegacySeerFixture,
 } from 'getsentry-test/fixtures/subscription';
 import {UsageTotalFixture} from 'getsentry-test/fixtures/usageTotal';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -1057,7 +1057,7 @@ describe('Subscription > CombinedUsageTotals', () => {
   });
 
   it('always renders reserved budgets in spend mode', async () => {
-    const seerSubscription = SubscriptionWithSeerFixture({
+    const seerSubscription = SubscriptionWithLegacySeerFixture({
       organization,
       plan: 'am3_business',
       onDemandMaxSpend: 10_00,
@@ -1097,7 +1097,7 @@ describe('Subscription > CombinedUsageTotals', () => {
   });
 
   it('uses billed usage for accepted counts in expanded table', async () => {
-    const seerSubscription = SubscriptionWithSeerFixture({
+    const seerSubscription = SubscriptionWithLegacySeerFixture({
       organization,
       plan: 'am3_business',
       onDemandMaxSpend: 10_00,
@@ -1129,7 +1129,7 @@ describe('Subscription > CombinedUsageTotals', () => {
   });
 
   it('shows table with dropped totals breakdown for reserved budgets', async () => {
-    const seerSubscription = SubscriptionWithSeerFixture({
+    const seerSubscription = SubscriptionWithLegacySeerFixture({
       organization,
       plan: 'am3_business',
     });
@@ -1488,7 +1488,7 @@ describe('Subscription > CombinedUsageTotals', () => {
 
   it('renders PAYG legend with per-category', () => {
     organization.features.push('ondemand-budgets');
-    const seerSubscription = SubscriptionWithSeerFixture({
+    const seerSubscription = SubscriptionWithLegacySeerFixture({
       organization,
       plan: 'am2_business',
       onDemandBudgets: {
@@ -1800,7 +1800,7 @@ describe('calculateCategoryPrepaidUsage', () => {
   });
 
   it('calculates for SEER reserved budgets with automatic extraction', () => {
-    const subscription = SubscriptionWithSeerFixture({
+    const subscription = SubscriptionWithLegacySeerFixture({
       organization,
       plan: 'am3_business',
     });
@@ -1835,7 +1835,7 @@ describe('calculateCategoryPrepaidUsage', () => {
   });
 
   it('calculates for SEER scanner with different CPE', () => {
-    const subscription = SubscriptionWithSeerFixture({
+    const subscription = SubscriptionWithLegacySeerFixture({
       organization,
       plan: 'am3_business',
     });
@@ -1870,7 +1870,7 @@ describe('calculateCategoryPrepaidUsage', () => {
   });
 
   it('calculates for SEER reserved budgets when over budget', () => {
-    const subscription = SubscriptionWithSeerFixture({
+    const subscription = SubscriptionWithLegacySeerFixture({
       organization,
       plan: 'am3_business',
     });
@@ -1905,7 +1905,7 @@ describe('calculateCategoryPrepaidUsage', () => {
   });
 
   it('calculates for SEER reserved budgets with explicit reservedSpend override', () => {
-    const subscription = SubscriptionWithSeerFixture({
+    const subscription = SubscriptionWithLegacySeerFixture({
       organization,
       plan: 'am3_business',
     });
@@ -1938,7 +1938,7 @@ describe('calculateCategoryPrepaidUsage', () => {
   });
 
   it('calculates for SEER reserved budgets with zero spend', () => {
-    const subscription = SubscriptionWithSeerFixture({
+    const subscription = SubscriptionWithLegacySeerFixture({
       organization,
       plan: 'am3_business',
     });

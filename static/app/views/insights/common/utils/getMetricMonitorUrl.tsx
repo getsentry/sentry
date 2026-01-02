@@ -10,7 +10,7 @@ type Params = {
   dataset: Dataset;
   organization: Organization;
   project: Project | undefined;
-  environment?: string | string[];
+  environment?: string | string[] | null;
   eventTypes?: EventTypes[];
   name?: string;
   query?: string;

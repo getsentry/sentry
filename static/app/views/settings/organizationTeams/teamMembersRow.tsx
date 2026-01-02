@@ -38,7 +38,7 @@ function TeamMembersRow({
     <TeamRolesPanelItem key={member.id}>
       <Flex gap="md">
         <IdBadge avatarSize={36} member={member} />
-        {member.pending ? <Tag>{t('Pending')}</Tag> : null}
+        {member.pending ? <Tag variant="muted">{t('Pending')}</Tag> : null}
       </Flex>
       <RoleSelectWrapper>
         <TeamRoleSelect
@@ -77,7 +77,7 @@ function RemoveButton(props: {
       <Button
         size="xs"
         disabled
-        icon={<IconSubtract isCircled />}
+        icon={<IconSubtract />}
         aria-label={t('Remove')}
         title={t('You do not have permission to remove a member from this team.')}
       >
@@ -95,7 +95,7 @@ function RemoveButton(props: {
       data-test-id={`button-remove-${member.id}`}
       size="xs"
       disabled={!canRemoveMember || isIdpProvisioned}
-      icon={<IconSubtract isCircled />}
+      icon={<IconSubtract />}
       onClick={onClick}
       aria-label={buttonRemoveText}
       title={buttonHelpText}

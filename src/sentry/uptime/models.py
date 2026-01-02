@@ -186,6 +186,7 @@ class UptimeRegionScheduleMode(enum.StrEnum):
 
 @data_source_type_registry.register(DATA_SOURCE_UPTIME_SUBSCRIPTION)
 class UptimeSubscriptionDataSourceHandler(DataSourceTypeHandler[UptimeSubscription]):
+    @override
     @staticmethod
     def bulk_get_query_object(
         data_sources: list[DataSource],
@@ -210,6 +211,7 @@ class UptimeSubscriptionDataSourceHandler(DataSourceTypeHandler[UptimeSubscripti
         }
         return {ds.id: qs_lookup.get(ds.source_id) for ds in data_sources}
 
+    @override
     @staticmethod
     def related_model(instance) -> list[ModelRelation]:
         return [ModelRelation(UptimeSubscription, {"id": instance.source_id})]
@@ -224,6 +226,11 @@ class UptimeSubscriptionDataSourceHandler(DataSourceTypeHandler[UptimeSubscripti
     def get_current_instance_count(org: Organization) -> int:
         # We don't have a limit at the moment, so no need to count.
         raise NotImplementedError
+
+    @override
+    @staticmethod
+    def get_relocation_model_name() -> str:
+        return "uptime.uptimesubscription"
 
 
 def get_detector(uptime_subscription: UptimeSubscription, prefetch_workflow_data=False) -> Detector:

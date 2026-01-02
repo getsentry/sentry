@@ -3,9 +3,10 @@ import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import type {Transition} from 'framer-motion';
 
+import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
+
 import {Button} from 'sentry/components/core/button';
 import type {DrawerOptions} from 'sentry/components/globalDrawer';
-import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -73,8 +74,7 @@ function DrawerPanel({
       <DrawerWidthContext.Provider value={actualDrawerWidth}>
         <DrawerSlidePanel
           ariaLabel={ariaLabel}
-          slidePosition="right"
-          collapsed={false}
+          position="right"
           ref={mergeRefs(panelRef, ref)}
           transitionProps={transitionProps}
           panelWidth="var(--drawer-width)" // Initial width only
@@ -164,7 +164,7 @@ const Header = styled('header')<{hideBar?: boolean; hideCloseButton?: boolean}>`
   position: sticky;
   top: 0;
   z-index: ${p => p.theme.zIndex.drawer + 1};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   justify-content: flex-start;
   display: flex;
   flex-shrink: 0;
@@ -248,7 +248,7 @@ const ResizeHandle = styled('div')`
   &:hover,
   &:active {
     &::after {
-      background: ${p => p.theme.purple400};
+      background: ${p => p.theme.colors.blue500};
     }
   }
 
@@ -265,7 +265,7 @@ const ResizeHandle = styled('div')`
   }
 
   &[data-resizing]::after {
-    background: ${p => p.theme.purple400};
+    background: ${p => p.theme.colors.blue500};
   }
 `;
 

@@ -2,6 +2,8 @@ import type {MouseEvent} from 'react';
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
@@ -28,6 +30,7 @@ import {IconChevron} from 'sentry/icons';
 import {IconFileBroken} from 'sentry/icons/iconFileBroken';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {IconWarning} from 'sentry/icons/iconWarning';
+import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
@@ -343,7 +346,7 @@ function NativeFrame({
               </Package>
             </Tooltip>
           </div>
-          <GenericCellWrapper>
+          <Flex>
             <AddressCell onClick={packageClickable ? handleGoToImagesLoaded : undefined}>
               <Tooltip
                 title={addressTooltip}
@@ -354,7 +357,7 @@ function NativeFrame({
                 {!relativeAddress || absolute ? frame.instructionAddr : relativeAddress}
               </Tooltip>
             </AddressCell>
-          </GenericCellWrapper>
+          </Flex>
           <FunctionNameCell>
             {functionName ? (
               <Tooltip title={frame?.rawFunction ?? frame?.symbol} delay={tooltipDelay}>
@@ -385,7 +388,7 @@ function NativeFrame({
           <GroupingCell>
             {isUsedForGrouping && (
               <Tooltip title={t('This frame is repeated in every event of this issue')}>
-                <IconRefresh size="sm" color="textColor" />
+                <IconRefresh size="sm" variant="primary" />
               </Tooltip>
             )}
           </GroupingCell>
@@ -408,7 +411,7 @@ function NativeFrame({
                 : tn('Show %s more frame', 'Show %s more frames', hiddenFrameCount)}
             </ShowHideButton>
           ) : null}
-          <GenericCellWrapper>
+          <Flex>
             {showStacktraceLink && (
               <ErrorBoundary>
                 <StacktraceLink
@@ -429,9 +432,9 @@ function NativeFrame({
               </ErrorBoundary>
             )}
             <TypeCell>
-              {frame.inApp ? <Tag type="info">{t('In App')}</Tag> : null}
+              {frame.inApp ? <Tag variant="info">{t('In App')}</Tag> : null}
             </TypeCell>
-          </GenericCellWrapper>
+          </Flex>
           <ExpandCell>
             {expandable && (
               <ToggleButton
@@ -467,10 +470,6 @@ function NativeFrame({
 }
 
 export default withSentryAppComponents(NativeFrame, {componentType: 'stacktrace-link'});
-
-const GenericCellWrapper = styled('div')`
-  display: flex;
-`;
 
 const AddressCell = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
@@ -549,8 +548,8 @@ const RowHeader = styled('span')<{
   column-gap: ${space(1)};
   background-color: ${p =>
     !p.isInAppFrame && p.isSubFrame
-      ? `${p.theme.surface100}`
-      : `${p.theme.bodyBackground}`};
+      ? `${p.theme.colors.surface200}`
+      : `${p.theme.tokens.background.secondary}`};
   font-size: ${p => p.theme.fontSize.sm};
   padding: ${space(1)};
   color: ${p => (p.isInAppFrame ? '' : p.theme.subText)};
@@ -573,7 +572,7 @@ const StackTraceFrame = styled('li')`
 `;
 
 const SymbolicatorIcon = styled('div')`
-  width: ${p => p.theme.iconSizes.sm};
+  width: ${() => SvgIcon.ICON_SIZES.sm};
 `;
 
 const ShowHideButton = styled(Button)`

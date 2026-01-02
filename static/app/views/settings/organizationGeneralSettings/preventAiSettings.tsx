@@ -8,17 +8,13 @@ import {IconLock} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
-import {getRegionDataFromOrganization} from 'sentry/utils/regions';
+import showNewSeer from 'sentry/utils/seer/showNewSeer';
 
 export const makePreventAiField = (organization: Organization): FieldObject => {
-  const regionData = getRegionDataFromOrganization(organization);
-  const isUSOrg = regionData?.name?.toLowerCase() === 'us';
   const isSelfHosted = ConfigStore.get('isSelfHosted');
 
-  const isDisabled = isSelfHosted || !isUSOrg;
-  const disabledReason = isSelfHosted
-    ? t('This feature is not available for self-hosted instances')
-    : t('This feature is only available in the US region');
+  const isDisabled = isSelfHosted;
+  const disabledReason = t('This feature is not available for self-hosted instances');
 
   return {
     name: 'enablePrReviewTestGeneration',
@@ -33,6 +29,7 @@ export const makePreventAiField = (organization: Organization): FieldObject => {
         {isDisabled && (
           <Tooltip title={disabledReason} position="top">
             <Tag
+              variant="muted"
               role="status"
               icon={<IconLock locked />}
               data-test-id="prevent-ai-disabled-tag"
@@ -43,15 +40,16 @@ export const makePreventAiField = (organization: Organization): FieldObject => {
         )}
       </Flex>
     ),
-    help: tct(
-      'Use AI to review, find bugs, and generate tests in pull requests [link:Learn more]',
-      {
-        link: (
-          <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/ai-code-review/" />
-        ),
-      }
-    ),
+    help: tct('Use AI to review and find bugs in pull requests [link:Learn more]', {
+      link: (
+        <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/ai-code-review/" />
+      ),
+    }),
     visible: ({model}) => {
+      if (showNewSeer(organization)) {
+        return false;
+      }
+
       // Show field when AI features are enabled (hideAiFeatures is false)
       const hideAiFeatures = model.getValue('hideAiFeatures');
       return hideAiFeatures;

@@ -11,7 +11,7 @@ import type {StatusWarning} from 'sentry/types/workflowEngine/automations';
 import {defined} from 'sentry/utils';
 
 export type TitleCellProps = {
-  link: string;
+  link: string | null;
   name: string;
   className?: string;
   details?: React.ReactNode;
@@ -57,6 +57,14 @@ export function TitleCell({
     </Fragment>
   );
 
+  if (!link) {
+    return (
+      <TitleBase className={className} noHover>
+        {content}
+      </TitleBase>
+    );
+  }
+
   if (openInNewTab) {
     return (
       <TitleWrapperAnchor
@@ -78,7 +86,7 @@ export function TitleCell({
 }
 
 const Name = styled('div')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
@@ -98,7 +106,7 @@ const CreatedBySentryIcon = styled(IconSentry)`
   flex-shrink: 0;
 `;
 
-const TitleBase = styled('div')`
+const TitleBase = styled('div')<{noHover?: boolean}>`
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};
@@ -106,11 +114,15 @@ const TitleBase = styled('div')`
   overflow: hidden;
   min-height: 20px;
 
-  &:hover {
-    ${NameText} {
-      text-decoration: underline;
+  ${p =>
+    !p.noHover &&
+    `
+    &:hover {
+      ${NameText} {
+        text-decoration: underline;
+      }
     }
-  }
+  `}
 `;
 
 const TitleWrapper = TitleBase.withComponent(Link);

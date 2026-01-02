@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
+  act,
   fireEvent,
   render,
   renderGlobalModal,
@@ -79,7 +80,7 @@ describe('projectGeneralSettings', () => {
 
   it('renders form fields', async () => {
     render(
-      <ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />,
+      <ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />,
 
       {
         organization,
@@ -88,7 +89,7 @@ describe('projectGeneralSettings', () => {
     );
 
     expect(await screen.findByRole('textbox', {name: 'Slug'})).toHaveValue(
-      'Project Name'
+      'project-slug'
     );
     expect(screen.getByRole('textbox', {name: 'Subject Prefix'})).toHaveValue('[my-org]');
 
@@ -105,12 +106,70 @@ describe('projectGeneralSettings', () => {
     expect(getField('checkbox', 'Verify TLS/SSL')).toBeChecked();
   });
 
+  it('allows undoing an Allowed Domains change from the toast', async () => {
+    putMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      method: 'PUT',
+      body: project,
+    });
+
+    render(<ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />, {
+      organization,
+      initialRouterConfig,
+    });
+
+    const allowedDomainsInput = await screen.findByRole('textbox', {
+      name: 'Allowed Domains',
+    });
+
+    await userEvent.clear(allowedDomainsInput);
+    await userEvent.type(allowedDomainsInput, 'changed.com');
+    await userEvent.tab();
+
+    await waitFor(() => expect(putMock).toHaveBeenCalledTimes(1));
+
+    expect(putMock).toHaveBeenCalledWith(
+      `/projects/${organization.slug}/${project.slug}/`,
+      expect.objectContaining({
+        method: 'PUT',
+        data: {allowedDomains: ['changed.com']},
+      })
+    );
+
+    const addSuccessMessageMock = addSuccessMessage as jest.MockedFunction<
+      typeof addSuccessMessage
+    >;
+    const undo = addSuccessMessageMock.mock.calls[0]?.[1]?.undo;
+
+    expect(undo).toBeInstanceOf(Function);
+
+    act(() => {
+      undo?.();
+    });
+
+    await waitFor(() => expect(putMock).toHaveBeenCalledTimes(2));
+
+    expect(putMock).toHaveBeenLastCalledWith(
+      `/projects/${organization.slug}/${project.slug}/`,
+      expect.objectContaining({
+        method: 'PUT',
+        data: {allowedDomains: ['example.com', 'https://example.com']},
+      })
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole('textbox', {name: 'Allowed Domains'})).toHaveValue(
+        'example.com,https://example.com'
+      )
+    );
+  });
+
   it('disables scrapeJavaScript when equivalent org setting is false', async () => {
     const orgWithoutScrapeJavaScript = OrganizationFixture({
       scrapeJavaScript: false,
     });
 
-    render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
+    render(<ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />, {
       organization: orgWithoutScrapeJavaScript,
       initialRouterConfig,
     });
@@ -129,15 +188,18 @@ describe('projectGeneralSettings', () => {
       method: 'DELETE',
     });
 
-    const {router} = render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
-      organization,
-      initialRouterConfig: {
-        location: {
-          pathname: `/${project.slug}/`,
+    const {router} = render(
+      <ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/${project.slug}/`,
+          },
+          route: '/:projectId/',
         },
-        route: '/:projectId/',
-      },
-    });
+      }
+    );
 
     await userEvent.click(await screen.findByRole('button', {name: 'Remove Project'}));
 
@@ -156,7 +218,7 @@ describe('projectGeneralSettings', () => {
       method: 'POST',
     });
 
-    render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
+    render(<ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />, {
       organization,
       initialRouterConfig,
     });
@@ -191,7 +253,7 @@ describe('projectGeneralSettings', () => {
       body: {detail: 'An organization owner could not be found'},
     });
 
-    render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
+    render(<ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />, {
       organization,
       initialRouterConfig,
     });
@@ -220,7 +282,7 @@ describe('projectGeneralSettings', () => {
       access: ['org:read'],
     });
 
-    render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
+    render(<ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />, {
       organization: nonAdminOrg,
       initialRouterConfig,
     });
@@ -241,7 +303,7 @@ describe('projectGeneralSettings', () => {
   it('disables the form for users without write permissions', async () => {
     const readOnlyOrg = OrganizationFixture({access: ['org:read']});
 
-    render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
+    render(<ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />, {
       organization: readOnlyOrg,
       initialRouterConfig,
     });
@@ -266,7 +328,7 @@ describe('projectGeneralSettings', () => {
 
     render(
       <ProjectContextProvider projectSlug={project.slug}>
-        <ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />
+        <ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />
       </ProjectContextProvider>,
       {
         organization,
@@ -296,7 +358,7 @@ describe('projectGeneralSettings', () => {
 
     render(
       <ProjectContextProvider projectSlug={project.slug}>
-        <ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />
+        <ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />
       </ProjectContextProvider>,
       {
         organization,
@@ -339,7 +401,7 @@ describe('projectGeneralSettings', () => {
     function renderProjectGeneralSettings() {
       render(
         <ProjectContextProvider projectSlug={project.slug}>
-          <ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />
+          <ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />
         </ProjectContextProvider>,
         {
           organization,
@@ -450,10 +512,16 @@ describe('projectGeneralSettings', () => {
         route: '/settings/:orgId/projects/:projectId/',
       };
 
-      render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
-        organization: orgWithGamingAccess,
-        initialRouterConfig: routerConfig,
-      });
+      render(
+        <ProjectGeneralSettings
+          project={projectWithPlatform}
+          onChangeSlug={mockOnChangeSlug}
+        />,
+        {
+          organization: orgWithGamingAccess,
+          initialRouterConfig: routerConfig,
+        }
+      );
 
       const platformSelect = await screen.findByRole('textbox', {name: 'Platform'});
       await userEvent.click(platformSelect);
@@ -486,10 +554,13 @@ describe('projectGeneralSettings', () => {
         route: '/settings/:orgId/projects/:projectId/',
       };
 
-      render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
-        organization: orgWithoutGamingFeature,
-        initialRouterConfig: routerConfig,
-      });
+      render(
+        <ProjectGeneralSettings project={baseProject} onChangeSlug={mockOnChangeSlug} />,
+        {
+          organization: orgWithoutGamingFeature,
+          initialRouterConfig: routerConfig,
+        }
+      );
 
       const platformSelect = await screen.findByRole('textbox', {name: 'Platform'});
       await userEvent.click(platformSelect);

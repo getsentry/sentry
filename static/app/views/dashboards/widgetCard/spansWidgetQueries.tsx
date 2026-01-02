@@ -18,6 +18,7 @@ import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {isEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
+import type {WidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {
@@ -45,6 +46,7 @@ type SpansWidgetQueriesProps = {
   onBestEffortDataFetched?: () => void;
   onDataFetchStart?: () => void;
   onDataFetched?: (results: OnDataFetchedProps) => void;
+  queue?: WidgetQueryQueue;
 };
 
 type SpansWidgetQueriesImplProps = SpansWidgetQueriesProps & {
@@ -107,6 +109,7 @@ function SpansWidgetQueries(props: SpansWidgetQueriesProps) {
 function SpansWidgetQueriesSingleRequestImpl({
   children,
   api,
+  queue,
   selection,
   widget,
   cursor,
@@ -117,7 +120,6 @@ function SpansWidgetQueriesSingleRequestImpl({
   getConfidenceInformation,
 }: SpansWidgetQueriesImplProps) {
   const config = SpansConfig;
-
   const organization = useOrganization();
   const [confidence, setConfidence] = useState<Confidence | null>(null);
   const [sampleCount, setSampleCount] = useState<number | undefined>(undefined);
@@ -142,6 +144,7 @@ function SpansWidgetQueriesSingleRequestImpl({
       <GenericWidgetQueries<SeriesResult, TableResult>
         config={config}
         api={api}
+        queue={queue}
         organization={organization}
         selection={selection}
         widget={widget}

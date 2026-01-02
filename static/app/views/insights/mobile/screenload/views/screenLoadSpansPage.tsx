@@ -1,7 +1,8 @@
-import {Fragment} from 'react';
+import React, {useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -10,19 +11,19 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
-import {
-  PRIMARY_RELEASE_ALIAS,
-  ReleaseComparisonSelector,
-  SECONDARY_RELEASE_ALIAS,
-} from 'sentry/views/insights/common/components/releaseSelector';
+import {ReleaseSelector} from 'sentry/views/insights/common/components/releaseSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import type {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
+import {DeviceClassSelector} from 'sentry/views/insights/mobile/common/components/deviceClassSelector';
 import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/spanSamplesPanel';
+import {AffectSelector} from 'sentry/views/insights/mobile/screenload/components/affectSelector';
 import {ScreenCharts} from 'sentry/views/insights/mobile/screenload/components/charts/screenCharts';
 import {ScreenLoadEventSamples} from 'sentry/views/insights/mobile/screenload/components/eventSamples';
 import {MobileMetricsRibbon} from 'sentry/views/insights/mobile/screenload/components/metricsRibbon';
+import {SpanOpSelector} from 'sentry/views/insights/mobile/screenload/components/spanOpSelector';
 import {ScreenLoadSpansTable} from 'sentry/views/insights/mobile/screenload/components/tables/screenLoadSpansTable';
 import {
   MobileCursors,
@@ -33,19 +34,22 @@ import {ModuleName} from 'sentry/views/insights/types';
 type Query = {
   primaryRelease: string;
   project: string;
-  secondaryRelease: string;
   spanGroup: string;
   transaction: string;
   [QueryParameterNames.SPANS_SORT]: string;
   spanDescription?: string;
 };
 
+const EVENT = 'event';
+const SPANS = 'spans';
+
 export function ScreenLoadSpansContent() {
   const router = useRouter();
   const location = useLocation<Query>();
+  const [sampleType, setSampleType] = useState<typeof EVENT | typeof SPANS>(SPANS);
 
   const {spanGroup, transaction: transactionName} = location.query;
-  const {primaryRelease, secondaryRelease} = useReleaseSelection();
+  const {primaryRelease} = useReleaseSelection();
 
   useSamplesDrawer({
     Component: (
@@ -62,12 +66,15 @@ export function ScreenLoadSpansContent() {
   });
 
   return (
-    <Fragment>
+    <React.Fragment>
       <HeaderContainer>
         <ToolRibbon>
           <FilterContainer>
-            <ModulePageFilterBar moduleName={ModuleName.APP_START} disableProjectFilter />
-            <ReleaseComparisonSelector />
+            <ModulePageFilterBar
+              moduleName={ModuleName.SCREEN_LOAD}
+              disableProjectFilter
+            />
+            <ReleaseSelector moduleName={ModuleName.SCREEN_LOAD} />
           </FilterContainer>
         </ToolRibbon>
 
@@ -78,43 +85,37 @@ export function ScreenLoadSpansContent() {
             `transaction:${transactionName}`,
           ]}
           fields={[
-            `avg_if(measurements.time_to_initial_display,release,equals,${primaryRelease})`,
-            `avg_if(measurements.time_to_initial_display,release,equals,${secondaryRelease})`,
-            `avg_if(measurements.time_to_full_display,release,equals,${primaryRelease})`,
-            `avg_if(measurements.time_to_full_display,release,equals,${secondaryRelease})`,
-            `count_if(measurements.time_to_initial_display,release,equals,${primaryRelease})`,
-            `count_if(measurements.time_to_initial_display,release,equals,${secondaryRelease})`,
+            primaryRelease
+              ? `avg_if(measurements.time_to_initial_display,release,equals,${primaryRelease})`
+              : 'avg(measurements.time_to_initial_display)',
+            primaryRelease
+              ? `avg_if(measurements.time_to_full_display,release,equals,${primaryRelease})`
+              : 'avg(measurements.time_to_full_display)',
+            primaryRelease
+              ? `count_if(measurements.time_to_initial_display,release,equals,${primaryRelease})`
+              : 'count()',
           ]}
           blocks={[
             {
               unit: DurationUnit.MILLISECOND,
-              dataKey: `avg_if(measurements.time_to_initial_display,release,equals,${primaryRelease})`,
-              title: t('Avg TTID (%s)', PRIMARY_RELEASE_ALIAS),
+              dataKey: primaryRelease
+                ? `avg_if(measurements.time_to_initial_display,release,equals,${primaryRelease})`
+                : 'avg(measurements.time_to_initial_display)',
+              title: t('Avg TTID'),
             },
             {
               unit: DurationUnit.MILLISECOND,
-              dataKey: `avg_if(measurements.time_to_initial_display,release,equals,${secondaryRelease})`,
-              title: t('Avg TTID (%s)', SECONDARY_RELEASE_ALIAS),
-            },
-            {
-              unit: DurationUnit.MILLISECOND,
-              dataKey: `avg_if(measurements.time_to_full_display,release,equals,${primaryRelease})`,
-              title: t('Avg TTFD (%s)', PRIMARY_RELEASE_ALIAS),
-            },
-            {
-              unit: DurationUnit.MILLISECOND,
-              dataKey: `avg_if(measurements.time_to_full_display,release,equals,${secondaryRelease})`,
-              title: t('Avg TTFD (%s)', SECONDARY_RELEASE_ALIAS),
+              dataKey: primaryRelease
+                ? `avg_if(measurements.time_to_full_display,release,equals,${primaryRelease})`
+                : 'avg(measurements.time_to_full_display)',
+              title: t('Avg TTFD'),
             },
             {
               unit: 'count',
-              dataKey: `count_if(measurements.time_to_initial_display,release,equals,${primaryRelease})`,
-              title: t('Total Count (%s)', PRIMARY_RELEASE_ALIAS),
-            },
-            {
-              unit: 'count',
-              dataKey: `count_if(measurements.time_to_initial_display,release,equals,${secondaryRelease})`,
-              title: t('Total Count (%s)', SECONDARY_RELEASE_ALIAS),
+              dataKey: primaryRelease
+                ? `count_if(measurements.time_to_initial_display,release,equals,${primaryRelease})`
+                : 'count()',
+              title: t('Total Count'),
             },
           ]}
           referrer="api.insights.mobile-screen-totals"
@@ -126,36 +127,55 @@ export function ScreenLoadSpansContent() {
           additionalFilters={[`transaction:${transactionName}`]}
           chartHeight={120}
         />
-        <SampleContainer>
-          <SampleContainerItem>
-            {primaryRelease && (
+        <Controls>
+          <FiltersContainer>
+            {sampleType === SPANS && (
+              <SpanOpSelector
+                primaryRelease={primaryRelease}
+                transaction={transactionName}
+              />
+            )}
+            {sampleType === EVENT && (
+              <DeviceClassSelector
+                size="md"
+                clearSpansTableCursor
+                moduleName={ModuleName.APP_START}
+              />
+            )}
+            {sampleType === EVENT && <SubregionSelector />}
+            {sampleType === SPANS && <AffectSelector transaction={transactionName} />}
+          </FiltersContainer>
+          <SegmentedControl
+            onChange={value => {
+              setSampleType(value);
+            }}
+            value={sampleType}
+            aria-label={t('Sample Type Selection')}
+          >
+            <SegmentedControl.Item key={SPANS}>{t('By Spans')}</SegmentedControl.Item>
+            <SegmentedControl.Item key={EVENT}>{t('By Event')}</SegmentedControl.Item>
+          </SegmentedControl>
+        </Controls>
+        {sampleType === EVENT && (
+          <SampleContainer>
+            <SampleContainerItem>
               <ScreenLoadEventSamples
                 release={primaryRelease}
                 sortKey={MobileSortKeys.RELEASE_1_EVENT_SAMPLE_TABLE}
                 cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
                 transaction={transactionName}
-                showDeviceClassSelector
               />
-            )}
-          </SampleContainerItem>
-          <SampleContainerItem>
-            {secondaryRelease && (
-              <ScreenLoadEventSamples
-                release={secondaryRelease}
-                sortKey={MobileSortKeys.RELEASE_2_EVENT_SAMPLE_TABLE}
-                cursorName={MobileCursors.RELEASE_2_EVENT_SAMPLE_TABLE}
-                transaction={transactionName}
-              />
-            )}
-          </SampleContainerItem>
-        </SampleContainer>
-        <ScreenLoadSpansTable
-          transaction={transactionName}
-          primaryRelease={primaryRelease}
-          secondaryRelease={secondaryRelease}
-        />
+            </SampleContainerItem>
+          </SampleContainer>
+        )}
+        {sampleType === SPANS && (
+          <ScreenLoadSpansTable
+            transaction={transactionName}
+            primaryRelease={primaryRelease}
+          />
+        )}
       </ErrorBoundary>
-    </Fragment>
+    </React.Fragment>
   );
 }
 
@@ -175,4 +195,18 @@ const SampleContainer = styled('div')`
 
 const SampleContainerItem = styled('div')`
   flex: 1;
+`;
+
+const Controls = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: ${space(1)};
+`;
+
+const FiltersContainer = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+  margin-top: ${space(1)};
 `;

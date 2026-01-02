@@ -1,9 +1,8 @@
 import {connect} from 'echarts';
-import type {Location, Query} from 'history';
+import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
-import pick from 'lodash/pick';
 import trimStart from 'lodash/trimStart';
 import * as qs from 'query-string';
 
@@ -28,7 +27,6 @@ import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {
   getAggregateAlias,
   getAggregateArg,
-  getColumnsAndAggregates,
   isEquation,
   isMeasurement,
   RATE_UNIT_MULTIPLIERS,
@@ -42,7 +40,7 @@ import {
 } from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
-import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {decodeList} from 'sentry/utils/queryString';
 import type {
   DashboardDetails,
   DashboardFilters,
@@ -131,51 +129,6 @@ export function normalizeUnit(value: number, unit: string, dataType: string): nu
   return value * multiplier;
 }
 
-function coerceStringToArray(value?: string | string[] | null) {
-  return typeof value === 'string' ? [value] : value;
-}
-
-export function constructWidgetFromQuery(query?: Query): Widget | undefined {
-  if (query) {
-    const queryNames = coerceStringToArray(query.queryNames);
-    const queryConditions = coerceStringToArray(query.queryConditions);
-    const queryFields = coerceStringToArray(query.queryFields);
-    const widgetType = decodeScalar(query.widgetType);
-    const queries: WidgetQuery[] = [];
-    if (
-      queryConditions &&
-      queryNames &&
-      queryFields &&
-      typeof query.queryOrderby === 'string'
-    ) {
-      const {columns, aggregates} = getColumnsAndAggregates(queryFields);
-      queryConditions.forEach((condition, index) => {
-        queries.push({
-          name: queryNames[index]!,
-          conditions: condition,
-          fields: queryFields,
-          columns,
-          aggregates,
-          orderby: query.queryOrderby as string,
-        });
-      });
-    }
-    if (query.title && query.displayType && query.interval && queries.length > 0) {
-      const newWidget: Widget = {
-        ...(pick(query, ['title', 'displayType', 'interval']) as {
-          displayType: DisplayType;
-          interval: string;
-          title: string;
-        }),
-        widgetType: widgetType ? (widgetType as WidgetType) : WidgetType.DISCOVER,
-        queries,
-      };
-      return newWidget;
-    }
-  }
-  return undefined;
-}
-
 export function getWidgetInterval(
   widget: Widget,
   datetimeObj: Partial<PageFilters['datetime']>,
@@ -218,7 +171,9 @@ export function getWidgetInterval(
       datetimeObj,
       widget.widgetType === WidgetType.SPANS || widget.widgetType === WidgetType.LOGS
         ? 'spans'
-        : 'high'
+        : widget.widgetType === WidgetType.ISSUE
+          ? 'issues'
+          : 'high'
     );
     // Only return high fidelity interval if desired interval is higher fidelity
     if (desiredPeriod < parsePeriodToHours(highInterval)) {
@@ -567,16 +522,6 @@ export function getDashboardFiltersFromURL(location: Location): DashboardFilters
             }
           })
           .filter(filter => filter !== null);
-      } else if (key === DashboardFilterKeys.TEMPORARY_FILTERS) {
-        dashboardFilters[key] = queryFilters
-          .map(filter => {
-            try {
-              return JSON.parse(filter);
-            } catch (error) {
-              return null;
-            }
-          })
-          .filter(filter => filter !== null);
       } else {
         dashboardFilters[key] = queryFilters;
       }
@@ -591,10 +536,7 @@ export function dashboardFiltersToString(
 ): string {
   let dashboardFilterConditions = '';
 
-  const pinnedFilters = omit(dashboardFilters, [
-    DashboardFilterKeys.GLOBAL_FILTER,
-    DashboardFilterKeys.TEMPORARY_FILTERS,
-  ]);
+  const pinnedFilters = omit(dashboardFilters, DashboardFilterKeys.GLOBAL_FILTER);
   if (pinnedFilters) {
     for (const [key, activeFilters] of Object.entries(pinnedFilters)) {
       if (activeFilters.length === 1) {
@@ -608,6 +550,7 @@ export function dashboardFiltersToString(
   }
 
   const globalFilters = dashboardFilters?.[DashboardFilterKeys.GLOBAL_FILTER];
+
   // If widgetType is provided, concatenate global filters that apply
   if (widgetType && globalFilters) {
     dashboardFilterConditions +=
@@ -663,9 +606,13 @@ export const performanceScoreTooltip = t('peformance_score is not supported in D
 
 export function applyDashboardFilters(
   baseQuery: string | undefined,
-  dashboardFilters: DashboardFilters | undefined
+  dashboardFilters: DashboardFilters | undefined,
+  widgetType?: WidgetType
 ): string | undefined {
-  const dashboardFilterConditions = dashboardFiltersToString(dashboardFilters);
+  const dashboardFilterConditions = dashboardFiltersToString(
+    dashboardFilters,
+    widgetType
+  );
   if (dashboardFilterConditions) {
     if (baseQuery) {
       return `(${baseQuery}) ${dashboardFilterConditions}`;
@@ -674,3 +621,15 @@ export function applyDashboardFilters(
   }
   return baseQuery;
 }
+
+export const isChartDisplayType = (displayType?: DisplayType) => {
+  if (!displayType) {
+    return true;
+  }
+  return ![
+    DisplayType.BIG_NUMBER,
+    DisplayType.TABLE,
+    DisplayType.DETAILS,
+    DisplayType.WHEEL,
+  ].includes(displayType);
+};

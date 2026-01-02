@@ -7,10 +7,11 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import analytics, features
+from sentry.analytics.events.agent_monitoring_events import AgentMonitoringQuery
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_events_stats import SENTRY_BACKEND_REFERRERS
 from sentry.api.endpoints.timeseries import (
     EMPTY_STATS_RESPONSE,
@@ -27,7 +28,7 @@ from sentry.search.eap.trace_metrics.config import (
     TraceMetricsSearchResolverConfig,
     get_trace_metric_from_request,
 )
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.types import AdditionalQueries, SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba import (
     discover,
@@ -72,7 +73,7 @@ def null_zero(value: float) -> float | None:
 
 
 @region_silo_endpoint
-class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
@@ -158,6 +159,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                 )
             except NoProjects:
                 return Response(EMPTY_STATS_RESPONSE, status=200)
+            additional_queries = self.get_additional_queries(request)
 
         with handle_query_errors():
             self.validate_comparison_delta(comparison_delta, snuba_params, organization)
@@ -174,6 +176,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                 snuba_params,
                 rollup,
                 comparison_delta,
+                additional_queries,
             )
             return Response(
                 self.serialize_stats_data(events_stats, axes, snuba_params, rollup, dataset),
@@ -191,6 +194,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
         snuba_params: SnubaParams,
         rollup: int,
         comparison_delta: timedelta | None,
+        additional_queries: AdditionalQueries,
     ) -> SnubaTSResult | dict[str, SnubaTSResult]:
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
         include_other = request.GET.get("excludeOther") != "1"
@@ -203,6 +207,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
         elif not is_valid_referrer(referrer):
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
         query_source = self.get_request_querysource(request, referrer)
+
+        self._emit_analytics_event(organization, referrer)
 
         batch_features = self.get_features(organization, request)
         use_metrics = (
@@ -222,18 +228,21 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
             if dataset not in RPC_DATASETS:
                 raise NotImplementedError
 
+            extrapolation_mode = self.get_extrapolation_mode(request)
+
             if dataset == TraceMetrics:
                 # tracemetrics uses aggregate conditions
-                metric_name, metric_type = get_trace_metric_from_request(request, organization)
+                metric = get_trace_metric_from_request(request)
+
                 return TraceMetricsSearchResolverConfig(
-                    metric_name=metric_name,
-                    metric_type=metric_type,
+                    metric=metric,
                     auto_fields=False,
                     use_aggregate_conditions=True,
                     disable_aggregate_extrapolation=request.GET.get(
                         "disableAggregateExtrapolation", "0"
                     )
                     == "1",
+                    extrapolation_mode=extrapolation_mode,
                 )
 
             return SearchResolverConfig(
@@ -243,14 +252,19 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                     "disableAggregateExtrapolation", "0"
                 )
                 == "1",
+                extrapolation_mode=extrapolation_mode,
             )
 
         if top_events > 0:
             raw_groupby = self.get_field_list(organization, request, param_name="groupBy")
+            raw_orderby = self.get_orderby(request)
             if len(raw_groupby) == 0:
                 raise ParseError("groupBy is a required parameter when doing topEvents")
             if "timestamp" in raw_groupby:
                 raise ParseError("Cannot group by timestamp")
+            if raw_orderby:
+                if "timestamp" in [col.strip("-") for col in raw_orderby]:
+                    raise ParseError("Cannot order by timestamp")
             if dataset in RPC_DATASETS:
                 return dataset.run_top_events_timeseries_query(
                     params=snuba_params,
@@ -264,6 +278,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                     config=get_rpc_config(),
                     sampling_mode=snuba_params.sampling_mode,
                     equations=self.get_equation_list(organization, request, param_name="groupBy"),
+                    additional_queries=additional_queries,
                 )
             return dataset.top_events_timeseries(
                 timeseries_columns=query_columns,
@@ -293,6 +308,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                 config=get_rpc_config(),
                 sampling_mode=snuba_params.sampling_mode,
                 comparison_delta=comparison_delta,
+                additional_queries=additional_queries,
             )
 
         return dataset.timeseries_query(
@@ -405,3 +421,16 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
             return INGESTION_DELAY_MESSAGE
         else:
             return None
+
+    def _emit_analytics_event(self, organization: Organization, referrer: str) -> None:
+        if "agent-monitoring" not in referrer:
+            return
+        try:
+            analytics.record(
+                AgentMonitoringQuery(
+                    organization_id=organization.id,
+                    referrer=referrer,
+                )
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)

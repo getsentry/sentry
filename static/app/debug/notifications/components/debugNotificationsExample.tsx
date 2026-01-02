@@ -55,7 +55,7 @@ export function DebugNotificationsExample({
           Body
         </Text>
         {displayFormat === ExampleDataFormat.FORMATTED ? (
-          <Text>{registration.example.body}</Text>
+          <Text>{JSON.stringify(registration.example.body)}</Text>
         ) : (
           <CodeBlock language="javascript">
             {JSON.stringify(registration.example.body)}
@@ -135,7 +135,7 @@ const PlaceholderChart = styled('div')`
   height: 100px;
   width: 200px;
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   background: linear-gradient(
     to bottom right,
     ${p => p.theme.tokens.background.primary},

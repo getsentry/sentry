@@ -188,7 +188,7 @@ export function DataScrubbing({
       <PanelHeader>
         <div>{t('Advanced Data Scrubbing')}</div>
       </PanelHeader>
-      <PanelAlert type="info">
+      <PanelAlert variant="info">
         {additionalContext}{' '}
         {tct(
           'The new rules will only apply to upcoming events. For more details, see [linkToDocs].',
@@ -211,10 +211,9 @@ export function DataScrubbing({
             disabled={disabled}
           />
         ) : (
-          <EmptyMessage
-            icon={<IconWarning size="xl" />}
-            description={t('You have no data scrubbing rules')}
-          />
+          <EmptyMessage icon={<IconWarning />}>
+            {t('You have no data scrubbing rules')}
+          </EmptyMessage>
         )}
         <PanelAction>
           <LinkButton href={ADVANCED_DATASCRUBBING_LINK} external>

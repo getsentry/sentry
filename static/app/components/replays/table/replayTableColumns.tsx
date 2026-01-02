@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {LocationDescriptor} from 'history';
 import invariant from 'invariant';
 import {PlatformIcon} from 'platformicons';
 
@@ -25,7 +26,6 @@ import {IconPlay} from 'sentry/icons/iconPlay';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
@@ -37,7 +37,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {
   ReplayListRecord,
   ReplayRecordNestedFieldName,
@@ -56,6 +55,8 @@ interface CellProps {
   replay: ListRecord;
   rowIndex: number;
   showDropdownFilters: boolean;
+  to: string | LocationDescriptor;
+  className?: string;
 }
 
 export interface ReplayTableColumn {
@@ -314,10 +315,9 @@ export const ReplayDetailsLinkColumn: ReplayTableColumn = {
   Header: '',
   interactive: true,
   sortKey: undefined,
-  Component: ({replay}) => {
-    const organization = useOrganization();
+  Component: ({to}) => {
     return (
-      <DetailsLink to={makeReplaysPathname({path: `/${replay.id}/`, organization})}>
+      <DetailsLink to={to}>
         <Tooltip title={t('See Full Replay')}>
           <IconOpen />
         </Tooltip>
@@ -505,9 +505,10 @@ export const ReplaySessionColumn: ReplayTableColumn = {
   interactive: true,
   sortKey: 'started_at',
   width: 'minmax(150px, 1fr)',
-  Component: ({replay}) => {
+  Component: ({replay, to, className}) => {
     const routes = useRoutes();
-    const location = useLocation();
+    const referrer = getRouteStringFromRoutes(routes);
+
     const organization = useOrganization();
     const project = useProjectFromId({project_id: replay.project_id ?? undefined});
 
@@ -520,20 +521,6 @@ export const ReplaySessionColumn: ReplayTableColumn = {
       'For TypeScript: replay.started_at is implied because replay.is_archived is false'
     );
 
-    const referrer = getRouteStringFromRoutes(routes);
-    const eventView = EventView.fromLocation(location);
-    const replayDetailsPathname = makeReplaysPathname({
-      path: `/${replay.id}/`,
-      organization,
-    });
-
-    const detailsTab = () => ({
-      pathname: replayDetailsPathname,
-      query: {
-        referrer,
-        ...eventView.generateQueryStringObject(),
-      },
-    });
     const trackNavigationEvent = () =>
       trackAnalytics('replay.list-navigate-to-details', {
         project_id: project?.id,
@@ -544,7 +531,7 @@ export const ReplaySessionColumn: ReplayTableColumn = {
       });
 
     return (
-      <CellLink to={detailsTab()} onClick={trackNavigationEvent}>
+      <CellLink className={className} to={to} onClick={trackNavigationEvent}>
         <ReplayBadge replay={replay} />
       </CellLink>
     );
@@ -657,7 +644,7 @@ const UnreadIndicator = styled('div')`
   height: 8px;
   border-radius: 50%;
 
-  background-color: ${p => p.theme.purple400};
+  background-color: ${p => p.theme.colors.blue500};
   &[data-has-viewed='true'] {
     background-color: transparent;
   }
@@ -668,7 +655,7 @@ const SpanOperationBreakdown = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.colors.gray800};
   font-size: ${p => p.theme.fontSize.md};
   text-align: right;
 `;

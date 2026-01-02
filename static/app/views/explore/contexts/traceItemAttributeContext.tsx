@@ -37,6 +37,8 @@ type TraceItemAttributeConfig = {
   enabled: boolean;
   traceItemType: TraceItemDataset;
   projects?: Project[];
+  query?: string;
+  search?: string;
 };
 
 type TraceItemAttributeProviderProps = {
@@ -48,11 +50,15 @@ export function TraceItemAttributeProvider({
   traceItemType,
   enabled,
   projects,
+  search,
+  query,
 }: TraceItemAttributeProviderProps) {
   const typedAttributesResult = useTraceItemAttributeConfig({
     traceItemType,
     enabled,
     projects,
+    search,
+    query,
   });
 
   return (
@@ -66,6 +72,8 @@ function useTraceItemAttributeConfig({
   traceItemType,
   enabled,
   projects,
+  search,
+  query,
 }: TraceItemAttributeConfig) {
   const {attributes: numberAttributes, isLoading: numberAttributesLoading} =
     useTraceItemAttributeKeys({
@@ -73,6 +81,8 @@ function useTraceItemAttributeConfig({
       type: 'number',
       traceItemType,
       projects,
+      search,
+      query,
     });
 
   const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
@@ -81,6 +91,8 @@ function useTraceItemAttributeConfig({
       type: 'string',
       traceItemType,
       projects,
+      search,
+      query,
     });
 
   const allNumberAttributes = useMemo(() => {
@@ -106,7 +118,6 @@ function useTraceItemAttributeConfig({
       tag,
       {key: tag, name: tag, kind: FieldKind.TAG},
     ]);
-
     const secondaryAliases: TagCollection = Object.fromEntries(
       Object.values(stringAttributes ?? {})
         .flatMap(value => value.secondaryAliases ?? [])
@@ -117,16 +128,26 @@ function useTraceItemAttributeConfig({
       attributes: {...stringAttributes, ...Object.fromEntries(tags)},
       secondaryAliases,
     };
-  }, [traceItemType, stringAttributes]);
+  }, [stringAttributes, traceItemType]);
 
-  return {
-    number: allNumberAttributes.attributes,
-    string: allStringAttributes.attributes,
-    numberSecondaryAliases: allNumberAttributes.secondaryAliases,
-    stringSecondaryAliases: allStringAttributes.secondaryAliases,
-    numberAttributesLoading,
-    stringAttributesLoading,
-  };
+  return useMemo(
+    () => ({
+      number: allNumberAttributes.attributes,
+      string: allStringAttributes.attributes,
+      numberSecondaryAliases: allNumberAttributes.secondaryAliases,
+      stringSecondaryAliases: allStringAttributes.secondaryAliases,
+      numberAttributesLoading,
+      stringAttributesLoading,
+    }),
+    [
+      allNumberAttributes.attributes,
+      allNumberAttributes.secondaryAliases,
+      allStringAttributes.attributes,
+      allStringAttributes.secondaryAliases,
+      numberAttributesLoading,
+      stringAttributesLoading,
+    ]
+  );
 }
 
 function processTraceItemAttributes(

@@ -55,7 +55,7 @@ describe('useQueryParamState', () => {
     // The query param should not be updated yet
     expect(mockedNavigate).not.toHaveBeenCalledWith(
       {
-        ...LocationFixture(),
+        pathname: '/',
         query: {testField: 'initial state'},
       },
       {replace: true, preventScrollReset: true}
@@ -67,7 +67,7 @@ describe('useQueryParamState', () => {
     // The query param should be updated
     expect(mockedNavigate).toHaveBeenCalledWith(
       {
-        ...LocationFixture(),
+        pathname: '/',
         query: {testField: 'newValue'},
       },
       {replace: true, preventScrollReset: true}
@@ -120,7 +120,7 @@ describe('useQueryParamState', () => {
 
     expect(mockedNavigate).toHaveBeenCalledWith(
       {
-        ...LocationFixture(),
+        pathname: '/',
         query: {testField: 'newValue - 2 - true'},
       },
       {replace: true, preventScrollReset: true}
@@ -153,10 +153,60 @@ describe('useQueryParamState', () => {
 
     expect(mockedNavigate).toHaveBeenCalledWith(
       {
-        ...LocationFixture(),
+        pathname: '/',
         query: {sort: ['testField']},
       },
       {replace: true, preventScrollReset: true}
     );
+  });
+
+  it('should not sync local state when URL changes if syncStateWithUrl is false', () => {
+    mockedUseLocation.mockReturnValue(
+      LocationFixture({query: {testField: 'initial state'}})
+    );
+
+    const {result, rerender} = renderHook(
+      () => useQueryParamState({fieldName: 'testField', syncStateWithUrl: false}),
+      {
+        wrapper: UrlParamBatchProvider,
+      }
+    );
+
+    expect(result.current[0]).toBe('initial state');
+
+    // Simulate URL change (e.g., browser back/forward navigation)
+    mockedUseLocation.mockReturnValue(
+      LocationFixture({query: {testField: 'changed via URL'}})
+    );
+
+    rerender();
+
+    // Local state should NOT be updated because syncStateWithUrl is false
+    expect(result.current[0]).toBe('initial state');
+  });
+
+  it('should sync local state when URL changes if syncStateWithUrl is true', () => {
+    mockedUseLocation.mockReturnValue(
+      LocationFixture({query: {testField: 'initial state'}})
+    );
+
+    const {result, rerender} = renderHook(
+      () => useQueryParamState({fieldName: 'testField', syncStateWithUrl: true}),
+      {
+        wrapper: UrlParamBatchProvider,
+      }
+    );
+
+    expect(result.current[0]).toBe('initial state');
+
+    // Simulate URL change (e.g., browser back/forward navigation)
+    mockedUseLocation.mockReturnValue(
+      LocationFixture({query: {testField: 'changed via URL'}})
+    );
+
+    rerender();
+
+    // Local state should be updated because syncStateWithUrl is true
+    expect(result.current[0]).toBe('changed via URL');
   });
 });

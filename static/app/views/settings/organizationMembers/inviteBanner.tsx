@@ -2,6 +2,8 @@ import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openInviteMissingMembersModal} from 'sentry/actionCreators/modal';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
@@ -13,7 +15,7 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {ExternalLink} from 'sentry/components/core/link';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
+import FloatingFeedbackButton from 'sentry/components/feedbackButton/floatingFeedbackButton';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconCommit, IconEllipsis, IconGithub, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -168,9 +170,9 @@ export function InviteBanner({
   return (
     <Fragment>
       {/* this is temporary to collect feedback about the banner */}
-      <FloatingFeedbackWidget />
+      <FloatingFeedbackButton />
       <StyledCard>
-        <CardTitleContainer>
+        <Flex justify="between">
           <CardTitleContent>
             <CardTitle>{t('Bring your full GitHub team on board in Sentry')}</CardTitle>
             <Subtitle>
@@ -205,7 +207,7 @@ export function InviteBanner({
               }}
             />
           </ButtonBar>
-        </CardTitleContainer>
+        </Flex>
         <Carousel>
           <MemberCards
             missingMembers={missingMembers}
@@ -307,11 +309,6 @@ const StyledCard = styled(Card)`
   overflow: hidden;
 `;
 
-const CardTitleContainer = styled('div')`
-  display: flex;
-  justify-content: space-between;
-`;
-
 const CardTitleContent = styled('div')`
   display: flex;
   flex-direction: column;
@@ -321,7 +318,7 @@ const CardTitle = styled('h6')`
   margin: 0;
   font-size: ${p => p.theme.fontSize.lg};
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
 `;
 
 const Subtitle = styled('div')`

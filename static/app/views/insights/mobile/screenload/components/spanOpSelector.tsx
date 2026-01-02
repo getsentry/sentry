@@ -1,8 +1,5 @@
-import styled from '@emotion/styled';
-
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -28,11 +25,10 @@ export const TTID_CONTRIBUTING_SPAN_OPS = [
 
 type Props = {
   primaryRelease?: string;
-  secondaryRelease?: string;
   transaction?: string;
 };
 
-export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: Props) {
+export function SpanOpSelector({transaction, primaryRelease}: Props) {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
@@ -44,11 +40,7 @@ export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: 
     `span.op:[${TTID_CONTRIBUTING_SPAN_OPS.join(',')}]`,
     'has:span.description',
   ]);
-  const queryStringPrimary = appendReleaseFilters(
-    searchQuery,
-    primaryRelease,
-    secondaryRelease
-  );
+  const queryStringPrimary = appendReleaseFilters(searchQuery, primaryRelease);
 
   const {data} = useSpans(
     {
@@ -72,14 +64,14 @@ export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: 
   ];
 
   return (
-    <StyledCompactSelect
-      triggerProps={{prefix: t('Operation'), size: 'xs'}}
+    <CompactSelect
+      triggerProps={{prefix: t('Operation'), size: 'md'}}
       value={value}
       options={options ?? []}
       onChange={newValue => {
         trackAnalytics('insight.screen_load.spans.filter_by_operation', {
           organization,
-          filter: newValue.value as string,
+          filter: newValue.value,
         });
 
         navigate({
@@ -94,7 +86,3 @@ export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: 
     />
   );
 }
-
-const StyledCompactSelect = styled(CompactSelect)`
-  margin-bottom: ${space(1)};
-`;

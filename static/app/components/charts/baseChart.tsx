@@ -48,7 +48,6 @@ import type {
   Series,
 } from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 import Grid from './components/grid';
 import Legend from './components/legend';
@@ -135,6 +134,10 @@ export interface BaseChartProps {
    * This is to pass series to BaseChart bypassing the wrappers like LineChart, AreaChart etc.
    */
   additionalSeries?: SeriesOption[];
+  /**
+   * Whether animations are enabled for the entire chart. If animations are enabled overall, this will cause ZRender to occasionally attempt to run animations and call `requestAnimationFrame` which might cause UI stutter.
+   */
+  animation?: boolean;
   /**
    * If true, ignores height value and auto-scales chart to fit container height.
    */
@@ -332,6 +335,7 @@ const DEFAULT_Y_AXIS = {};
 const DEFAULT_X_AXIS = {};
 
 function BaseChart({
+  animation,
   brush,
   colors,
   grid,
@@ -449,17 +453,13 @@ function BaseChart({
           lineStyle: {
             color: previousPeriodColors
               ? previousPeriodColors[seriesIndex]
-              : isChonkTheme(theme)
-                ? theme.colors.gray400
-                : theme.gray200,
+              : theme.tokens.dataviz.semantic.neutral,
             type: 'dotted',
           },
           itemStyle: {
             color: previousPeriodColors
               ? previousPeriodColors[seriesIndex]
-              : isChonkTheme(theme)
-                ? theme.colors.gray400
-                : theme.gray200,
+              : theme.tokens.dataviz.semantic.neutral,
           },
           stack: 'previous',
           animation: false,
@@ -564,6 +564,7 @@ function BaseChart({
 
     return {
       ...options,
+      animation,
       useUTC: utc,
       color: color as string[],
       grid: Array.isArray(grid) ? grid.map(Grid) : Grid(grid),
@@ -580,6 +581,7 @@ function BaseChart({
       brush,
     };
   }, [
+    animation,
     chartId,
     color,
     resolvedSeries,
@@ -700,7 +702,7 @@ function BaseChart({
 }
 
 // Tooltip styles shared for regular and portalled tooltips
-export const getTooltipStyles = (p: {theme: Theme}) => css`
+const getTooltipStyles = (p: {theme: Theme}) => css`
   /* Tooltip styling */
   .tooltip-series,
   .tooltip-footer {
@@ -708,7 +710,7 @@ export const getTooltipStyles = (p: {theme: Theme}) => css`
     font-family: ${p.theme.text.family};
     font-variant-numeric: tabular-nums;
     padding: ${space(1)} ${space(2)};
-    border-radius: ${p.theme.borderRadius} ${p.theme.borderRadius} 0 0;
+    border-radius: ${p.theme.radius.md} ${p.theme.radius.md} 0 0;
     cursor: pointer;
     font-size: ${p.theme.fontSize.sm};
   }
@@ -717,18 +719,18 @@ export const getTooltipStyles = (p: {theme: Theme}) => css`
     justify-content: center;
   }
   .tooltip-release.tooltip-series {
-    color: ${p.theme.textColor};
+    color: ${p.theme.tokens.content.primary};
   }
   .tooltip-release-timerange {
     font-size: ${p.theme.fontSize.xs};
-    color: ${p.theme.textColor};
+    color: ${p.theme.tokens.content.primary};
   }
   .tooltip-series {
     border-bottom: none;
     max-width: calc(100vw - 2 * ${CHART_TOOLTIP_VIEWPORT_OFFSET}px);
   }
   .tooltip-series-solo {
-    border-radius: ${p.theme.borderRadius};
+    border-radius: ${p.theme.radius.md};
   }
   .tooltip-label {
     margin-right: ${space(1)};
@@ -736,10 +738,10 @@ export const getTooltipStyles = (p: {theme: Theme}) => css`
   }
   .tooltip-label strong {
     font-weight: ${p.theme.fontWeight.normal};
-    color: ${p.theme.textColor};
+    color: ${p.theme.tokens.content.primary};
   }
   .tooltip-label-value {
-    color: ${p.theme.textColor};
+    color: ${p.theme.tokens.content.primary};
   }
   .tooltip-label-indent {
     margin-left: 18px;
@@ -764,7 +766,7 @@ export const getTooltipStyles = (p: {theme: Theme}) => css`
     text-align: center;
     position: relative;
     width: auto;
-    border-radius: 0 0 ${p.theme.borderRadius} ${p.theme.borderRadius};
+    border-radius: 0 0 ${p.theme.radius.md} ${p.theme.radius.md};
     display: flex;
     justify-content: space-between;
     gap: ${space(3)};
@@ -779,7 +781,7 @@ export const getTooltipStyles = (p: {theme: Theme}) => css`
     &.arrow-top {
       bottom: 100%;
       top: auto;
-      border-bottom: 8px solid ${p.theme.backgroundElevated};
+      border-bottom: 8px solid ${p.theme.tokens.background.primary};
       border-top: none;
       &:before {
         border-top: none;
@@ -795,7 +797,7 @@ export const getTooltipStyles = (p: {theme: Theme}) => css`
     pointer-events: none;
     border-left: 8px solid transparent;
     border-right: 8px solid transparent;
-    border-top: 8px solid ${p.theme.backgroundElevated};
+    border-top: 8px solid ${p.theme.tokens.background.primary};
     margin-left: -8px;
     &:before {
       border-left: 8px solid transparent;
@@ -813,7 +815,7 @@ export const getTooltipStyles = (p: {theme: Theme}) => css`
   /* Tooltip description styling */
   .tooltip-description {
     color: ${p.theme.white};
-    border-radius: ${p.theme.borderRadius};
+    border-radius: ${p.theme.radius.md};
     background: #000;
     opacity: 0.9;
     padding: 5px 10px;

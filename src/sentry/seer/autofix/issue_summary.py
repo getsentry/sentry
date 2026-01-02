@@ -14,17 +14,22 @@ from sentry import features, quotas
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.constants import DataCategory
-from sentry.issues.grouptype import WebVitalsGroup
 from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.net.http import connection_from_url
 from sentry.seer.autofix.autofix import _get_trace_tree_for_event, trigger_autofix
+from sentry.seer.autofix.autofix_agent import AutofixStep, trigger_autofix_explorer
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
     FixabilityScoreThresholds,
     SeerAutomationSource,
 )
-from sentry.seer.autofix.utils import get_autofix_state, is_seer_autotriggered_autofix_rate_limited
+from sentry.seer.autofix.utils import (
+    AutofixStoppingPoint,
+    get_autofix_state,
+    is_seer_autotriggered_autofix_rate_limited,
+    is_seer_seat_based_tier_enabled,
+)
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
@@ -47,6 +52,88 @@ auto_run_source_map = {
     SeerAutomationSource.POST_PROCESS: "issue_summary_on_post_process_fixability",
 }
 
+STOPPING_POINT_HIERARCHY = {
+    AutofixStoppingPoint.ROOT_CAUSE: 1,
+    AutofixStoppingPoint.SOLUTION: 2,
+    AutofixStoppingPoint.CODE_CHANGES: 3,
+    AutofixStoppingPoint.OPEN_PR: 4,
+}
+
+
+def _get_stopping_point_from_fixability(fixability_score: float) -> AutofixStoppingPoint | None:
+    """
+    Determine the autofix stopping point based on fixability score.
+    """
+    if fixability_score < FixabilityScoreThresholds.MEDIUM.value:
+        return None
+    elif fixability_score < FixabilityScoreThresholds.HIGH.value:
+        return AutofixStoppingPoint.ROOT_CAUSE
+    # 0.76 + 0.02 - extra buffer to avoid opening too many PRs.
+    elif fixability_score < FixabilityScoreThresholds.SUPER_HIGH.value + 0.02:
+        return AutofixStoppingPoint.CODE_CHANGES
+    else:
+        return AutofixStoppingPoint.OPEN_PR
+
+
+def _fetch_user_preference(project_id: int) -> str | None:
+    """
+    Fetch the user's automated_run_stopping_point preference from Seer.
+    Returns None if preference is not set or if the API call fails.
+    """
+    try:
+        path = "/v1/project-preference"
+        body = orjson.dumps({"project_id": project_id})
+
+        response = requests.post(
+            f"{settings.SEER_AUTOFIX_URL}{path}",
+            data=body,
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                **sign_with_seer_secret(body),
+            },
+            timeout=5,
+        )
+        response.raise_for_status()
+
+        result = response.json()
+        preference = result.get("preference")
+        if preference:
+            return preference.get("automated_run_stopping_point")
+        return None
+    except Exception as e:
+        sentry_sdk.set_context("project", {"project_id": project_id})
+        sentry_sdk.capture_exception(e)
+        return None
+
+
+def _apply_user_preference_upper_bound(
+    fixability_suggestion: AutofixStoppingPoint | None,
+    user_preference: str | None,
+) -> AutofixStoppingPoint:
+    """
+    Apply user preference as an upper bound on the fixability-based stopping point.
+    Returns the more conservative (earlier) stopping point between the two.
+    """
+    # If fixability is None but user preference exists, use user preference
+    if fixability_suggestion is None and user_preference is not None:
+        return AutofixStoppingPoint(user_preference)
+    # If fixability exists but user preference is None, use fixability
+    elif fixability_suggestion is not None and user_preference is None:
+        return fixability_suggestion
+    # If both are None, return ROOT_CAUSE as default
+    elif fixability_suggestion is None and user_preference is None:
+        return AutofixStoppingPoint.ROOT_CAUSE
+    # Both are not None - return the more conservative one
+    else:
+        assert fixability_suggestion is not None and user_preference is not None  # for mypy
+        user_stopping_point = AutofixStoppingPoint(user_preference)
+        return (
+            fixability_suggestion
+            if STOPPING_POINT_HIERARCHY[fixability_suggestion]
+            <= STOPPING_POINT_HIERARCHY[user_stopping_point]
+            else user_stopping_point
+        )
+
 
 @instrumented_task(
     name="sentry.tasks.autofix.trigger_autofix_from_issue_summary",
@@ -54,7 +141,13 @@ auto_run_source_map = {
     processing_deadline_duration=65,
     retry=Retry(times=1),
 )
-def _trigger_autofix_task(group_id: int, event_id: str, user_id: int | None, auto_run_source: str):
+def _trigger_autofix_task(
+    group_id: int,
+    event_id: str,
+    user_id: int | None,
+    auto_run_source: str,
+    stopping_point: AutofixStoppingPoint | None = None,
+):
     """
     Asynchronous task to trigger Autofix.
     """
@@ -77,12 +170,24 @@ def _trigger_autofix_task(group_id: int, event_id: str, user_id: int | None, aut
         else:
             user = AnonymousUser()
 
-        trigger_autofix(
-            group=group,
-            event_id=event_id,
-            user=user,
-            auto_run_source=auto_run_source,
-        )
+        # Route to explorer-based autofix if both feature flags are enabled
+        if features.has("organizations:seer-explorer", group.organization) and features.has(
+            "organizations:autofix-on-explorer", group.organization
+        ):
+            trigger_autofix_explorer(
+                group=group,
+                step=AutofixStep.ROOT_CAUSE,
+                run_id=None,
+                stopping_point=stopping_point,
+            )
+        else:
+            trigger_autofix(
+                group=group,
+                event_id=event_id,
+                user=user,
+                auto_run_source=auto_run_source,
+                stopping_point=stopping_point,
+            )
 
 
 def _get_event(
@@ -161,13 +266,18 @@ fixability_connection_pool_gpu = connection_from_url(
 )
 
 
-def _generate_fixability_score(group: Group) -> SummarizeIssueResponse:
-    payload = {
+def _generate_fixability_score(
+    group: Group,
+    summary: dict[str, Any] | None = None,
+) -> SummarizeIssueResponse:
+    payload: dict[str, Any] = {
         "group_id": group.id,
         "organization_slug": group.organization.slug,
         "organization_id": group.organization.id,
         "project_id": group.project.id,
     }
+    if summary is not None:
+        payload["summary"] = summary
     response = make_signed_seer_api_request(
         fixability_connection_pool_gpu,
         "/v1/automation/summarize/fixability",
@@ -178,6 +288,31 @@ def _generate_fixability_score(group: Group) -> SummarizeIssueResponse:
         raise Exception(f"Seer API error: {response.status}")
     response_data = orjson.loads(response.data)
     return SummarizeIssueResponse.validate(response_data)
+
+
+def get_and_update_group_fixability_score(
+    group: Group,
+    force_generate: bool = False,
+    summary: dict[str, Any] | None = None,
+) -> float:
+    """
+    Get the fixability score for a group and update the group with the score.
+    If the fixability score is already set, return it without generating a new one.
+    """
+    if not force_generate and group.seer_fixability_score is not None:
+        return group.seer_fixability_score
+
+    with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
+        issue_summary = _generate_fixability_score(group, summary=summary)
+
+    if not issue_summary.scores:
+        raise ValueError("Issue summary scores is None or empty.")
+    if issue_summary.scores.fixability_score is None:
+        raise ValueError("Issue summary fixability score is None.")
+
+    fixability_score = issue_summary.scores.fixability_score
+    group.update(seer_fixability_score=fixability_score)
+    return fixability_score
 
 
 def _is_issue_fixable(group: Group, fixability_score: float) -> bool:
@@ -198,7 +333,7 @@ def _is_issue_fixable(group: Group, fixability_score: float) -> bool:
     return False
 
 
-def _run_automation(
+def run_automation(
     group: Group,
     user: User | RpcUser | AnonymousUser,
     event: GroupEvent,
@@ -206,6 +341,30 @@ def _run_automation(
 ) -> None:
     if source == SeerAutomationSource.ISSUE_DETAILS:
         return
+
+    # Check event count for ALERT source with triage-signals-v0-org
+    if is_seer_seat_based_tier_enabled(group.organization):
+        if source == SeerAutomationSource.ALERT:
+            # Use times_seen_with_pending if available (set by post_process), otherwise fall back
+            times_seen = (
+                group.times_seen_with_pending
+                if hasattr(group, "_times_seen_pending")
+                else group.times_seen
+            )
+            if times_seen < 10:
+                return
+
+        try:
+            times_seen = group.times_seen_with_pending
+        except (AssertionError, AttributeError):
+            times_seen = group.times_seen
+        logger.info(
+            "Triage signals V0: %s: run_automation called: project_slug=%s, source=%s, times_seen=%s",
+            group.id,
+            group.project.slug,
+            source.value,
+            times_seen,
+        )
 
     user_id = user.id if user else None
     auto_run_source = auto_run_source_map.get(source, "unknown_source")
@@ -221,23 +380,16 @@ def _run_automation(
         }
     )
 
-    with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
-        issue_summary = _generate_fixability_score(group)
-
-    if not issue_summary.scores:
-        raise ValueError("Issue summary scores is None or empty.")
-    if issue_summary.scores.fixability_score is None:
-        raise ValueError("Issue summary fixability score is None.")
-
-    group.update(seer_fixability_score=issue_summary.scores.fixability_score)
+    # Only generate fixability if it doesn't already exist
+    fixability_score = get_and_update_group_fixability_score(group)
 
     if (
-        not _is_issue_fixable(group, issue_summary.scores.fixability_score)
+        not _is_issue_fixable(group, fixability_score)
         and not group.issue_type.always_trigger_seer_automation
     ):
         return
 
-    has_budget: bool = quotas.backend.has_available_reserved_budget(
+    has_budget: bool = quotas.backend.check_seer_quota(
         org_id=group.organization.id,
         data_category=DataCategory.SEER_AUTOFIX,
     )
@@ -252,11 +404,23 @@ def _run_automation(
     if is_rate_limited:
         return
 
+    stopping_point = None
+    if is_seer_seat_based_tier_enabled(group.organization):
+        fixability_stopping_point = _get_stopping_point_from_fixability(fixability_score)
+
+        # Fetch user preference and apply as upper bound
+        user_preference = _fetch_user_preference(group.project.id)
+
+        stopping_point = _apply_user_preference_upper_bound(
+            fixability_stopping_point, user_preference
+        )
+
     _trigger_autofix_task.delay(
         group_id=group.id,
         event_id=event.event_id,
         user_id=user_id,
         auto_run_source=auto_run_source,
+        stopping_point=stopping_point,
     )
 
 
@@ -266,6 +430,7 @@ def _generate_summary(
     force_event_id: str | None,
     source: SeerAutomationSource,
     cache_key: str,
+    should_run_automation: bool = True,
 ) -> tuple[dict[str, Any], int]:
     """Core logic to generate and cache the issue summary."""
     serialized_event, event = _get_event(group, user, provided_event_id=force_event_id)
@@ -290,12 +455,13 @@ def _generate_summary(
         trace_tree,
     )
 
-    try:
-        _run_automation(group, user, event, source)
-    except Exception:
-        logger.exception(
-            "Error auto-triggering autofix from issue summary", extra={"group_id": group.id}
-        )
+    if should_run_automation:
+        try:
+            run_automation(group, user, event, source)
+        except Exception:
+            logger.exception(
+                "Error auto-triggering autofix from issue summary", extra={"group_id": group.id}
+            )
 
     summary_dict = issue_summary.dict()
     summary_dict["event_id"] = event.event_id
@@ -307,9 +473,6 @@ def _generate_summary(
 
 def _log_seer_scanner_billing_event(group: Group, source: SeerAutomationSource):
     if source == SeerAutomationSource.ISSUE_DETAILS:
-        return
-    # seer runs are free for web vitals issues during testing phase
-    if group.issue_type == WebVitalsGroup:
         return
 
     quotas.backend.record_seer_run(
@@ -330,6 +493,7 @@ def get_issue_summary(
     user: User | RpcUser | AnonymousUser | None = None,
     force_event_id: str | None = None,
     source: SeerAutomationSource = SeerAutomationSource.ISSUE_DETAILS,
+    should_run_automation: bool = True,
 ) -> tuple[dict[str, Any], int]:
     """
     Generate an AI summary for an issue.
@@ -339,6 +503,7 @@ def get_issue_summary(
         user: The user requesting the summary
         force_event_id: Optional event ID to force summarizing a specific event
         source: The source triggering the summary generation
+        should_run_automation: Whether to trigger automation after generating summary
 
     Returns:
         A tuple containing (summary_data, status_code)
@@ -356,13 +521,13 @@ def get_issue_summary(
 
     cache_key = get_issue_summary_cache_key(group.id)
     lock_key, lock_name = get_issue_summary_lock_key(group.id)
-    lock_duration = 10  # How long the lock is held if acquired (seconds)
+    lock_duration = 40  # How long the lock is held if acquired (seconds). request timeout is 30 sec
     wait_timeout = 4.5  # How long to wait for the lock (seconds)
 
     # if force_event_id is set, we always generate a new summary
     if force_event_id:
         summary_dict, status_code = _generate_summary(
-            group, user, force_event_id, source, cache_key
+            group, user, force_event_id, source, cache_key, should_run_automation
         )
         _log_seer_scanner_billing_event(group, source)
         return convert_dict_key_case(summary_dict, snake_to_camel_case), status_code
@@ -384,7 +549,7 @@ def get_issue_summary(
 
             # Lock acquired and cache is still empty, proceed with generation
             summary_dict, status_code = _generate_summary(
-                group, user, force_event_id, source, cache_key
+                group, user, force_event_id, source, cache_key, should_run_automation
             )
             _log_seer_scanner_billing_event(group, source)
             return convert_dict_key_case(summary_dict, snake_to_camel_case), status_code

@@ -1,15 +1,17 @@
 ---
-created: '2025-10-29T21:18:54.040454+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
-  hash: "a20509269752c9a1bea6078851e4d39c"
+  hash: "6a84e724a0d67c6b036ecc24fcfb4be5"
   contributing component: exception
   hint: None
   root_component:
     app*
       exception*
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bla"
         stacktrace*
           frame* (marked in-app by the client)
             module*
@@ -97,18 +99,18 @@ app:
               "backend.ts"
             function* (trimmed javascript function)
               "eventFromException"
-        type*
-          "Error"
-        value (ignored because stacktrace takes precedence)
-          "bla"
 --------------------------------------------------------------------------
 system:
-  hash: "252dc79eb5653bf822e2684d90734cb8"
+  hash: "97adcd276fbfdd9ae8271c04255e522f"
   contributing component: exception
   hint: None
   root_component:
     system*
       exception*
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bla"
         stacktrace*
           frame*
             module*
@@ -196,7 +198,3 @@ system:
               "backend.ts"
             function* (trimmed javascript function)
               "eventFromException"
-        type*
-          "Error"
-        value (ignored because stacktrace takes precedence)
-          "bla"

@@ -295,7 +295,11 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
             if data.get("pending_save"):
                 client = RedisRuleStatus()
                 kwargs.update({"uuid": client.uuid, "rule_id": rule.id})
-                find_channel_id_for_rule.apply_async(kwargs=kwargs)
+                # Serialize Actor object to string identifier for task queueing
+                task_kwargs = kwargs.copy()
+                if owner:
+                    task_kwargs["owner"] = owner.identifier
+                find_channel_id_for_rule.apply_async(kwargs=task_kwargs)
 
                 context = {"uuid": client.uuid}
                 return Response(context, status=202)

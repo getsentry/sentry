@@ -1,6 +1,8 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -18,6 +20,7 @@ import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
@@ -129,17 +132,19 @@ class SpikeProtectionHistoryTable extends Component<Props> {
       : null;
     return [
       <SpikeProtectionTimeDetails spike={spike} key="time" />,
-      <StyledCell key="threshold">
-        {formatUsageWithUnits(
-          spike.threshold,
-          dataCategoryInfo.plural,
-          getFormatUsageOptions(dataCategoryInfo.plural)
-        )}
-      </StyledCell>,
-      <StyledCell key="duration">
+      <Flex align="center" key="threshold">
+        {defined(spike.threshold)
+          ? formatUsageWithUnits(
+              spike.threshold,
+              dataCategoryInfo.plural,
+              getFormatUsageOptions(dataCategoryInfo.plural)
+            )
+          : '-'}
+      </Flex>,
+      <Flex align="center" key="duration">
         {duration ? getExactDuration(duration, true) : t('Ongoing')}
-      </StyledCell>,
-      <StyledCell key="dropped">
+      </Flex>,
+      <Flex align="center" key="dropped">
         {spike.dropped
           ? formatUsageWithUnits(
               spike.dropped,
@@ -147,8 +152,8 @@ class SpikeProtectionHistoryTable extends Component<Props> {
               getFormatUsageOptions(dataCategoryInfo.plural)
             )
           : '-'}
-      </StyledCell>,
-      <StyledCell key="discover-button">
+      </Flex>,
+      <Flex align="center" justify="end" key="discover-button">
         <DiscoverButton
           icon={<IconTelescope size="sm" />}
           data-test-id="spike-protection-discover-button"
@@ -173,7 +178,7 @@ class SpikeProtectionHistoryTable extends Component<Props> {
         >
           {t('Open in Discover')}
         </DiscoverButton>
-      </StyledCell>,
+      </Flex>,
     ];
   }
 
@@ -283,14 +288,6 @@ const Title = styled('div')`
   flex: 1;
   align-items: center;
   gap: ${space(0.75)};
-`;
-
-const StyledCell = styled('div')`
-  display: flex;
-  align-items: center;
-  &:nth-child(5n) {
-    justify-content: end;
-  }
 `;
 
 const EmptySpikeHistory = styled(Panel)`

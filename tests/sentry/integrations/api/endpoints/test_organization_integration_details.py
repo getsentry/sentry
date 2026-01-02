@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 import responses
 
 from sentry import audit_log
+from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.integration import Integration
@@ -102,6 +103,19 @@ class OrganizationIntegrationDetailsDeleteTest(OrganizationIntegrationDetailsTes
         org_integration = OrganizationIntegration.objects.get(
             integration=self.integration, organization_id=self.organization.id
         )
+        assert ScheduledDeletion.objects.filter(
+            model_name="OrganizationIntegration", object_id=org_integration.id
+        )
+
+    def test_delete_disabled_integration(self) -> None:
+        org_integration = OrganizationIntegration.objects.get(
+            integration=self.integration, organization_id=self.organization.id
+        )
+        org_integration.update(status=ObjectStatus.DISABLED)
+        self.get_success_response(self.organization.slug, self.integration.id)
+        assert Integration.objects.filter(id=self.integration.id).exists()
+
+        org_integration.refresh_from_db()
         assert ScheduledDeletion.objects.filter(
             model_name="OrganizationIntegration", object_id=org_integration.id
         )

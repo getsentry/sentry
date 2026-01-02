@@ -1,5 +1,3 @@
-import {useTheme} from '@emotion/react';
-
 import {Badge} from 'sentry/components/core/badge';
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
@@ -21,12 +19,52 @@ interface Props {
 export default function MailboxPicker({onChange, value}: Props) {
   const organization = useOrganization();
   const {data} = useMailboxCounts({organization});
-  const theme = useTheme();
   const {isSelfHosted} = useLegacyStore(ConfigStore);
 
   const {areAiFeaturesAllowed, setupAcknowledgement} = useOrganizationSeerSetup();
   const hasSpamFeature = organization.features.includes('user-feedback-spam-ingest');
-  const hasAiFeatures = areAiFeaturesAllowed && setupAcknowledgement.orgHasAcknowledged;
+  const skipConsentFlow = organization.features.includes('gen-ai-consent-flow-removal');
+
+  const getSpamTooltip = () => {
+    if (!hasSpamFeature || isSelfHosted) {
+      return undefined;
+    }
+
+    if (!skipConsentFlow && !setupAcknowledgement.orgHasAcknowledged) {
+      return tct(
+        'Generative AI Features and Seer access are required for auto spam detection. Check that [linkGenAI:Generative AI Features] are toggled on, then view the [linkSeer:Seer settings page] for more information.',
+        {
+          linkSeer: <Link to={`/settings/${organization.slug}/seer/`} />,
+          linkGenAI: (
+            <Link
+              to={{
+                pathname: `/settings/${organization.slug}/`,
+                hash: 'hideAiFeatures',
+              }}
+            />
+          ),
+        }
+      );
+    }
+
+    if (!areAiFeaturesAllowed) {
+      return tct(
+        'Generative AI Features are required for auto spam detection. Check that [linkGenAI:Generative AI Features] are toggled on.',
+        {
+          linkGenAI: (
+            <Link
+              to={{
+                pathname: `/settings/${organization.slug}/`,
+                hash: 'hideAiFeatures',
+              }}
+            />
+          ),
+        }
+      );
+    }
+
+    return undefined;
+  };
 
   const MAILBOXES = [
     {key: 'unresolved', label: t('Inbox')},
@@ -34,25 +72,7 @@ export default function MailboxPicker({onChange, value}: Props) {
     {
       key: 'ignored',
       label: t('Spam'),
-      // only show an AI info tooltip if the org has auto spam detection available,
-      // but not the correct AI flags or seer acknowledgement.
-      tooltip:
-        hasSpamFeature && !hasAiFeatures && !isSelfHosted
-          ? tct(
-              'Generative AI Features and Seer access are required for auto spam detection. Check that [linkGenAI:Generative AI Features] are toggled on, then view the [linkSeer:Seer settings page] for more information.',
-              {
-                linkSeer: <Link to={`/settings/${organization.slug}/seer/`} />,
-                linkGenAI: (
-                  <Link
-                    to={{
-                      pathname: `/settings/${organization.slug}/`,
-                      hash: 'hideAiFeatures',
-                    }}
-                  />
-                ),
-              }
-            )
-          : undefined,
+      tooltip: getSpamTooltip(),
     },
   ];
 
@@ -75,7 +95,7 @@ export default function MailboxPicker({onChange, value}: Props) {
           return (
             <SegmentedControl.Item key={mailbox.key} aria-label={mailbox.label}>
               <Tooltip disabled={!count} title={title}>
-                <Flex align="center" gap={theme.isChonk ? 'sm' : '0'}>
+                <Flex align="center" gap="sm">
                   {mailbox.tooltip ? (
                     <Tooltip isHoverable title={mailbox.tooltip}>
                       {mailbox.label}
@@ -83,7 +103,7 @@ export default function MailboxPicker({onChange, value}: Props) {
                   ) : (
                     mailbox.label
                   )}
-                  {display ? <Badge type="default">{display}</Badge> : null}
+                  {display ? <Badge variant="muted">{display}</Badge> : null}
                 </Flex>
               </Tooltip>
             </SegmentedControl.Item>

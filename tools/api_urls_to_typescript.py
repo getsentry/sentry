@@ -180,9 +180,9 @@ def main() -> int:
                     " * To update it run `python3 -m tools.api_urls_to_typescript`\n",
                     " *\n",
                     " * This file is the sibling to knownGetsentryApiUrls.ts.\n",
-                    " */\n",
+                    " *\n",
                     " * DEPLOYMENT: This is safe to deploy alongside backend changes.\n",
-                    "\n",
+                    " */\n\n",
                     "export type KnownSentryApiUrls =\n",
                     "\n".join([f"  | '{r}'" for r in route_patterns]) + ";\n",
                 ]

@@ -61,7 +61,7 @@ export function RelayWrapper() {
             }
             priority="primary"
             size="sm"
-            icon={<IconAdd isCircled />}
+            icon={<IconAdd />}
             onClick={handleOpenAddDialog}
             disabled={disabled}
           >

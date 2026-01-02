@@ -1,26 +1,36 @@
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion} from 'framer-motion';
+import {motion} from 'framer-motion';
+
+import {inlineCodeStyles} from '@sentry/scraps/code/inlineCode';
 
 import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Stack} from 'sentry/components/core/layout';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
-import {IconChevron} from 'sentry/icons';
+import {FlippedReturnIcon} from 'sentry/components/events/autofix/insights/autofixInsightCard';
+import {IconChevron, IconLink} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-import type {Block} from './types';
-import {buildToolLinkUrl, getToolsStringFromBlock} from './utils';
+import type {Block, TodoItem} from './types';
+import {
+  buildToolLinkUrl,
+  getToolsStringFromBlock,
+  getValidToolLinks,
+  postProcessLLMMarkdown,
+} from './utils';
 
 interface BlockProps {
   block: Block;
   blockIndex: number;
+  isAwaitingFileApproval?: boolean;
+  isAwaitingQuestion?: boolean;
   isFocused?: boolean;
   isLast?: boolean;
+  isLatestTodoBlock?: boolean;
   isPolling?: boolean;
   onClick?: () => void;
   onDelete?: () => void;
@@ -42,20 +52,47 @@ function hasValidContent(content: string): boolean {
 }
 
 /**
+ * Convert todos to markdown format
+ */
+function todosToMarkdown(todos: TodoItem[]): string {
+  return todos
+    .map(todo => {
+      const checkbox = todo.status === 'completed' ? '[x]' : '[ ]';
+      const content =
+        todo.status === 'completed'
+          ? `~~${todo.content}~~`
+          : todo.status === 'in_progress'
+            ? `_${todo.content}_`
+            : todo.content;
+      return `${checkbox} ${content}`;
+    })
+    .join('  \n');
+}
+
+/**
  * Determine the dot color based on tool execution status
  */
 function getToolStatus(
   block: Block
-): 'loading' | 'content' | 'success' | 'failure' | 'mixed' {
+): 'loading' | 'content' | 'success' | 'failure' | 'mixed' | 'pending' {
   if (block.loading) {
     return 'loading';
   }
 
   // Check tool_links for empty_results metadata
   const toolLinks = block.tool_links || [];
-  const hasTools = (block.message.tool_calls?.length || 0) > 0;
+  const toolCalls = block.message.tool_calls || [];
+  const hasTools = toolCalls.length > 0;
 
   if (hasTools) {
+    // Check if any tool has pending approval or pending question
+    const hasPending = toolLinks.some(
+      link => link?.params?.pending_approval || link?.params?.pending_question
+    );
+    if (hasPending) {
+      return 'pending';
+    }
+
     if (toolLinks.length === 0) {
       // No metadata available, assume success
       return 'success';
@@ -65,7 +102,7 @@ function getToolStatus(
     let hasFailure = false;
 
     toolLinks.forEach(link => {
-      if (link?.params?.empty_results === true) {
+      if (link?.params?.empty_results === true || link?.params?.is_error === true) {
         hasFailure = true;
       } else if (link !== null) {
         hasSuccess = true;
@@ -93,7 +130,10 @@ function getToolStatus(
 function BlockComponent({
   block,
   blockIndex: _blockIndex,
+  isAwaitingFileApproval,
+  isAwaitingQuestion,
   isLast,
+  isLatestTodoBlock,
   isFocused,
   isPolling,
   onClick,
@@ -111,6 +151,11 @@ function BlockComponent({
   const hasTools = toolsUsed.length > 0;
   const hasContent = hasValidContent(block.message.content);
 
+  const processedContent = useMemo(
+    () => postProcessLLMMarkdown(block.message.content),
+    [block.message.content]
+  );
+
   // State to track selected tool link (for navigation)
   const [selectedLinkIndex, setSelectedLinkIndex] = useState(0);
   const selectedLinkIndexRef = useRef(selectedLinkIndex);
@@ -120,40 +165,34 @@ function BlockComponent({
     selectedLinkIndexRef.current = selectedLinkIndex;
   }, [selectedLinkIndex]);
 
-  // Get valid tool links with their corresponding tool call indices
-  const validToolLinksWithIndices = (block.tool_links || [])
-    .map(link => {
-      const toolCallIndex = block.message.tool_calls?.findIndex(
-        call => link && call.function === link.kind
-      );
-      const canBuildUrl =
-        link && buildToolLinkUrl(link, organization.slug, projects) !== null;
-
-      if (toolCallIndex !== undefined && toolCallIndex >= 0 && canBuildUrl) {
-        return {link, toolCallIndex};
-      }
-      return null;
-    })
-    .filter(
-      (
-        item
-      ): item is {
-        link: {kind: string; params: Record<string, any>};
-        toolCallIndex: number;
-      } => item !== null
+  // Get valid tool links sorted by their corresponding tool call indices
+  // Also create a mapping from tool call index to sorted link index
+  const {sortedToolLinks, toolCallToLinkIndexMap} = useMemo(() => {
+    return getValidToolLinks(
+      block.tool_links || [],
+      block.tool_results || [],
+      block.message.tool_calls || [],
+      organization.slug,
+      projects
     );
+  }, [
+    block.tool_links,
+    block.tool_results,
+    block.message.tool_calls,
+    organization.slug,
+    projects,
+  ]);
 
-  const validToolLinks = validToolLinksWithIndices.map(item => item.link);
-  const hasValidLinks = validToolLinks.length > 0;
+  const hasValidLinks = sortedToolLinks.length > 0;
 
   // Reset selected index when block changes or when there are no valid links
   useEffect(() => {
     if (!hasValidLinks) {
       setSelectedLinkIndex(0);
-    } else if (selectedLinkIndex >= validToolLinks.length) {
+    } else if (selectedLinkIndex >= sortedToolLinks.length) {
       setSelectedLinkIndex(0);
     }
-  }, [hasValidLinks, selectedLinkIndex, validToolLinks.length]);
+  }, [hasValidLinks, selectedLinkIndex, sortedToolLinks.length]);
 
   // Register the key handler with the parent
   useEffect(() => {
@@ -177,7 +216,7 @@ function BlockComponent({
       if (key === 'ArrowDown') {
         // Move to next link
         const currentIndex = selectedLinkIndexRef.current;
-        if (currentIndex < validToolLinks.length - 1) {
+        if (currentIndex < sortedToolLinks.length - 1) {
           // Can move down within this block's links
           setSelectedLinkIndex(prev => prev + 1);
           return true;
@@ -189,11 +228,12 @@ function BlockComponent({
       if (key === 'Enter') {
         // Navigate to selected link using ref to get current value
         const currentIndex = selectedLinkIndexRef.current;
-        const selectedLink = validToolLinks[currentIndex];
+        const selectedLink = sortedToolLinks[currentIndex];
         if (selectedLink) {
           const url = buildToolLinkUrl(selectedLink, organization.slug, projects);
           if (url) {
             navigate(url);
+            onNavigate?.();
           }
         }
         return true;
@@ -204,10 +244,11 @@ function BlockComponent({
     onRegisterEnterHandler?.(handler);
   }, [
     hasValidLinks,
-    validToolLinks,
+    sortedToolLinks,
     organization.slug,
     projects,
     navigate,
+    onNavigate,
     onRegisterEnterHandler,
   ]);
 
@@ -218,12 +259,12 @@ function BlockComponent({
 
   const handleNavigateClick = (e: React.MouseEvent, linkIndex: number) => {
     e.stopPropagation();
-    if (validToolLinks.length === 0) {
+    if (sortedToolLinks.length === 0) {
       return;
     }
 
     // Navigate to the clicked link
-    const selectedLink = validToolLinks[linkIndex];
+    const selectedLink = sortedToolLinks[linkIndex];
     if (selectedLink) {
       const url = buildToolLinkUrl(selectedLink, organization.slug, projects);
       if (url) {
@@ -233,95 +274,137 @@ function BlockComponent({
     }
   };
 
-  const showActions = isFocused && !block.loading;
+  const showActions =
+    isFocused && !block.loading && !isAwaitingFileApproval && !isAwaitingQuestion;
 
   return (
     <Block
       ref={ref}
+      isFocused={isFocused}
       isLast={isLast}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
-      <AnimatePresence>
-        <motion.div
-          initial={{opacity: 0, y: 10}}
-          animate={{opacity: 1, y: 0}}
-          exit={{opacity: 0, y: 10}}
-        >
-          {block.message.role === 'user' ? (
-            <BlockRow>
-              <BlockChevronIcon direction="right" size="sm" />
-              <UserBlockContent>{block.message.content ?? ''}</UserBlockContent>
-            </BlockRow>
-          ) : (
-            <BlockRow>
-              <ResponseDot
-                status={getToolStatus(block)}
-                hasOnlyTools={!hasContent && hasTools}
-              />
-              <BlockContentWrapper hasOnlyTools={!hasContent && hasTools}>
-                {hasContent && <BlockContent text={block.message.content} />}
-                {hasTools && (
-                  <ToolCallStack gap="md">
-                    {block.message.tool_calls?.map((toolCall, idx) => {
-                      const toolString = toolsUsed[idx];
-                      return (
-                        <ToolCallText
-                          key={`${toolCall.function}-${idx}`}
-                          size="xs"
-                          variant="muted"
-                          monospace
-                        >
-                          {toolString}
-                        </ToolCallText>
-                      );
-                    })}
-                  </ToolCallStack>
-                )}
-              </BlockContentWrapper>
-            </BlockRow>
-          )}
-          {isFocused && <FocusIndicator />}
-          <AnimatePresence>
-            {showActions && (
-              <motion.div
-                initial={{opacity: 0, y: 5}}
-                animate={{opacity: 1, y: 0}}
-                exit={{opacity: 0, y: 5}}
-                transition={{duration: 0.1}}
-              >
-                <ActionButtonBar gap="sm">
-                  {!isPolling && (
-                    <Button size="xs" priority="default" onClick={handleDeleteClick}>
-                      Rethink from here ⌫
-                    </Button>
-                  )}
-                  {hasValidLinks && (
-                    <ButtonBar merged gap="0">
-                      {validToolLinks.map((_, idx) => (
-                        <Button
-                          key={idx}
-                          size="xs"
-                          priority={idx === selectedLinkIndex ? 'primary' : 'default'}
-                          onClick={e => handleNavigateClick(e, idx)}
-                        >
-                          {idx === 0
-                            ? validToolLinks.length === 1
-                              ? 'Navigate'
-                              : 'Navigate #1'
-                            : `#${idx + 1}`}
-                          {idx === selectedLinkIndex && ' ⏎'}
-                        </Button>
-                      ))}
-                    </ButtonBar>
-                  )}
-                </ActionButtonBar>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
-      </AnimatePresence>
+      <motion.div initial={{opacity: 0, x: 10}} animate={{opacity: 1, x: 0}}>
+        {block.message.role === 'user' ? (
+          <BlockRow>
+            <BlockChevronIcon direction="right" size="sm" />
+            <UserBlockContent>{block.message.content ?? ''}</UserBlockContent>
+          </BlockRow>
+        ) : (
+          <BlockRow>
+            <ResponseDot
+              status={getToolStatus(block)}
+              hasOnlyTools={!hasContent && hasTools}
+            />
+            <BlockContentWrapper hasOnlyTools={!hasContent && hasTools}>
+              {hasContent && (
+                <BlockContent
+                  text={processedContent}
+                  onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+                    // Intercept clicks on links to use client-side navigation for internal links
+                    // and open external links in a new tab
+                    const anchor = (e.target as HTMLElement).closest('a');
+                    if (anchor) {
+                      const href = anchor.getAttribute('href');
+                      if (!href) {
+                        return;
+                      }
+
+                      e.preventDefault();
+                      e.stopPropagation();
+
+                      if (href.startsWith('/')) {
+                        navigate(href);
+                        onNavigate?.();
+                      } else {
+                        window.open(href, '_blank', 'noopener,noreferrer');
+                      }
+                    }
+                  }}
+                />
+              )}
+              {hasTools && (
+                <ToolCallStack gap="md">
+                  {block.message.tool_calls?.map((toolCall, idx) => {
+                    const toolString = toolsUsed[idx];
+                    // Check if this tool call corresponds to the selected link
+                    const correspondingLinkIndex = toolCallToLinkIndexMap.get(idx);
+                    const hasLink = correspondingLinkIndex !== undefined;
+                    const isHighlighted =
+                      isFocused &&
+                      hasValidLinks &&
+                      correspondingLinkIndex !== undefined &&
+                      correspondingLinkIndex === selectedLinkIndex;
+                    const isTodoWriteCall = toolCall.function === 'todo_write';
+                    const showTodoList =
+                      isTodoWriteCall &&
+                      isLatestTodoBlock &&
+                      block.todos &&
+                      block.todos.length > 0;
+
+                    return (
+                      <ToolCallWithTodos key={`${toolCall.function}-${idx}`}>
+                        <ToolCallTextContainer>
+                          {hasLink ? (
+                            <ToolCallLink
+                              onClick={e =>
+                                handleNavigateClick(e, correspondingLinkIndex)
+                              }
+                              onMouseEnter={() =>
+                                setSelectedLinkIndex(correspondingLinkIndex)
+                              }
+                              isHighlighted={isHighlighted}
+                            >
+                              <ToolCallText
+                                size="xs"
+                                variant="muted"
+                                monospace
+                                isHighlighted={isHighlighted}
+                              >
+                                {toolString}
+                              </ToolCallText>
+                              <ToolCallLinkIcon size="xs" isHighlighted={isHighlighted} />
+                              <EnterKeyHint isVisible={isHighlighted}>
+                                enter ⏎
+                              </EnterKeyHint>
+                            </ToolCallLink>
+                          ) : (
+                            <ToolCallText
+                              size="xs"
+                              variant="muted"
+                              monospace
+                              isHighlighted={false}
+                            >
+                              {toolString}
+                            </ToolCallText>
+                          )}
+                        </ToolCallTextContainer>
+                        {showTodoList && (
+                          <TodoListContent text={todosToMarkdown(block.todos!)} />
+                        )}
+                      </ToolCallWithTodos>
+                    );
+                  })}
+                </ToolCallStack>
+              )}
+            </BlockContentWrapper>
+          </BlockRow>
+        )}
+        {showActions && !isPolling && (
+          <ActionButtonBar gap="xs">
+            <Button
+              size="xs"
+              priority="transparent"
+              onClick={handleDeleteClick}
+              title="Restart conversation from here"
+            >
+              <FlippedReturnIcon />
+            </Button>
+          </ActionButtonBar>
+        )}
+      </motion.div>
     </Block>
   );
 }
@@ -330,12 +413,13 @@ BlockComponent.displayName = 'BlockComponent';
 
 export default BlockComponent;
 
-const Block = styled('div')<{isLast?: boolean}>`
+const Block = styled('div')<{isFocused?: boolean; isLast?: boolean}>`
   width: 100%;
-  border-bottom: ${p => (p.isLast ? 'none' : `1px solid ${p.theme.border}`)};
+  border-top: 1px solid transparent;
+  border-bottom: ${p =>
+    p.isLast ? '1px solid transparent' : `1px solid ${p.theme.border}`};
   position: relative;
   flex-shrink: 0; /* Prevent blocks from shrinking */
-  cursor: pointer;
 `;
 
 const BlockRow = styled('div')`
@@ -353,7 +437,7 @@ const BlockChevronIcon = styled(IconChevron)`
 `;
 
 const ResponseDot = styled('div')<{
-  status: 'loading' | 'content' | 'success' | 'failure' | 'mixed';
+  status: 'loading' | 'content' | 'success' | 'failure' | 'mixed' | 'pending';
   hasOnlyTools?: boolean;
 }>`
   width: 8px;
@@ -365,17 +449,19 @@ const ResponseDot = styled('div')<{
   background: ${p => {
     switch (p.status) {
       case 'loading':
-        return p.theme.pink400;
+        return p.theme.colors.pink500;
+      case 'pending':
+        return p.theme.colors.pink500;
       case 'content':
-        return p.theme.purple400;
+        return p.theme.colors.blue500;
       case 'success':
-        return p.theme.green400;
+        return p.theme.colors.green500;
       case 'failure':
-        return p.theme.red400;
+        return p.theme.colors.red500;
       case 'mixed':
-        return p.theme.yellow400;
+        return p.theme.colors.yellow500;
       default:
-        return p.theme.purple400;
+        return p.theme.colors.blue500;
     }
   }};
 
@@ -401,15 +487,20 @@ const BlockContentWrapper = styled('div')<{hasOnlyTools?: boolean}>`
 
 const BlockContent = styled(MarkedText)`
   width: 100%;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   white-space: pre-wrap;
   word-wrap: break-word;
   padding-bottom: 0;
   margin-bottom: -${space(1)};
 
+  code:not(pre code) {
+    ${p => inlineCodeStyles(p.theme)};
+  }
+
   p,
   li,
-  ul {
+  ul,
+  ol {
     margin: -${space(1)} 0;
   }
 
@@ -444,34 +535,87 @@ const UserBlockContent = styled('div')`
   color: ${p => p.theme.subText};
 `;
 
-const FocusIndicator = styled('div')`
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 3px;
-  background: ${p => p.theme.purple400};
-`;
-
 const ToolCallStack = styled(Stack)`
   width: 100%;
   min-width: 0;
   padding-right: ${p => p.theme.space.lg};
 `;
 
-const ToolCallText = styled(Text)`
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  width: 100%;
+const ToolCallWithTodos = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.xs};
+`;
+
+const ToolCallTextContainer = styled('div')`
+  display: inline-flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
   max-width: 100%;
 `;
 
-const ActionButtonBar = styled(ButtonBar)`
+const ToolCallText = styled(Text)<{isHighlighted?: boolean}>`
+  white-space: normal;
+  overflow: visible;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  ${p =>
+    p.isHighlighted &&
+    `
+    color: ${p.theme.linkHoverColor};
+  `}
+`;
+
+const ToolCallLink = styled('button')<{isHighlighted?: boolean}>`
+  display: inline-flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  max-width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  font-weight: ${p => p.theme.fontWeight.bold};
+
+  &:hover {
+    /* Apply highlighted styles and underline to ToolCallText on hover */
+    ${ToolCallText} {
+      color: ${p => p.theme.linkHoverColor};
+      text-decoration-color: ${p => p.theme.linkHoverColor};
+    }
+  }
+`;
+
+const EnterKeyHint = styled('span')<{isVisible?: boolean}>`
+  display: inline-block;
+  font-size: ${p => p.theme.fontSize.xs};
+  color: ${p => p.theme.linkHoverColor};
+  flex-shrink: 0;
+  margin-left: ${p => p.theme.space.xs};
+  visibility: ${p => (p.isVisible ? 'visible' : 'hidden')};
+  font-family: ${p => p.theme.text.familyMono};
+  font-weight: ${p => p.theme.fontWeight.normal};
+`;
+
+const ToolCallLinkIcon = styled(IconLink)<{isHighlighted?: boolean}>`
+  color: ${p => (p.isHighlighted ? p.theme.linkHoverColor : p.theme.subText)};
+  flex-shrink: 0;
+`;
+
+const ActionButtonBar = styled(Flex)`
   position: absolute;
   bottom: ${p => p.theme.space['2xs']};
   right: ${p => p.theme.space.md};
   white-space: nowrap;
   font-size: ${p => p.theme.fontSize.sm};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
+`;
+
+const TodoListContent = styled(MarkedText)`
+  margin-top: ${p => p.theme.space.xs};
+  margin-bottom: -${p => p.theme.space.xl};
+  font-size: ${p => p.theme.fontSize.xs};
+  font-family: ${p => p.theme.text.familyMono};
+  color: ${p => p.theme.subText};
 `;

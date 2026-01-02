@@ -8,6 +8,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -111,10 +112,14 @@ describe('DetectorEdit', () => {
         '100'
       );
 
-      // Name should be auto-generated from defaults (Spans + count(span.duration))
+      // Name should be auto-generated from defaults (Errors + count())
       expect(await screen.findByTestId('editable-text-label')).toHaveTextContent(
-        'Number of spans above 100 over past 1 hour'
+        'Number of errors above 100 over past 1 hour'
       );
+
+      // Switch to spans dataset to access span aggregates
+      await userEvent.click(screen.getByText('Errors'));
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Spans'}));
 
       // Change aggregate from count() to p75(span.duration)
       await userEvent.click(screen.getByRole('button', {name: 'count'}));
@@ -187,20 +192,24 @@ describe('DetectorEdit', () => {
                     conditionResult: 75,
                     type: 'gt',
                   },
+                  {
+                    comparison: 100,
+                    conditionResult: 0,
+                    type: 'lte',
+                  },
                 ],
                 logicType: 'any',
               },
               config: {
                 detectionType: 'static',
-                thresholdPeriod: 1,
               },
               dataSources: [
                 {
-                  aggregate: 'count(span.duration)',
-                  dataset: 'events_analytics_platform',
-                  eventTypes: ['trace_item_span'],
-                  query: '',
-                  queryType: 1,
+                  aggregate: 'count()',
+                  dataset: 'events',
+                  eventTypes: ['default', 'error'],
+                  query: 'is:unresolved',
+                  queryType: 0,
                   timeWindow: 3600,
                   environment: null,
                 },
@@ -214,6 +223,61 @@ describe('DetectorEdit', () => {
       await waitFor(() => {
         expect(router.location.pathname).toBe(
           `/organizations/${organization.slug}/monitors/123/`
+        );
+      });
+    });
+
+    it('prefills form when selecting a template', async () => {
+      const mockCreateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/`,
+        method: 'POST',
+        body: MetricDetectorFixture({id: '123'}),
+      });
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: metricRouterConfig,
+      });
+
+      await screen.findByText('New Monitor');
+
+      await userEvent.click(screen.getByTestId('template-selector'));
+      await userEvent.click(
+        await screen.findByRole('option', {name: 'Number of Errors'})
+      );
+
+      // Verify form fields are pre-filled with template values
+      await waitFor(() => {
+        expect(screen.getByText('Errors')).toBeInTheDocument();
+      });
+
+      // Set threshold and submit
+      await userEvent.type(
+        screen.getByRole('spinbutton', {name: 'High threshold'}),
+        '50'
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockCreateDetector).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/detectors/`,
+          expect.objectContaining({
+            data: expect.objectContaining({
+              type: 'metric_issue',
+              dataSources: [
+                expect.objectContaining({
+                  aggregate: 'count()',
+                  dataset: 'events',
+                  environment: null,
+                  eventTypes: expect.arrayContaining(['error', 'default']),
+                  query: 'is:unresolved',
+                  queryType: 0,
+                  timeWindow: 3600,
+                }),
+              ],
+            }),
+          })
         );
       });
     });
@@ -269,10 +333,15 @@ describe('DetectorEdit', () => {
                     conditionResult: 75,
                     type: 'gt',
                   },
+                  {
+                    comparison: 100,
+                    conditionResult: 0,
+                    type: 'lte',
+                  },
                 ],
                 logicType: 'any',
               },
-              config: {detectionType: 'static', thresholdPeriod: 1},
+              config: {detectionType: 'static'},
               dataSources: [
                 {
                   aggregate: 'count_unique(tags[sentry:user])',
@@ -310,16 +379,15 @@ describe('DetectorEdit', () => {
       await userEvent.click(title);
       await userEvent.keyboard('Foo{enter}');
 
-      // Pick errors dataset
-      await userEvent.click(screen.getByText('Spans'));
-      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Errors'}));
+      const description = screen.getByRole('textbox', {name: 'description'});
+      await userEvent.type(description, 'This is my metric monitor description');
 
       await userEvent.type(
         screen.getByRole('spinbutton', {name: 'High threshold'}),
         '100'
       );
 
-      await userEvent.click(screen.getByLabelText('Add a search term'));
+      await userEvent.click(screen.getByTestId('query-builder-input'));
       await userEvent.paste(
         // Filter to a specific event type
         'event.type:error'
@@ -333,10 +401,13 @@ describe('DetectorEdit', () => {
           expect.objectContaining({
             data: expect.objectContaining({
               conditionGroup: {
-                conditions: [{comparison: 100, conditionResult: 75, type: 'gt'}],
+                conditions: [
+                  {comparison: 100, conditionResult: 75, type: 'gt'},
+                  {comparison: 100, conditionResult: 0, type: 'lte'},
+                ],
                 logicType: 'any',
               },
-              config: {detectionType: 'static', thresholdPeriod: 1},
+              config: {detectionType: 'static'},
               dataSources: [
                 {
                   aggregate: 'count()',
@@ -344,12 +415,13 @@ describe('DetectorEdit', () => {
                   environment: null,
                   // Event type has moved from the query to the eventTypes field
                   eventTypes: ['error'],
-                  query: '',
+                  query: 'is:unresolved',
                   queryType: 0,
                   timeWindow: 3600,
                 },
               ],
               name: 'Foo',
+              description: 'This is my metric monitor description',
               owner: null,
               projectId: '2',
               type: 'metric_issue',
@@ -409,7 +481,71 @@ describe('DetectorEdit', () => {
                 {
                   comparison: 80,
                   conditionResult: 0,
-                  type: 'lt',
+                  type: 'lte',
+                },
+              ],
+            },
+          }),
+        })
+      );
+    });
+
+    it('uses medium threshold for default resolution when both high and medium are set', async () => {
+      const mockCreateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/`,
+        method: 'POST',
+        body: MetricDetectorFixture({id: '789'}),
+      });
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: metricRouterConfig,
+      });
+
+      // Set High threshold to 100
+      await userEvent.type(
+        screen.getByRole('spinbutton', {name: 'High threshold'}),
+        '100'
+      );
+
+      // Set Medium threshold to 50
+      await userEvent.type(
+        screen.getByRole('spinbutton', {name: 'Medium threshold'}),
+        '50'
+      );
+
+      // Don't select Custom - should use default resolution (which should use MEDIUM)
+      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockCreateDetector).toHaveBeenCalled();
+      });
+
+      expect(mockCreateDetector).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/detectors/`,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            type: 'metric_issue',
+            conditionGroup: {
+              logicType: 'any',
+              conditions: [
+                // High priority condition
+                {
+                  comparison: 100,
+                  conditionResult: 75,
+                  type: 'gt',
+                },
+                // Medium priority condition
+                {
+                  comparison: 50,
+                  conditionResult: 50,
+                  type: 'gt',
+                },
+                // Default resolution condition uses MEDIUM threshold (50) with swapped operator
+                {
+                  comparison: 50,
+                  conditionResult: 0,
+                  type: 'lte',
                 },
               ],
             },
@@ -433,7 +569,7 @@ describe('DetectorEdit', () => {
       });
 
       // Open dataset dropdown
-      await userEvent.click(screen.getByText('Spans'));
+      await userEvent.click(screen.getByText('Errors'));
 
       // Verify transactions option is not available for new detectors
       expect(
@@ -444,6 +580,165 @@ describe('DetectorEdit', () => {
       expect(screen.getByRole('menuitemradio', {name: 'Errors'})).toBeInTheDocument();
       expect(screen.getByRole('menuitemradio', {name: 'Spans'})).toBeInTheDocument();
       expect(screen.getByRole('menuitemradio', {name: 'Releases'})).toBeInTheDocument();
+    });
+
+    it('creates detector with dynamic detection and no resolution thresholds', async () => {
+      const mockCreateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/`,
+        method: 'POST',
+        body: MetricDetectorFixture({id: '456'}),
+      });
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: metricRouterConfig,
+      });
+
+      const title = await screen.findByText('New Monitor');
+      await userEvent.click(title);
+      await userEvent.keyboard('Dynamic{enter}');
+
+      // Select dynamic detection type
+      await userEvent.click(screen.getByRole('radio', {name: 'Dynamic'}));
+
+      // Set sensitivity to High
+      await userEvent.click(
+        screen.getByRole('textbox', {name: 'Level of responsiveness'})
+      );
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'High'}));
+
+      // Set threshold type to Above
+      await userEvent.click(
+        screen.getByRole('textbox', {name: 'Direction of anomaly movement'})
+      );
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Above'}));
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockCreateDetector).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/detectors/`,
+          expect.objectContaining({
+            data: expect.objectContaining({
+              name: 'Dynamic',
+              type: 'metric_issue',
+              projectId: project.id,
+              owner: null,
+              workflowIds: [],
+              // Dynamic detection should have anomaly detection condition
+              conditionGroup: {
+                conditions: [
+                  {
+                    type: 'anomaly_detection',
+                    comparison: {
+                      sensitivity: 'high',
+                      seasonality: 'auto',
+                      thresholdType: 0,
+                    },
+                    conditionResult: 75,
+                  },
+                ],
+                logicType: 'any',
+              },
+              config: {
+                detectionType: 'dynamic',
+              },
+              dataSources: [
+                {
+                  aggregate: 'count()',
+                  dataset: 'events',
+                  eventTypes: ['default', 'error'],
+                  query: 'is:unresolved',
+                  queryType: 0,
+                  timeWindow: 3600,
+                  environment: null,
+                },
+              ],
+            }),
+          })
+        );
+      });
+    });
+
+    it('can submit a new metric detector with apdex aggregate', async () => {
+      const mockCreateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/`,
+        method: 'POST',
+        body: MetricDetectorFixture({id: '789'}),
+      });
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: metricRouterConfig,
+      });
+
+      const title = await screen.findByText('New Monitor');
+      await userEvent.click(title);
+      await userEvent.keyboard('Apdex{enter}');
+
+      // Switch to Spans dataset to access apdex aggregate
+      await userEvent.click(screen.getByText('Errors'));
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Spans'}));
+
+      // Change aggregate from count to apdex
+      await userEvent.click(screen.getByRole('button', {name: 'count'}));
+      await userEvent.click(await screen.findByRole('option', {name: 'apdex'}));
+
+      // Change to apdex(100)
+      await userEvent.clear(screen.getByPlaceholderText('300'));
+      await userEvent.type(screen.getByPlaceholderText('300'), '100');
+
+      // Set the high threshold for alerting
+      await userEvent.type(
+        screen.getByRole('spinbutton', {name: 'High threshold'}),
+        '100'
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockCreateDetector).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/detectors/`,
+          expect.objectContaining({
+            data: expect.objectContaining({
+              name: 'Apdex',
+              type: 'metric_issue',
+              projectId: project.id,
+              owner: null,
+              workflowIds: [],
+              conditionGroup: {
+                conditions: [
+                  {
+                    comparison: 100,
+                    conditionResult: 75,
+                    type: 'gt',
+                  },
+                  {
+                    comparison: 100,
+                    conditionResult: 0,
+                    type: 'lte',
+                  },
+                ],
+                logicType: 'any',
+              },
+              config: {
+                detectionType: 'static',
+              },
+              dataSources: [
+                {
+                  aggregate: 'apdex(span.duration,100)',
+                  dataset: 'events_analytics_platform',
+                  eventTypes: ['trace_item_span'],
+                  query: '',
+                  queryType: 1,
+                  timeWindow: 3600,
+                  environment: null,
+                },
+              ],
+            }),
+          })
+        );
+      });
     });
   });
 
@@ -472,10 +767,15 @@ describe('DetectorEdit', () => {
       await userEvent.click(title);
       await userEvent.keyboard('Uptime Monitor{enter}');
 
+      const description = screen.getByRole('textbox', {name: 'description'});
+      await userEvent.type(description, 'This is my uptime monitor description');
+
       await userEvent.type(
         screen.getByRole('textbox', {name: 'URL'}),
         'https://uptime.example.com'
       );
+
+      await selectEvent.select(screen.getByLabelText('Select Environment'), 'production');
 
       await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
 
@@ -489,7 +789,7 @@ describe('DetectorEdit', () => {
           data: expect.objectContaining({
             config: {
               downtimeThreshold: 3,
-              environment: null,
+              environment: 'production',
               mode: 1,
               recoveryThreshold: 1,
             },
@@ -502,7 +802,8 @@ describe('DetectorEdit', () => {
                 url: 'https://uptime.example.com',
               },
             ],
-            name: 'New MonitorUptime Monitor',
+            name: 'Uptime Monitor',
+            description: 'This is my uptime monitor description',
             projectId: '2',
             type: 'uptime_domain_failure',
           }),
@@ -526,6 +827,8 @@ describe('DetectorEdit', () => {
         screen.getByRole('textbox', {name: 'URL'}),
         'https://uptime-custom.example.com'
       );
+
+      await selectEvent.select(screen.getByLabelText('Select Environment'), 'production');
 
       await userEvent.clear(screen.getByRole('spinbutton', {name: 'Failure Threshold'}));
       await userEvent.type(
@@ -551,7 +854,7 @@ describe('DetectorEdit', () => {
           data: expect.objectContaining({
             config: {
               downtimeThreshold: '5',
-              environment: null,
+              environment: 'production',
               mode: 1,
               recoveryThreshold: '4',
             },
@@ -666,6 +969,39 @@ describe('DetectorEdit', () => {
                 }),
               }),
             ]),
+          }),
+        })
+      );
+    });
+
+    it('submits crons config with changes', async () => {
+      const mockCreateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/`,
+        method: 'POST',
+        body: CronDetectorFixture({id: '999'}),
+      });
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: cronRouterConfig,
+      });
+
+      const description = screen.getByRole('textbox', {name: 'description'});
+      await userEvent.type(description, 'This is my cron monitor description');
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockCreateDetector).toHaveBeenCalled();
+      });
+
+      expect(mockCreateDetector).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/detectors/`,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            type: 'monitor_check_in_failure',
+            name: 'New Monitor',
+            description: 'This is my cron monitor description',
           }),
         })
       );

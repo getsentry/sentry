@@ -13,6 +13,7 @@ from django.http.request import HttpRequest
 from django.utils import timezone
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 from sentry import features, quotas
@@ -37,7 +38,12 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
-from sentry.search.eap.constants import SAMPLING_MODE_MAP, VALID_GRANULARITIES
+from sentry.search.eap.constants import (
+    EXTRAPOLATION_MODE_MAP,
+    SAMPLING_MODE_MAP,
+    VALID_GRANULARITIES,
+)
+from sentry.search.eap.types import AdditionalQueries
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
@@ -88,7 +94,7 @@ def resolve_axis_column(
 
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
-    owner = ApiOwner.VISIBILITY
+    owner = ApiOwner.DATA_BROWSING
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
         return (
@@ -158,12 +164,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 sampling_mode = cast(SAMPLING_MODES, sampling_mode.upper())
                 sentry_sdk.set_tag("sampling_mode", sampling_mode)
 
-                # kill switch: disable the highest accuracy flex time strategy to avoid hammering snuba
-                if sampling_mode == "HIGHEST_ACCURACY_FLEX_TIME" and not features.has(
-                    "organizations:ourlogs-high-fidelity", organization, actor=request.user
-                ):
-                    raise ParseError(f"sampling mode: {sampling_mode} is not supported")
-
             if quantize_date_params:
                 filter_params = self.quantize_date_params(request, filter_params)
             params = SnubaParams(
@@ -201,11 +201,12 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         if "statsPeriod" not in request.GET:
             return params
         results = params.copy()
-        duration = (params["end"] - params["start"]).total_seconds()
+        duration = params["end"] - params["start"]
         # Only perform rounding on durations longer than an hour
-        if duration > 3600:
-            # Round to 15 minutes if over 30 days, otherwise round to the minute
-            round_to = 15 * 60 if duration >= 30 * 24 * 3600 else 60
+        if duration > timedelta(hours=1):
+            minutes = 3 if duration >= timedelta(days=30) else 1
+            round_to = int(timedelta(minutes=minutes).total_seconds())
+
             key = params.get("organization_id", 0)
 
             results["start"] = snuba.quantize_time(
@@ -215,10 +216,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 params["end"], key, duration=round_to, rounding=snuba.ROUND_UP
             )
         return results
-
-
-class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
-    owner = ApiOwner.VISIBILITY
 
     def build_cursor_link(self, request: HttpRequest, name: str, cursor: Cursor | None) -> str:
         # The base API function only uses the last query parameter, but this endpoint
@@ -520,6 +517,15 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             if retention and comparison_start < timezone.now() - timedelta(days=retention):
                 raise ValidationError("Comparison period is outside your retention window")
 
+    def get_extrapolation_mode(self, request: Request) -> ExtrapolationMode.ValueType | None:
+        requested_mode = request.GET.get("extrapolationMode", None)
+        if requested_mode is not None and requested_mode not in EXTRAPOLATION_MODE_MAP:
+            raise InvalidSearchQuery(f"Unknown extrapolation mode: {requested_mode}")
+
+        extrapolation_mode = EXTRAPOLATION_MODE_MAP[requested_mode] if requested_mode else None
+
+        return extrapolation_mode
+
     def get_event_stats_data(
         self,
         request: Request,
@@ -767,8 +773,15 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 )
         return serialized_values
 
+    def get_additional_queries(self, request: Request) -> AdditionalQueries:
+        return AdditionalQueries(
+            span=request.GET.getlist("spanQuery"),
+            log=request.GET.getlist("logQuery"),
+            metric=request.GET.getlist("metricQuery"),
+        )
 
-class KeyTransactionBase(OrganizationEventsV2EndpointBase):
+
+class KeyTransactionBase(OrganizationEventsEndpointBase):
     def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has("organizations:performance-view", organization, actor=request.user)
 

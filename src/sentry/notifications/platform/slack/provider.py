@@ -20,6 +20,11 @@ from sentry.notifications.platform.target import (
     PreparedIntegrationNotificationTarget,
 )
 from sentry.notifications.platform.types import (
+    NotificationBodyFormattingBlock,
+    NotificationBodyFormattingBlockType,
+    NotificationBodyTextBlock,
+    NotificationBodyTextBlockType,
+    NotificationCategory,
     NotificationData,
     NotificationProviderKey,
     NotificationRenderedTemplate,
@@ -42,9 +47,9 @@ class SlackRenderer(NotificationRenderer[SlackRenderable]):
         cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
     ) -> SlackRenderable:
         subject = HeaderBlock(text=PlainTextObject(text=rendered_template.subject))
-        body = SectionBlock(text=MarkdownTextObject(text=rendered_template.body))
+        body_blocks: list[Block] = cls._render_body(rendered_template.body)
 
-        blocks = [subject, body]
+        blocks = [subject, *body_blocks]
 
         if len(rendered_template.actions) > 0:
             actions_block = ActionsBlock(elements=[])
@@ -63,6 +68,30 @@ class SlackRenderer(NotificationRenderer[SlackRenderable]):
 
         return SlackRenderable(blocks=blocks, text=rendered_template.subject)
 
+    @classmethod
+    def _render_body(cls, body: list[NotificationBodyFormattingBlock]) -> list[Block]:
+        blocks: list[Block] = []
+        for block in body:
+            if block.type == NotificationBodyFormattingBlockType.PARAGRAPH:
+                text = cls._render_text_blocks(block.blocks)
+                blocks.append(SectionBlock(text=MarkdownTextObject(text=text)))
+            elif block.type == NotificationBodyFormattingBlockType.CODE_BLOCK:
+                text = cls._render_text_blocks(block.blocks)
+                blocks.append(SectionBlock(text=MarkdownTextObject(text=f"```{text}```")))
+        return blocks
+
+    @classmethod
+    def _render_text_blocks(cls, blocks: list[NotificationBodyTextBlock]) -> str:
+        texts = []
+        for block in blocks:
+            if block.type == NotificationBodyTextBlockType.PLAIN_TEXT:
+                texts.append(block.text)
+            elif block.type == NotificationBodyTextBlockType.BOLD_TEXT:
+                texts.append(f"*{block.text}*")
+            elif block.type == NotificationBodyTextBlockType.CODE:
+                texts.append(f"`{block.text}`")
+        return " ".join(texts)
+
 
 @provider_registry.register(NotificationProviderKey.SLACK)
 class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
@@ -79,6 +108,16 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
         # TODO(ecosystem): Check for the integration, maybe a feature as well
         # I currently view this as akin to a rollout or feature flag for the registry
         return False
+
+    @classmethod
+    def get_renderer(
+        cls, *, data: NotificationData, category: NotificationCategory
+    ) -> type[NotificationRenderer[SlackRenderable]]:
+        from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
+
+        if category == NotificationCategory.SEER:
+            return SeerSlackRenderer
+        return cls.default_renderer
 
     @classmethod
     def send(cls, *, target: NotificationTarget, renderable: SlackRenderable) -> None:

@@ -310,12 +310,23 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
           {({plan}) => (
             <Panel dashedBorder data-test-id="disabled-allocations">
               <EmptyMessage
-                size="large"
-                icon={<IconBroadcast size="xl" />}
+                size="lg"
+                icon={<IconBroadcast />}
                 title={t(
                   'Allocate event resources to important projects every billing period.'
                 )}
-                description={tct(
+                action={
+                  <StyledLearnMoreButton
+                    organization={organization}
+                    source="allocations-upsell"
+                    href="https://docs.sentry.io/product/accounts/quotas/#spend-allocation"
+                    external
+                  >
+                    {t('Documentation')}
+                  </StyledLearnMoreButton>
+                }
+              >
+                {tct(
                   'Spend Allocations prioritize important projects by guaranteeing a monthly volume of events for exclusive consumption. This ensures coverage for your important projects, even during consumption spikes. This feature [planRequirement] or above.',
                   {
                     planRequirement: (
@@ -329,19 +340,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
                     ),
                   }
                 )}
-                action={
-                  <ButtonBar gap="0">
-                    <StyledLearnMoreButton
-                      organization={organization}
-                      source="allocations-upsell"
-                      href="https://docs.sentry.io/product/accounts/quotas/#spend-allocation"
-                      external
-                    >
-                      {t('Documentation')}
-                    </StyledLearnMoreButton>
-                  </ButtonBar>
-                }
-              />
+              </EmptyMessage>
             </Panel>
           )}
         </PlanFeature>
@@ -371,7 +370,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
                   aria-label={t('Manage Subscription')}
                   size="sm"
                   style={{marginRight: space(1)}}
-                  to={`/settings/${organization.slug}/billing/checkout/?referrer=spend_allocations`}
+                  to={`/checkout/${organization.slug}/?referrer=spend_allocations`}
                 >
                   {t('Manage Subscription')}
                 </LinkButton>
@@ -381,7 +380,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
                 priority="primary"
                 size="sm"
                 data-test-id="new-allocation"
-                icon={<IconAdd size="xs" isCircled />}
+                icon={<IconAdd size="xs" />}
                 onClick={openForm()}
               >
                 {t('New Allocation')}

@@ -8,15 +8,15 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import reformat_timestamp_ms_to_isoformat
 from sentry.models.organization import Organization
+from sentry.replays.permissions import has_replay_permission
 
 
 @region_silo_endpoint
-class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
-    # TODO: now that cross-project selection is enabled for all plans, we may be able to consolidate this with the generic OrganizationEventsV2Endpoint
+class OrganizationReplayEventsMetaEndpoint(OrganizationEventsEndpointBase):
     """The generic Events endpoints require that the cross-project selection feature
     be enabled before they return across multiple projects.
 
@@ -53,6 +53,9 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has("organizations:session-replay", organization, actor=request.user):
             return Response(status=404)
+
+        if not has_replay_permission(request, organization):
+            return Response(status=403)
 
         try:
             snuba_params = self.get_snuba_params(request, organization)

@@ -19,7 +19,10 @@ export type IntegrationView = {
     | 'project_creation'
     | 'developer_settings'
     | 'new_integration_modal'
-    | 'test_analytics_onboarding';
+    | 'seer_onboarding_github'
+    | 'seer_onboarding_code_review'
+    | 'test_analytics_onboarding'
+    | 'test_analytics_org_selector';
 };
 
 type SingleIntegrationEventParams = {

@@ -16,7 +16,6 @@ import {
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 import {decodeBoolean, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {
@@ -26,13 +25,6 @@ import {
 } from 'sentry/views/dashboards/utils';
 import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import type {TabularRow} from 'sentry/views/dashboards/widgets/common/types';
-import {
-  LOGS_AGGREGATE_FN_KEY,
-  LOGS_AGGREGATE_PARAM_KEY,
-  LOGS_FIELDS_KEY,
-  LOGS_GROUP_BY_KEY,
-  LOGS_QUERY_KEY,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getLogsUrl} from 'sentry/views/explore/logs/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -91,76 +83,6 @@ const WIDGET_TRACE_ITEM_TO_URL_FUNCTION: Record<
     TraceItemDataset.TRACEMETRICS
   ),
 };
-
-export function getWidgetLogURL(
-  widget: Widget,
-  dashboardFilters: DashboardFilters | undefined,
-  selection: PageFilters,
-  organization: Organization,
-  referrer?: string
-) {
-  const params = new URLSearchParams();
-  if (widget.queries?.[0]) {
-    const query = widget.queries[0];
-    if (query.aggregates[0]) {
-      const aggregate = query.aggregates[0];
-      const [_, fn, arg] = aggregate.match(/^(\w+)\(([^)]+)\)$/) || [];
-      if (arg) {
-        params.set(LOGS_AGGREGATE_PARAM_KEY, arg);
-      }
-      if (fn) {
-        params.set(LOGS_AGGREGATE_FN_KEY, fn);
-      }
-    }
-    const conditions = applyDashboardFilters(query.conditions, dashboardFilters);
-    if (conditions) {
-      params.set(LOGS_QUERY_KEY, conditions);
-    }
-    for (const field of query.columns ?? []) {
-      params.append(LOGS_FIELDS_KEY, field);
-    }
-    for (const groupBy of query?.fields?.filter(
-      field => !isAggregateFieldOrEquation(field)
-    ) || []) {
-      params.append(LOGS_GROUP_BY_KEY, groupBy);
-    }
-  }
-
-  const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
-  const locationQueryParams = eventView.generateQueryStringObject();
-  const effectiveSelection = {
-    ...selection,
-    end: decodeScalar(locationQueryParams.end) ?? null,
-    period: decodeScalar(locationQueryParams.statsPeriod) ?? null,
-    start: decodeScalar(locationQueryParams.start) ?? null,
-    utc: decodeBoolean(locationQueryParams.utc) ?? null,
-  };
-  if (effectiveSelection.start) {
-    params.set('start', effectiveSelection.start);
-  }
-  if (effectiveSelection.end) {
-    params.set('end', effectiveSelection.end);
-  }
-  if (effectiveSelection.period) {
-    params.set('statsPeriod', effectiveSelection.period);
-  }
-  if (effectiveSelection.utc) {
-    params.set('utc', 'true');
-  }
-  for (const project of effectiveSelection.projects) {
-    params.append('projects', String(project));
-  }
-  for (const environment of effectiveSelection.environments) {
-    params.append('environments', environment);
-  }
-  if (referrer) {
-    params.append('referrer', referrer);
-  }
-
-  return normalizeUrl(
-    `/organizations/${organization.slug}/explore/logs?${params.toString()}`
-  );
-}
 
 export function getWidgetExploreUrl(
   widget: Widget,
@@ -381,7 +303,8 @@ function _getWidgetExploreUrl(
     field: fields,
     query: applyDashboardFilters(
       overrideQuery?.formatString() ?? decodeScalar(locationQueryParams.query),
-      dashboardFilters
+      dashboardFilters,
+      widget.widgetType
     ),
     sort: sort || undefined,
     interval:
@@ -455,17 +378,18 @@ export function getWidgetTableRowExploreUrlFunction(
   selection: PageFilters,
   widget: Widget,
   organization: Organization,
-  dashboardFilters?: DashboardFilters
+  dashboardFilters?: DashboardFilters,
+  selectedQueryIndex = 0
 ) {
   return (dataRow: TabularRow) => {
     let fields: string[] = [];
-    if (widget.queries[0]?.fields) {
-      fields = widget.queries[0].fields.filter(
+    if (widget.queries[selectedQueryIndex]?.fields) {
+      fields = widget.queries[selectedQueryIndex].fields.filter(
         (field: string) => !isAggregateFieldOrEquation(field)
       );
     }
 
-    const query = new MutableSearch(widget.queries[0]?.conditions ?? '');
+    const query = new MutableSearch(widget.queries[selectedQueryIndex]?.conditions ?? '');
     fields.map(field => {
       const value = dataRow[field];
       if (!defined(value)) {

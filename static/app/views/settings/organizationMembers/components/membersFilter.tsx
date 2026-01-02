@@ -1,3 +1,5 @@
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompositeSelect} from 'sentry/components/core/compactSelect/composite';
 import {IconSliders} from 'sentry/icons';
@@ -54,7 +56,11 @@ function MembersFilter({roles, query, onChange}: Props) {
 
   return (
     <CompositeSelect
-      triggerProps={{icon: <IconSliders />, size: 'md', children: t('Filter')}}
+      trigger={props => (
+        <SelectTrigger.Button {...props} size="md" icon={<IconSliders />}>
+          {t('Filter')}
+        </SelectTrigger.Button>
+      )}
       maxMenuHeight="22rem"
       size="sm"
     >

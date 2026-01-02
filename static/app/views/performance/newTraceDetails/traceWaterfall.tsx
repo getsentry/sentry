@@ -1,6 +1,5 @@
 import type React from 'react';
 import {
-  Fragment,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -36,11 +35,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
-import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
-import {
-  TraceLinkNavigationButton,
-  TraceLinkNavigationButtonPlaceHolder,
-} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/traceLinkNavigationButton';
+import {TraceLinksNavigation} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/traceLinksNavigation';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {TraceOpenInExploreButton} from 'sentry/views/performance/newTraceDetails/traceOpenInExploreButton';
 import {traceGridCssVariables} from 'sentry/views/performance/newTraceDetails/traceWaterfallStyles';
@@ -54,7 +49,7 @@ import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
 import {TraceDrawer} from './traceDrawer/traceDrawer';
-import type {TraceTreeNode} from './traceModels/traceTreeNode';
+import type {BaseNode} from './traceModels/traceTreeNode/baseNode';
 import {
   searchInTraceTreeText,
   searchInTraceTreeTokens,
@@ -68,30 +63,14 @@ import {
 } from './traceState/traceStateProvider';
 import {Trace} from './trace';
 import {traceAnalytics} from './traceAnalytics';
-import {
-  isAutogroupedNode,
-  isEAPTraceNode,
-  isParentAutogroupedNode,
-  isSiblingAutogroupedNode,
-  isTraceNode,
-} from './traceGuards';
 import {TracePreferencesDropdown} from './tracePreferencesDropdown';
 import {TraceResetZoomButton} from './traceResetZoomButton';
 import type {TraceReducer, TraceReducerState} from './traceState';
-import {
-  traceNodeAdjacentAnalyticsProperties,
-  traceNodeAnalyticsName,
-} from './traceTreeAnalytics';
 import {TraceWaterfallState} from './traceWaterfallState';
 import {useTraceOnLoad} from './useTraceOnLoad';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
 import {useTraceScrollToPath} from './useTraceScrollToPath';
 import {useTraceTimelineChangeSync} from './useTraceTimelineChangeSync';
-
-const TRACE_TAB: TraceReducerState['tabs']['tabs'][0] = {
-  node: 'trace',
-  label: t('Trace'),
-};
 
 export interface TraceWaterfallProps {
   meta: TraceMetaQueryResults;
@@ -141,12 +120,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     flushSync(rerender);
   }, []);
 
-  const showLinkedTraces =
-    organization?.features.includes('trace-view-linked-traces') &&
-    // Don't show the linked traces buttons when the waterfall is embedded in the replay
-    // detail page, as it already contains all traces of the replay session.
-    props.source !== 'replay';
-
   useEffect(() => {
     trackAnalytics('performance_views.trace_view_v1_page_load', {
       organization: props.organization,
@@ -154,12 +127,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     });
   }, [props.organization, props.source]);
 
-  const previouslyFocusedNodeRef = useRef<TraceTreeNode<TraceTree.NodeValue> | null>(
-    null
-  );
-  const previouslyScrolledToNodeRef = useRef<TraceTreeNode<TraceTree.NodeValue> | null>(
-    null
-  );
+  const previouslyFocusedNodeRef = useRef<BaseNode | null>(null);
+  const previouslyScrolledToNodeRef = useRef<BaseNode | null>(null);
 
   useEffect(() => {
     if (!props.replayTraces?.length || props.tree?.type !== 'trace') {
@@ -212,7 +181,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   const onTraceSearch = useCallback(
     (
       query: string,
-      activeNode: TraceTreeNode<TraceTree.NodeValue> | null,
+      activeNode: BaseNode | null,
       behavior: 'track result' | 'persist'
     ) => {
       if (searchingRaf.current?.id) {
@@ -251,7 +220,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
         const resultIndex: number | undefined = matches?.[0]?.index;
         const resultIteratorIndex: number | undefined = matches?.[0] ? 0 : undefined;
-        const node: TraceTreeNode<TraceTree.NodeValue> | null = matches?.[0]?.value;
+        const node: BaseNode | null = matches?.[0]?.value;
 
         traceDispatch({
           type: 'set results',
@@ -286,15 +255,15 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   const queryStringAnimationTimeoutRef = useRef<{id: number} | null>(null);
   const setRowAsFocused = useCallback(
     (
-      node: TraceTreeNode<TraceTree.NodeValue> | null,
+      node: BaseNode | null,
       event: React.MouseEvent<HTMLElement> | null,
-      resultsLookup: Map<TraceTreeNode<TraceTree.NodeValue>, number>,
+      resultsLookup: Map<BaseNode, number>,
       index: number | null,
       debounce: number = QUERY_STRING_STATE_DEBOUNCE
     ) => {
       // sync query string with the clicked node
       if (node) {
-        if (isTraceNode(node) || isEAPTraceNode(node)) {
+        if (!node.canShowDetails) {
           return;
         }
 
@@ -304,7 +273,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
         queryStringAnimationTimeoutRef.current = requestAnimationTimeout(() => {
           const currentQueryStringPath = qs.parse(location.search).node;
-          const nextNodePath = TraceTree.PathToNode(node);
+          const nextNodePath = node.pathToNode();
           // Updating the query string with the same path is problematic because it causes
           // the entire sentry app to rerender, which is enough to cause jank and drop frames
           if (JSON.stringify(currentQueryStringPath) === JSON.stringify(nextNodePath)) {
@@ -329,11 +298,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           });
         }
 
-        if (isTraceNode(node)) {
-          traceDispatch({type: 'activate tab', payload: TRACE_TAB.node});
-          return;
-        }
-
         traceDispatch({
           type: 'activate tab',
           payload: node,
@@ -345,12 +309,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   );
 
   const onRowClick = useCallback(
-    (
-      node: TraceTreeNode<TraceTree.NodeValue>,
-      event: React.MouseEvent<HTMLElement>,
-      index: number
-    ) => {
-      if (isTraceNode(node) || isEAPTraceNode(node)) {
+    (node: BaseNode, event: React.MouseEvent<HTMLElement>, index: number) => {
+      if (!node.canShowDetails) {
         traceDispatch({
           type: 'set roving index',
           action_source: 'click',
@@ -363,10 +323,9 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       trackAnalytics('trace.trace_layout.span_row_click', {
         organization,
         num_children: node.children.length,
-        type: traceNodeAnalyticsName(node),
+        type: node.analyticsName(),
         project_platform:
-          projects.find(p => p.slug === node.metadata.project_slug)?.platform || 'other',
-        ...traceNodeAdjacentAnalyticsProperties(node),
+          projects.find(p => p.slug === node.projectSlug)?.platform || 'other',
       });
 
       if (traceStateRef.current.preferences.drawer.minimized) {
@@ -396,9 +355,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   );
 
   const onTabScrollToNode = useCallback(
-    (
-      node: TraceTreeNode<TraceTree.NodeValue>
-    ): Promise<TraceTreeNode<TraceTree.NodeValue> | null> => {
+    (node: BaseNode): Promise<BaseNode | null> => {
       return onScrollToNode(node).then(maybeNode => {
         if (maybeNode) {
           setRowAsFocused(
@@ -425,16 +382,10 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
     // TODO Abdullah Khan: Remove this once /trace-meta/ starts responding
     // with the correct spans count for EAP traces.
-    if (
-      traceNode &&
-      isEAPTraceNode(traceNode) &&
-      props.tree.eap_spans_count !== props.meta?.data?.span_count
-    ) {
-      Sentry.withScope(scope => {
-        scope.setFingerprint(['trace-eap-spans-count-mismatch']);
-        scope.captureMessage(
-          'EAP spans count from /trace/ and /trace-meta/ are not equal'
-        );
+    if (traceNode && props.tree.eap_spans_count !== props.meta?.data?.span_count) {
+      Sentry.logger.warn('EAP spans count from /trace/ and /trace-meta/ are not equal', {
+        trace_eap_span_count: props.tree.eap_spans_count,
+        trace_meta_span_count: props.meta?.data?.span_count,
       });
     }
   }, [props.tree, props.meta]);
@@ -465,38 +416,16 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       viewManager.maybeInitializeTraceViewFromQS(query.fov);
     }
 
-    TraceTree.ApplyPreferences(props.tree.root, {
-      preferences: traceStateRef.current.preferences,
-      organization: props.organization,
-    });
-
     // Construct the visual representation of the tree
     props.tree.build();
 
     const eventId = scrollQueueRef.current?.eventId;
-    const [type, path] = scrollQueueRef.current?.path?.[0]?.split('-') ?? [];
+    const path = scrollQueueRef.current?.path?.[0];
 
-    let node =
-      (path === 'root' && props.tree.root.children[0]) ||
-      (path && TraceTree.FindByID(props.tree.root, path)) ||
-      (eventId && TraceTree.FindByID(props.tree.root, eventId)) ||
+    const node =
+      (path && props.tree.root.findChild(n => n.matchByPath(path))) ||
+      (eventId && props.tree.root.findChild(n => n.matchById(eventId))) ||
       null;
-
-    // If the node points to a span, but we found an autogrouped node, then
-    // perform another search inside the autogrouped node to find the more detailed
-    // location of the span. This is necessary because the id of the autogrouped node
-    // is in some cases inferred from the spans it contains and searching by the span id
-    // just gives us the first match which may not be the one the user is looking for.
-    if (node) {
-      if (isAutogroupedNode(node) && type !== 'ag') {
-        const id = path ?? eventId!;
-        if (isParentAutogroupedNode(node)) {
-          node = TraceTree.FindByID(node.head, id) ?? node;
-        } else if (isSiblingAutogroupedNode(node)) {
-          node = node.children.find(n => TraceTree.FindByID(n, id)) ?? node;
-        }
-      }
-    }
 
     const index = node ? TraceTree.EnforceVisibility(props.tree, node) : -1;
 
@@ -507,10 +436,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     if (index === -1 || !node) {
       const hasScrollComponent = !!(path || eventId);
       if (hasScrollComponent) {
-        Sentry.withScope(scope => {
-          scope.setFingerprint(['trace-view-scroll-to-node-error']);
-          scope.captureMessage('Failed to scroll to node in trace tree');
-        });
+        Sentry.logger.warn('Failed to scroll to node in trace tree');
       }
 
       return;
@@ -550,7 +476,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     traceScheduler,
     scrollQueueRef,
     props.tree,
-    props.organization,
   ]);
 
   // Setup the middleware for the trace reducer
@@ -740,6 +665,10 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     <Flex direction="column" flex={1}>
       <TraceToolbar>
         <TraceSearchInput onTraceSearch={onTraceSearch} organization={organization} />
+        <TraceLinksNavigation
+          rootEventResults={props.rootEventResults}
+          source={props.source}
+        />
         <TraceOpenInExploreButton
           trace_id={props.traceSlug}
           traceEventView={props.traceEventView}
@@ -805,31 +734,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           traceEventView={props.traceEventView}
         />
       </TraceGrid>
-      {showLinkedTraces && (
-        <TraceLinksNavigationContainer>
-          {isTraceItemDetailsResponse(props.rootEventResults.data) &&
-          props.rootEventResults.data.timestamp ? (
-            <Fragment>
-              <TraceLinkNavigationButton
-                direction="previous"
-                attributes={props.rootEventResults.data.attributes}
-                currentTraceStartTimestamp={
-                  new Date(props.rootEventResults.data.timestamp).getTime() / 1000
-                }
-              />
-              <TraceLinkNavigationButton
-                direction="next"
-                attributes={props.rootEventResults.data.attributes}
-                currentTraceStartTimestamp={
-                  new Date(props.rootEventResults.data.timestamp).getTime() / 1000
-                }
-              />
-            </Fragment>
-          ) : (
-            <TraceLinkNavigationButtonPlaceHolder />
-          )}
-        </TraceLinksNavigationContainer>
-      )}
     </Flex>
   );
 }
@@ -839,22 +743,12 @@ const TraceToolbar = styled('div')`
   gap: ${space(1)};
 `;
 
-const TraceLinksNavigationContainer = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  flex-direction: row;
-
-  &:not(:empty) {
-    margin-top: ${space(1)};
-  }
-`;
-
 export const TraceGrid = styled('div')<{
   layout: 'drawer bottom' | 'drawer left' | 'drawer right';
 }>`
   ${traceGridCssVariables}
 
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.border};
   flex: 1 1 100%;
   display: grid;
@@ -880,5 +774,5 @@ export const TraceGrid = styled('div')<{
         : '1fr min-content'};
   grid-template-rows: 1fr auto;
 
-  ${p => `border-radius: ${p.theme.borderRadius};`}
+  ${p => `border-radius: ${p.theme.radius.md};`}
 `;

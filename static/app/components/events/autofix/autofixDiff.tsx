@@ -18,6 +18,7 @@ import {DIFF_COLORS} from 'sentry/components/splitDiff';
 import {IconChevron, IconClose, IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {getPrismLanguage} from 'sentry/utils/prism';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -85,37 +86,8 @@ function detectLanguageFromPath(filePath: string): string {
     return 'plaintext';
   }
 
-  // Map common file extensions to Prism language identifiers
-  const extensionMap: Record<string, string> = {
-    js: 'javascript',
-    jsx: 'jsx',
-    ts: 'typescript',
-    tsx: 'tsx',
-    py: 'python',
-    rb: 'ruby',
-    go: 'go',
-    java: 'java',
-    php: 'php',
-    c: 'c',
-    cpp: 'cpp',
-    cs: 'csharp',
-    html: 'html',
-    css: 'css',
-    scss: 'scss',
-    json: 'json',
-    md: 'markdown',
-    yaml: 'yaml',
-    yml: 'yaml',
-    sh: 'bash',
-    bash: 'bash',
-    rs: 'rust',
-    swift: 'swift',
-    kt: 'kotlin',
-    sql: 'sql',
-    xml: 'xml',
-  };
-
-  return extensionMap[extension] || 'plaintext';
+  const language = getPrismLanguage(extension);
+  return language || 'plaintext';
 }
 
 const SyntaxHighlightedCode = styled('div')`
@@ -716,15 +688,15 @@ const FileDiffWrapper = styled('div')<{integratedStyle?: boolean}>`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.sm};
   & code {
-    font-size: ${p => (p.integratedStyle ? p.theme.fontSize.sm : p.theme.codeFontSize)};
+    font-size: ${p => p.theme.fontSize.sm};
   }
   line-height: 20px;
   vertical-align: middle;
   border: 1px solid ${p => p.theme.border};
   border-color: ${p => (p.integratedStyle ? 'transparent' : p.theme.border)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 const FileHeader = styled('div')`
@@ -790,10 +762,10 @@ const LineNumber = styled('div')<{lineType: DiffLineType}>`
 
   ${p =>
     p.lineType === DiffLineType.ADDED &&
-    `background-color: ${DIFF_COLORS.added}; color: ${p.theme.textColor}`};
+    `background-color: ${DIFF_COLORS.added}; color: ${p.theme.tokens.content.primary}`};
   ${p =>
     p.lineType === DiffLineType.REMOVED &&
-    `background-color: ${DIFF_COLORS.removed}; color: ${p.theme.textColor}`};
+    `background-color: ${DIFF_COLORS.removed}; color: ${p.theme.tokens.content.primary}`};
 
   & + & {
     padding-left: 0;
@@ -811,10 +783,10 @@ const DiffContent = styled('div')<{lineType: DiffLineType}>`
 
   ${p =>
     p.lineType === DiffLineType.ADDED &&
-    `background-color: ${DIFF_COLORS.addedRow}; color: ${p.theme.textColor}`};
+    `background-color: ${DIFF_COLORS.addedRow}; color: ${p.theme.tokens.content.primary}`};
   ${p =>
     p.lineType === DiffLineType.REMOVED &&
-    `background-color: ${DIFF_COLORS.removedRow}; color: ${p.theme.textColor}`};
+    `background-color: ${DIFF_COLORS.removedRow}; color: ${p.theme.tokens.content.primary}`};
 
   &::before {
     content: ${p =>
@@ -846,15 +818,15 @@ const ActionButton = styled(Button)<{isHovered: boolean}>`
   margin-left: ${space(0.5)};
   font-family: ${p => p.theme.text.family};
   background-color: ${p =>
-    p.isHovered ? p.theme.button.default.background : p.theme.background};
-  color: ${p => (p.isHovered ? p.theme.pink400 : p.theme.textColor)};
+    p.isHovered ? p.theme.button.default.background : p.theme.tokens.background.primary};
+  color: ${p => (p.isHovered ? p.theme.colors.pink500 : p.theme.tokens.content.primary)};
   transition:
     background-color 0.2s ease-in-out,
     color 0.2s ease-in-out;
 
   &:hover {
-    background-color: ${p => p.theme.pink400}10;
-    color: ${p => p.theme.pink400};
+    background-color: ${p => p.theme.colors.pink500}10;
+    color: ${p => p.theme.colors.pink500};
   }
 `;
 
@@ -863,9 +835,9 @@ const EditOverlay = styled('div')`
   bottom: ${space(2)};
   left: 50%;
   right: ${space(2)};
-  background: ${p => p.theme.backgroundElevated};
+  background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   z-index: ${p => p.theme.zIndex.tooltip};
   display: flex;
@@ -902,13 +874,13 @@ const OverlayButtonGroup = styled('div')`
 const RemovedLines = styled('div')`
   margin-bottom: ${space(1)};
   font-family: ${p => p.theme.text.familyMono};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
 `;
 
 const RemovedLine = styled('div')`
   background-color: ${DIFF_COLORS.removedRow};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   padding: ${space(0.25)} ${space(0.5)};
   white-space: pre-wrap;
 `;
@@ -941,7 +913,7 @@ const SectionTitle = styled('p')`
   margin: ${space(1)} 0;
   font-size: ${p => p.theme.fontSize.md};
   font-weight: bold;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-family: ${p => p.theme.text.family};
 `;
 
@@ -955,6 +927,6 @@ const OverlayTitle = styled('h3')`
   margin: 0 0 ${space(2)} 0;
   font-size: ${p => p.theme.fontSize.md};
   font-weight: bold;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-family: ${p => p.theme.text.family};
 `;

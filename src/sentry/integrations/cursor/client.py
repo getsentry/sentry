@@ -11,6 +11,7 @@ from sentry.integrations.cursor.models import (
     CursorAgentLaunchRequestWebhook,
     CursorAgentLaunchResponse,
     CursorAgentSource,
+    CursorApiKeyMetadata,
 )
 from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentState, CodingAgentStatus
 
@@ -30,6 +31,24 @@ class CursorAgentClient(CodingAgentClient):
     def _get_auth_headers(self) -> dict[str, str]:
         return {"Authorization": f"Bearer {self.api_key}"}
 
+    def get_api_key_metadata(self) -> CursorApiKeyMetadata:
+        """Fetch metadata about the API key from Cursor's /v0/me endpoint."""
+        logger.info(
+            "coding_agent.cursor.get_api_key_metadata",
+            extra={"agent_type": self.__class__.__name__},
+        )
+
+        api_response = self.get(
+            "/v0/me",
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                **self._get_auth_headers(),
+            },
+            timeout=30,
+        )
+
+        return CursorApiKeyMetadata.validate(api_response.json)
+
     def launch(self, webhook_url: str, request: CodingAgentLaunchRequest) -> CodingAgentState:
         """Launch coding agent with webhook callback."""
         payload = CursorAgentLaunchRequestBody(
@@ -42,7 +61,9 @@ class CursorAgentClient(CodingAgentClient):
             ),
             webhook=CursorAgentLaunchRequestWebhook(url=webhook_url, secret=self.webhook_secret),
             target=CursorAgentLaunchRequestTarget(
-                autoCreatePr=True, branchName=request.branch_name, openAsCursorGithubApp=True
+                autoCreatePr=request.auto_create_pr,
+                branchName=request.branch_name,
+                openAsCursorGithubApp=True,
             ),
         )
 
@@ -63,6 +84,7 @@ class CursorAgentClient(CodingAgentClient):
             },
             data=payload.dict(exclude_none=True),
             json=True,
+            timeout=60,
         )
 
         launch_response = CursorAgentLaunchResponse.validate(api_response.json)

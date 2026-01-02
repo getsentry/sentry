@@ -63,7 +63,7 @@ function AssignedToTeam({teamId}: {teamId: string}) {
 
 function AssignedToMember({memberId}: {memberId: number}) {
   const {data: user} = useUserFromId({id: memberId});
-  return t('Notify member %s', `${user?.email ?? 'unknown'}`);
+  return t('Notify %s', `${user?.name ?? user?.email ?? 'unknown'}`);
 }
 
 export function EmailNode() {
@@ -111,7 +111,11 @@ function IdentifierField() {
           value={action.config.targetIdentifier}
           onChange={(value: any) => {
             onUpdate({
-              config: {...action.config, targetIdentifier: value.actor.id},
+              config: {
+                ...action.config,
+                targetIdentifier: value.actor.id,
+                targetDisplay: value.actor.name,
+              },
               data: {},
             });
             removeError(action.id);
@@ -126,13 +130,17 @@ function IdentifierField() {
     return (
       <SelectWrapper>
         <SelectMembers
-          aria-label={t('User')}
+          ariaLabel={t('User')}
           organization={organization}
           key={`${actionId}.config.targetIdentifier`}
           value={action.config.targetIdentifier}
           onChange={(value: any) => {
             onUpdate({
-              config: {...action.config, targetIdentifier: value.actor.id},
+              config: {
+                ...action.config,
+                targetIdentifier: value.actor.id,
+                targetDisplay: value.actor.name ?? value.actor.email,
+              },
               data: {},
             });
             removeError(action.id);

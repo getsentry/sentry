@@ -147,10 +147,10 @@ describe('AutofixRootCause', () => {
     await userEvent.click(dropdownTrigger);
 
     // Click the Cursor option in the dropdown
-    await userEvent.click(await screen.findByText('Send to Cursor Background Agent'));
+    await userEvent.click(await screen.findByText('Send to Cursor'));
 
     expect(JSON.parse(localStorage.getItem('autofix:rootCauseActionPreference')!)).toBe(
-      'cursor_background_agent'
+      'cursor:cursor-integration-id'
     );
   });
 
@@ -204,13 +204,13 @@ describe('AutofixRootCause', () => {
 
     localStorage.setItem(
       'autofix:rootCauseActionPreference',
-      JSON.stringify('cursor_background_agent')
+      JSON.stringify('cursor:cursor-integration-id')
     );
 
     render(<AutofixRootCause {...defaultProps} />);
 
     expect(
-      await screen.findByRole('button', {name: 'Send to Cursor Background Agent'})
+      await screen.findByRole('button', {name: 'Send to Cursor'})
     ).toBeInTheDocument();
 
     // Verify Seer option is in the dropdown
@@ -249,8 +249,6 @@ describe('AutofixRootCause', () => {
     });
     await userEvent.click(dropdownTrigger);
 
-    expect(
-      await screen.findByText('Send to Cursor Background Agent')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Send to Cursor')).toBeInTheDocument();
   });
 });

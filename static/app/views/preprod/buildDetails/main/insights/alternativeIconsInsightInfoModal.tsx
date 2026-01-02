@@ -1,11 +1,12 @@
 import {Fragment} from 'react';
 
+import {Alert} from '@sentry/scraps/alert';
+import {CodeBlock} from '@sentry/scraps/code';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Heading} from '@sentry/scraps/text/heading';
+
 import {openInsightInfoModal} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/core/alert';
-import {CodeBlock} from 'sentry/components/core/code';
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
-import {Heading} from 'sentry/components/core/text/heading';
 import {t} from 'sentry/locale';
 import {
   CodeBlockWrapper,
@@ -52,7 +53,7 @@ function AlternativeIconsContent() {
       </Text>
 
       <Container padding="md 0">
-        <Alert type="warning">
+        <Alert variant="warning">
           {t(
             "Reminder: If you convert your image to HEIC, make sure to update the reference in your app's project to use this new filepath!"
           )}

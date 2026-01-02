@@ -1,17 +1,18 @@
 ---
-created: '2025-10-29T21:19:25.685500+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouping_info.py
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
 ---
 {
-  "hashed_checksum": {
-    "checksum": "de46d023e69b171b90ccf3ebca7aede4",
-    "contributes": true,
-    "description": "hashed checksum",
-    "hash": "de46d023e69b171b90ccf3ebca7aede4",
-    "hint": null,
-    "key": "hashed_checksum",
-    "raw_checksum": "not a legit checksum",
-    "type": "hashed_checksum"
+  "grouping_config": null,
+  "variants": {
+    "hashed_checksum": {
+      "checksum": "de46d023e69b171b90ccf3ebca7aede4",
+      "contributes": true,
+      "description": "hashed checksum",
+      "hash": "de46d023e69b171b90ccf3ebca7aede4",
+      "hint": null,
+      "key": "hashed_checksum",
+      "raw_checksum": "not a legit checksum",
+      "type": "hashed_checksum"
+    }
   }
 }

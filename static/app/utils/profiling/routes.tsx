@@ -214,8 +214,10 @@ export function generateProfileRouteFromProfileReference({
       profilerId: reference.profiler_id,
       frameName,
       framePackage,
-      start: new Date(reference.start * 1e3).toISOString(),
-      end: new Date(reference.end * 1e3).toISOString(),
+      // when converting to a timestamp, we round the start timestamp down and round
+      // the end timestamp up to the millisecond to ensure we capture the full profile
+      start: new Date(Math.floor(reference.start * 1e3)).toISOString(),
+      end: new Date(Math.ceil(reference.end * 1e3)).toISOString(),
       query: dropUndefinedKeys({
         ...query,
         frameName,

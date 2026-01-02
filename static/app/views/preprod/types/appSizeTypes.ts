@@ -7,7 +7,7 @@ import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDeta
 export interface AppSizeApiResponse {
   generated_at: string;
   treemap: TreemapResults;
-  insights?: AppleInsightResults;
+  insights?: InsightResults;
   missing_dsym_binaries?: string[];
 }
 
@@ -19,21 +19,30 @@ export enum SizeAnalysisComparisonState {
   FAILED = 3,
 }
 
-interface SizeAnalysisComparison {
+export interface SizeAnalysisComparison {
   base_size_metric_id: number;
-  comparison_id: number | null;
-  error_code: string | null;
-  error_message: string | null;
   head_size_metric_id: number;
   identifier: string;
   metrics_artifact_type: MetricsArtifactType;
   state: SizeAnalysisComparisonState;
+  comparison_id?: number | null;
+  error_code?: string | null;
+  error_message?: string | null;
 }
 
 export interface SizeComparisonApiResponse {
   base_build_details: BuildDetailsApiResponse;
   comparisons: SizeAnalysisComparison[];
   head_build_details: BuildDetailsApiResponse;
+}
+
+export function isSizeAnalysisComparisonInProgress(
+  sizeComparison: SizeAnalysisComparison | undefined
+): boolean {
+  return (
+    sizeComparison?.state === SizeAnalysisComparisonState.PENDING ||
+    sizeComparison?.state === SizeAnalysisComparisonState.PROCESSING
+  );
 }
 
 /**
@@ -48,12 +57,17 @@ export interface TreemapResults {
   root: TreemapElement;
 }
 
+interface TreemapElementMisc {
+  scale?: number;
+}
+
 export interface TreemapElement {
   children: TreemapElement[];
   is_dir: boolean;
   name: string;
   size: number;
   type: TreemapType;
+  misc?: TreemapElementMisc;
   path?: string;
 }
 
@@ -149,14 +163,14 @@ interface LooseImagesInsightResult extends GroupsInsightResult {}
 interface MainBinaryExportMetadataResult extends FilesInsightResult {}
 
 export interface OptimizableImageFile {
-  colorspace: string | null;
   conversion_savings: number;
   current_size: number;
   file_path: string;
-  heic_size: number | null;
-  idiom: string | null;
-  minified_size: number | null;
   minify_savings: number;
+  colorspace?: string | null;
+  heic_size?: number | null;
+  idiom?: string | null;
+  minified_size?: number | null;
 }
 
 interface ImageOptimizationInsightResult extends BaseInsightResult {
@@ -180,7 +194,11 @@ interface AudioCompressionInsightResult extends FilesInsightResult {}
 
 interface VideoCompressionInsightResult extends FilesInsightResult {}
 
-export interface AppleInsightResults {
+interface MultipleNativeLibraryArchsInsightResult extends FilesInsightResult {}
+
+interface WebPOptimizationInsightResult extends FilesInsightResult {}
+
+export interface InsightResults {
   alternate_icons_optimization?: ImageOptimizationInsightResult;
   audio_compression?: AudioCompressionInsightResult;
   duplicate_files?: DuplicateFilesInsightResult;
@@ -193,10 +211,12 @@ export interface AppleInsightResults {
   localized_strings_minify?: LocalizedStringCommentsInsightResult;
   loose_images?: LooseImagesInsightResult;
   main_binary_exported_symbols?: MainBinaryExportMetadataResult;
+  multiple_native_library_archs?: MultipleNativeLibraryArchsInsightResult;
   small_files?: SmallFilesInsightResult;
   strip_binary?: StripBinaryInsightResult;
   unnecessary_files?: UnnecessaryFilesInsightResult;
   video_compression?: VideoCompressionInsightResult;
+  webp_optimization?: WebPOptimizationInsightResult;
 }
 
 /**
@@ -207,12 +227,13 @@ export interface AppleInsightResults {
 export type DiffType = 'added' | 'removed' | 'increased' | 'decreased';
 
 export interface DiffItem {
-  base_size: number | null;
-  head_size: number | null;
-  item_type: TreemapType | null;
   path: string;
   size_diff: number;
   type: DiffType;
+  base_size?: number | null;
+  diff_items?: DiffItem[] | null;
+  head_size?: number | null;
+  item_type?: TreemapType | null;
 }
 
 // Keep in sync with https://github.com/getsentry/sentry/blob/a85090d7b81832982b43a35c30db9970a0258e99/src/sentry/preprod/models.py#L230
@@ -227,11 +248,31 @@ interface SizeMetricDiffItem {
   base_install_size: number;
   head_download_size: number;
   head_install_size: number;
-  identifier: string | null;
   metrics_artifact_type: MetricsArtifactType;
+  identifier?: string | null;
+}
+
+export type InsightStatus = 'new' | 'resolved' | 'unresolved';
+
+export interface InsightDiffItem {
+  file_diffs: DiffItem[];
+  group_diffs: DiffItem[];
+  insight_type: string;
+  status: InsightStatus;
+  total_savings_change: number;
 }
 
 export interface SizeAnalysisComparisonResults {
   diff_items: DiffItem[];
+  insight_diff_items: InsightDiffItem[];
   size_metric_diff_item: SizeMetricDiffItem;
+}
+
+export interface TreemapDiffElement {
+  children: TreemapDiffElement[] | null;
+  diff_type: DiffType;
+  is_dir: boolean;
+  name: string;
+  path: string | null;
+  size_diff: number;
 }

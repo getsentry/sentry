@@ -1,5 +1,5 @@
 import type {ComponentProps, SyntheticEvent} from 'react';
-import {
+import React, {
   Fragment,
   memo,
   useCallback,
@@ -11,6 +11,8 @@ import {
 import {useTheme} from '@emotion/react';
 import classNames from 'classnames';
 import omit from 'lodash/omit';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import {Button} from 'sentry/components/core/button';
 import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
@@ -43,10 +45,12 @@ import {
   useLogsAutoRefreshEnabled,
   useSetLogsAutoRefresh,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import type {TraceItemDetailsResponse} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import type {
+  TraceItemDetailsResponse,
+  TraceItemResponseAttribute,
+} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {useFetchTraceItemDetailsOnHover} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
-  AlwaysPresentLogFields,
   DEFAULT_TRACE_ITEM_HOVER_TIMEOUT,
   DEFAULT_TRACE_ITEM_HOVER_TIMEOUT_WITH_AUTO_REFRESH,
   HiddenLogDetailFields,
@@ -74,6 +78,7 @@ import {
   LogTableBodyCell,
   LogTableRow,
   StyledChevronButton,
+  TraceIconStyleWrapper,
 } from 'sentry/views/explore/logs/styles';
 import {
   OurLogKnownFieldKey,
@@ -86,7 +91,10 @@ import {
   getLogRowItem,
   getLogRowTimestampMillis,
   getLogSeverityLevel,
+  isPseudoLogResponseItem,
+  isRegularLogResponseItem,
   ourlogToJson,
+  type LogTableRowItem,
 } from 'sentry/views/explore/logs/utils';
 import type {ReplayEmbeddedTableOptions} from 'sentry/views/explore/logs/utils/logsReplayUtils';
 import {
@@ -94,9 +102,10 @@ import {
   useQueryParamsFields,
 } from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
 
 type LogsRowProps = {
-  dataRow: OurLogsResponseItem;
+  dataRow: LogTableRowItem;
   highlightTerms: string[];
   meta: EventsMetaType | undefined;
   sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
@@ -111,9 +120,6 @@ type LogsRowProps = {
   logEnd?: string;
   logStart?: string;
   onCollapse?: (logItemId: string) => void;
-  /**
-   * This should only be used in embedded views since we won't be opening the details.
-   */
   onEmbeddedRowClick?: (logItemId: string, event: React.MouseEvent) => void;
   onExpand?: (logItemId: string) => void;
   onExpandHeight?: (logItemId: string, estimatedHeight: number) => void;
@@ -203,6 +209,7 @@ export const LogRowContent = memo(function LogRowContent({
   const analyticsPageSource = useLogsAnalyticsPageSource();
   const [_expanded, setExpanded] = useState<boolean>(false);
   const expanded = isExpanded ?? _expanded;
+  const isPseudoRow = isPseudoLogResponseItem(dataRow);
 
   function toggleExpanded() {
     if (onExpand) {
@@ -239,9 +246,8 @@ export const LogRowContent = memo(function LogRowContent({
 
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
   const severityText = dataRow[OurLogKnownFieldKey.SEVERITY];
-  const projectId: (typeof AlwaysPresentLogFields)[1] =
-    dataRow[OurLogKnownFieldKey.PROJECT_ID];
-  const project = projects.projects.find(p => p.id === '' + projectId);
+  const projectId = dataRow[OurLogKnownFieldKey.PROJECT_ID];
+  const project = projects.projects.find(p => p.id === String(projectId));
   const projectSlug = project?.slug ?? '';
 
   const level = getLogSeverityLevel(
@@ -268,7 +274,7 @@ export const LogRowContent = memo(function LogRowContent({
     useFullSeverityText: false,
     location,
     organization,
-    attributes: dataRow,
+    attributes: dataRow as OurLogsResponseItem,
     attributeTypes: meta?.fields ?? {},
     theme,
     projectSlug,
@@ -281,16 +287,18 @@ export const LogRowContent = memo(function LogRowContent({
     logEnd,
   };
 
-  const rowInteractProps: ComponentProps<typeof LogTableRow> = blockRowExpanding
-    ? onEmbeddedRowClick
-      ? {onClick, isClickable: true}
-      : {}
-    : {
-        ...hoverProps,
-        onPointerUp,
-        onTouchEnd: onPointerUp,
-        isClickable: true,
-      };
+  const rowInteractProps: ComponentProps<typeof LogTableRow> = isPseudoRow
+    ? {isClickable: false}
+    : blockRowExpanding
+      ? onEmbeddedRowClick
+        ? {onClick, isClickable: true}
+        : {}
+      : {
+          ...hoverProps,
+          onPointerUp,
+          onTouchEnd: onPointerUp,
+          isClickable: true,
+        };
 
   const buttonSize = 'xs';
   const chevronIcon = (
@@ -300,7 +308,8 @@ export const LogRowContent = memo(function LogRowContent({
   let replayTimeClasses = {};
   if (
     embeddedOptions?.replay?.displayReplayTimeIndicator &&
-    embeddedOptions.replay.timestampRelativeTo
+    embeddedOptions.replay.timestampRelativeTo &&
+    isRegularLogResponseItem(dataRow)
   ) {
     const logTimestamp = getLogRowTimestampMillis(dataRow);
     const offsetMs = logTimestamp - embeddedOptions.replay.timestampRelativeTo;
@@ -323,6 +332,7 @@ export const LogRowContent = memo(function LogRowContent({
     <Fragment>
       <LogTableRow
         data-test-id="log-table-row"
+        data-row-highlighted={isPseudoRow}
         {...omit(rowInteractProps, 'className')}
         className={classNames(rowInteractProps.className, replayTimeClasses)}
         onMouseEnter={e => {
@@ -334,7 +344,9 @@ export const LogRowContent = memo(function LogRowContent({
       >
         <LogsTableBodyFirstCell key="first">
           <LogFirstCellContent>
-            {blockRowExpanding ? null : shouldRenderHoverElements ? (
+            {isPseudoRow ? (
+              <span className="log-table-row-pseudo-row-chevron-replacement" />
+            ) : blockRowExpanding ? null : shouldRenderHoverElements ? (
               <StyledChevronButton
                 icon={<IconChevron size="xs" direction={expanded ? 'down' : 'right'} />}
                 aria-label={t('Toggle trace details')}
@@ -346,12 +358,26 @@ export const LogRowContent = memo(function LogRowContent({
             ) : (
               <span className="log-table-row-chevron-button">{chevronIcon}</span>
             )}
-            <SeverityCircleRenderer extra={rendererExtra} meta={meta} />
-            {project ? <ProjectBadge project={project} avatarSize={12} hideName /> : null}
+            {isPseudoRow ? (
+              <Flex align="center" justify="center" gap="sm">
+                <TraceIconStyleWrapper>
+                  <div className="TraceIcon error">
+                    <TraceIcons.Fire />
+                  </div>
+                </TraceIconStyleWrapper>
+              </Flex>
+            ) : (
+              <React.Fragment>
+                <SeverityCircleRenderer extra={rendererExtra} meta={meta} />
+                {project ? (
+                  <ProjectBadge project={project} avatarSize={12} hideName />
+                ) : null}
+              </React.Fragment>
+            )}
           </LogFirstCellContent>
         </LogsTableBodyFirstCell>
         {fields?.map(field => {
-          const value = dataRow[field];
+          const value = (dataRow as OurLogsResponseItem)[field];
 
           if (!defined(value)) {
             return <LogTableBodyCell key={field} />;
@@ -359,7 +385,7 @@ export const LogRowContent = memo(function LogRowContent({
 
           const renderedField = (
             <LogFieldRenderer
-              item={getLogRowItem(field, dataRow, meta)}
+              item={getLogRowItem(field, dataRow as unknown as OurLogsResponseItem, meta)}
               meta={meta}
               extra={{
                 ...rendererExtra,
@@ -444,7 +470,7 @@ function LogRowDetails({
   meta,
   ref,
 }: {
-  dataRow: OurLogsResponseItem;
+  dataRow: LogTableRowItem;
   embedded: boolean;
   highlightTerms: string[];
   meta: EventsMetaType | undefined;
@@ -466,11 +492,12 @@ function LogRowDetails({
     typeof severityText === 'string' ? severityText : null
   );
   const missingLogId = !dataRow[OurLogKnownFieldKey.ID];
+  const isPseudoRow = isPseudoLogResponseItem(dataRow);
   const fullLogDataResult = useExploreLogsTableRow({
     logId: String(dataRow[OurLogKnownFieldKey.ID] ?? ''),
     projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID] ?? ''),
     traceId: String(dataRow[OurLogKnownFieldKey.TRACE_ID] ?? ''),
-    enabled: !missingLogId,
+    enabled: !missingLogId && !isPseudoRow,
   });
 
   const {data, isPending, isError} = fullLogDataResult;
@@ -478,11 +505,23 @@ function LogRowDetails({
   const theme = useTheme();
   const logColors = getLogColors(level, theme);
   const attributes =
-    data?.attributes?.reduce((it, {name, value}) => ({...it, [name]: value}), {
-      [OurLogKnownFieldKey.TIMESTAMP]: dataRow[OurLogKnownFieldKey.TIMESTAMP],
-    }) ?? {};
+    data?.attributes?.reduce<Record<string, TraceItemResponseAttribute['value']>>(
+      (it, attr) => {
+        it[attr.name] = attr.value;
+        return it;
+      },
+      {
+        [OurLogKnownFieldKey.TIMESTAMP]: dataRow[OurLogKnownFieldKey.TIMESTAMP],
+      }
+    ) ?? {};
   const attributeTypes =
-    data?.attributes?.reduce((it, {name, type}) => ({...it, [name]: type}), {}) ?? {};
+    data?.attributes?.reduce<Record<string, TraceItemResponseAttribute['type']>>(
+      (it, attr) => {
+        it[attr.name] = attr.type;
+        return it;
+      },
+      {}
+    ) ?? {};
 
   if (missingLogId || isError) {
     return (
@@ -504,22 +543,26 @@ function LogRowDetails({
           <Fragment>
             <DetailsContent>
               <DetailsBody>
-                {LogBodyRenderer({
-                  item: getLogRowItem(OurLogKnownFieldKey.MESSAGE, dataRow, meta),
-                  extra: {
-                    highlightTerms,
-                    logColors,
-                    wrapBody: true,
-                    location,
-                    organization,
-                    projectSlug,
-                    attributes,
-                    attributeTypes,
-                    meta,
-                    theme,
-                    traceItemMeta: data?.meta,
-                  },
-                })}
+                {isRegularLogResponseItem(dataRow) ? (
+                  LogBodyRenderer({
+                    item: getLogRowItem(OurLogKnownFieldKey.MESSAGE, dataRow, meta),
+                    extra: {
+                      highlightTerms,
+                      logColors,
+                      wrapBody: true,
+                      location,
+                      organization,
+                      projectSlug,
+                      attributes,
+                      attributeTypes,
+                      meta,
+                      theme,
+                      traceItemMeta: data?.meta,
+                    },
+                  })
+                ) : (
+                  <span>{String(dataRow[OurLogKnownFieldKey.MESSAGE] ?? '')}</span>
+                )}
               </DetailsBody>
               <LogAttributeTreeWrapper>
                 <AttributesTree<RendererExtra>
@@ -568,7 +611,7 @@ function LogRowDetails({
   );
 }
 
-function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: OurLogsResponseItem}) {
+function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowItem}) {
   const addSearchFilter = useAddSearchFilter();
   return (
     <LogDetailTableActionsButtonBar>
@@ -610,7 +653,7 @@ function LogRowDetailsActions({
   tableDataRow,
 }: {
   fullLogDataResult: UseApiQueryResult<TraceItemDetailsResponse, RequestError>;
-  tableDataRow: OurLogsResponseItem;
+  tableDataRow: LogTableRowItem;
 }) {
   const {data, isPending, isError} = fullLogDataResult;
   const isFrozen = useLogsFrozenIsFrozen();

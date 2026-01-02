@@ -11,6 +11,8 @@ class TimeSeriesPoint(TypedDict):
     timestamp: float
     value: float
     anomaly: NotRequired[Anomaly]
+    yhat_lower: NotRequired[float]
+    yhat_upper: NotRequired[float]
 
 
 class DataSourceType(IntEnum):
@@ -109,3 +111,17 @@ class AnomalyDetectionThresholdType(IntEnum):
     ABOVE = 0
     BELOW = 1
     ABOVE_AND_BELOW = 2
+
+
+class AnomalyThresholdDataPoint(TypedDict):
+    external_alert_id: int
+    timestamp: float
+    value: float
+    yhat_lower: float
+    yhat_upper: float
+
+
+class SeerDetectorDataResponse(TypedDict):
+    success: bool
+    message: str | None
+    data: list[AnomalyThresholdDataPoint]

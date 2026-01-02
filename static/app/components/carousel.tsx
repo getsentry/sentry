@@ -106,7 +106,7 @@ const StyledArrowButton = styled(Button)<{direction: string}>`
   border: 1px solid ${p => p.theme.border};
   padding: 0;
   margin: auto;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 export default Carousel;

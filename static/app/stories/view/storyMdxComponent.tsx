@@ -3,6 +3,7 @@ import React from 'react';
 import {type Callout as CalloutProps} from '@r4ai/remark-callout';
 
 import {Alert, type AlertProps} from '@sentry/scraps/alert';
+import {Quote, type QuoteProps} from '@sentry/scraps/quote/quote';
 
 import {InlineCode} from 'sentry/components/core/code';
 import {Stack} from 'sentry/components/core/layout';
@@ -15,12 +16,12 @@ type HeadingProps = {
   children: React.ReactNode;
 };
 
-const calloutToAlertType: Record<string, AlertProps['type']> = {
+const calloutToAlertType: Record<string, AlertProps['variant']> = {
   tip: 'muted',
   note: 'info',
   important: 'success',
   warning: 'warning',
-  caution: 'error',
+  caution: 'danger',
 };
 
 // Heading levels shifted N+1 for proper semantics on /stories pages
@@ -46,7 +47,7 @@ export const storyMdxComponents = {
     const expand = props.isFoldable ? children : undefined;
     return (
       <Alert
-        type={calloutToAlertType[props.type.toLowerCase()] ?? 'muted'}
+        variant={calloutToAlertType[props.type.toLowerCase()] ?? 'muted'}
         expand={expand}
         defaultExpanded={!props.defaultFolded}
       >
@@ -61,4 +62,5 @@ export const storyMdxComponents = {
   ul: (props: Omit<HTMLProps<HTMLUListElement>, 'wrap'>) => (
     <Stack {...props} as="ul" gap="lg" />
   ),
+  blockquote: (props: QuoteProps) => <Quote {...props} />,
 };

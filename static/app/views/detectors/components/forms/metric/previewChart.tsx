@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 
+import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {MetricDetectorChart} from 'sentry/views/detectors/components/forms/metric/metricDetectorChart';
 import {
   createConditions,
@@ -9,7 +10,13 @@ import {
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 
-export function MetricDetectorPreviewChart() {
+interface MetricDetectorPreviewChartProps {
+  detector?: MetricDetector;
+}
+
+export function MetricDetectorPreviewChart({
+  detector,
+}: MetricDetectorPreviewChartProps = {}) {
   // Get all the form fields needed for the chart
   const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
   const aggregateFunction = useMetricDetectorFormField(
@@ -19,6 +26,9 @@ export function MetricDetectorPreviewChart() {
   const rawQuery = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.query);
   const environment = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.environment);
   const projectId = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.projectId);
+  const extrapolationMode = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.extrapolationMode
+  );
 
   // Threshold-related form fields
   const highThreshold = useMetricDetectorFormField(
@@ -88,6 +98,8 @@ export function MetricDetectorPreviewChart() {
       comparisonDelta={detectionType === 'percent' ? conditionComparisonAgo : undefined}
       sensitivity={sensitivity}
       thresholdType={thresholdType}
+      extrapolationMode={extrapolationMode}
+      detectorId={detector?.id}
     />
   );
 }

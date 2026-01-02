@@ -1,5 +1,6 @@
 import logging
 import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -42,7 +43,7 @@ def get_transactions_for_project(
     project_id: int, limit: int = 500, start_time_delta: dict[str, int] | None = None
 ) -> list[Transaction]:
     """
-    Get a list of transactions for a project using EAP, sorted by volume/traffic.
+    Get a list of transactions for a project using EAP, sorted by total time spent.
 
     Args:
         project_id: The ID of the project to fetch transactions for
@@ -74,18 +75,18 @@ def get_transactions_for_project(
         auto_fields=True,
     )
 
-    # Query EAP for transactions with volume metrics
+    # Query EAP for most important transactions (highest total time spent)
     result = Spans.run_table_query(
         params=snuba_params,
-        query_string=f"is_transaction:true project.id:{project_id}",
+        query_string="is_transaction:true",
         selected_columns=[
             "transaction",
-            "count()",
+            "sum(span.duration)",
         ],
-        orderby=["-count()"],  # Sort by count descending (highest volume first)
+        orderby=["-sum(span.duration)"],
         offset=0,
         limit=limit,
-        referrer=Referrer.SEER_RPC,
+        referrer=Referrer.SEER_EXPLORER_INDEX,
         config=config,
         sampling_mode="NORMAL",
     )
@@ -145,46 +146,40 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
         auto_fields=True,
     )
 
-    # Step 1: Get trace IDs with their span counts in a single query
+    # Step 1: Get a random trace ID for the transaction
     escaped_transaction_name = UNESCAPED_QUOTE_RE.sub('\\"', transaction_name)
     traces_result = Spans.run_table_query(
         params=snuba_params,
         query_string=f'transaction:"{escaped_transaction_name}" project.id:{project_id}',
         selected_columns=[
             "trace",
-            "count()",  # This counts all spans in each trace
+            "precise.start_ts",
         ],
-        orderby=["-count()"],
+        orderby=["precise.start_ts"],
         offset=0,
-        limit=20,  # Get more candidates to choose from
-        referrer=Referrer.SEER_RPC,
+        limit=1,
+        referrer=Referrer.SEER_EXPLORER_INDEX,
         config=config,
         sampling_mode="NORMAL",
     )
 
-    trace_span_counts = []
+    trace_id = None
     for row in traces_result.get("data", []):
         trace_id = row.get("trace")
-        span_count = row.get("count()", 0)
-        if trace_id and span_count > 0:
-            trace_span_counts.append((trace_id, span_count))
+        if trace_id:
+            break
 
-    if not trace_span_counts:
+    if not trace_id:
         logger.info(
             "No traces found for transaction",
             extra={"transaction_name": transaction_name, "project_id": project_id},
         )
         return None
 
-    # Choose trace with median span count
-    trace_span_counts.sort(key=lambda x: x[1])  # Sort by span count
-    median_index = len(trace_span_counts) // 2
-    chosen_trace_id, total_spans = trace_span_counts[median_index]
-
     # Step 2: Get all spans in the chosen trace
     spans_result = Spans.run_table_query(
         params=snuba_params,
-        query_string=f"trace:{chosen_trace_id}",
+        query_string=f"trace:{trace_id}",
         selected_columns=[
             "span_id",
             "parent_span",
@@ -194,13 +189,13 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
         ],
         orderby=["precise.start_ts"],
         offset=0,
-        limit=5000,
-        referrer=Referrer.SEER_RPC,
+        limit=1000,
+        referrer=Referrer.SEER_EXPLORER_INDEX,
         config=config,
         sampling_mode="NORMAL",
     )
 
-    # Step 4: Build span objects
+    # Step 3: Build span objects
     spans = []
     for row in spans_result.get("data", []):
         span_id = row.get("span_id")
@@ -219,7 +214,7 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
             )
 
     return TraceData(
-        trace_id=chosen_trace_id,
+        trace_id=trace_id,
         project_id=project_id,
         transaction_name=transaction_name,
         total_spans=len(spans),
@@ -227,9 +222,80 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
     )
 
 
+def _fetch_and_process_profile(
+    profile_info: dict[str, Any],
+    organization_id: int,
+    project_id: int,
+    trace_id: str,
+) -> ProfileData | None:
+    """
+    Fetch and process a single profile. This function is designed to be called
+    concurrently from multiple threads.
+
+    Args:
+        profile_info: Dictionary containing profile metadata (profile_id, is_continuous, start_ts, end_ts)
+        organization_id: Organization ID
+        project_id: Project ID
+        trace_id: Trace ID for logging
+
+    Returns:
+        ProfileData if successful, None otherwise
+    """
+    profile_id = profile_info["profile_id"]
+    transaction_name = profile_info["transaction_name"]
+    is_continuous = profile_info["is_continuous"]
+    start_ts = profile_info["start_ts"]
+    end_ts = profile_info["end_ts"]
+
+    # Fetch raw profile data
+    raw_profile = fetch_profile_data(
+        profile_id=profile_id,
+        organization_id=organization_id,
+        project_id=project_id,
+        start_ts=start_ts,
+        end_ts=end_ts,
+        is_continuous=is_continuous,
+    )
+
+    if not raw_profile:
+        logger.warning(
+            "Failed to fetch profile data",
+            extra={
+                "profile_id": profile_id,
+                "trace_id": trace_id,
+                "project_id": project_id,
+            },
+        )
+        return None
+
+    # Convert to execution tree
+    execution_tree = convert_profile_to_execution_tree(raw_profile)
+
+    if execution_tree:
+        return ProfileData(
+            profile_id=profile_id,
+            transaction_name=transaction_name,
+            execution_tree=execution_tree,
+            project_id=project_id,
+            start_ts=start_ts,
+            end_ts=end_ts,
+            is_continuous=is_continuous,
+        )
+    else:
+        logger.warning(
+            "Failed to convert profile to execution tree",
+            extra={
+                "profile_id": profile_id,
+                "trace_id": trace_id,
+                "project_id": project_id,
+            },
+        )
+        return None
+
+
 def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | None:
     """
-    Get profiles for a given trace, with one profile per unique span/transaction.
+    Get profiles for a given trace, supporting both transaction and continuous profiles.
 
     Args:
         trace_id: The trace ID to find profiles for
@@ -260,182 +326,92 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
         auto_fields=True,
     )
 
-    # Step 1: Find spans in the trace that have profile data - using same constraint as flamegraph
-    profiling_constraint = "(has:profile.id) or (has:profiler.id has:thread.id)"
+    # Use aggregation query to get unique profile IDs and trace time range
+    # Query for both transaction profiles (profile.id) and continuous profiles (profiler.id)
     profiles_result = Spans.run_table_query(
         params=snuba_params,
-        query_string=f"trace:{trace_id} project.id:{project_id} {profiling_constraint}",
+        query_string=f"trace:{trace_id} project.id:{project_id} (has:profile.id OR has:profiler.id)",
         selected_columns=[
-            "span_id",
             "profile.id",
             "profiler.id",
-            "thread.id",
-            "transaction",
-            "span.op",
-            "is_transaction",
-            "precise.start_ts",
-            "precise.finish_ts",
+            "min(precise.start_ts)",
+            "max(precise.finish_ts)",
         ],
-        orderby=["precise.start_ts"],
+        orderby=[],
         offset=0,
-        limit=50,
-        referrer=Referrer.SEER_RPC,
+        limit=5,
+        referrer=Referrer.SEER_EXPLORER_INDEX,
         config=config,
         sampling_mode="NORMAL",
     )
 
-    # Step 2: Collect all profiles and merge those with same profile_id and is_continuous
-    all_profiles = []
+    profile_data = []
 
     for row in profiles_result.get("data", []):
-        span_id = row.get("span_id")
         profile_id = row.get("profile.id")  # Transaction profiles
         profiler_id = row.get("profiler.id")  # Continuous profiles
-        transaction_name = row.get("transaction")
-        start_ts = row.get("precise.start_ts")
-        end_ts = row.get("precise.finish_ts")
+        start_ts = row.get("min(precise.start_ts)")
+        end_ts = row.get("max(precise.finish_ts)")
 
-        logger.info(
-            "Iterating over span to get profiles",
-            extra={
-                "span_id": span_id,
-                "profile_id": profile_id,
-                "profiler_id": profiler_id,
-                "transaction_name": transaction_name,
-            },
-        )
-
-        if not span_id:
-            logger.info(
-                "Span doesn't have an id, skipping",
-                extra={"span_id": span_id},
-            )
-            continue
-
-        # Use profile.id first (transaction profiles), fallback to profiler.id (continuous profiles)
-        actual_profile_id = profile_id or profiler_id
+        actual_profile_id = profiler_id or profile_id
         if not actual_profile_id:
-            logger.info(
-                "Span doesn't have a profile or profiler id, skipping",
-                extra={"span_id": span_id},
-            )
             continue
 
-        # Determine if this is a continuous profile (profiler.id without profile.id)
-        is_continuous = profile_id is None and profiler_id is not None
+        is_continuous = profiler_id is not None
 
-        all_profiles.append(
+        profile_data.append(
             {
-                "span_id": span_id,
                 "profile_id": actual_profile_id,
-                "transaction_name": transaction_name,
                 "is_continuous": is_continuous,
                 "start_ts": start_ts,
                 "end_ts": end_ts,
             }
         )
 
-    # Merge profiles with same profile_id and is_continuous
-    # Use the earliest start_ts and latest end_ts for merged profiles
-    profile_groups = {}
-    for profile in all_profiles:
-        key = (profile["profile_id"], profile["is_continuous"])
-
-        if key not in profile_groups:
-            profile_groups[key] = {
-                "span_id": profile["span_id"],  # Keep the first span_id
-                "profile_id": profile["profile_id"],
-                "transaction_name": profile["transaction_name"],
-                "is_continuous": profile["is_continuous"],
-                "start_ts": profile["start_ts"],
-                "end_ts": profile["end_ts"],
-            }
-        else:
-            # Merge time ranges - use earliest start and latest end
-            existing = profile_groups[key]
-            if profile["start_ts"] and (
-                existing["start_ts"] is None or profile["start_ts"] < existing["start_ts"]
-            ):
-                existing["start_ts"] = profile["start_ts"]
-            if profile["end_ts"] and (
-                existing["end_ts"] is None or profile["end_ts"] > existing["end_ts"]
-            ):
-                existing["end_ts"] = profile["end_ts"]
-
-    unique_profiles = list(profile_groups.values())
-
-    logger.info(
-        "Merged profiles",
-        extra={
-            "original_count": len(all_profiles),
-            "merged_count": len(unique_profiles),
-        },
-    )
-
-    if not unique_profiles:
+    if not profile_data:
         logger.info(
             "No profiles found for trace",
             extra={"trace_id": trace_id, "project_id": project_id},
         )
         return None
 
-    # Step 3: Fetch and process each profile
+    logger.info(
+        "Found unique profiles for trace",
+        extra={
+            "trace_id": trace_id,
+            "profile_count": len(profile_data),
+        },
+    )
+
+    # Fetch and process profiles in parallel
     processed_profiles = []
+    profiles_to_fetch = [
+        {
+            "profile_id": p["profile_id"],
+            "transaction_name": None,
+            "is_continuous": p["is_continuous"],
+            "start_ts": p["start_ts"],
+            "end_ts": p["end_ts"],
+        }
+        for p in profile_data
+    ]
 
-    for profile_info in unique_profiles:
-        profile_id = profile_info["profile_id"]
-        span_id = profile_info["span_id"]
-        transaction_name = profile_info["transaction_name"]
-        is_continuous = profile_info["is_continuous"]
-        start_ts = profile_info["start_ts"]
-        end_ts = profile_info["end_ts"]
+    with ThreadPoolExecutor(max_workers=min(len(profiles_to_fetch), 5)) as executor:
+        future_to_profile = {
+            executor.submit(
+                _fetch_and_process_profile,
+                profile_info,
+                project.organization_id,
+                project_id,
+                trace_id,
+            ): profile_info
+            for profile_info in profiles_to_fetch
+        }
 
-        # Fetch raw profile data
-        raw_profile = fetch_profile_data(
-            profile_id=profile_id,
-            organization_id=project.organization_id,
-            project_id=project_id,
-            start_ts=start_ts,
-            end_ts=end_ts,
-            is_continuous=is_continuous,
-        )
-
-        if not raw_profile:
-            logger.warning(
-                "Failed to fetch profile data",
-                extra={
-                    "profile_id": profile_id,
-                    "trace_id": trace_id,
-                    "project_id": project_id,
-                },
-            )
-            continue
-
-        # Convert to execution tree
-        execution_tree = convert_profile_to_execution_tree(raw_profile)
-
-        if execution_tree:
-            processed_profiles.append(
-                ProfileData(
-                    profile_id=profile_id,
-                    span_id=span_id,
-                    transaction_name=transaction_name,
-                    execution_tree=execution_tree,
-                    project_id=project_id,
-                    start_ts=start_ts,
-                    end_ts=end_ts,
-                    is_continuous=is_continuous,
-                )
-            )
-        else:
-            logger.warning(
-                "Failed to convert profile to execution tree",
-                extra={
-                    "profile_id": profile_id,
-                    "trace_id": trace_id,
-                    "project_id": project_id,
-                },
-            )
+        for future in as_completed(future_to_profile):
+            result = future.result()
+            if result:
+                processed_profiles.append(result)
 
     if not processed_profiles:
         logger.info(
@@ -489,7 +465,7 @@ def get_issues_for_transaction(transaction_name: str, project_id: int) -> Transa
         search_filters=search_filters_only,
         sort_by="freq",
         limit=3,
-        referrer=Referrer.SEER_RPC,
+        referrer=Referrer.SEER_EXPLORER_INDEX,
     )
     issues = list(results_cursor)
 

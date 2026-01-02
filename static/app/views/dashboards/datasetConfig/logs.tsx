@@ -47,7 +47,7 @@ import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 import {
   TraceItemSearchQueryBuilder,
-  useSearchQueryBuilderProps,
+  useTraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {
   useTraceItemAttributes,
@@ -164,16 +164,17 @@ function useLogsSearchBarDataProvider(props: SearchBarDataProviderProps): Search
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number');
 
-  const {filterKeys, filterKeySections, getTagValues} = useSearchQueryBuilderProps({
-    itemType: TraceItemDataset.LOGS,
-    numberAttributes,
-    stringAttributes,
-    numberSecondaryAliases,
-    stringSecondaryAliases,
-    searchSource: 'dashboards',
-    initialQuery: widgetQuery?.conditions ?? '',
-    projects: pageFilters.projects,
-  });
+  const {filterKeys, filterKeySections, getTagValues} =
+    useTraceItemSearchQueryBuilderProps({
+      itemType: TraceItemDataset.LOGS,
+      numberAttributes,
+      stringAttributes,
+      numberSecondaryAliases,
+      stringSecondaryAliases,
+      searchSource: 'dashboards',
+      initialQuery: widgetQuery?.conditions ?? '',
+      projects: pageFilters.projects,
+    });
   return {
     getFilterKeySections: () => filterKeySections,
     getFilterKeys: () => filterKeys,
@@ -254,10 +255,9 @@ function getPrimaryFieldOptions(
     aggregations: EAP_AGGREGATIONS,
   });
 
-  const logTags = Object.values(tags ?? {}).reduce(
-    (acc, tag) => ({
-      ...acc,
-      [`${tag.kind}:${tag.key}`]: {
+  const logTags = Object.values(tags ?? {}).reduce<Record<string, FieldValueOption>>(
+    (acc, tag) => {
+      acc[`${tag.kind}:${tag.key}`] = {
         label: tag.name,
         value: {
           kind: FieldValueKind.TAG,
@@ -267,8 +267,9 @@ function getPrimaryFieldOptions(
           // is used for grouping.
           meta: {name: tag.key, dataType: tag.kind === 'tag' ? 'string' : 'number'},
         },
-      },
-    }),
+      };
+      return acc;
+    },
     {}
   );
 
@@ -322,6 +323,9 @@ function getEventsRequest(
 ) {
   const url = `/organizations/${organization.slug}/events/`;
   const eventView = eventViewFromWidget('', query, pageFilters);
+  const hasQueueFeature = organization.features.includes(
+    'visibility-dashboards-async-queue'
+  );
 
   const params: DiscoverQueryRequestParams = {
     per_page: limit,
@@ -345,10 +349,13 @@ function getEventsRequest(
     },
     // Tries events request up to 3 times on rate limit
     {
-      retry: {
-        statusCodes: [429],
-        tries: 10,
-      },
+      retry: hasQueueFeature
+        ? // The queue will handle retries, so we don't need to retry here
+          undefined
+        : {
+            statusCodes: [429],
+            tries: 10,
+          },
     }
   );
 }

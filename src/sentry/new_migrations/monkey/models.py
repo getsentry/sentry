@@ -1,8 +1,10 @@
+from django.db import router
 from django.db.migrations import DeleteModel
 from django_zero_downtime_migrations.backends.postgres.schema import UnsafeOperationException
 
 from sentry.db.postgres.schema import SafePostgresDatabaseSchemaEditor
 from sentry.new_migrations.monkey.state import DeletionAction, SentryProjectState
+from sentry.utils.env import in_test_environment
 
 
 class SafeDeleteModel(DeleteModel):
@@ -35,6 +37,27 @@ class SafeDeleteModel(DeleteModel):
             return
 
         model = from_state.get_pending_deletion_model(app_label, self.name)
+        table = model._meta.db_table
+
+        # Check if we can determine the model's database to detect missing
+        # historical_silo_assignments entries
+        resolved_db = None
+        for db_router in router.routers:
+            if hasattr(db_router, "_db_for_table"):
+                resolved_db = db_router._db_for_table(table, app_label)
+                if resolved_db is not None:
+                    break
+
+        # If we can't determine the database and we're in CI/tests, fail loudly
+        # This indicates the table is missing from historical_silo_assignments
+        if resolved_db is None and in_test_environment():
+            raise ValueError(
+                f"Cannot determine database for deleted model {app_label}.{self.name} "
+                f"(table: {table}). This table must be added to historical_silo_assignments "
+                f"in src/sentry/db/router.py (or getsentry/db/router.py for getsentry models) "
+                f"with the appropriate SiloMode before the deletion migration can run. "
+            )
+
         if self.allow_migrate_model(schema_editor.connection.alias, model):
             schema_editor.delete_model(model, is_safe=True)
 

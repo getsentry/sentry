@@ -5,7 +5,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import * as constants from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 
-import {SentryComponentInspector} from './inspector';
+import {SentryComponentInspector, serializeTraceForLLM} from './inspector';
 
 jest.mock('sentry/constants');
 
@@ -18,45 +18,41 @@ jest.mock('sentry/stories/view/useStoriesLoader', () => {
 
 describe('SentryComponentInspector', () => {
   it.each([
-    ['development', true, true],
-    ['development', false, false],
-    ['production', true, false],
-    ['production', false, false],
-  ])(
-    'adds event listener for ENV=%s and isSuperuser=%s',
-    (env, isSuperuser, expectCalled) => {
-      jest.mocked(constants).NODE_ENV = env;
+    ['development', true],
+    ['production', false],
+    ['test', false],
+  ])('adds event listener for ENV=%s', (env, expectCalled) => {
+    jest.mocked(constants).NODE_ENV = env;
 
-      const mockUser = UserFixture({isSuperuser});
-      ConfigStore.set('user', mockUser);
+    const mockUser = UserFixture();
+    ConfigStore.set('user', mockUser);
 
-      const addEventListenerSpy = jest.spyOn(window, 'addEventListener');
+    const addEventListenerSpy = jest.spyOn(window, 'addEventListener');
 
-      render(
-        <div>
-          <SentryComponentInspector />
-          <div
-            data-sentry-source-path="/static/app/components/test/component.tsx"
-            data-sentry-component="TestComponent"
-          >
-            Test Component Content
-          </div>
+    render(
+      <div>
+        <SentryComponentInspector />
+        <div
+          data-sentry-source-path="/static/app/components/test/component.tsx"
+          data-sentry-component="TestComponent"
+        >
+          Test Component Content
         </div>
-      );
+      </div>
+    );
 
-      if (expectCalled) {
-        expect(addEventListenerSpy).toHaveBeenCalledWith(
-          'devtools.toggle_component_inspector',
-          expect.any(Function)
-        );
-      } else {
-        expect(addEventListenerSpy).not.toHaveBeenCalledWith(
-          'devtools.toggle_component_inspector',
-          expect.any(Function)
-        );
-      }
+    if (expectCalled) {
+      expect(addEventListenerSpy).toHaveBeenCalledWith(
+        'devtools.toggle_component_inspector',
+        expect.any(Function)
+      );
+    } else {
+      expect(addEventListenerSpy).not.toHaveBeenCalledWith(
+        'devtools.toggle_component_inspector',
+        expect.any(Function)
+      );
     }
-  );
+  });
 
   it('renders a preview trace of the component', async () => {
     jest.mocked(constants).NODE_ENV = 'development';
@@ -100,5 +96,47 @@ describe('SentryComponentInspector', () => {
     expect(
       await screen.findByText('.../app/components/test/parent.tsx')
     ).toBeInTheDocument();
+  });
+
+  it('serializes trace for LLM with correct hierarchy', () => {
+    // Create mock trace elements (leaf to root order)
+    const leafElement = document.createElement('div');
+    leafElement.dataset.sentryComponent = 'LeafComponent';
+    leafElement.dataset.sentrySourcePath = '/static/app/components/test/leaf.tsx';
+
+    const childElement = document.createElement('div');
+    childElement.dataset.sentryComponent = 'ChildComponent';
+    childElement.dataset.sentrySourcePath = '/static/app/components/test/child.tsx';
+
+    const parentElement = document.createElement('div');
+    parentElement.dataset.sentryComponent = 'ParentComponent';
+    parentElement.dataset.sentrySourcePath = '/static/app/components/test/parent.tsx';
+
+    // Trace is in leaf-to-root order
+    const trace = [leafElement, childElement, parentElement];
+
+    // Serialize with ChildComponent as the target
+    const result = serializeTraceForLLM(trace, childElement);
+
+    // Verify the output contains the correct structure
+    expect(result).toContain('# Component Trace');
+    expect(result).toContain('This trace represents the DOM hierarchy');
+    expect(result).toContain(
+      'The last component in the hierarchy (marked with ◄) is the target component that should be modified'
+    );
+    expect(result).toContain('## Instructions');
+    expect(result).toContain('styled()');
+    expect(result).toContain('work up the component tree');
+    expect(result).toContain('┌─ ParentComponent (file: app/components/test/parent.tsx)');
+    expect(result).toContain('└─ ChildComponent (file: app/components/test/child.tsx) ◄');
+
+    // Verify that child components after the target are NOT included
+    expect(result).not.toContain('LeafComponent');
+
+    // Verify the order (parent should come before child)
+    const parentIndex = result.indexOf('ParentComponent');
+    const childIndex = result.indexOf('ChildComponent');
+
+    expect(parentIndex).toBeLessThan(childIndex);
   });
 });

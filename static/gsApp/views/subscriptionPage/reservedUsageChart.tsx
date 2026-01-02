@@ -33,7 +33,6 @@ import {
   getTooltipFormatter,
 } from 'sentry/views/organizationStats/usageChart/utils';
 
-import {GIGABYTE} from 'getsentry/constants';
 import {
   ReservedBudgetCategoryType,
   type BillingMetricHistory,
@@ -50,9 +49,9 @@ import {
   isUnlimitedReserved,
 } from 'getsentry/utils/billing';
 import {
+  getCategoryInfoFromPlural,
   getPlanCategoryName,
   hasCategoryFeature,
-  isByteCategory,
   isPartOfReservedBudget,
 } from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
@@ -181,15 +180,14 @@ function chartTooltip(category: DataCategory, displayMode: 'usage' | 'cost') {
   });
 }
 
-function mapReservedToChart(reserved: number | null, category: DataCategory) {
+export function mapReservedToChart(reserved: number | null, category: DataCategory) {
   if (isUnlimitedReserved(reserved)) {
     return 0;
   }
 
-  if (isByteCategory(category)) {
-    return typeof reserved === 'number' ? reserved * GIGABYTE : 0;
-  }
-  return reserved || 0;
+  const categoryInfo = getCategoryInfoFromPlural(category);
+  const multiplier = categoryInfo?.formatting.reservedMultiplier ?? 1;
+  return typeof reserved === 'number' ? reserved * multiplier : 0;
 }
 
 function defaultChartData(): ChartStats {
@@ -624,8 +622,8 @@ export function ProductUsageChart({
                 displayMode === 'usage'
                   ? t(`Plan Quota (%s)`, yAxisQuotaLineLabel)
                   : t('Max Spend'),
-              color: theme.chartLabel,
-              backgroundColor: theme.background,
+              color: theme.tokens.content.muted,
+              backgroundColor: theme.tokens.background.primary,
               borderRadius: 2,
               padding: 2,
               fontSize: 10,

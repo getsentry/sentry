@@ -8,6 +8,10 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {LocalStorageReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
+import {
+  ReplayAccess,
+  ReplayAccessFallbackAlert,
+} from 'sentry/components/replays/replayAccess';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
@@ -55,17 +59,16 @@ export default function ReplaysListContainer() {
       <SentryDocumentTitle title="Session Replay" orgSlug={organization.slug}>
         <ReplayPreferencesContextProvider prefsStrategy={LocalStorageReplayPreferences}>
           <Layout.Header unified>
-            <Layout.HeaderContent>
-              <Layout.Title>
-                {t('Session Replay')}
-                <PageHeadingQuestionTooltip
-                  title={t(
-                    'Video-like reproductions of user sessions so you can visualize repro steps to debug issues faster.'
-                  )}
-                  docsUrl="https://docs.sentry.io/product/session-replay/"
-                />
-              </Layout.Title>
-            </Layout.HeaderContent>
+            <Layout.Title>
+              {t('Session Replay')}
+              <PageHeadingQuestionTooltip
+                title={t(
+                  'Video-like reproductions of user sessions so you can visualize repro steps to debug issues faster.'
+                )}
+                docsUrl="https://docs.sentry.io/product/session-replay/"
+              />
+            </Layout.Title>
+
             <Layout.HeaderActions>
               <ReplayIndexTimestampPrefPicker />
             </Layout.HeaderActions>
@@ -76,7 +79,9 @@ export default function ReplaysListContainer() {
                 <Grid gap="xl" columns="100%">
                   <ReplayListPageHeaderHook />
                   {hasSessionReplay && hasSentReplays.hasSentOneReplay ? (
-                    <ReplayIndexContainer />
+                    <ReplayAccess fallback={<ReplayAccessFallbackAlert />}>
+                      <ReplayIndexContainer />
+                    </ReplayAccess>
                   ) : (
                     <Fragment>
                       <Flex gap="xl" wrap="wrap">

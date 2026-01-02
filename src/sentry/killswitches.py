@@ -228,6 +228,17 @@ ALL_KILLSWITCH_OPTIONS = {
             "partition_id": "A kafka partition index.",
         },
     ),
+    "profiling.killswitch.ingest-profiles": KillswitchInfo(
+        description="""
+        Drop profiles in the ingest-profiles consumer.
+
+        This happens after relay produces profiles to the topic but before a task
+        is started to process/ingest to profile.
+        """,
+        fields={
+            "project_id": "A project ID.",
+        },
+    ),
 }
 
 

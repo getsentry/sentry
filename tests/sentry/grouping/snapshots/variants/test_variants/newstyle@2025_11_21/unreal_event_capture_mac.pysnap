@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:18:54.708824+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: "54e8028fb2526cf31b12dd66c01ad9e2"
@@ -11,127 +9,127 @@ app:
     app*
       threads*
         stacktrace*
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by built-in stack trace rule (package:/usr/lib/** -app))
             function*
               "thread_start"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by built-in stack trace rule (package:/usr/lib/** -app))
             function*
               "_pthread_start"
-          frame (marked out of app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "__NSThread__start__"
-          frame* (marked in-app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
+          frame* (marked in-app by built-in stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
             function*
               "-[FCocoaGameThread main]"
-          frame* (marked in-app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
+          frame* (marked in-app by built-in stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
             function*
               "-[UEAppDelegate runGameThread:]"
-          frame* (marked in-app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
+          frame* (marked in-app by built-in stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
             function*
               "GuardedMain"
-          frame* (marked in-app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
+          frame* (marked in-app by built-in stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
             function*
               "FEngineLoop::Tick"
-          frame* (marked in-app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
+          frame* (marked in-app by built-in stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
             function*
               "FSlateApplication::Tick"
-          frame* (marked in-app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
+          frame* (marked in-app by built-in stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
             function*
               "FSlateApplication::TickPlatform"
-          frame* (marked in-app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
+          frame* (marked in-app by built-in stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
             function*
               "FMacApplication::ProcessDeferredEvents"
-          frame* (marked in-app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
+          frame* (marked in-app by built-in stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
             function*
               "FMacApplication::ProcessEvent"
-          frame* (marked in-app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
+          frame* (marked in-app by built-in stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
             function*
               "FMacApplication::ProcessMouseUpEvent"
-          frame* (marked in-app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
+          frame* (marked in-app by built-in stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
             function*
               "FSlateApplication::OnMouseUp"
-          frame* (marked in-app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
+          frame* (marked in-app by built-in stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
             function*
               "FSlateApplication::ProcessMouseButtonUpEvent"
-          frame* (marked in-app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
+          frame* (marked in-app by built-in stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
             function*
               "FSlateApplication::RoutePointerUpEvent"
-          frame* (marked in-app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
+          frame* (marked in-app by built-in stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
             function*
               "SButton::OnMouseButtonUp"
-          frame* (marked in-app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
+          frame* (marked in-app by built-in stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
             function*
               "SButton::ExecuteOnClick"
-          frame* (marked in-app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
+          frame* (marked in-app by built-in stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
             function*
               "UButton::SlateHandleClicked"
-          frame* (marked in-app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
+          frame* (marked in-app by built-in stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
             function*
               "TMulticastScriptDelegate<T>::ProcessMulticastDelegate<T>"
-          frame* (marked in-app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
+          frame* (marked in-app by built-in stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
             function*
               "UObject::ProcessEvent"
-          frame* (marked in-app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
+          frame* (marked in-app by built-in stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
             function*
               "UFunction::Invoke"
-          frame* (marked in-app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
+          frame* (marked in-app by built-in stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
             function*
               "ProcessLocalScriptFunction"
-          frame* (marked in-app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
+          frame* (marked in-app by built-in stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
             function*
               "ProcessLocalFunction"
-          frame (marked in-app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app) but ignored by stack trace rule (category:indirection -group))
+          frame (marked in-app by built-in stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app) but ignored by built-in stack trace rule (category:indirection -group))
             function*
               "ProcessLocalFunction::lambda::operator()"
-          frame* (marked in-app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
+          frame* (marked in-app by built-in stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
             function*
               "ProcessScriptFunction<T>"
-          frame* (marked in-app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
+          frame* (marked in-app by built-in stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
             function*
               "ProcessLocalScriptFunction"
-          frame* (marked in-app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
+          frame* (marked in-app by built-in stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
             function*
               "UObject::execLetObj"
-          frame* (marked in-app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
+          frame* (marked in-app by built-in stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
             function*
               "UObject::ProcessContextOpcode"
-          frame* (marked in-app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
+          frame* (marked in-app by built-in stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
             function*
               "UObject::CallFunction"
-          frame* (marked in-app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
+          frame* (marked in-app by built-in stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
             function*
               "UFunction::Invoke"
-          frame (marked out of app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
+          frame (marked out of app by built-in stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
             function*
               "USentrySubsystem::execCaptureEventWithScope"
-          frame (marked out of app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
+          frame (marked out of app by built-in stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
             function*
               "USentrySubsystem::CaptureEventWithScope"
-          frame (marked out of app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
+          frame (marked out of app by built-in stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
             function*
               "USentrySubsystem::CaptureEventWithScope"
-          frame (marked out of app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
+          frame (marked out of app by built-in stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
             function*
               "SentrySubsystemApple::CaptureEventWithScope"
-          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app))
+          frame (marked out of app by built-in stack trace rule (family:native function:?[[]Sentry* -app))
             function*
               "+[SentrySDK captureEvent:withScopeBlock:]"
-          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app))
+          frame (marked out of app by built-in stack trace rule (family:native function:?[[]Sentry* -app))
             function*
               "+[SentrySDK captureEvent:withScope:]"
-          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app))
+          frame (marked out of app by built-in stack trace rule (family:native function:?[[]Sentry* -app))
             function*
               "-[SentryHub captureEvent:withScope:additionalEnvelopeItems:]"
-          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app))
+          frame (marked out of app by built-in stack trace rule (family:native function:?[[]Sentry* -app))
             function*
               "-[SentryClient sendEvent:withScope:alwaysAttachStacktrace:isCrashEvent:additionalEnvelopeItems:]"
-          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app))
+          frame (marked out of app by built-in stack trace rule (family:native function:?[[]Sentry* -app))
             function*
               "-[SentryClient prepareEvent:withScope:alwaysAttachStacktrace:isCrashEvent:]"
-          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app))
+          frame (marked out of app by built-in stack trace rule (family:native function:?[[]Sentry* -app))
             function*
               "-[SentryThreadInspector getCurrentThreads]"
-          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app))
+          frame (marked out of app by built-in stack trace rule (family:native function:?[[]Sentry* -app))
             function*
               "-[SentryStacktraceBuilder buildStacktraceForCurrentThread]"
 --------------------------------------------------------------------------
@@ -152,13 +150,13 @@ system:
     system*
       threads*
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             function*
               "thread_start"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             function*
               "_pthread_start"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "__NSThread__start__"
           frame*
@@ -221,7 +219,7 @@ system:
           frame*
             function*
               "ProcessLocalFunction"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame (ignored by built-in stack trace rule (category:indirection -group))
             function*
               "ProcessLocalFunction::lambda::operator()"
           frame*
@@ -254,24 +252,24 @@ system:
           frame*
             function*
               "SentrySubsystemApple::CaptureEventWithScope"
-          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -group))
+          frame (ignored by built-in stack trace rule (family:native function:?[[]Sentry* -group))
             function*
               "+[SentrySDK captureEvent:withScopeBlock:]"
-          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -group))
+          frame (ignored by built-in stack trace rule (family:native function:?[[]Sentry* -group))
             function*
               "+[SentrySDK captureEvent:withScope:]"
-          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -group))
+          frame (ignored by built-in stack trace rule (family:native function:?[[]Sentry* -group))
             function*
               "-[SentryHub captureEvent:withScope:additionalEnvelopeItems:]"
-          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -group))
+          frame (ignored by built-in stack trace rule (family:native function:?[[]Sentry* -group))
             function*
               "-[SentryClient sendEvent:withScope:alwaysAttachStacktrace:isCrashEvent:additionalEnvelopeItems:]"
-          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -group))
+          frame (ignored by built-in stack trace rule (family:native function:?[[]Sentry* -group))
             function*
               "-[SentryClient prepareEvent:withScope:alwaysAttachStacktrace:isCrashEvent:]"
-          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -group))
+          frame (ignored by built-in stack trace rule (family:native function:?[[]Sentry* -group))
             function*
               "-[SentryThreadInspector getCurrentThreads]"
-          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -group))
+          frame (ignored by built-in stack trace rule (family:native function:?[[]Sentry* -group))
             function*
               "-[SentryStacktraceBuilder buildStacktraceForCurrentThread]"

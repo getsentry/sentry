@@ -15,7 +15,6 @@ from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.metric_alert_registry import (
     PagerDutyMetricAlertHandler,
 )
-from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import DetectorPriorityLevel, WorkflowEventData
@@ -24,7 +23,6 @@ from tests.sentry.notifications.notification_action.test_metric_alert_registry_h
 )
 
 
-@with_feature("organizations:workflow-engine-single-process-metric-issues")
 class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
     def setUp(self) -> None:
         self.create_models()

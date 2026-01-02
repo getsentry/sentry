@@ -1,12 +1,14 @@
+import orderBy from 'lodash/orderBy';
+import {parseAsString, useQueryState} from 'nuqs';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
-import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
-import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
+import {useDetectorTypeQueryState} from 'sentry/views/detectors/components/detectorTypeForm';
 import {NewDetectorForm} from 'sentry/views/detectors/components/forms';
 import {DetectorFormProvider} from 'sentry/views/detectors/components/forms/context';
 import {
@@ -15,13 +17,13 @@ import {
 } from 'sentry/views/detectors/utils/detectorTypeConfig';
 
 export default function DetectorNewSettings() {
-  const location = useLocation();
   const {projects, fetching: isFetchingProjects} = useProjects();
-  const detectorType = location.query.detectorType as DetectorType;
+  const [detectorType] = useDetectorTypeQueryState();
+  const [projectId] = useQueryState('project', parseAsString);
   useWorkflowEngineFeatureGate({redirect: true});
 
-  if (!isValidDetectorType(detectorType)) {
-    return <LoadingError message={t('Invalid detector type: %s', detectorType)} />;
+  if (!detectorType || !isValidDetectorType(detectorType)) {
+    return <LoadingError message={t('Invalid detector type: %s', detectorType ?? '')} />;
   }
 
   if (isFetchingProjects) {
@@ -36,7 +38,10 @@ export default function DetectorNewSettings() {
     );
   }
 
-  const project = projects.find(p => p.id === (location.query.project as string));
+  const project = projectId
+    ? projects.find(p => p.id === projectId)
+    : orderBy(projects, ['isMember', 'isBookmarked'], ['desc', 'desc'])[0];
+
   if (!project) {
     return <LoadingError message={t('Project not found')} />;
   }

@@ -16,6 +16,7 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
+import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
@@ -40,7 +41,6 @@ import {
   FilterBarContainer,
   StyledPageFilterBar,
 } from 'sentry/views/explore/metrics/styles';
-import type {PickableDays} from 'sentry/views/explore/utils';
 
 const METRICS_GH_DISCUSSION_LINK =
   'https://github.com/getsentry/sentry/discussions/102275';
@@ -53,9 +53,11 @@ type OnboardingProps = {
 function OnboardingPanel({
   project,
   children,
+  isUnsupportedPlatform = false,
 }: {
   children: React.ReactNode;
   project: Project;
+  isUnsupportedPlatform?: boolean;
 }) {
   return (
     <Panel>
@@ -64,36 +66,20 @@ function OnboardingPanel({
           <div>
             <HeaderWrapper>
               <HeaderText>
-                <Title>{t('Measure What Matters with Metrics')}</Title>
+                <Title>{t('Measure what matters with Metrics')}</Title>
                 <SubTitle>
                   {t(
-                    'Track custom business metrics and monitor application performance with powerful aggregation and visualization capabilities.'
+                    'Track application metrics with powerful aggregation and visualization capabilities. Metrics will be connected to your errors, logs and spans enabling easier debugging'
                   )}
                 </SubTitle>
-                <BulletList>
-                  <li>
-                    {t(
-                      'Send custom metrics to track business KPIs and technical indicators'
-                    )}
-                  </li>
-                  <li>
-                    {t(
-                      'Create dashboards and alerts based on metric queries and aggregations'
-                    )}
-                  </li>
-                  <li>
-                    {t(
-                      'Analyze metrics alongside errors, traces, and logs for full context'
-                    )}
-                  </li>
-                </BulletList>
+                {isUnsupportedPlatform && <div>{children}</div>}
               </HeaderText>
               <Image src={connectDotsImg} />
             </HeaderWrapper>
             <Divider />
-            <Body>
-              <Setup>{children}</Setup>
-              <Preview>
+            <Body isUnsupportedPlatform={isUnsupportedPlatform}>
+              {!isUnsupportedPlatform && <Setup>{children}</Setup>}
+              <Preview isUnsupportedPlatform={isUnsupportedPlatform}>
                 <BodyTitle>{t('Preview a Sentry Metric')}</BodyTitle>
                 <Arcade
                   src="https://demo.arcade.software/wNDJOXTJw64xiuVi7Hp6?embed"
@@ -112,7 +98,7 @@ function OnboardingPanel({
 const STEP_TITLES: Record<StepType, string> = {
   [StepType.INSTALL]: t('Install Sentry'),
   [StepType.CONFIGURE]: t('Configure Sentry'),
-  [StepType.VERIFY]: t('Verify Sentry'),
+  [StepType.VERIFY]: t('Send Metrics and Verify'),
 };
 
 function Onboarding({organization, project}: OnboardingProps) {
@@ -166,6 +152,7 @@ function Onboarding({organization, project}: OnboardingProps) {
     return <LoadingIndicator />;
   }
 
+  // This will not be hit until `withoutMetricsSupport` is filled out.
   if (doesNotSupportMetrics) {
     return (
       <OnboardingPanel project={project}>
@@ -188,7 +175,7 @@ function Onboarding({organization, project}: OnboardingProps) {
               });
             }}
           >
-            {t('Go to Documentation')}
+            {t('Join the discussion')}
           </LinkButton>
         </div>
       </OnboardingPanel>
@@ -196,19 +183,15 @@ function Onboarding({organization, project}: OnboardingProps) {
   }
 
   if (!currentPlatform || !metricsDocs || !dsn || !projectKeyId) {
+    // This currently covers all non-supported platforms as `doesNotSupportMetrics` is empty.
     return (
-      <OnboardingPanel project={project}>
-        <div>
-          {tct(
-            "Fiddlesticks. The metrics onboarding checklist isn't available for your [project] project yet, but for now, go to Sentry docs for installation details.",
-            {project: project.slug}
-          )}
-        </div>
+      <OnboardingPanel project={project} isUnsupportedPlatform>
+        <div>{t('Stay updated by joining the discussion!')}</div>
         <br />
         <div>
           <LinkButton
             size="sm"
-            href="https://docs.sentry.io/product/metrics/"
+            href={METRICS_GH_DISCUSSION_LINK}
             external
             onClick={() => {
               trackAnalytics('metrics.onboarding_platform_docs_viewed', {
@@ -217,7 +200,7 @@ function Onboarding({organization, project}: OnboardingProps) {
               });
             }}
           >
-            {t('Go to Documentation')}
+            {t('Join the discussion')}
           </LinkButton>
         </div>
       </OnboardingPanel>
@@ -301,21 +284,11 @@ const Title = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
-const BulletList = styled('ul')`
-  list-style-type: disc;
-  padding-left: 20px;
-  margin-bottom: ${space(2)};
-
-  li {
-    margin-bottom: ${space(1)};
-  }
-`;
-
 const HeaderWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   gap: ${space(3)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${space(4)};
 `;
 
@@ -340,15 +313,29 @@ const Setup = styled('div')`
   }
 `;
 
-const Preview = styled('div')`
+const Preview = styled('div')<{isUnsupportedPlatform?: boolean}>`
   padding: ${space(4)};
+
+  ${p =>
+    p.isUnsupportedPlatform &&
+    `
+    display: flex;
+    flex-direction: column;
+  `}
 `;
 
-const Body = styled('div')`
+const Body = styled('div')<{isUnsupportedPlatform?: boolean}>`
   display: grid;
   position: relative;
   grid-auto-columns: minmax(0, 1fr);
   grid-auto-flow: column;
+
+  ${p =>
+    p.isUnsupportedPlatform &&
+    `
+    grid-auto-flow: row;
+    grid-auto-columns: unset;
+  `}
 
   h4 {
     margin-bottom: 0;
@@ -376,24 +363,23 @@ const Divider = styled('hr')`
 `;
 
 const Arcade = styled('iframe')`
-  width: 750px;
+  width: 653px;
   max-width: 100%;
   margin-top: ${space(3)};
-  height: 522px;
+  height: 375px;
   border: 0;
 `;
 
 type MetricsTabOnboardingProps = {
+  datePageFilterProps: DatePageFilterProps;
   organization: Organization;
   project: Project;
-} & PickableDays;
+};
 
 export function MetricsTabOnboarding({
+  datePageFilterProps,
   organization,
   project,
-  defaultPeriod,
-  maxPickableDays,
-  relativeOptions,
 }: MetricsTabOnboardingProps) {
   return (
     <ExploreBodySearch>
@@ -402,11 +388,7 @@ export function MetricsTabOnboarding({
           <StyledPageFilterBar condensed>
             <ProjectPageFilter />
             <EnvironmentPageFilter />
-            <DatePageFilter
-              defaultPeriod={defaultPeriod}
-              maxPickableDays={maxPickableDays}
-              relativeOptions={relativeOptions}
-            />
+            <DatePageFilter {...datePageFilterProps} />
           </StyledPageFilterBar>
         </FilterBarContainer>
         <Onboarding project={project} organization={organization} />

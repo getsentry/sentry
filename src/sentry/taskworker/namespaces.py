@@ -21,6 +21,11 @@ auth_control_tasks = app.taskregistry.create_namespace(
     app_feature="shared",
 )
 
+autopilot_tasks = app.taskregistry.create_namespace(
+    "autopilot",
+    app_feature="shared",
+)
+
 buffer_tasks = app.taskregistry.create_namespace(
     "buffer",
     app_feature="errors",
@@ -38,7 +43,7 @@ crons_tasks = app.taskregistry.create_namespace(
 
 deletion_tasks = app.taskregistry.create_namespace(
     "deletions",
-    processing_deadline_duration=60 * 10,
+    processing_deadline_duration=60 * 20,
     app_feature="shared",
 )
 
@@ -203,6 +208,11 @@ sdk_control_tasks = app.taskregistry.create_namespace(
 seer_tasks = app.taskregistry.create_namespace(
     "seer",
     app_feature="errors",
+)
+
+seer_code_review_tasks = app.taskregistry.create_namespace(
+    "seer.code_review",
+    app_feature="code-review",
 )
 
 selfhosted_tasks = app.taskregistry.create_namespace(

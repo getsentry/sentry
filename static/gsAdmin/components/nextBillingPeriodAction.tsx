@@ -1,56 +1,76 @@
 import {Fragment} from 'react';
 
+import {Heading} from '@sentry/scraps/text';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
-import Form from 'sentry/components/deprecatedforms/form';
-import useApi from 'sentry/utils/useApi';
+import {Alert} from 'sentry/components/core/alert';
+import Form from 'sentry/components/forms/form';
+import type {OnSubmitCallback} from 'sentry/components/forms/types';
+import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 
 import type {Subscription} from 'getsentry/types';
 
-type Props = {
+interface EndPeriodEarlyModalProps extends ModalRenderProps {
   onSuccess: () => void;
   orgId: string;
   subscription: Subscription;
-};
+}
 
-type ModalProps = Props & ModalRenderProps;
-
-function EndPeriodEarlyModal({orgId, onSuccess, closeModal, Header, Body}: ModalProps) {
-  const api = useApi();
-
-  async function onSubmit(_: any, _onSubmitSuccess: any, onSubmitError: any) {
-    try {
-      const postData = {
-        endPeriodEarly: true,
-      };
-
-      await api.requestPromise(`/customers/${orgId}/`, {
+function EndPeriodEarlyModal({
+  orgId,
+  onSuccess,
+  closeModal,
+  Header,
+  Body,
+}: EndPeriodEarlyModalProps) {
+  const {mutateAsync: endPeriodEarly, isPending} = useMutation<any>({
+    mutationFn: () =>
+      fetchMutation({
+        url: `/customers/${orgId}/`,
         method: 'PUT',
-        data: postData,
-        success: () => {
-          addSuccessMessage('Currrent period ended successfully');
-          onSuccess();
-        },
-      });
+        data: {endPeriodEarly: true},
+      }),
+  });
 
+  const onSubmit: OnSubmitCallback = async (
+    _formData,
+    onSubmitSuccess,
+    onSubmitError
+  ) => {
+    try {
+      const response = await endPeriodEarly();
+
+      addSuccessMessage('Current period ended successfully');
+      onSubmitSuccess(response);
+      onSuccess();
       closeModal();
     } catch (err: any) {
       onSubmitError({
         responseJSON: err.responseJSON,
       });
     }
-  }
+  };
 
   return (
     <Fragment>
-      <Header>End Current Period Immediately</Header>
+      <Header closeButton>
+        <Heading as="h3">End Current Period Immediately</Heading>
+      </Header>
       <Body>
         <Form
           onSubmit={onSubmit}
           onCancel={closeModal}
           submitLabel="Submit"
+          submitDisabled={isPending}
           cancelLabel="Cancel"
         >
+          <Alert.Container>
+            <Alert variant="warning" showIcon={false}>
+              Ending the current billing period will immediately start the next billing
+              cycle and may impact invoicing and usage proration.
+            </Alert>
+          </Alert.Container>
           <p>End the current billing period immediately and start a new one.</p>
         </Form>
       </Body>
@@ -58,7 +78,7 @@ function EndPeriodEarlyModal({orgId, onSuccess, closeModal, Header, Body}: Modal
   );
 }
 
-type Options = Pick<Props, 'orgId' | 'subscription' | 'onSuccess'>;
+type Options = Omit<EndPeriodEarlyModalProps, keyof ModalRenderProps>;
 
 const triggerEndPeriodEarlyModal = (opts: Options) =>
   openModal(deps => <EndPeriodEarlyModal {...deps} {...opts} />);

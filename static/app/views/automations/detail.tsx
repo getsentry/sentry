@@ -18,7 +18,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TimeSince from 'sentry/components/timeSince';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
 import Section from 'sentry/components/workflowEngine/ui/section';
-import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
@@ -35,6 +34,7 @@ import AutomationHistoryList from 'sentry/views/automations/components/automatio
 import {AutomationStatsChart} from 'sentry/views/automations/components/automationStatsChart';
 import ConditionsPanel from 'sentry/views/automations/components/conditionsPanel';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
+import {DisabledAlert} from 'sentry/views/automations/components/disabledAlert';
 import {useAutomationQuery, useUpdateAutomation} from 'sentry/views/automations/hooks';
 import {getAutomationActionsWarning} from 'sentry/views/automations/hooks/utils';
 import {
@@ -76,8 +76,9 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
         </DetailLayout.Header>
         <DetailLayout.Body>
           <DetailLayout.Main>
-            {warning && (
-              <Alert type={warning.color === 'warning' ? 'warning' : 'error'}>
+            <DisabledAlert automation={automation} />
+            {automation.enabled && warning && (
+              <Alert variant={warning.color === 'warning' ? 'warning' : 'danger'}>
                 {warning.message}
               </Alert>
             )}
@@ -175,6 +176,7 @@ function AutomationDetailLoadingStates({automationId}: {automationId: string}) {
     data: automation,
     isPending,
     isError,
+    error,
     refetch,
   } = useAutomationQuery(automationId);
 
@@ -183,14 +185,18 @@ function AutomationDetailLoadingStates({automationId}: {automationId: string}) {
   }
 
   if (isError) {
-    return <LoadingError onRetry={refetch} />;
+    return (
+      <LoadingError
+        message={error.status === 404 ? t('The alert could not be found.') : undefined}
+        onRetry={refetch}
+      />
+    );
   }
 
   return <AutomationDetailContent automation={automation} />;
 }
 
 export default function AutomationDetail() {
-  useWorkflowEngineFeatureGate({redirect: true});
   const params = useParams<{automationId: string}>();
 
   const {data: automation, isPending} = useAutomationQuery(params.automationId);

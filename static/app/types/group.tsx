@@ -96,19 +96,24 @@ export enum IssueCategory {
    */
   METRIC_ALERT = 'metric_alert',
 
-  // New issue categories (under the issue-taxonomy flag)
   OUTAGE = 'outage',
   METRIC = 'metric',
   FRONTEND = 'frontend',
   HTTP_CLIENT = 'http_client',
   DB_QUERY = 'db_query',
   MOBILE = 'mobile',
+
+  AI_DETECTED = 'ai_detected',
+
+  PREPROD = 'preprod',
 }
 
 /**
- * Valid issue categories for the new issue-taxonomy flag
+ * These are issue categories that are generally filterable in the UI.
+ * Do not include deprecated or test categories.
  */
-export const VALID_ISSUE_CATEGORIES_V2 = [
+
+export const VALID_ISSUE_CATEGORIES = [
   IssueCategory.ERROR,
   IssueCategory.OUTAGE,
   IssueCategory.METRIC,
@@ -117,6 +122,7 @@ export const VALID_ISSUE_CATEGORIES_V2 = [
   IssueCategory.FRONTEND,
   IssueCategory.MOBILE,
   IssueCategory.FEEDBACK,
+  IssueCategory.PREPROD,
 ];
 
 export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
@@ -133,6 +139,8 @@ export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
   [IssueCategory.CRON]: '',
   [IssueCategory.REPLAY]: '',
   [IssueCategory.UPTIME]: '',
+  [IssueCategory.AI_DETECTED]: t('AI detected issues.'),
+  [IssueCategory.PREPROD]: t('Problems detected via static analysis.'),
 };
 
 export enum IssueType {
@@ -179,10 +187,18 @@ export enum IssueType {
 
   // Insights Web Vitals
   WEB_VITALS = 'web_vitals',
+
+  LLM_DETECTED_EXPERIMENTAL = 'llm_detected_experimental',
+
+  // Preprod
+  PREPROD_STATIC = 'preprod_static',
+  PREPROD_DELTA = 'preprod_delta',
 }
 
 // Update this if adding an issue type that you don't want to show up in search!
-export const VISIBLE_ISSUE_TYPES = Object.values(IssueType);
+export const VISIBLE_ISSUE_TYPES = Object.values(IssueType).filter(
+  type => ![IssueType.LLM_DETECTED_EXPERIMENTAL].includes(type)
+);
 
 export enum IssueTitle {
   ERROR = 'Error',
@@ -226,6 +242,11 @@ export enum IssueTitle {
 
   // Insights Web Vitals
   WEB_VITALS = 'Web Vitals',
+
+  LLM_DETECTED_EXPERIMENTAL = 'LLM Detected Issue',
+
+  PREPROD_STATIC = 'Static Analysis',
+  PREPROD_DELTA = 'Static Analysis Delta',
 }
 
 export const ISSUE_TYPE_TO_ISSUE_TITLE = {
@@ -263,6 +284,11 @@ export const ISSUE_TYPE_TO_ISSUE_TITLE = {
   uptime_domain_failure: IssueTitle.UPTIME_DOMAIN_FAILURE,
 
   web_vitals: IssueTitle.WEB_VITALS,
+
+  llm_detected_experimental: IssueTitle.LLM_DETECTED_EXPERIMENTAL,
+
+  preprod_static: IssueTitle.PREPROD_STATIC,
+  preprod_delta: IssueTitle.PREPROD_DELTA,
 };
 
 export function getIssueTitleFromType(issueType: string): IssueTitle | undefined {
@@ -295,7 +321,10 @@ const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
   2007: IssueType.PROFILE_REGEX_MAIN_THREAD,
   2008: IssueType.PROFILE_FRAME_DROP,
   2010: IssueType.PROFILE_FUNCTION_REGRESSION,
+  3501: IssueType.LLM_DETECTED_EXPERIMENTAL,
   10001: IssueType.WEB_VITALS,
+  11001: IssueType.PREPROD_STATIC,
+  11002: IssueType.PREPROD_DELTA,
 };
 
 const PERFORMANCE_REGRESSION_TYPE_IDS = new Set([1017, 1018, 2010, 2011]);

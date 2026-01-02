@@ -14,10 +14,12 @@ from sentry.models.release import Release
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.users.models.user import User
 from sentry.utils.http import absolute_uri
+from sentry.web.frontend.base import internal_region_silo_view
 
 from .mail import MailPreview
 
 
+@internal_region_silo_view
 class DebugNewReleaseEmailView(View):
     def get(self, request: HttpRequest) -> HttpResponse:
         org = Organization(id=1, slug="organization", name="My Company")

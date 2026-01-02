@@ -32,21 +32,21 @@ class WorkflowTest(BaseWorkflowTest):
 
     def test_evaluate_trigger_conditions__condition_new_event__True(self) -> None:
         evaluation, _ = self.workflow.evaluate_trigger_conditions(self.event_data)
-        assert evaluation is True
+        assert evaluation.triggered is True
 
     def test_evaluate_trigger_conditions__condition_new_event__False(self) -> None:
         # Update event to have been seen before
         self.group_event.group.times_seen = 5
 
         evaluation, _ = self.workflow.evaluate_trigger_conditions(self.event_data)
-        assert evaluation is False
+        assert evaluation.triggered is False
 
     def test_evaluate_trigger_conditions__no_conditions(self) -> None:
         self.workflow.when_condition_group = None
         self.workflow.save()
 
         evaluation, _ = self.workflow.evaluate_trigger_conditions(self.event_data)
-        assert evaluation is True
+        assert evaluation.triggered is True
 
     def test_evaluate_trigger_conditions__slow_condition(self) -> None:
         # Update group to _all_, since the fast condition is met
@@ -60,7 +60,7 @@ class WorkflowTest(BaseWorkflowTest):
             self.event_data
         )
 
-        assert evaluation is True
+        assert evaluation.triggered is True
         assert remaining_conditions == [slow_condition]
 
     def test_full_clean__success(self) -> None:

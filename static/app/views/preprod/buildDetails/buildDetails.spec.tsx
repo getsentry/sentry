@@ -6,6 +6,7 @@ import {
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {MetricsArtifactType} from 'sentry/views/preprod/types/appSizeTypes';
 import {BuildDetailsSizeAnalysisState} from 'sentry/views/preprod/types/buildDetailsTypes';
 
 import BuildDetails from './buildDetails';
@@ -98,8 +99,14 @@ describe('BuildDetails', () => {
       body: PreprodBuildDetailsWithSizeInfoFixture(
         {
           state: BuildDetailsSizeAnalysisState.COMPLETED,
-          install_size_bytes: 1024000,
-          download_size_bytes: 512000,
+          size_metrics: [
+            {
+              metrics_artifact_type: MetricsArtifactType.MAIN_ARTIFACT,
+              install_size_bytes: 1024000,
+              download_size_bytes: 512000,
+            },
+          ],
+          base_size_metrics: [],
         },
         {
           vcs_info: PreprodVcsInfoFullFixture(),
@@ -122,7 +129,7 @@ describe('BuildDetails', () => {
     await waitFor(() => expect(appSizeMock).toHaveBeenCalledTimes(1));
 
     expect(await screen.findByText('v1.0.0 (123)')).toBeInTheDocument();
-    expect(await screen.findByText('Git details')).toBeInTheDocument();
+    expect(await screen.findByText('Build Metadata')).toBeInTheDocument();
   });
 
   it('shows "Your app is still being analyzed..." text when size analysis is processing', async () => {
@@ -168,8 +175,14 @@ describe('BuildDetails', () => {
         }
         return PreprodBuildDetailsWithSizeInfoFixture({
           state: BuildDetailsSizeAnalysisState.COMPLETED,
-          install_size_bytes: 1024000,
-          download_size_bytes: 512000,
+          size_metrics: [
+            {
+              metrics_artifact_type: MetricsArtifactType.MAIN_ARTIFACT,
+              install_size_bytes: 1024000,
+              download_size_bytes: 512000,
+            },
+          ],
+          base_size_metrics: [],
         });
       },
     });
@@ -215,8 +228,14 @@ describe('BuildDetails', () => {
       method: 'GET',
       body: PreprodBuildDetailsWithSizeInfoFixture({
         state: BuildDetailsSizeAnalysisState.COMPLETED,
-        install_size_bytes: 1024000,
-        download_size_bytes: 512000,
+        size_metrics: [
+          {
+            metrics_artifact_type: MetricsArtifactType.MAIN_ARTIFACT,
+            install_size_bytes: 1024000,
+            download_size_bytes: 512000,
+          },
+        ],
+        base_size_metrics: [],
       }),
     });
 

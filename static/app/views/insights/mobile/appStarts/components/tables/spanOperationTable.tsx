@@ -21,10 +21,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {
-  PRIMARY_RELEASE_ALIAS,
-  SECONDARY_RELEASE_ALIAS,
-} from 'sentry/views/insights/common/components/releaseSelector';
 import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -39,20 +35,16 @@ import {
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {MobileCursors} from 'sentry/views/insights/mobile/screenload/constants';
 import {ModuleName, SpanFields, type SubregionCode} from 'sentry/views/insights/types';
+import type {SpanProperty} from 'sentry/views/insights/types';
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} = SpanFields;
 
 type Props = {
   primaryRelease?: string;
-  secondaryRelease?: string;
   transaction?: string;
 };
 
-export function SpanOperationTable({
-  transaction,
-  primaryRelease,
-  secondaryRelease,
-}: Props) {
+export function SpanOperationTable({transaction, primaryRelease}: Props) {
   const organization = useOrganization();
   const moduleURL = useModuleURL(ModuleName.MOBILE_VITALS);
   const baseURL = `${moduleURL}/details/`;
@@ -99,50 +91,36 @@ export function SpanOperationTable({
     searchQuery.addFilterValue('os.name', selectedPlatform);
   }
 
-  const queryStringPrimary = appendReleaseFilters(
-    searchQuery,
-    primaryRelease,
-    secondaryRelease
-  );
+  const queryStringPrimary = appendReleaseFilters(searchQuery, primaryRelease);
+
+  // Only show comparison when we have two different releases selected
+  const baseFields: SpanProperty[] = [PROJECT_ID, SPAN_OP, SPAN_GROUP, SPAN_DESCRIPTION];
+  const spanFields: SpanProperty[] = [`avg(${SPAN_SELF_TIME})`];
 
   const sort = decodeSorts(location.query[QueryParameterNames.SPANS_SORT])[0] ?? {
     kind: 'desc',
-    field: `avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`,
+    field: `avg(${SPAN_SELF_TIME})`,
   };
 
   const {data, meta, isPending, pageLinks} = useSpans(
     {
       cursor,
-      fields: [
-        PROJECT_ID,
-        SPAN_OP,
-        SPAN_GROUP,
-        SPAN_DESCRIPTION,
-        `avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`,
-        `avg_if(${SPAN_SELF_TIME},release,equals,${secondaryRelease})`,
-        `avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`,
-        `sum(${SPAN_SELF_TIME})`,
-      ],
+      fields: baseFields.concat(spanFields),
       sorts: [sort],
       search: queryStringPrimary,
     },
     'api.insights.mobile-spartup-span-table'
   );
 
-  const columnNameMap = {
-    [SPAN_OP]: t('Operation'),
-    [SPAN_DESCRIPTION]: t('Span Description'),
-    [`avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`]: t(
-      'Avg Duration (%s)',
-      PRIMARY_RELEASE_ALIAS
-    ),
-    [`avg_if(${SPAN_SELF_TIME},release,equals,${secondaryRelease})`]: t(
-      'Avg Duration (%s)',
-      SECONDARY_RELEASE_ALIAS
-    ),
-    [`avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`]:
-      t('Change'),
-  };
+  const columnHeaders: GridColumnHeader[] = [
+    {key: SPAN_OP, name: t('Operation'), width: COL_WIDTH_UNDEFINED},
+    {key: SPAN_DESCRIPTION, name: t('Span Description'), width: COL_WIDTH_UNDEFINED},
+    {
+      key: `avg(${SPAN_SELF_TIME})`,
+      name: t('Avg Duration'),
+      width: COL_WIDTH_UNDEFINED,
+    },
+  ];
 
   function renderBodyCell(column: any, row: any): React.ReactNode {
     if (!meta?.fields) {
@@ -242,20 +220,8 @@ export function SpanOperationTable({
     });
   };
 
-  const gridColumnOrder = [
-    String(SPAN_OP),
-    String(SPAN_DESCRIPTION),
-    `avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`,
-    `avg_if(${SPAN_SELF_TIME},release,equals,${secondaryRelease})`,
-    `avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`,
-  ].map(col => ({
-    key: col,
-    name: columnNameMap[col] ?? col,
-    width: COL_WIDTH_UNDEFINED,
-  }));
-
   const {columns, handleResizeColumn} = useQueryBasedColumnResize({
-    columns: gridColumnOrder,
+    columns: columnHeaders,
   });
 
   return (

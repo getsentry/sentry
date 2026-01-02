@@ -23,7 +23,10 @@ type Props = {
       | 'integrations_directory'
       | 'onboarding'
       | 'project_creation'
-      | 'test_analytics_onboarding';
+      | 'seer_onboarding_github'
+      | 'seer_onboarding_code_review'
+      | 'test_analytics_onboarding'
+      | 'test_analytics_org_selector';
   };
   modalParams?: Record<string, string>;
 };

@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:19:58.962370+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: stacktrace
 hashing_metadata: {
@@ -24,12 +22,14 @@ metrics with tags: {
 ---
 contributing variants:
   app*
-    hash: "73470e545e51eea9cff8a6c006f68f57"
+    hash: "33e3ac91fc256d3dfb789693be30a883"
     contributing component: exception
     hint: None
     root_component:
       app*
         exception*
+          type*
+            "TypeError"
           stacktrace*
             frame* (marked in-app by the client)
               module*
@@ -41,15 +41,15 @@ contributing variants:
                 "App"
               context_line*
                 "<Button"
-          type*
-            "TypeError"
   system*
-    hash: "ecd413627f0d90a5a25cb28d1ba9c39f"
+    hash: "618e6a3beb1ecd7d01616b554f6c873a"
     contributing component: exception
     hint: None
     root_component:
       system*
         exception*
+          type*
+            "TypeError"
           stacktrace*
             frame*
               module*
@@ -159,5 +159,3 @@ contributing variants:
                 "App"
               context_line*
                 "<Button"
-          type*
-            "TypeError"

@@ -1,4 +1,3 @@
-import type {ReactNode} from 'react';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 import * as qs from 'query-string';
@@ -6,6 +5,7 @@ import * as qs from 'query-string';
 import type {ApiResult} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
+import type {Event} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -58,7 +58,7 @@ import {
   type BaseVisualize,
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
-import {generateTargetQuery, type PickableDays} from 'sentry/views/explore/utils';
+import {generateTargetQuery} from 'sentry/views/explore/utils';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 const {warn, fmt} = Sentry.logger;
@@ -242,29 +242,6 @@ export function adjustLogTraceID(traceID: string) {
   return traceID.replace(/-/g, '');
 }
 
-export function logsPickableDays(): PickableDays {
-  const relativeOptions: Array<[string, ReactNode]> = [
-    ['1h', t('Last hour')],
-    ['24h', t('Last 24 hours')],
-    ['7d', t('Last 7 days')],
-    ['14d', t('Last 14 days')],
-    ['30d', t('Last 30 days')],
-  ];
-
-  return {
-    defaultPeriod: '24h',
-    maxPickableDays: 30,
-    relativeOptions: ({
-      arbitraryOptions,
-    }: {
-      arbitraryOptions: Record<string, ReactNode>;
-    }) => ({
-      ...arbitraryOptions,
-      ...Object.fromEntries(relativeOptions),
-    }),
-  };
-}
-
 export function getDynamicLogsNextFetchThreshold(lastPageLength: number) {
   if (lastPageLength * 0.25 > LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD) {
     return Math.floor(lastPageLength * 0.25); // Can be up to 250 on large pages.
@@ -358,6 +335,7 @@ type BaseGetLogsUrlParams = {
   aggregateFields?: Array<GroupBy | BaseVisualize>;
   aggregateFn?: string;
   aggregateParam?: string;
+  caseInsensitive?: '1' | null;
   field?: string[];
   groupBy?: string[];
   id?: number;
@@ -389,6 +367,7 @@ export function getLogsUrl({
   aggregateFields,
   aggregateFn,
   aggregateParam,
+  caseInsensitive,
 }: BaseGetLogsUrlParams & {organization: Organization | string}) {
   const {start, end, period: statsPeriod, utc} = selection?.datetime ?? {};
   const {environments, projects} = selection ?? {};
@@ -413,6 +392,7 @@ export function getLogsUrl({
     [LOGS_AGGREGATE_FN_KEY]: aggregateFn,
     [LOGS_AGGREGATE_PARAM_KEY]: aggregateParam,
     title,
+    caseInsensitive,
   };
 
   const orgSlug = typeof organization === 'string' ? organization : organization.slug;
@@ -467,6 +447,7 @@ export function getLogsUrlFromSavedQueryUrl({
       environments: savedQuery.environment ? [...savedQuery.environment] : [],
       projects: savedQuery.projects ? [...savedQuery.projects] : [],
     },
+    caseInsensitive: firstQuery.caseInsensitive ? '1' : null,
   });
 }
 
@@ -574,3 +555,55 @@ export const logOnceFactory = (logSeverity: 'info' | 'warn') => {
     };
   };
 };
+
+interface PseudoLogResponseItem {
+  [OurLogKnownFieldKey.ID]: string;
+  [OurLogKnownFieldKey.MESSAGE]: string;
+  [OurLogKnownFieldKey.SEVERITY]: 'ERROR';
+  [OurLogKnownFieldKey.SEVERITY_NUMBER]: 17;
+  [OurLogKnownFieldKey.TRACE_ID]: string;
+  [OurLogKnownFieldKey.SPAN_ID]: string;
+  [OurLogKnownFieldKey.ORGANIZATION_ID]: number;
+  [OurLogKnownFieldKey.PROJECT_ID]: string;
+  [OurLogKnownFieldKey.TIMESTAMP]: string;
+  [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: string | number;
+  __isPseudoRow: true;
+  __originalEvent: Event;
+}
+
+export type LogTableRowItem = OurLogsResponseItem | PseudoLogResponseItem;
+
+export function isPseudoLogResponseItem(
+  item: LogTableRowItem
+): item is PseudoLogResponseItem {
+  return '__isPseudoRow' in item && item.__isPseudoRow === true;
+}
+
+export function isRegularLogResponseItem(
+  item: LogTableRowItem
+): item is OurLogsResponseItem {
+  return !isPseudoLogResponseItem(item);
+}
+
+export function createPseudoLogResponseItem(
+  event: Event,
+  projectId: string
+): PseudoLogResponseItem {
+  const timestamp = event.dateCreated || new Date().toISOString();
+  const timestampPrecise = new Date(timestamp).getTime() * 1_000_000;
+
+  return {
+    [OurLogKnownFieldKey.ID]: `pseudo-${event.eventID}`,
+    [OurLogKnownFieldKey.MESSAGE]: event.title || event.message || 'Error Event',
+    [OurLogKnownFieldKey.SEVERITY]: 'ERROR',
+    [OurLogKnownFieldKey.SEVERITY_NUMBER]: 17,
+    [OurLogKnownFieldKey.TRACE_ID]: event.contexts?.trace?.trace_id || '',
+    [OurLogKnownFieldKey.SPAN_ID]: event.contexts?.trace?.span_id || '',
+    [OurLogKnownFieldKey.PROJECT_ID]: projectId,
+    [OurLogKnownFieldKey.TIMESTAMP]: timestamp,
+    [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: timestampPrecise,
+    // Observed timestamp can be added later if needed per the event received time.
+    __isPseudoRow: true,
+    __originalEvent: event,
+  } as PseudoLogResponseItem;
+}

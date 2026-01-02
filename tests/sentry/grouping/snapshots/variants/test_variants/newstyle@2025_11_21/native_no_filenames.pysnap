@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:18:53.959867+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: "418120a66f7031923031f5c52aca0724"
@@ -10,6 +8,10 @@ app:
   root_component:
     app*
       exception*
+        type (ignored because exception is synthetic)
+          "log_demo"
+        value (ignored because stacktrace takes precedence)
+          "Holy shit everything is on fire!"
         stacktrace*
           frame* (marked in-app by the client)
             function*
@@ -53,10 +55,6 @@ app:
           frame (marked out of app by the client)
             function (ignored unknown function)
               "<redacted>"
-        type (ignored because exception is synthetic)
-          "log_demo"
-        value (ignored because stacktrace takes precedence)
-          "Holy shit everything is on fire!"
 --------------------------------------------------------------------------
 system:
   hash: "bbcdb2e1d8df09ffe0fffd30fb361d4b"
@@ -65,6 +63,10 @@ system:
   root_component:
     system*
       exception*
+        type (ignored because exception is synthetic)
+          "log_demo"
+        value (ignored because stacktrace takes precedence)
+          "Holy shit everything is on fire!"
         stacktrace*
           frame*
             function*
@@ -72,7 +74,7 @@ system:
           frame*
             function*
               "std::rt::lang_start"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "std::rt::lang_start_internal"
           frame*
@@ -81,7 +83,7 @@ system:
           frame*
             function*
               "std::panicking::try::do_call"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "std::rt::lang_start::{{closure}}"
           frame*
@@ -108,7 +110,3 @@ system:
           frame
             function (ignored unknown function)
               "<redacted>"
-        type (ignored because exception is synthetic)
-          "log_demo"
-        value (ignored because stacktrace takes precedence)
-          "Holy shit everything is on fire!"

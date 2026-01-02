@@ -1,27 +1,45 @@
 import {t} from 'sentry/locale';
-import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
+import type {Detector, DetectorType} from 'sentry/types/workflowEngine/detectors';
+import {UptimeMonitorMode} from 'sentry/views/alerts/rules/uptime/types';
 
 type DetectorTypeConfig = {
   label: string;
   userCreateable: boolean;
+  path?: string;
+  systemCreatedNotice?: (detector: Detector) => undefined | string;
 };
 
 const DETECTOR_TYPE_CONFIG: Record<DetectorType, DetectorTypeConfig> = {
   error: {
-    userCreateable: false,
     label: t('Error'),
+    path: 'errors',
+    userCreateable: false,
+    systemCreatedNotice: () => t('This monitor is managed by Sentry'),
   },
   metric_issue: {
-    userCreateable: true,
     label: t('Metric'),
+    path: 'metrics',
+    userCreateable: true,
   },
   monitor_check_in_failure: {
-    userCreateable: true,
     label: t('Cron'),
+    path: 'crons',
+    userCreateable: true,
   },
   uptime_domain_failure: {
-    userCreateable: true,
     label: t('Uptime'),
+    path: 'uptime',
+    userCreateable: true,
+    systemCreatedNotice: uptimeDetector =>
+      uptimeDetector.type === 'uptime_domain_failure' &&
+      uptimeDetector.config.mode !== UptimeMonitorMode.MANUAL
+        ? t('This Uptime Monitor was auto-detected by Sentry')
+        : undefined,
+  },
+  issue_stream: {
+    userCreateable: false,
+    label: t('Issue Stream'),
+    systemCreatedNotice: () => t('This monitor is managed by Sentry'),
   },
 };
 
@@ -33,6 +51,14 @@ export function detectorTypeIsUserCreateable(detectorType: DetectorType) {
   return DETECTOR_TYPE_CONFIG[detectorType]?.userCreateable ?? false;
 }
 
+export function getDetectorSystemCreatedNotice(detector: Detector) {
+  return DETECTOR_TYPE_CONFIG[detector.type]?.systemCreatedNotice?.(detector);
+}
+
 export function getDetectorTypeLabel(detectorType: DetectorType) {
   return DETECTOR_TYPE_CONFIG[detectorType]?.label ?? 'Unknown';
+}
+
+export function getDetectorTypePath(detectorType: DetectorType) {
+  return DETECTOR_TYPE_CONFIG[detectorType]?.path;
 }

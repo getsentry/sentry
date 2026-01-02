@@ -11,6 +11,7 @@ from django.utils import timezone
 from sentry.issues.grouptype import GroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.types.actor import Actor
+from sentry.utils import metrics
 from sentry.workflow_engine.models import DataConditionGroup, DataPacket, Detector
 from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
 from sentry.workflow_engine.types import (
@@ -33,6 +34,8 @@ class EvidenceData(Generic[DataPacketEvaluationType]):
     detector_id: int
     data_packet_source_id: int
     conditions: list[dict[str, Any]]
+    config: dict[str, Any] = dataclasses.field(default_factory=dict, kw_only=True)
+    data_sources: list[dict[str, Any]] = dataclasses.field(default_factory=list, kw_only=True)
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
@@ -77,6 +80,12 @@ class DetectorOccurrence:
         )
 
 
+@dataclass(frozen=True)
+class GroupedDetectorEvaluationResult:
+    result: dict[DetectorGroupKey, DetectorEvaluationResult]
+    tainted: bool
+
+
 # TODO - @saponifi3d - Change this class to be a pure ABC and remove the `__init__` method.
 # TODO - @saponifi3d - Once the change is made, we should introduce a `BaseDetector` class to evaluate simple cases
 class DetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationType]):
@@ -102,10 +111,27 @@ class DetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationType]
         else:
             self.condition_group = None
 
-    @abc.abstractmethod
     def evaluate(
         self, data_packet: DataPacket[DataPacketType]
-    ) -> dict[DetectorGroupKey, DetectorEvaluationResult] | None:
+    ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
+        tags = {
+            "detector_type": self.detector.type,
+            "result": "unknown",
+        }
+        try:
+            value = self.evaluate_impl(data_packet)
+            tags["result"] = "tainted" if value.tainted else "success"
+            metrics.incr("workflow_engine_detector.evaluation", tags=tags, sample_rate=1.0)
+            return value.result
+        except Exception:
+            tags["result"] = "failure"
+            metrics.incr("workflow_engine_detector.evaluation", tags=tags, sample_rate=1.0)
+            raise
+
+    @abc.abstractmethod
+    def evaluate_impl(
+        self, data_packet: DataPacket[DataPacketType]
+    ) -> GroupedDetectorEvaluationResult:
         """
         This method is used to evaluate the data packet's value against the conditions on the detector.
         """

@@ -94,7 +94,7 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
                 "start": self.start,
                 "end": self.end,
                 "interval": "1h",
-                "yAxis": "per_second(test_metric, counter)",
+                "yAxis": "per_second(value, test_metric, counter, -)",
                 "project": self.project.id,
                 "dataset": self.dataset,
             }

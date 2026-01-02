@@ -13,8 +13,6 @@ import {fields} from 'sentry/data/forms/projectAlerts';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Plugin} from 'sentry/types/integrations';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Project} from 'sentry/types/project';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
@@ -22,10 +20,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
-
-interface ProjectAlertSettingsProps extends RouteComponentProps<{projectId: string}> {
-  canEditRule: boolean;
-}
+import {useProjectAlertsOutlet} from 'sentry/views/settings/projectAlerts';
 
 function makeFetchProjectPluginsQueryKey(
   organizationSlug: string,
@@ -34,51 +29,28 @@ function makeFetchProjectPluginsQueryKey(
   return [`/projects/${organizationSlug}/${projectSlug}/plugins/`];
 }
 
-export default function ProjectAlertSettings({
-  canEditRule,
-  params,
-}: ProjectAlertSettingsProps) {
+export default function ProjectAlertSettings() {
   const organization = useOrganization();
+  const {canEditRule, project} = useProjectAlertsOutlet();
 
-  const projectSlug = params.projectId;
-  const {
-    data: project,
-    isPending: isProjectLoading,
-    isError: isProjectError,
-    refetch: refetchProject,
-  } = useApiQuery<Project>([`/projects/${organization.slug}/${projectSlug}/`], {
-    staleTime: 0,
-    gcTime: 0,
-  });
   const {
     data: pluginList = [],
     isPending: isPluginListLoading,
     isError: isPluginListError,
     refetch: refetchPluginList,
   } = useApiQuery<Plugin[]>(
-    makeFetchProjectPluginsQueryKey(organization.slug, projectSlug),
+    makeFetchProjectPluginsQueryKey(organization.slug, project.slug),
     {staleTime: 0, gcTime: 0}
   );
 
-  if ((!isProjectLoading && !project) || isPluginListError || isProjectError) {
-    return (
-      <LoadingError
-        onRetry={() => {
-          if (isProjectError) {
-            refetchProject();
-          }
-          if (isPluginListError) {
-            refetchPluginList();
-          }
-        }}
-      />
-    );
+  if (isPluginListError) {
+    return <LoadingError onRetry={refetchPluginList} />;
   }
 
   return (
     <Fragment>
       <SentryDocumentTitle
-        title={routeTitleGen(t('Alerts Settings'), projectSlug, false)}
+        title={routeTitleGen(t('Alerts Settings'), project.slug, false)}
       />
       <SettingsPageHeader
         title={t('Alerts Settings')}
@@ -102,7 +74,7 @@ export default function ProjectAlertSettings({
         <AlertLink
           to="/settings/account/notifications/"
           trailingItems={<IconMail />}
-          type="info"
+          variant="info"
         >
           {t(
             'Looking to fine-tune your personal notification preferences? Visit your Account Settings'
@@ -110,7 +82,7 @@ export default function ProjectAlertSettings({
         </AlertLink>
       </AlertLink.Container>
 
-      {isProjectLoading || isPluginListLoading ? (
+      {isPluginListLoading ? (
         <LoadingIndicator />
       ) : (
         <Fragment>
@@ -136,7 +108,7 @@ export default function ProjectAlertSettings({
               disabled={!canEditRule}
               fields={[fields.digestsMinDelay, fields.digestsMaxDelay]}
               renderHeader={() => (
-                <PanelAlert type="info">
+                <PanelAlert variant="info">
                   {t(
                     'Sentry will automatically digest alerts sent by some services to avoid flooding your inbox with individual issue notifications. To control how frequently notifications are delivered, use the sliders below.'
                   )}

@@ -1,19 +1,18 @@
-import {css, type DO_NOT_USE_ChonkTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Input} from 'sentry/components/core/input/index';
 import {TextArea} from 'sentry/components/core/textarea';
 import {space} from 'sentry/styles/space';
-import type {FormSize, StrictCSSObject} from 'sentry/utils/theme';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import type {FormSize, StrictCSSObject, Theme} from 'sentry/utils/theme';
 
-export interface InputStyleProps {
+interface InputStyleProps {
   leadingWidth?: number;
   size?: FormSize;
   trailingWidth?: number;
 }
 
-export const InputItemsWrap = styled('div')`
+const InputItemsWrap = styled('div')`
   display: grid;
   grid-auto-flow: column;
   align-items: center;
@@ -35,44 +34,43 @@ const chonkInputStyles = ({
   trailingWidth,
   size = 'md',
   theme,
-}: InputStyleProps & {theme: DO_NOT_USE_ChonkTheme}): StrictCSSObject => css`
+}: InputStyleProps & {theme: Theme}): StrictCSSObject => css`
   ${leadingWidth &&
   css`
     padding-left: calc(
-      ${theme.formPadding[size].paddingLeft}px + ${chonkItemsPadding[size]}px +
-        ${leadingWidth}px
+      ${theme.form[size].paddingLeft}px + ${chonkItemsPadding[size]}px + ${leadingWidth}px
     );
   `}
 
   ${trailingWidth &&
   css`
     padding-right: calc(
-      ${theme.formPadding[size].paddingRight}px + ${chonkItemsPadding[size]}px +
+      ${theme.form[size].paddingRight}px + ${chonkItemsPadding[size]}px +
         ${trailingWidth}px
     );
   `}
 `;
 
-export const ChonkStyledInput = chonkStyled(Input)<InputStyleProps>`
+export const ChonkStyledInput = styled(Input)<InputStyleProps>`
   ${chonkInputStyles}
 `;
 
-export const ChonkStyledTextArea = chonkStyled(TextArea)<InputStyleProps>`
+export const ChonkStyledTextArea = styled(TextArea)<InputStyleProps>`
   ${chonkInputStyles}
 `;
 
-export const ChonkStyledLeadingItemsWrap = chonkStyled(InputItemsWrap)<{
+export const ChonkStyledLeadingItemsWrap = styled(InputItemsWrap)<{
   size: NonNullable<InputStyleProps['size']>;
   disablePointerEvents?: boolean;
 }>`
-    left: ${p => p.theme.formPadding[p.size].paddingLeft + 1}px;
-    ${p => p.disablePointerEvents && `pointer-events: none;`}
-  `;
+  left: ${p => p.theme.form[p.size].paddingLeft + 1}px;
+  ${p => p.disablePointerEvents && `pointer-events: none;`}
+`;
 
-export const ChonkStyledTrailingItemsWrap = chonkStyled(InputItemsWrap)<{
+export const ChonkStyledTrailingItemsWrap = styled(InputItemsWrap)<{
   size: NonNullable<InputStyleProps['size']>;
   disablePointerEvents?: boolean;
 }>`
-    right: ${p => p.theme.formPadding[p.size].paddingRight + 1}px;
-    ${p => p.disablePointerEvents && `pointer-events: none;`}
-  `;
+  right: ${p => p.theme.form[p.size].paddingRight + 1}px;
+  ${p => p.disablePointerEvents && `pointer-events: none;`}
+`;

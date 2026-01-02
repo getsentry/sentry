@@ -9,6 +9,7 @@ from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.environment import Environment
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages
+from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
@@ -252,8 +253,10 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
 
         result.sort(key=lambda r: r.key)
         assert result[0].key == "biz"
-        assert result[0].top_values[0].value == "baz"
-        assert result[0].count == 1
+        # Include-empty-values may surface "" alongside "baz"; don't rely on order
+        biz_values = {tv.value: tv.times_seen for tv in result[0].top_values}
+        assert biz_values.get("baz") == 1
+        assert result[0].count == sum(biz_values.values())
 
         assert result[12].key == "sentry:release"
         assert result[12].count == 2
@@ -1059,7 +1062,6 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             1,  # limit default (set to 1 for test)
             0,  # offset default (unchanged)
             None,  # tenant_ids default (unchanged)
-            False,  # include_empty_values default (unchanged)
         ),
     )
     def test_get_group_tag_value_paginator_sort_by_last_seen(self) -> None:
@@ -1193,8 +1195,24 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             # Total should be 10 + 5 = 15 (weighted sum, not 2 raw events)
             assert total_count == 15
 
+    def test_eap_read_path(self) -> None:
+        with self.options({EAPOccurrencesComparator._should_eval_option_name(): True}):
+            gk = self.ts.get_group_tag_key(
+                self.proj1group1,
+                None,
+                "foo",
+                tenant_ids={"referrer": "r", "organization_id": 1234},
+                start=self.now - timedelta(days=5),
+                end=self.now + timedelta(days=5),
+            )
+
+            assert gk.key == "foo"
+            assert gk.values_seen == 1
+            assert gk.top_values[0].value == "bar"
+
 
 class ProfilingTagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
+
     def setUp(self) -> None:
         super().setUp()
         self.ts = SnubaTagStorage()

@@ -207,7 +207,7 @@ class ShouldCallSeerTest(TestCase):
 
         for frame_check_result, expected_result in [(True, False), (False, True)]:
             with patch(
-                "sentry.grouping.ingest.seer._has_too_many_contributing_frames",
+                "sentry.grouping.ingest.seer._stacktrace_exceeds_limits",
                 return_value=frame_check_result,
             ):
                 assert (

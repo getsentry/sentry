@@ -8,9 +8,13 @@ on:
         description: Whether to get per-test coverage (uses ./github/workflows/codecov_per_test_coverage.yml)
         required: true
         default: 'true'
-  # Run once a week on sunday
+      seed:
+        description: The seed for the test ordering
+        required: false
+
+  # Run once a day
   schedule:
-    - cron: '0 1 * * 0'
+    - cron: '0 1 * * *'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -18,7 +22,6 @@ concurrency:
 
 env:
   SENTRY_SHUFFLE_TESTS: true
-
 jobs:
   per-test-coverage:
     if: ${{ inputs.per-test-coverage == 'true' || github.event_name == 'schedule' }}
@@ -52,7 +55,29 @@ jobs:
         id: setup
         with:
           mode: backend-ci
+        env:
+          SENTRY_SHUFFLE_TESTS_SEED: ${{ inputs.seed }}
 
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
           make test-python-ci
+        env:
+          SENTRY_SHUFFLE_TESTS_SEED: ${{ inputs.seed }}
+
+      - name: Inspect failure
+        if: failure()
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
+
+      - name: Collect test data
+        uses: ./.github/actions/collect-test-data
+        if: ${{ !cancelled() }}
+        with:
+          artifact_path: .artifacts/pytest.json
+          gcs_bucket: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}
+          gcp_project_id: ${{ secrets.COLLECT_TEST_DATA_GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
+          service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
+          matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}

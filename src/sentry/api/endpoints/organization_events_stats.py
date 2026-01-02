@@ -7,11 +7,10 @@ from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features
-from sentry.analytics.events.agent_monitoring_events import AgentMonitoringQuery
+from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import OrganizationEventsV2EndpointBase
+from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.helpers.error_upsampling import (
     is_errors_query_for_error_upsampled_projects,
     transform_query_columns_for_error_upsampling,
@@ -37,6 +36,7 @@ from sentry.snuba import (
 )
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.ourlogs import OurLogs
+from sentry.snuba.profile_functions import ProfileFunctions
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.spans_rpc import Spans
@@ -53,7 +53,7 @@ SENTRY_BACKEND_REFERRERS = [
 
 
 @region_silo_endpoint
-class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
@@ -156,17 +156,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             if referrer in SENTRY_BACKEND_REFERRERS:
                 query_source = QuerySource.SENTRY_BACKEND
 
-            if "agent-monitoring" in referrer:
-                try:
-                    analytics.record(
-                        AgentMonitoringQuery(
-                            organization_id=organization.id,
-                            referrer=referrer,
-                        )
-                    )
-                except Exception as e:
-                    sentry_sdk.capture_exception(e)
-
             batch_features = self.get_features(organization, request)
             use_metrics = (
                 batch_features.get("organizations:performance-use-metrics", False)
@@ -196,6 +185,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         spans_metrics,
                         Spans,
                         OurLogs,
+                        ProfileFunctions,
                         TraceMetrics,
                         errors,
                         transactions,
@@ -241,19 +231,21 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 if scoped_dataset not in RPC_DATASETS:
                     raise NotImplementedError
 
+                extrapolation_mode = self.get_extrapolation_mode(request)
+
                 if scoped_dataset == TraceMetrics:
                     # tracemetrics uses aggregate conditions
-                    metric_name, metric_type = get_trace_metric_from_request(request, organization)
+                    metric = get_trace_metric_from_request(request)
 
                     return TraceMetricsSearchResolverConfig(
-                        metric_name=metric_name,
-                        metric_type=metric_type,
+                        metric=metric,
                         auto_fields=False,
                         use_aggregate_conditions=True,
                         disable_aggregate_extrapolation=request.GET.get(
                             "disableAggregateExtrapolation", "0"
                         )
                         == "1",
+                        extrapolation_mode=extrapolation_mode,
                     )
 
                 return SearchResolverConfig(
@@ -263,6 +255,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         "disableAggregateExtrapolation", "0"
                     )
                     == "1",
+                    extrapolation_mode=extrapolation_mode,
                 )
 
             if top_events > 0:

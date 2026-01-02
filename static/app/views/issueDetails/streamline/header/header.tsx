@@ -4,7 +4,6 @@ import Color from 'color';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
@@ -13,11 +12,13 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventMessage from 'sentry/components/events/eventMessage';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {useFeedbackSDKIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import {TourElement} from 'sentry/components/tours/components';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
-import {IconInfo, IconMegaphone} from 'sentry/icons';
+import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
@@ -28,7 +29,6 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -88,13 +88,13 @@ export default function StreamlinedGroupHeader({
 
   const hasFeedbackForm =
     group.issueType === IssueType.QUERY_INJECTION_VULNERABILITY ||
-    (group.issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS &&
-      organization.features.includes('experimental-n-plus-one-api-detector-rollout'));
+    group.issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS;
   const feedbackSource =
     group.issueType === IssueType.QUERY_INJECTION_VULNERABILITY
       ? 'issue_details_query_injection'
       : 'issue_details_n_plus_one_api_calls';
-  const openForm = useFeedbackForm();
+  const {feedback} = useFeedbackSDKIntegration();
+
   const statusProps = getBadgeProperties(group.status, group.substatus);
   const issueTypeConfig = getConfigForIssueType(group, project);
 
@@ -129,7 +129,7 @@ export default function StreamlinedGroupHeader({
                   'Error counts on this page have been upsampled based on your sampling rate.'
                 )}
               >
-                <StyledTag>{t('Errors Upsampled')}</StyledTag>
+                <StyledTag variant="muted">{t('Errors Upsampled')}</StyledTag>
               </Tooltip>
             )}
           </Flex>
@@ -150,24 +150,19 @@ export default function StreamlinedGroupHeader({
                 {showLearnMore ? t("See What's New") : null}
               </LinkButton>
             )}
-            {hasFeedbackForm && openForm ? (
-              <Button
+            {hasFeedbackForm && feedback ? (
+              <FeedbackButton
                 aria-label={t('Give feedback on the issue Sentry detected')}
-                icon={<IconMegaphone />}
                 size="xs"
-                onClick={() =>
-                  openForm({
-                    messagePlaceholder: t(
-                      'Please provide feedback on the issue Sentry detected.'
-                    ),
-                    tags: {
-                      ['feedback.source']: feedbackSource,
-                    },
-                  })
-                }
-              >
-                {t('Give Feedback')}
-              </Button>
+                feedbackOptions={{
+                  messagePlaceholder: t(
+                    'Please provide feedback on the issue Sentry detected.'
+                  ),
+                  tags: {
+                    ['feedback.source']: feedbackSource,
+                  },
+                }}
+              />
             ) : (
               <NewIssueExperienceButton />
             )}
@@ -302,7 +297,7 @@ export default function StreamlinedGroupHeader({
 }
 
 const Header = styled('header')`
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   padding: ${p => p.theme.space.md} ${p => p.theme.space['2xl']};
 `;
 
@@ -360,7 +355,7 @@ const ActionBar = styled('div')<{isComplete: boolean}>`
   border-bottom: 1px solid ${p => p.theme.translucentBorder};
   position: relative;
   transition: background 0.3s ease-in-out;
-  background: ${p => (p.isComplete ? 'transparent' : p.theme.background)};
+  background: ${p => (p.isComplete ? 'transparent' : p.theme.tokens.background.primary)};
   &:before {
     z-index: -1;
     position: absolute;
@@ -368,7 +363,7 @@ const ActionBar = styled('div')<{isComplete: boolean}>`
     content: '';
     background: linear-gradient(
       to right,
-      ${p => p.theme.background},
+      ${p => p.theme.tokens.background.primary},
       ${p => Color(p.theme.success).lighten(0.5).alpha(0.15).string()}
     );
   }

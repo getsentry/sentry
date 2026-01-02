@@ -7,6 +7,7 @@ import type {NumberFieldProps} from 'sentry/components/forms/fields/numberField'
 import NumberField from 'sentry/components/forms/fields/numberField';
 import type {SelectFieldProps} from 'sentry/components/forms/fields/selectField';
 import SelectField from 'sentry/components/forms/fields/selectField';
+import type {Polarity} from 'sentry/components/percentChange';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getThresholdUnitSelectOptions} from 'sentry/views/dashboards/utils';
@@ -43,6 +44,7 @@ type ThresholdMaxValues = Partial<Record<ThresholdMaxKeys, number>>;
 export type ThresholdsConfig = {
   max_values: ThresholdMaxValues;
   unit: string | null;
+  preferredPolarity?: Polarity;
 };
 
 const WIDGET_INDICATOR_SIZE = 15;
@@ -110,7 +112,7 @@ export function Thresholds({
         'aria-label': 'First Maximum',
         error: errors?.max1,
       },
-      color: theme.green300,
+      color: theme.colors.green400,
       unitOptions,
       unitSelectProps: {
         name: 'First unit select',
@@ -130,7 +132,7 @@ export function Thresholds({
         'aria-label': 'Second Maximum',
         error: errors?.max2,
       },
-      color: theme.yellow300,
+      color: theme.colors.yellow400,
       unitOptions,
       unitSelectProps: {
         name: 'Second unit select',
@@ -150,7 +152,7 @@ export function Thresholds({
         placeholder: t('No max'),
         'aria-label': 'Third Maximum',
       },
-      color: theme.red300,
+      color: theme.colors.red400,
       unitOptions,
       unitSelectProps: {
         name: 'Third unit select',
@@ -202,5 +204,5 @@ const StyledSelectField = styled(SelectField)`
 
 export const HighlightedText = styled('span')`
   font-family: ${p => p.theme.text.familyMono};
-  color: ${p => p.theme.pink300};
+  color: ${p => p.theme.colors.pink400};
 `;

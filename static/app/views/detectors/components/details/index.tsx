@@ -1,4 +1,6 @@
+import {Alert} from 'sentry/components/core/alert';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {unreachable} from 'sentry/utils/unreachable';
@@ -36,6 +38,14 @@ export function DetectorDetailsContent({detector, project}: DetectorDetailsConte
         <PageFiltersContainer>
           <CronDetectorDetails detector={detector} project={project} />
         </PageFiltersContainer>
+      );
+    case 'issue_stream':
+      return (
+        <Alert.Container>
+          <Alert variant="danger">
+            {t('Issue stream monitors do not support detail views.')}
+          </Alert>
+        </Alert.Container>
       );
     default:
       unreachable(detectorType);

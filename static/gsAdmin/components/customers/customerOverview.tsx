@@ -30,12 +30,13 @@ import type {
   ReservedBudgetMetricHistory,
   Subscription,
 } from 'getsentry/types';
-import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
+import {AddOnCategory, BillingType, OnDemandBudgetMode} from 'getsentry/types';
 import {
   displayBudgetName,
   formatBalance,
   formatReservedWithUnits,
   getActiveProductTrial,
+  getBilledCategory,
   getProductTrial,
   RETENTION_SETTINGS_CATEGORIES,
 } from 'getsentry/utils/billing';
@@ -136,7 +137,6 @@ function SubscriptionSummary({customer, onAction}: SubscriptionSummaryProps) {
           <OnDemandSummary customer={customer} />
         </DetailLabel>
         <DetailLabel title="Can Trial" yesNo={customer.canTrial} />
-        <DetailLabel title="Can Grace Period" yesNo={customer.canGracePeriod} />
         <DetailLabel title="Legacy Soft Cap" yesNo={customer.hasSoftCap} />
         {customer.hasSoftCap && (
           <DetailLabel
@@ -472,9 +472,11 @@ function CustomerOverview({customer, onAction, organization}: Props) {
       customer.planDetails?.categories.includes(categoryInfo.plural)
   );
 
-  const productTrialCategoryGroups = Object.values(
-    customer.planDetails?.availableReservedBudgetTypes || {}
-  ).filter(group => group.canProductTrial);
+  const productTrialAddOns = Object.values(customer.addOns || {}).filter(
+    // TODO(billing): Right now all our add-ons can use product trials, but in future we should distinguish this
+    // like we do for other product types
+    addOn => addOn.isAvailable
+  );
 
   const categoryHasUsedProductTrial = (category: DataCategory) => {
     const trial = getProductTrial(customer.productTrials ?? [], category);
@@ -512,7 +514,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
       <DetailLabel key={apiName} title={formattedTrialName}>
         <TrialState>
           <StyledTag
-            type={
+            variant={
               lessThanOneDayLeft
                 ? 'promotion'
                 : hasActiveProductTrial
@@ -638,7 +640,10 @@ function CustomerOverview({customer, onAction, organization}: Props) {
           <DetailLabel title="Internal ID">{customer.id}</DetailLabel>
           <DetailLabel title="Data Storage Location">{region}</DetailLabel>
           <DetailLabel title="Data Retention">
-            {customer.dataRetention || '90d'}
+            {customer.orgRetention?.standard ??
+              customer.categories?.errors?.retention?.standard ??
+              90}
+            {' days'}
           </DetailLabel>
           <DetailLabel title="Joined">
             {moment(customer.dateJoined).fromNow()}
@@ -755,7 +760,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
             </ExternalLink>
           </DetailLabel>
         </DetailList>
-        {productTrialCategories.length + productTrialCategoryGroups.length > 0 && (
+        {productTrialCategories.length + productTrialAddOns.length > 0 && (
           <Fragment>
             <h6>Product Trials</h6>
             <ProductTrialsDetailListContainer>
@@ -771,13 +776,15 @@ function CustomerOverview({customer, onAction, organization}: Props) {
                   categoryName
                 );
               })}
-              {productTrialCategoryGroups.map(group => {
-                const category = group.dataCategories[0]; // doesn't matter which category we use
+              {productTrialAddOns.map(addOn => {
+                const category = getBilledCategory(customer, addOn.apiName);
                 if (category) {
                   return getTrialManagementActions(
                     category,
-                    group.apiName,
-                    group.productName
+                    addOn.apiName,
+                    addOn.apiName === AddOnCategory.LEGACY_SEER
+                      ? addOn.productName + ' (Legacy)'
+                      : addOn.productName
                   );
                 }
                 return null;

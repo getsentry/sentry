@@ -12,20 +12,15 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import formGroups from 'sentry/data/forms/userFeedback';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
-type Props = {
-  project: Project;
-};
-
-function ProjectUserFeedback({project}: Props) {
-  const {projectId} = useParams<{projectId: string}>();
+export default function ProjectUserFeedback() {
   const organization = useOrganization();
+  const {project} = useProjectSettingsOutlet();
   const {areAiFeaturesAllowed, setupAcknowledgement} = useOrganizationSeerSetup();
   const hasAiEnabled = areAiFeaturesAllowed && setupAcknowledgement.orgHasAcknowledged;
 
@@ -84,7 +79,7 @@ function ProjectUserFeedback({project}: Props) {
       <Form
         saveOnBlur
         apiMethod="PUT"
-        apiEndpoint={`/projects/${organization.slug}/${projectId}/`}
+        apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
         initialData={project.options}
       >
         <Access access={['project:write']} project={project}>
@@ -107,5 +102,3 @@ const ButtonList = styled('div')`
   grid-auto-flow: column;
   gap: ${space(1)};
 `;
-
-export default ProjectUserFeedback;

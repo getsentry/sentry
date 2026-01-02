@@ -4,26 +4,29 @@ import styled from '@emotion/styled';
 import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import Confirm from 'sentry/components/confirm';
+import Confirm, {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {Hovercard} from 'sentry/components/hovercard';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconAdd, IconDownload, IconEdit, IconStar} from 'sentry/icons';
+import {IconAdd, IconCopy, IconDownload, IconEdit, IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {DASHBOARD_SAVING_MESSAGE} from 'sentry/views/dashboards/constants';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
+import {useDuplicatePrebuiltDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
@@ -83,6 +86,24 @@ function Controls({
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
   const api = useApi();
+  const navigate = useNavigate();
+  const hasPrebuiltControlsFeature = organization.features.includes(
+    'dashboards-prebuilt-controls'
+  );
+
+  const {duplicatePrebuiltDashboard, isLoading: isLoadingDuplicatePrebuiltDashboard} =
+    useDuplicatePrebuiltDashboard({
+      onSuccess: (newDashboard: DashboardDetails) => {
+        navigate(`/organizations/${organization.slug}/dashboard/${newDashboard.id}/`);
+      },
+    });
+
+  const isPrebuiltDashboard = defined(dashboard.prebuiltId);
+
+  if (isPrebuiltDashboard && !hasPrebuiltControlsFeature) {
+    return null;
+  }
+
   if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
     return (
       <StyledButtonBar key="edit-controls">
@@ -194,6 +215,42 @@ function Controls({
         })
       : null
     : t('You do not have permission to edit this dashboard');
+
+  const renderEditButton = (hasFeature: boolean) => {
+    if (!hasFeature) {
+      return null;
+    }
+    if (isPrebuiltDashboard) {
+      return null;
+    }
+    const isDisabled = !hasFeature || hasUnsavedFilters || !hasEditAccess || isSaving;
+    const toolTipMessage = isSaving
+      ? DASHBOARD_SAVING_MESSAGE
+      : hasEditAccess
+        ? hasUnsavedFilters
+          ? UNSAVED_FILTERS_MESSAGE
+          : null
+        : t('You do not have permission to edit this dashboard');
+
+    return (
+      <Tooltip title={t('Edit Dashboard')} disabled={isDisabled}>
+        <Button
+          data-test-id="dashboard-edit"
+          aria-label={t('edit-dashboard')}
+          onClick={e => {
+            e.preventDefault();
+            onEdit();
+          }}
+          icon={isSaving ? <LoadingIndicator size={14} /> : <IconEdit />}
+          disabled={isDisabled}
+          title={toolTipMessage}
+          priority="default"
+          size="sm"
+        />
+      </Tooltip>
+    );
+  };
+
   return (
     <StyledButtonBar key="controls">
       <DashboardEditFeature>
@@ -214,7 +271,7 @@ function Controls({
                 />
               </Tooltip>
             </Feature>
-            {dashboard.id !== 'default-overview' && (
+            {dashboard.id !== 'default-overview' && !isPrebuiltDashboard && (
               <EditAccessSelector
                 dashboard={dashboard}
                 onChangeEditAccess={onChangeEditAccess}
@@ -256,28 +313,8 @@ function Controls({
                 />
               </Tooltip>
             )}
-            <Tooltip title={t('Edit Dashboard')}>
-              <Button
-                data-test-id="dashboard-edit"
-                aria-label={t('edit-dashboard')}
-                onClick={e => {
-                  e.preventDefault();
-                  onEdit();
-                }}
-                icon={isSaving ? <LoadingIndicator size={14} /> : <IconEdit />}
-                disabled={!hasFeature || hasUnsavedFilters || !hasEditAccess || isSaving}
-                title={
-                  isSaving
-                    ? DASHBOARD_SAVING_MESSAGE
-                    : hasEditAccess
-                      ? hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE
-                      : t('You do not have permission to edit this dashboard')
-                }
-                priority="default"
-                size="sm"
-              />
-            </Tooltip>
-            {hasFeature ? (
+            {renderEditButton(hasFeature)}
+            {hasFeature && !isPrebuiltDashboard && (
               <Tooltip
                 title={tooltipMessage}
                 disabled={!widgetLimitReached && hasEditAccess}
@@ -296,7 +333,48 @@ function Controls({
                   position="bottom-end"
                 />
               </Tooltip>
-            ) : null}
+            )}
+            {hasFeature && isPrebuiltDashboard && (
+              <DashboardCreateLimitWrapper>
+                {({
+                  hasReachedDashboardLimit,
+                  isLoading: isLoadingDashboardsLimit,
+                  limitMessage,
+                }) => {
+                  const isLoading =
+                    isLoadingDuplicatePrebuiltDashboard || isLoadingDashboardsLimit;
+                  return (
+                    <Tooltip
+                      title={t('Duplicate Dashboard')}
+                      disabled={isLoading || hasReachedDashboardLimit}
+                    >
+                      <Button
+                        data-test-id="dashboard-duplicate"
+                        aria-label={t('duplicate-dashboard')}
+                        onClick={e => {
+                          e.preventDefault();
+                          openConfirmModal({
+                            message: t(
+                              'Are you sure you want to duplicate this dashboard?'
+                            ),
+                            priority: 'primary',
+                            onConfirm: () =>
+                              duplicatePrebuiltDashboard(dashboard.prebuiltId),
+                          });
+                        }}
+                        icon={isLoading ? <LoadingIndicator size={14} /> : <IconCopy />}
+                        disabled={isLoading || hasReachedDashboardLimit}
+                        title={limitMessage}
+                        priority="default"
+                        size="sm"
+                      >
+                        {t('Duplicate Dashboard')}
+                      </Button>
+                    </Tooltip>
+                  );
+                }}
+              </DashboardCreateLimitWrapper>
+            )}
           </Fragment>
         )}
       </DashboardEditFeature>

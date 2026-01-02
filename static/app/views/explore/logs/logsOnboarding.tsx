@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {ExternalLink} from 'sentry/components/core/link';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -16,6 +17,7 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
+import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
@@ -40,12 +42,67 @@ import {
   ExploreFilterSection,
 } from 'sentry/views/explore/components/styles';
 import {StyledPageFilterBar} from 'sentry/views/explore/logs/styles';
-import type {PickableDays} from 'sentry/views/explore/utils';
+
+// eslint-disable-next-line no-restricted-imports,boundaries/element-types
+import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
 type OnboardingProps = {
   organization: Organization;
   project: Project;
 };
+
+const LOG_DRAIN_PLATFORM_DOCS: Record<string, {name: string; url: string}> = {
+  'node-cloudflare-pages': {
+    name: 'Cloudflare',
+    url: 'https://docs.sentry.io/product/drains/integration/cloudflare/',
+  },
+  'node-cloudflare-workers': {
+    name: 'Cloudflare',
+    url: 'https://docs.sentry.io/product/drains/integration/cloudflare/',
+  },
+};
+
+function LogDrainsLink({project}: {project: Project}) {
+  const platformDoc = project.platform
+    ? LOG_DRAIN_PLATFORM_DOCS[project.platform]
+    : undefined;
+
+  return (
+    <LogDrainsLinkWrapper>
+      <BodyTitle>{t('Log Drains and Forwarders')}</BodyTitle>
+      <SubTitle>
+        {platformDoc
+          ? tct(
+              'You can use [link:Log Drains] to send logs from platforms like [platformLink], or via the [otlpLink:OpenTelemetry Collector].',
+              {
+                link: <ExternalLink href="https://docs.sentry.io/product/drains/" />,
+                platformLink: (
+                  <ExternalLink href={platformDoc.url}>{platformDoc.name}</ExternalLink>
+                ),
+                otlpLink: (
+                  <ExternalLink href="https://docs.sentry.io/product/drains/integration/opentelemetry-collector/" />
+                ),
+              }
+            )
+          : tct(
+              'You can use [link:Log Drains] to send logs from platforms like [vercelLink:Vercel] and [herokuLink:Heroku], or via the [otlpLink:OpenTelemetry Collector].',
+              {
+                link: <ExternalLink href="https://docs.sentry.io/product/drains/" />,
+                vercelLink: (
+                  <ExternalLink href="https://docs.sentry.io/product/drains/integration/vercel/" />
+                ),
+                herokuLink: (
+                  <ExternalLink href="https://docs.sentry.io/product/drains/integration/heroku/" />
+                ),
+                otlpLink: (
+                  <ExternalLink href="https://docs.sentry.io/product/drains/integration/opentelemetry-collector/" />
+                ),
+              }
+            )}
+      </SubTitle>
+    </LogDrainsLinkWrapper>
+  );
+}
 
 function OnboardingPanel({
   project,
@@ -79,7 +136,10 @@ function OnboardingPanel({
             </HeaderWrapper>
             <Divider />
             <Body>
-              <Setup>{children}</Setup>
+              <Setup>
+                {children}
+                <LogDrainsLink project={project} />
+              </Setup>
               <Preview>
                 <BodyTitle>{t('Preview a Sentry Log')}</BodyTitle>
                 <Arcade
@@ -283,6 +343,10 @@ const SubTitle = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
+const LogDrainsLinkWrapper = styled('div')`
+  padding-top: ${space(2)};
+`;
+
 const Title = styled('div')`
   font-size: 26px;
   font-weight: ${p => p.theme.fontWeight.bold};
@@ -302,7 +366,7 @@ const HeaderWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   gap: ${space(3)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${space(4)};
 `;
 
@@ -375,16 +439,15 @@ const OnboardingContainer = styled('div')`
 `;
 
 type LogsTabOnboardingProps = {
+  datePageFilterProps: DatePageFilterProps;
   organization: Organization;
   project: Project;
-} & PickableDays;
+};
 
 export function LogsTabOnboarding({
   organization,
   project,
-  defaultPeriod,
-  maxPickableDays,
-  relativeOptions,
+  datePageFilterProps,
 }: LogsTabOnboardingProps) {
   return (
     <ExploreBodySearch>
@@ -393,14 +456,11 @@ export function LogsTabOnboarding({
           <StyledPageFilterBar condensed>
             <ProjectPageFilter />
             <EnvironmentPageFilter />
-            <DatePageFilter
-              defaultPeriod={defaultPeriod}
-              maxPickableDays={maxPickableDays}
-              relativeOptions={relativeOptions}
-            />
+            <DatePageFilter {...datePageFilterProps} />
           </StyledPageFilterBar>
         </ExploreFilterSection>
         <OnboardingContainer>
+          <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
           <Onboarding project={project} organization={organization} />
         </OnboardingContainer>
       </Layout.Main>

@@ -118,11 +118,16 @@ export default function AutomationHistoryList({
                   <TruncatedText>{row.detector.name}</TruncatedText>
                 </StyledLink>
               ) : (
-                t('Unknown detector')
+                '—'
               )}
             </SimpleTable.RowCell>
             <SimpleTable.RowCell>
-              <StyledLink to={`/issues/${row.group.id}`}>
+              <StyledLink
+                to={{
+                  pathname: `/organizations/${org.slug}/issues/${row.group.id}/events/${row.eventId}/`,
+                  query: {project: row.group.project.id},
+                }}
+              >
                 <Flex gap="xs" align="center">
                   <PlatformIcon platform={row.group.platform} size={16} />
                   <TruncatedText>

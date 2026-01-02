@@ -20,7 +20,6 @@ from sentry.rules.filters.tagged_event import TaggedEventFilter
 from sentry.rules.match import MatchType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
-from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.migration_helpers.issue_alert_dual_write import (
     delete_migrated_issue_alert,
     update_migrated_issue_alert,
@@ -378,7 +377,6 @@ class IssueAlertDualWriteDeleteTest(RuleMigrationHelpersTestBase):
 
         self.assert_issue_alert_deleted(self.workflow, self.when_dcg, self.if_dcg)
 
-    @with_feature("organizations:workflow-engine-issue-alert-dual-write")
     def test_delete_issue_alert__rule_deletion_task(self) -> None:
         self.issue_alert.update(status=ObjectStatus.PENDING_DELETION)
         RegionScheduledDeletion.schedule(self.issue_alert, days=0)
@@ -388,7 +386,6 @@ class IssueAlertDualWriteDeleteTest(RuleMigrationHelpersTestBase):
 
         self.assert_issue_alert_deleted(self.workflow, self.when_dcg, self.if_dcg)
 
-    @with_feature("organizations:workflow-engine-issue-alert-dual-write")
     def test_delete_issue_alert__project_deletion_task(self) -> None:
         self.project.update(status=ObjectStatus.PENDING_DELETION)
         RegionScheduledDeletion.schedule(self.project, days=0)
@@ -398,7 +395,6 @@ class IssueAlertDualWriteDeleteTest(RuleMigrationHelpersTestBase):
 
         self.assert_issue_alert_deleted(self.workflow, self.when_dcg, self.if_dcg)
 
-    @with_feature("organizations:workflow-engine-issue-alert-dual-write")
     def test_delete_issue_alert__org_deletion_task(self) -> None:
         self.organization.update(status=ObjectStatus.PENDING_DELETION)
         RegionScheduledDeletion.schedule(self.organization, days=0)

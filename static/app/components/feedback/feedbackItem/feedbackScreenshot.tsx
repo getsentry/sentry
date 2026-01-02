@@ -83,7 +83,7 @@ const StyledPanel = styled(Panel)`
   align-items: center;
   margin-bottom: 0;
   border: 0;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const StyledLoadingIndicator = styled('div')`
@@ -91,7 +91,7 @@ const StyledLoadingIndicator = styled('div')`
   align-items: center;
   justify-content: center;
   height: 100%;
-  background: ${p => p.theme.purple100};
+  background: ${p => p.theme.colors.blue100};
 `;
 
 const StyledImageButton = styled('button')`
@@ -105,7 +105,7 @@ const StyledImageButton = styled('button')`
 const StyledImageVisualization = styled(ImageVisualization)`
   z-index: 1;
   border: 0;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   img {
     width: auto;
@@ -125,7 +125,7 @@ const FileDownload = styled('a')`
 `;
 
 const File = styled(StyledPanel)`
-  background: ${p => p.theme.purple100};
+  background: ${p => p.theme.colors.blue100};
   padding: ${space(2)};
   max-width: 300px;
 `;

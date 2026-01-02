@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:18:54.059682+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: "be36642f41f047346396f018f62375d3"
@@ -10,23 +8,23 @@ app:
   root_component:
     app*
       exception*
+        type*
+          "Error"
+        value*
+          "bad"
         stacktrace (ignored because it contains no in-app frames)
-          frame (marked out of app by stack trace rule (function:processTicksAndRejections -app))
+          frame (marked out of app by built-in stack trace rule (function:processTicksAndRejections -app))
             module*
               "task_queues"
             filename (ignored because module takes precedence)
               "task_queues"
             function*
               "processTicksAndRejections"
-          frame (marked out of app by stack trace rule (function:runMicrotasks -app))
+          frame (marked out of app by built-in stack trace rule (function:runMicrotasks -app))
             filename*
               "axiosinterceptor.js"
             function*
               "runMicrotasks"
-        type*
-          "Error"
-        value*
-          "bad"
 --------------------------------------------------------------------------
 system:
   hash: null
@@ -35,20 +33,20 @@ system:
   root_component:
     system (ignored because app exception takes precedence)
       exception (ignored because hash matches app variant)
+        type*
+          "Error"
+        value*
+          "bad"
         stacktrace (ignored because it contains no contributing frames)
-          frame (ignored by stack trace rule (function:processTicksAndRejections -group))
+          frame (ignored by built-in stack trace rule (function:processTicksAndRejections -group))
             module*
               "task_queues"
             filename (ignored because module takes precedence)
               "task_queues"
             function*
               "processTicksAndRejections"
-          frame (ignored by stack trace rule (function:runMicrotasks -group))
+          frame (ignored by built-in stack trace rule (function:runMicrotasks -group))
             filename*
               "axiosinterceptor.js"
             function*
               "runMicrotasks"
-        type*
-          "Error"
-        value*
-          "bad"

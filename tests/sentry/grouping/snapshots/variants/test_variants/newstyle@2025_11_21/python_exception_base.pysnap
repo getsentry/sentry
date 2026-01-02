@@ -1,56 +1,54 @@
 ---
-created: '2025-10-29T21:18:54.077681+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
-  hash: "c52ebcc2d9d0780a23c7d99831678830"
+  hash: "beb01c07d991f36b9da1e90fc7169ad8"
   contributing component: chained_exception
   hint: None
   root_component:
     app*
       chained_exception*
         exception*
-          stacktrace*
-            frame* (marked in-app by the client)
-              filename*
-                "baz.py"
           type*
             "ValueError"
           value (ignored because stacktrace takes precedence)
             "hello world"
-        exception*
-          stacktrace (ignored because it contains no in-app frames)
-            frame (marked out of app by the client)
+          stacktrace*
+            frame* (marked in-app by the client)
               filename*
                 "baz.py"
+        exception*
           type*
             "ValueError"
           value*
             "hello world"
+          stacktrace (ignored because it contains no in-app frames)
+            frame (marked out of app by the client)
+              filename*
+                "baz.py"
 --------------------------------------------------------------------------
 system:
-  hash: "669cb6664e0f5fed38665da04e464f7e"
+  hash: "8c527d091797ca91a535be7b461e5059"
   contributing component: chained_exception
   hint: None
   root_component:
     system*
       chained_exception*
         exception*
-          stacktrace*
-            frame*
-              filename*
-                "baz.py"
           type*
             "ValueError"
           value (ignored because stacktrace takes precedence)
             "hello world"
+          stacktrace*
+            frame*
+              filename*
+                "baz.py"
         exception*
-          stacktrace*
-            frame*
-              filename*
-                "baz.py"
           type*
             "ValueError"
           value (ignored because stacktrace takes precedence)
             "hello world"
+          stacktrace*
+            frame*
+              filename*
+                "baz.py"

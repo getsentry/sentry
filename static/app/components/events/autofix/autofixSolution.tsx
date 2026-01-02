@@ -2,6 +2,8 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -486,6 +488,13 @@ function AutofixSolutionDisplay({
     });
   };
 
+  // Check if instructions were provided (either typed in input or already added to solution and active)
+  const hasInstructions =
+    instructions.trim().length > 0 ||
+    solutionItems.some(
+      item => item.timeline_item_type === 'human_instruction' && item.is_active !== false
+    );
+
   useEffect(() => {
     setSolutionItems(
       solution.map(item => ({
@@ -498,9 +507,7 @@ function AutofixSolutionDisplay({
   if (!solution || solution.length === 0) {
     return (
       <Alert.Container>
-        <Alert type="error" showIcon={false}>
-          {t('No solution available.')}
-        </Alert>
+        <Alert variant="danger">{t('No solution available.')}</Alert>
       </Alert.Container>
     );
   }
@@ -511,9 +518,9 @@ function AutofixSolutionDisplay({
         <CustomSolutionPadding>
           <HeaderWrapper>
             <HeaderText>
-              <HeaderIconWrapper ref={iconFixRef}>
+              <Flex justify="center" align="center" ref={iconFixRef}>
                 <IconFix size="sm" color="green400" />
-              </HeaderIconWrapper>
+              </Flex>
               {t('Custom Solution')}
             </HeaderText>
           </HeaderWrapper>
@@ -539,9 +546,9 @@ function AutofixSolutionDisplay({
     <SolutionContainer ref={containerRef}>
       <HeaderWrapper>
         <HeaderText>
-          <HeaderIconWrapper ref={iconFixRef}>
+          <Flex justify="center" align="center" ref={iconFixRef}>
             <IconFix size="md" color="green400" />
-          </HeaderIconWrapper>
+          </Flex>
           {t('Solution')}
           <Button
             size="zero"
@@ -650,6 +657,9 @@ function AutofixSolutionDisplay({
               onClick={handleCodeItUp}
               analyticsEventName="Autofix: Code It Up"
               analyticsEventKey="autofix.solution.code"
+              analyticsParams={{
+                instruction_provided: hasInstructions,
+              }}
               title={t('Implement this solution in code with Seer')}
             >
               {t('Code It Up')}
@@ -670,9 +680,7 @@ export function AutofixSolution(props: AutofixSolutionProps) {
       <AnimatePresence initial={props.isSolutionFirstAppearance}>
         <AnimationWrapper key="card" {...cardAnimationProps}>
           <NoSolutionPadding>
-            <Alert type="warning" showIcon={false}>
-              {t('No solution found.')}
-            </Alert>
+            <Alert variant="warning">{t('No solution found.')}</Alert>
           </NoSolutionPadding>
         </AnimationWrapper>
       </AnimatePresence>
@@ -694,11 +702,11 @@ const NoSolutionPadding = styled('div')`
 
 const SolutionContainer = styled('div')`
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   box-shadow: ${p => p.theme.dropShadowMedium};
   padding: ${p => p.theme.space.lg};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const Content = styled('div')`
@@ -734,16 +742,10 @@ const CustomSolutionPadding = styled('div')`
   padding: ${space(1)} ${space(0.25)} ${space(2)} ${space(0.25)};
 `;
 
-const HeaderIconWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
 const InstructionsInputWrapper = styled('form')`
   display: flex;
   position: relative;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   margin-left: ${p => p.theme.space['3xl']};
   width: 250px;
 `;

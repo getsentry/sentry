@@ -53,6 +53,7 @@ import type {
 } from 'sentry/views/explore/queryParams/aggregateField';
 import {
   isVisualizeEquation,
+  MAX_VISUALIZES,
   Visualize,
   VisualizeEquation,
   VisualizeFunction,
@@ -101,8 +102,12 @@ export function AggregateColumnEditorModal({
     closeModal();
   }, [closeModal, onColumnsChange, tempColumns]);
 
-  const canDeleteGroupBy = tempColumns.filter(isGroupBy).length > 1;
-  const canDeleteVisualize = tempColumns.filter(isVisualize).length > 1;
+  const groupByColumnss = tempColumns.filter(isGroupBy);
+  const visualizeColumns = tempColumns.filter(isVisualize);
+
+  const canDeleteGroupBy = groupByColumnss.length > 1;
+  const canDeleteVisualize = visualizeColumns.length > 1;
+  const canAddVisualize = visualizeColumns.length < MAX_VISUALIZES;
 
   return (
     <DragNDropContext columns={tempColumns} setColumns={setTempColumns}>
@@ -143,6 +148,7 @@ export function AggregateColumnEditorModal({
                     key: 'add-visualize',
                     label: t('Visualize / Function'),
                     details: t('ex. p50(span.duration)'),
+                    disabled: !canAddVisualize,
                     onAction: () =>
                       insertColumn(new VisualizeFunction(DEFAULT_VISUALIZATION)),
                   },
@@ -152,6 +158,7 @@ export function AggregateColumnEditorModal({
                           key: 'add-equation',
                           label: t('Equation'),
                           details: t('ex. p50(span.duration) / 2'),
+                          disabled: !canAddVisualize,
                           onAction: () =>
                             insertColumn(new VisualizeEquation(EQUATION_PREFIX)),
                         },
@@ -162,7 +169,7 @@ export function AggregateColumnEditorModal({
                   <Button
                     {...triggerProps}
                     aria-label={t('Add a Column')}
-                    icon={<IconAdd isCircled />}
+                    icon={<IconAdd />}
                   >
                     {t('Add a Column')}
                   </Button>

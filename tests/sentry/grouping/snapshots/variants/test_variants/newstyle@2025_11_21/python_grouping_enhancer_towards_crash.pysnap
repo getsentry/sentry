@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:18:54.117081+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: null
@@ -10,6 +8,10 @@ app:
   root_component:
     app (ignored because system exception takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        type*
+          "MultiValueDictKeyError"
+        value*
+          "\"'user'\""
         stacktrace (ignored because it contains no contributing frames)
           frame (marked out of app by the client)
             module*
@@ -56,7 +58,7 @@ app:
               "bound_func"
             context_line*
               "return func(self, *args2, **kwargs2)"
-          frame (marked in-app by the client but ignored by stack trace rule (function:wrapped_view ^-group -group))
+          frame (marked in-app by the client but ignored by custom stack trace rule (function:wrapped_view ^-group -group))
             module*
               "sentry.web.frontend.release_webhook"
             filename (ignored because module takes precedence)
@@ -74,7 +76,7 @@ app:
               "dispatch"
             context_line*
               "return handler(request, *args, **kwargs)"
-          frame (marked in-app by the client but ignored by stack trace rule (function:wrapped_view ^-group -group))
+          frame (marked in-app by the client but ignored by custom stack trace rule (function:wrapped_view ^-group -group))
             module*
               "sentry.web.frontend.release_webhook"
             filename (ignored because module takes precedence)
@@ -83,7 +85,7 @@ app:
               "post"
             context_line*
               "hook.handle(request)"
-          frame (marked in-app by the client but ignored by stack trace rule (function:wrapped_view ^-group -group))
+          frame (marked in-app by the client but ignored by custom stack trace rule (function:wrapped_view ^-group -group))
             module*
               "sentry_plugins.heroku.plugin"
             filename (ignored because module takes precedence)
@@ -101,18 +103,18 @@ app:
               "__getitem__"
             context_line*
               "raise MultiValueDictKeyError(repr(key))"
-        type*
-          "MultiValueDictKeyError"
-        value*
-          "\"'user'\""
 --------------------------------------------------------------------------
 system:
-  hash: "90888e813b09fa25061af2883c0fb9bd"
+  hash: "5c0a281b9f8602e5d639d2f722fe5a9a"
   contributing component: exception
   hint: None
   root_component:
     system*
       exception*
+        type*
+          "MultiValueDictKeyError"
+        value (ignored because stacktrace takes precedence)
+          "\"'user'\""
         stacktrace*
           frame*
             module*
@@ -141,7 +143,7 @@ system:
               "_wrapper"
             context_line*
               "return bound_func(*args, **kwargs)"
-          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
+          frame (ignored by custom stack trace rule (function:wrapped_view ^-group -group))
             module*
               "django.views.decorators.csrf"
             filename (ignored because module takes precedence)
@@ -150,7 +152,7 @@ system:
               "wrapped_view"
             context_line*
               "return view_func(*args, **kwargs)"
-          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
+          frame (ignored by custom stack trace rule (function:wrapped_view ^-group -group))
             module*
               "django.utils.decorators"
             filename (ignored because module takes precedence)
@@ -159,7 +161,7 @@ system:
               "bound_func"
             context_line*
               "return func(self, *args2, **kwargs2)"
-          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
+          frame (ignored by custom stack trace rule (function:wrapped_view ^-group -group))
             module*
               "sentry.web.frontend.release_webhook"
             filename (ignored because module takes precedence)
@@ -168,7 +170,7 @@ system:
               "dispatch"
             context_line*
               "return super(ReleaseWebhookView, self).dispatch(*args, **kwargs)"
-          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
+          frame (ignored by custom stack trace rule (function:wrapped_view ^-group -group))
             module*
               "django.views.generic.base"
             filename (ignored because module takes precedence)
@@ -177,7 +179,7 @@ system:
               "dispatch"
             context_line*
               "return handler(request, *args, **kwargs)"
-          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
+          frame (ignored by custom stack trace rule (function:wrapped_view ^-group -group))
             module*
               "sentry.web.frontend.release_webhook"
             filename (ignored because module takes precedence)
@@ -186,7 +188,7 @@ system:
               "post"
             context_line*
               "hook.handle(request)"
-          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
+          frame (ignored by custom stack trace rule (function:wrapped_view ^-group -group))
             module*
               "sentry_plugins.heroku.plugin"
             filename (ignored because module takes precedence)
@@ -195,7 +197,7 @@ system:
               "handle"
             context_line*
               "email = request.POST['user']"
-          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
+          frame (ignored by custom stack trace rule (function:wrapped_view ^-group -group))
             module*
               "django.utils.datastructures"
             filename (ignored because module takes precedence)
@@ -204,7 +206,3 @@ system:
               "__getitem__"
             context_line*
               "raise MultiValueDictKeyError(repr(key))"
-        type*
-          "MultiValueDictKeyError"
-        value (ignored because stacktrace takes precedence)
-          "\"'user'\""

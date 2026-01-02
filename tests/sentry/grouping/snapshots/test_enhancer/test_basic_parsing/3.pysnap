@@ -1,7 +1,5 @@
 ---
-created: '2025-04-27T03:05:59.368654+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_enhancer.py
+source: tests/sentry/grouping/test_enhancer.py::test_basic_parsing
 ---
 bases:
 - common:v1
@@ -108,6 +106,18 @@ contributes_rules:
   - key: value
     negated: false
     pattern: '*something*'
+custom_rule_strings (sorted for snapshot stability - not in application order):
+- family:javascript app:1 path:*/test.js -app
+- family:javascript path:*/test.js -app
+- family:native max-frames=3
+- family:native module:std::* -app
+- function:ThreadStartLinux v-group
+- function:ThreadStartMac v-group
+- function:ThreadStartWin32 v-group
+- function:panic_handler ^-group -group
+- module:core::* -app
+- path:*/code/game/whatever/* +app
+- value:*something* max-frames=12
 id: null
 rules:
 - actions:

@@ -64,7 +64,7 @@ export function GroupBySelector({traceMetric}: GroupBySelectorProps) {
   }, [stringTags]);
 
   const enabledOptions: Array<SelectOption<string>> = useGroupByFields({
-    groupBys: [],
+    groupBys,
     numberTags: visibleNumberTags ?? {},
     stringTags: visibleStringTags ?? {},
     traceItemType: TraceItemDataset.TRACEMETRICS,
@@ -74,7 +74,7 @@ export function GroupBySelector({traceMetric}: GroupBySelectorProps) {
   const isLoading = numberTagsLoading || stringTagsLoading;
 
   return (
-    <CompactSelect<string>
+    <CompactSelect
       multiple
       searchable
       triggerProps={{

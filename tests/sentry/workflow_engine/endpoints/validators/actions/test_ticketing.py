@@ -23,7 +23,7 @@ class BaseTicketingActionValidatorTest(TestCase):
             "integrationId": self.integration.id,
         }
 
-    def test_validate(self):
+    def test_validate(self) -> None:
         validator = BaseActionValidator(
             data=self.valid_data,
             context={"organization": self.organization},

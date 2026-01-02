@@ -2147,34 +2147,6 @@ class TestTempestProjectDetails(TestProjectDetailsBase):
         )
         assert "tempestFetchScreenshots" not in response.data
 
-    def test_put_tempest_fetch_dumps(self) -> None:
-        self.organization.update_option("sentry:enabled_console_platforms", ["playstation"])
-        assert self.project.get_option("sentry:tempest_fetch_dumps") is False
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, method="put", tempestFetchDumps=True
-        )
-        assert response.data["tempestFetchDumps"] is True
-        assert self.project.get_option("sentry:tempest_fetch_dumps") is True
-
-    def test_put_tempest_fetch_dumps_without_feature_flag(self) -> None:
-        self.get_error_response(
-            self.organization.slug, self.project.slug, method="put", tempestFetchDumps=True
-        )
-
-    def test_get_tempest_fetch_dumps_options(self) -> None:
-        self.organization.update_option("sentry:enabled_console_platforms", ["playstation"])
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, method="get"
-        )
-        assert "tempestFetchDumps" in response.data
-        assert response.data["tempestFetchDumps"] is False
-
-    def test_get_tempest_fetch_dumps_options_without_enabled_playstation_in_options(self) -> None:
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, method="get"
-        )
-        assert "tempestFetchDumps" not in response.data
-
 
 class TestSeerProjectDetails(TestProjectDetailsBase):
     endpoint = "sentry-api-0-project-details"

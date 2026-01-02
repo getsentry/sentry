@@ -1,32 +1,70 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {parseAsStringEnum, useQueryState} from 'nuqs';
 
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Flex, Stack} from 'sentry/components/core/layout';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Radio} from 'sentry/components/core/radio';
 import {Text} from 'sentry/components/core/text';
 import Hook from 'sentry/components/hook';
 import {t, tct} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import {
+  makeAutomationBasePathname,
+  makeAutomationCreatePathname,
+} from 'sentry/views/automations/pathnames';
 import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
 
 export function DetectorTypeForm() {
+  const organization = useOrganization();
+
   return (
-    <FormContainer>
-      <Header>
-        <h3>{t('Select monitor type')}</h3>
-      </Header>
+    <Stack gap="xl">
+      <Stack gap="sm">
+        <Text size="lg" bold>
+          {t('Select monitor type')}
+        </Text>
+        <Text as="p">
+          {tct(
+            'Do you want to alert existing issues? Create a [newAlertLink:new alert], or [connectAlertLink:connect an existing one].',
+            {
+              newAlertLink: <Link to={makeAutomationCreatePathname(organization.slug)} />,
+              connectAlertLink: (
+                <Link to={makeAutomationBasePathname(organization.slug)} />
+              ),
+            }
+          )}
+        </Text>
+      </Stack>
       <MonitorTypeField />
-    </FormContainer>
+    </Stack>
   );
+}
+
+type SelectableDetectorType = Extract<
+  DetectorType,
+  'metric_issue' | 'monitor_check_in_failure' | 'uptime_domain_failure'
+>;
+
+const ALLOWED_DETECTOR_TYPES = [
+  'metric_issue',
+  'monitor_check_in_failure',
+  'uptime_domain_failure',
+] as const satisfies SelectableDetectorType[];
+
+const detectorTypeParser = parseAsStringEnum(ALLOWED_DETECTOR_TYPES)
+  .withOptions({history: 'replace', clearOnDefault: false})
+  .withDefault(ALLOWED_DETECTOR_TYPES[0]);
+
+export function useDetectorTypeQueryState() {
+  return useQueryState('detectorType', detectorTypeParser);
 }
 
 interface DetectorTypeOption {
   description: string;
-  id: DetectorType;
+  id: SelectableDetectorType;
   name: string;
   visualization: React.ReactNode;
   disabled?: boolean;
@@ -34,23 +72,15 @@ interface DetectorTypeOption {
 }
 
 function MonitorTypeField() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const selectedDetectorType = location.query.detectorType as DetectorType;
+  const [selectedDetectorType, setDetectorType] = useDetectorTypeQueryState();
 
   const useMetricDetectorLimit =
     HookStore.get('react-hook:use-metric-detector-limit')[0] ?? (() => null);
   const quota = useMetricDetectorLimit();
   const canCreateMetricDetector = !quota?.hasReachedLimit;
 
-  const handleChange = (value: DetectorType) => {
-    navigate({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        detectorType: value,
-      },
-    });
+  const handleChange = (value: SelectableDetectorType) => {
+    setDetectorType(value);
   };
 
   const options: DetectorTypeOption[] = [
@@ -122,12 +152,6 @@ function MonitorTypeField() {
   );
 }
 
-const FormContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xl};
-`;
-
 const RadioOptions = styled('div')`
   display: flex;
   flex-direction: column;
@@ -145,9 +169,9 @@ const OptionBody = styled('div')`
 const OptionLabel = styled('label')<{disabled?: boolean}>`
   display: grid;
   grid-template-columns: 1fr;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.border};
-  background-color: ${p => p.theme.surface400};
+  background-color: ${p => p.theme.colors.surface500};
   font-weight: ${p => p.theme.fontWeight.normal};
   cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
   overflow: hidden;
@@ -179,22 +203,6 @@ const OptionInfo = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
 `;
 
-const Header = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.sm};
-  margin-top: ${p => p.theme.space.xl};
-  margin-bottom: ${p => p.theme.space.md};
-
-  h3 {
-    margin: 0;
-    font-size: ${p => p.theme.fontSize.lg};
-  }
-  p {
-    margin: 0;
-  }
-`;
-
 const Visualization = styled('div')`
   display: none;
   height: 56px;
@@ -214,70 +222,29 @@ const Visualization = styled('div')`
 
 function MetricVisualization() {
   const theme = useTheme();
+  const danger = theme.colors.red400;
+  const defaultChartColor = theme.chart.getColorPalette(0)[0] ?? theme.colors.blue500;
+
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 480 56">
-      <g opacity=".3">
-        <path
-          fill="url(#a)"
-          d="M10.694 34.208 1.391 50.067a1 1 0 0 0-.137.506v4.443a1 1 0 0 0 1 1h478a1 1 0 0 0 1-1V17.224a1 1 0 0 0-.37-.777l-9.943-8.067a1 1 0 0 0-.63-.224h-19.904a1 1 0 0 0-.262.035l-20.053 5.431a1 1 0 0 1-.426.021l-9.411-1.57a.998.998 0 0 0-.354.004l-10.144 1.96a1 1 0 0 1-.524-.04l-9.462-3.356a1 1 0 0 0-.176-.044l-9.804-1.574a1 1 0 0 0-.579.08l-10.034 4.652a1 1 0 0 1-.579.08l-9.775-1.569a1.01 1.01 0 0 1-.23-.065l-9.716-4.093a.999.999 0 0 0-.744-.013l-9.821 3.743L338.3 14.45c-.121.031-.247.04-.372.025l-9.717-1.17a1.001 1.001 0 0 0-.554.092l-9.766 4.702a1 1 0 0 1-.351.096l-9.499.792a.992.992 0 0 0-.235.049l-10.492 3.526a1 1 0 0 1-.733-.038l-8.477-3.856a.997.997 0 0 1-.32-.232L277.396 7.183a1 1 0 0 0-1.558.11l-8.908 12.92a1 1 0 0 1-1.406.246l-9.062-6.482a.998.998 0 0 0-.681-.182l-9.577.96a1 1 0 0 1-.472-.067l-9.007-3.613a1 1 0 0 0-1.313.589l-9.219 25.573a1 1 0 0 1-.921.66l-9.9.192-9.999-.803a.999.999 0 0 0-.386.045l-9.855 3.163a1.005 1.005 0 0 1-.313.048l-30.742-.203a.893.893 0 0 1-.155-.013l-19.843-3.247a.984.984 0 0 0-.161-.013h-10.766a.996.996 0 0 1-.262-.035l-8.891-2.42-10.108-1.825a1.002 1.002 0 0 0-.178-.015h-10.89l-10.003.802a.999.999 0 0 1-.379-.042l-9.409-2.945a1 1 0 0 0-.427-.037L71.93 31.941a.968.968 0 0 1-.178.007L50.666 30.93H31.662a1 1 0 0 0-.406.086l-10.1 4.487a1 1 0 0 1-.61.065l-8.785-1.832a1 1 0 0 0-1.067.472Z"
-        />
-        <path
-          stroke={theme.subText}
-          strokeLinecap="round"
-          strokeWidth="1.5"
-          d="m1.254 50.301 9.44-16.093a1 1 0 0 1 1.067-.472l8.785 1.832a1 1 0 0 0 .61-.065l10.1-4.487a1 1 0 0 1 .406-.086h19.004l21.087 1.018c.06.003.119 0 .178-.007l10.674-1.392a1 1 0 0 1 .427.037l9.41 2.945c.122.038.25.053.378.042l10.003-.802h10.89c.06 0 .119.005.178.015l10.108 1.825 8.891 2.42a.996.996 0 0 0 .262.035h10.766c.054 0 .108.004.161.013l19.843 3.247a.99.99 0 0 0 .155.013l30.742.203c.106.001.212-.015.313-.047l9.855-3.164a.999.999 0 0 1 .386-.045l9.999.803 9.9-.191a1 1 0 0 0 .921-.661l9.219-25.573a1 1 0 0 1 1.313-.59l9.007 3.614a1 1 0 0 0 .472.067l9.577-.96a.998.998 0 0 1 .681.181l9.062 6.483a1.001 1.001 0 0 0 1.406-.245l8.908-12.92a1 1 0 0 1 1.558-.111l10.388 11.253c.09.098.199.177.32.232l8.477 3.857c.231.104.493.118.733.037l10.492-3.526a.997.997 0 0 1 .235-.049l9.499-.792a.999.999 0 0 0 .351-.096l9.766-4.702a.998.998 0 0 1 .554-.092l9.717 1.17c.125.015.251.006.372-.025l10.013-2.612 9.821-3.743a.999.999 0 0 1 .744.013l9.716 4.093c.074.03.151.053.23.065l9.775 1.57a1 1 0 0 0 .579-.08l10.034-4.653a1 1 0 0 1 .579-.08l9.804 1.574a1 1 0 0 1 .176.044l9.462 3.356a1 1 0 0 0 .524.04l10.144-1.96a1 1 0 0 1 .354-.005l9.411 1.571a1 1 0 0 0 .426-.02l20.053-5.432a1 1 0 0 1 .262-.035h19.904a1 1 0 0 1 .63.224l10.313 8.367"
-          opacity=".8"
-        />
-      </g>
+    <svg fill="none" viewBox="0 0 480 56">
       <path
-        stroke={theme.red300}
-        strokeLinecap="round"
-        strokeWidth="4"
-        d="M233.675 10.658h245.414"
-        opacity=".8"
+        fill={defaultChartColor}
+        d="M4 50.5 0 56h480v-7.5l-4-4-4-2-4.1-6.5-4 2-4 3-4.1-5-3.5-1.5-4.6 9-4-2-4 1-4 3-4.1 4-4 .5-4 1-4.1-1.5-4-5.5-4-3.5-4.1 3.5-4-1.5-4 2.5-4.1-4.5-4 .5-4-3-4.1 3h-4l-4 3-4.1-1.5-4 5-4 3-4.1-18-4 3.5-4-22-4.1 34-4-4.5-4-2-4.1-4-4 5.5-4-5.5-4.1-5-4 6.5-4 4.5h-4.1l-4-4.5-4 4-4.1 4-4 2.5-4-.5-4.1-4-4 1.5-4-4.5-4.1 2.5-4-6.5-4-3.5-4.1 3-4-3.5-4 8-4.1-4.5-4 1-4-4L238 40l-4 4.5-4 5-4.1-1h-4l-4 1.5-4.1 1.5-4-6-4 5.5-4.1 2.3-4-2.8-4 3.5-4.1-3-4 2-4-.7-4.1-.8-4-6-4 4.5-4.1 2.3-4-1.3-4 2-4.1-.5-4 1.5h-4l-4.1-1.5-4 2.5-4-1H129l-4-3.5-4 2-4.1-1-4 2-4-1.5-4.1-1.5-4 1-4 2-4.1-2-4 2.5-4-1.5-4.1 2.5-4-2h-4l-4.1-5.5-4-2.5-4.1-7.5-4-30.5-4.6 31.5-3.5 3-4-2-4 2-4.1 3.5-4-3-4 2-4.1-2-4 6.5-4 4.5-4.1-3.5-4 2.5z"
       />
+      <path fill={danger} d="M0-.5h480v29H0z" fillOpacity=".1" />
       <path
-        stroke={theme.subText}
-        strokeLinecap="round"
-        strokeWidth="4"
-        d="M2.698 36.355H231.51"
-        opacity=".6"
+        fill={danger}
+        d="M0 28.5v.3h1v-.5H0zm3 0v.3h2v-.5H3zm4 0v.3h2v-.5H7zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h2v-.5h-2zm4 0v.3h1v-.5h-1zm-479 0v.5h1v-1H0zm3 0v.5h2v-1H3zm4 0v.5h2v-1H7zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h2v-1h-2zm4 0v.5h1v-1h-1z"
       />
-      <path
-        stroke={theme.subText}
-        strokeDasharray="4 4"
-        strokeLinecap="round"
-        d="M232.953 11.628v24.727"
-        opacity=".6"
-      />
-      <path
-        stroke={theme.blue100}
-        strokeLinecap="round"
-        strokeOpacity=".06"
-        d="M232.953 5.81v49.938"
-      />
-      <defs>
-        <linearGradient
-          id="a"
-          x1="276.405"
-          x2="276.405"
-          y1="56.016"
-          y2="9.65"
-          gradientUnits="userSpaceOnUse"
-        >
-          <stop stopColor={theme.subText} stopOpacity="0" />
-          <stop offset="1" stopColor={theme.subText} stopOpacity=".2" />
-        </linearGradient>
-      </defs>
     </svg>
   );
 }
 
 function CronsVisualization() {
   const theme = useTheme();
-  const danger = theme.red300;
-  const warning = theme.yellow300;
-  const success = theme.green300;
+  const danger = theme.colors.red400;
+  const warning = theme.colors.yellow400;
+  const success = theme.colors.green400;
   return (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 480 56">
       <rect
@@ -503,8 +470,9 @@ function CronsVisualization() {
 
 function UptimeVisualization() {
   const theme = useTheme();
-  const danger = theme.red300;
-  const success = theme.green300;
+  const danger = theme.colors.red400;
+  const success = theme.colors.green400;
+
   return (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 480 56">
       <rect

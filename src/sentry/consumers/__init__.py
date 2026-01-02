@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, Union, get_args, get_origin, get_type_hints
 
 import click
 from arroyo.backends.abstract import Consumer
@@ -27,10 +27,77 @@ from sentry.consumers.profiler import JoinProfiler
 from sentry.consumers.validate_schema import ValidateSchema
 from sentry.eventstream.types import EventStreamEventType
 from sentry.ingest.types import ConsumerType
+from sentry.utils import json
 from sentry.utils.imports import import_string
 from sentry.utils.kafka_config import get_topic_definition
 
 logger = logging.getLogger(__name__)
+
+
+def apply_processor_args_overrides(
+    consumer_name: str, base_args: dict[str, Any], overrides: Sequence[str]
+) -> dict[str, Any]:
+    """
+    Apply processor args overrides from CLI strings to the base StreamProcessor arguments.
+
+    Args:
+        consumer_name: Name of the consumer
+        base_args: Base arguments dict for StreamProcessor
+        overrides: Raw CLI argument strings in format 'key:value'
+
+    Returns:
+        Updated arguments dict with overrides applied
+    """
+    # Get resolved type hints (handles __future__.annotations)
+    type_hints = get_type_hints(StreamProcessor.__init__)
+
+    for arg in overrides:
+        try:
+            key, value_str = arg.split(":", 1)
+            param_type = type_hints[key]
+
+            # Extract the actual type from Optional[T] (which is Union[T, None])
+            if get_origin(param_type) is Union:
+                # For Optional[T] (Union[T, None]), extract T
+                type_args = get_args(param_type)
+                param_type = next((t for t in type_args if t is not type(None)), str)
+
+            # Try to parse as JSON first, fallback to string
+            try:
+                value = json.loads(value_str)
+            except Exception:
+                value = value_str
+
+            # Validate the type matches what we expect
+            # Allow int->float coercion since JSON parses as int
+            if param_type == float and isinstance(value, int):
+                value = float(value)
+            elif not isinstance(value, param_type):
+                raise ValueError(f"Expected {param_type}, got {type(value)}")
+
+            if key in base_args:
+                logger.info(
+                    "overriding argument %s from CLI: %s -> %s",
+                    key,
+                    base_args[key],
+                    value,
+                    extra={
+                        "consumer_name": consumer_name,
+                    },
+                )
+            base_args[key] = value
+        except Exception as e:
+            logger.warning(
+                "skipping invalid argument %s from CLI: %s",
+                arg,
+                str(e),
+                extra={
+                    "consumer_name": consumer_name,
+                    "valid_params": sorted(type_hints.keys()),
+                },
+            )
+
+    return base_args
 
 
 def convert_max_batch_time(ctx, param, value):
@@ -465,10 +532,9 @@ def get_stream_processor(
     group_instance_id: str | None = None,
     max_dlq_buffer_length: int | None = None,
     kafka_slice_id: int | None = None,
-    shutdown_strategy_before_consumer: bool = False,
     add_global_tags: bool = False,
     profile_consumer_join: bool = False,
-    enable_autocommit: bool = False,
+    arroyo_args: Sequence[str] | None = None,
 ) -> StreamProcessor:
     from sentry.utils import kafka_config
 
@@ -526,7 +592,6 @@ def get_stream_processor(
             group_id=group_id,
             auto_offset_reset=auto_offset_reset,
             strict_offset_reset=strict_offset_reset,
-            enable_auto_commit=enable_autocommit,
         )
 
         if max_poll_interval_ms is not None:
@@ -539,9 +604,8 @@ def get_stream_processor(
         if group_instance_id is not None:
             consumer_config["group.instance.id"] = group_instance_id
 
-        if enable_autocommit:
-            # Set commit interval to 1 second (1000ms)
-            consumer_config["auto.commit.interval.ms"] = 1000
+        # Set commit interval to 1 second (1000ms)
+        consumer_config["auto.commit.interval.ms"] = 1000
 
         return consumer_config
 
@@ -627,15 +691,21 @@ def get_stream_processor(
     else:
         dlq_policy = None
 
-    return StreamProcessor(
-        consumer=consumer,
-        topic=ArroyoTopic(topic),
-        processor_factory=strategy_factory,
-        commit_policy=ONCE_PER_SECOND,
-        join_timeout=join_timeout,
-        dlq_policy=dlq_policy,
-        shutdown_strategy_before_consumer=shutdown_strategy_before_consumer,
-    )
+    # Build base StreamProcessor arguments
+    processor_args = {
+        "consumer": consumer,
+        "topic": ArroyoTopic(topic),
+        "processor_factory": strategy_factory,
+        "commit_policy": ONCE_PER_SECOND,
+        "join_timeout": join_timeout,
+        "dlq_policy": dlq_policy,
+    }
+
+    # Apply CLI-provided overrides for StreamProcessor arguments
+    if arroyo_args:
+        processor_args = apply_processor_args_overrides(consumer_name, processor_args, arroyo_args)
+
+    return StreamProcessor(**processor_args)
 
 
 class ValidateSchemaStrategyFactoryWrapper(ProcessingStrategyFactory):
@@ -672,7 +742,7 @@ class MinPartitionMetricTagWrapper(ProcessingStrategyFactory):
         # Update the min_partition global tag based on current partition assignment
         if partitions:
             min_partition = min(p.index for p in partitions)
-            add_global_tags(min_partition=str(min_partition))
+            add_global_tags(tags={"min_partition": str(min_partition)})
 
         return self.inner.create_with_partitions(commit, partitions)
 

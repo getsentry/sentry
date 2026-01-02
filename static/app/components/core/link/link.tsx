@@ -1,15 +1,10 @@
-import {
-  Link as RouterLink,
-  type LinkProps as ReactRouterLinkProps,
-} from 'react-router-dom';
+import {type LinkProps as ReactRouterLinkProps} from 'react-router-dom';
 import isPropValid from '@emotion/is-prop-valid';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import {locationDescriptorToTo} from 'sentry/utils/reactRouter6Compat/location';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import {useLocation} from 'sentry/utils/useLocation';
+import {useLinkBehavior} from './linkBehaviorContext';
 
 export interface LinkProps
   extends React.RefAttributes<HTMLAnchorElement>,
@@ -54,33 +49,29 @@ const getLinkStyles = ({
   }
 
   &:focus-visible {
-    box-shadow: ${theme.linkFocus} 0 0 0 2px;
     text-decoration: none;
-    outline: none;
+    ${theme.focusRing()}
   }
 `;
 
 const Anchor = styled('a', {
-  shouldForwardProp: prop =>
-    typeof prop === 'string' && isPropValid(prop) && prop !== 'disabled',
+  shouldForwardProp: prop => isPropValid(prop) && prop !== 'disabled',
 })<{disabled?: LinkProps['disabled']}>`
   ${getLinkStyles}
 `;
 
-/**
- * A context-aware version of Link (from react-router) that falls
- * back to <a> if there is no router present
- */
-export const Link = styled(({disabled, to, ...props}: LinkProps) => {
-  const location = useLocation();
+export const Link = styled((props: LinkProps) => {
+  const {Component, behavior} = useLinkBehavior(props);
 
-  if (disabled || !location) {
-    return <Anchor {...props} />;
+  if (props.disabled) {
+    // Removing the "to" prop here to prevent the anchor from being rendered with to="
+    // [object Object]" when "to" prop is a LocationDescriptor object. Have to create a
+    // new object here, as we can't delete the "to" prop as it is a required prop.
+    const {to: _to, ...restProps} = props;
+    return <Anchor {...restProps} />;
   }
 
-  return (
-    <RouterLink to={locationDescriptorToTo(normalizeUrl(to, location))} {...props} />
-  );
+  return <Component {...behavior()} />;
 })`
   ${getLinkStyles}
 `;

@@ -7,15 +7,20 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {formatTraceMetricsFunction} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
+import {useHasTraceMetricsDashboards} from 'sentry/views/dashboards/hooks/useHasTraceMetricsDashboards';
 import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {useAddMetricToDashboard} from 'sentry/views/explore/metrics/hooks/useAddMetricToDashboard';
 import {useSaveMetricsMultiQuery} from 'sentry/views/explore/metrics/hooks/useSaveMetricsMultiQuery';
+import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
+import {isVisualize} from 'sentry/views/explore/queryParams/visualize';
+import {getVisualizeLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 import {canUseMetricsSavedQueriesUI} from './metricsFlags';
@@ -31,12 +36,19 @@ export function useSaveAsMetricItems(_options: UseSaveAsMetricItemsOptions) {
   const id = getIdFromLocation(location);
   const {data: savedQuery} = useGetSavedQuery(id);
 
-  const saveAsQuery = useMemo(() => {
+  const metricQueries = useMultiMetricsQueryParams();
+  const hasTraceMetricsDashboards = useHasTraceMetricsDashboards();
+  const {addToDashboard} = useAddMetricToDashboard();
+
+  const saveAsItems = useMemo(() => {
     if (!canUseMetricsSavedQueriesUI(organization)) {
-      return null;
+      return [];
     }
+
+    const items = [];
+
     if (defined(id) && savedQuery?.isPrebuilt === false) {
-      return {
+      items.push({
         key: 'update-query',
         textValue: t('Existing Query'),
         label: <span>{t('Existing Query')}</span>,
@@ -55,10 +67,10 @@ export function useSaveAsMetricItems(_options: UseSaveAsMetricItemsOptions) {
             Sentry.captureException(error);
           }
         },
-      };
+      });
     }
 
-    return {
+    items.push({
       key: 'save-query',
       label: <span>{t('A New Query')}</span>,
       textValue: t('A New Query'),
@@ -76,14 +88,42 @@ export function useSaveAsMetricItems(_options: UseSaveAsMetricItemsOptions) {
           traceItemDataset: TraceItemDataset.TRACEMETRICS,
         });
       },
-    };
+    });
+
+    return items;
   }, [id, savedQuery?.isPrebuilt, updateQuery, saveQuery, organization]);
 
   // TODO: Implement alert functionality when organizations:tracemetrics-alerts flag is enabled
 
-  // TODO: Implement dashboard functionality when organizations:tracemetrics-dashboards flag is enabled
+  const addToDashboardItems = useMemo(() => {
+    const items = [];
+
+    if (hasTraceMetricsDashboards) {
+      items.push({
+        key: 'add-to-dashboard',
+        label: <span>{t('A Dashboard widget')}</span>,
+        textValue: t('A Dashboard widget'),
+        isSubmenu: true,
+        children: metricQueries.map((metricQuery, index) => {
+          return {
+            key: `add-to-dashboard-${index}`,
+            label: `${getVisualizeLabel(index)}: ${
+              formatTraceMetricsFunction(
+                metricQuery.queryParams.aggregateFields.find(isVisualize)?.yAxis ?? ''
+              ) as string
+            }`,
+            onAction: () => {
+              addToDashboard(metricQuery);
+            },
+          };
+        }),
+      });
+    }
+
+    return items;
+  }, [hasTraceMetricsDashboards, addToDashboard, metricQueries]);
 
   return useMemo(() => {
-    return [saveAsQuery].filter(Boolean) as MenuItemProps[];
-  }, [saveAsQuery]);
+    return [...saveAsItems, ...addToDashboardItems];
+  }, [saveAsItems, addToDashboardItems]);
 }

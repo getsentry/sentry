@@ -42,7 +42,7 @@ function LogUsername({logEntryUser}: {logEntryUser: User | undefined}) {
         <Text variant="muted" size="sm">
           {logEntryUser.name}
         </Text>
-        <Tag type="default">{t('Sentry Staff')}</Tag>
+        <Tag variant="muted">{t('Sentry Staff')}</Tag>
       </Flex>
     );
   }
@@ -122,17 +122,17 @@ function UsageLog({location, subscription}: Props) {
     [auditLogs?.eventNames]
   );
 
-  const handleEventFilter = (value: string | null) => {
-    if (value === null) {
+  const handleEventFilter = (value: string | undefined) => {
+    if (typeof value === 'string') {
+      navigate({
+        pathname: location.pathname,
+        query: {...location.query, event: value, cursor: undefined},
+      });
+    } else {
       // Clear filters
       navigate({
         pathname: location.pathname,
         query: {...location.query, event: undefined, cursor: undefined},
-      });
-    } else {
-      navigate({
-        pathname: location.pathname,
-        query: {...location.query, event: value, cursor: undefined},
       });
     }
 
@@ -165,10 +165,9 @@ function UsageLog({location, subscription}: Props) {
           clearable
           menuTitle={t('Subscription Actions')}
           options={eventNameOptions}
-          defaultValue={selectedEventName}
-          onClear={() => handleEventFilter(null)}
+          value={selectedEventName}
           onChange={option => {
-            handleEventFilter(option.value);
+            handleEventFilter(option?.value);
           }}
           triggerProps={{
             size: 'sm',
@@ -189,7 +188,7 @@ function UsageLog({location, subscription}: Props) {
                     colorConfig={{
                       icon: index === 0 ? theme.active : theme.gray300,
                       iconBorder: index === 0 ? theme.active : theme.gray300,
-                      title: theme.textColor,
+                      title: theme.tokens.content.primary,
                     }}
                     icon={<IconCircleFill />}
                     title={formatEntryTitle(entry.event)}

@@ -153,7 +153,7 @@ export default function TeamProjects() {
                   <Button
                     size="sm"
                     disabled={!hasWriteAccess}
-                    icon={<IconSubtract isCircled />}
+                    icon={<IconSubtract />}
                     aria-label={t('Remove')}
                     onClick={() => {
                       handleLinkProject(project, 'remove');
@@ -165,7 +165,7 @@ export default function TeamProjects() {
               </StyledPanelItem>
             ))
           ) : linkedProjectsLoading ? null : (
-            <EmptyMessage size="large" icon={<IconFlag size="xl" />}>
+            <EmptyMessage size="lg" icon={<IconFlag />}>
               {t("This team doesn't have access to any projects.")}
             </EmptyMessage>
           )}

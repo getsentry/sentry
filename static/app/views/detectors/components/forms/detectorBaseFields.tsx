@@ -12,7 +12,15 @@ import useProjects from 'sentry/utils/useProjects';
 import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
 import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetector';
 
-export function DetectorBaseFields() {
+interface DetectorBaseFieldsProps {
+  envFieldProps?: Partial<React.ComponentProps<typeof SelectField>>;
+  noEnvironment?: boolean;
+}
+
+export function DetectorBaseFields({
+  noEnvironment,
+  envFieldProps,
+}: DetectorBaseFieldsProps) {
   const {setHasSetDetectorName} = useDetectorFormContext();
 
   return (
@@ -21,7 +29,7 @@ export function DetectorBaseFields() {
         <FormField name="name" inline={false} flexibleControlStateSize stacked>
           {({onChange, value}) => (
             <EditableText
-              isDisabled={false}
+              allowEmpty
               value={value || ''}
               onChange={newValue => {
                 onChange(newValue, {
@@ -31,7 +39,6 @@ export function DetectorBaseFields() {
                 });
                 setHasSetDetectorName(true);
               }}
-              errorMessage={t('Please set a title')}
               placeholder={t('New Monitor')}
               aria-label={t('Monitor Name')}
             />
@@ -40,7 +47,7 @@ export function DetectorBaseFields() {
       </Layout.Title>
       <Flex gap="md">
         <ProjectField />
-        <EnvironmentField />
+        {!noEnvironment && <EnvironmentField {...envFieldProps} />}
       </Flex>
     </Flex>
   );
@@ -82,7 +89,7 @@ function ProjectField() {
   );
 }
 
-function EnvironmentField() {
+function EnvironmentField(props: Partial<React.ComponentProps<typeof SelectField>>) {
   const {projects} = useProjects();
   const projectId = useFormField<string>('projectId')!;
 
@@ -101,6 +108,7 @@ function EnvironmentField() {
       placeholder={t('Environment')}
       aria-label={t('Select Environment')}
       size="sm"
+      {...props}
     />
   );
 }
