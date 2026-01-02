@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 import multiprocessing
 import queue
-import random
 import signal
 import threading
 import time
@@ -38,7 +37,7 @@ from sentry.utils import metrics
 logger = logging.getLogger("sentry.taskworker.worker")
 
 
-class WorkerServicer(taskworker_pb2_grpc.WorkerServicer):
+class WorkerServicer(taskworker_pb2_grpc.WorkerServiceServicer):
     """
     gRPC servicer that receives task activations pushed from the broker
     """
@@ -46,12 +45,13 @@ class WorkerServicer(taskworker_pb2_grpc.WorkerServicer):
     def __init__(self, worker: TaskWorker) -> None:
         self.worker = worker
 
-    def AddTask(
+    def PushTask(
         self,
-        request: taskworker_pb2.AddTaskRequest,
+        request: taskworker_pb2.PushTaskRequest,
         context: grpc.ServicerContext,
-    ) -> taskworker_pb2.AddTaskResponse:
-        """Handle incoming task activation"""
+    ) -> taskworker_pb2.PushTaskResponse:
+        """Handle incoming task activation."""
+
         logger.info(
             "taskworker.grpc.task_received",
             extra={
@@ -60,7 +60,7 @@ class WorkerServicer(taskworker_pb2_grpc.WorkerServicer):
             },
         )
 
-        # Create InflightTaskActivation from the pushed task
+        # Create `InflightTaskActivation` from the pushed task
         inflight = InflightTaskActivation(
             activation=request.task,
             host=request.callback_url,
@@ -70,20 +70,11 @@ class WorkerServicer(taskworker_pb2_grpc.WorkerServicer):
         # Push the task to the worker queue
         added = self.worker._push_task(inflight)
 
-        return taskworker_pb2.AddTaskResponse(added=added)
-
-    def GetQueueSize(
-        self,
-        request: taskworker_pb2.GetQueueSizeRequest,
-        context: grpc.ServicerContext,
-    ) -> taskworker_pb2.GetQueueSizeResponse:
-        print("queue length being asked for")
-
         # Read the shared counter
         with self.worker._child_tasks_count.get_lock():
-            length = self.worker._child_tasks_count.value
+            queue_size = self.worker._child_tasks_count.value
 
-        return taskworker_pb2.GetQueueSizeResponse(length=length)
+        return taskworker_pb2.PushTaskResponse(added=added, queue_size=queue_size)
 
 
 class TaskWorker:
@@ -181,7 +172,7 @@ class TaskWorker:
         try:
             # Start gRPC server
             server = grpc.server(ThreadPoolExecutor(max_workers=10))
-            taskworker_pb2_grpc.add_WorkerServicer_to_server(WorkerServicer(self), server)
+            taskworker_pb2_grpc.add_WorkerServiceServicer_to_server(WorkerServicer(self), server)
             server.add_insecure_port(f"[::]:{self._grpc_port}")
             server.start()
             logger.info("taskworker.grpc_server.started", extra={"port": self._grpc_port})
@@ -331,7 +322,6 @@ class TaskWorker:
 
                     try:
                         result = self._processed_tasks.get(timeout=1.0)
-                        print(f"processed tasks: {result}")
                         executor.submit(self._send_result, result, fetch_next)
                     except queue.Empty:
                         metrics.incr(
