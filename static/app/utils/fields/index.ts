@@ -3472,7 +3472,16 @@ const TYPED_TAG_KEY_RE = /tags\[([^\s]*),([^\s]*)\]/;
 
 export function classifyTagKey(key: string): FieldKind {
   const result = key.match(TYPED_TAG_KEY_RE);
-  return result?.[2] === 'number' ? FieldKind.MEASUREMENT : FieldKind.TAG;
+
+  if (result?.[2] === 'number') {
+    return FieldKind.MEASUREMENT;
+  }
+
+  if (result?.[2] === 'boolean') {
+    return FieldKind.BOOLEAN;
+  }
+
+  return FieldKind.TAG;
 }
 
 export function prettifyTagKey(key: string): string {
