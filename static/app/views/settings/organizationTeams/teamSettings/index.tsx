@@ -82,7 +82,7 @@ export default function TeamSettings() {
       <ProjectPermissionAlert access={['team:write']} team={team} />
       {isIdpProvisioned && (
         <Alert.Container>
-          <Alert type="warning">
+          <Alert variant="warning">
             {t(
               "This team is managed through your organization's identity provider. These settings cannot be modified."
             )}

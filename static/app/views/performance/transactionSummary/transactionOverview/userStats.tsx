@@ -1,13 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import type {Location, LocationDescriptor} from 'history';
+import type {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {Link} from 'sentry/components/core/link';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import UserMisery from 'sentry/components/userMisery';
-import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
@@ -16,12 +14,8 @@ import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {WebVital} from 'sentry/utils/fields';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
-import {ModuleName} from 'sentry/views/insights/types';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
-import {vitalsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionVitals/utils';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 import VitalInfo from 'sentry/views/performance/vitalDetail/vitalInfo';
 
@@ -43,13 +37,8 @@ function UserStats({
   totals,
   location,
   organization,
-  transactionName,
   eventView,
 }: Props) {
-  const webVitalsUrl = useModuleURL(ModuleName.VITAL, false, 'frontend');
-
-  const hasWebVitalsFlag = organization.features.includes('insight-modules');
-
   let userMisery = error === null ? <Placeholder height="34px" /> : <div>{'\u2014'}</div>;
 
   if (!isLoading && error === null && totals) {
@@ -74,24 +63,6 @@ function UserStats({
 
   const orgSlug = organization.slug;
 
-  let webVitalsTarget: LocationDescriptor = vitalsRouteWithQuery({
-    organization,
-    transaction: transactionName,
-    projectID: decodeScalar(location.query.project),
-    query: location.query,
-  });
-
-  if (hasWebVitalsFlag) {
-    webVitalsTarget = {
-      pathname: `${webVitalsUrl}/overview/`,
-      query: {
-        transaction: transactionName,
-      },
-    };
-  }
-
-  const showLink = hasWebVitalsFlag;
-
   const mepSetting = useMEPSettingContext();
   const mepCardinalityContext = useMetricsCardinalityContext();
   const queryExtras = getTransactionMEPParamsIfApplicable(
@@ -115,11 +86,6 @@ function UserStats({
                 size="sm"
               />
             </SectionHeading>
-            {showLink && (
-              <Link to={webVitalsTarget}>
-                <IconOpen />
-              </Link>
-            )}
           </VitalsHeading>
           <VitalInfo
             location={location}

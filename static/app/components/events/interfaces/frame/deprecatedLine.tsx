@@ -225,7 +225,7 @@ function DeprecatedLine({
           <DefaultLineTagWrapper>
             <RepeatsIndicator timesRepeated={timesRepeated} />
             {organization?.features.includes('anr-analyze-frames') && anrCulprit ? (
-              <Tag type="warning" onClick={scrollToSuspectRootCause}>
+              <Tag variant="warning" onClick={scrollToSuspectRootCause}>
                 {t('Suspect Frame')}
               </Tag>
             ) : null}
@@ -315,7 +315,7 @@ function DeprecatedLine({
                 </SourceMapDebuggerModalButton>
               </Fragment>
             ) : null}
-            {data.inApp ? <Tag type="info">{t('In App')}</Tag> : null}
+            {data.inApp ? <Tag variant="info">{t('In App')}</Tag> : null}
             {isExpandable ? (
               <ToggleContextButton
                 data-test-id={`toggle-button-${isExpanded ? 'expanded' : 'collapsed'}`}
@@ -402,7 +402,8 @@ const DefaultLine = styled('div')<{
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: ${p => (p.isSubFrame ? `${p.theme.surface100}` : `${p.theme.surface200}`)};
+  background: ${p =>
+    p.isSubFrame ? `${p.theme.colors.surface200}` : `${p.theme.colors.surface300}`};
   min-height: 40px;
   word-break: break-word;
   padding: ${space(0.75)} ${space(1.5)};

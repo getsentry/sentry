@@ -6,7 +6,6 @@ import {loadStripe} from '@stripe/stripe-js';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import moment from 'moment-timezone';
-import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
@@ -130,17 +129,7 @@ class AMCheckout extends Component<Props, State> {
     ) {
       props.onToggleLegacy(props.subscription.planTier);
     }
-    const query = props.location?.query;
-    const queryString =
-      query && Object.keys(query).length > 0 ? `?${qs.stringify(query)}` : '';
 
-    // TODO(checkout v3): remove this check once we properly redirect from the legacy routes
-    if (
-      props.location?.pathname.includes('/settings/billing/checkout/') &&
-      props.isNewCheckout
-    ) {
-      props.navigate(`/checkout/${queryString}`, {replace: true});
-    }
     let step = 1;
     if (props.location?.hash) {
       const stepMatch = /^#step(\d)$/.exec(props.location.hash);
@@ -764,7 +753,7 @@ class AMCheckout extends Component<Props, State> {
 
     return (
       <Alert.Container>
-        <Alert type="info">
+        <Alert variant="info">
           <Stack gap="md">
             <Text bold>
               {tct('Billing handled externally through [partnerName]', {
@@ -974,7 +963,7 @@ class AMCheckout extends Component<Props, State> {
         />
         {isOnSponsoredPartnerPlan && (
           <Alert.Container>
-            <Alert type="info">
+            <Alert variant="info">
               {t(
                 'Your promotional plan with %s ends on %s.',
                 subscription.partner?.partnership.displayName,
@@ -985,7 +974,7 @@ class AMCheckout extends Component<Props, State> {
         )}
         {promotionDisclaimerText && (
           <Alert.Container>
-            <Alert type="info">{promotionDisclaimerText}</Alert>
+            <Alert variant="info">{promotionDisclaimerText}</Alert>
           </Alert.Container>
         )}
         {isNewCheckout && (

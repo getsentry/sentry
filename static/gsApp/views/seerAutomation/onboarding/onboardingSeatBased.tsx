@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert/alert';
@@ -13,6 +13,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
+import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 import {useSeerOnboardingStep} from 'getsentry/views/seerAutomation/onboarding/hooks/useSeerOnboardingStep';
 
@@ -35,9 +36,28 @@ export default function SeerOnboardingSeatBased() {
     }
   }, [isPending, initialStep, organization.slug, navigate]);
 
+  const handleStepChange = useCallback(
+    (stepNumber: number) => {
+      trackGetsentryAnalytics('seer.onboarding.step_changed', {
+        organization,
+        stepNumber,
+      });
+    },
+    [organization]
+  );
+
+  useEffect(() => {
+    if (!isPending && canWrite) {
+      trackGetsentryAnalytics('seer.onboarding.started', {
+        organization,
+        stepNumber: initialStep,
+      });
+    }
+  }, [organization, initialStep, isPending, canWrite]);
+
   if (!canWrite) {
     return (
-      <Alert type="warning">
+      <Alert variant="warning">
         {t('Only organization administrators can access the Seer Setup Wizard')}
       </Alert>
     );
@@ -58,7 +78,7 @@ export default function SeerOnboardingSeatBased() {
           {isPending ? (
             <Placeholder />
           ) : (
-            <StyledGuidedSteps initialStep={initialStep}>
+            <StyledGuidedSteps initialStep={initialStep} onStepChange={handleStepChange}>
               <StepsManager />
             </StyledGuidedSteps>
           )}

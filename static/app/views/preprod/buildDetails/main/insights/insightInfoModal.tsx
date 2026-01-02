@@ -35,5 +35,5 @@ export const InlineCode = styled('code')`
   border-radius: ${p => p.theme.radius.md};
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.colors.blue400};
 `;

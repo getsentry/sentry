@@ -93,7 +93,7 @@ function BaseFooter({className}: Props) {
 }
 
 const WaitingIndicator = styled('div')`
-  --pulsingIndicatorRing: ${p => p.theme.gray200};
+  --pulsingIndicatorRing: ${p => p.theme.colors.gray200};
   ${pulsingIndicatorStyles};
   contain: layout;
 `;
@@ -120,7 +120,7 @@ const FooterLink = styled(ExternalLink)`
   color: ${p => p.theme.subText};
   &:focus-visible {
     outline: none;
-    box-shadow: ${p => p.theme.blue300} 0 2px 0;
+    box-shadow: ${p => p.theme.colors.blue400} 0 2px 0;
   }
 `;
 

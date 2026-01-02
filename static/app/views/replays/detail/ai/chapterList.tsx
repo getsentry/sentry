@@ -67,7 +67,7 @@ export function ChapterList({timeRanges}: Props) {
   if (!chapterData?.length) {
     return (
       <EmptyContainer>
-        <Alert type="info" showIcon={false}>
+        <Alert variant="info" showIcon={false}>
           {t('No chapters available for this replay.')}
         </Alert>
       </EmptyContainer>
@@ -284,7 +284,7 @@ const ChapterWrapper = styled('details')`
   }
 
   &.activeChapter .beforeCurrentTime:last-child {
-    border-bottom-color: ${p => p.theme.purple300};
+    border-bottom-color: ${p => p.theme.colors.blue400};
   }
 
   /* the border-top is used to eliminate some of the top gap */
@@ -295,13 +295,13 @@ const ChapterWrapper = styled('details')`
 
   [data-is-feedback='true'] {
     &:hover {
-      border-top: 1px solid ${p => p.theme.pink100};
+      border-top: 1px solid ${p => p.theme.colors.pink100};
     }
   }
 
   [data-is-error='true'] {
     &:hover {
-      border-top: 1px solid ${p => p.theme.red100};
+      border-top: 1px solid ${p => p.theme.colors.red100};
     }
   }
 `;
@@ -341,18 +341,18 @@ const Chapter = styled('summary')`
   }
 
   [data-is-feedback='true'] & {
-    color: ${p => p.theme.pink300};
+    color: ${p => p.theme.colors.pink400};
 
     &:hover {
-      background-color: ${p => p.theme.pink100};
+      background-color: ${p => p.theme.colors.pink100};
     }
   }
 
   [data-is-error='true'] & {
-    color: ${p => p.theme.red300};
+    color: ${p => p.theme.colors.red400};
 
     &:hover {
-      background-color: ${p => p.theme.red100};
+      background-color: ${p => p.theme.colors.red100};
     }
   }
 `;

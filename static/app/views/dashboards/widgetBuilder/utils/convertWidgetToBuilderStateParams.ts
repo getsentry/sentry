@@ -43,7 +43,14 @@ export function convertWidgetToBuilderStateParams(
   if (isChartDisplayType(widget.displayType)) {
     field = firstWidgetQuery ? stringifyFields(firstWidgetQuery, 'columns') : [];
   } else {
-    field = firstWidgetQuery ? stringifyFields(firstWidgetQuery, 'fields') : [];
+    // For TRACEMETRICS table/big_number widgets, use raw field strings directly
+    // because stringifyFields loses the 4th argument (unit: "-")
+    if (widget.widgetType === WidgetType.TRACEMETRICS && firstWidgetQuery?.fields) {
+      field = firstWidgetQuery.fields;
+    } else {
+      field = firstWidgetQuery ? stringifyFields(firstWidgetQuery, 'fields') : [];
+    }
+
     yAxis = [];
     legendAlias = [];
   }
