@@ -240,7 +240,7 @@ export function PrivateGamingSdkAccessModal({
               stacked
               inline={false}
             />
-            {requestError && <Alert type="error">{requestError}</Alert>}
+            {requestError && <Alert variant="error">{requestError}</Alert>}
           </Fragment>
         ) : (
           <Fragment>
