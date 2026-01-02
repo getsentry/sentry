@@ -288,7 +288,7 @@ function MiniBarChart({
 
     const colorList = Array.isArray(colors)
       ? colors
-      : [theme.gray300, theme.purple300, theme.purple300];
+      : [theme.colors.gray400, theme.colors.blue400, theme.colors.blue400];
 
     for (let i = 0; i < series.length; i++) {
       const original = series[i]!;
@@ -319,7 +319,14 @@ function MiniBarChart({
       chartSeries.push(updated);
     }
     return chartSeries;
-  }, [series, emphasisColors, stacked, colors, theme.gray300, theme.purple300]);
+  }, [
+    series,
+    emphasisColors,
+    stacked,
+    colors,
+    theme.colors.gray400,
+    theme.colors.blue400,
+  ]);
 
   const chartOptions = useMemo(() => {
     const yAxisOptions = labelYAxisExtents

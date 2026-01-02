@@ -129,7 +129,7 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
         top: '0',
         emphasis: {
           itemStyle: {
-            color: theme.surface100,
+            color: theme.colors.surface200,
             textStyle: {
               fontSize: 12,
               fontWeight: 'bold',

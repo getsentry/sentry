@@ -20,11 +20,37 @@ interface ConversationMessage {
   nodeId: string;
   role: 'user' | 'assistant';
   timestamp: number;
+  userEmail?: string;
 }
 
 interface RequestMessage {
   content: string | Array<{text: string}>;
   role: string;
+}
+
+// often injected into AI prompts to indicate the role of the message
+const AI_PROMPT_TAGS = new Set([
+  'thinking',
+  'reasoning',
+  'instructions',
+  'user_message',
+  'maybe_relevant_context',
+]);
+
+/**
+ * Escapes known AI prompt tags so they display as literal text rather than
+ * being stripped by the HTML sanitizer.
+ */
+function escapeXmlTags(text: string): string {
+  return text.replace(
+    /<(\/?)([a-z_][a-z0-9_:-]*)([^>]*)>/gi,
+    (match, slash, tagName, rest) => {
+      if (AI_PROMPT_TAGS.has(tagName.toLowerCase())) {
+        return `&lt;${slash}${tagName}${rest}&gt;`;
+      }
+      return match;
+    }
+  );
 }
 
 /**
@@ -45,6 +71,7 @@ function extractMessagesFromNodes(nodes: AITraceSpanNode[]): ConversationMessage
     }
 
     const timestamp = 'start_timestamp' in node.value ? node.value.start_timestamp : 0;
+    const userEmail = node.attributes?.[SpanFields.USER_EMAIL] as string | undefined;
 
     // Extract user input from request messages
     const requestMessages = node.attributes?.[SpanFields.GEN_AI_REQUEST_MESSAGES] as
@@ -71,6 +98,7 @@ function extractMessagesFromNodes(nodes: AITraceSpanNode[]): ConversationMessage
               content,
               timestamp,
               nodeId: node.id,
+              userEmail,
             });
           }
         }
@@ -84,6 +112,7 @@ function extractMessagesFromNodes(nodes: AITraceSpanNode[]): ConversationMessage
             content: requestMessages,
             timestamp,
             nodeId: node.id,
+            userEmail,
           });
         }
       }
@@ -201,16 +230,22 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
                   <Text bold size="sm">
                     {message.role === 'user' ? t('User') : t('Assistant')}
                   </Text>
+                  {message.role === 'user' && message.userEmail && (
+                    <Text size="sm" style={{color: 'inherit', opacity: 0.7}}>
+                      {message.userEmail}
+                    </Text>
+                  )}
                 </MessageHeader>
                 <StyledClippedBox
                   clipHeight={200}
                   buttonProps={{priority: 'default', size: 'xs'}}
+                  collapsible
                 >
                   <Container padding="sm">
                     <MessageText size="sm">
                       <MarkedText
                         as={TraceDrawerComponents.MarkdownContainer}
-                        text={message.content}
+                        text={escapeXmlTags(message.content)}
                       />
                     </MessageText>
                   </Container>

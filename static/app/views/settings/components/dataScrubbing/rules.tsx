@@ -79,7 +79,7 @@ const List = styled('ul')<{
   ${p =>
     p.isDisabled &&
     css`
-      color: ${p.theme.gray200};
+      color: ${p.theme.colors.gray200};
       background: ${p.theme.backgroundSecondary};
     `}
 `;

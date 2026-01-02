@@ -698,6 +698,33 @@ register("github-app.private-key", default="", flags=FLAG_CREDENTIAL)
 register("github-app.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("github-app.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
+# GitHub Console SDK App (separate app for repository invitations)
+register(
+    "github-console-sdk-app.id",
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_ALLOW_EMPTY,
+)
+register(
+    "github-console-sdk-app.client-id",
+    default="",
+    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_ALLOW_EMPTY,
+)
+register(
+    "github-console-sdk-app.installation-id",
+    default="",
+    flags=FLAG_CREDENTIAL | FLAG_ALLOW_EMPTY,
+)
+register(
+    "github-console-sdk-app.client-secret",
+    default="",
+    flags=FLAG_CREDENTIAL | FLAG_ALLOW_EMPTY,
+)
+register(
+    "github-console-sdk-app.private-key",
+    default="",
+    flags=FLAG_CREDENTIAL | FLAG_ALLOW_EMPTY,
+)
+
 # Github Enterprise Integration
 register(
     "github-enterprise-app.allowed-hosts-legacy-webhooks",
@@ -3313,6 +3340,13 @@ register(
 )
 
 register(
+    "workflow_engine.exclude_issue_stream_detector",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "grouping.grouphash_metadata.ingestion_writes_enabled",
     type=Bool,
     default=True,
@@ -3807,6 +3841,15 @@ register(
 # bugs with issue feed search.
 register(
     "snuba.search.debug-log-project-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Project ID allowlist to enable truncation of group IDs in Snuba query
+# when search filters are selective.
+register(
+    "snuba.search.truncate-group-ids-for-selective-filters-project-allowlist",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,

@@ -9,11 +9,13 @@ import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useChartSelection} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
+import {CHART_SELECTION_ALERT_KEY} from 'sentry/views/explore/components/attributeBreakdowns/constants';
 import {FloatingTrigger} from 'sentry/views/explore/components/attributeBreakdowns/floatingTrigger';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
@@ -164,6 +166,12 @@ function Chart({
   const organization = useOrganization();
   const {chartSelection, setChartSelection} = useChartSelection();
   const [interval, setInterval, intervalOptions] = useChartInterval();
+  const {
+    dismiss: dismissChartSelectionAlert,
+    isDismissed: isChartSelectionAlertDismissed,
+  } = useDismissAlert({
+    key: CHART_SELECTION_ALERT_KEY,
+  });
 
   const chartHeight = visualize.visible ? CHART_HEIGHT : 50;
 
@@ -270,13 +278,25 @@ function Chart({
               chartRef={chartRef}
               chartXRangeSelection={{
                 initialSelection: initialChartSelection,
-                onChartClick: params => {
+                onSelectionEnd: () => {
+                  if (!isChartSelectionAlertDismissed) {
+                    dismissChartSelectionAlert();
+                  }
+                },
+                onInsideSelectionClick: params => {
                   if (!params.selectionState) return;
 
-                  // Always show the action menu when the chart is clicked.
                   params.setSelectionState({
                     ...params.selectionState,
                     isActionMenuVisible: true,
+                  });
+                },
+                onOutsideSelectionClick: params => {
+                  if (!params.selectionState?.isActionMenuVisible) return;
+
+                  params.setSelectionState({
+                    ...params.selectionState,
+                    isActionMenuVisible: false,
                   });
                 },
                 onClearSelection: () => {

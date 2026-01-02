@@ -157,7 +157,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
             {hasBillingAccess ? (
               <LinkButton
                 size="md"
-                to={`/settings/${organization.slug}/billing/checkout/?referrer=partner_plan_ending_modal`}
+                to={`/checkout/${organization.slug}/?referrer=partner_plan_ending_modal`}
                 aria-label="Upgrade Now"
                 priority="primary"
                 onClick={() =>

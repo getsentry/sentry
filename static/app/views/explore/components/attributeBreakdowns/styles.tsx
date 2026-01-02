@@ -164,7 +164,7 @@ const ChartHeaderWrapper = styled(Flex)`
 const ChartTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   font-weight: 600;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.colors.gray800};
   ${p => p.theme.overflowEllipsis};
 `;
 
@@ -172,14 +172,14 @@ const PopulationIndicator = styled(Flex)<{color?: string}>`
   align-items: center;
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: 500;
-  color: ${p => p.color || p.theme.gray400};
+  color: ${p => p.color || p.theme.colors.gray500};
 
   &::before {
     content: '';
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background-color: ${p => p.color || p.theme.gray400};
+    background-color: ${p => p.color || p.theme.colors.gray500};
     margin-right: ${space(0.5)};
   }
 `;

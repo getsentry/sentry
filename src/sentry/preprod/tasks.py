@@ -15,7 +15,7 @@ from sentry.constants import DataCategory
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.preprod.eap.write import write_preprod_size_metric_to_eap
+from sentry.preprod.eap.write import produce_preprod_size_metric_to_eap
 from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactSizeComparison,
@@ -477,7 +477,7 @@ def _assemble_preprod_artifact_size_analysis(
             organization = preprod_artifact.project.organization
             if features.has("organizations:preprod-size-metrics-eap-write", organization):
                 for size_metric in size_metrics_updated:
-                    write_preprod_size_metric_to_eap(
+                    produce_preprod_size_metric_to_eap(
                         size_metric=size_metric,
                         organization_id=org_id,
                         project_id=project.id,

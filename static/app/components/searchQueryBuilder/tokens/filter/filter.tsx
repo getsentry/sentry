@@ -293,14 +293,14 @@ const FilterValueGridCell = styled(BaseGridCell)`
 
 const ValueButton = styled(UnstyledButton)`
   padding: 0 ${p => p.theme.space['2xs']};
-  color: ${p => p.theme.purple400};
+  color: ${p => p.theme.colors.blue500};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
   width: 100%;
   max-width: 400px;
 
   :focus {
-    background-color: ${p => p.theme.purple100};
+    background-color: ${p => p.theme.colors.blue100};
     border-left: 1px solid ${p => p.theme.innerBorder};
     border-right: 1px solid ${p => p.theme.innerBorder};
   }
@@ -308,13 +308,13 @@ const ValueButton = styled(UnstyledButton)`
 
 const ValueEditing = styled('div')`
   padding: 0 ${p => p.theme.space['2xs']};
-  color: ${p => p.theme.purple400};
+  color: ${p => p.theme.colors.blue500};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
   max-width: 100%;
 
   :focus-within {
-    background-color: ${p => p.theme.purple100};
+    background-color: ${p => p.theme.colors.blue100};
     border-left: 1px solid ${p => p.theme.innerBorder};
     border-right: 1px solid ${p => p.theme.innerBorder};
   }
@@ -327,7 +327,7 @@ const DeleteButton = styled(UnstyledButton)`
   border-left: 1px solid transparent;
 
   :focus {
-    background-color: ${p => p.theme.translucentGray100};
+    background-color: ${p => p.theme.colors.gray100};
     border-left: 1px solid ${p => p.theme.innerBorder};
   }
 `;
