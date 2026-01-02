@@ -24,7 +24,7 @@ function TraceAiSpans({traceSlug}: {traceSlug: string}) {
   const location = useLocation();
   const {nodes, isLoading, error} = useAITrace(traceSlug);
   const [selectedNodeKey, setSelectedNodeKey] = useState<string | null>(() => {
-    const path = getScrollToPath()?.path;
+    const path = getScrollToPath(location.search)?.path;
     const lastSpan = path?.findLast(item => item.startsWith('span-'));
     return lastSpan?.replace('span-', '') ?? null;
   });
