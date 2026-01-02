@@ -17,12 +17,12 @@ export function TokenReference(props: TokenReferenceProps) {
       align="center"
       justify="center"
       padding="2xl md"
-      border="muted"
       radius="md"
-      gap="lg"
+      gap="0"
       overflowY="hidden"
       overflowX="auto"
-      background="tertiary"
+      background="primary"
+      border="primary"
     >
       {Object.entries(props.tokens).map(([token, value]) => (
         <Token key={token} scale={props.scale} {...{token, value}}>
@@ -66,9 +66,7 @@ function Token({
           <Flex minWidth="64px" height="64px" align="center" justify="center">
             {children}
           </Flex>
-          <Text size="sm" monospace variant="accent">
-            {token}
-          </Text>
+          <span>{token}</span>
         </Stack>
       </Button>
     </Tooltip>
@@ -81,17 +79,23 @@ function formatSnippet({token, scale}: {scale: string; token: string}) {
 }
 
 const Button = styled('button')`
-  background: transparent;
-  border: none;
+  background: ${p => p.theme.tokens.interactive.transparent.neutral.background.rest};
+  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
+  font-size: ${p => p.theme.font.size.sm};
+  font-family: ${p => p.theme.font.family.mono};
   border-radius: ${p => p.theme.radius.md};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+  border: none;
   cursor: copy;
 
   &:hover,
   &:focus {
-    background: ${p => p.theme.tokens.background.secondary};
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
+    color: ${p => p.theme.tokens.interactive.link.neutral.hover};
   }
 
   &:active {
-    background: ${p => p.theme.tokens.background.primary};
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
+    color: ${p => p.theme.tokens.interactive.link.neutral.active};
   }
 `;

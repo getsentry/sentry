@@ -40,10 +40,10 @@ export function ColorReference({
     <Flex
       gap="lg"
       padding="xl"
-      border="muted"
       radius="md"
-      background="tertiary"
-      wrap={columns ? undefined : 'wrap'}
+      background="primary"
+      border="primary"
+      wrap="wrap"
       style={containerStyle}
     >
       {groups.map((group, i) => (
@@ -53,7 +53,7 @@ export function ColorReference({
               {group.label}
             </Text>
           )}
-          <Flex gap="md">
+          <Flex gap="0">
             {Object.entries(group.tokens).map(([token, value]) => (
               <ColorToken
                 key={token}
@@ -114,9 +114,7 @@ function ColorToken({
           >
             {children}
           </Flex>
-          <Text size="xs" monospace variant="accent">
-            {token}
-          </Text>
+          <span>{token}</span>
         </Stack>
       </Button>
     </Tooltip>
@@ -132,18 +130,23 @@ function formatSnippet({token, scale}: {scale: string; token: string}) {
 }
 
 const Button = styled('button')`
-  background: transparent;
-  border: none;
+  background: ${p => p.theme.tokens.interactive.transparent.neutral.background.rest};
+  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
+  font-size: ${p => p.theme.font.size.sm};
+  font-family: ${p => p.theme.font.family.mono};
   border-radius: ${p => p.theme.radius.md};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+  border: none;
   cursor: copy;
-  padding: ${p => p.theme.space.sm};
 
   &:hover,
   &:focus {
-    background: ${p => p.theme.tokens.background.secondary};
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
+    color: ${p => p.theme.tokens.interactive.link.neutral.hover};
   }
 
   &:active {
-    background: ${p => p.theme.tokens.background.primary};
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
+    color: ${p => p.theme.tokens.interactive.link.neutral.active};
   }
 `;
