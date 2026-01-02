@@ -1,5 +1,5 @@
 type GamingPlatformBase = {
-  origin: 'onboarding' | 'project-creation' | 'project-settings';
+  origin: 'onboarding' | 'project-creation' | 'project-settings' | 'org-settings';
   platform?: string;
 };
 
