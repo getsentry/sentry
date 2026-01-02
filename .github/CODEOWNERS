@@ -50,11 +50,11 @@
 
 ## Security
 /src/sentry/net/                                         @getsentry/security
-/src/sentry/auth/                                        @getsentry/security @getsentry/enterprise
-/src/sentry/api/permissions.py                           @getsentry/security @getsentry/enterprise
-/src/sentry/api/authentication.py                        @getsentry/security @getsentry/enterprise
-/src/sentry/api/endpoints/auth*                          @getsentry/security @getsentry/enterprise
-/src/sentry/users/api/endpoints/user_permission*         @getsentry/security @getsentry/enterprise
+/src/sentry/auth/                                        @getsentry/security
+/src/sentry/api/permissions.py                           @getsentry/security
+/src/sentry/api/authentication.py                        @getsentry/security
+/src/sentry/api/endpoints/auth*                          @getsentry/security
+/src/sentry/users/api/endpoints/user_permission*         @getsentry/security
 /src/sentry/web/frontend/auth_close.py                   @getsentry/security
 /src/sentry/web/frontend/auth_login.py                   @getsentry/security
 /src/sentry/web/frontend/auth_logout.py                  @getsentry/security
@@ -335,6 +335,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /tests/sentry/issues/endpoints/test_organization_issue_metrics.py        @getsentry/replay-backend
 /src/sentry/issues/endpoints/organization_group_suspect_flags.py         @getsentry/replay-backend
 /tests/sentry/issues/endpoints/test_organization_group_suspect_flags.py  @getsentry/replay-backend
+/tests/sentry/models/releases/                                          @getsentry/replay-backend
 ## End of Replays
 
 
@@ -384,7 +385,6 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/api/serializers/models/rule.py                           @getsentry/alerts-notifications
 
 /src/sentry/digests/                                                 @getsentry/alerts-notifications
-/src/sentry/identity/                                                @getsentry/enterprise
 
 /src/sentry/integrations/                                            @getsentry/product-owners-settings-integrations @getsentry/ecosystem
 /src/sentry/integrations/api/endpoints/organization_code_mapping*.py                            @getsentry/issue-detection-backend
@@ -402,8 +402,6 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/plugins/                                                 @getsentry/ecosystem
 /src/sentry/shared_integrations/                                     @getsentry/ecosystem
 /src/sentry/workflow_engine/tasks/actions.py                         @getsentry/ecosystem
-
-/src/sentry/users/models/identity.py                                 @getsentry/enterprise
 
 /src/sentry/tasks/digests.py                                         @getsentry/alerts-notifications
 /src/sentry/tasks/email.py                                           @getsentry/alerts-notifications
@@ -439,38 +437,6 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/users/models/user.py                       @getsentry/data
 /src/sentry/users/models/useroption.py                 @getsentry/data
 ## End of Data
-
-
-## Enterprise
-/src/sentry/api/endpoints/oauth_userinfo.py                             @getsentry/enterprise
-/src/sentry/api/endpoints/organization_auditlogs.py                     @getsentry/enterprise
-/src/sentry/api/endpoints/organization_projects_experiment.py           @getsentry/enterprise
-/src/sentry/api/endpoints/organization_stats*.py                        @getsentry/enterprise
-/src/sentry/api/endpoints/release_threshold*.py                         @getsentry/enterprise
-/src/sentry/api/endpoints/user_social_identity*                         @getsentry/enterprise
-/src/sentry/auth/staff.py                                               @getsentry/enterprise
-/src/sentry/auth/superuser.py                                           @getsentry/enterprise
-/src/sentry/middleware/staff.py                                         @getsentry/enterprise
-/src/sentry/middleware/superuser.py                                     @getsentry/enterprise
-/src/sentry/models/release_threshold                                    @getsentry/enterprise
-/src/sentry/scim/                                                       @getsentry/enterprise
-/src/sentry/integrations/github/                                        @getsentry/enterprise
-/src/sentry/web/frontend/auth_login.py                                  @getsentry/enterprise
-/static/app/components/superuserStaffAccessForm.tsx                     @getsentry/enterprise
-/static/app/constants/superuserAccessErrors.tsx                         @getsentry/enterprise
-/static/app/views/organizationStats                                     @getsentry/enterprise
-/static/app/views/settings/organizationAuth/                            @getsentry/enterprise
-/static/app/views/settings/organizationMembers/inviteBanner.tsx         @getsentry/enterprise
-/tests/sentry/api/endpoints/test_auth*.py                               @getsentry/enterprise
-/tests/sentry/api/endpoints/test_organization_projects_experiment.py    @getsentry/enterprise
-/tests/sentry/api/test_data_secrecy.py                                  @getsentry/enterprise
-/tests/sentry/api/test_scim*.py                                         @getsentry/enterprise
-/tests/sentry/auth/test_staff.py                                        @getsentry/enterprise
-/tests/sentry/auth/test_superuser.py                                    @getsentry/enterprise
-/tests/sentry/middleware/test_staff.py                                  @getsentry/enterprise
-/tests/sentry/integrations/github/                                      @getsentry/enterprise
-/tests/sentry/models/releases/                                          @getsentry/replay-backend
-## End of Enterprise
 
 
 ## APIs
@@ -639,7 +605,6 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/gsApp/hooks/spendVisibility/          @getsentry/revenue
 /static/gsApp/views/spendAllocations/         @getsentry/revenue
 /static/gsApp/views/spikeProtection/          @getsentry/revenue
-/static/gsApp/hooks/superuser*                @getsentry/enterprise
 /static/gsApp/hooks/integration*              @getsentry/ecosystem
 /static/gsApp/components/crons/               @getsentry/crons
 /static/gsApp/components/replay*              @getsentry/replay-frontend
