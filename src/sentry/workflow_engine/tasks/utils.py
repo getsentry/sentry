@@ -9,6 +9,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.services.eventstore.models import Event, GroupEvent
+from sentry.tasks.post_process import update_event_group
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
@@ -85,7 +86,11 @@ def build_workflow_event_data_from_event(
 
     occurrence = IssueOccurrence.fetch(occurrence_id, project_id) if occurrence_id else None
 
-    group_event = GroupEvent.from_event(event, group)
+    if group_state:
+        group_event = update_event_group(event, group_state)
+        group = group_event.group
+    else:
+        group_event = GroupEvent.from_event(event, group)
     group_event.occurrence = occurrence
 
     # Fetch environment from workflow, if provided

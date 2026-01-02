@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.utils import timezone
 
+from sentry import buffer
 from sentry.eventstream.types import EventStreamEventType
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
@@ -19,6 +20,7 @@ from sentry.tasks.post_process import post_process_group
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import Feature, with_feature
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils.cache import cache_key_for_event
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
 from sentry.workflow_engine.models import Detector, DetectorWorkflow
@@ -523,6 +525,58 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
             )
             == {}
         )
+
+    @mock_redis_buffer()
+    def test_buffer_values(self, mock_trigger: MagicMock) -> None:
+        # Test that pending buffer values for `times_seen` are applied to the group
+
+        self.workflow_triggers.conditions.all().delete()
+        self.create_data_condition(
+            condition_group=self.workflow_triggers,
+            type=Condition.ISSUE_OCCURRENCES,
+            condition_result=True,
+            comparison={
+                "value": 10,
+            },
+        )
+
+        with (
+            mock.patch("sentry.buffer.backend.get", buffer.backend.get),
+            mock.patch("sentry.buffer.backend.incr", buffer.backend.incr),
+        ):
+            event = self.create_error_event(fingerprint="group-1", project=self.project)
+            event_2 = self.create_error_event(fingerprint="group-1", project=self.project)
+            self.post_process_error(event)
+            assert not mock_trigger.called
+
+            event.group.update(times_seen=2)
+            buffer.backend.incr(Group, {"times_seen": 15}, filters={"id": event.group.id})
+            self.post_process_error(event_2)
+
+            mock_trigger.assert_called_once()
+
+    @patch("sentry.workflow_engine.processors.workflow.process_workflows")
+    def test_group_last_seen_buffer(
+        self, mock_process_workflows: MagicMock, mock_trigger: MagicMock
+    ) -> None:
+        first_event_date = timezone.now() - timedelta(days=90)
+        event1 = self.create_error_event(project=self.project)
+        group1 = event1.group
+        group1.update(last_seen=first_event_date)
+
+        event2 = self.create_error_event(project=self.project)
+
+        # Mock set the last_seen value to the first event date
+        # To simulate the update to last_seen being buffered
+        event2.group.last_seen = first_event_date
+        event2.group.update(last_seen=first_event_date)
+        assert event2.group_id == group1.id
+
+        self.post_process_error(event2)
+        mock_process_workflows.assert_called_once()
+        sent_group_date: datetime = mock_process_workflows.call_args[0][1].group.last_seen
+        # Check that last_seen was updated to be at least the new event's date
+        assert abs(sent_group_date - event2.datetime) < timedelta(seconds=10)
 
 
 class TestWorkflowEngineIntegrationFromFeedbackPostProcess(BaseWorkflowIntegrationTest):
