@@ -141,8 +141,8 @@ def process_workflows_event(
             if isinstance(event_data.event, GroupEvent):
                 kick_off_service_hooks(
                     event_data.event,
-                    evaluation.data.triggered_actions is None
-                    or len(evaluation.data.triggered_actions) > 0,
+                    evaluation.data.triggered_actions is not None
+                    and len(evaluation.data.triggered_actions) > 0,
                 )
 
     evaluation.log_to(logger)
