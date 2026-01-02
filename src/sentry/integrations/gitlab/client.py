@@ -282,11 +282,12 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
 
         return self.get(path, params={"scope": "all", "search": query, "iids": iids})
 
-    def update_issue_assignees(self, project_id: str, issue_iid: str, data: dict[str, Any]):
+    def update_issue_assignees(self, project_id: str, issue_iid: str, assignee_ids: list[int]):
         """Update an issue's assignees
 
         See https://docs.gitlab.com/ee/api/issues.html#edit-an-issue
         """
+        data = {"assignee_ids": assignee_ids}
         path = GitLabApiClientPath.issue.format(project=project_id, issue=issue_iid)
         return self.put(path, data=data)
 
