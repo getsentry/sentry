@@ -216,7 +216,7 @@ function getEventsRequest(
       ...eventView.generateQueryStringObject(),
       ...params,
     },
-    // Tries events request up to 3 times on rate limit
+    // Tries events request up to 10 times on rate limit
     {
       retry: hasQueueFeature
         ? // The queue will handle retries, so we don't need to retry here
