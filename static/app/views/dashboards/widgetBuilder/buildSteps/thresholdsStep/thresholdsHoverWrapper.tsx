@@ -15,6 +15,9 @@ type Props = {
   type?: string;
 };
 
+const NEGATIVE_POLARITY_COLOR_ORDER = ['green400', 'yellow400', 'red400'] as const;
+const POSITIVE_POLARITY_COLOR_ORDER = ['red400', 'yellow400', 'green400'] as const;
+
 export function ThresholdsHoverWrapper({children, thresholds, type}: Props) {
   const {
     unit,
@@ -29,6 +32,11 @@ export function ThresholdsHoverWrapper({children, thresholds, type}: Props) {
   const maxOneValue = max1 ?? notSetMsg;
   const maxTwoValue = max2 ?? notSetMsg;
 
+  const colorOrder =
+    thresholds.preferredPolarity === '+'
+      ? POSITIVE_POLARITY_COLOR_ORDER
+      : NEGATIVE_POLARITY_COLOR_ORDER;
+
   return (
     <StyledHoverCard
       skipWrapper
@@ -36,17 +44,17 @@ export function ThresholdsHoverWrapper({children, thresholds, type}: Props) {
         <BodyWrapper>
           <ContextTitle>{title}</ContextTitle>
           <Row>
-            <StyledIndicator color={theme.green300} size={10} />
+            <StyledIndicator color={theme.colors[colorOrder[0]]} size={10} />
             <span>0 - {maxOneValue}</span>
           </Row>
           <Row>
-            <StyledIndicator color={theme.yellow300} size={10} />
+            <StyledIndicator color={theme.colors[colorOrder[1]]} size={10} />
             <span>
               {maxOneValue} - {maxTwoValue}
             </span>
           </Row>
           <Row>
-            <StyledIndicator color={theme.red300} size={10} />
+            <StyledIndicator color={theme.colors[colorOrder[2]]} size={10} />
             <span>
               {maxTwoValue} - {t('No max')}
             </span>

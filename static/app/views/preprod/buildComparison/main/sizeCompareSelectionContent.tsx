@@ -170,7 +170,9 @@ export function SizeCompareSelectionContent({
       </InputGroup>
 
       {buildsQuery.isLoading && <LoadingIndicator />}
-      {buildsQuery.isError && <Alert type="error">{buildsQuery.error?.message}</Alert>}
+      {buildsQuery.isError && (
+        <Alert variant="danger">{buildsQuery.error?.message}</Alert>
+      )}
       {buildsQuery.data && (
         <Stack gap="md">
           {buildsQuery.data.builds.map(build => {
@@ -291,21 +293,21 @@ const BuildItemContainer = styled(Flex)<{isSelected: boolean}>`
   cursor: pointer;
 
   &:hover {
-    background-color: ${p => p.theme.surface100};
+    background-color: ${p => p.theme.colors.surface200};
   }
 
   ${p =>
     p.isSelected &&
     `
-      background-color: ${p.theme.surface200};
+      background-color: ${p.theme.colors.surface300};
     `}
 `;
 
 const BuildItemBranchTag = styled('span')`
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.colors.gray100};
   border-radius: ${p => p.theme.radius.md};
-  color: ${p => p.theme.purple400};
+  color: ${p => p.theme.colors.blue500};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.normal};
 `;

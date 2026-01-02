@@ -562,6 +562,15 @@ function useWidgetBuilderState(): {
         }
         case BuilderStateAction.SET_Y_AXIS:
           setYAxis(action.payload, options);
+
+          if (fields?.length && fields.length > 0) {
+            // Check if we need to update the limit for a Top N query
+            const maxLimit = getResultsLimit(query?.length ?? 1, action.payload.length);
+            if (limit && limit > maxLimit) {
+              setLimit(maxLimit, options);
+            }
+          }
+
           if (action.payload.length > 0 && fields?.length === 0) {
             // Clear the sort if there is no grouping
             setSort([], options);

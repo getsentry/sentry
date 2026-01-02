@@ -53,9 +53,9 @@ const ReplayGrid = styled('div')`
 const Border = styled('span')`
   border: 3px solid;
   border-radius: ${space(0.5)};
-  border-color: ${p => p.theme.red300};
+  border-color: ${p => p.theme.colors.red400};
   & + & {
-    border-color: ${p => p.theme.green300};
+    border-color: ${p => p.theme.colors.green400};
   }
   overflow: hidden;
 `;

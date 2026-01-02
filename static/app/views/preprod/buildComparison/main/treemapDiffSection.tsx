@@ -129,7 +129,7 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
         top: '0',
         emphasis: {
           itemStyle: {
-            color: theme.surface100,
+            color: theme.colors.surface200,
             textStyle: {
               fontSize: 12,
               fontWeight: 'bold',
@@ -273,9 +273,9 @@ function DiffTag(
   label: string
 ): string {
   const diffString = formattedSizeDiff(sizeDiff);
-  let tagType: 'success' | 'error' | 'default' = 'default';
+  let tagType: 'success' | 'danger' | 'muted' = 'muted';
   if (diffType === 'increased' || diffType === 'added') {
-    tagType = 'error';
+    tagType = 'danger';
   } else if (diffType === 'decreased' || diffType === 'removed') {
     tagType = 'success';
   }
