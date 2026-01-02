@@ -951,12 +951,12 @@ const graphics = {
      *
      * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0I2QjBCRSIvPgogIDwvc3ZnPg==)
      *
-     * `neutral.vibrant` `#B6B0BE`
+     * `neutral.vibrant` `#A49EAF`
      *
      * Used situationally, but its primary purpose is to emphasize shapes in
      * data visualisations. This is the most intense token of its family.
      */
-    vibrant: color.neutral.dark.opaque1200,
+    vibrant: color.neutral.dark.opaque1100,
   },
   accent: {
     /**
@@ -983,12 +983,12 @@ const graphics = {
      *
      * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzdCNTJGRiIvPgogIDwvc3ZnPg==)
      *
-     * `accent.vibrant` `#7B52FF`
+     * `accent.vibrant` `#9A94F9`
      *
      * Used situationally, but its primary purpose is to emphasize shapes in
      * data visualisations. This is the most intense token of its family.
      */
-    vibrant: color.blue.dark.opaque900,
+    vibrant: color.blue.dark.opaque1100,
   },
   promotion: {
     /**
@@ -1016,12 +1016,12 @@ const graphics = {
      *
      * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGMjZBQiIvPgogIDwvc3ZnPg==)
      *
-     * `promotion.vibrant` `#FF26AB`
+     * `promotion.vibrant` `#ED77AA`
      *
      * Used situationally, but its primary purpose is to emphasize shapes in
      * data visualisations. This is the most intense token of its family.
      */
-    vibrant: color.pink.dark.opaque1000,
+    vibrant: color.pink.dark.opaque1100,
   },
   danger: {
     /**
@@ -1048,12 +1048,12 @@ const graphics = {
      *
      * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGMDAxNSIvPgogIDwvc3ZnPg==)
      *
-     * `danger.vibrant` `#FF0015`
+     * `danger.vibrant` `#F55C58`
      *
      * Used situationally, but its primary purpose is to emphasize shapes in
      * data visualisations. This is the most intense token of its family.
      */
-    vibrant: color.red.dark.opaque900,
+    vibrant: color.red.dark.opaque1000,
   },
   warning: {
     /**
@@ -1112,12 +1112,12 @@ const graphics = {
      *
      * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzAwRjc0NiIvPgogIDwvc3ZnPg==)
      *
-     * `success.vibrant` `#00F746`
+     * `success.vibrant` `#00D267`
      *
      * Used situationally, but its primary purpose is to emphasize shapes in
      * data visualisations. This is the most intense token of its family.
      */
-    vibrant: color.green.dark.opaque1100,
+    vibrant: color.green.dark.opaque1200,
   },
 };
 

@@ -951,12 +951,12 @@ const graphics = {
      *
      * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0E0OUVBQyIvPgogIDwvc3ZnPg==)
      *
-     * `neutral.vibrant` `#A49EAC`
+     * `neutral.vibrant` `#787583`
      *
      * Used situationally, but its primary purpose is to emphasize shapes in
      * data visualisations. This is the most intense token of its family.
      */
-    vibrant: color.neutral.light.opaque800,
+    vibrant: color.neutral.light.opaque1000,
   },
   accent: {
     /**
@@ -1016,12 +1016,12 @@ const graphics = {
      *
      * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGNjRDMCIvPgogIDwvc3ZnPg==)
      *
-     * `promotion.vibrant` `#FF64C0`
+     * `promotion.vibrant` `#ED008F`
      *
      * Used situationally, but its primary purpose is to emphasize shapes in
      * data visualisations. This is the most intense token of its family.
      */
-    vibrant: color.pink.light.opaque700,
+    vibrant: color.pink.light.opaque1000,
   },
   danger: {
     /**
@@ -1080,12 +1080,12 @@ const graphics = {
      *
      * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGQ0MwMCIvPgogIDwvc3ZnPg==)
      *
-     * `warning.vibrant` `#FFCC00`
+     * `warning.vibrant` `#E19300`
      *
      * Used situationally, but its primary purpose is to emphasize shapes in
      * data visualisations. This is the most intense token of its family.
      */
-    vibrant: color.yellow.light.opaque600,
+    vibrant: color.yellow.light.opaque800,
   },
   success: {
     /**
@@ -1112,12 +1112,12 @@ const graphics = {
      *
      * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzAwRjc0NiIvPgogIDwvc3ZnPg==)
      *
-     * `success.vibrant` `#00F746`
+     * `success.vibrant` `#009C00`
      *
      * Used situationally, but its primary purpose is to emphasize shapes in
      * data visualisations. This is the most intense token of its family.
      */
-    vibrant: color.green.light.opaque800,
+    vibrant: color.green.light.opaque1000,
   },
 };
 
