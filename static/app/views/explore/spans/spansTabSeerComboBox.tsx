@@ -80,11 +80,9 @@ export function SpansTabSeerComboBox() {
     enableAISearch,
   } = useSearchQueryBuilder();
 
-  // Check if the new translation endpoint should be used (internal testing)
-  // const useTranslateEndpoint = organization.features.includes(
-  //   'gen-ai-explore-traces-translate'
-  // );
-  const useTranslateEndpoint = true; // TODO: Testing
+  const useTranslateEndpoint = organization.features.includes(
+    'gen-ai-explore-traces-translate'
+  );
 
   let initialSeerQuery = '';
   const queryDetails = useMemo(() => {
@@ -125,7 +123,6 @@ export function SpansTabSeerComboBox() {
           ? pageFilters.selection.projects
           : projects.filter(p => p.isMember).map(p => p.id);
 
-      // Use new translation endpoint if feature flag is enabled
       if (useTranslateEndpoint) {
         const data = await fetchMutation<TraceAskSeerTranslateResponse>({
           url: `/organizations/${organization.slug}/search-agent/translate/`,
@@ -136,7 +133,6 @@ export function SpansTabSeerComboBox() {
           },
         });
 
-        // Convert responses array to the expected format
         return {
           status: 'ok',
           unsupported_reason: data.responses[0]?.unsupported_reason ?? null,
@@ -157,7 +153,6 @@ export function SpansTabSeerComboBox() {
         };
       }
 
-      // Use the original endpoint
       const data = await fetchMutation<TraceAskSeerSearchResponse>({
         url: `/organizations/${organization.slug}/trace-explorer-ai/query/`,
         method: 'POST',
@@ -202,23 +197,18 @@ export function SpansTabSeerComboBox() {
         end: resultEnd,
       } = result;
 
-      // Use start/end from result if provided, otherwise fall back to page filters
       let start: DateString = null;
       let end: DateString = null;
 
       if (resultStart && resultEnd) {
-        // Treat UTC dates as local dates by removing the 'Z' suffix
-        // This ensures "2025-12-06T00:00:00Z" is interpreted as Dec 6th midnight local time
+        // Strip 'Z' suffix to treat UTC dates as local time
         const startLocal = resultStart.endsWith('Z')
           ? resultStart.slice(0, -1)
           : resultStart;
         const endLocal = resultEnd.endsWith('Z') ? resultEnd.slice(0, -1) : resultEnd;
-
-        // Convert to ISO string format expected by the page filters
         start = new Date(startLocal).toISOString();
         end = new Date(endLocal).toISOString();
       } else {
-        // Fall back to page filters directly - DateString type is compatible
         start = pageFilters.selection.datetime.start;
         end = pageFilters.selection.datetime.end;
       }
@@ -229,7 +219,6 @@ export function SpansTabSeerComboBox() {
           start,
           end,
           utc: pageFilters.selection.datetime.utc,
-          // Only use statsPeriod if we don't have explicit start/end from result
           period:
             resultStart && resultEnd
               ? null
@@ -284,7 +273,6 @@ export function SpansTabSeerComboBox() {
     !organization?.hideAiFeatures &&
     organization.features.includes('gen-ai-features');
 
-  // Skip setup call when using the translation endpoint (it doesn't require setup)
   useTraceExploreAiQuerySetup({
     enableAISearch: areAiFeaturesAllowed && !useTranslateEndpoint,
   });
