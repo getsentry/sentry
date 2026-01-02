@@ -4,6 +4,7 @@ import {createPortal} from 'react-dom';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {useUser} from 'sentry/utils/useUser';
 import AskUserQuestionBlock from 'sentry/views/seerExplorer/askUserQuestionBlock';
 import BlockComponent from 'sentry/views/seerExplorer/blockComponents';
 import EmptyState from 'sentry/views/seerExplorer/emptyState';
@@ -482,6 +483,10 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     }
   }, [panelSize, handleMaxSize, handleMedSize]);
 
+  const userId = useUser().id;
+  const ownerUserId = sessionData?.owner_user_id;
+  const editEnabled = ownerUserId === undefined || ownerUserId.toString() === userId;
+
   const panelContent = (
     <PanelContainers
       ref={panelRef}
@@ -533,6 +538,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
                 }
                 isFocused={focusedBlockIndex === index}
                 isPolling={isPolling}
+                editEnabled={editEnabled}
                 onClick={() => handleBlockClick(index)}
                 onMouseEnter={() => {
                   // Don't change focus while menu is open, if already on this block, or if hover is disabled
@@ -586,6 +592,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
         )}
       </BlocksContainer>
       <InputSection
+        enabled={editEnabled}
         focusedBlockIndex={focusedBlockIndex}
         inputValue={inputValue}
         interruptRequested={interruptRequested}

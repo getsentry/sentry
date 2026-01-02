@@ -26,6 +26,7 @@ import {
 interface BlockProps {
   block: Block;
   blockIndex: number;
+  editEnabled?: boolean;
   isAwaitingFileApproval?: boolean;
   isAwaitingQuestion?: boolean;
   isFocused?: boolean;
@@ -136,6 +137,7 @@ function BlockComponent({
   isLatestTodoBlock,
   isFocused,
   isPolling,
+  editEnabled = true,
   onClick,
   onDelete,
   onMouseEnter,
@@ -275,7 +277,11 @@ function BlockComponent({
   };
 
   const showActions =
-    isFocused && !block.loading && !isAwaitingFileApproval && !isAwaitingQuestion;
+    isFocused &&
+    !block.loading &&
+    !isAwaitingFileApproval &&
+    !isAwaitingQuestion &&
+    editEnabled; // Update when there are more actions than restart
 
   return (
     <Block
