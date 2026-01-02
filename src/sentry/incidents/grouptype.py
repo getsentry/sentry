@@ -218,6 +218,7 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
                 str(self.detector.created_by_id), self.detector.project.organization_id
             )
         except Exception:
+            logger.exception("Failed to parse assignee for detector id %s", self.detector.id)
             assignee = None
 
         return (
