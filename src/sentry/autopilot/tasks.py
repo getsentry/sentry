@@ -181,16 +181,10 @@ def run_missing_sdk_integration_detector_for_organization(organization: Organiza
             .first()
         )
 
-        if not repo_config:
-            logger.warning(
-                "missing_sdk_integration_detector.no_repository_mapping",
-                extra={"organization_id": organization.id, "project_id": project.id},
+        if repo_config:
+            run_missing_sdk_integration_detector_for_project(
+                organization, project, repo_config.repository.name
             )
-            continue
-
-        run_missing_sdk_integration_detector_for_project(
-            organization, project, repo_config.repository.name
-        )
 
 
 def run_missing_sdk_integration_detector_for_project(
@@ -217,19 +211,18 @@ def run_missing_sdk_integration_detector_for_project(
         )
         return None
 
+    if project.platform not in INTEGRATION_ID_TO_PLATFORM_DATA:
+        logger.warning(
+            "missing_sdk_integration_detector.platform_data_lookup.not_found",
+            extra={
+                "platform": project.platform,
+            },
+        )
+
     # Get docs URL from platform data
     platform_data = INTEGRATION_ID_TO_PLATFORM_DATA.get(project.platform or "", {})
     docs_url = platform_data.get("link", "https://docs.sentry.io/platforms/")
-
-    logger.warning(
-        "missing_sdk_integration_detector.platform_data_lookup",
-        extra={
-            "platform": project.platform,
-            "platform_data": platform_data,
-            "docs_url": docs_url,
-            "platform_data_keys_count": len(INTEGRATION_ID_TO_PLATFORM_DATA),
-        },
-    )
+    integration_docs_url = f"{docs_url}configuration/integrations/"
 
     prompt = f"""Analyze the connected code repository for project "{project.slug}" to identify missing Sentry SDK integrations.
 
@@ -237,9 +230,10 @@ The project is mapped to repository: {repo_name}
 The project platform is: {project.platform or "unknown"}
 
 Refer to the Sentry SDK integrations documentation for available integrations:
-{docs_url}
+{integration_docs_url}
 
 Look at the project's dependencies (package.json, requirements.txt, pyproject.toml, etc.) and identify any libraries or frameworks that have Sentry SDK integrations available but require manual instrumentation steps.
+Check the Sentry initialization code to see if any integrations are already configured.
 
 Return the list of missing SDK integration names. Each integration name should be the exact integration function/class name from the Sentry SDK (e.g., "anthropicIntegration", "openaiIntegration", "CeleryIntegration").
 
@@ -258,7 +252,15 @@ If no missing integrations are found, return an empty list."""
         missing_integrations = result.missing_integrations if result else []
 
         logger.warning(
-            "missing_sdk_integration_detector.integrations_found: %s", missing_integrations
+            "missing_sdk_integration_detector.integrations_found: %s",
+            missing_integrations,
+            extra={
+                "organization_id": organization.id,
+                "project_id": project.id,
+                "project_slug": project.slug,
+                "platform": project.platform,
+                "repo_name": repo_name,
+            },
         )
 
         return missing_integrations
