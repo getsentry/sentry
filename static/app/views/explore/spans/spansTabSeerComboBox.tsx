@@ -81,7 +81,7 @@ export function SpansTabSeerComboBox() {
   } = useSearchQueryBuilder();
 
   const useTranslateEndpoint = organization.features.includes(
-    'gen-ai-explore-traces-translate'
+    'gen-ai-search-agent-translate'
   );
 
   let initialSeerQuery = '';
