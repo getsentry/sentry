@@ -221,8 +221,12 @@ def run_missing_sdk_integration_detector_for_project(
 
     # Get docs URL from platform data
     platform_data = INTEGRATION_ID_TO_PLATFORM_DATA.get(project.platform or "", {})
-    docs_url = platform_data.get("link", "https://docs.sentry.io/platforms/")
-    integration_docs_url = f"{docs_url}configuration/integrations/"
+    docs_url = platform_data.get("link", None)
+    integration_docs_url = (
+        f"{docs_url}configuration/integrations/"
+        if docs_url
+        else "https://docs.sentry.io/platforms/"
+    )
 
     prompt = f"""Analyze the connected code repository for project "{project.slug}" to identify missing Sentry SDK integrations.
 
