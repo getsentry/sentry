@@ -284,7 +284,7 @@ function Controls({
                   aria-label={t('star-dashboard')}
                   icon={
                     <IconStar
-                      variant={isFavorited ? 'warning' : 'primary'}
+                      color={isFavorited ? 'yellow300' : 'subText'}
                       isSolid={isFavorited}
                       aria-label={isFavorited ? t('Unstar') : t('Star')}
                       data-test-id={isFavorited ? 'yellow-star' : 'empty-star'}

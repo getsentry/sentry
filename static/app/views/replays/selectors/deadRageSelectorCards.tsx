@@ -84,7 +84,7 @@ function AccordionWidget({
   deadOrRage: 'dead' | 'rage';
   header: ReactNode;
 }) {
-  const clickColor = deadOrRage === 'dead' ? 'warning' : 'danger';
+  const clickColor = deadOrRage === 'dead' ? 'yellow300' : 'danger';
   const [selectedListIndex, setSelectListIndex] = useState(-1);
   const {isLoading, isError, data} = useDeadRageSelectors({
     per_page: 3,
@@ -99,7 +99,7 @@ function AccordionWidget({
   return (
     <StyledWidgetContainer data-test-id="selector-widget">
       <StyledHeaderContainer>
-        <IconCursorArrow variant={clickColor} />
+        <IconCursorArrow color={clickColor} />
         {header}
       </StyledHeaderContainer>
       {isLoading ? (
@@ -167,7 +167,7 @@ function AccordionItemHeader({
   selectorQuery,
   id,
 }: {
-  clickColor: 'warning' | 'danger';
+  clickColor: 'yellow300' | 'danger';
   count: number;
   id: number;
   selector: string;
@@ -175,7 +175,7 @@ function AccordionItemHeader({
 }) {
   const clickCount = (
     <ClickCount>
-      <IconCursorArrow size="xs" variant={clickColor} />
+      <IconCursorArrow size="xs" color={clickColor} />
       {count}
     </ClickCount>
   );
