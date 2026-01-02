@@ -7,6 +7,7 @@ import {
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {DisplayType} from 'sentry/views/dashboards/types';
+import {isChartDisplayType} from 'sentry/views/dashboards/utils';
 import {AggregateCompactSelect} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {renderDropdownMenuFooter} from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -27,6 +28,13 @@ export function AggregateSelector({
 }) {
   const {state, dispatch} = useWidgetBuilderContext();
 
+  // For chart displays, use yAxis. For Big Number, use fields array.
+  const isChart = isChartDisplayType(state.displayType);
+  const aggregateSource = isChart ? state.yAxis : state.fields;
+  const actionType = isChart
+    ? BuilderStateAction.SET_Y_AXIS
+    : BuilderStateAction.SET_FIELDS;
+
   const aggregateOptions = useMemo(
     () => OPTIONS_BY_TYPE[traceMetric?.type ?? ''] ?? [],
     [traceMetric?.type]
@@ -42,13 +50,13 @@ export function AggregateSelector({
     if (
       aggregate &&
       !aggregateOptions.some(option => option.value === aggregate) &&
-      state.yAxis
+      aggregateSource
     ) {
       const validAggregate = aggregateOptions[0]?.value;
       dispatch({
-        type: BuilderStateAction.SET_Y_AXIS,
+        type: actionType,
         payload:
-          state.yAxis?.map((axis, i) =>
+          aggregateSource?.map((axis, i) =>
             i === index
               ? ({
                   function: [validAggregate, 'value', undefined, undefined],
@@ -63,7 +71,8 @@ export function AggregateSelector({
     aggregateOptions,
     dispatch,
     index,
-    state.yAxis,
+    aggregateSource,
+    actionType,
     field.kind,
     field,
     traceMetric.type,
@@ -76,8 +85,8 @@ export function AggregateSelector({
       disabled={disabled || aggregateOptions.length <= 1}
       options={aggregateOptions}
       value={
-        state.yAxis?.[index]?.kind === 'function'
-          ? (state.yAxis?.[index]?.function?.[0] ?? '')
+        aggregateSource?.[index]?.kind === 'function'
+          ? (aggregateSource?.[index]?.function?.[0] ?? '')
           : ''
       }
       position="bottom-start"
@@ -86,8 +95,8 @@ export function AggregateSelector({
       }
       onChange={option => {
         if (field.kind === 'function') {
-          const newYAxes = cloneDeep(state.yAxis) ?? [];
-          newYAxes[index] = {
+          const newAggregates = cloneDeep(aggregateSource) ?? [];
+          newAggregates[index] = {
             function: [
               option.value as AggregationKeyWithAlias,
               'value',
@@ -98,8 +107,8 @@ export function AggregateSelector({
             kind: 'function',
           };
           dispatch({
-            type: BuilderStateAction.SET_Y_AXIS,
-            payload: newYAxes,
+            type: actionType,
+            payload: newAggregates,
           });
         }
       }}

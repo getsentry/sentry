@@ -3,6 +3,7 @@ import {useCallback, useState} from 'react';
 import type {Client} from 'sentry/api';
 import type {PageFilters} from 'sentry/types/core';
 import type {Confidence} from 'sentry/types/organization';
+import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -21,7 +22,7 @@ import type {
 import GenericWidgetQueries from './genericWidgetQueries';
 
 type SeriesResult = EventsTimeSeriesResponse;
-type TableResult = never;
+type TableResult = EventsTableData;
 
 type TraceMetricsWidgetQueriesProps = {
   api: Client;
