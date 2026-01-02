@@ -5,6 +5,7 @@ import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/contex
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {stringifyToken} from 'sentry/components/searchSyntax/utils';
+import type {DateString} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
@@ -202,8 +203,8 @@ export function SpansTabSeerComboBox() {
       } = result;
 
       // Use start/end from result if provided, otherwise fall back to page filters
-      let start: string | null | undefined;
-      let end: string | null | undefined;
+      let start: DateString = null;
+      let end: DateString = null;
 
       if (resultStart && resultEnd) {
         // Treat UTC dates as local dates by removing the 'Z' suffix
@@ -217,16 +218,9 @@ export function SpansTabSeerComboBox() {
         start = new Date(startLocal).toISOString();
         end = new Date(endLocal).toISOString();
       } else {
-        // Fall back to page filters
-        const startFilter = pageFilters.selection.datetime.start?.valueOf();
-        start = startFilter
-          ? new Date(startFilter).toISOString()
-          : pageFilters.selection.datetime.start;
-
-        const endFilter = pageFilters.selection.datetime.end?.valueOf();
-        end = endFilter
-          ? new Date(endFilter).toISOString()
-          : pageFilters.selection.datetime.end;
+        // Fall back to page filters directly - DateString type is compatible
+        start = pageFilters.selection.datetime.start;
+        end = pageFilters.selection.datetime.end;
       }
 
       const selection = {
