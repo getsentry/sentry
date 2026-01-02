@@ -262,6 +262,7 @@ export function PrivateGamingSdkAccessModal({
             </Button>
           </Fragment>
         )}
+        {requestError && <Alert variant="danger">{requestError}</Alert>}
       </Body>
       <Footer>
         <ButtonBar>

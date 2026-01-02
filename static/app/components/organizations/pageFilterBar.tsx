@@ -19,7 +19,7 @@ const PageFilterBar = styled(({children, ...props}: PageFilterBarProps) => {
 })``;
 
 const StyledPageFilterBar = styled('div')<{listSize: number; condensed?: boolean}>`
-  ${p => chonkPageFilterBarStyles(p)}
+  ${p => pageFilterBarStyles(p)};
 `;
 
 export default PageFilterBar;
@@ -35,7 +35,7 @@ const getChildTransforms = (count: number) => {
   );
 };
 
-const chonkPageFilterBarStyles = (p: {
+const pageFilterBarStyles = (p: {
   listSize: number;
   theme: Theme;
   condensed?: boolean;

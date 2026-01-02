@@ -67,7 +67,7 @@ export function DO_NOT_USE_getChonkButtonStyles(
     alignItems: 'center',
     justifyContent: 'center',
 
-    fontWeight: p.theme.font.weight.medium,
+    fontWeight: p.theme.font.weight.sans.medium,
 
     opacity: p.busy || p.disabled ? 0.6 : undefined,
 
