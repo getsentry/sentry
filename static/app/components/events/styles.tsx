@@ -27,8 +27,8 @@ function getColors({priority, theme}: BannerProps & {theme: Theme}) {
       border: theme.border,
     },
     danger: {
-      background: theme.alert.error.backgroundLight,
-      border: theme.alert.error.border,
+      background: theme.alert.danger.backgroundLight,
+      border: theme.alert.danger.border,
     },
     success: {
       background: theme.alert.success.backgroundLight,

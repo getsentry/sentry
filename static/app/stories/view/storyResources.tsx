@@ -69,7 +69,7 @@ function FigmaResource(props: {href: string}) {
         </LinkButton>
       </td>
       <td>
-        <Badge type="new">Available</Badge>
+        <Badge variant="new">Available</Badge>
       </td>
     </tr>
   );
@@ -85,7 +85,7 @@ function JsResource(props: {href: string}) {
         </LinkButton>
       </td>
       <td>
-        <Badge type="beta">In Progress</Badge>
+        <Badge variant="beta">In Progress</Badge>
       </td>
     </tr>
   );
@@ -108,7 +108,7 @@ function A11yResource(props: {items: Record<string, string>}) {
         </ul>
       </td>
       <td>
-        <Badge type="internal">Reference</Badge>
+        <Badge variant="internal">Reference</Badge>
       </td>
     </tr>
   );

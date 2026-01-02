@@ -339,9 +339,10 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
         base_size_metrics = list(base_size_metrics_qs)
 
         # Check if the size metrics can be compared
-        if not can_compare_size_metrics(head_size_metrics, base_size_metrics):
+        validation_result = can_compare_size_metrics(head_size_metrics, base_size_metrics)
+        if not validation_result.can_compare:
             return Response(
-                {"detail": "Head and base size metrics cannot be compared."},
+                {"detail": validation_result.error_message},
                 status=400,
             )
 

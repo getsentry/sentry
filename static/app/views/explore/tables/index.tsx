@@ -93,14 +93,14 @@ export function ExploreTables(props: ExploreTablesProps) {
     <Fragment>
       <SamplesTableHeader>
         <Tabs value={props.tab} onChange={props.setTab} size="sm">
-          <TabList hideBorder variant="floating">
+          <TabList variant="floating">
             <TabList.Item key={Tab.SPAN}>{t('Span Samples')}</TabList.Item>
             <TabList.Item key={Tab.TRACE}>{t('Trace Samples')}</TabList.Item>
             <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>
             {attributeBreakdownsEnabled ? (
               <TabList.Item key={Tab.ATTRIBUTE_BREAKDOWNS}>
                 {t('Attribute Breakdowns')}
-                <Badge type="beta">Beta</Badge>
+                <Badge variant="beta">Beta</Badge>
               </TabList.Item>
             ) : null}
           </TabList>

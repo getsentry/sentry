@@ -2,12 +2,12 @@ import color from 'color';
 
 import type {Theme} from 'sentry/utils/theme';
 
-const chonkCache = new Map<{baseColor: string; type: 'light' | 'dark'}, string>();
+const cache = new Map<{baseColor: string; type: 'light' | 'dark'}, string>();
 
 export function chonkFor(theme: Theme, baseColor: string) {
   const cacheKey = {baseColor, type: theme.type};
-  if (chonkCache.has(cacheKey)) {
-    return chonkCache.get(cacheKey)!;
+  if (cache.has(cacheKey)) {
+    return cache.get(cacheKey)!;
   }
   const input = color(baseColor).hsl();
 
@@ -18,7 +18,7 @@ export function chonkFor(theme: Theme, baseColor: string) {
           .hsl(input.hue(), input.saturationl() * 0.85, input.lightness() * 0.85)
           .hex();
 
-  chonkCache.set(cacheKey, result);
+  cache.set(cacheKey, result);
 
   return result;
 }
