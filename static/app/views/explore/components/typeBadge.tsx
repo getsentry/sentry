@@ -1,4 +1,5 @@
-import {Tag} from 'sentry/components/core/badge/tag';
+import {Text} from '@sentry/scraps/text';
+
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
@@ -13,59 +14,59 @@ interface TypeBadgeProps {
 
 export function TypeBadge({func, kind, valueType, isLogicFilter}: TypeBadgeProps) {
   if (defined(func) || kind === FieldKind.FUNCTION) {
-    return <Tag variant="success">{t('f(x)')}</Tag>;
+    return <Text variant="success">{t('f(x)')}</Text>;
   }
 
   if (valueType === FieldValueType.BOOLEAN) {
-    return <Tag variant="muted">{t('boolean')}</Tag>;
+    return <Text variant="promotion">{t('boolean')}</Text>;
   }
 
   if (valueType === FieldValueType.DATE) {
-    return <Tag variant="warning">{t('date')}</Tag>;
+    return <Text variant="danger">{t('date')}</Text>;
   }
 
   if (valueType === FieldValueType.DURATION) {
-    return <Tag variant="danger">{t('duration')}</Tag>;
+    return <Text variant="danger">{t('duration')}</Text>;
   }
 
   if (valueType === FieldValueType.INTEGER) {
-    return <Tag variant="info">{t('integer')}</Tag>;
+    return <Text variant="accent">{t('integer')}</Text>;
   }
 
   if (valueType === FieldValueType.PERCENTAGE) {
-    return <Tag variant="promotion">{t('percentage')}</Tag>;
+    return <Text variant="promotion">{t('percentage')}</Text>;
   }
 
   if (valueType === FieldValueType.SIZE) {
-    return <Tag variant="muted">{t('size')}</Tag>;
+    return <Text variant="success">{t('size')}</Text>;
   }
 
   if (valueType === FieldValueType.RATE) {
-    return <Tag variant="warning">{t('rate')}</Tag>;
+    return <Text variant="warning">{t('rate')}</Text>;
   }
 
   if (valueType === FieldValueType.PERCENT_CHANGE) {
-    return <Tag variant="danger">{t('percent change')}</Tag>;
+    return <Text variant="danger">{t('percent change')}</Text>;
   }
 
   if (valueType === FieldValueType.SCORE) {
-    return <Tag variant="info">{t('score')}</Tag>;
+    return <Text variant="accent">{t('score')}</Text>;
   }
 
   if (valueType === FieldValueType.CURRENCY) {
-    return <Tag variant="success">{t('currency')}</Tag>;
+    return <Text variant="success">{t('currency')}</Text>;
   }
 
   if (valueType === FieldValueType.NUMBER || kind === FieldKind.MEASUREMENT) {
-    return <Tag variant="info">{t('number')}</Tag>;
+    return <Text variant="warning">{t('number')}</Text>;
   }
 
   if (valueType === FieldValueType.STRING || kind === FieldKind.TAG) {
-    return <Tag variant="warning">{t('string')}</Tag>;
+    return <Text variant="accent">{t('string')}</Text>;
   }
 
   if (isLogicFilter) {
-    return <Tag variant="promotion">{t('logic')}</Tag>;
+    return <Text variant="promotion">{t('logic')}</Text>;
   }
 
   return null;
