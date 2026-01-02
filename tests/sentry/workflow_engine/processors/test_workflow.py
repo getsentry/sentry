@@ -111,7 +111,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
             group_id=self.group.id,
             occurrence_id=self.group_event.occurrence_id,
             group_state={
-                "id": 1,
+                "id": self.group.id,
                 "is_new": False,
                 "is_regression": True,
                 "is_new_group_environment": False,
