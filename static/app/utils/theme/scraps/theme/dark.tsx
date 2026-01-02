@@ -1048,12 +1048,12 @@ const graphics = {
      *
      * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGMDAxNSIvPgogIDwvc3ZnPg==)
      *
-     * `danger.vibrant` `#F55C58`
+     * `danger.vibrant` `#FE726E`
      *
      * Used situationally, but its primary purpose is to emphasize shapes in
      * data visualisations. This is the most intense token of its family.
      */
-    vibrant: color.red.dark.opaque1000,
+    vibrant: color.red.dark.opaque1100,
   },
   warning: {
     /**

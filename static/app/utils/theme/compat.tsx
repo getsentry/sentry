@@ -135,8 +135,8 @@ export function withLegacyTokens<T extends Record<string, any>>(
   } satisfies LegacyTokens['content'];
   const graphics = {
     ...tokens.graphics,
-    muted: tokens.graphics.neutral.moderate,
     // Apply compatability Proxy to deprecated tokens
+    muted: createBackwardsCompatibleToken(tokens.graphics.neutral),
     accent: createBackwardsCompatibleToken(tokens.graphics.accent),
     promotion: createBackwardsCompatibleToken(tokens.graphics.promotion),
     danger: createBackwardsCompatibleToken(tokens.graphics.danger),
