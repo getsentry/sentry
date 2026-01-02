@@ -1,5 +1,4 @@
 import type {RouteObject} from 'react-router-dom';
-import {Outlet} from 'react-router-dom';
 import memoize from 'lodash/memoize';
 
 import {EXPERIMENTAL_SPA} from 'sentry/constants';
@@ -14,8 +13,8 @@ import {translateSentryRoute} from 'sentry/utils/reactRouter6Compat/router';
 import withDomainRedirect from 'sentry/utils/withDomainRedirect';
 import withDomainRequired from 'sentry/utils/withDomainRequired';
 import App from 'sentry/views/app';
-import {AppBodyContentRoute} from 'sentry/views/app/appBodyContent';
-import AuthLayoutRoute from 'sentry/views/auth/layout';
+import {AppBodyContent} from 'sentry/views/app/appBodyContent';
+import AuthLayout from 'sentry/views/auth/layout';
 import {authV2Routes} from 'sentry/views/authV2/routes';
 import {automationRoutes} from 'sentry/views/automations/routes';
 import {detectorRoutes} from 'sentry/views/detectors/routes';
@@ -34,7 +33,7 @@ import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDeta
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {OverviewWrapper} from 'sentry/views/issueList/overviewWrapper';
 import {IssueTaxonomy} from 'sentry/views/issueList/taxonomies';
-import OrganizationContainerRoute from 'sentry/views/organizationContainer';
+import OrganizationContainer from 'sentry/views/organizationContainer';
 import OrganizationLayout from 'sentry/views/organizationLayout';
 import {OrganizationStatsWrapper} from 'sentry/views/organizationStats/organizationStatsWrapper';
 import TransactionSummaryTab from 'sentry/views/performance/transactionSummary/tabs';
@@ -146,7 +145,8 @@ function buildRoutes(): RouteObject[] {
   const experimentalSpaRoutes: SentryRouteObject = EXPERIMENTAL_SPA
     ? {
         path: '/auth/login/',
-        component: errorHandler(AuthLayoutRoute),
+        component: errorHandler(AuthLayout),
+        deprecatedRouteProps: true,
         children: experimentalSpaChildRoutes,
       }
     : {};
@@ -170,7 +170,8 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/acceptProjectTransfer')),
     },
     {
-      component: errorHandler(OrganizationContainerRoute),
+      component: errorHandler(OrganizationContainer),
+      deprecatedRouteProps: true,
       children: [
         {
           path: '/extensions/external-install/:integrationSlug/:installationId',
@@ -185,6 +186,7 @@ function buildRoutes(): RouteObject[] {
     {
       path: '/sentry-apps/:sentryAppSlug/external-install/',
       component: make(() => import('sentry/views/sentryAppExternalInstallation')),
+      deprecatedRouteProps: true,
     },
     {
       path: '/account/',
@@ -235,12 +237,14 @@ function buildRoutes(): RouteObject[] {
       withOrgPath: true,
     },
     {
-      component: errorHandler(OrganizationContainerRoute),
+      component: errorHandler(OrganizationContainer),
+      deprecatedRouteProps: true,
       children: [
         {
           path: '/disabled-member/',
           component: make(() => import('sentry/views/disabledMember')),
           withOrgPath: true,
+          deprecatedRouteProps: true,
         },
       ],
     },
@@ -269,6 +273,7 @@ function buildRoutes(): RouteObject[] {
     {
       path: '/relocation/',
       component: make(() => import('sentry/views/relocation')),
+      deprecatedRouteProps: true,
       children: [
         {
           index: true,
@@ -277,6 +282,7 @@ function buildRoutes(): RouteObject[] {
         {
           path: ':step/',
           component: make(() => import('sentry/views/relocation')),
+          deprecatedRouteProps: true,
         },
       ],
     },
@@ -287,8 +293,9 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: '/onboarding/:step/',
-      component: errorHandler(withDomainRequired(OrganizationContainerRoute)),
+      component: errorHandler(withDomainRequired(OrganizationContainer)),
       customerDomainOnlyRoute: true,
+      deprecatedRouteProps: true,
       children: [
         {
           index: true,
@@ -302,7 +309,8 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: '/onboarding/:orgId/:step/',
-      component: withDomainRedirect(errorHandler(OrganizationContainerRoute)),
+      component: withDomainRedirect(errorHandler(OrganizationContainer)),
+      deprecatedRouteProps: true,
       children: [
         {
           index: true,
@@ -322,8 +330,9 @@ function buildRoutes(): RouteObject[] {
     },
   ];
   const rootRoutes: SentryRouteObject = {
-    component: errorHandler(AppBodyContentRoute),
+    component: errorHandler(AppBodyContent),
     children: rootChildren,
+    deprecatedRouteProps: true,
   };
 
   const accountSettingsChildren: SentryRouteObject[] = [
@@ -499,6 +508,7 @@ function buildRoutes(): RouteObject[] {
     name: t('Account'),
     component: make(() => import('sentry/views/settings/account/accountSettingsLayout')),
     children: accountSettingsChildren,
+    deprecatedRouteProps: true,
   };
 
   const projectSettingsChildren: SentryRouteObject[] = [
@@ -1163,6 +1173,7 @@ function buildRoutes(): RouteObject[] {
       path: 'early-features/',
       name: t('Early Features'),
       component: make(() => import('sentry/views/settings/earlyFeatures')),
+      deprecatedRouteProps: true,
     },
     {
       path: 'dynamic-sampling/',
@@ -1264,12 +1275,18 @@ function buildRoutes(): RouteObject[] {
         },
       ],
     },
+    {
+      path: 'console-sdk-invites/',
+      name: t('Console SDK Invites'),
+      component: make(() => import('getsentry/views/consoleSdkInvites')),
+    },
   ];
   const orgSettingsRoutes: SentryRouteObject = {
     component: make(
       () => import('sentry/views/settings/organization/organizationSettingsLayout')
     ),
     children: orgSettingsChildren,
+    deprecatedRouteProps: true,
   };
 
   const subscriptionSettingsRoutes = routeHook('routes:subscription-settings');
@@ -1310,6 +1327,7 @@ function buildRoutes(): RouteObject[] {
         component: withDomainRequired(NoOp),
         customerDomainOnlyRoute: true,
         children: [orgSettingsRoutes, projectSettingsRoutes, subscriptionSettingsRoutes],
+        deprecatedRouteProps: true,
       },
       {
         path: ':orgId/',
@@ -1321,8 +1339,10 @@ function buildRoutes(): RouteObject[] {
           subscriptionSettingsRoutes,
           legacySettingsRedirects,
         ],
+        deprecatedRouteProps: true,
       },
     ],
+    deprecatedRouteProps: true,
   };
 
   const projectsChildren: SentryRouteObject[] = [
@@ -1457,6 +1477,7 @@ function buildRoutes(): RouteObject[] {
     {
       index: true,
       component: make(() => import('sentry/views/alerts/list/incidents')),
+      deprecatedRouteProps: true,
     },
     {
       path: 'rules/',
@@ -1464,6 +1485,7 @@ function buildRoutes(): RouteObject[] {
         {
           index: true,
           component: make(() => import('sentry/views/alerts/list/rules/alertRulesList')),
+          deprecatedRouteProps: true,
         },
         {
           path: 'details/:ruleId/',
@@ -1509,6 +1531,7 @@ function buildRoutes(): RouteObject[] {
         {
           path: 'uptime/',
           component: make(() => import('sentry/views/alerts/rules/uptime')),
+          deprecatedRouteProps: true,
           children: [
             {
               path: ':projectId/:detectorId/details/',
@@ -1533,10 +1556,12 @@ function buildRoutes(): RouteObject[] {
         {
           path: 'crons/',
           component: make(() => import('sentry/views/alerts/rules/crons')),
+          deprecatedRouteProps: true,
           children: [
             {
               path: ':projectId/:monitorSlug/details/',
               component: make(() => import('sentry/views/alerts/rules/crons/details')),
+              deprecatedRouteProps: true,
             },
           ],
         },
@@ -1811,6 +1836,7 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'homepage/',
       component: make(() => import('sentry/views/discover/homepage')),
+      deprecatedRouteProps: true,
     },
     traceView,
     {
@@ -1820,10 +1846,12 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'results/',
       component: make(() => import('sentry/views/discover/results')),
+      deprecatedRouteProps: true,
     },
     {
       path: ':eventSlug/',
       component: make(() => import('sentry/views/discover/eventDetails')),
+      deprecatedRouteProps: true,
     },
   ];
   const discoverRoutes: SentryRouteObject = {
@@ -1831,6 +1859,7 @@ function buildRoutes(): RouteObject[] {
     component: make(() => import('sentry/views/discover')),
     withOrgPath: true,
     children: discoverChildren,
+    deprecatedRouteProps: true,
   };
 
   // Redirects for old LLM monitoring routes
@@ -1886,6 +1915,14 @@ function buildRoutes(): RouteObject[] {
             component: make(
               () =>
                 import('sentry/views/performance/transactionSummary/transactionReplays')
+            ),
+          },
+          {
+            path: 'vitals/',
+            handle: {tab: TransactionSummaryTab.WEB_VITALS},
+            component: make(
+              () =>
+                import('sentry/views/performance/transactionSummary/transactionVitals')
             ),
           },
           {
@@ -2237,6 +2274,7 @@ function buildRoutes(): RouteObject[] {
       path: 'projects/',
       component: make(() => import('sentry/views/projects/')),
       children: projectsChildren,
+      deprecatedRouteProps: true,
     },
     {
       path: `${FRONTEND_LANDING_SUB_PATH}/uptime/`,
@@ -2646,10 +2684,6 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/issueList/pages/dynamicGrouping')),
     },
     {
-      path: 'top-issues/',
-      component: make(() => import('sentry/views/issueList/pages/topIssues')),
-    },
-    {
       path: 'views/:viewId/',
       component: errorHandler(OverviewWrapper),
     },
@@ -2712,14 +2746,17 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'relays/',
       component: make(() => import('sentry/views/admin/adminRelays')),
+      deprecatedRouteProps: true,
     },
     {
       path: 'organizations/',
       component: make(() => import('sentry/views/admin/adminOrganizations')),
+      deprecatedRouteProps: true,
     },
     {
       path: 'projects/',
       component: make(() => import('sentry/views/admin/adminProjects')),
+      deprecatedRouteProps: true,
     },
     {
       path: 'settings/',
@@ -2731,6 +2768,7 @@ function buildRoutes(): RouteObject[] {
         {
           index: true,
           component: make(() => import('sentry/views/admin/adminUsers')),
+          deprecatedRouteProps: true,
         },
         {
           path: ':id',
@@ -2762,6 +2800,7 @@ function buildRoutes(): RouteObject[] {
     path: '/manage/',
     component: make(() => import('sentry/views/admin/adminLayout')),
     children: adminManageChildren,
+    deprecatedRouteProps: true,
   };
 
   const legacyOrganizationRootChildren: SentryRouteObject[] = [
@@ -3071,6 +3110,7 @@ function buildRoutes(): RouteObject[] {
       {
         path: ':projectId/events/:eventId/',
         component: errorHandler(ProjectEventRedirect),
+        deprecatedRouteProps: true,
       },
     ],
   };
@@ -3119,6 +3159,6 @@ export const routes = memoize(buildRoutes);
 // Exported for use in tests.
 export {buildRoutes};
 
-function NoOp() {
-  return <Outlet />;
+function NoOp({children}: {children: React.JSX.Element}) {
+  return children;
 }
