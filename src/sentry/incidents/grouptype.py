@@ -214,10 +214,10 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
             )
 
         try:
-            assignee = parse_and_validate_actor(
-                str(self.detector.created_by_id), self.detector.project.organization_id
-            )
+            owner = self.detector.owner.identifier if self.detector.owner else None
+            assignee = parse_and_validate_actor(owner, self.detector.project.organization_id)
         except Exception:
+            logger.exception("Failed to parse assignee for detector id %s", self.detector.id)
             assignee = None
 
         return (
