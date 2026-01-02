@@ -5,6 +5,7 @@ from typing import Any
 
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
+from django.db.models import Sum
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_kafka_schemas.codecs import Codec
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
@@ -13,7 +14,11 @@ from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem as EAPTraceItem
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.preprod.eap.constants import PREPROD_NAMESPACE
-from sentry.preprod.models import PreprodArtifactSizeMetrics
+from sentry.preprod.models import (
+    InstallablePreprodArtifact,
+    PreprodArtifact,
+    PreprodArtifactSizeMetrics,
+)
 from sentry.search.eap.rpc_utils import anyvalue
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.kafka_config import get_topic_definition
@@ -105,6 +110,114 @@ def produce_preprod_size_metric_to_eap(
         trace_id=trace_id,
         received=received,
         retention_days=90,  # Default retention for preprod data
+        attributes={k: anyvalue(v) for k, v in attributes.items() if v is not None},
+        client_sample_rate=1.0,
+        server_sample_rate=1.0,
+    )
+
+    topic = get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"]
+    payload = KafkaPayload(None, EAP_ITEMS_CODEC.encode(trace_item), [])
+    _eap_producer.produce(ArroyoTopic(topic), payload)
+
+
+def produce_preprod_build_distribution_to_eap(
+    artifact: PreprodArtifact,
+    organization_id: int,
+    project_id: int,
+) -> None:
+    """
+    Write PreprodArtifact build distribution data to EAP as a TRACE_ITEM_TYPE_PREPROD trace item.
+
+    Extracts distribution metadata from artifact.extras (codesigning, profile info, etc.) and aggregates
+    download counts across all InstallablePreprodArtifact records for this artifact.
+
+    NOTE: One build distribution record per artifact (many size metrics can relate to one build).
+    EAP is append-only with ReplacingMergeTree deduplication support.
+    """
+
+    proto_timestamp = Timestamp()
+    proto_timestamp.FromDatetime(artifact.date_added)
+
+    received = Timestamp()
+    received.FromDatetime(artifact.date_added)
+
+    # Generate trace_id for this preprod artifact - same as size metrics to enable grouping.
+    # This allows queries to join build distribution data with size metrics via trace_id.
+    trace_id = uuid.uuid5(PREPROD_NAMESPACE, str(artifact.id)).hex
+
+    # Generate deterministic item_id based on artifact.id.
+    # Unlike size metrics (one per size_metric.id), build distribution has one record per artifact.
+    # This enables ReplacingMergeTree deduplication when reprocessing the same artifact.
+    item_id_str = f"build_distribution_{artifact.id}"
+    item_id = int(uuid.uuid5(PREPROD_NAMESPACE, item_id_str).hex, 16).to_bytes(16, "little")
+
+    attributes: dict[str, Any] = {
+        "preprod_artifact_id": artifact.id,
+        "sub_item_type": "build_distribution",
+        "artifact_state": artifact.state,
+        "artifact_type": artifact.artifact_type,
+        "app_id": artifact.app_id,
+        "app_name": artifact.app_name,
+        "build_version": artifact.build_version,
+        "build_number": artifact.build_number,
+        "main_binary_identifier": artifact.main_binary_identifier,
+        "artifact_date_built": (
+            int(artifact.date_built.timestamp()) if artifact.date_built else None
+        ),
+        "build_configuration_name": (
+            artifact.build_configuration.name if artifact.build_configuration else None
+        ),
+    }
+
+    if artifact.extras:
+        # Apple-specific distribution fields
+        attributes["codesigning_type"] = artifact.extras.get("codesigning_type")
+        attributes["profile_name"] = artifact.extras.get("profile_name")
+        attributes["profile_expiration_date"] = artifact.extras.get("profile_expiration_date")
+        attributes["certificate_expiration_date"] = artifact.extras.get(
+            "certificate_expiration_date"
+        )
+        attributes["is_code_signature_valid"] = artifact.extras.get("is_code_signature_valid")
+        attributes["is_simulator"] = artifact.extras.get("is_simulator")
+        attributes["has_missing_dsym_binaries"] = artifact.extras.get("has_missing_dsym_binaries")
+        # Android-specific fields
+        attributes["has_proguard_mapping"] = artifact.extras.get("has_proguard_mapping")
+
+    attributes["has_installable_file"] = artifact.installable_app_file_id is not None
+
+    # Sum download counts across all installable links for this artifact
+    total_downloads = (
+        InstallablePreprodArtifact.objects.filter(preprod_artifact=artifact).aggregate(
+            Sum("download_count")
+        )["download_count__sum"]
+        or 0
+    )
+    attributes["download_count"] = total_downloads
+
+    if artifact.commit_comparison is not None:
+        commit_comparison = artifact.commit_comparison
+        attributes.update(
+            {
+                "git_head_sha": commit_comparison.head_sha,
+                "git_base_sha": commit_comparison.base_sha,
+                "git_provider": commit_comparison.provider,
+                "git_head_repo_name": commit_comparison.head_repo_name,
+                "git_base_repo_name": commit_comparison.base_repo_name,
+                "git_head_ref": commit_comparison.head_ref,
+                "git_base_ref": commit_comparison.base_ref,
+                "git_pr_number": commit_comparison.pr_number,
+            }
+        )
+
+    trace_item = EAPTraceItem(
+        organization_id=organization_id,
+        project_id=project_id,
+        item_id=item_id,
+        item_type=TraceItemType.TRACE_ITEM_TYPE_PREPROD,
+        timestamp=proto_timestamp,
+        trace_id=trace_id,
+        received=received,
+        retention_days=90,
         attributes={k: anyvalue(v) for k, v in attributes.items() if v is not None},
         client_sample_rate=1.0,
         server_sample_rate=1.0,
