@@ -23,4 +23,8 @@ def has_code_review_enabled(organization: Organization) -> bool:
     if not pr_review_test_generation_enabled:
         return False
 
-    return features.has("organizations:code-review-beta", organization)
+    # TODO: Remove the pr_review_test_generation_enabled check after the beta list is frozen
+    return (
+        features.has("organizations:code-review-beta", organization)
+        or pr_review_test_generation_enabled
+    )
