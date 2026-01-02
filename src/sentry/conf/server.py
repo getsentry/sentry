@@ -1065,7 +1065,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "autopilot-run-missing-sdk-integration-detector": {
         "task": "autopilot:sentry.autopilot.tasks.run_missing_sdk_integration_detector",
-        "schedule": task_crontab("0", "*/10", "*", "*", "*"),
+        "schedule": task_crontab("*/10", "0", "*", "*", "*"),
     },
     "dynamic-sampling-boost-low-volume-transactions": {
         "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
