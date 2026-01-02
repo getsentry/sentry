@@ -93,7 +93,7 @@ export interface LegacyTokens {
      */
     danger: string;
     /**
-     * @deprecated Use `graphics.neutral.moderate` instead
+     * @deprecated Use `graphics.neutral.vibrant` for the same color, or access `.muted`, `.moderate`, or `.vibrant` variants
      */
     muted: string;
     /**
