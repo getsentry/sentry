@@ -124,7 +124,7 @@ export default function TempestSettings() {
         <div>
           <Alert.Container>
             <Alert
-              type="warning"
+              variant="warning"
               trailingItems={
                 <Button
                   priority="link"
