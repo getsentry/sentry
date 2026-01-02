@@ -11,6 +11,7 @@ import {
   THROUGHPUT_TEXT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/http/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
+import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -22,7 +23,31 @@ const DOMAIN_WIDGET: Widget = {
   displayType: DisplayType.DETAILS,
   widgetType: WidgetType.SPANS,
   interval: '5m',
-  queries: [],
+  queries: [
+    {
+      name: '',
+      fields: [
+        SpanFields.ID,
+        SpanFields.SPAN_OP,
+        SpanFields.SPAN_GROUP,
+        SpanFields.SPAN_DESCRIPTION,
+        SpanFields.SPAN_CATEGORY,
+      ] satisfies DefaultDetailWidgetFields[],
+      aggregates: [],
+      columns: [
+        SpanFields.ID,
+        SpanFields.SPAN_OP,
+        SpanFields.SPAN_GROUP,
+        SpanFields.SPAN_DESCRIPTION,
+        SpanFields.SPAN_CATEGORY,
+      ] satisfies DefaultDetailWidgetFields[],
+      fieldAliases: [],
+      conditions: FILTER_STRING,
+      orderby: SpanFields.ID,
+      onDemand: [],
+      linkedDashboards: [],
+    },
+  ],
   layout: {
     x: 0,
     y: 0,
