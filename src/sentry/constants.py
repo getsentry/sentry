@@ -737,7 +737,7 @@ ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT = False
 INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT = "disabled"
 
 # Repository owner for console SDK repositories
-CONSOLE_SDK_REPO_OWNER = "alexsohn1126"
+CONSOLE_SDK_REPO_OWNER = "getsentry"
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True
