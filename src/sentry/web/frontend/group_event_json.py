@@ -15,7 +15,7 @@ class GroupEventJsonView(OrganizationView):
         try:
             # TODO(tkaemming): This should *actually* redirect, see similar
             # comment in ``GroupEndpoint.convert_args``.
-            group, _ = get_group_with_redirect(group_id)
+            group, _ = get_group_with_redirect(group_id, organization=organization)
         except Group.DoesNotExist:
             raise Http404
 
