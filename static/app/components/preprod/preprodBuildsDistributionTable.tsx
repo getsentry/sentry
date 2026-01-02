@@ -24,19 +24,6 @@ interface PreprodBuildsDistributionTableProps {
   onRowClick?: (build: BuildDetailsApiResponse) => void;
 }
 
-function DownloadCountHeaderCell() {
-  return <SimpleTable.HeaderCell>{t('Download Count')}</SimpleTable.HeaderCell>;
-}
-
-function DownloadCountRowCell({build}: {build: BuildDetailsApiResponse}) {
-  const downloadCount = build.distribution_info?.download_count ?? 0;
-  return (
-    <SimpleTable.RowCell>
-      <Text>{formatNumberWithDynamicDecimalPoints(downloadCount, 0)}</Text>
-    </SimpleTable.RowCell>
-  );
-}
-
 export function PreprodBuildsDistributionTable({
   builds,
   content,
@@ -48,6 +35,7 @@ export function PreprodBuildsDistributionTable({
     const linkUrl = `/organizations/${organizationSlug}/preprod/${build.project_id}/${build.id}/install/`;
     const isInstallable = build.distribution_info?.is_installable ?? false;
     const isRowDisabled = !isInstallable;
+    const downloadCount = build.distribution_info?.download_count ?? 0;
     const rowContent = (
       <Fragment>
         <PreprodBuildsCommonRowCells
@@ -56,7 +44,9 @@ export function PreprodBuildsDistributionTable({
           showInstallabilityIndicator
           showProjectColumn={showProjectColumn}
         />
-        <DownloadCountRowCell build={build} />
+        <SimpleTable.RowCell>
+          <Text>{formatNumberWithDynamicDecimalPoints(downloadCount, 0)}</Text>
+        </SimpleTable.RowCell>
         <PreprodBuildsCreatedRowCell build={build} />
       </Fragment>
     );
@@ -80,7 +70,7 @@ export function PreprodBuildsDistributionTable({
     <BuildsDistributionTable showProjectColumn={showProjectColumn}>
       <SimpleTable.Header>
         <PreprodBuildsCommonHeaderCells showProjectColumn={showProjectColumn} />
-        <DownloadCountHeaderCell />
+        <SimpleTable.HeaderCell>{t('Download Count')}</SimpleTable.HeaderCell>
         <PreprodBuildsCreatedHeaderCell />
       </SimpleTable.Header>
       {content ?? rows}
