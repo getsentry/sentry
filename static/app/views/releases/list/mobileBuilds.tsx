@@ -12,14 +12,13 @@ import {
   PreprodBuildsDisplay,
 } from 'sentry/components/preprod/preprodBuildsDisplay';
 import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
-import SearchBar from 'sentry/components/searchBar';
-import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import PreprodBuildsDisplayOptions from 'sentry/views/preprod/components/preprodBuildsDisplayOptions';
+import PreprodBuildsSearchBar from 'sentry/views/preprod/components/preprodBuildsSearchBar';
 import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
 
 type Props = {
@@ -120,8 +119,7 @@ export default function MobileBuilds({organization, selectedProjectIds}: Props) 
         wrap="wrap"
       >
         <Container flex="1">
-          <SearchBar
-            placeholder={t('Search by build, SHA, branch name, or pull request')}
+          <PreprodBuildsSearchBar
             onSearch={handleSearch}
             query={searchQuery ?? undefined}
             disabled={isLoadingBuilds}

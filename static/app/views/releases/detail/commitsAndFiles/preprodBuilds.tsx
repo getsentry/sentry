@@ -8,7 +8,6 @@ import {
   PreprodBuildsDisplay,
 } from 'sentry/components/preprod/preprodBuildsDisplay';
 import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
-import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -23,6 +22,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import PreprodBuildsDisplayOptions from 'sentry/views/preprod/components/preprodBuildsDisplayOptions';
+import PreprodBuildsSearchBar from 'sentry/views/preprod/components/preprodBuildsSearchBar';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
 import {ReleaseContext} from 'sentry/views/releases/detail';
@@ -158,8 +158,7 @@ export default function PreprodBuilds() {
             wrap="wrap"
           >
             <Container flex="1">
-              <SearchBar
-                placeholder={t('Search by build, SHA, branch name, or pull request')}
+              <PreprodBuildsSearchBar
                 onChange={handleSearch}
                 query={localSearchQuery}
                 disabled={isLoadingBuilds}
