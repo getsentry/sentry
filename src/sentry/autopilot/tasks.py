@@ -5,19 +5,30 @@ from typing import Any
 
 from django.utils import timezone
 from packaging import version
+from pydantic import BaseModel
 
 from sentry import options
 from sentry.api.utils import handle_query_errors
+from sentry.constants import INTEGRATION_ID_TO_PLATFORM_DATA, ObjectStatus
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sdk_updates import get_sdk_versions
 from sentry.search.events.types import SnubaParams
+from sentry.seer.explorer.client import SeerExplorerClient
+from sentry.seer.models import SeerPermissionError
 from sentry.snuba import discover
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import autopilot_tasks
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
+
+
+class MissingSdkIntegrationsResult(BaseModel):
+    """Result schema for missing SDK integrations detection."""
+
+    missing_integrations: list[str]
 
 
 @instrumented_task(
@@ -135,3 +146,126 @@ def run_sdk_update_detector_for_organization(organization: Organization):
     metrics.incr("autopilot.sdk_update_detector.updates_found", len(updates_list))
 
     return updates_list
+
+
+@instrumented_task(
+    name="sentry.autopilot.tasks.run_missing_sdk_integration_detector",
+    namespace=autopilot_tasks,
+    processing_deadline_duration=300,
+)
+def run_missing_sdk_integration_detector() -> None:
+    organization_allowlist = options.get("autopilot.organization-allowlist")
+    if not organization_allowlist:
+        return
+
+    organizations = Organization.objects.filter(slug__in=organization_allowlist).all()
+
+    for organization in organizations:
+        run_missing_sdk_integration_detector_for_organization(organization)
+
+
+def run_missing_sdk_integration_detector_for_organization(organization: Organization) -> None:
+    projects = Project.objects.filter(organization=organization).all()
+
+    if len(projects) == 0:
+        return
+
+    for project in projects:
+        # Get the repository mapped to this project via RepositoryProjectPathConfig
+        repo_config = (
+            RepositoryProjectPathConfig.objects.filter(
+                project=project,
+                repository__status=ObjectStatus.ACTIVE,
+            )
+            .select_related("repository")
+            .first()
+        )
+
+        if not repo_config:
+            logger.warning(
+                "missing_sdk_integration_detector.no_repository_mapping",
+                extra={"organization_id": organization.id, "project_id": project.id},
+            )
+            continue
+
+        run_missing_sdk_integration_detector_for_project(
+            organization, project, repo_config.repository.name
+        )
+
+
+def run_missing_sdk_integration_detector_for_project(
+    organization: Organization, project: Project, repo_name: str
+) -> list[str] | None:
+    """
+    Detect missing SDK integrations for a project using Seer Explorer.
+
+    Returns:
+        List of missing integration names, or None if detection failed.
+    """
+    try:
+        client = SeerExplorerClient(
+            organization,
+            user=None,
+            category_key="missing-sdk-integration-detector",
+            category_value=str(project.id),
+            intelligence_level="low",
+        )
+    except SeerPermissionError:
+        logger.warning(
+            "missing_sdk_integration_detector.no_seer_access",
+            extra={"organization_id": organization.id, "project_id": project.id},
+        )
+        return None
+
+    # Get docs URL from platform data
+    platform_data = INTEGRATION_ID_TO_PLATFORM_DATA.get(project.platform or "", {})
+    docs_url = platform_data.get("link", "https://docs.sentry.io/platforms/")
+
+    logger.warning(
+        "missing_sdk_integration_detector.platform_data_lookup",
+        extra={
+            "platform": project.platform,
+            "platform_data": platform_data,
+            "docs_url": docs_url,
+            "platform_data_keys_count": len(INTEGRATION_ID_TO_PLATFORM_DATA),
+        },
+    )
+
+    prompt = f"""Analyze the connected code repository for project "{project.slug}" to identify missing Sentry SDK integrations.
+
+The project is mapped to repository: {repo_name}
+The project platform is: {project.platform or "unknown"}
+
+Refer to the Sentry SDK integrations documentation for available integrations:
+{docs_url}
+
+Look at the project's dependencies (package.json, requirements.txt, pyproject.toml, etc.) and identify any libraries or frameworks that have Sentry SDK integrations available but require manual instrumentation steps.
+
+Return the list of missing SDK integration names. Each integration name should be the exact integration function/class name from the Sentry SDK (e.g., "anthropicIntegration", "openaiIntegration", "CeleryIntegration").
+
+If no missing integrations are found, return an empty list."""
+
+    try:
+        run_id = client.start_run(
+            prompt,
+            artifact_key="missing_integrations",
+            artifact_schema=MissingSdkIntegrationsResult,
+        )
+        state = client.get_run(run_id, blocking=True, poll_timeout=120.0)
+
+        # Extract the structured result
+        result = state.get_artifact("missing_integrations", MissingSdkIntegrationsResult)
+        missing_integrations = result.missing_integrations if result else []
+
+        logger.warning(
+            "missing_sdk_integration_detector.integrations_found: %s", missing_integrations
+        )
+
+        return missing_integrations
+
+    except Exception:
+        logger.exception(
+            "autopilot.missing_sdk_integration_detector.error",
+            extra={"organization_id": organization.id, "project_id": project.id},
+        )
+        return None
