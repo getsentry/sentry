@@ -616,6 +616,7 @@ function CheckoutSuccess({
                   ['feedback.owner']: 'billing',
                 },
               }}
+              size="md"
             />
           </Flex>
         </Flex>
