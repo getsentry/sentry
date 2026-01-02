@@ -10,10 +10,10 @@ import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDeta
 
 import {
   FullRowLink,
-  PreprodBuildsCommonHeaderCells,
-  PreprodBuildsCommonRowCells,
   PreprodBuildsCreatedHeaderCell,
   PreprodBuildsCreatedRowCell,
+  PreprodBuildsHeaderCells,
+  PreprodBuildsRowCells,
 } from './preprodBuildsTableCommon';
 
 interface PreprodBuildsDistributionTableProps {
@@ -38,7 +38,7 @@ export function PreprodBuildsDistributionTable({
     const downloadCount = build.distribution_info?.download_count ?? 0;
     const rowContent = (
       <Fragment>
-        <PreprodBuildsCommonRowCells
+        <PreprodBuildsRowCells
           build={build}
           showInteraction={!isRowDisabled}
           showInstallabilityIndicator
@@ -69,7 +69,7 @@ export function PreprodBuildsDistributionTable({
   return (
     <BuildsDistributionTable showProjectColumn={showProjectColumn}>
       <SimpleTable.Header>
-        <PreprodBuildsCommonHeaderCells showProjectColumn={showProjectColumn} />
+        <PreprodBuildsHeaderCells showProjectColumn={showProjectColumn} />
         <SimpleTable.HeaderCell>{t('Download Count')}</SimpleTable.HeaderCell>
         <PreprodBuildsCreatedHeaderCell />
       </SimpleTable.Header>
