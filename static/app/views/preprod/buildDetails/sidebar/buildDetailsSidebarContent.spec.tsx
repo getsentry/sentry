@@ -9,6 +9,8 @@ import {BuildDetailsState} from 'sentry/views/preprod/types/buildDetailsTypes';
 
 const mockBuildDetailsData: BuildDetailsApiResponse = {
   id: '123',
+  project_id: 1,
+  project_slug: 'test-project',
   state: BuildDetailsState.PROCESSED,
   app_info: {
     app_id: 'com.example.app',
@@ -21,6 +23,11 @@ const mockBuildDetailsData: BuildDetailsApiResponse = {
     date_built: '2023-01-01T00:00:00Z',
     date_added: '2023-01-01T00:00:00Z',
     is_installable: true,
+  },
+  distribution_info: {
+    is_installable: true,
+    download_count: 5,
+    release_notes: 'Release notes',
   },
   vcs_info: {
     head_sha: 'abc123',

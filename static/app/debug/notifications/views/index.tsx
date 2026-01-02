@@ -13,7 +13,7 @@ import {DiscordPreview} from 'sentry/debug/notifications/previews/discordPreview
 import {EmailPreview} from 'sentry/debug/notifications/previews/emailPreview';
 import {SlackPreview} from 'sentry/debug/notifications/previews/slackPreview';
 import {TeamsPreview} from 'sentry/debug/notifications/previews/teamsPreview';
-import OrganizationContainer from 'sentry/views/organizationContainer';
+import {OrganizationContainer} from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 
 const HEADER_HEIGHT = 52;
@@ -51,7 +51,7 @@ export default function DebugNotificationsIndex() {
                 <Heading as="h2" variant="success">
                   <Flex gap="md" align="center">
                     {selectedRegistration.source}
-                    <Tag type="success">{selectedRegistration.category}</Tag>
+                    <Tag variant="success">{selectedRegistration.category}</Tag>
                   </Flex>
                 </Heading>
                 <Grid columns={{md: '1fr', lg: '1fr auto'}} gap="2xl" position="relative">

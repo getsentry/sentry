@@ -294,7 +294,7 @@ function UsageHistoryRow({history}: RowProps) {
                 {moment(history.periodStart).format('ll')} -{' '}
                 {moment(history.periodEnd).format('ll')}
               </Text>
-              {history.isCurrent && <Badge type="default">{t('Current')}</Badge>}
+              {history.isCurrent && <Badge variant="muted">{t('Current')}</Badge>}
             </Flex>
             <Text bold>{tct('[planName] Plan', {planName: history.planName})}</Text>
           </Flex>

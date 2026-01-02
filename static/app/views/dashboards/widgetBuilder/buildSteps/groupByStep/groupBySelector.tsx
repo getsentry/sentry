@@ -160,7 +160,7 @@ export function GroupBySelector({
           return null;
         }
         return (
-          <Tag type={meta.dataType === 'number' ? 'highlight' : 'warning'}>
+          <Tag variant={meta.dataType === 'number' ? 'info' : 'warning'}>
             {meta.dataType}
           </Tag>
         );

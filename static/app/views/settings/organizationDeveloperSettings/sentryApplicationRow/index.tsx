@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import {Link} from 'sentry/components/core/link';
@@ -67,10 +69,6 @@ export default function SentryApplicationRow({
     </SentryAppItem>
   );
 }
-
-const Flex = styled('div')`
-  display: flex;
-`;
 
 const Box = styled('div')``;
 

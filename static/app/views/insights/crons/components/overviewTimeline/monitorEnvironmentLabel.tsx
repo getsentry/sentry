@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {
   IconCheckmark,
@@ -11,7 +12,6 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {ColorOrAlias} from 'sentry/utils/theme';
 import {
   MonitorStatus,
   type MonitorEnvironment,
@@ -25,20 +25,20 @@ interface Props {
 const statusIconColorMap: Record<MonitorStatus, StatusNotice> = {
   ok: {
     icon: <IconCheckmark variant="success" />,
-    color: 'success',
+    variant: 'success',
   },
   error: {
     icon: <IconFire variant="danger" />,
-    color: 'danger',
+    variant: 'danger',
   },
   active: {
     icon: <IconTimer variant="muted" />,
-    color: 'subText',
+    variant: 'muted',
     label: t('Waiting For Check-In'),
   },
   disabled: {
     icon: <IconUnsubscribed variant="muted" size="xs" />,
-    color: 'subText',
+    variant: 'muted',
     label: t('Muted'),
   },
 };
@@ -48,7 +48,7 @@ const userNotifiedDisplay: StatusNotice = {
     'This environment is likely broken due to being in an error state for multiple days.'
   ),
   icon: <IconFix variant="muted" />,
-  color: 'subText',
+  variant: 'muted',
 };
 
 const envMutedDisplay: StatusNotice = {
@@ -56,7 +56,7 @@ const envMutedDisplay: StatusNotice = {
     'This environment is likely broken due to being in an error state for multiple days. It has been automatically muted.'
   ),
   icon: <IconMute variant="muted" />,
-  color: 'subText',
+  variant: 'muted',
 };
 
 export default function MonitorEnvironmentLabel({monitorEnv}: Props) {
@@ -64,7 +64,7 @@ export default function MonitorEnvironmentLabel({monitorEnv}: Props) {
   const {userNotifiedTimestamp, environmentMutedTimestamp} =
     activeIncident?.brokenNotice ?? {};
   const envStatus = isMuted ? MonitorStatus.DISABLED : status;
-  const {label, icon, color} = environmentMutedTimestamp
+  const {label, icon, variant} = environmentMutedTimestamp
     ? envMutedDisplay
     : userNotifiedTimestamp
       ? userNotifiedDisplay
@@ -73,7 +73,9 @@ export default function MonitorEnvironmentLabel({monitorEnv}: Props) {
   return (
     <EnvWithStatus>
       <Tooltip skipWrapper showOnlyOnOverflow title={name}>
-        <MonitorEnvLabel color={color}>{name}</MonitorEnvLabel>
+        <MonitorEnvLabel>
+          <Text variant={variant}>{name}</Text>
+        </MonitorEnvLabel>
       </Tooltip>
       <Tooltip disabled={!label} title={label} skipWrapper>
         {icon}
@@ -90,12 +92,11 @@ const EnvWithStatus = styled('div')`
   opacity: var(--disabled-opacity);
 `;
 
-const MonitorEnvLabel = styled('div')<{color: ColorOrAlias}>`
+const MonitorEnvLabel = styled('div')`
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
   min-width: 0;
 
-  color: ${p => p.theme[p.color]};
   opacity: var(--disabled-opacity);
 `;

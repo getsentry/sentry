@@ -42,7 +42,7 @@ function LogUsername({logEntryUser}: {logEntryUser: User | undefined}) {
         <Text variant="muted" size="sm">
           {logEntryUser.name}
         </Text>
-        <Tag type="default">{t('Sentry Staff')}</Tag>
+        <Tag variant="muted">{t('Sentry Staff')}</Tag>
       </Flex>
     );
   }

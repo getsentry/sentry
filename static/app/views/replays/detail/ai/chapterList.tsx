@@ -67,7 +67,7 @@ export function ChapterList({timeRanges}: Props) {
   if (!chapterData?.length) {
     return (
       <EmptyContainer>
-        <Alert type="info" showIcon={false}>
+        <Alert variant="info" showIcon={false}>
           {t('No chapters available for this replay.')}
         </Alert>
       </EmptyContainer>
