@@ -43,7 +43,6 @@ export default function PreprodBuilds() {
     () => getPreprodBuildsDisplay(location.query.display, hasDistributionFeature),
     [hasDistributionFeature, location.query.display]
   );
-  const shouldShowDisplayToggle = hasDistributionFeature;
 
   const {query: urlSearchQuery, cursor} = useLocationQuery({
     fields: {
@@ -166,7 +165,7 @@ export default function PreprodBuilds() {
                 disabled={isLoadingBuilds}
               />
             </Container>
-            {shouldShowDisplayToggle && (
+            {hasDistributionFeature && (
               <Container maxWidth="200px">
                 <PreprodBuildsDisplayOptions
                   selected={activeDisplay}

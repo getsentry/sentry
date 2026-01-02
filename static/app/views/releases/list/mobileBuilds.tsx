@@ -40,7 +40,6 @@ export default function MobileBuilds({organization, selectedProjectIds}: Props) 
     () => getPreprodBuildsDisplay(location.query.display, hasDistributionFeature),
     [hasDistributionFeature, location.query.display]
   );
-  const shouldShowDisplayToggle = hasDistributionFeature;
 
   const buildsQueryParams = useMemo(() => {
     const query: Record<string, any> = {
@@ -128,7 +127,7 @@ export default function MobileBuilds({organization, selectedProjectIds}: Props) 
             disabled={isLoadingBuilds}
           />
         </Container>
-        {shouldShowDisplayToggle && (
+        {hasDistributionFeature && (
           <Container maxWidth="200px">
             <PreprodBuildsDisplayOptions
               selected={activeDisplay}
