@@ -1,73 +1,62 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import AlertWizard from 'sentry/views/alerts/wizard/index';
 
 describe('AlertWizard', () => {
+  const project = ProjectFixture();
+
   beforeEach(() => {
     ConfigStore.init();
   });
+
   it('sets crash free dataset to metrics', async () => {
-    const {organization, project, routerProps, router} = initializeOrg({
-      organization: {
-        features: ['incidents', 'performance-view', 'crash-rate-alerts'],
-        access: ['org:write', 'alerts:write'],
-      },
+    const organization = OrganizationFixture({
+      features: ['incidents', 'performance-view', 'crash-rate-alerts'],
+      access: ['org:write', 'alerts:write'],
     });
-    render(
-      <AlertWizard
-        organization={organization}
-        projectId={project.slug}
-        {...routerProps}
-      />,
+
+    const {router} = render(
+      <AlertWizard organization={organization} projectId={project.slug} />,
       {
-        router,
         organization,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/alerts/wizard/'},
+        },
       }
     );
 
     await userEvent.click(screen.getByText('Crash Free Session Rate'));
     await userEvent.click(screen.getByText('Set Conditions'));
-    expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/issues/alerts/new/metric/',
-      query: {
-        aggregate:
-          'percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate',
-        dataset: 'metrics',
-        eventTypes: 'session',
-        project: 'project-slug',
-      },
+    expect(router.location.pathname).toBe(
+      '/organizations/org-slug/issues/alerts/new/metric/'
+    );
+    expect(router.location.query).toEqual({
+      aggregate: 'percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate',
+      dataset: 'metrics',
+      eventTypes: 'session',
+      project: 'project-slug',
     });
   });
 
   it('should render alerts for enabled features', () => {
-    const {organization, project, routerProps, router} = initializeOrg({
-      organization: {
-        features: [
-          'incidents',
-          'performance-view',
-          'crash-rate-alerts',
-          'insight-modules',
-          'uptime',
-        ],
-        access: ['org:write', 'alerts:write'],
-      },
+    const organization = OrganizationFixture({
+      features: [
+        'incidents',
+        'performance-view',
+        'crash-rate-alerts',
+        'insight-modules',
+        'uptime',
+      ],
+      access: ['org:write', 'alerts:write'],
     });
 
-    render(
-      <AlertWizard
-        organization={organization}
-        projectId={project.slug}
-        {...routerProps}
-      />,
-      {
-        router,
-        organization,
-        deprecatedRouterMocks: true,
-      }
-    );
+    render(<AlertWizard organization={organization} projectId={project.slug} />, {
+      organization,
+    });
 
     expect(screen.getByText('Errors')).toBeInTheDocument();
     expect(screen.getByText('Sessions')).toBeInTheDocument();
@@ -81,25 +70,14 @@ describe('AlertWizard', () => {
 
   it('should only render alerts for errors in self-hosted errors only', () => {
     ConfigStore.set('isSelfHostedErrorsOnly', true);
-    const {organization, project, routerProps, router} = initializeOrg({
-      organization: {
-        features: ['incidents', 'performance-view', 'crash-rate-alerts'],
-        access: ['org:write', 'alerts:write'],
-      },
+    const organization = OrganizationFixture({
+      features: ['incidents', 'performance-view', 'crash-rate-alerts'],
+      access: ['org:write', 'alerts:write'],
     });
 
-    render(
-      <AlertWizard
-        organization={organization}
-        projectId={project.slug}
-        {...routerProps}
-      />,
-      {
-        router,
-        organization,
-        deprecatedRouterMocks: true,
-      }
-    );
+    render(<AlertWizard organization={organization} projectId={project.slug} />, {
+      organization,
+    });
 
     expect(screen.getByText('Errors')).toBeInTheDocument();
     const alertGroups = screen.getAllByRole('radiogroup');
@@ -107,55 +85,33 @@ describe('AlertWizard', () => {
   });
 
   it('shows uptime alert according to feature flag', () => {
-    const {organization, project, routerProps, router} = initializeOrg({
-      organization: {
-        features: ['incidents', 'performance-view', 'crash-rate-alerts', 'uptime'],
-        access: ['org:write', 'alerts:write'],
-      },
+    const organization = OrganizationFixture({
+      features: ['incidents', 'performance-view', 'crash-rate-alerts', 'uptime'],
+      access: ['org:write', 'alerts:write'],
     });
 
-    render(
-      <AlertWizard
-        organization={organization}
-        projectId={project.slug}
-        {...routerProps}
-      />,
-      {
-        router,
-        organization,
-        deprecatedRouterMocks: true,
-      }
-    );
+    render(<AlertWizard organization={organization} projectId={project.slug} />, {
+      organization,
+    });
 
     expect(screen.getByText('Uptime Monitor')).toBeInTheDocument();
   });
 
   it('shows span aggregate alerts according to feature flag', async () => {
-    const {organization, project, routerProps, router} = initializeOrg({
-      organization: {
-        features: [
-          'incidents',
-          'performance-view',
-          'crash-rate-alerts',
-          'visibility-explore-view',
-          'discover-saved-queries-deprecation',
-        ],
-        access: ['org:write', 'alerts:write'],
-      },
+    const organization = OrganizationFixture({
+      features: [
+        'incidents',
+        'performance-view',
+        'crash-rate-alerts',
+        'visibility-explore-view',
+        'discover-saved-queries-deprecation',
+      ],
+      access: ['org:write', 'alerts:write'],
     });
 
-    render(
-      <AlertWizard
-        organization={organization}
-        projectId={project.slug}
-        {...routerProps}
-      />,
-      {
-        router,
-        organization,
-        deprecatedRouterMocks: true,
-      }
-    );
+    render(<AlertWizard organization={organization} projectId={project.slug} />, {
+      organization,
+    });
 
     await userEvent.click(screen.getByText('Throughput'));
     expect(
@@ -164,89 +120,56 @@ describe('AlertWizard', () => {
   });
 
   it('hides logs aggregate alerts according to feature flag', () => {
-    const {organization, project, routerProps, router} = initializeOrg({
-      organization: {
-        features: [
-          'incidents',
-          'performance-view',
-          'crash-rate-alerts',
-          'visibility-explore-view',
-          'discover-saved-queries-deprecation',
-        ],
-        access: ['org:write', 'alerts:write'],
-      },
+    const organization = OrganizationFixture({
+      features: [
+        'incidents',
+        'performance-view',
+        'crash-rate-alerts',
+        'visibility-explore-view',
+        'discover-saved-queries-deprecation',
+      ],
+      access: ['org:write', 'alerts:write'],
     });
 
-    render(
-      <AlertWizard
-        organization={organization}
-        projectId={project.slug}
-        {...routerProps}
-      />,
-      {
-        router,
-        organization,
-        deprecatedRouterMocks: true,
-      }
-    );
+    render(<AlertWizard organization={organization} projectId={project.slug} />, {
+      organization,
+    });
 
     expect(screen.queryByText('Logs')).not.toBeInTheDocument();
   });
 
   it('shows logs aggregate alerts according to feature flag', () => {
-    const {organization, project, routerProps, router} = initializeOrg({
-      organization: {
-        features: [
-          'incidents',
-          'performance-view',
-          'visibility-explore-view',
-          'ourlogs-enabled',
-        ],
-        access: ['org:write', 'alerts:write'],
-      },
+    const organization = OrganizationFixture({
+      features: [
+        'incidents',
+        'performance-view',
+        'visibility-explore-view',
+        'ourlogs-enabled',
+      ],
+      access: ['org:write', 'alerts:write'],
     });
 
-    render(
-      <AlertWizard
-        organization={organization}
-        projectId={project.slug}
-        {...routerProps}
-      />,
-      {
-        router,
-        organization,
-        deprecatedRouterMocks: true,
-      }
-    );
+    render(<AlertWizard organization={organization} projectId={project.slug} />, {
+      organization,
+    });
 
     expect(screen.getAllByText('Logs')).toHaveLength(2);
   });
 
   it('shows transaction aggregate alerts according to feature flag', async () => {
-    const {organization, project, routerProps, router} = initializeOrg({
-      organization: {
-        features: [
-          'incidents',
-          'performance-view',
-          'crash-rate-alerts',
-          'visibility-explore-view',
-        ],
-        access: ['org:write', 'alerts:write'],
-      },
+    const organization = OrganizationFixture({
+      features: [
+        'incidents',
+        'performance-view',
+        'crash-rate-alerts',
+        'visibility-explore-view',
+      ],
+      access: ['org:write', 'alerts:write'],
     });
 
-    render(
-      <AlertWizard
-        organization={organization}
-        projectId={project.slug}
-        {...routerProps}
-      />,
-      {
-        router,
-        organization,
-        deprecatedRouterMocks: true,
-      }
-    );
+    render(<AlertWizard organization={organization} projectId={project.slug} />, {
+      organization,
+    });
 
     await userEvent.click(screen.getByText('Throughput'));
     expect(

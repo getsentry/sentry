@@ -1,9 +1,20 @@
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType, SlideoutId, WidgetType} from 'sentry/views/dashboards/types';
 import {type PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import {SpanFields} from 'sentry/views/insights/types';
+
+export const ISSUE_TYPES = [
+  'web_vitals',
+  'performance_render_blocking_asset_span',
+  'performance_uncompressed_assets',
+  'performance_http_overhead',
+  'performance_consecutive_http',
+  'performance_n_plus_one_api_calls',
+  'performance_large_http_payload',
+  'performance_p95_endpoint_regression',
+];
 
 export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
@@ -128,8 +139,8 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
       },
     },
     {
-      id: 'lcp-score-meter',
-      title: t('Largest Contentful Paint'),
+      id: 'lcp-p75-meter',
+      title: t('P75 Largest Contentful Paint'),
       displayType: DisplayType.BIG_NUMBER,
       widgetType: WidgetType.SPANS,
       interval: '5m',
@@ -137,12 +148,20 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
         {
           name: '',
           conditions: DEFAULT_QUERY_FILTER,
-          fields: ['p75(measurements.lcp)', 'avg(measurements.score.ratio.lcp)'],
-          aggregates: ['p75(measurements.lcp)', 'avg(measurements.score.ratio.lcp)'],
+          fields: ['p75(measurements.lcp)'],
+          aggregates: ['p75(measurements.lcp)'],
           columns: [],
           orderby: '',
+          slideOutId: SlideoutId.LCP,
         },
       ],
+      thresholds: {
+        max_values: {
+          max1: 1200,
+          max2: 2400,
+        },
+        unit: null,
+      },
       layout: {
         y: 2,
         w: 1,
@@ -152,8 +171,8 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
       },
     },
     {
-      id: 'fcp-score-meter',
-      title: t('First Contentful Paint'),
+      id: 'fcp-p75-meter',
+      title: t('P75 First Contentful Paint'),
       displayType: DisplayType.BIG_NUMBER,
       widgetType: WidgetType.SPANS,
       interval: '5m',
@@ -161,12 +180,20 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
         {
           name: '',
           conditions: DEFAULT_QUERY_FILTER,
-          fields: ['p75(measurements.fcp)', 'avg(measurements.score.ratio.fcp)'],
-          aggregates: ['p75(measurements.fcp)', 'avg(measurements.score.ratio.fcp)'],
+          fields: ['p75(measurements.fcp)'],
+          aggregates: ['p75(measurements.fcp)'],
           columns: [],
           orderby: '',
+          slideOutId: SlideoutId.FCP,
         },
       ],
+      thresholds: {
+        max_values: {
+          max1: 900,
+          max2: 1600,
+        },
+        unit: null,
+      },
       layout: {
         y: 2,
         w: 1,
@@ -176,8 +203,8 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
       },
     },
     {
-      id: 'inp-score-meter',
-      title: t('Interaction to Next Paint'),
+      id: 'inp-p75-meter',
+      title: t('P75 Interaction to Next Paint'),
       displayType: DisplayType.BIG_NUMBER,
       widgetType: WidgetType.SPANS,
       interval: '5m',
@@ -185,12 +212,20 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
         {
           name: '',
           conditions: DEFAULT_QUERY_FILTER,
-          fields: ['p75(measurements.inp)', 'avg(measurements.score.ratio.inp)'],
-          aggregates: ['p75(measurements.inp)', 'avg(measurements.score.ratio.inp)'],
+          fields: ['p75(measurements.inp)'],
+          aggregates: ['p75(measurements.inp)'],
           columns: [],
           orderby: '',
+          slideOutId: SlideoutId.INP,
         },
       ],
+      thresholds: {
+        max_values: {
+          max1: 200,
+          max2: 500,
+        },
+        unit: null,
+      },
       layout: {
         y: 2,
         w: 1,
@@ -200,8 +235,8 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
       },
     },
     {
-      id: 'cls-score-meter',
-      title: t('Cumulative Layout Shift'),
+      id: 'cls-p75-meter',
+      title: t('P75 Cumulative Layout Shift'),
       displayType: DisplayType.BIG_NUMBER,
       widgetType: WidgetType.SPANS,
       interval: '5m',
@@ -209,12 +244,20 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
         {
           name: '',
           conditions: DEFAULT_QUERY_FILTER,
-          fields: ['p75(measurements.cls)', 'avg(measurements.score.ratio.cls)'],
-          aggregates: ['p75(measurements.cls)', 'avg(measurements.score.ratio.cls)'],
+          fields: ['p75(measurements.cls)'],
+          aggregates: ['p75(measurements.cls)'],
           columns: [],
           orderby: '',
+          slideOutId: SlideoutId.CLS,
         },
       ],
+      thresholds: {
+        max_values: {
+          max1: 0.1,
+          max2: 0.25,
+        },
+        unit: null,
+      },
       layout: {
         y: 2,
         w: 1,
@@ -224,8 +267,8 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
       },
     },
     {
-      id: 'ttfb-score-meter',
-      title: t('Time To First Byte'),
+      id: 'ttfb-p75-meter',
+      title: t('P75 Time To First Byte'),
       displayType: DisplayType.BIG_NUMBER,
       widgetType: WidgetType.SPANS,
       interval: '5m',
@@ -233,18 +276,211 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
         {
           name: '',
           conditions: DEFAULT_QUERY_FILTER,
-          fields: ['p75(measurements.ttfb)', 'avg(measurements.score.ratio.ttfb)'],
-          aggregates: ['p75(measurements.ttfb)', 'avg(measurements.score.ratio.ttfb)'],
+          fields: ['p75(measurements.ttfb)'],
+          aggregates: ['p75(measurements.ttfb)'],
           columns: [],
           orderby: '',
+          slideOutId: SlideoutId.TTFB,
         },
       ],
+      thresholds: {
+        max_values: {
+          max1: 200,
+          max2: 400,
+        },
+        unit: 'millisecond',
+      },
       layout: {
         y: 2,
         w: 1,
         h: 1,
         x: 4,
         minH: 1,
+      },
+    },
+    {
+      id: 'lcp-score-meter',
+      title: t('Largest Contentful Paint Score'),
+      displayType: DisplayType.BIG_NUMBER,
+      widgetType: WidgetType.SPANS,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          conditions: DEFAULT_QUERY_FILTER,
+          fields: ['avg(measurements.score.ratio.lcp)'],
+          aggregates: ['avg(measurements.score.ratio.lcp)'],
+          columns: [],
+          orderby: '',
+        },
+      ],
+      thresholds: {
+        max_values: {
+          max1: 0.5,
+          max2: 0.9,
+        },
+        unit: null,
+        preferredPolarity: '+',
+      },
+      layout: {
+        y: 3,
+        w: 1,
+        h: 1,
+        x: 0,
+        minH: 1,
+      },
+    },
+    {
+      id: 'fcp-score-meter',
+      title: t('First Contentful Paint Score'),
+      displayType: DisplayType.BIG_NUMBER,
+      widgetType: WidgetType.SPANS,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          conditions: DEFAULT_QUERY_FILTER,
+          fields: ['avg(measurements.score.ratio.fcp)'],
+          aggregates: ['avg(measurements.score.ratio.fcp)'],
+          columns: [],
+          orderby: '',
+        },
+      ],
+      thresholds: {
+        max_values: {
+          max1: 0.5,
+          max2: 0.9,
+        },
+        unit: null,
+        preferredPolarity: '+',
+      },
+      layout: {
+        y: 3,
+        w: 1,
+        h: 1,
+        x: 1,
+        minH: 1,
+      },
+    },
+    {
+      id: 'inp-score-meter',
+      title: t('Interaction to Next Paint Score'),
+      displayType: DisplayType.BIG_NUMBER,
+      widgetType: WidgetType.SPANS,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          conditions: DEFAULT_QUERY_FILTER,
+          fields: ['avg(measurements.score.ratio.inp)'],
+          aggregates: ['avg(measurements.score.ratio.inp)'],
+          columns: [],
+          orderby: '',
+        },
+      ],
+      thresholds: {
+        max_values: {
+          max1: 0.5,
+          max2: 0.9,
+        },
+        unit: null,
+        preferredPolarity: '+',
+      },
+      layout: {
+        y: 3,
+        w: 1,
+        h: 1,
+        x: 2,
+        minH: 1,
+      },
+    },
+    {
+      id: 'cls-score-meter',
+      title: t('Cumulative Layout Shift Score'),
+      displayType: DisplayType.BIG_NUMBER,
+      widgetType: WidgetType.SPANS,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          conditions: DEFAULT_QUERY_FILTER,
+          fields: ['avg(measurements.score.ratio.cls)'],
+          aggregates: ['avg(measurements.score.ratio.cls)'],
+          columns: [],
+          orderby: '',
+        },
+      ],
+      thresholds: {
+        max_values: {
+          max1: 0.5,
+          max2: 0.9,
+        },
+        unit: null,
+        preferredPolarity: '+',
+      },
+      layout: {
+        y: 3,
+        w: 1,
+        h: 1,
+        x: 3,
+        minH: 1,
+      },
+    },
+    {
+      id: 'ttfb-score-meter',
+      title: t('Time To First Byte Score'),
+      displayType: DisplayType.BIG_NUMBER,
+      widgetType: WidgetType.SPANS,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          conditions: DEFAULT_QUERY_FILTER,
+          fields: ['avg(measurements.score.ratio.ttfb)'],
+          aggregates: ['avg(measurements.score.ratio.ttfb)'],
+          columns: [],
+          orderby: '',
+        },
+      ],
+      thresholds: {
+        max_values: {
+          max1: 0.5,
+          max2: 0.9,
+        },
+        unit: null,
+        preferredPolarity: '+',
+      },
+      layout: {
+        y: 3,
+        w: 1,
+        h: 1,
+        x: 4,
+        minH: 1,
+      },
+    },
+    {
+      id: 'issues-table',
+      title: t('Web Vital Issues'),
+      displayType: DisplayType.TABLE,
+      widgetType: WidgetType.ISSUE,
+      interval: '5m',
+      tableWidths: [-1, 100, -1],
+      queries: [
+        {
+          name: '',
+          conditions: `issue.type:[${ISSUE_TYPES.join(',')}]`,
+          fields: ['issue', 'assignee', 'title'],
+          aggregates: [],
+          columns: ['issue', 'assignee', 'title'],
+          orderby: 'date',
+        },
+      ],
+      layout: {
+        y: 4,
+        w: 6,
+        h: 2,
+        x: 0,
+        minH: 2,
       },
     },
     {
@@ -306,7 +542,7 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
         },
       ],
       layout: {
-        y: 3,
+        y: 6,
         w: 6,
         h: 6,
         x: 0,
