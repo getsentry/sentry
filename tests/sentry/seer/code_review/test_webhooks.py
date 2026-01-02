@@ -181,16 +181,16 @@ class CheckRunEventWebhookTest(GitHubWebhookHelper):
 
     @patch("sentry.seer.code_review.webhooks.task.process_github_webhook_event")
     @with_feature({"organizations:gen-ai-features"})
-    def test_check_run_skips_when_code_review_beta_flag_disabled(
+    def test_check_run_runs_when_code_review_beta_flag_disabled_but_pr_review_test_generation_enabled(
         self, mock_task: MagicMock
     ) -> None:
-        """Test that task is not enqueued when code-review-beta flag is off."""
+        """Test that task is enqueued when code-review-beta flag is off but pr_review_test_generation is enabled."""
         self._enable_code_review()
         self._send_webhook_event(
             GithubWebhookType.CHECK_RUN,
             CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE,
         )
-        mock_task.delay.assert_not_called()
+        mock_task.delay.assert_called_once()
 
     @patch("sentry.seer.code_review.utils.make_seer_request")
     @with_feature(CODE_REVIEW_FEATURES)
@@ -732,6 +732,19 @@ class IssueCommentEventWebhookTest(GitHubWebhookHelper):
         event = self._build_issue_comment_event("This is a regular comment without the command")
         self._send_issue_comment_event(event)
         mock_schedule.assert_not_called()
+
+    @patch("sentry.seer.code_review.webhooks.task.schedule_task")
+    @with_feature({"organizations:gen-ai-features"})
+    def test_runs_when_code_review_beta_flag_disabled_but_pr_review_test_generation_enabled(
+        self, mock_schedule: MagicMock
+    ) -> None:
+        with self.options(
+            {"organizations:code-review-beta": False, "github.webhook.issue-comment": False}
+        ):
+            self.organization.update_option("sentry:enable_pr_review_test_generation", True)
+            event = self._build_issue_comment_event(f"Please {SENTRY_REVIEW_COMMAND} this PR")
+            self._send_issue_comment_event(event)
+        mock_schedule.assert_called_once()
 
     @patch("sentry.seer.code_review.webhooks.task.make_seer_request")
     @patch("sentry.integrations.github.client.GitHubApiClient.create_comment_reaction")
