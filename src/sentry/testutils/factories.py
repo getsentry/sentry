@@ -2649,3 +2649,23 @@ class Factories:
             expiration_date=expiration_date,
             download_count=download_count,
         )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_github_identity(
+        user: User | None, idp: IdentityProvider | None, **kwargs: None
+    ) -> Identity:
+        if idp is None:
+            idp = Factories.create_github_provider()
+        if user is None:
+            user = Factories.create_user()
+        identity, _ = Identity.objects.get_or_create(user=user, idp=idp, **kwargs)
+        return identity
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_github_provider(**kwargs) -> IdentityProvider:
+        identity_provider, _ = IdentityProvider.objects.get_or_create(
+            type="github", external_id="github-app", **kwargs
+        )
+        return identity_provider
