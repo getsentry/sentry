@@ -22,7 +22,7 @@ import {
 } from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 
-export type GamingPlatform = 'playstation' | 'xbox' | 'nintendo-switch';
+type GamingPlatform = 'playstation' | 'xbox' | 'nintendo-switch';
 
 interface ConsoleSdkInviteErrorResponse {
   detail: string;
@@ -240,7 +240,6 @@ export function PrivateGamingSdkAccessModal({
               stacked
               inline={false}
             />
-            {requestError && <Alert type="error">{requestError}</Alert>}
           </Fragment>
         ) : (
           <Fragment>
@@ -262,6 +261,7 @@ export function PrivateGamingSdkAccessModal({
             </Button>
           </Fragment>
         )}
+        {requestError && <Alert variant="danger">{requestError}</Alert>}
       </Body>
       <Footer>
         <ButtonBar>
