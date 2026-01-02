@@ -549,6 +549,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
             self.post_process_error(event)
             assert not mock_trigger.called
 
+            assert event.group
             event.group.update(times_seen=2)
             buffer.backend.incr(Group, {"times_seen": 15}, filters={"id": event.group.id})
             self.post_process_error(event_2)
@@ -562,12 +563,14 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         first_event_date = timezone.now() - timedelta(days=90)
         event1 = self.create_error_event(project=self.project)
         group1 = event1.group
+        assert group1
         group1.update(last_seen=first_event_date)
 
         event2 = self.create_error_event(project=self.project)
 
         # Mock set the last_seen value to the first event date
         # To simulate the update to last_seen being buffered
+        assert event2.group
         event2.group.last_seen = first_event_date
         event2.group.update(last_seen=first_event_date)
         assert event2.group_id == group1.id
