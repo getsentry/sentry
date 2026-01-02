@@ -1098,6 +1098,7 @@ class SnubaTagStorage(TagStorage):
         extra_aggregations=None,
         referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS.value,
         tenant_ids=None,
+        turbo: bool = False,
     ) -> dict[int, int]:
         filters = {"project_id": project_ids, "group_id": group_ids}
         if environment_ids:
@@ -1118,6 +1119,7 @@ class SnubaTagStorage(TagStorage):
             orderby="-count",
             referrer=referrer,
             tenant_ids=tenant_ids,
+            turbo=turbo,
         )
 
         return defaultdict(int, {k: v for k, v in result.items() if v})
@@ -1132,6 +1134,8 @@ class SnubaTagStorage(TagStorage):
         tenant_ids: dict[str, str | int] | None = None,
         referrer: str = "tagstore.get_groups_user_counts",
     ) -> dict[int, int]:
+        # Use sampled data (turbo mode) for group snooze validation to reduce bytes scanned
+        turbo = referrer == Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_GROUP_SNOOZE.value
         return self.__get_groups_user_counts(
             project_ids,
             group_ids,
@@ -1142,6 +1146,7 @@ class SnubaTagStorage(TagStorage):
             [],
             referrer,
             tenant_ids=tenant_ids,
+            turbo=turbo,
         )
 
     def get_generic_groups_user_counts(
