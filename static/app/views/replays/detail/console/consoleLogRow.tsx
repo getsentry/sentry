@@ -3,6 +3,8 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
+import type {AlertProps} from '@sentry/scraps/alert';
+
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {IconClose, IconInfo, IconWarning} from 'sentry/icons';
@@ -91,6 +93,25 @@ function ConsoleLogRow({
 
 export default ConsoleLogRow;
 
+function levelToAlertVariant(level: string | undefined): AlertProps['variant'] {
+  switch (level) {
+    case 'error':
+    case 'fatal':
+      return 'danger';
+
+    case 'warning':
+      return 'warning';
+
+    case 'info':
+    case 'debug':
+    case 'log':
+    case 'undefined':
+    case undefined:
+    default:
+      return 'info';
+  }
+}
+
 const ConsoleLog = styled('div')<{
   hasOccurred: boolean;
   level: undefined | string;
@@ -103,9 +124,8 @@ const ConsoleLog = styled('div')<{
   font-size: ${p => p.theme.fontSize.sm};
 
   background-color: ${p =>
-    ['warning', 'error'].includes(String(p.level))
-      ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        p.theme.alert[String(p.level)].backgroundLight
+    p.level === 'warning' || p.level === 'error'
+      ? p.theme.alert[levelToAlertVariant(p.level)].backgroundLight
       : 'inherit'};
 
   color: ${p => p.theme.colors.gray500};

@@ -172,7 +172,7 @@ function EnsureSingleProject({
   return (
     <EventDrawerBody>
       <ProjectSelectContainer>
-        <Alert type="info" showIcon={false}>
+        <Alert variant="info" showIcon={false}>
           {t(
             'This release exists in multiple projects. Please select a project to view details.'
           )}
@@ -307,7 +307,7 @@ export function ReleasesDrawerDetails({
           />
         ) : (
           <EventDrawerBody>
-            <Alert type="error" showIcon={false}>
+            <Alert variant="danger" showIcon={false}>
               {project || isMetaError ? t('Release not found') : t('Project not found')}
             </Alert>
           </EventDrawerBody>

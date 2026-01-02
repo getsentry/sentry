@@ -40,7 +40,9 @@ export function WhatsNewItem({
   return (
     <SidebarPanelItemRoot>
       <TextBlock>
-        {category && <CategoryTag>{BROADCAST_CATEGORIES[category]}</CategoryTag>}
+        {category && (
+          <CategoryTag variant="muted">{BROADCAST_CATEGORIES[category]}</CategoryTag>
+        )}
         <Title hasSeen={hasSeen} href={link} onClick={handlePanelClicked}>
           {title}
         </Title>

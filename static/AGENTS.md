@@ -24,6 +24,29 @@ pnpm run dev
 pnpm run dev-ui
 ```
 
+### Linting
+
+```bash
+# JavaScript/TypeScript linting
+pnpm run lint:js
+
+# Linting for specific file(s)
+pnpm run lint:js components/avatar.tsx [...other files]
+
+# Fix linting issues
+pnpm run fix
+```
+
+### Testing
+
+```bash
+# Run JavaScript tests (always use CI flag)
+CI=true pnpm test <file_path>
+
+# Run specific test file(s)
+CI=true pnpm test components/avatar.spec.tsx
+```
+
 ### Important Files and Directories
 
 - `package.json`: Node.js dependencies and scripts
@@ -58,6 +81,15 @@ const appSizeQuery: UseApiQueryResult<ResponseType, RequestError> = useApiQuery<
   }
 );
 ```
+
+## General Frontend Rules
+
+1. NO new Reflux stores
+2. NO class components
+3. NO CSS files (use [core components](./app/components/core/) or Emotion in edge cases)
+4. ALWAYS use TypeScript
+5. ALWAYS colocate tests
+6. Lazy load routes: `React.lazy(() => import('...'))`
 
 ## Design system
 
@@ -433,6 +465,20 @@ function Component() {
 - **User-centric testing**: Write tests that resemble how users interact with the app.
 - **Avoid implementation details**: Focus on behavior, not internal component structure.
 - **Do not share state between tests**: Behavior should not be influenced by other tests in the test suite.
+
+### Imports
+
+**Always** import from `sentry-test/reactTestingLibrary`, not directly from `@testing-library/react`:
+
+```tsx
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
+```
 
 ### Query Priority (in order of preference)
 

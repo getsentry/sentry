@@ -382,7 +382,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     <Flex direction="column" gap="sm" height="100%" width="100%">
       {alertMessage && (
         <ClickableAlert
-          type="warning"
+          variant="warning"
           onClick={onAlertClick}
           style={{cursor: onAlertClick ? 'pointer' : 'default'}}
         >
