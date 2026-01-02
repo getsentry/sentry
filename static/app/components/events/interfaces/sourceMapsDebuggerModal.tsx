@@ -893,7 +893,7 @@ function CheckListItem({children, title, status}: PropsWithChildren<CheckListIte
           {
             none: <IconCircle size="md" variant="muted" />,
             checked: <IconCheckmark size="md" variant="success" />,
-            alert: <IconWarning size="md" variant="warning" />,
+            alert: <IconWarning size="md" color="yellow300" />,
             question: <IconQuestion size="md" variant="muted" />,
           }[status]
         }

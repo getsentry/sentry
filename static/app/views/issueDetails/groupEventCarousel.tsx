@@ -420,7 +420,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
                 })}
                 {isOverLatencyThreshold && (
                   <Tooltip title="High latency">
-                    <StyledIconWarning size="xs" variant="warning" />
+                    <StyledIconWarning size="xs" color="yellow300" />
                   </Tooltip>
                 )}
               </EventTimeLabel>

@@ -53,7 +53,7 @@ export default function ReplayMetaData({
             {replayRecord?.count_dead_clicks ? (
               <Link to={breadcrumbTab}>
                 <ClickCount>
-                  <IconCursorArrow size="sm" variant="warning" />
+                  <IconCursorArrow size="sm" color="yellow300" />
                   {replayRecord.count_dead_clicks}
                 </ClickCount>
               </Link>

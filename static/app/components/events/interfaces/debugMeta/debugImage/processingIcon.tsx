@@ -18,7 +18,7 @@ function ProcessingIcon({status}: Props) {
           skipWrapper
           title={t('The debug information file for this image could not be downloaded')}
         >
-          <IconWarning variant="warning" size="xs" />
+          <IconWarning color="yellow300" size="xs" />
         </Tooltip>
       );
     }
@@ -28,7 +28,7 @@ function ProcessingIcon({status}: Props) {
           skipWrapper
           title={t('The debug information file for this image failed to process')}
         >
-          <IconWarning variant="warning" size="xs" />
+          <IconWarning color="yellow300" size="xs" />
         </Tooltip>
       );
     }
@@ -38,7 +38,7 @@ function ProcessingIcon({status}: Props) {
           skipWrapper
           title={t('No debug information could be found in any of the specified sources')}
         >
-          <IconWarning variant="warning" size="xs" />
+          <IconWarning color="yellow300" size="xs" />
         </Tooltip>
       );
     }
@@ -70,7 +70,7 @@ function ProcessingIcon({status}: Props) {
           skipWrapper
           title={t('An internal error occurred while handling this image')}
         >
-          <IconWarning variant="warning" size="xs" />
+          <IconWarning color="yellow300" size="xs" />
         </Tooltip>
       );
     }
@@ -86,7 +86,7 @@ function ProcessingIcon({status}: Props) {
             'The debug information file format is not supported or compatible with this event type'
           )}
         >
-          <IconWarning variant="warning" size="xs" />
+          <IconWarning color="yellow300" size="xs" />
         </Tooltip>
       );
     }

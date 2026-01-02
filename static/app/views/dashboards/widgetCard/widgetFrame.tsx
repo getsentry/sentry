@@ -62,7 +62,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
           {props.warnings && props.warnings.length > 0 && (
             <Tooltip title={<WarningsList warnings={props.warnings} />} isHoverable>
               <TooltipIconTrigger aria-label={t('Widget warnings')}>
-                <IconWarning variant="warning" />
+                <IconWarning color="yellow300" />
               </TooltipIconTrigger>
             </Tooltip>
           )}

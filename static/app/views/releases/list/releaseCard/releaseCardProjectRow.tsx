@@ -56,7 +56,7 @@ function getCrashFreeIcon(
   }
 
   if (crashFreePercent < CRASH_FREE_WARNING_THRESHOLD) {
-    return <IconWarning variant="warning" size={iconSize} />;
+    return <IconWarning color="yellow300" size={iconSize} />;
   }
 
   return <IconCheckmark variant="success" size={iconSize} />;

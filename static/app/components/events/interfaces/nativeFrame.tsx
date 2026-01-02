@@ -309,7 +309,7 @@ function NativeFrame({
               >
                 <IconWarning
                   size="sm"
-                  variant="warning"
+                  color="yellow300"
                   data-test-id="symbolication-warning-icon"
                 />
               </Tooltip>

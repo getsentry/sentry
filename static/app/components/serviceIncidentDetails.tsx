@@ -127,7 +127,7 @@ function getStatusSymbol(status: StatusPageServiceStatus) {
       ) : status === 'major_outage' ? (
         <IconFatal size="sm" variant="danger" />
       ) : status === 'degraded_performance' ? (
-        <IconWarning size="sm" variant="warning" />
+        <IconWarning size="sm" color="yellow300" />
       ) : status === 'partial_outage' ? (
         <IconFire size="sm" variant="warning" />
       ) : (

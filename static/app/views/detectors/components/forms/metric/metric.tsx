@@ -680,7 +680,7 @@ function MigratedAlertWarningListener() {
 function WarningIcon({id, tooltipProps}: {id: string; tooltipProps?: TooltipProps}) {
   return (
     <Tooltip title={tooltipProps?.title} skipWrapper {...tooltipProps}>
-      <StyledIconWarning id={id} size="md" variant="warning" />
+      <StyledIconWarning id={id} size="md" color="yellow300" />
     </Tooltip>
   );
 }

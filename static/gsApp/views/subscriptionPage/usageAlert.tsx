@@ -160,7 +160,7 @@ function UsageAlert({subscription, usage}: Props) {
       >
         <SubscriptionBody withPadding>
           <UsageInfo>
-            <IconWarning size="md" variant="warning" />
+            <IconWarning size="md" color="yellow300" />
             <div>
               <h3>{t('Grace Period')}</h3>
               <Description>

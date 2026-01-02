@@ -24,7 +24,7 @@ type Props = Pick<ModalRenderProps, 'closeModal'> & {
 function WarningItem(text: string, index: number) {
   return (
     <Fragment key={index}>
-      <IconWarning size="sm" variant="warning" />
+      <IconWarning size="sm" color="yellow300" />
       {text}
     </Fragment>
   );

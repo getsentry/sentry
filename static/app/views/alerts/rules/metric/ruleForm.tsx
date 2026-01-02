@@ -1594,7 +1594,7 @@ function getTimeWindowFromDataset(
 function WarningIcon({tooltipProps, id}: {id: string; tooltipProps?: TooltipProps}) {
   return (
     <Tooltip {...tooltipProps} title={tooltipProps?.title} skipWrapper>
-      <StyledIconWarning id={id} size="md" variant="warning" />
+      <StyledIconWarning id={id} size="md" color="yellow300" />
     </Tooltip>
   );
 }

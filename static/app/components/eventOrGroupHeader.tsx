@@ -96,7 +96,7 @@ function EventOrGroupHeader({
       <Fragment>
         {!hideIcons && isBookmarked && (
           <IconWrapper>
-            <IconStar isSolid variant="warning" />
+            <IconStar isSolid color="yellow300" />
           </IconWrapper>
         )}
         <ErrorBoundary customComponent={() => <EventTitleError />} mini>

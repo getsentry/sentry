@@ -677,7 +677,7 @@ function OnDemandEquationsWarning() {
           `This is using indexed data because we don't routinely collect metrics for equations.`
         )}
       >
-        <IconWarning variant="warning" />
+        <IconWarning color="yellow300" />
       </Tooltip>
     </OnDemandContainer>
   );
