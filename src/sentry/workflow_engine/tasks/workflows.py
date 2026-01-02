@@ -139,7 +139,11 @@ def process_workflows_event(
                 batch_client, event_data, event_start_time=event_start_time
             )
             if isinstance(event_data.event, GroupEvent):
-                kick_off_service_hooks(event_data.event, len(evaluation.data.triggered_actions) > 0)
+                kick_off_service_hooks(
+                    event_data.event,
+                    evaluation.data.triggered_actions is None
+                    or len(evaluation.data.triggered_actions) > 0,
+                )
 
     evaluation.log_to(logger)
     duration = time.time() - start_time
