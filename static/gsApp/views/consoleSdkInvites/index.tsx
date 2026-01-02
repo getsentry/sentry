@@ -43,7 +43,7 @@ function ConsoleSDKInvitesSettings() {
       </TextBlock>
       {!isPending &&
         (organization.consoleSdkInviteQuota ?? 0) <= (invites?.length ?? 0) && (
-          <Alert type="info">
+          <Alert variant="info">
             {tct(
               'This organization ([orgSlug]) has used all GitHub invites available. Contact your sales representative to increase the quota.',
               {
