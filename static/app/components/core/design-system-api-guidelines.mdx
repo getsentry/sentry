@@ -61,13 +61,18 @@ function Component() {
 }
 ```
 
-There are no functional changes, but we've managed to improve quite a few things:
+Here's what changed:
 
 - We no longer need to type `let message: string | null`
-- We are no longer required to jump between lines to understand the value of `message`. Imagine if the body of this component was larger, then you'd be required to scroll back down to the use of message value as well.
-- To understand the value of `message`, we now only need to read a single line of code. Previously, if wanted to be thorough, we would have needed to check the entire component body before for other instances of message value reassignment.
-- The API request stands out, giving us an immediate clue that this component does some data fetching
-- We have created separation between business logic (request) and the rendered output (DOM). This separation enables us to parse the implementation more efficiently, and dependign on the task, only focus on either of the two in isolation.
+- When reading the code, you are no longer required to jump between lines to track the value of `message`. If the body of this component was longer, the likelihood of someone getting lost while moving back and forth would have been much higher.
+- To understand the value of `message`, we now only need to read and understand a single line of code. Previously, if wanted to be thorough, we would have needed to check the entire component body before for other instances of message value reassignment.
+- We have created separation between the data fetching logic (request) and the rendered output (DOM). This separation enables us to parse the implementation more efficiently, and dependign on the task, only focus on either of the two in isolation.
+
+### JSX Should Resemble The Rendered DOM
+
+Frontend developers often need to work backwards from the rendered DOM to the code that generated it. If you want to understand what code to change, you'll first need to know where to find it. Imperative implementations make this simple task hard, as single component renders many other elements, it becomes increasingly difficult to work backwards, and understand how the virtual DOM maps to the generated output. The way to avoid this is to leverage composition, slots and
+
+### Explain why, not what.
 
 Code should explain what, not why
 
