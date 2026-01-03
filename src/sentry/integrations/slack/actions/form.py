@@ -11,6 +11,7 @@ from django.utils.translation import gettext_lazy as _
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.utils.channel import (
     get_channel_id,
+    is_input_a_user_id,
     strip_channel_name,
     validate_slack_entity_id,
 )
@@ -137,6 +138,11 @@ class SlackNotifyServiceForm(forms.Form):
         # Use the actual name from Slack API if available (auto-correction for channel ID as name)
         if actual_slack_name:
             channel = actual_slack_name
+            # If we auto-corrected, we need to ensure the prefix is correct based on the ID type
+            if is_input_a_user_id(channel_id):
+                channel_prefix = "@"
+            else:
+                channel_prefix = "#"
         else:
             channel = strip_channel_name(channel)
 
