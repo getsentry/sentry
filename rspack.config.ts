@@ -285,11 +285,15 @@ const appConfig: Configuration = {
     // Assets path should be `../assets/rubik.woff` not `assets/rubik.woff`
     // Not compatible with CssExtractRspackPlugin https://rspack.rs/guide/tech/css#using-cssextractrspackplugin
     css: false,
-    // https://rspack.dev/config/experiments#experimentslazybarrel
-    lazyBarrel: true,
     // https://rspack.dev/config/experiments#experimentsnativewatcher
     // Switching branches seems to get stuck in build loop https://github.com/web-infra-dev/rspack/issues/11590
     nativeWatcher: false,
+  },
+  // Disable lazy compilation for now to avoid crashes when new modules are loaded
+  // https://rspack.rs/config/lazy-compilation
+  lazyCompilation: {
+    imports: false,
+    entries: false,
   },
   module: {
     /**
@@ -777,8 +781,8 @@ if (IS_UI_DEV_ONLY) {
           origin: 'https://sentry.io',
         },
         cookieDomainRewrite: {'.sentry.io': 'localhost'},
-        router: ({hostname}: {hostname: string}) => {
-          const orgSlug = extractSlug(hostname);
+        router: req => {
+          const orgSlug = extractSlug((req as any).hostname);
           return orgSlug ? `https://${orgSlug}.sentry.io` : 'https://sentry.io';
         },
       },
