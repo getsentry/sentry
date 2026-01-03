@@ -137,10 +137,12 @@ class TaskworkerClient:
         health_check_settings: HealthCheckSettings | None = None,
         rpc_secret: str | None = None,
         grpc_config: str | None = None,
+        port: int = 50052,
     ) -> None:
         assert len(hosts) > 0, "You must provide at least one RPC host to connect to"
         self._hosts = hosts
         self._rpc_secret = rpc_secret
+        self._port = port
 
         self._grpc_options: list[tuple[str, Any]] = [
             ("grpc.max_receive_message_length", MAX_ACTIVATION_SIZE)
@@ -304,6 +306,7 @@ class TaskworkerClient:
             id=processing_result.task_id,
             status=processing_result.status,
             fetch_next_task=fetch_next_task,
+            address=f"http://127.0.0.1:{self._port}",
         )
 
         try:
@@ -317,11 +320,11 @@ class TaskworkerClient:
                 )
 
             with metrics.timer("taskworker.update_task.rpc", tags={"host": processing_result.host}):
-                print("calling set task status...")
+                logger.debug("calling set task status...")
                 response = self._host_to_stubs[processing_result.host].SetTaskStatus(request)
-                print(f"done!")
+                logger.debug("Done setting task status")
         except grpc.RpcError as err:
-            print(f"err: {err}")
+            logger.warning("Failed to perform RPC - %s", err)
             metrics.incr(
                 "taskworker.client.rpc_error",
                 tags={"method": "SetTaskStatus", "status": err.code().name},
@@ -335,8 +338,6 @@ class TaskworkerClient:
                 self._num_consecutive_unavailable_errors += 1
                 self._check_consecutive_unavailable_errors()
             raise
-
-        print("done updating task.")
 
         self._num_consecutive_unavailable_errors = 0
         self._temporary_unavailable_hosts.pop(processing_result.host, None)

@@ -124,6 +124,7 @@ class TaskWorker:
             ),
             rpc_secret=app.config["rpc_secret"],
             grpc_config=options.get("taskworker.grpc_service_config"),
+            port=grpc_port,
         )
         if process_type == "fork":
             self.mp_context = multiprocessing.get_context("fork")

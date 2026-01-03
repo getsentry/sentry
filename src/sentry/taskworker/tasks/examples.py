@@ -4,7 +4,6 @@ import logging
 from time import sleep
 from typing import Any
 
-from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.namespaces import exampletasks
 from sentry.taskworker.retry import LastAction, NoRetriesRemainingError, Retry, RetryTaskError
 from sentry.taskworker.retry import retry_task as retry_task_helper
@@ -52,9 +51,8 @@ def will_retry(failure: str) -> None:
 
 @exampletasks.register(name="examples.simple_task")
 def simple_task(*args: list[Any], **kwargs: dict[str, Any]) -> None:
-    sleep(60)
-    # logger.debug("simple_task complete")
-    print("simple_task HELLO!")
+    sleep(10)
+    logger.info("Simple task complete!")
 
 
 @exampletasks.register(
