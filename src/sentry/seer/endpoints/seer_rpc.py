@@ -895,6 +895,38 @@ def trigger_coding_agent_launch(
         return {"success": False}
 
 
+def has_repo_code_mappings(
+    *, organization_id: int, provider: str, external_id: str
+) -> dict[str, bool]:
+    """
+    Check if a repository has code mappings configured.
+
+    Args:
+        organization_id: The organization ID
+        provider: The provider identifier (e.g., "integrations:github")
+        external_id: The external repository ID
+
+    Returns:
+        dict: {"has_code_mappings": bool}
+    """
+    try:
+        repo = Repository.objects.get(
+            organization_id=organization_id,
+            provider=provider,
+            external_id=external_id,
+            status=ObjectStatus.ACTIVE,
+        )
+    except Repository.DoesNotExist:
+        return {"has_code_mappings": False}
+
+    has_mappings = RepositoryProjectPathConfig.objects.filter(
+        organization_id=organization_id,
+        repository_id=repo.id,
+    ).exists()
+
+    return {"has_code_mappings": has_mappings}
+
+
 def check_repository_integrations_status(*, repository_integrations: list[dict[str, Any]]) -> dict:
     """
     Check whether repository integrations exist and are active.
@@ -1004,6 +1036,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     #
     # Bug prediction
     "get_sentry_organization_ids": get_sentry_organization_ids,
+    "has_repo_code_mappings": has_repo_code_mappings,
     "get_issues_by_function_name": by_function_name.fetch_issues,
     "get_issues_related_to_exception_type": by_error_type.fetch_issues,
     "get_issues_by_raw_query": by_text_query.fetch_issues,

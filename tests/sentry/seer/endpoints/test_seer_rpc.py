@@ -23,6 +23,7 @@ from sentry.seer.endpoints.seer_rpc import (
     get_github_enterprise_integration_config,
     get_organization_seer_consent_by_org_name,
     get_sentry_organization_ids,
+    has_repo_code_mappings,
 )
 from sentry.seer.explorer.tools import get_trace_item_attributes
 from sentry.testutils.cases import APITestCase
@@ -1476,3 +1477,63 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         assert result == {"integration_ids": [integration.id]}
+
+    def test_has_repo_code_mappings_repo_not_found(self) -> None:
+        """Test when repository does not exist"""
+        result = has_repo_code_mappings(
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="nonexistent",
+        )
+        assert result == {"has_code_mappings": False}
+
+    def test_has_repo_code_mappings_no_mappings(self) -> None:
+        """Test when repository exists but has no code mappings"""
+        Repository.objects.create(
+            name="test/repo",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123",
+            status=ObjectStatus.ACTIVE,
+        )
+
+        result = has_repo_code_mappings(
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123",
+        )
+        assert result == {"has_code_mappings": False}
+
+    def test_has_repo_code_mappings_with_mappings(self) -> None:
+        """Test when repository exists and has code mappings"""
+        project = self.create_project(organization=self.organization)
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
+        org_integration = integration.organizationintegration_set.first()
+        assert org_integration is not None
+
+        repo = Repository.objects.create(
+            name="test/repo",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="456",
+            status=ObjectStatus.ACTIVE,
+        )
+
+        RepositoryProjectPathConfig.objects.create(
+            repository=repo,
+            project=project,
+            organization_integration_id=org_integration.id,
+            integration_id=org_integration.integration_id,
+            organization_id=self.organization.id,
+            stack_root="/",
+            source_root="/",
+        )
+
+        result = has_repo_code_mappings(
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="456",
+        )
+        assert result == {"has_code_mappings": True}

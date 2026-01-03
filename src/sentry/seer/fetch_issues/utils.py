@@ -8,6 +8,7 @@ import sentry_sdk
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.event import EventSerializer
+from sentry.constants import ObjectStatus
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.group import Group
 from sentry.models.project import Project
@@ -89,6 +90,7 @@ def get_repo_and_projects(
         RepositoryProjectPathConfig.objects.filter(
             organization_id=organization_id,
             repository_id=repo.id,
+            status=ObjectStatus.ACTIVE,
         )
     )
     projects = [config.project for config in repo_configs]
