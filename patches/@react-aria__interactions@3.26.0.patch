@@ -1,0 +1,13 @@
+diff --git a/dist/usePress.mjs b/dist/usePress.mjs
+index 596dcd76bfdd26f45e4043a24560f821326a9b81..2e0ccd1526b68a7402d468b6f92c61d6ae254e80 100644
+--- a/dist/usePress.mjs
++++ b/dist/usePress.mjs
+@@ -433,7 +433,7 @@ function $f6c31cce2adf654f$export$45712eceda6fad21(props) {
+                     // Release pointer capture so that touch interactions can leave the original target.
+                     // This enables onPointerLeave and onPointerEnter to fire.
+                     let target = (0, $7mdmh$getEventTarget)(e.nativeEvent);
+-                    if ('releasePointerCapture' in target) target.releasePointerCapture(e.pointerId);
++                    if ('releasePointerCapture' in target && target.hasPointerCapture(e.pointerId)) target.releasePointerCapture(e.pointerId);
+                 }
+                 if (shouldStopPropagation) e.stopPropagation();
+             };

@@ -32,7 +32,7 @@
     "@react-aria/focus": "3.21.0",
     "@react-aria/gridlist": "3.13.3",
     "@react-aria/i18n": "3.12.11",
-    "@react-aria/interactions": "3.25.4",
+    "@react-aria/interactions": "3.26.0",
     "@react-aria/listbox": "3.14.7",
     "@react-aria/live-announcer": "3.4.4",
     "@react-aria/menu": "3.19.0",
@@ -241,7 +241,10 @@
       "@sentry/cli",
       "core-js",
       "esbuild"
-    ]
+    ],
+    "patchedDependencies": {
+      "@react-aria/interactions@3.26.0": "patches/@react-aria__interactions@3.26.0.patch"
+    }
   },
   "optionalDependencies": {
     "fsevents": "^2.3.2"
