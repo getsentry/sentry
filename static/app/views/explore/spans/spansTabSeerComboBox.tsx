@@ -59,12 +59,12 @@ interface TraceAskSeerTranslateResponse {
     sort: string;
     start: string | null;
     stats_period: string;
-    unsupported_reason: string | null;
     visualization: Array<{
       chart_type: number;
       y_axes: string[];
     }>;
   }>;
+  unsupported_reason: string | null;
 }
 
 export function SpansTabSeerComboBox() {
@@ -83,7 +83,6 @@ export function SpansTabSeerComboBox() {
   const useTranslateEndpoint = organization.features.includes(
     'gen-ai-search-agent-translate'
   );
-
   let initialSeerQuery = '';
   const queryDetails = useMemo(() => {
     const queryToUse = committedQuery.length > 0 ? committedQuery : query;
@@ -135,7 +134,7 @@ export function SpansTabSeerComboBox() {
 
         return {
           status: 'ok',
-          unsupported_reason: data.responses[0]?.unsupported_reason ?? null,
+          unsupported_reason: data.unsupported_reason,
           queries: data.responses.map(r => ({
             visualizations:
               r?.visualization?.map(v => ({
