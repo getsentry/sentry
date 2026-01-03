@@ -17,13 +17,13 @@ from typing import Any
 
 from pydantic import BaseModel, Field, ValidationError  # noqa: F401
 
+from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.utils import metrics
 
 from ..preflight import CodeReviewPreflightService
 from ..utils import SeerEndpoint, make_seer_request
-from .types import EventType
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +81,7 @@ class GitHubCheckRunEvent(BaseModel):
 
 def handle_check_run_event(
     *,
-    event_type: str,
+    github_event: GithubWebhookType,
     event: Mapping[str, Any],
     organization: Organization,
     repo: Repository,
@@ -93,13 +93,13 @@ def handle_check_run_event(
     a task to forward the original run ID to Seer so it can rerun the PR review.
 
     Args:
-        event_type: The type of the webhook event (as string)
+        github_event: The GitHub webhook event type from X-GitHub-Event header (e.g., "check_run")
         event: The webhook event payload
         organization: The Sentry organization that the webhook event belongs to
         repo: The repository the webhook event is for
         **kwargs: Additional keyword arguments
     """
-    if event_type != EventType.CHECK_RUN:
+    if github_event != GithubWebhookType.CHECK_RUN:
         return
 
     action = event.get("action")
@@ -142,7 +142,7 @@ def handle_check_run_event(
 
     # Scheduling the work as a task allows us to retry the request if it fails.
     process_github_webhook_event.delay(
-        event_type=EventType.CHECK_RUN,
+        github_event=github_event,
         # A reduced payload is enough for the task to process.
         event_payload={"original_run_id": validated_event.check_run.external_id},
         action=validated_event.action,
@@ -164,18 +164,15 @@ def _validate_github_check_run_event(event: Mapping[str, Any]) -> GitHubCheckRun
     return validated_event
 
 
-def process_check_run_task_event(
-    *, event_type: str, event_payload: Mapping[str, Any], **kwargs: Any
-) -> None:
+def process_check_run_task_event(*, event_payload: Mapping[str, Any], **kwargs: Any) -> None:
     """
     Process check_run task events.
 
-    Only processes events with event_type='check_run'.
     This allows the task to be shared by multiple webhook types without conflicts.
     """
-    if event_type != EventType.CHECK_RUN:
+    original_run_id = event_payload.get("original_run_id")
+    if not original_run_id:
         return
 
-    original_run_id = event_payload["original_run_id"]
     payload = {"original_run_id": original_run_id}
     make_seer_request(path=SeerEndpoint.PR_REVIEW_RERUN.value, payload=payload)

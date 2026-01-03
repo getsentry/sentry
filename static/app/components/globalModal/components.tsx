@@ -34,7 +34,7 @@ const ModalHeader = styled('header')`
   }
 `;
 
-function ChonkCloseButton(p: Omit<ButtonProps, 'aria-label'>) {
+function CloseButton(p: Omit<ButtonProps, 'aria-label'>) {
   return (
     <Button
       aria-label={t('Close Modal')}
@@ -45,8 +45,6 @@ function ChonkCloseButton(p: Omit<ButtonProps, 'aria-label'>) {
     />
   );
 }
-
-const CloseButton = ChonkCloseButton;
 
 const ModalBody = styled('section')`
   font-size: ${p => p.theme.fontSize.md};
