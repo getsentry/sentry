@@ -418,6 +418,15 @@ const appConfig: Configuration = {
     ),
 
     /**
+     * The platformicons package uses dynamic require() to load SVG files:
+     * require(`../${format === "lg" ? "svg_80x80" : "svg"}/${icon}.svg`)
+     *
+     * This plugin tells rspack where to find those SVG files by providing
+     * proper context for the dynamic imports.
+     */
+    new rspack.ContextReplacementPlugin(/platformicons/, /\.svg$/),
+
+    /**
      * TODO(epurkhiser): Figure out if we still need these
      */
     new rspack.ProvidePlugin({
