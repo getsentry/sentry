@@ -32,7 +32,10 @@ class BindRecordsTestCase(TestCase):
 
     @cached_property
     def rule(self) -> Rule:
-        return self.event.project.rule_set.all()[0]
+        rule = self.event.project.rule_set.all()[0]
+        rule.data["actions"][0]["legacy_rule_id"] = rule.id
+        rule.save()
+        return rule
 
     @cached_property
     def record(self) -> Record:

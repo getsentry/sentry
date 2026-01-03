@@ -47,7 +47,6 @@ from sentry.integrations.msteams.card_builder.notifications import (
 from sentry.models.group import GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
-from sentry.models.rule import Rule
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.notifications import (
     DummyNotification,
@@ -117,8 +116,8 @@ class MSTeamsMessageBuilderTest(TestCase):
         self.group1 = self.event1.group
 
         self.rules = [
-            Rule.objects.create(label="rule1", project=self.project1),
-            Rule.objects.create(label="rule2", project=self.project1),
+            self.create_project_rule(project=self.project1, name="rule1"),
+            self.create_project_rule(project=self.project1, name="rule2"),
         ]
 
     def test_simple(self) -> None:
