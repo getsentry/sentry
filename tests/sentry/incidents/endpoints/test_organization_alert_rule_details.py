@@ -1606,70 +1606,66 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
             assert stored_action["inputChannelId"] == str(channelID)
             assert stored_action["targetIdentifier"] == channelName
 
-    def test_create_slack_alert_with_mismatch_name_and_channel_id_sdk(self) -> None:
+    def test_channel_name_auto_corrected_from_slack_api(self) -> None:
         """
-        The user specifies the Slack channel and channel ID but they do not match.
+        When the user provides a channel name that doesn't match the actual channel name from Slack,
+        the system auto-corrects it to the actual channel name (instead of returning an error).
+        This is part of the fix for issue #105478.
         """
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
         self.login_as(self.user)
-        otherChannel = "some-other-channel"
-        channelName = "my-channel"
+        actualChannelName = "some-other-channel"
+        inputChannelName = "my-channel"  # User typed wrong name
         # Specifying an inputChannelID will cause the validate_channel_id logic to be triggered
         channelID = "C12345678"
-        channel = {"name": otherChannel}
+        channel = {"name": actualChannelName}
         with self.mock_conversations_info(channel):
             with (
                 assume_test_silo_mode(SiloMode.REGION),
                 override_settings(SILO_MODE=SiloMode.REGION),
             ):
                 resp = self._organization_alert_rule_api_call(
-                    channelName=channelName, channelID=channelID
+                    channelName=inputChannelName, channelID=channelID
                 )
 
-            assert resp.status_code == 400
-            assert resp.data == {
-                "nonFieldErrors": [
-                    ErrorDetail(
-                        string="Slack channel name from ID does not match input channel name.",
-                        code="invalid",
-                    )
-                ]
-            }
+            # The form should be valid and auto-correct the channel name
+            assert resp.status_code == 200
+            stored_action = resp.data["triggers"][0]["actions"][0]
+            assert stored_action["inputChannelId"] == str(channelID)
+            # The target identifier should be auto-corrected to the actual channel name
+            assert stored_action["targetIdentifier"] == actualChannelName
 
-    def test_create_slack_alert_with_mismatch_name_and_user_id_sdk(self) -> None:
+    def test_username_auto_corrected_from_slack_api(self) -> None:
         """
-        The user specifies the Slack user and user ID but they do not match.
+        When the user provides a username that doesn't match the actual username from Slack,
+        the system auto-corrects it to the actual username (instead of returning an error).
+        This is part of the fix for issue #105478.
         """
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
         self.login_as(self.user)
-        otherUserId = "U12345678"
-        otherUser = {
-            "id": otherUserId,
-            "name": "kim.possible",
+        userId = "U12345678"
+        actualUser = {
+            "id": userId,
+            "name": "kim.possible",  # This is the actual username
             "profile": {
                 "display_name": "Kim Possible 🕵️‍♀️",
                 "display_name_normalized": "Kim Possible",
             },
         }
-        inputName = "Ron Stoppable"
+        inputName = "Ron Stoppable"  # User typed wrong name
 
-        with self.mock_users_info(user=otherUser):
-            resp = self._organization_alert_rule_api_call(
-                channelName=inputName, channelID=otherUserId
-            )
-            assert resp.status_code == 400
-            assert resp.data == {
-                "nonFieldErrors": [
-                    ErrorDetail(
-                        string="Slack username from ID does not match input username.",
-                        code="invalid",
-                    )
-                ]
-            }
+        with self.mock_users_info(user=actualUser):
+            resp = self._organization_alert_rule_api_call(channelName=inputName, channelID=userId)
+            # The form should be valid and auto-correct the username
+            assert resp.status_code == 200
+            stored_action = resp.data["triggers"][0]["actions"][0]
+            assert stored_action["inputChannelId"] == str(userId)
+            # The target identifier should be auto-corrected to the actual username
+            assert stored_action["targetIdentifier"] == "kim.possible"
 
     def test_create_slack_alert_with_missing_name_from_sdk(self) -> None:
         """

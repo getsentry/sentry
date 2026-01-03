@@ -52,6 +52,10 @@ class SlackNotifyServiceForm(forms.Form):
             or self.data.get("input_channel_id")
             or self.data.get("channel_id")
         )
+        # Track the actual name from Slack API for auto-correction
+        actual_slack_name: str | None = None
+        channel_prefix = ""
+
         if channel_id:
             logger.info(
                 "rule.slack.provide_channel_id",
@@ -80,7 +84,8 @@ class SlackNotifyServiceForm(forms.Form):
 
         if channel_id:
             try:
-                validate_slack_entity_id(
+                # validate_slack_entity_id now returns the actual name from Slack API
+                actual_slack_name = validate_slack_entity_id(
                     integration_id=workspace,
                     input_name=self.data["channel"],
                     input_id=channel_id,
@@ -102,7 +107,6 @@ class SlackNotifyServiceForm(forms.Form):
 
         channel = cleaned_data.get("channel", "")
         timed_out = False
-        channel_prefix = ""
 
         # XXX(meredith): If the user is creating/updating a rule via the API and provides
         # the channel_id in the request, we don't need to call the channel_transformer - we
@@ -130,7 +134,12 @@ class SlackNotifyServiceForm(forms.Form):
                     code="invalid",
                 )
 
-        channel = strip_channel_name(channel)
+        # Use the actual name from Slack API if available (auto-correction for channel ID as name)
+        if actual_slack_name:
+            channel = actual_slack_name
+        else:
+            channel = strip_channel_name(channel)
+
         if channel_id is None and timed_out:
             cleaned_data["channel"] = channel_prefix + channel
             self._pending_save = True

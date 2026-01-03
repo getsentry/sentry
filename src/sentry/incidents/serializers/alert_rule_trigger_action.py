@@ -192,16 +192,27 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         should_validate_channel_id = self.context.get("validate_channel_id", True)
         # validate_channel_id is assumed to be true unless explicitly passed as false
         if attrs["input_channel_id"] and should_validate_channel_id:
-            validate_slack_entity_id(
+            # validate_slack_entity_id returns the actual name from Slack API
+            # This enables auto-correction when users provide channel IDs as names
+            actual_slack_name = validate_slack_entity_id(
                 integration_id=attrs["integration_id"],
                 input_name=identifier,
                 input_id=attrs["input_channel_id"],
             )
+            # Store the actual name for use in target_display later
+            attrs["actual_slack_name"] = actual_slack_name
         return attrs
 
     def create(self, validated_data):
         for key in ("id", "sentry_app_installation_uuid"):
             validated_data.pop(key, None)
+
+        # If we have the actual Slack name from validation, use it for target_identifier
+        # This fixes the issue where channel IDs are used as channel names (issue #105478)
+        actual_slack_name = validated_data.pop("actual_slack_name", None)
+        if actual_slack_name is not None:
+            validated_data["target_identifier"] = actual_slack_name
+
         try:
             action = create_alert_rule_trigger_action(
                 trigger=self.context["trigger"], **validated_data
@@ -228,6 +239,12 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
     def update(self, instance, validated_data):
         for key in ("id", "sentry_app_installation_uuid"):
             validated_data.pop(key, None)
+
+        # If we have the actual Slack name from validation, use it for target_identifier
+        # This fixes the issue where channel IDs are used as channel names (issue #105478)
+        actual_slack_name = validated_data.pop("actual_slack_name", None)
+        if actual_slack_name is not None:
+            validated_data["target_identifier"] = actual_slack_name
 
         try:
             action = update_alert_rule_trigger_action(instance, **validated_data)

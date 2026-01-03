@@ -91,24 +91,25 @@ def is_input_a_user_id(input_id: str) -> bool:
     return input_id.startswith("U") or input_id.startswith("W")
 
 
-def validate_slack_entity_id(*, integration_id: int, input_name: str, input_id: str) -> None:
+def validate_slack_entity_id(*, integration_id: int, input_name: str, input_id: str) -> str:
     """
     Accepts a name and input ID that could correspond to a user or channel.
+    Returns the actual name from Slack API for auto-correction.
     """
     if is_input_a_user_id(input_id):
-        validate_user_id(
+        return validate_user_id(
             input_name=input_name, input_user_id=input_id, integration_id=integration_id
         )
     else:
-        validate_channel_id(
+        return validate_channel_id(
             name=input_name, input_channel_id=input_id, integration_id=integration_id
         )
 
 
-def validate_user_id(*, input_name: str, input_user_id: str, integration_id: int) -> None:
+def validate_user_id(*, input_name: str, input_user_id: str, integration_id: int) -> str:
     """
     Validates that a user-input name and ID correspond to the same valid slack user.
-    Functionally identical to validate_channel_id, but for users.
+    Returns the actual username from Slack API for auto-correction.
     """
     client = SlackSdkClient(integration_id=integration_id)
     try:
@@ -139,22 +140,25 @@ def validate_user_id(*, input_name: str, input_user_id: str, integration_id: int
     if not isinstance(results, dict):
         raise IntegrationError("Bad slack user list response.")
 
-    stripped_user_name = strip_channel_name(input_name)
-    possible_name_matches = [
-        results.get("user", {}).get("name"),
-        results.get("user", {}).get("profile", {}).get("display_name"),
-        results.get("user", {}).get("profile", {}).get("display_name_normalized"),
-    ]
-    if not any(possible_name_matches):
+    # Get the actual username from Slack API
+    # Prefer the 'name' field which is the username
+    actual_username = results.get("user", {}).get("name")
+    if not actual_username:
+        # Fallback to display name if username not available
+        actual_username = results.get("user", {}).get("profile", {}).get("display_name")
+    if not actual_username:
         raise ValidationError("Did not receive user name from API results")
-    if stripped_user_name not in possible_name_matches:
-        raise ValidationError("Slack username from ID does not match input username.")
+
+    return actual_username
 
 
-def validate_channel_id(name: str, integration_id: int, input_channel_id: str) -> None:
+def validate_channel_id(name: str, integration_id: int, input_channel_id: str) -> str:
     """
     In the case that the user is creating an alert via the API and providing the channel ID and name
     themselves, we want to make sure both values are correct.
+
+    Returns the actual channel name from Slack API, which can be used to auto-correct
+    user-provided channel names when they mistakenly use channel IDs.
     """
 
     client = SlackSdkClient(integration_id=integration_id)
@@ -190,12 +194,13 @@ def validate_channel_id(name: str, integration_id: int, input_channel_id: str) -
     if not isinstance(results, dict):
         raise IntegrationError("Bad slack channel list response.")
 
-    stripped_channel_name = strip_channel_name(name)
     results_channel_name = results.get("channel", {}).get("name")
     if not results_channel_name:
         raise ValidationError("Did not receive channel name from API results")
-    if stripped_channel_name != results_channel_name:
-        raise ValidationError("Slack channel name from ID does not match input channel name.")
+
+    # Return the actual channel name from Slack API
+    # This allows auto-correction when user provides channel ID as name
+    return results_channel_name
 
 
 def get_channel_id_with_timeout(

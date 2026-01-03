@@ -386,19 +386,24 @@ class ValidateUserIdTest(TestCase):
                 )
             assert mock_client_call.call_count == 1
 
-    def test_no_matches_from_slack(self) -> None:
+    def test_username_auto_corrected_from_slack(self) -> None:
+        """
+        When user provides a username that doesn't match what Slack returns,
+        the function should return the actual username from Slack (auto-correction).
+        This is part of the fix for issue #105478.
+        """
         with patch(
             "slack_sdk.web.client.WebClient.users_info",
             return_value=create_user_response(user=self.slack_user),
         ) as mock_client_call:
-            with pytest.raises(
-                ValidationError, match="Slack username from ID does not match input username."
-            ):
-                validate_user_id(
-                    input_name="waldo",
-                    input_user_id=self.input_id,
-                    integration_id=self.integration.id,
-                )
+            # Instead of raising ValidationError, it should return the actual username
+            result = validate_user_id(
+                input_name="waldo",
+                input_user_id=self.input_id,
+                integration_id=self.integration.id,
+            )
+            # Should return the actual username from Slack
+            assert result == "carmen.sandiego"
             assert mock_client_call.call_count == 1
 
     def test_happy_path_does_not_raise(self) -> None:
