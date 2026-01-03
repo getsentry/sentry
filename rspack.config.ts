@@ -287,7 +287,7 @@ const appConfig: Configuration = {
     css: false,
     // https://rspack.dev/config/experiments#experimentsnativewatcher
     // Switching branches seems to get stuck in build loop https://github.com/web-infra-dev/rspack/issues/11590
-    nativeWatcher: false,
+    nativeWatcher: true,
   },
   // Disable lazy compilation for now to avoid crashes when new modules are loaded
   // https://rspack.rs/config/lazy-compilation
