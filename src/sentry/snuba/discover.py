@@ -664,6 +664,7 @@ def get_facets(
         Dataset.Discover,
         Dataset.Transactions,
         Dataset.Events,
+        Dataset.IssuePlatform,
     ], "A dataset is required to query discover"
 
     sample = len(snuba_params.project_ids) > 2

@@ -947,3 +947,38 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
 
         mock_run.assert_called_once
         assert mock_run.mock_calls[0].args[0].flags.turbo
+
+    def test_issue_platform_dataset(self) -> None:
+        """Test that the issuePlatform dataset parameter doesn't cause a 500 error."""
+        self.store_event(
+            data={
+                "event_id": uuid4().hex,
+                "timestamp": self.min_ago_iso,
+                "tags": {"number": "one"},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": uuid4().hex,
+                "timestamp": self.min_ago_iso,
+                "tags": {"number": "two"},
+            },
+            project_id=self.project.id,
+        )
+
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "project": self.project.id,
+                    "dataset": "issuePlatform",
+                },
+            )
+
+        # Should not return 500 error
+        assert response.status_code == 200, response.content
+        # Should have facets data
+        assert isinstance(response.data, list)
+

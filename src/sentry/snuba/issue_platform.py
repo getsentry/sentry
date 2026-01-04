@@ -8,6 +8,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.issue_platform import IssuePlatformTimeseriesQueryBuilder
 from sentry.search.events.types import EventsResponse, QueryBuilderConfig, SnubaParams
+from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import transform_tips, zerofill
 from sentry.snuba.metrics.extraction import MetricSpecType
@@ -231,4 +232,23 @@ def timeseries_query(
         snuba_params.start_date,
         snuba_params.end_date,
         rollup,
+    )
+
+
+def get_facets(
+    query: str | None,
+    snuba_params: SnubaParams,
+    referrer: str,
+    per_page: int | None = discover.TOP_KEYS_DEFAULT_LIMIT,
+    cursor: int | None = 0,
+    dataset: Dataset | None = Dataset.IssuePlatform,
+) -> list[discover.FacetResult]:
+    """
+    High-level API for getting 'facet map' results for the IssuePlatform dataset.
+
+    Facets are high frequency tags and attribute results that
+    can be used to further refine user queries.
+    """
+    return discover.get_facets(
+        query, snuba_params, referrer, per_page, cursor, Dataset.IssuePlatform
     )
