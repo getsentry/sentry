@@ -7,6 +7,7 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 
+from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.endpoints.organization_releases import ReleaseSerializerWithProjects
 from sentry.api.release_search import FINALIZED_KEY
 from sentry.api.serializers.rest_framework.release import ReleaseHeadCommitSerializer
@@ -44,6 +45,7 @@ from sentry.testutils.cases import (
     TestCase,
 )
 from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.requests import drf_request_from_request
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -2895,3 +2897,73 @@ class ReleaseHeadCommitSerializerTest(unittest.TestCase):
             }
         )
         assert not serializer.is_valid()
+
+
+class OrganizationReleasesBaseEndpointGetProjectsTest(TestCase):
+    """
+    Tests for OrganizationReleasesBaseEndpoint.get_projects() method.
+    """
+
+    @cached_property
+    def endpoint(self) -> OrganizationReleasesBaseEndpoint:
+        return OrganizationReleasesBaseEndpoint()
+
+    def test_api_token_cross_organization_returns_empty(self):
+        """
+        Test that an API token with project:releases scope cannot access
+        projects in an organization where the token owner is not a member.
+
+        This tests the get_projects() method directly, bypassing HTTP dispatch,
+        to verify the method itself correctly restricts cross-org access. As of
+        when this test was written, this permission is enforced by the calling
+        code, but we want to ensure the method itself also enforces this restriction.
+        """
+        # Create two organizations
+        org_a = self.create_organization(name="org-a")
+        org_b = self.create_organization(name="org-b")
+
+        # Create a user who is a member of org_a only
+        user = self.create_user("user@example.com")
+        self.create_member(user=user, organization=org_a)
+        # user is NOT a member of org_b
+
+        # Create projects in both orgs
+        self.create_project(organization=org_a)
+        self.create_project(organization=org_b)
+
+        # Create an API token with project:releases scope
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=user, scope_list=["project:releases"])
+
+        # Build a request targeting org_b (where user is NOT a member)
+        request = drf_request_from_request(self.make_request(user=user, auth=token, method="POST"))
+        request.access = access.from_request(request, org_b)
+
+        # Call get_projects directly - this should return empty list
+        # because the token owner is not a member of org_b
+        projects = self.endpoint.get_projects(request, org_b)
+
+        # Should return empty list - no cross-org access allowed
+        assert projects == []
+
+    def test_api_token_same_organization_returns_projects(self):
+        """
+        Test that an API token with project:releases scope CAN access
+        projects in an organization where the token owner IS a member.
+        """
+        org = self.create_organization(name="org")
+        user = self.create_user("user@example.com")
+        team = self.create_team(organization=org)
+        self.create_member(user=user, organization=org, teams=[team])
+        project = self.create_project(organization=org, teams=[team])
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=user, scope_list=["project:releases"])
+
+        request = drf_request_from_request(self.make_request(user=user, auth=token, method="POST"))
+        request.access = access.from_request(request, org)
+
+        projects = self.endpoint.get_projects(request, org)
+
+        # Should return the project since user is a member
+        assert project in projects
