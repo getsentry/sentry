@@ -1,6 +1,4 @@
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
-import {useLocation} from 'sentry/utils/useLocation';
-import useRouter from 'sentry/utils/useRouter';
 import DashboardDetail from 'sentry/views/dashboards/detail';
 import {DashboardState, type DashboardDetails} from 'sentry/views/dashboards/types';
 import {useGetPrebuiltDashboard} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
@@ -19,9 +17,6 @@ export function PrebuiltDashboardRenderer({prebuiltId}: PrebuiltDashboardRendere
   const {title, filters} = prebuiltDashboard;
   const widgets = populatedPrebuiltDashboard?.widgets ?? prebuiltDashboard.widgets;
 
-  const location = useLocation();
-  const router = useRouter();
-
   const dashboard: DashboardDetails = {
     id: `prebuilt-dashboard-${prebuiltId}`,
     prebuiltId,
@@ -36,17 +31,6 @@ export function PrebuiltDashboardRenderer({prebuiltId}: PrebuiltDashboardRendere
     <LoadingContainer isLoading={isLoading} showChildrenWhileLoading={false}>
       <DashboardDetail
         dashboard={dashboard}
-        location={location}
-        params={{
-          dashboardId: undefined,
-          templateId: undefined,
-          widgetId: undefined,
-          widgetIndex: undefined,
-        }}
-        route={{}}
-        routeParams={{}}
-        router={router}
-        routes={[]}
         dashboards={[]}
         initialState={DashboardState.EMBEDDED}
         useTimeseriesVisualization
