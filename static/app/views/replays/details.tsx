@@ -132,7 +132,7 @@ const Header = styled(Layout.Header)`
 const NewTopHeader = styled('div')`
   padding-left: ${p => p.theme.space.lg};
   padding-right: ${p => p.theme.space.lg};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -143,5 +143,5 @@ const NewTopHeader = styled('div')`
 
 const NewBottonHeader = styled(Flex)`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;

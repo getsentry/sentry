@@ -436,7 +436,7 @@ const Section = styled(PanelChild)`
 `;
 
 const Separator = styled('div')`
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   margin: 0 ${space(2)};
 `;
 

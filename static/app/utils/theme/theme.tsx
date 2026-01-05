@@ -1198,7 +1198,6 @@ const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
   /**
    * Inner borders, e.g. borders inside of a grid
    */
-  innerBorder: tokens.border.secondary,
   translucentInnerBorder: tokens.border.transparent.neutral.muted,
 
   /**

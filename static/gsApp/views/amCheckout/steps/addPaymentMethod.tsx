@@ -121,7 +121,7 @@ function AddPaymentMethod({
 
 const CreditCardOption = styled(PanelItem)<{isSelected?: boolean}>`
   padding: 0;
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 
   ${p =>
     p.isSelected &&

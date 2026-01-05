@@ -409,7 +409,7 @@ const DetailItem = styled('div')`
   gap: ${space(0.5)};
   align-items: center;
   padding: ${space(2)} 0;
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const DetailTitle = styled('div')<{noBottomMargin?: boolean}>`

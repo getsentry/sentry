@@ -92,7 +92,7 @@ const ErrorFooter = styled('div')`
   justify-content: space-between;
   align-items: center;
   margin-top: ${space(2)};
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   padding-top: ${space(2)};
 `;
 

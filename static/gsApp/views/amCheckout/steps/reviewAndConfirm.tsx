@@ -433,7 +433,7 @@ const BaseItem = styled('div')<{showDates?: boolean}>`
 `;
 
 const PreviewItem = styled(BaseItem)`
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const PreviewTotal = styled(BaseItem)`
