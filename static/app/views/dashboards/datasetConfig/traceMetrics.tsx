@@ -233,6 +233,8 @@ export const TraceMetricsConfig: DatasetConfig<
     const hasGroupings = new Set(widgetQuery.columns).size > 0;
 
     return data.timeSeries.map(timeSeries => {
+      // The function should always be defined when dealing with a successful
+      // time series response
       const func = parseFunction(timeSeries.yAxis);
       if (func) {
         timeSeries.yAxis = `${func.name}(${func.arguments[1] ?? '…'})`;
@@ -248,8 +250,8 @@ export const TraceMetricsConfig: DatasetConfig<
         // returns each series with its grouping but they overlap each other in the
         // legend
         seriesName:
-          multiYAxis && hasGroupings
-            ? `${formatTimeSeriesLabel(timeSeries)} : ${func!.name}(…)`
+          multiYAxis && hasGroupings && func
+            ? `${formatTimeSeriesLabel(timeSeries)} : ${func.name}(…)`
             : formatTimeSeriesLabel(timeSeries),
       };
     });
