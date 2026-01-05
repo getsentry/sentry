@@ -13,7 +13,8 @@ resources:
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {Container, Flex} from 'sentry/components/core/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+
 import {Text} from 'sentry/components/core/text';
 import * as Storybook from 'sentry/stories';
 // eslint-disable-next-line @sentry/scraps/no-token-import -- temporary until theme.borderWidth is exposed
@@ -37,16 +38,13 @@ Raw color values (`red400`, `blue500`, etc.) hard-code appearance. Semantic toke
 
 The result is more consistent UI, fewer bugs, and significantly fewer “wait, was this supposed to use 400 or 500?” questions.
 
-```
-// ❌ Do not use use color values
+```jsx del="colors.red400" ins="tokens.background.danger.vibrant"
 const Component = styled('span')`
+  /* ❌ Do not use use raw color values */
   background-color: ${p => p.theme.colors.red400}
-`
-
-// ✅ Prefer use of semantic tokens
-const Component = styled('span')`
-  background-color: ${p => p.theme.tokens.background.surface.overlay}
-`
+  /* ✅ Prefer use of semantic tokens */
+  background-color: ${p => p.theme.tokens.background.danger.vibrant}
+`;
 ```
 
 ## Categories
@@ -500,7 +498,7 @@ export function BorderColors() {
   return (
     <Storybook.ColorReference
       scale="border"
-      columns={2}
+      list
       groups={groups}
       renderToken={({value}) => (
         <Container
@@ -508,15 +506,20 @@ export function BorderColors() {
           background="primary"
           style={{
             boxSizing: 'border-box',
-            width: '48px',
-            height: '48px',
+            width: '24px',
+            height: '24px',
+            borderRadius: '4px',
+            marginLeft: '-8px',
             border: `2px solid ${value}`,
           }}
           radius="sm"
         />
       )}
-    />
-  );
+    >
+
+    </Storybook.ColorReference>
+
+);
 }
 
 export function GraphicsColors() {
@@ -533,6 +536,7 @@ export function GraphicsColors() {
   return (
     <Storybook.ColorReference
       scale="graphics"
+      list
       groups={groups}
       renderToken={({value}) => (
         <Container
