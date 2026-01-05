@@ -75,19 +75,6 @@ class PostProcessJob(TypedDict, total=False):
     has_escalated: bool
 
 
-def _get_service_hooks(project_id: int) -> list[tuple[int, list[str]]]:
-    from sentry.sentry_apps.models.servicehook import ServiceHook
-
-    cache_key = f"servicehooks:1:{project_id}"
-    result = cache.get(cache_key)
-
-    if result is None:
-        hooks = ServiceHook.objects.filter(servicehookproject__project_id=project_id)
-        result = [(h.id, h.events) for h in hooks]
-        cache.set(cache_key, result, 60)
-    return result
-
-
 def _should_send_error_created_hooks(project):
     from sentry.models.organization import Organization
     from sentry.sentry_apps.models.servicehook import ServiceHook
@@ -1211,23 +1198,13 @@ def process_service_hooks(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from sentry.sentry_apps.tasks.service_hooks import process_service_hook
+    if _should_single_process_event(job):
+        # we will kick off service hooks in the workflow engine task
+        return
 
-    event, has_alert = job["event"], job["has_alert"]
+    from sentry.sentry_apps.tasks.service_hooks import kick_off_service_hooks
 
-    if features.has("projects:servicehooks", project=event.project):
-        allowed_events = {"event.created"}
-        if has_alert:
-            allowed_events.add("event.alert")
-
-        for servicehook_id, events in _get_service_hooks(project_id=event.project_id):
-            if any(e in allowed_events for e in events):
-                process_service_hook.delay(
-                    servicehook_id=servicehook_id,
-                    project_id=event.project_id,
-                    group_id=event.group_id,
-                    event_id=event.event_id,
-                )
+    kick_off_service_hooks(job["event"], job["has_alert"])
 
 
 def process_resource_change_bounds(job: PostProcessJob) -> None:
