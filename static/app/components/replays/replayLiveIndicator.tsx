@@ -18,12 +18,12 @@ import type {ReplayRecord} from 'sentry/views/replays/types';
 
 const LIVE_TOOLTIP_MESSAGE = t('This replay is in progress.');
 
-export function getReplayExpiresAtMs(startedAt: ReplayRecord['started_at']): number {
+function getReplayExpiresAtMs(startedAt: ReplayRecord['started_at']): number {
   const ONE_HOUR_MS = 3_600_000;
   return startedAt ? startedAt.getTime() + ONE_HOUR_MS : 0;
 }
 
-export function getLiveDurationMs(finishedAt: ReplayRecord['finished_at']): number {
+function getLiveDurationMs(finishedAt: ReplayRecord['finished_at']): number {
   if (!finishedAt) {
     return 0;
   }
