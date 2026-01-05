@@ -1262,11 +1262,6 @@ const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
   linkHoverColor: tokens.interactive.link.accent.hover,
   linkUnderline: tokens.interactive.link.accent.rest,
 
-  /**
-   * Default Progressbar color
-   */
-  progressBar: colors.chonk.blue400,
-
   // @todo(jonasbadalic) should these reference chonk colors?
   searchTokenBackground: {
     valid: colors.blue100,
