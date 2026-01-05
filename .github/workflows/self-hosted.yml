@@ -91,6 +91,7 @@ jobs:
             SOURCE_COMMIT=${{ github.sha }}
             TARGETARCH=${{ matrix.platform }}
           ghcr: true
+          publish_on_pr: true
           tag_nightly: false
           tag_latest: false
 
