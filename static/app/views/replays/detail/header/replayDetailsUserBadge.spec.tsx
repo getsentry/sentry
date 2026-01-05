@@ -80,7 +80,7 @@ describe('replayDetailsUserBadge', () => {
     );
 
     render(<ReplayDetailsUserBadge readerResult={result.current} />);
-    expect(screen.queryByTestId('refresh-button')).not.toBeVisible();
+    expect(screen.queryByTestId('refresh-button')).not.toBeInTheDocument();
   });
 
   it('should show refresh button when replay record is outdated', async () => {
@@ -140,7 +140,7 @@ describe('replayDetailsUserBadge', () => {
 
     render(<ReplayDetailsUserBadge readerResult={result.current} />, {organization});
 
-    expect(screen.queryByTestId('refresh-button')).not.toBeVisible();
+    expect(screen.queryByTestId('refresh-button')).not.toBeInTheDocument();
 
     const updatedReplayRecord = replayRecordFixture({
       started_at: STARTED_AT,
@@ -386,7 +386,7 @@ describe('replayDetailsUserBadge', () => {
       )
     );
 
-    expect(screen.queryByTestId('refresh-button')).not.toBeVisible();
+    expect(screen.queryByTestId('refresh-button')).not.toBeInTheDocument();
 
     const updatedReplayRecord = replayRecordFixture({
       started_at: STARTED_AT,
