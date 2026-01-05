@@ -31,6 +31,7 @@ import {PreprodOnboarding} from './preprodOnboarding';
 export default function PreprodBuilds() {
   const organization = useOrganization();
   const releaseContext = useContext(ReleaseContext);
+  const projectId = releaseContext.project.id;
   const projectSlug = releaseContext.project.slug;
   const projectPlatform = releaseContext.project.platform;
   const params = useParams<{release: string}>();
@@ -83,8 +84,8 @@ export default function PreprodBuilds() {
     queryParams.query = urlSearchQuery.trim();
   }
 
-  if (projectSlug) {
-    queryParams.project = projectSlug;
+  if (projectId) {
+    queryParams.project = projectId;
   }
 
   const {
