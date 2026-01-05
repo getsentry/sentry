@@ -212,8 +212,10 @@ export function NotificationSettingsByType({notificationType}: Props) {
       organization.features?.includes('logs-billing')
     );
 
-    const hasPreventBilling = organizations.some(organization =>
-      organization.features?.includes('seer-user-billing')
+    const hasSeerUserBilling = organizations.some(
+      organization =>
+        organization.features?.includes('seer-user-billing') &&
+        organization.features?.includes('seer-user-billing-launch')
     );
 
     const excludeTransactions = hasOrgWithAm3 && !hasOrgWithoutAm3;
@@ -236,13 +238,13 @@ export function NotificationSettingsByType({notificationType}: Props) {
       ) {
         return false;
       }
-      if (field.name.startsWith('quotaSeer') && !includeSeer) {
+      if (field.name.startsWith('quotaSeerBudget') && !includeSeer) {
         return false;
       }
       if (field.name.startsWith('quotaLogBytes') && !includeLogs) {
         return false;
       }
-      if (field.name.startsWith('quotaPrevent') && !hasPreventBilling) {
+      if (field.name.startsWith('quotaSeerUsers') && !hasSeerUserBilling) {
         return false;
       }
       return true;
