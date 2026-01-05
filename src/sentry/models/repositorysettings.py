@@ -34,7 +34,7 @@ class RepositorySettings(Model):
     enabled_code_review = models.BooleanField(default=False)
     code_review_triggers = ArrayField(
         models.CharField(max_length=32, choices=CodeReviewTrigger.as_choices()),
-        default=lambda: [CodeReviewTrigger.ON_COMMAND_PHRASE.value],
+        default=list,
     )
 
     class Meta:

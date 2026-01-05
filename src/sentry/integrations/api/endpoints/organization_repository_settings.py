@@ -99,7 +99,9 @@ class OrganizationRepositorySettingsEndpoint(OrganizationEndpoint):
 
         settings_to_upsert = []
         for repo in repositories:
-            setting = existing_settings.get(repo.id) or RepositorySettings(repository=repo)
+            setting = existing_settings.get(repo.id) or RepositorySettings(
+                repository=repo, code_review_triggers=[CodeReviewTrigger.ON_COMMAND_PHRASE.value]
+            )
 
             if updated_enabled_code_review is not None:
                 setting.enabled_code_review = updated_enabled_code_review
