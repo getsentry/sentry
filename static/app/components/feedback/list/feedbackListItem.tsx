@@ -143,7 +143,7 @@ export default function FeedbackListItem({
 
             {hasLinkedError && (
               <Tooltip title={t('Linked Error')} containerDisplayMode="flex">
-                <IconFatal variant="muted" size="xs" />
+                <IconFatal variant="danger" size="xs" />
               </Tooltip>
             )}
 
