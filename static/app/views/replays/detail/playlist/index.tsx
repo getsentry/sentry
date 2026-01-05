@@ -58,18 +58,20 @@ export default function Playlist() {
             <Text>{t('This playlist is filtered by:')} </Text>
           </Alert>
         ) : null}
-        <Flex direction="column" gap="md">
-          <ReplayTable
-            columns={columns}
-            error={null}
-            highlightedRowIndex={currentReplayIndex}
-            // we prefer isLoading since isPending is true even if not enabled
-            isPending={isLoading}
-            query={location.query}
-            replays={replays}
-            showDropdownFilters={false}
-            stickyHeader
-          />
+        <Flex direction="column" gap="md" height="100%">
+          <Flex height="100%" overflow="auto">
+            <ReplayTable
+              columns={columns}
+              error={null}
+              highlightedRowIndex={currentReplayIndex}
+              // we prefer isLoading since isPending is true even if not enabled
+              isPending={isLoading}
+              query={location.query}
+              replays={replays}
+              showDropdownFilters={false}
+              stickyHeader
+            />
+          </Flex>
           <Pagination
             pageLinks={pageLinks}
             onCursor={(cursor, path, searchQuery) => {
