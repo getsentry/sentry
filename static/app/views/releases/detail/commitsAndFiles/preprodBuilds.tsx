@@ -83,6 +83,10 @@ export default function PreprodBuilds() {
     queryParams.query = urlSearchQuery.trim();
   }
 
+  if (projectSlug) {
+    queryParams.project = projectSlug;
+  }
+
   const {
     data: buildsData,
     isPending: isLoadingBuilds,
@@ -94,7 +98,7 @@ export default function PreprodBuilds() {
     RequestError
   > = useApiQuery<ListBuildsApiResponse>(
     [
-      `/projects/${organization.slug}/${projectSlug}/preprodartifacts/list-builds/`,
+      `/organizations/${organization.slug}/preprodartifacts/list-builds/`,
       {query: queryParams},
     ],
     {
