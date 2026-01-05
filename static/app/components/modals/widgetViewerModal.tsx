@@ -59,11 +59,13 @@ import {
   decodeSorts,
 } from 'sentry/utils/queryString';
 import type {Theme} from 'sentry/utils/theme';
+import {transformLegacySeriesToPlottables} from 'sentry/utils/timeSeries/transformLegacySeriesToPlottables';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -91,6 +93,7 @@ import {
   getWidgetTableRowExploreUrlFunction,
 } from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetricsUrl';
+import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
 import {
   SESSION_DURATION_ALERT,
   WidgetDescription,
@@ -103,6 +106,7 @@ import {
 import type {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import IssueWidgetQueries from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
 import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
+import {VisualizationWidget} from 'sentry/views/dashboards/widgetCard/visualizationWidget';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
@@ -112,6 +116,7 @@ import {
   convertTableDataToTabularData,
   decodeColumnAliases,
 } from 'sentry/views/dashboards/widgets/tableWidget/utils';
+import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import {TransactionLink} from 'sentry/views/discover/table/tableView';
 import {
@@ -248,6 +253,18 @@ function WidgetViewerModal(props: Props) {
   }, [location, locationPageFilter]);
 
   const [totalResults, setTotalResults] = useState<string | undefined>();
+
+  // Fetch releases for time series visualization
+  const canUseTimeSeriesVisualization = widgetCanUseTimeSeriesVisualization(widget);
+  const {releases: releasesWithDate} = useReleaseStats(modalSelection, {
+    enabled: canUseTimeSeriesVisualization && widget.displayType !== DisplayType.TABLE,
+  });
+
+  const releases =
+    releasesWithDate?.map(({date, version}) => ({
+      timestamp: date,
+      version,
+    })) ?? [];
 
   // Get pagination settings from location
   const cursor = decodeScalar(location.query[WidgetViewerQueryField.CURSOR]);
@@ -643,7 +660,57 @@ function WidgetViewerModal(props: Props) {
                 : HALF_CONTAINER_HEIGHT
             }
           >
-            {(!!seriesData || !!tableData) && chartUnmodified ? (
+            {canUseTimeSeriesVisualization ? (
+              // New time series visualization for supported widget types
+              (!!seriesData || !!tableData) && chartUnmodified ? (
+                // Render with cached data
+                (() => {
+                  const plottables = transformLegacySeriesToPlottables(
+                    seriesData,
+                    seriesResultsType,
+                    widget
+                  );
+
+                  if (plottables.length === 0) {
+                    return null;
+                  }
+
+                  return (
+                    <TimeSeriesWidgetVisualization
+                      plottables={plottables}
+                      releases={releases}
+                      showReleaseAs="bubble"
+                      onZoom={(_event, chart) => {
+                        onZoom(_event, chart);
+                        setChartUnmodified(false);
+                      }}
+                      onLegendSelectionChange={selected => {
+                        widgetLegendState.setWidgetSelectionState(selected, widget);
+                        trackAnalytics('dashboards_views.widget_viewer.toggle_legend', {
+                          organization,
+                          widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                          display_type: widget.displayType,
+                        });
+                      }}
+                      legendSelection={widgetLegendState.getWidgetSelectionState(widget)}
+                      pageFilters={modalSelection}
+                    />
+                  );
+                })()
+              ) : (
+                // Fetch fresh data
+                <VisualizationWidget
+                  widget={primaryWidget}
+                  selection={modalSelection}
+                  dashboardFilters={dashboardFilters}
+                  showReleaseAs="bubble"
+                  renderErrorMessage={errorMessage =>
+                    errorMessage ? <div>{errorMessage}</div> : null
+                  }
+                />
+              )
+            ) : // Legacy chart implementation for unsupported widget types
+            (!!seriesData || !!tableData) && chartUnmodified ? (
               <MemoizedWidgetCardChart
                 timeseriesResults={seriesData}
                 timeseriesResultsTypes={seriesResultsType}

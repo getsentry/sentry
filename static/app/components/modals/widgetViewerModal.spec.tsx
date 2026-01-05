@@ -1416,7 +1416,15 @@ describe('Modals -> WidgetViewerModal', () => {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-stats/',
-        body: {},
+        body: {
+          data: [
+            [[1646100000], [{count: 1}]],
+            [[1646120000], [{count: 1}]],
+          ],
+          start: 1646100000,
+          end: 1646120000,
+          isMetricsData: false,
+        },
       });
       initialData = initializeOrg({
         organization: {
@@ -1447,7 +1455,15 @@ describe('Modals -> WidgetViewerModal', () => {
     it('does not make an events-stats request with an arbitrary table sort as a y-axis', async () => {
       const eventsStatsMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-stats/',
-        body: {},
+        body: {
+          data: [
+            [[1646100000], [{count: 1}]],
+            [[1646120000], [{count: 1}]],
+          ],
+          start: 1646100000,
+          end: 1646120000,
+          isMetricsData: false,
+        },
       });
       const mockWidget = WidgetFixture({
         widgetType: WidgetType.SPANS,
