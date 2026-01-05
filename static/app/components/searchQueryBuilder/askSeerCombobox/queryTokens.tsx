@@ -1,43 +1,11 @@
 import styled from '@emotion/styled';
-import moment from 'moment-timezone';
 
 import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
+import {formatDateRange} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {t} from 'sentry/locale';
-
-function formatDateRange(start: string, end: string): string {
-  // Parse as UTC but display the UTC values directly (without timezone conversion)
-  // The endpoint returns times in UTC format, but the values represent what the user
-  // intended in their local context. E.g., if user asks for "9pm", endpoint returns
-  // "T21:00:00Z" - we want to display "9:00 PM", not convert to local timezone.
-  const startMoment = moment.utc(start);
-  const endMoment = moment.utc(end);
-
-  // Check if times are at midnight (date-only range)
-  const startIsMidnight =
-    startMoment.hours() === 0 &&
-    startMoment.minutes() === 0 &&
-    startMoment.seconds() === 0;
-  const endIsMidnight =
-    endMoment.hours() === 0 && endMoment.minutes() === 0 && endMoment.seconds() === 0;
-  const endIsEndOfDay =
-    endMoment.hours() === 23 && endMoment.minutes() === 59 && endMoment.seconds() === 59;
-
-  // Use date-only format if both are midnight or end of day
-  const useDateOnly = startIsMidnight && (endIsMidnight || endIsEndOfDay);
-
-  const dateFormat = 'MMM D, YYYY';
-  const dateTimeFormat = 'MMM D, YYYY h:mm A';
-
-  const formatStr = useDateOnly ? dateFormat : dateTimeFormat;
-
-  const startFormatted = startMoment.format(formatStr);
-  const endFormatted = endMoment.format(formatStr);
-
-  return `${startFormatted} - ${endFormatted}`;
-}
 
 function QueryTokens({
   groupBys,
@@ -95,7 +63,7 @@ function QueryTokens({
     tokens.push(
       <Token key="timeRange">
         <ExploreParamTitle>{t('Time Range')}</ExploreParamTitle>
-        <ExploreGroupBys>{formatDateRange(start, end)}</ExploreGroupBys>
+        <ExploreGroupBys>{formatDateRange(start, end, ' - ')}</ExploreGroupBys>
       </Token>
     );
   } else if (statsPeriod && statsPeriod.length > 0) {
