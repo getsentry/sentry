@@ -60,7 +60,6 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer):
             raise serializers.ValidationError(f"Condition group with id {instance.id} not found.")
 
         remove_items_by_api_input(validated_data.get("conditions", []), instance.conditions, "id")
-
         conditions = validated_data.pop("conditions", None)
         if conditions:
             for condition_data in conditions:

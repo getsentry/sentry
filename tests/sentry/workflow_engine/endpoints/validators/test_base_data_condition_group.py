@@ -306,3 +306,38 @@ class TestBaseDataConditionGroupValidatorUpdate(TestBaseDataConditionGroupValida
             validator.update(dcg, validator.validated_data)
 
         assert f"Condition with id {nonexistent_id} not found" in str(exc_info.value)
+
+    def test_update__rejects_condition_group_from_different_organization(self) -> None:
+        """
+        Test that updating a condition group from a different organization is rejected
+        when context organization doesn't match the instance's organization.
+        """
+        # Create a condition group in a different organization
+        other_org = self.create_organization()
+        other_dcg = self.create_data_condition_group(organization_id=other_org.id)
+
+        # Try to update the other org's condition group using our org's context
+        self.valid_data["conditions"] = []
+        validator = BaseDataConditionGroupValidator(data=self.valid_data, context=self.context)
+        validator.is_valid(raise_exception=True)
+
+        with pytest.raises(serializers.ValidationError) as exc_info:
+            validator.update(other_dcg, validator.validated_data)
+
+        assert f"Condition group with id {other_dcg.id} not found" in str(exc_info.value)
+
+    def test_update__requires_organization_context(self) -> None:
+        """
+        Test that update fails if organization context is not provided.
+        """
+        dcg = self.create_data_condition_group(organization_id=self.organization.id)
+
+        self.valid_data["conditions"] = []
+        # Create validator without organization in context
+        validator = BaseDataConditionGroupValidator(data=self.valid_data, context={})
+        validator.is_valid(raise_exception=True)
+
+        with pytest.raises(serializers.ValidationError) as exc_info:
+            validator.update(dcg, validator.validated_data)
+
+        assert "Organization context is required" in str(exc_info.value)
