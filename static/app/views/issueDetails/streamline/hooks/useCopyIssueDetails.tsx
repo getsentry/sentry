@@ -78,7 +78,10 @@ function formatStacktraceToMarkdown(stacktrace: StacktraceType): string {
   return markdownText;
 }
 
-export function formatEventToMarkdown(event: Event): string {
+export function formatEventToMarkdown(
+  event: Event,
+  activeThreadId: number | undefined
+): string {
   let markdownText = '';
 
   // Add tags
@@ -118,7 +121,7 @@ export function formatEventToMarkdown(event: Event): string {
     } else if (entry.type === EntryType.THREADS && entry.data.values) {
       const threads = entry.data.values;
       // Use active thread from UI
-      const activeThread = threads.find(thread => thread.id === _activeThreadId);
+      const activeThread = threads.find(thread => thread.id === activeThreadId);
 
       if (activeThread?.stacktrace) {
         markdownText += `\n## Thread: ${activeThread.name || ` Thread ${activeThread.id}`}`;
@@ -141,7 +144,8 @@ export const issueAndEventToMarkdown = (
   group: Group,
   event: Event | null | undefined,
   groupSummaryData: GroupSummaryData | null | undefined,
-  autofixData: AutofixData | null | undefined
+  autofixData: AutofixData | null | undefined,
+  activeThreadId: number | undefined
 ): string => {
   // Format the basic issue information
   let markdownText = `# ${group.title}\n\n`;
@@ -179,7 +183,7 @@ export const issueAndEventToMarkdown = (
   }
 
   if (event) {
-    markdownText += formatEventToMarkdown(event);
+    markdownText += formatEventToMarkdown(event, activeThreadId);
   }
 
   return markdownText;
@@ -194,8 +198,13 @@ export const useCopyIssueDetails = (group: Group, event?: Event) => {
   const activeThreadId = useActiveThreadId();
 
   const text = useMemo(() => {
-    return issueAndEventToMarkdown(group, event, groupSummaryData, autofixData);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- activeThreadId triggers recomputation when thread changes
+    return issueAndEventToMarkdown(
+      group,
+      event,
+      groupSummaryData,
+      autofixData,
+      activeThreadId
+    );
   }, [group, event, groupSummaryData, autofixData, activeThreadId]);
 
   const {copy} = useCopyToClipboard();

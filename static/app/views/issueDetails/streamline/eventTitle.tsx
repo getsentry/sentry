@@ -55,8 +55,13 @@ function GroupMarkdownButton({group, event}: {event: Event; group: Group}) {
   const {data: autofixData} = useAutofixData({groupId: group.id});
 
   const markdownText = useMemo(() => {
-    return issueAndEventToMarkdown(group, event, groupSummaryData, autofixData);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- activeThreadId triggers recomputation when thread changes
+    return issueAndEventToMarkdown(
+      group,
+      event,
+      groupSummaryData,
+      autofixData,
+      activeThreadId
+    );
   }, [group, event, groupSummaryData, autofixData, activeThreadId]);
   const markdownLines = markdownText.trim().split('\n').length.toLocaleString();
 
