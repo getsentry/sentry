@@ -706,7 +706,14 @@ function useWidgetBuilderState(): {
             // any of the current fields
             if (
               sort &&
-              !checkTraceMetricSortUsed(sort, action.payload, updatedAggregates, fields)
+              !checkTraceMetricSortUsed(
+                sort,
+                action.payload,
+                // Depending on the display type, the updated aggregates can be either
+                // the yAxis or the fields
+                isChartDisplayType(displayType) ? updatedAggregates : yAxis,
+                isChartDisplayType(displayType) ? fields : updatedAggregates
+              )
             ) {
               if (updatedAggregates.length > 0) {
                 setSort(
@@ -923,11 +930,14 @@ function checkTraceMetricSortUsed(
   yAxis: Column[] = [],
   fields: Column[] = []
 ): boolean {
+  const sortValue = sort[0]?.field;
   const sortInFields = fields?.some(
-    field => generateFieldAsString(field) === sort[0]?.field
+    field =>
+      generateFieldAsString(field) === sortValue ||
+      generateMetricAggregate(traceMetric, field) === sortValue
   );
   const sortInYAxis = yAxis?.some(
-    field => generateMetricAggregate(traceMetric, field) === sort[0]?.field
+    field => generateMetricAggregate(traceMetric, field) === sortValue
   );
   return sortInFields || sortInYAxis;
 }
