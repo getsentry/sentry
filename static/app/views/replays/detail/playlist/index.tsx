@@ -4,6 +4,7 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {Alert} from 'sentry/components/core/alert';
+import Pagination from 'sentry/components/pagination';
 import ReplayTable from 'sentry/components/replays/table/replayTable';
 import {
   ReplayBrowserColumn,
@@ -16,6 +17,7 @@ import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/forma
 import {t} from 'sentry/locale';
 import {useReplayPlaylist} from 'sentry/utils/replays/playback/providers/replayPlaylistProvider';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 
 const VISIBLE_COLUMNS = [
@@ -34,8 +36,9 @@ const MOBILE_COLUMNS = [
 ];
 
 export default function Playlist() {
-  const {replays, currentReplayIndex, isLoading} = useReplayPlaylist();
+  const {replays, currentReplayIndex, isLoading, pageLinks} = useReplayPlaylist();
   const location = useLocation();
+  const navigate = useNavigate();
   const [query] = useQueryState('query', parseAsString.withDefault(''));
 
   const {allMobileProj} = useAllMobileProj({});
@@ -55,17 +58,28 @@ export default function Playlist() {
             <Text>{t('This playlist is filtered by:')} </Text>
           </Alert>
         ) : null}
-        <ReplayTable
-          columns={columns}
-          error={null}
-          highlightedRowIndex={currentReplayIndex}
-          // we prefer isLoading since isPending is true even if not enabled
-          isPending={isLoading}
-          query={location.query}
-          replays={replays}
-          showDropdownFilters={false}
-          stickyHeader
-        />
+        <Flex direction="column" gap="md">
+          <ReplayTable
+            columns={columns}
+            error={null}
+            highlightedRowIndex={currentReplayIndex}
+            // we prefer isLoading since isPending is true even if not enabled
+            isPending={isLoading}
+            query={location.query}
+            replays={replays}
+            showDropdownFilters={false}
+            stickyHeader
+          />
+          <Pagination
+            pageLinks={pageLinks}
+            onCursor={(cursor, path, searchQuery) => {
+              navigate({
+                pathname: path,
+                query: {...searchQuery, cursor},
+              });
+            }}
+          />
+        </Flex>
       </Grid>
     </Flex>
   );
