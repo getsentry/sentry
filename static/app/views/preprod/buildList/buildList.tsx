@@ -3,6 +3,7 @@ import {Flex} from '@sentry/scraps/layout';
 import Feature from 'sentry/components/acl/feature';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconSettings} from 'sentry/icons';
@@ -55,17 +56,14 @@ export default function BuildList() {
 
   const builds = buildsData?.builds || [];
   const pageLinks = getResponseHeader?.('Link') || null;
-  const buildsTotalCount = Number(buildsData?.pagination?.total_count ?? 0);
 
   usePreprodBuildsAnalytics({
     builds,
-    buildsTotalCount,
     cursor,
-    display: 'size',
+    display: PreprodBuildsDisplay.SIZE,
     error: !!error,
     isLoading,
     pageSource: 'preprod_builds_list',
-    perPage: queryParams.per_page,
     projectCount: 1,
   });
 

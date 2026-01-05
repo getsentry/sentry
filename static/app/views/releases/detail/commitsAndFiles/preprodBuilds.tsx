@@ -128,7 +128,6 @@ export default function PreprodBuilds() {
   );
 
   const builds = buildsData?.builds || [];
-  const buildsTotalCount = Number(buildsData?.pagination?.total_count ?? 0);
   const pageLinks = getResponseHeader?.('Link') || null;
 
   const hasSearchQuery = !!urlSearchQuery?.trim();
@@ -136,14 +135,12 @@ export default function PreprodBuilds() {
 
   usePreprodBuildsAnalytics({
     builds,
-    buildsTotalCount,
     cursor,
     display: activeDisplay,
     enabled: !!projectSlug && !!params.release,
     error: !!buildsError,
     isLoading: isLoadingBuilds,
     pageSource: 'releases_details_preprod_builds',
-    perPage: queryParams.per_page,
     projectCount: 1,
     searchQuery: urlSearchQuery,
   });

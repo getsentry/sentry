@@ -102,20 +102,17 @@ export default function MobileBuilds({organization, selectedProjectIds}: Props) 
   );
 
   const builds = buildsData?.builds ?? [];
-  const buildsTotalCount = Number(buildsData?.pagination?.total_count ?? 0);
   const pageLinks = getResponseHeader?.('Link') ?? undefined;
   const hasSearchQuery = !!searchQuery?.trim();
   const showProjectColumn = selectedProjectIds.length > 1;
   usePreprodBuildsAnalytics({
     builds,
-    buildsTotalCount,
     cursor,
     display: activeDisplay,
     enabled: selectedProjectIds.length > 0,
     error: !!buildsError,
     isLoading: isLoadingBuilds,
     pageSource: 'releases_mobile_builds_tab',
-    perPage: buildsQueryParams.per_page,
     projectCount: selectedProjectIds.length,
     searchQuery,
   });

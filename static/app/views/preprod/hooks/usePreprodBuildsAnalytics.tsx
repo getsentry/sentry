@@ -1,5 +1,6 @@
 import {useEffect} from 'react';
 
+import type {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -10,15 +11,11 @@ export type PreprodBuildsAnalyticsPageSource =
   | 'releases_mobile_builds_tab'
   | 'releases_details_preprod_builds';
 
-export type PreprodBuildsAnalyticsDisplay = 'size' | 'distribution';
-
 interface UsePreprodBuildsAnalyticsProps {
   builds: BuildDetailsApiResponse[];
-  buildsTotalCount: number;
-  display: PreprodBuildsAnalyticsDisplay;
+  display: PreprodBuildsDisplay;
   isLoading: boolean;
   pageSource: PreprodBuildsAnalyticsPageSource;
-  perPage: number;
   cursor?: string | null;
   enabled?: boolean;
   error?: boolean;
@@ -28,14 +25,12 @@ interface UsePreprodBuildsAnalyticsProps {
 
 export function usePreprodBuildsAnalytics({
   builds,
-  buildsTotalCount,
   cursor,
   display,
   enabled = true,
   error,
   isLoading,
   pageSource,
-  perPage,
   projectCount,
   searchQuery,
 }: UsePreprodBuildsAnalyticsProps) {
@@ -46,7 +41,7 @@ export function usePreprodBuildsAnalytics({
   const resolvedProjectCount = projectCount ?? selection.projects.length;
   const normalizedSearchQuery = searchQuery?.trim() ?? '';
   const hasSearchQuery = normalizedSearchQuery.length > 0;
-  const buildsPageCount = builds.length;
+  const buildCountOnPage = builds.length;
 
   useEffect(() => {
     if (!enabled || isLoading) {
@@ -55,21 +50,18 @@ export function usePreprodBuildsAnalytics({
 
     trackAnalytics('preprod.builds.list.metadata', {
       organization,
-      builds_page_count: buildsPageCount,
-      builds_total_count: buildsTotalCount,
+      build_count_on_page: buildCountOnPage,
       query_status: error ? 'error' : 'success',
-      is_empty: !error && buildsTotalCount === 0,
+      is_empty: !error && buildCountOnPage === 0,
       has_search_query: hasSearchQuery,
       page_source: pageSource,
       display,
       cursor: cursor ?? null,
-      per_page: perPage,
       project_count: resolvedProjectCount,
       datetime_selection: datetimeSelection,
     });
   }, [
-    buildsPageCount,
-    buildsTotalCount,
+    buildCountOnPage,
     cursor,
     datetimeSelection,
     display,
@@ -80,7 +72,6 @@ export function usePreprodBuildsAnalytics({
     normalizedSearchQuery,
     organization,
     pageSource,
-    perPage,
     resolvedProjectCount,
   ]);
 }

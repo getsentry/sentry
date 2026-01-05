@@ -1,3 +1,4 @@
+import type {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import type {Organization} from 'sentry/types/organization';
 
 type BasePreprodBuildEvent = {
@@ -12,8 +13,6 @@ type BuildListPageSource =
   | 'preprod_builds_list'
   | 'releases_mobile_builds_tab'
   | 'releases_details_preprod_builds';
-
-type BuildListDisplay = 'size' | 'distribution';
 
 export type PreprodBuildEventParameters = {
   'preprod.builds.compare.go_to_build_details': BasePreprodBuildEvent & {
@@ -35,15 +34,14 @@ export type PreprodBuildEventParameters = {
   'preprod.builds.install_modal.opened': BasePreprodBuildEvent & {
     source: 'build_details_sidebar' | 'builds_table';
   };
-  'preprod.builds.list.metadata': BasePreprodBuildEvent & {
-    builds_page_count: number;
-    builds_total_count: number;
+  'preprod.builds.list.metadata': {
+    build_count_on_page: number;
     datetime_selection: string;
-    display: BuildListDisplay;
+    display: PreprodBuildsDisplay;
     has_search_query: boolean;
     is_empty: boolean;
+    organization: Organization;
     page_source: BuildListPageSource;
-    per_page: number;
     project_count: number;
     query_status: 'success' | 'error';
     cursor?: string | null;
