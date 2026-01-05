@@ -21,7 +21,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import PreprodBuildsDisplayOptions from 'sentry/views/preprod/components/preprodBuildsDisplayOptions';
 import PreprodBuildsSearchBar from 'sentry/views/preprod/components/preprodBuildsSearchBar';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
@@ -157,21 +156,16 @@ export default function PreprodBuilds() {
             gap="md"
             wrap="wrap"
           >
-            <Container flex="1">
-              <PreprodBuildsSearchBar
-                onChange={handleSearch}
-                query={localSearchQuery}
-                disabled={isLoadingBuilds}
-              />
-            </Container>
-            {hasDistributionFeature && (
-              <Container maxWidth="200px">
-                <PreprodBuildsDisplayOptions
-                  selected={activeDisplay}
-                  onSelect={handleDisplayChange}
-                />
-              </Container>
-            )}
+            <PreprodBuildsSearchBar
+              onChange={handleSearch}
+              query={localSearchQuery}
+              disabled={isLoadingBuilds}
+              displayOptions={
+                hasDistributionFeature
+                  ? {selected: activeDisplay, onSelect: handleDisplayChange}
+                  : undefined
+              }
+            />
           </Flex>
         </Container>
         {showOnboarding ? (

@@ -3,7 +3,6 @@ import {parseAsString, useQueryState} from 'nuqs';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 
-import {Container} from 'sentry/components/core/layout';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -17,7 +16,6 @@ import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import PreprodBuildsDisplayOptions from 'sentry/views/preprod/components/preprodBuildsDisplayOptions';
 import PreprodBuildsSearchBar from 'sentry/views/preprod/components/preprodBuildsSearchBar';
 import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
 
@@ -118,21 +116,16 @@ export default function MobileBuilds({organization, selectedProjectIds}: Props) 
         gap="md"
         wrap="wrap"
       >
-        <Container flex="1">
-          <PreprodBuildsSearchBar
-            onSearch={handleSearch}
-            query={searchQuery ?? undefined}
-            disabled={isLoadingBuilds}
-          />
-        </Container>
-        {hasDistributionFeature && (
-          <Container maxWidth="200px">
-            <PreprodBuildsDisplayOptions
-              selected={activeDisplay}
-              onSelect={handleDisplayChange}
-            />
-          </Container>
-        )}
+        <PreprodBuildsSearchBar
+          onSearch={handleSearch}
+          query={searchQuery ?? undefined}
+          disabled={isLoadingBuilds}
+          displayOptions={
+            hasDistributionFeature
+              ? {selected: activeDisplay, onSelect: handleDisplayChange}
+              : undefined
+          }
+        />
       </Flex>
 
       {buildsError && <LoadingError onRetry={refetch} />}
