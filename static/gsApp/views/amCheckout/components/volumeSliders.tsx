@@ -1,7 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Text} from '@sentry/scraps/text';
+
+import {Flex, Grid} from 'sentry/components/core/layout';
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 import {Body, Header, Hovercard} from 'sentry/components/hovercard';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -151,26 +153,24 @@ function VolumeSliders({
                     <div>{getPlanCategoryName({plan: activePlan, category})}</div>
                   </Title>
                   {eventBucket.price !== 0 && (
-                    <Description>
-                      <div>
-                        {tct('[unitPrice]/[category]', {
-                          category:
-                            category ===
-                            DATA_CATEGORY_INFO[DataCategoryExact.ATTACHMENT].plural
-                              ? 'GB'
-                              : getSingularCategoryName({
-                                  plan: activePlan,
-                                  category,
-                                  capitalize: false,
-                                }),
-                          unitPrice,
-                        })}
-                      </div>
-                    </Description>
+                    <Text variant="muted" size="sm">
+                      {tct('[unitPrice]/[category]', {
+                        category:
+                          category ===
+                          DATA_CATEGORY_INFO[DataCategoryExact.ATTACHMENT].plural
+                            ? 'GB'
+                            : getSingularCategoryName({
+                                plan: activePlan,
+                                category,
+                                capitalize: false,
+                              }),
+                        unitPrice,
+                      })}
+                    </Text>
                   )}
                 </Flex>
                 <div>
-                  <SpaceBetweenGrid>
+                  <Grid columns="repeat(2, auto)" justify="between">
                     <VolumeAmount>
                       {formatReservedWithUnits(
                         formData.reserved[category] ?? null,
@@ -188,7 +188,7 @@ function VolumeSliders({
                         <BillingInterval>/{billingInterval}</BillingInterval>
                       )}
                     </div>
-                  </SpaceBetweenGrid>
+                  </Grid>
                   <RangeSlider
                     showLabel={false}
                     name={category}
@@ -212,18 +212,18 @@ function VolumeSliders({
                         : undefined
                     }
                   />
-                  <MinMax>
-                    <div>
+                  <Grid columns="repeat(2, auto)" justify="between">
+                    <Text variant="muted" size="sm">
                       {tct('[min] included', {
                         min: formatReservedWithUnits(min, category),
                       })}
-                    </div>
-                    <div>
+                    </Text>
+                    <Text variant="muted" size="sm">
                       {formatReservedWithUnits(max, category, {
                         isAbbreviated: !isByteCategory(category),
                       })}
-                    </div>
-                  </MinMax>
+                    </Text>
+                  </Grid>
                 </div>
                 {showTransactionsDisclaimer && (
                   <span>
@@ -267,21 +267,6 @@ const Title = styled('label')`
   margin-bottom: 0px;
   font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.md};
-`;
-
-const SpaceBetweenGrid = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(2, auto);
-  justify-content: space-between;
-`;
-
-const Description = styled(SpaceBetweenGrid)`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-`;
-
-const MinMax = styled(Description)`
-  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const BaseRow = styled('div')`

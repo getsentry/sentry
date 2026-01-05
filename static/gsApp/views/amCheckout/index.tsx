@@ -10,7 +10,7 @@ import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex, Grid, Stack} from 'sentry/components/core/layout';
+import {Container, Flex, Grid, Stack} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
 import LoadingError from 'sentry/components/loadingError';
@@ -664,14 +664,27 @@ class AMCheckout extends Component<Props, State> {
 
     const renderCheckoutContent = () => (
       <Fragment>
-        <CheckoutBody>
+        <Flex
+          padding="0 2xl 3xl 2xl"
+          width="100%"
+          direction="column"
+          align="start"
+          maxWidth={{'2xs': undefined, md: '47.5rem'}}
+          paddingTop={{'2xs': '0', md: 'md'}}
+        >
           {this.renderPartnerAlert()}
           <CheckoutStepsContainer data-test-id="checkout-steps">
             {this.renderSteps()}
           </CheckoutStepsContainer>
-        </CheckoutBody>
+        </Flex>
         <SidePanel>
-          <OverviewContainer>
+          <Flex
+            flex={1}
+            direction="column"
+            gap="xl"
+            padding={{'2xs': '2xl 0', md: '0'}}
+            position="relative"
+          >
             <Cart
               {...overviewProps}
               referrer={this.referrer}
@@ -721,7 +734,7 @@ class AMCheckout extends Component<Props, State> {
                 </Text>
               )}
             </Stack>
-          </OverviewContainer>
+          </Flex>
         </SidePanel>
       </Fragment>
     );
@@ -771,8 +784,11 @@ class AMCheckout extends Component<Props, State> {
             >
               {t('Manage Subscription')}
             </LinkButton>
-
-            <OrgSlug>{organization.slug.toUpperCase()}</OrgSlug>
+            <Container flexGrow={1}>
+              <Text monospace variant="muted" ellipsis textWrap="nowrap" align="right">
+                {organization.slug.toUpperCase()}
+              </Text>
+            </Container>
           </Flex>
         </CheckoutHeader>
 
@@ -806,28 +822,6 @@ const CheckoutHeader = styled('header')`
   gap: ${p => p.theme.space.md};
 `;
 
-const OrgSlug = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
-  color: ${p => p.theme.subText};
-  text-overflow: ellipsis;
-  text-wrap: nowrap;
-  flex: 1;
-  text-align: right;
-`;
-
-const CheckoutBody = styled('div')`
-  padding: 0 ${p => p.theme.space['2xl']} ${p => p.theme.space['3xl']}
-    ${p => p.theme.space['2xl']};
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    max-width: 47.5rem;
-    padding-top: ${p => p.theme.space.md};
-  }
-`;
-
 const SidePanel = styled('aside')`
   width: 100%;
   border-top: 1px solid ${p => p.theme.border};
@@ -845,24 +839,6 @@ const SidePanel = styled('aside')`
     padding-left: ${p => p.theme.space['3xl']};
     background-color: ${p => p.theme.tokens.background.primary};
     padding-bottom: ${p => p.theme.space['3xl']};
-  }
-`;
-
-/**
- * Hide overview at smaller screen sizes in old checkout
- * Bring overview to bottom at smaller screen sizes in new checkout
- * Cancel subscription button is always visible
- */
-const OverviewContainer = styled('div')`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  gap: ${p => p.theme.space.xl};
-  padding: ${p => p.theme.space['2xl']} 0;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: 0;
   }
 `;
 

@@ -315,7 +315,13 @@ function Receipt({
   return (
     <div data-test-id="receipt">
       <ReceiptSlot />
-      <ReceiptPaperContainer>
+      <Container
+        position="relative"
+        left="62px"
+        top="-7px"
+        width="320px"
+        overflow="hidden"
+      >
         <ReceiptPaperShadow />
         <motion.div
           animate={{y: [-600, -575, -400, -380, -360, -340, -7]}}
@@ -325,7 +331,7 @@ function Receipt({
             times: [0.1, 0.2, 0.3, 0.34, 0.36, 0.37, 1],
           }}
         >
-          <ReceiptPaper background="primary" border="primary">
+          <Container background="primary" borderLeft="primary" borderRight="primary">
             <Flex direction="column" gap="xl" padding="xl" align="center">
               <img src={SentryLogo} alt={t('Sentry logo')} />
               <Grid columns="1fr 2fr 1fr" align="center" gap="sm">
@@ -489,9 +495,9 @@ function Receipt({
               <img src={Barcode} alt={t('Barcode')} />
             </Flex>
             <ZigZagEdge />
-          </ReceiptPaper>
+          </Container>
         </motion.div>
-      </ReceiptPaperContainer>
+      </Container>
     </div>
   );
 }
@@ -584,13 +590,13 @@ function CheckoutSuccess({
       direction={{sm: 'column', md: 'row'}}
     >
       <Flex direction="column" align={{sm: 'center', md: 'start'}} maxWidth="500px">
-        <Title size="2xl" as="h1" align="left">
+        <Heading size="2xl" as="h1" align={{'2xs': 'center', md: 'left'}}>
           {contentTitle}
-        </Title>
+        </Heading>
         <Flex gap="2xl" direction="column" align={{sm: 'center', md: 'start'}}>
-          <Description variant="muted" size="lg" align="left">
+          <Text variant="muted" size="lg" align={{'2xs': 'center', md: 'left'}}>
             {contentDescription}
-          </Description>
+          </Text>
           <Flex gap="sm">
             <LinkButton
               priority="primary"
@@ -641,18 +647,6 @@ function CheckoutSuccess({
 
 export default CheckoutSuccess;
 
-const Title = styled(Heading)`
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    text-align: center;
-  }
-`;
-
-const Description = styled(Text)`
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    text-align: center;
-  }
-`;
-
 const StyledGrid = styled(Grid)`
   & > :last-child {
     justify-self: end;
@@ -668,14 +662,6 @@ const ReceiptSlot = styled('div')`
     ${p => Color(p.theme.black).lighten(0.08).alpha(0.15).toString()} inset;
 `;
 
-const ReceiptPaperContainer = styled('div')`
-  position: relative;
-  left: 62px;
-  top: -7px;
-  width: 320px;
-  overflow: hidden;
-`;
-
 const ReceiptPaperShadow = styled('div')`
   position: relative;
   z-index: 1000;
@@ -684,11 +670,6 @@ const ReceiptPaperShadow = styled('div')`
   height: 7px;
   box-shadow: inset 0 10px 6px -6px
     ${p => Color(p.theme.black).lighten(0.05).alpha(0.15).toString()};
-`;
-
-const ReceiptPaper = styled(Container)`
-  border-top: none;
-  border-bottom: none;
 `;
 
 const DateSeparator = styled('div')`
