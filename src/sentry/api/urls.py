@@ -162,6 +162,7 @@ from sentry.dashboards.endpoints.organization_dashboards_starred import (
 )
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
+from sentry.data_secrecy.api.waive_data_secrecy import WaiveDataSecrecyEndpoint
 from sentry.discover.endpoints.discover_homepage_query import DiscoverHomepageQueryEndpoint
 from sentry.discover.endpoints.discover_key_transactions import (
     KeyTransactionEndpoint,
@@ -1407,6 +1408,12 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/data-export/(?P<data_export_id>[^/]+)/$",
         DataExportDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-data-export-details",
+    ),
+    # Data Secrecy
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/data-secrecy/$",
+        WaiveDataSecrecyEndpoint.as_view(),
+        name="sentry-api-0-data-secrecy",
     ),
     # Incidents
     re_path(
