@@ -2653,12 +2653,15 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_github_identity(
-        user: User | None, idp: IdentityProvider | None, **kwargs: None
+        user: User | None = None, idp: IdentityProvider | None = None, **kwargs: Any
     ) -> Identity:
         if idp is None:
             idp = Factories.create_github_provider()
         if user is None:
             user = Factories.create_user()
+        if "external_id" not in kwargs:
+            kwargs["external_id"] = f"github-user-{user.id}"
+
         identity, _ = Identity.objects.get_or_create(user=user, idp=idp, **kwargs)
         return identity
 
