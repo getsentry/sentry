@@ -30,7 +30,7 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer):
         if condition_id:
             try:
                 condition = DataCondition.objects.get(id=condition_id)
-            except DataConditionGroup.DoesNotExist:
+            except DataCondition.DoesNotExist:
                 raise serializers.ValidationError(f"Condition with id {condition_id} not found.")
 
             condition = validator.update(condition, condition_data)
