@@ -42,7 +42,7 @@ const getVariantStyle = ({
   return `
     height: 6px;
     border-radius: 100px;
-    background: ${theme.progressBackground};
+    background: ${theme.colors.gray100};
     :before {
       top: 0;
       left: 0;

@@ -16,7 +16,7 @@ const StepperContainer = styled('div')`
 const StepperIndicator = styled('span')<{clickable?: boolean}>`
   height: 8px;
   width: 80px;
-  background-color: ${p => p.theme.progressBackground};
+  background-color: ${p => p.theme.colors.gray100};
   cursor: ${p => (p.clickable ? 'pointer' : 'default')};
 `;
 

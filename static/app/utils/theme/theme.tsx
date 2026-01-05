@@ -1267,11 +1267,6 @@ const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
    */
   progressBar: colors.chonk.blue400,
 
-  /**
-   * Default Progressbar color
-   */
-  progressBackground: colors.gray100,
-
   // @todo(jonasbadalic) should these reference chonk colors?
   searchTokenBackground: {
     valid: colors.blue100,
