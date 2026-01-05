@@ -1,18 +1,28 @@
 import type React from 'react';
 import {useCallback, useLayoutEffect, useRef} from 'react';
 
+const defaultOnResize = (
+  inputRef: HTMLInputElement,
+  size: {height: number; width: number}
+) => {
+  inputRef.style.width = `${size.width}px`;
+};
+
 /**
  * This hook is used to automatically resize an input element based on its content.
  * It is useful for creating "growing" inputs that can resize to fit their content.
  *
  * @param options - Options for the autosize input functionality.
  * @param options.disabled - Set to `true` to disable the autosizing.
+ * @param options.onResize - A callback to be called when the input is resized with the
+ * new size. If not provided, the input will be resized to fit its content.
  * @param options.value - The value of the input, use when the input is controlled.
  * @returns A ref callback for the input element.
  */
 
 interface UseAutosizeInputOptions {
   enabled?: boolean;
+  onResize?: (sourceRef: HTMLInputElement, size: {height: number; width: number}) => void;
   value?: React.InputHTMLAttributes<HTMLInputElement>['value'] | undefined;
 }
 
@@ -22,6 +32,8 @@ export function useAutosizeInput(
   const enabled = options?.enabled ?? true;
   const sourceRef = useRef<HTMLInputElement | null>(null);
 
+  const onResize = options?.onResize ?? defaultOnResize;
+
   // A controlled input value change does not trigger a change event,
   // so we need to manually observe the value...
   useLayoutEffect(() => {
@@ -30,28 +42,34 @@ export function useAutosizeInput(
     }
 
     if (sourceRef.current) {
-      resize(sourceRef.current);
+      const size = getInputSize(sourceRef.current);
+      onResize(sourceRef.current, size);
     }
-  }, [options?.value, enabled]);
+  }, [options?.value, enabled, onResize]);
 
-  const onInputChange = useCallback((_event: any) => {
-    if (sourceRef.current) {
-      resize(sourceRef.current);
-    }
-  }, []);
+  const onInputChange = useCallback(
+    (_event: any) => {
+      if (sourceRef.current) {
+        const size = getInputSize(sourceRef.current);
+        onResize(sourceRef.current, size);
+      }
+    },
+    [onResize]
+  );
 
   const autosizingCallbackRef: React.RefCallback<HTMLInputElement> = useCallback(
     (element: HTMLInputElement | null) => {
       if (!enabled || !element) {
         sourceRef.current?.removeEventListener('input', onInputChange);
       } else {
-        resize(element);
+        const size = getInputSize(element);
+        onResize(element, size);
         element.addEventListener('input', onInputChange);
       }
 
       sourceRef.current = element;
     },
-    [onInputChange, enabled]
+    [onInputChange, enabled, onResize]
   );
 
   return autosizingCallbackRef;
@@ -74,7 +92,7 @@ function createSizingDiv(referenceStyles: CSSStyleDeclaration) {
   return sizingDiv;
 }
 
-function resize(input: HTMLInputElement) {
+function getInputSize(input: HTMLInputElement) {
   const computedStyles = getComputedStyle(input);
 
   const sizingDiv = createSizingDiv(computedStyles);
@@ -90,5 +108,6 @@ function resize(input: HTMLInputElement) {
     1; // Add 1px to account for cursor width in Safari
 
   document.body.removeChild(sizingDiv);
-  input.style.width = `${newTotalInputSize}px`;
+
+  return {width: newTotalInputSize, height: input.offsetHeight};
 }
