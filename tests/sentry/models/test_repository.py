@@ -313,7 +313,6 @@ class RepositoryCodeReviewSettingsTest(TestCase):
         assert len(settings.code_review_triggers) == 2
 
     def test_save_enforces_on_command_phrase_on_update(self):
-        """Test that save() enforces ON_COMMAND_PHRASE when updating an existing instance."""
         org = self.create_organization()
         repo = Repository.objects.create(
             organization_id=org.id,
