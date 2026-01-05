@@ -1006,14 +1006,14 @@ def get_organization_options(*, org_id: int, keys: list[str] | None = None) -> d
                 ...
             ]
         }
+
+    Raises:
+        Organization.DoesNotExist: If organization with given ID doesn't exist
     """
     from sentry.models.options.organization_option import OrganizationOption
     from sentry.models.organization import Organization
 
-    try:
-        org = Organization.objects.get(id=org_id)
-    except Organization.DoesNotExist:
-        return {"organization_id": org_id, "options": []}
+    org = Organization.objects.get(id=org_id)
 
     # Get all options for the organization (single query)
     all_values = OrganizationOption.objects.get_all_values(org)
@@ -1045,14 +1045,14 @@ def get_organization_features(*, org_id: int) -> dict:
             "organization_id": 123,
             "features": ["dashboards-basic", "ai-insights", ...]
         }
+
+    Raises:
+        Organization.DoesNotExist: If organization with given ID doesn't exist
     """
     from sentry import features
     from sentry.models.organization import Organization
 
-    try:
-        org = Organization.objects.get(id=org_id)
-    except Organization.DoesNotExist:
-        return {"organization_id": org_id, "features": []}
+    org = Organization.objects.get(id=org_id)
 
     # Get all organization features (not filtered by api_expose since Seer is internal)
     org_features = [

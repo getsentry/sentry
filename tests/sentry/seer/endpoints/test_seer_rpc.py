@@ -1516,11 +1516,11 @@ class TestSeerRpcMethods(APITestCase):
         assert result["options"][0]["value"] == "adaptive"
 
     def test_get_organization_options_nonexistent_org(self) -> None:
-        """Test getting options for non-existent organization"""
-        result = get_organization_options(org_id=999999)
+        """Test getting options for non-existent organization raises DoesNotExist"""
+        from sentry.models.organization import Organization
 
-        assert result["organization_id"] == 999999
-        assert result["options"] == []
+        with pytest.raises(Organization.DoesNotExist):
+            get_organization_options(org_id=999999)
 
     def test_get_organization_options_nonexistent_keys(self) -> None:
         """Test requesting keys that don't exist returns empty list"""
@@ -1578,8 +1578,8 @@ class TestSeerRpcMethods(APITestCase):
         assert isinstance(result["options"], list)
 
     def test_get_organization_features_nonexistent_org(self) -> None:
-        """Test getting features for non-existent organization"""
-        result = get_organization_features(org_id=999999)
+        """Test getting features for non-existent organization raises DoesNotExist"""
+        from sentry.models.organization import Organization
 
-        assert result["organization_id"] == 999999
-        assert result["features"] == []
+        with pytest.raises(Organization.DoesNotExist):
+            get_organization_features(org_id=999999)

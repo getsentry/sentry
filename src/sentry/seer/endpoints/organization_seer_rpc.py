@@ -37,6 +37,8 @@ from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profi
 from sentry.seer.endpoints.seer_rpc import (
     get_attributes_and_values,
     get_attributes_for_span,
+    get_organization_features,
+    get_organization_options,
     get_organization_project_ids,
     get_organization_slug,
     get_spans,
@@ -77,6 +79,8 @@ public_org_seer_method_registry: dict[str, Callable] = {
     # Common to Seer features
     "get_organization_project_ids": map_org_id_param(get_organization_project_ids),
     "get_organization_slug": map_org_id_param(get_organization_slug),
+    "get_organization_options": map_org_id_param(get_organization_options),
+    "get_organization_features": map_org_id_param(get_organization_features),
     #
     # Bug prediction
     "get_issues_by_function_name": by_function_name.fetch_issues,
