@@ -6,7 +6,7 @@ from django.core import mail
 from sentry.constants import DEFAULT_CODE_REVIEW_TRIGGERS
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.repository import Repository
-from sentry.models.repositorysettings import RepositorySettings
+from sentry.models.repositorysettings import CodeReviewTrigger, RepositorySettings
 from sentry.plugins.providers.dummy import DummyRepositoryProvider
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -245,3 +245,98 @@ class RepositoryCodeReviewSettingsTest(TestCase):
         # Verify the settings are correct
         settings = RepositorySettings.objects.get(repository=repo)
         assert settings.enabled_code_review is True
+
+    def test_save_adds_on_command_phrase_when_triggers_empty(self):
+        org = self.create_organization()
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            name="test-repo",
+            provider="integrations:github",
+        )
+
+        settings = RepositorySettings.objects.create(
+            repository=repo,
+            enabled_code_review=True,
+            code_review_triggers=[],
+        )
+
+        settings.refresh_from_db()
+        assert settings.code_review_triggers == [CodeReviewTrigger.ON_COMMAND_PHRASE.value]
+
+    def test_save_adds_on_command_phrase_when_missing(self):
+        org = self.create_organization()
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            name="test-repo",
+            provider="integrations:github",
+        )
+
+        settings = RepositorySettings.objects.create(
+            repository=repo,
+            enabled_code_review=True,
+            code_review_triggers=[
+                CodeReviewTrigger.ON_NEW_COMMIT.value,
+                CodeReviewTrigger.ON_READY_FOR_REVIEW.value,
+            ],
+        )
+
+        settings.refresh_from_db()
+        assert set(settings.code_review_triggers) == {
+            CodeReviewTrigger.ON_COMMAND_PHRASE.value,
+            CodeReviewTrigger.ON_NEW_COMMIT.value,
+            CodeReviewTrigger.ON_READY_FOR_REVIEW.value,
+        }
+
+    def test_save_does_not_duplicate_on_command_phrase(self):
+        org = self.create_organization()
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            name="test-repo",
+            provider="integrations:github",
+        )
+
+        settings = RepositorySettings.objects.create(
+            repository=repo,
+            enabled_code_review=True,
+            code_review_triggers=[
+                CodeReviewTrigger.ON_COMMAND_PHRASE.value,
+                CodeReviewTrigger.ON_NEW_COMMIT.value,
+            ],
+        )
+
+        settings.refresh_from_db()
+        assert set(settings.code_review_triggers) == {
+            CodeReviewTrigger.ON_COMMAND_PHRASE.value,
+            CodeReviewTrigger.ON_NEW_COMMIT.value,
+        }
+
+    def test_save_enforces_on_command_phrase_on_update(self):
+        """Test that save() enforces ON_COMMAND_PHRASE when updating an existing instance."""
+        org = self.create_organization()
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            name="test-repo",
+            provider="integrations:github",
+        )
+
+        settings = RepositorySettings.objects.create(
+            repository=repo,
+            enabled_code_review=True,
+            code_review_triggers=[
+                CodeReviewTrigger.ON_NEW_COMMIT.value,
+                CodeReviewTrigger.ON_READY_FOR_REVIEW.value,
+            ],
+        )
+
+        settings.code_review_triggers = [
+            CodeReviewTrigger.ON_NEW_COMMIT.value,
+            CodeReviewTrigger.ON_READY_FOR_REVIEW.value,
+        ]
+        settings.save()
+
+        settings.refresh_from_db()
+        assert set(settings.code_review_triggers) == {
+            CodeReviewTrigger.ON_COMMAND_PHRASE.value,
+            CodeReviewTrigger.ON_NEW_COMMIT.value,
+            CodeReviewTrigger.ON_READY_FOR_REVIEW.value,
+        }
