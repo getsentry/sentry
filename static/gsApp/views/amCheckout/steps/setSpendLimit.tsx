@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback} from 'react';
 
 import {Flex} from 'sentry/components/core/layout';
 import {t} from 'sentry/locale';
@@ -15,18 +15,15 @@ import {
 } from 'getsentry/views/onDemandBudgets/utils';
 import SpendLimitSettings from 'getsentry/views/spendLimits/spendLimitSettings';
 
-function SetSpendCap({
+function SetSpendLimit({
   activePlan,
   formData,
   stepNumber,
-  onEdit,
   onUpdate,
   organization,
   subscription,
   checkoutTier,
 }: StepProps) {
-  const [isOpen, setIsOpen] = useState(true);
-
   const handleBudgetChange = useCallback(
     ({onDemandBudgets}: {onDemandBudgets: OnDemandBudgets}) => {
       const totalBudget = getTotalBudget(onDemandBudgets);
@@ -57,13 +54,7 @@ function SetSpendCap({
         header={
           <StepHeader
             title={t('Set your %s limit', displayBudgetName(activePlan))}
-            isActive
             stepNumber={stepNumber}
-            isCompleted={false}
-            onEdit={onEdit}
-            isOpen={isOpen}
-            onToggleStep={setIsOpen}
-            isNewCheckout
           />
         }
         activePlan={activePlan}
@@ -73,7 +64,6 @@ function SetSpendCap({
         onUpdate={({onDemandBudgets}) => handleBudgetChange({onDemandBudgets})}
         currentReserved={formData.reserved}
         addOns={formData.addOns ?? {}}
-        isOpen={isOpen}
         footer={
           <ReserveAdditionalVolume
             activePlan={activePlan}
@@ -89,4 +79,4 @@ function SetSpendCap({
   );
 }
 
-export default SetSpendCap;
+export default SetSpendLimit;
