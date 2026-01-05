@@ -31,7 +31,7 @@ from sentry.preprod.vcs.status_checks.size.templates import format_status_check_
 from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigurationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import integrations_tasks, preprod_tasks
+from sentry.taskworker.namespaces import preprod_tasks
 from sentry.taskworker.retry import Retry
 
 logger = logging.getLogger(__name__)
@@ -40,8 +40,6 @@ logger = logging.getLogger(__name__)
 @instrumented_task(
     name="sentry.preprod.tasks.create_preprod_status_check",
     namespace=preprod_tasks,
-    # TODO(EME-242): Remove once inflight tasks done.
-    alias_namespace=integrations_tasks,
     processing_deadline_duration=30,
     retry=Retry(times=3, ignore=(IntegrationConfigurationError,)),
     silo_mode=SiloMode.REGION,
