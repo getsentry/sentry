@@ -301,6 +301,10 @@ def get_detectors_for_event(
 
 
 def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
+    """
+    Returns the detector from the GroupEvent in event_data.
+    """
+
     evt = event_data.event
 
     if not isinstance(evt, GroupEvent):
@@ -311,7 +315,7 @@ def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
     issue_occurrence = evt.occurrence
 
     try:
-        if issue_occurrence is None or evt.group.issue_type.detector_settings is None:
+        if issue_occurrence is None or evt.group.issue_type == ErrorGroupType:
             # if there are no detector settings, default to the error detector
             detector = Detector.get_error_detector_for_project(evt.project_id)
         else:
@@ -361,9 +365,16 @@ def get_detector_by_group(group: Group) -> Detector:
 
 
 def get_detector_from_event_data(event_data: WorkflowEventData) -> Detector:
+    """
+    Essentially the same as get_detectors_for_event except we look up the detector for the Activity instead of expecting it to be passed in.
+    """
+
     try:
         if isinstance(event_data.event, GroupEvent):
-            return get_detector_by_event(event_data)
+            event_detectors = get_detectors_for_event(event_data)
+            if event_detectors is None:
+                raise Detector.DoesNotExist("No detectors found for event")
+            return event_detectors.preferred_detector
         elif isinstance(event_data.event, Activity):
             return get_detector_by_group(event_data.group)
         else:

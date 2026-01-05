@@ -464,8 +464,8 @@ class TestProcessWorkflows(BaseWorkflowTest):
         assert len(result.data.triggered_actions) == 0
 
     @override_options({"workflow_engine.exclude_issue_stream_detector": False})
-    def test_multiple_detectors(self) -> None:
-        issue_stream_workflow, issue_stream_detector, _, _ = self.create_detector_and_workflow(
+    def test_multiple_detectors__preferred(self) -> None:
+        _, issue_stream_detector, _, _ = self.create_detector_and_workflow(
             name_prefix="issue_stream",
             workflow_triggers=self.create_data_condition_group(),
             detector_type=IssueStreamGroupType.slug,
@@ -476,7 +476,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         )
 
         result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
-        assert result.data.triggered_workflows == {self.error_workflow, issue_stream_workflow}
+        assert result.data.triggered_workflows == {self.error_workflow}
         assert result.data.associated_detector == self.error_detector
 
 
