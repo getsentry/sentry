@@ -644,6 +644,7 @@ function InternalInput({
             ? 'arithmetic-builder-argument-input'
             : undefined
         }
+        parameterDefinition={parameterDefinition}
       >
         {keyItem =>
           itemIsSection(keyItem) ? (
