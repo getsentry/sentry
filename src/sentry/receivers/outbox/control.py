@@ -45,11 +45,7 @@ def process_integration_updates(object_identifier: int, region_name: str, **kwds
 
 @receiver(process_control_outbox, sender=OutboxCategory.IDENTITY_UPDATE)
 def process_identity_updates(object_identifier: int, region_name: str, **kwds: Any):
-    if (
-        identity := maybe_process_tombstone(Identity, object_identifier, region_name=region_name)
-    ) is None:
-        return
-    identity.delete()
+    maybe_process_tombstone(Identity, object_identifier, region_name=region_name)
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.SENTRY_APP_UPDATE)
