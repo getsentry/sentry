@@ -136,17 +136,29 @@ def _query_groups_past_counts_eap(groups: Sequence[Group]) -> list[GroupsCountRe
     if not groups:
         return all_results
 
-    filtered_groups = [
-        g
-        for g in groups
-        if g.issue_category == GroupCategory.ERROR or g.issue_type.should_detect_escalation()
-    ]
-    if not filtered_groups:
+    error_groups: list[Group] = []
+    other_groups: list[Group] = []
+    for g in groups:
+        if g.issue_category == GroupCategory.ERROR:
+            error_groups.append(g)
+        elif g.issue_type.should_detect_escalation():
+            other_groups.append(g)
+
+    all_results += _query_groups_eap_by_org(error_groups)
+    all_results += _query_groups_eap_by_org(other_groups)
+
+    return all_results
+
+
+def _query_groups_eap_by_org(groups: Sequence[Group]) -> list[GroupsCountResponse]:
+    """Query EAP for groups, processing by organization."""
+    all_results: list[GroupsCountResponse] = []
+    if not groups:
         return all_results
 
     start_date, end_date = _start_and_end_dates()
 
-    groups_by_org = _extract_organization_and_project_and_group_ids(filtered_groups)
+    groups_by_org = _extract_organization_and_project_and_group_ids(groups)
 
     for organization_id in sorted(groups_by_org.keys()):
         group_ids_by_project = groups_by_org[organization_id]
@@ -213,7 +225,7 @@ def _query_groups_past_counts_eap(groups: Sequence[Group]) -> list[GroupsCountRe
             )
             continue
 
-    # Sort to match Snuba ordering (project_id, group_id, hourBucket)
+    # Sort to match Snuba's orderby: (project_id, group_id, hourBucket)
     all_results.sort(key=lambda x: (x["project_id"], x["group_id"], x["hourBucket"]))
 
     return all_results
