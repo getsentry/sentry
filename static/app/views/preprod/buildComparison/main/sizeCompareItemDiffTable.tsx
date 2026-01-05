@@ -206,8 +206,10 @@ export function SizeCompareItemDiffTable({
                 <Tooltip
                   title={
                     diffItem.path ? (
-                      <Flex align="start" gap="xs">
-                        <Text monospace>{diffItem.path}</Text>
+                      <Flex align="center" gap="xs">
+                        <Text wordBreak="break-all" monospace>
+                          {diffItem.path}
+                        </Text>
                         <CopyToClipboardButton
                           borderless
                           size="zero"
