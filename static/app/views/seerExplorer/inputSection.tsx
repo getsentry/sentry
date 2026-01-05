@@ -75,7 +75,7 @@ function InputSection({
 
   // Handle keyboard shortcuts for file approval
   useEffect(() => {
-    if (!fileApprovalActions || !isVisible || isMinimized) {
+    if (!fileApprovalActions || !isVisible || isMinimized || !enabled) {
       return undefined;
     }
 
@@ -99,11 +99,11 @@ function InputSection({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [fileApprovalActions, isVisible, isMinimized]);
+  }, [fileApprovalActions, isVisible, isMinimized, enabled]);
 
   // Handle keyboard shortcuts for questions
   useEffect(() => {
-    if (!questionActions || !isVisible || isMinimized) {
+    if (!questionActions || !isVisible || isMinimized || !enabled) {
       return undefined;
     }
 
@@ -139,7 +139,7 @@ function InputSection({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [questionActions, isVisible, isMinimized]);
+  }, [questionActions, isVisible, isMinimized, enabled]);
 
   if (!enabled) {
     return (

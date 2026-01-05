@@ -88,6 +88,11 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
   // Get blocks from session data or empty array
   const blocks = useMemo(() => sessionData?.blocks || [], [sessionData]);
 
+  // Check owner id to determine edit permission
+  const userId = useUser().id;
+  const ownerUserId = sessionData?.owner_user_id;
+  const canEdit = ownerUserId === undefined || ownerUserId.toString() === userId;
+
   // Get PR widget data for menu
   const {menuItems: prWidgetItems, menuFooter: prWidgetFooter} = usePRWidgetData({
     blocks,
@@ -204,6 +209,9 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
   }, [focusedBlockIndex]);
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (!canEdit) {
+      return;
+    }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (inputValue.trim() && !isPolling) {
@@ -399,22 +407,26 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isPrintableChar = e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
 
-      if (
-        e.key === 'Escape' &&
-        isPolling &&
-        !interruptRequested &&
-        !isFileApprovalPending
-      ) {
-        e.preventDefault();
-        interruptRun();
-      } else if (e.key === 'Escape' && !isFileApprovalPending) {
-        // Don't minimize if file approval is pending (Escape is used to reject)
-        e.preventDefault();
-        setIsMinimized(true);
-      } else if (isPrintableChar) {
-        // Don't auto-type if file approval or question is pending (textarea isn't visible)
-        if (focusedBlockIndex !== -1 && !isFileApprovalPending && !isQuestionPending) {
-          // If a block is focused, auto-focus input when user starts typing.
+      if (e.key === 'Escape') {
+        if (isPolling && canEdit && !interruptRequested && !isFileApprovalPending) {
+          e.preventDefault();
+          interruptRun();
+        } else if (!isFileApprovalPending) {
+          // Don't minimize if file approval is pending (Escape is used to reject)
+          e.preventDefault();
+          setIsMinimized(true);
+        }
+      }
+
+      if (isPrintableChar) {
+        // If a block is focused, auto-focus input when user starts typing.
+        // Don't do this if file approval or question is pending (textarea isn't visible)
+        if (
+          canEdit &&
+          focusedBlockIndex !== -1 &&
+          !isFileApprovalPending &&
+          !isQuestionPending
+        ) {
           e.preventDefault();
           setFocusedBlockIndex(-1);
           textareaRef.current?.focus();
@@ -438,6 +450,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     isVisible,
     isMenuOpen,
     isPolling,
+    canEdit,
     focusedBlockIndex,
     interruptRun,
     interruptRequested,
@@ -482,10 +495,6 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
       handleMaxSize();
     }
   }, [panelSize, handleMaxSize, handleMedSize]);
-
-  const userId = useUser().id;
-  const ownerUserId = sessionData?.owner_user_id;
-  const editEnabled = ownerUserId === undefined || ownerUserId.toString() === userId;
 
   const panelContent = (
     <PanelContainers
@@ -538,7 +547,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
                 }
                 isFocused={focusedBlockIndex === index}
                 isPolling={isPolling}
-                editEnabled={editEnabled}
+                editEnabled={canEdit}
                 onClick={() => handleBlockClick(index)}
                 onMouseEnter={() => {
                   // Don't change focus while menu is open, if already on this block, or if hover is disabled
@@ -592,7 +601,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
         )}
       </BlocksContainer>
       <InputSection
-        enabled={editEnabled}
+        enabled={canEdit}
         focusedBlockIndex={focusedBlockIndex}
         inputValue={inputValue}
         interruptRequested={interruptRequested}
