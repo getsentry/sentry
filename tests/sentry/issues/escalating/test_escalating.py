@@ -15,6 +15,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeValue
 
 from sentry.issues.escalating.escalating import (
     GroupsCountResponse,
+    _query_groups_past_counts_eap,
     _start_and_end_dates,
     get_group_hourly_count_eap,
     get_group_hourly_count_snuba,
@@ -449,3 +450,175 @@ class TestGetGroupHourlyCountEAP(TestCase):
         assert result == (False, None)
         mock_snuba.assert_called_once_with(group)
         mock_eap.assert_called_once_with(group)
+
+
+class TestQueryGroupsPastCountsEAP(TestCase):
+    def test_empty_groups_returns_empty_list(self) -> None:
+        result = query_groups_past_counts([])
+        assert result == []
+
+    @patch("sentry.snuba.occurrences_rpc.Occurrences.run_grouped_timeseries_query")
+    def test_returns_empty_list_on_exception(self, mock_timeseries: mock.MagicMock) -> None:
+        group = self.create_group()
+        mock_timeseries.side_effect = Exception("RPC failed")
+
+        result = _query_groups_past_counts_eap([group])
+        assert result == []
+
+    @patch("sentry.issues.escalating.escalating._query_groups_past_counts_eap")
+    @patch("sentry.issues.escalating.escalating._query_groups_past_counts_snuba")
+    def test_uses_snuba_result_as_source_of_truth(
+        self, mock_snuba: mock.MagicMock, mock_eap: mock.MagicMock
+    ) -> None:
+        group = self.create_group()
+        mock_snuba.return_value = [
+            {
+                "project_id": 1,
+                "group_id": group.id,
+                "hourBucket": "2025-01-05 10:00:00",
+                "count()": 5,
+            }
+        ]
+        mock_eap.return_value = [
+            {
+                "project_id": 2,
+                "group_id": group.id,
+                "hourBucket": "2025-01-05 11:00:00",
+                "count()": 10,
+            }
+        ]
+
+        with self.options({EAPOccurrencesComparator._should_eval_option_name(): True}):
+            result = query_groups_past_counts([group])
+
+        assert result == mock_snuba.return_value
+        mock_snuba.assert_called_once()
+        mock_eap.assert_called_once()
+
+    @patch("sentry.issues.escalating.escalating._query_groups_past_counts_eap")
+    @patch("sentry.issues.escalating.escalating._query_groups_past_counts_snuba")
+    def test_uses_eap_result_as_source_of_truth(
+        self, mock_snuba: mock.MagicMock, mock_eap: mock.MagicMock
+    ) -> None:
+        group = self.create_group()
+        mock_snuba.return_value = [
+            {
+                "project_id": 1,
+                "group_id": group.id,
+                "hourBucket": "2025-01-05 10:00:00",
+                "count()": 5,
+            }
+        ]
+        mock_eap.return_value = [
+            {
+                "project_id": 2,
+                "group_id": group.id,
+                "hourBucket": "2025-01-05 11:00:00",
+                "count()": 10,
+            }
+        ]
+
+        with self.options(
+            {
+                EAPOccurrencesComparator._should_eval_option_name(): True,
+                EAPOccurrencesComparator._callsite_allowlist_option_name(): [
+                    "issues.escalating.query_groups_past_counts"
+                ],
+            }
+        ):
+            result = query_groups_past_counts([group])
+
+        assert result == mock_eap.return_value
+        mock_snuba.assert_called_once()
+        mock_eap.assert_called_once()
+
+    @patch("sentry.snuba.occurrences_rpc.Occurrences.run_grouped_timeseries_query")
+    def test_eap_impl_transforms_results_correctly(self, mock_timeseries: mock.MagicMock) -> None:
+        group = self.create_group()
+
+        # Mock the timeseries response format
+        mock_timeseries.return_value = [
+            {
+                "project_id": group.project_id,
+                "group_id": group.id,
+                "time": 1736074800,
+                "count()": 5.0,
+            },
+            {
+                "project_id": group.project_id,
+                "group_id": group.id,
+                "time": 1736078400,
+                "count()": 3.0,
+            },
+        ]
+
+        result = _query_groups_past_counts_eap([group])
+
+        mock_timeseries.assert_called_once()
+        assert len(result) == 2
+        # Check first result
+        assert result[0]["project_id"] == group.project_id
+        assert result[0]["group_id"] == group.id
+        assert result[0]["count()"] == 5
+        assert "hourBucket" in result[0]
+        # Check second result
+        assert result[1]["count()"] == 3
+
+    @patch("sentry.snuba.occurrences_rpc.Occurrences.run_grouped_timeseries_query")
+    def test_eap_impl_filters_zero_counts(self, mock_timeseries: mock.MagicMock) -> None:
+        group = self.create_group()
+
+        mock_timeseries.return_value = [
+            {
+                "project_id": group.project_id,
+                "group_id": group.id,
+                "time": 1736074800,
+                "count()": 5.0,
+            },
+            {
+                "project_id": group.project_id,
+                "group_id": group.id,
+                "time": 1736078400,
+                "count()": 0.0,
+            },
+            {
+                "project_id": group.project_id,
+                "group_id": group.id,
+                "time": 1736082000,
+                "count()": 3.0,
+            },
+        ]
+
+        result = _query_groups_past_counts_eap([group])
+
+        # Zero count row should be filtered out
+        assert len(result) == 2
+        assert all(r["count()"] > 0 for r in result)
+
+    @patch("sentry.snuba.occurrences_rpc.Occurrences.run_grouped_timeseries_query")
+    def test_eap_impl_handles_multiple_groups(self, mock_timeseries: mock.MagicMock) -> None:
+        group1 = self.create_group()
+        group2 = self.create_group()
+
+        mock_timeseries.return_value = [
+            {
+                "project_id": group1.project_id,
+                "group_id": group1.id,
+                "time": 1736074800,
+                "count()": 5.0,
+            },
+            {
+                "project_id": group2.project_id,
+                "group_id": group2.id,
+                "time": 1736074800,
+                "count()": 10.0,
+            },
+        ]
+
+        result = _query_groups_past_counts_eap([group1, group2])
+
+        assert len(result) == 2
+        # Results should be sorted by project_id, group_id, hourBucket
+        group_ids_in_result = [r["group_id"] for r in result]
+        assert group1.id in group_ids_in_result
+        assert group2.id in group_ids_in_result
