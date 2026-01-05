@@ -20,13 +20,19 @@ metrics with tags: {
 ---
 contributing variants:
   app*
-    hash: "0809098f9f613b63467605dd1739cc9b"
-    contributing component: exception
+    hash: "93b26686d00504b4e5aa1cb0244d8b37"
+    contributing component: chained_exception
     hint: None
     root_component:
       app*
-        exception*
-          type*
-            "System.AggregateException"
-          value*
-            "One or more errors occurred."
+        chained_exception*
+          exception*
+            type*
+              "InnerException"
+            value*
+              "Nope"
+          exception*
+            type*
+              "System.AggregateException"
+            value*
+              "One or more errors occurred."
