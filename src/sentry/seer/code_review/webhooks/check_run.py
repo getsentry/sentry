@@ -22,7 +22,6 @@ from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.utils import metrics
 
-from ..preflight import CodeReviewPreflightService
 from ..utils import SeerEndpoint, make_seer_request
 
 logger = logging.getLogger(__name__)
@@ -31,7 +30,6 @@ logger = logging.getLogger(__name__)
 class ErrorStatus(enum.StrEnum):
     MISSING_ORGANIZATION = "missing_organization"
     MISSING_ACTION = "missing_action"
-    CODE_REVIEW_NOT_ENABLED = "code_review_not_enabled"
     INVALID_PAYLOAD = "invalid_payload"
 
 
@@ -116,14 +114,6 @@ def handle_check_run_event(
         return
 
     if action != GitHubCheckRunAction.REREQUESTED:
-        return
-
-    preflight = CodeReviewPreflightService(organization, repo).check()
-    if not preflight.allowed:
-        metrics.incr(
-            f"{Metrics.ERROR.value}",
-            tags={**tags, "error_status": ErrorStatus.CODE_REVIEW_NOT_ENABLED.value},
-        )
         return
 
     try:

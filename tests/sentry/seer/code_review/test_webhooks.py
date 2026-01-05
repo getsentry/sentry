@@ -34,12 +34,23 @@ from sentry.testutils.helpers.github import GitHubWebhookTestCase
 CODE_REVIEW_FEATURES = {"organizations:gen-ai-features", "organizations:code-review-beta"}
 
 
+@patch("sentry.seer.code_review.billing.quotas.backend.check_seer_quota", return_value=True)
 class GitHubWebhookHelper(GitHubWebhookTestCase):
     """Base class for GitHub webhook integration tests."""
 
     def _enable_code_review(self) -> None:
         """Enable all required options for code review to work."""
         self.organization.update_option("sentry:enable_pr_review_test_generation", True)
+
+    def _setup_billing(self, integration_id: int, sender_id: str) -> None:
+        """Set up billing by creating OrganizationContributors record."""
+        from sentry.models.organizationcontributors import OrganizationContributors
+
+        OrganizationContributors.objects.get_or_create(
+            organization_id=self.organization.id,
+            integration_id=integration_id,
+            external_identifier=sender_id,
+        )
 
     def _send_webhook_event(
         self, github_event: GithubWebhookType, event_data: bytes | str
@@ -57,6 +68,23 @@ class GitHubWebhookHelper(GitHubWebhookTestCase):
             external_id=repo_id,
             integration_id=integration.id,
         )
+
+        # Set up billing using PR author ID (matches _get_pr_author_id in handlers.py)
+        pr_author_id = None
+        # Check issue.user.id first (for issue comments)
+        issue_user_id = self.event_dict.get("issue", {}).get("user", {}).get("id")
+        if issue_user_id is not None:
+            pr_author_id = str(issue_user_id)
+        # Then check pull_request.user.id
+        elif self.event_dict.get("pull_request", {}).get("user", {}).get("id") is not None:
+            pr_author_id = str(self.event_dict["pull_request"]["user"]["id"])
+        # Finally check user.id (fallback)
+        elif self.event_dict.get("user", {}).get("id") is not None:
+            pr_author_id = str(self.event_dict["user"]["id"])
+
+        if pr_author_id is not None:
+            self._setup_billing(integration.id, pr_author_id)
+
         response = self.send_github_webhook_event(github_event, event_data)
         assert response.status_code == 204
         return response
@@ -710,11 +738,19 @@ class IssueCommentEventWebhookTest(GitHubWebhookHelper):
             "issue": {
                 "number": 42,
                 "pull_request": {"url": "https://api.github.com/repos/owner/repo/pulls/42"},
+                "user": {
+                    "id": 12345678,
+                    "login": "pr-author",
+                },
             },
             "repository": {
                 "id": 12345,
                 "full_name": "owner/repo",
                 "html_url": "https://github.com/owner/repo",
+            },
+            "sender": {
+                "id": 87654321,
+                "login": "commenter",
             },
         }
         return orjson.dumps(event)
