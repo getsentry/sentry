@@ -129,11 +129,11 @@ class RepositoryCodeReviewSettingsTest(TestCase):
 
         settings = RepositorySettings.objects.get(repository=repo)
         assert settings.enabled_code_review is True
-        assert set(settings.code_review_triggers) == {
+        assert settings.code_review_triggers == [
             "on_new_commit",
             "on_ready_for_review",
             "on_command_phrase",
-        }
+        ]
 
     def test_no_settings_for_unsupported_provider(self):
         org = self.create_organization()

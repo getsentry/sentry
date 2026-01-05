@@ -21,7 +21,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.repository import Repository
-from sentry.models.repositorysettings import CodeReviewTrigger, RepositorySettings
+from sentry.models.repositorysettings import RepositorySettings
 from sentry.prevent.models import PreventAIConfiguration
 from sentry.prevent.types.config import PREVENT_AI_CONFIG_DEFAULT, PREVENT_AI_CONFIG_DEFAULT_V1
 from sentry.silo.base import SiloMode
@@ -224,7 +224,7 @@ class CodeReviewRepoSettingsEndpoint(Endpoint):
             return Response(
                 {
                     "enabledCodeReview": False,
-                    "codeReviewTriggers": [CodeReviewTrigger.ON_COMMAND_PHRASE.value],
+                    "codeReviewTriggers": [],
                 }
             )
 

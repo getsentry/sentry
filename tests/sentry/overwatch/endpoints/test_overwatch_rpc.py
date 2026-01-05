@@ -533,10 +533,7 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         auth = self._auth_header_for_get(url, params, "test-secret")
         resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
         assert resp.status_code == 200
-        assert resp.data == {
-            "enabledCodeReview": False,
-            "codeReviewTriggers": ["on_command_phrase"],
-        }
+        assert resp.data == {"enabledCodeReview": False, "codeReviewTriggers": []}
 
     @patch(
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
@@ -554,10 +551,7 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         auth = self._auth_header_for_get(url, params, "test-secret")
         resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
         assert resp.status_code == 200
-        assert resp.data == {
-            "enabledCodeReview": False,
-            "codeReviewTriggers": ["on_command_phrase"],
-        }
+        assert resp.data == {"enabledCodeReview": False, "codeReviewTriggers": []}
 
     @patch(
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
@@ -677,10 +671,7 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
         assert resp.status_code == 200
         # Should return defaults since repository is inactive
-        assert resp.data == {
-            "enabledCodeReview": False,
-            "codeReviewTriggers": ["on_command_phrase"],
-        }
+        assert resp.data == {"enabledCodeReview": False, "codeReviewTriggers": []}
 
     @patch(
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
@@ -738,10 +729,7 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         auth = self._auth_header_for_get(url, params2, "test-secret")
         resp2 = self.client.get(url, params2, HTTP_AUTHORIZATION=auth)
         assert resp2.status_code == 200
-        assert resp2.data == {
-            "enabledCodeReview": False,
-            "codeReviewTriggers": ["on_command_phrase"],
-        }
+        assert resp2.data == {"enabledCodeReview": False, "codeReviewTriggers": []}
 
 
 class TestPreventPrReviewEligibilityEndpoint(APITestCase):
