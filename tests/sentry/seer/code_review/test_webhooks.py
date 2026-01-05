@@ -1,4 +1,4 @@
-from collections.abc import Generator
+from collections.abc import Collection, Generator, Mapping
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -45,9 +45,11 @@ class GitHubWebhookHelper(GitHubWebhookTestCase):
         self.organization.update_option("sentry:enable_pr_review_test_generation", True)
 
     @contextmanager
-    def code_review_setup(self, features: set[str] | dict[str, Any] = CODE_REVIEW_FEATURES):
+    def code_review_setup(
+        self, features: Collection[str] | Mapping[str, Any] = CODE_REVIEW_FEATURES
+    ) -> Generator[None]:
         """Helper to set up code review test context."""
-        self._enable_code_review()
+        self.organization.update_option("sentry:enable_pr_review_test_generation", True)
         with (
             self.feature(features),
             self.options({"github.webhook.issue-comment": False}),
