@@ -2,9 +2,34 @@
 
 import django.contrib.postgres.fields
 from django.db import migrations, models
+from django.db.backends.base.schema import BaseDatabaseSchemaEditor
+from django.db.migrations.state import StateApps
 
-import sentry.models.repositorysettings
+from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.new_migrations.migrations import CheckedMigration
+
+
+def backfill_on_command_phrase_trigger(
+    apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
+) -> None:
+    """Backfill on_command_phrase code review trigger for all existing RepositorySettings."""
+    RepositorySettings = apps.get_model("sentry", "RepositorySettings")
+
+    settings_to_update = []
+    batch_size = 1000
+
+    for setting in RepositorySettings.objects.all():
+        triggers = setting.code_review_triggers or []
+        if CodeReviewTrigger.ON_COMMAND_PHRASE.value not in triggers:
+            setting.code_review_triggers = list(triggers) + [
+                CodeReviewTrigger.ON_COMMAND_PHRASE.value
+            ]
+            settings_to_update.append(setting)
+
+    if settings_to_update:
+        RepositorySettings.objects.bulk_update(
+            settings_to_update, ["code_review_triggers"], batch_size=batch_size
+        )
 
 
 class Migration(CheckedMigration):
@@ -32,8 +57,13 @@ class Migration(CheckedMigration):
             name="code_review_triggers",
             field=django.contrib.postgres.fields.ArrayField(
                 base_field=models.CharField(max_length=32),
-                default=sentry.models.repositorysettings.default_code_review_triggers,
+                default=lambda: [CodeReviewTrigger.ON_COMMAND_PHRASE.value],
                 size=None,
             ),
+        ),
+        migrations.RunPython(
+            backfill_on_command_phrase_trigger,
+            reverse_code=migrations.RunPython.noop,
+            hints={"tables": ["sentry_repositorysettings"]},
         ),
     ]

@@ -10,11 +10,6 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 
 
-def default_code_review_triggers() -> list[str]:
-    """Code review triggers always include ON_COMMAND_PHRASE."""
-    return [CodeReviewTrigger.ON_COMMAND_PHRASE.value]
-
-
 class CodeReviewTrigger(StrEnum):
     ON_COMMAND_PHRASE = "on_command_phrase"
     ON_NEW_COMMIT = "on_new_commit"
@@ -39,7 +34,7 @@ class RepositorySettings(Model):
     enabled_code_review = models.BooleanField(default=False)
     code_review_triggers = ArrayField(
         models.CharField(max_length=32, choices=CodeReviewTrigger.as_choices()),
-        default=default_code_review_triggers,
+        default=lambda: [CodeReviewTrigger.ON_COMMAND_PHRASE.value],
     )
 
     class Meta:
@@ -50,12 +45,12 @@ class RepositorySettings(Model):
 
     def save(self, *args: Any, **kwargs: Any) -> None:
         # Ensure ON_COMMAND_PHRASE is always a trigger
-        if (
-            self.code_review_triggers is not None
-            and CodeReviewTrigger.ON_COMMAND_PHRASE.value not in self.code_review_triggers
-        ):
-            self.code_review_triggers = list(self.code_review_triggers) + [
-                CodeReviewTrigger.ON_COMMAND_PHRASE.value
-            ]
+        if self.code_review_triggers is None:
+            self.code_review_triggers = [CodeReviewTrigger.ON_COMMAND_PHRASE.value]
+        else:
+            triggers = list(self.code_review_triggers)
+            if CodeReviewTrigger.ON_COMMAND_PHRASE.value not in triggers:
+                triggers.append(CodeReviewTrigger.ON_COMMAND_PHRASE.value)
+                self.code_review_triggers = triggers
 
         super().save(*args, **kwargs)
