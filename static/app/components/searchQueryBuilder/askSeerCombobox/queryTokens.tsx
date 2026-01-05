@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import moment from 'moment-timezone';
 
 import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
@@ -7,47 +8,33 @@ import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils
 import {t} from 'sentry/locale';
 
 function formatDateRange(start: string, end: string): string {
-  // Treat UTC dates as local dates by removing the 'Z' suffix
-  // This ensures "2025-12-06T00:00:00Z" displays as Dec 6th in the user's timezone
-  const startLocal = start.endsWith('Z') ? start.slice(0, -1) : start;
-  const endLocal = end.endsWith('Z') ? end.slice(0, -1) : end;
-
-  const startDate = new Date(startLocal);
-  const endDate = new Date(endLocal);
+  // Parse as UTC but display the UTC values directly (without timezone conversion)
+  // The endpoint returns times in UTC format, but the values represent what the user
+  // intended in their local context. E.g., if user asks for "9pm", endpoint returns
+  // "T21:00:00Z" - we want to display "9:00 PM", not convert to local timezone.
+  const startMoment = moment.utc(start);
+  const endMoment = moment.utc(end);
 
   // Check if times are at midnight (date-only range)
   const startIsMidnight =
-    startDate.getHours() === 0 &&
-    startDate.getMinutes() === 0 &&
-    startDate.getSeconds() === 0;
+    startMoment.hours() === 0 &&
+    startMoment.minutes() === 0 &&
+    startMoment.seconds() === 0;
   const endIsMidnight =
-    endDate.getHours() === 0 && endDate.getMinutes() === 0 && endDate.getSeconds() === 0;
+    endMoment.hours() === 0 && endMoment.minutes() === 0 && endMoment.seconds() === 0;
   const endIsEndOfDay =
-    endDate.getHours() === 23 &&
-    endDate.getMinutes() === 59 &&
-    endDate.getSeconds() === 59;
+    endMoment.hours() === 23 && endMoment.minutes() === 59 && endMoment.seconds() === 59;
 
   // Use date-only format if both are midnight or end of day
   const useDateOnly = startIsMidnight && (endIsMidnight || endIsEndOfDay);
 
-  const dateOptions: Intl.DateTimeFormatOptions = {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  };
+  const dateFormat = 'MMM D, YYYY';
+  const dateTimeFormat = 'MMM D, YYYY h:mm A';
 
-  const dateTimeOptions: Intl.DateTimeFormatOptions = {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  };
+  const formatStr = useDateOnly ? dateFormat : dateTimeFormat;
 
-  const formatOptions = useDateOnly ? dateOptions : dateTimeOptions;
-
-  const startFormatted = startDate.toLocaleString('en-US', formatOptions);
-  const endFormatted = endDate.toLocaleString('en-US', formatOptions);
+  const startFormatted = startMoment.format(formatStr);
+  const endFormatted = endMoment.format(formatStr);
 
   return `${startFormatted} - ${endFormatted}`;
 }
