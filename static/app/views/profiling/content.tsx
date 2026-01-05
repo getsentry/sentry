@@ -325,7 +325,7 @@ function TransactionsTab({onDataState, location, selection}: TabbedContentProps)
       </SearchbarContainer>
       {transactionsError && (
         <Alert.Container>
-          <Alert type="error">{transactionsError}</Alert>
+          <Alert variant="danger">{transactionsError}</Alert>
         </Alert.Container>
       )}
       <ProfileEventsTable

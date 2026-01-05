@@ -110,10 +110,7 @@ function IntegrationRow(props: Props) {
         </TitleContainer>
         <TagsContainer>
           {categories?.map(category => (
-            <Tag
-              key={category}
-              type={category === publishStatus ? 'highlight' : 'default'}
-            >
+            <Tag key={category} variant={category === publishStatus ? 'info' : 'muted'}>
               {category === 'api' ? 'API' : startCase(category)}
             </Tag>
           ))}
@@ -123,7 +120,7 @@ function IntegrationRow(props: Props) {
         <AlertContainer>
           <Alert.Container>
             <Alert
-              type="warning"
+              variant="warning"
               trailingItems={
                 <ResolveNowButton
                   href={`${baseUrl}?tab=configurations&referrer=directory_resolve_now`}
