@@ -2662,13 +2662,13 @@ class Factories:
         if "external_id" not in kwargs:
             kwargs["external_id"] = f"github-user-{user.id}"
 
-        identity, _ = Identity.objects.get_or_create(user=user, idp=idp, **kwargs)
+        identity, _ = Identity.objects.update_or_create(user=user, idp=idp, defaults=kwargs)
         return identity
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_github_provider(**kwargs) -> IdentityProvider:
-        identity_provider, _ = IdentityProvider.objects.get_or_create(
-            type="github", external_id="github-app", **kwargs
+        identity_provider, _ = IdentityProvider.objects.update_or_create(
+            type="github", external_id="github-app", defaults=kwargs
         )
         return identity_provider
