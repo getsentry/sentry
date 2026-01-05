@@ -12,7 +12,7 @@ import {
 
 type ConsolePlatform = 'playstation' | 'xbox' | 'nintendo-switch';
 
-interface ConsoleSdkInviteUser {
+export interface ConsoleSdkInviteUser {
   email: string;
   platforms: ConsolePlatform[];
   user_id: string;
