@@ -9,12 +9,14 @@ import {t, tct} from 'sentry/locale';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {getLabels} from 'sentry/views/preprod/utils/labelUtils';
 
+import type {PreprodBuildsDisplay} from './preprodBuildsDisplay';
 import {PreprodBuildsSizeTable} from './preprodBuildsSizeTable';
 
 interface PreprodBuildsTableProps {
   builds: BuildDetailsApiResponse[];
   isLoading: boolean;
   organizationSlug: string;
+  display?: PreprodBuildsDisplay;
   error?: boolean;
   hasSearchQuery?: boolean;
   onRowClick?: (build: BuildDetailsApiResponse) => void;
