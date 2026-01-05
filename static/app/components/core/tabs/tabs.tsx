@@ -5,7 +5,7 @@ import type {AriaTabListOptions} from '@react-aria/tabs';
 import type {TabListState, TabListStateOptions} from '@react-stately/tabs';
 import type {Orientation} from '@react-types/shared';
 
-import type {BaseTabProps} from 'sentry/components/core/tabs/tab.chonk';
+import type {BaseTabProps} from 'sentry/components/core/tabs/tab';
 
 import {tabsShouldForwardProp} from './utils';
 
