@@ -4,6 +4,8 @@ from datetime import timedelta
 import sentry_sdk
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 
+from sentry.api.serializers.models.project import get_has_logs
+from sentry.models.project import Project
 from sentry.search.eap import constants
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
@@ -19,6 +21,10 @@ logger = logging.getLogger("sentry.snuba.ourlogs")
 
 class OurLogs(rpc_dataset_common.RPCBase):
     DEFINITIONS = OURLOG_DEFINITIONS
+
+    @classmethod
+    def filter_project(cls, project: Project) -> bool:
+        return get_has_logs(project)
 
     @classmethod
     @sentry_sdk.trace
@@ -93,6 +99,7 @@ class OurLogs(rpc_dataset_common.RPCBase):
         config: SearchResolverConfig,
         sampling_mode: SAMPLING_MODES | None,
         comparison_delta: timedelta | None = None,
+        additional_queries: AdditionalQueries | None = None,
     ) -> SnubaTSResult:
         cls.validate_granularity(params)
         search_resolver = cls.get_resolver(params, config)
@@ -104,6 +111,7 @@ class OurLogs(rpc_dataset_common.RPCBase):
             groupby=[],
             referrer=referrer,
             sampling_mode=sampling_mode,
+            additional_queries=additional_queries,
         )
 
         """Run the query"""

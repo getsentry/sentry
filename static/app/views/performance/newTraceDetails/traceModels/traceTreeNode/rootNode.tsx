@@ -1,17 +1,17 @@
+import {uuid4} from '@sentry/core';
+
 import {t} from 'sentry/locale';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
 import {BaseNode} from './baseNode';
 
 export class RootNode extends BaseNode<null> {
-  canShowDetails = false;
+  id: string = uuid4();
+  type: TraceTree.NodeType = 'root';
 
-  get type(): TraceTree.NodeType {
-    return 'root';
-  }
+  canShowDetails = false;
 
   get drawerTabsTitle(): string {
     return t('Root');
@@ -25,10 +25,6 @@ export class RootNode extends BaseNode<null> {
     return 'virtual root';
   }
 
-  pathToNode(): TraceTree.NodePath[] {
-    return [];
-  }
-
   analyticsName(): string {
     return 'root';
   }
@@ -39,11 +35,7 @@ export class RootNode extends BaseNode<null> {
     return null;
   }
 
-  matchByPath(_path: TraceTree.NodePath): boolean {
-    return false;
-  }
-
-  renderDetails<T extends TraceTreeNode<TraceTree.NodeValue>>(
+  renderDetails<T extends BaseNode>(
     _props: TraceTreeNodeDetailsProps<T>
   ): React.ReactNode {
     return null;
@@ -51,5 +43,9 @@ export class RootNode extends BaseNode<null> {
 
   matchWithFreeText(_key: string): boolean {
     return false;
+  }
+
+  resolveValueFromSearchKey(_key: string): any | null {
+    return null;
   }
 }

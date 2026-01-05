@@ -622,8 +622,8 @@ export function ProductUsageChart({
                 displayMode === 'usage'
                   ? t(`Plan Quota (%s)`, yAxisQuotaLineLabel)
                   : t('Max Spend'),
-              color: theme.chartLabel,
-              backgroundColor: theme.background,
+              color: theme.tokens.content.muted,
+              backgroundColor: theme.tokens.background.primary,
               borderRadius: 2,
               padding: 2,
               fontSize: 10,

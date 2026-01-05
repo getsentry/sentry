@@ -8,6 +8,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -111,10 +112,14 @@ describe('DetectorEdit', () => {
         '100'
       );
 
-      // Name should be auto-generated from defaults (Spans + count(span.duration))
+      // Name should be auto-generated from defaults (Errors + count())
       expect(await screen.findByTestId('editable-text-label')).toHaveTextContent(
-        'Number of spans above 100 over past 1 hour'
+        'Number of errors above 100 over past 1 hour'
       );
+
+      // Switch to spans dataset to access span aggregates
+      await userEvent.click(screen.getByText('Errors'));
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Spans'}));
 
       // Change aggregate from count() to p75(span.duration)
       await userEvent.click(screen.getByRole('button', {name: 'count'}));
@@ -200,11 +205,11 @@ describe('DetectorEdit', () => {
               },
               dataSources: [
                 {
-                  aggregate: 'count(span.duration)',
-                  dataset: 'events_analytics_platform',
-                  eventTypes: ['trace_item_span'],
-                  query: '',
-                  queryType: 1,
+                  aggregate: 'count()',
+                  dataset: 'events',
+                  eventTypes: ['default', 'error'],
+                  query: 'is:unresolved',
+                  queryType: 0,
                   timeWindow: 3600,
                   environment: null,
                 },
@@ -236,7 +241,7 @@ describe('DetectorEdit', () => {
 
       await screen.findByText('New Monitor');
 
-      await userEvent.click(screen.getByLabelText('Throughput'));
+      await userEvent.click(screen.getByTestId('template-selector'));
       await userEvent.click(
         await screen.findByRole('option', {name: 'Number of Errors'})
       );
@@ -377,16 +382,12 @@ describe('DetectorEdit', () => {
       const description = screen.getByRole('textbox', {name: 'description'});
       await userEvent.type(description, 'This is my metric monitor description');
 
-      // Pick errors dataset
-      await userEvent.click(screen.getByText('Spans'));
-      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Errors'}));
-
       await userEvent.type(
         screen.getByRole('spinbutton', {name: 'High threshold'}),
         '100'
       );
 
-      await userEvent.click(screen.getByLabelText('Add a search term'));
+      await userEvent.click(screen.getByTestId('query-builder-input'));
       await userEvent.paste(
         // Filter to a specific event type
         'event.type:error'
@@ -414,7 +415,7 @@ describe('DetectorEdit', () => {
                   environment: null,
                   // Event type has moved from the query to the eventTypes field
                   eventTypes: ['error'],
-                  query: '',
+                  query: 'is:unresolved',
                   queryType: 0,
                   timeWindow: 3600,
                 },
@@ -568,7 +569,7 @@ describe('DetectorEdit', () => {
       });
 
       // Open dataset dropdown
-      await userEvent.click(screen.getByText('Spans'));
+      await userEvent.click(screen.getByText('Errors'));
 
       // Verify transactions option is not available for new detectors
       expect(
@@ -644,11 +645,11 @@ describe('DetectorEdit', () => {
               },
               dataSources: [
                 {
-                  aggregate: 'count(span.duration)',
-                  dataset: 'events_analytics_platform',
-                  eventTypes: ['trace_item_span'],
-                  query: '',
-                  queryType: 1,
+                  aggregate: 'count()',
+                  dataset: 'events',
+                  eventTypes: ['default', 'error'],
+                  query: 'is:unresolved',
+                  queryType: 0,
                   timeWindow: 3600,
                   environment: null,
                 },
@@ -674,6 +675,10 @@ describe('DetectorEdit', () => {
       const title = await screen.findByText('New Monitor');
       await userEvent.click(title);
       await userEvent.keyboard('Apdex{enter}');
+
+      // Switch to Spans dataset to access apdex aggregate
+      await userEvent.click(screen.getByText('Errors'));
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Spans'}));
 
       // Change aggregate from count to apdex
       await userEvent.click(screen.getByRole('button', {name: 'count'}));
@@ -770,6 +775,8 @@ describe('DetectorEdit', () => {
         'https://uptime.example.com'
       );
 
+      await selectEvent.select(screen.getByLabelText('Select Environment'), 'production');
+
       await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
 
       await waitFor(() => {
@@ -782,7 +789,7 @@ describe('DetectorEdit', () => {
           data: expect.objectContaining({
             config: {
               downtimeThreshold: 3,
-              environment: null,
+              environment: 'production',
               mode: 1,
               recoveryThreshold: 1,
             },
@@ -821,6 +828,8 @@ describe('DetectorEdit', () => {
         'https://uptime-custom.example.com'
       );
 
+      await selectEvent.select(screen.getByLabelText('Select Environment'), 'production');
+
       await userEvent.clear(screen.getByRole('spinbutton', {name: 'Failure Threshold'}));
       await userEvent.type(
         screen.getByRole('spinbutton', {name: 'Failure Threshold'}),
@@ -845,7 +854,7 @@ describe('DetectorEdit', () => {
           data: expect.objectContaining({
             config: {
               downtimeThreshold: '5',
-              environment: null,
+              environment: 'production',
               mode: 1,
               recoveryThreshold: '4',
             },

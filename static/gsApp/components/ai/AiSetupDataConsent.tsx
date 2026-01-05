@@ -84,7 +84,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
   const autofixAcknowledgeMutation = useSeerAcknowledgeMutation();
 
   function handlePurchaseSeer() {
-    navigate(`/settings/billing/checkout/?referrer=ai_setup_data_consent`);
+    navigate('/checkout/?referrer=ai_setup_data_consent');
   }
 
   function handleAddBudget() {
@@ -93,7 +93,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
     }
     if (isPerCategoryOnDemand) {
       // Seer does not support per category on demand budgets, so we need to redirect to the checkout page to prompt the user to switch
-      navigate(`/settings/billing/checkout/?referrer=ai_setup_data_consent#step3`);
+      navigate('/checkout/?referrer=ai_setup_data_consent#step3');
       return;
     }
     openOnDemandBudgetEditModal({
@@ -113,7 +113,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
       <SingleCard>
         <Flex align="center" gap="md">
           <MeetSeerHeader>MEET SEER</MeetSeerHeader>
-          <IconSeer variant="waiting" color="subText" size="lg" />
+          <IconSeer animation="waiting" color="subText" size="lg" />
         </Flex>
         <Paragraph>
           {t(
@@ -288,7 +288,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
         </LegalText>
       </SingleCard>
       {warnAboutGithubIntegration && (
-        <Alert type="warning" showIcon={false}>
+        <Alert variant="warning" showIcon={false}>
           {t(
             'Seer currently works best with GitHub repositories, but support for other providers is coming soon. Either way, you can still use Seer to triage and dive into issues.'
           )}
@@ -314,9 +314,9 @@ const SingleCard = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1.5)};
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   padding: ${space(2)} ${space(2)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.border};
   margin-top: ${space(2)};
   box-shadow: ${p => p.theme.dropShadowMedium};

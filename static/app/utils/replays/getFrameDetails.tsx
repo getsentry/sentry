@@ -1,5 +1,4 @@
 import {Fragment, type ReactNode} from 'react';
-import type {Theme} from '@emotion/react';
 
 import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
@@ -61,11 +60,12 @@ import {
   isRageClick,
 } from 'sentry/utils/replays/types';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+import type {GraphicsVariant} from 'sentry/utils/theme';
 import stripURLOrigin from 'sentry/utils/url/stripURLOrigin';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 
 interface Details {
-  colorGraphicsToken: keyof Theme['tokens']['graphics'];
+  colorGraphicsToken: GraphicsVariant;
   description: ReactNode;
   icon: ReactNode;
   tabKey: TabKey;

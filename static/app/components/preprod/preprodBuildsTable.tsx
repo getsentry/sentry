@@ -2,9 +2,10 @@ import React, {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
+import Feature from 'sentry/components/acl/feature';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
+import {Container, Flex} from 'sentry/components/core/layout';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -12,7 +13,8 @@ import Pagination from 'sentry/components/pagination';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCheckmark, IconCommit} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
+import {InstallAppButton} from 'sentry/views/preprod/components/installAppButton';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
   formattedPrimaryMetricDownloadSize,
@@ -25,11 +27,11 @@ interface PreprodBuildsTableProps {
   builds: BuildDetailsApiResponse[];
   isLoading: boolean;
   organizationSlug: string;
-  projectSlug: string;
   error?: boolean;
   hasSearchQuery?: boolean;
   onRowClick?: (build: BuildDetailsApiResponse) => void;
   pageLinks?: string | null;
+  showProjectColumn?: boolean;
 }
 
 export function PreprodBuildsTable({
@@ -39,25 +41,42 @@ export function PreprodBuildsTable({
   pageLinks,
   onRowClick,
   organizationSlug,
-  projectSlug,
   hasSearchQuery,
+  showProjectColumn = false,
 }: PreprodBuildsTableProps) {
+  const hasMultiplePlatforms = useMemo(() => {
+    const platforms = new Set(builds.map(b => b.app_info?.platform).filter(Boolean));
+    return platforms.size > 1;
+  }, [builds]);
+
   const labels = useMemo(
-    () => getLabels(builds[0]?.app_info?.platform ?? undefined),
-    [builds]
+    () => getLabels(builds[0]?.app_info?.platform ?? undefined, hasMultiplePlatforms),
+    [builds, hasMultiplePlatforms]
   );
+
   const header = (
     <SimpleTable.Header>
       <SimpleTable.HeaderCell>{t('App')}</SimpleTable.HeaderCell>
+      {showProjectColumn && (
+        <SimpleTable.HeaderCell>{t('Project')}</SimpleTable.HeaderCell>
+      )}
       <SimpleTable.HeaderCell>{t('Build')}</SimpleTable.HeaderCell>
-      <SimpleTable.HeaderCell>{labels.installSizeLabel}</SimpleTable.HeaderCell>
+      <SimpleTable.HeaderCell>
+        {labels.installSizeLabelTooltip ? (
+          <Tooltip title={labels.installSizeLabelTooltip}>
+            <span>{labels.installSizeLabel}</span>
+          </Tooltip>
+        ) : (
+          labels.installSizeLabel
+        )}
+      </SimpleTable.HeaderCell>
       <SimpleTable.HeaderCell>{labels.downloadSizeLabel}</SimpleTable.HeaderCell>
       <SimpleTable.HeaderCell>{t('Created')}</SimpleTable.HeaderCell>
     </SimpleTable.Header>
   );
 
   const renderBuildRow = (build: BuildDetailsApiResponse) => {
-    const linkUrl = `/organizations/${organizationSlug}/preprod/${projectSlug}/${build.id}`;
+    const linkUrl = `/organizations/${organizationSlug}/preprod/${build.project_id}/${build.id}`;
 
     return (
       <SimpleTable.Row key={build.id}>
@@ -66,15 +85,28 @@ export function PreprodBuildsTable({
           <SimpleTable.RowCell justify="start">
             {build.app_info?.name || build.app_info?.app_id ? (
               <Flex direction="column" gap="xs">
-                <Flex align="center" gap="sm">
+                <Flex align="center" gap="2xs">
                   {build.app_info?.platform && (
                     <PlatformIcon
                       platform={getPlatformIconFromPlatform(build.app_info.platform)}
                     />
                   )}
-                  <Text size="lg" bold>
-                    {build.app_info?.name || '--'}
-                  </Text>
+                  <Container paddingLeft="xs">
+                    <Text size="lg" bold>
+                      {build.app_info?.name || '--'}
+                    </Text>
+                  </Container>
+                  <Feature features="organizations:preprod-build-distribution">
+                    {build.app_info.is_installable && (
+                      <InstallAppButton
+                        projectId={build.project_slug}
+                        artifactId={build.id}
+                        platform={build.app_info.platform ?? null}
+                        source="builds_table"
+                        variant="icon"
+                      />
+                    )}
+                  </Feature>
                 </Flex>
                 <Flex align="center" gap="xs">
                   <Text size="sm" variant="muted">
@@ -96,6 +128,12 @@ export function PreprodBuildsTable({
               </Flex>
             ) : null}
           </SimpleTable.RowCell>
+
+          {showProjectColumn && (
+            <SimpleTable.RowCell justify="start">
+              <Text>{build.project_slug}</Text>
+            </SimpleTable.RowCell>
+          )}
 
           <SimpleTable.RowCell justify="start">
             <Flex direction="column" gap="xs">
@@ -172,8 +210,14 @@ export function PreprodBuildsTable({
       <SimpleTable.Empty>
         <Text as="p">
           {hasSearchQuery
-            ? t('No builds found for your search')
-            : t('There are no preprod builds associated with this project.')}
+            ? t('No mobile builds found for your search')
+            : tct('No mobile builds found, see our [link:documentation] for more info.', {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/product/size-analysis/">
+                    {t('Learn more')}
+                  </ExternalLink>
+                ),
+              })}
         </Text>
       </SimpleTable.Empty>
     );
@@ -183,7 +227,7 @@ export function PreprodBuildsTable({
 
   return (
     <Fragment>
-      <SimpleTableWithColumns>
+      <SimpleTableWithColumns showProjectColumn={showProjectColumn}>
         {header}
         {tableContent}
       </SimpleTableWithColumns>
@@ -192,12 +236,15 @@ export function PreprodBuildsTable({
   );
 }
 
-const SimpleTableWithColumns = styled(SimpleTable)`
+const SimpleTableWithColumns = styled(SimpleTable)<{showProjectColumn?: boolean}>`
   overflow-x: auto;
   overflow-y: auto;
-  grid-template-columns:
-    minmax(250px, 2fr) minmax(250px, 2fr) minmax(100px, 1fr) minmax(100px, 1fr)
-    minmax(80px, 120px);
+  grid-template-columns: ${p =>
+    p.showProjectColumn
+      ? `minmax(250px, 2fr) minmax(120px, 1fr) minmax(250px, 2fr) minmax(100px, 1fr)
+    minmax(100px, 1fr) minmax(80px, 120px)`
+      : `minmax(250px, 2fr) minmax(250px, 2fr) minmax(100px, 1fr) minmax(100px, 1fr)
+    minmax(80px, 120px)`};
 `;
 
 const FullRowLink = styled(Link)`

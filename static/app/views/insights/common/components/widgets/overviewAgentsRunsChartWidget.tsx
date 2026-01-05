@@ -3,7 +3,7 @@ import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/compon
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {
   getAgentRunsFilter,
-  getAITracesFilter,
+  getHasAiSpansFilter,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {BaseTrafficWidget} from 'sentry/views/insights/pages/platform/shared/baseTrafficWidget';
@@ -12,7 +12,7 @@ export default function OverviewAgentsRunsChartWidget(
   props: LoadableChartWidgetProps & {hasAgentRuns?: boolean}
 ) {
   const query = useCombinedQuery(
-    props.hasAgentRuns ? getAgentRunsFilter() : getAITracesFilter()
+    props.hasAgentRuns ? getAgentRunsFilter() : getHasAiSpansFilter()
   );
 
   return (

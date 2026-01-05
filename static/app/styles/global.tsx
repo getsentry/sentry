@@ -17,7 +17,7 @@ const prismStyles = (theme: Theme) => css`
   pre[class*='language-'] {
     overflow-x: auto;
     padding: ${space(1)} ${space(2)};
-    border-radius: ${theme.borderRadius};
+    border-radius: ${theme.radius.md};
     box-shadow: none;
 
     code {
@@ -237,12 +237,12 @@ const styles = (theme: Theme, isDark: boolean) => css`
     ? css`
         .box,
         .box.box-modal {
-          background: ${theme.background};
+          background: ${theme.tokens.background.primary};
           border-color: ${theme.border};
 
           .box-content,
           .box-header {
-            background: ${theme.background};
+            background: ${theme.tokens.background.primary};
 
             h1,
             h2,
@@ -268,7 +268,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
         }
         .loading .loading-indicator {
           border-color: ${theme.backgroundSecondary};
-          border-left-color: ${theme.purple300};
+          border-left-color: ${theme.colors.blue400};
         }
 
         .pattern-bg {
@@ -307,7 +307,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
                 &.collapsed {
                   .title {
                     border-color: ${theme.border};
-                    background: ${theme.background};
+                    background: ${theme.tokens.background.primary};
                   }
                 }
               }
@@ -319,7 +319,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
             border-top-color: ${theme.border};
 
             &.is-expandable .title:hover {
-              background-color: ${theme.background};
+              background-color: ${theme.tokens.background.primary};
             }
             .btn-toggle {
               color: ${theme.tokens.content.primary};
@@ -332,7 +332,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
               background-color: ${theme.backgroundSecondary};
             }
             .context {
-              background: ${theme.background};
+              background: ${theme.tokens.background.primary};
 
               table.key-value {
                 border-color: ${theme.border};
@@ -347,7 +347,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
           color: ${theme.subText};
         }
         .event-details-container {
-          background-color: ${theme.background};
+          background-color: ${theme.tokens.background.primary};
           .secondary {
             border-left-color: ${theme.border};
           }
@@ -359,7 +359,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
 
         /* Global Selection header date picker */
         .rdrCalendarWrapper {
-          background: ${theme.background};
+          background: ${theme.tokens.background.primary};
           color: ${theme.tokens.content.primary};
         }
         .rdrDayDisabled {
@@ -370,20 +370,20 @@ const styles = (theme: Theme, isDark: boolean) => css`
           color: ${theme.tokens.content.primary};
         }
         .dropdown-menu {
+          background-color: ${theme.tokens.background.primary} !important;
           color: ${theme.tokens.content.primary};
-          background-color: ${theme.background} !important;
           border: 1px solid ${theme.border};
           &:before {
             border-bottom-color: ${theme.border};
           }
           &:after {
-            border-bottom-color: ${theme.background};
+            border-bottom-color: ${theme.tokens.background.primary};
           }
           &.inverted:before {
             border-top-color: ${theme.border};
           }
           &.inverted:after {
-            border-top-color: ${theme.background};
+            border-top-color: ${theme.tokens.background.primary};
           }
         }
       `

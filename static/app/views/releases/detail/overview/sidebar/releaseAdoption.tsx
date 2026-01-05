@@ -1,6 +1,8 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import type {LineChartProps} from 'sentry/components/charts/lineChart';
@@ -141,7 +143,7 @@ function ReleaseAdoption({
     max: 100,
     axisLabel: {
       formatter: (value: number) => `${value}%`,
-      color: theme.chartLabel,
+      color: theme.tokens.content.muted,
     },
   };
 
@@ -250,16 +252,18 @@ function ReleaseAdoption({
             {adoptionStageLabel && !multipleEnvironments ? (
               <div>
                 <Tooltip title={adoptionStageLabel.tooltipTitle} isHoverable>
-                  <Tag type={adoptionStageLabel.type}>{adoptionStageLabel.name}</Tag>
+                  <Tag variant={adoptionStageLabel.variant}>
+                    {adoptionStageLabel.name}
+                  </Tag>
                 </Tooltip>
                 <AdoptionEnvironment>
                   {tct(`in [environment]`, {environment})}
                 </AdoptionEnvironment>
               </div>
             ) : (
-              <NotAvailableWrapper>
+              <Flex align="center">
                 <NotAvailable />
-              </NotAvailableWrapper>
+              </Flex>
             )}
           </SidebarSection.Content>
         </SidebarSection.Wrap>
@@ -333,11 +337,6 @@ function ReleaseAdoption({
     </div>
   );
 }
-
-const NotAvailableWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-`;
 
 const ChartLabel = styled('div')<{top: string}>`
   position: absolute;

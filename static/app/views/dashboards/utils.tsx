@@ -1,9 +1,8 @@
 import {connect} from 'echarts';
-import type {Location, Query} from 'history';
+import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
-import pick from 'lodash/pick';
 import trimStart from 'lodash/trimStart';
 import * as qs from 'query-string';
 
@@ -28,7 +27,6 @@ import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {
   getAggregateAlias,
   getAggregateArg,
-  getColumnsAndAggregates,
   isEquation,
   isMeasurement,
   RATE_UNIT_MULTIPLIERS,
@@ -42,7 +40,7 @@ import {
 } from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
-import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {decodeList} from 'sentry/utils/queryString';
 import type {
   DashboardDetails,
   DashboardFilters,
@@ -129,51 +127,6 @@ export function normalizeUnit(value: number, unit: string, dataType: string): nu
           DURATION_UNITS[unit]
         : 1;
   return value * multiplier;
-}
-
-function coerceStringToArray(value?: string | string[] | null) {
-  return typeof value === 'string' ? [value] : value;
-}
-
-export function constructWidgetFromQuery(query?: Query): Widget | undefined {
-  if (query) {
-    const queryNames = coerceStringToArray(query.queryNames);
-    const queryConditions = coerceStringToArray(query.queryConditions);
-    const queryFields = coerceStringToArray(query.queryFields);
-    const widgetType = decodeScalar(query.widgetType);
-    const queries: WidgetQuery[] = [];
-    if (
-      queryConditions &&
-      queryNames &&
-      queryFields &&
-      typeof query.queryOrderby === 'string'
-    ) {
-      const {columns, aggregates} = getColumnsAndAggregates(queryFields);
-      queryConditions.forEach((condition, index) => {
-        queries.push({
-          name: queryNames[index]!,
-          conditions: condition,
-          fields: queryFields,
-          columns,
-          aggregates,
-          orderby: query.queryOrderby as string,
-        });
-      });
-    }
-    if (query.title && query.displayType && query.interval && queries.length > 0) {
-      const newWidget: Widget = {
-        ...(pick(query, ['title', 'displayType', 'interval']) as {
-          displayType: DisplayType;
-          interval: string;
-          title: string;
-        }),
-        widgetType: widgetType ? (widgetType as WidgetType) : WidgetType.DISCOVER,
-        queries,
-      };
-      return newWidget;
-    }
-  }
-  return undefined;
 }
 
 export function getWidgetInterval(
@@ -673,7 +626,10 @@ export const isChartDisplayType = (displayType?: DisplayType) => {
   if (!displayType) {
     return true;
   }
-  return ![DisplayType.BIG_NUMBER, DisplayType.TABLE, DisplayType.DETAILS].includes(
-    displayType
-  );
+  return ![
+    DisplayType.BIG_NUMBER,
+    DisplayType.TABLE,
+    DisplayType.DETAILS,
+    DisplayType.WHEEL,
+  ].includes(displayType);
 };

@@ -143,7 +143,7 @@ const Label = styled('label')`
 `;
 
 const StyledRadio = styled(Radio)`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const CardDetails = styled('div')`

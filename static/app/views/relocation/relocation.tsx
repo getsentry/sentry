@@ -12,11 +12,10 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import testableTransition from 'sentry/utils/testableTransition';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
@@ -28,12 +27,6 @@ import {InProgress} from './inProgress';
 import {PublicKey} from './publicKey';
 import type {MaybeUpdateRelocationState, RelocationState, StepDescriptor} from './types';
 import {UploadBackup} from './uploadBackup';
-
-type RouteParams = {
-  step: string;
-};
-
-type Props = RouteComponentProps<RouteParams>;
 
 function getRelocationOnboardingSteps(): StepDescriptor[] {
   return [
@@ -76,7 +69,8 @@ enum LoadingState {
   ERROR = 2,
 }
 
-function RelocationOnboarding(props: Props) {
+export default function RelocationOnboarding() {
+  const navigate = useNavigate();
   const {step: stepId} = useParams<{step: string}>();
   const onboardingSteps = getRelocationOnboardingSteps();
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
@@ -125,20 +119,20 @@ function RelocationOnboarding(props: Props) {
         // progress of that relocation instead, since they can only have one relocation in flight at
         // a time.
         if (existingRelocationUUID !== '' && stepId !== 'in-progress') {
-          browserHistory.push('/relocation/in-progress/');
+          navigate('/relocation/in-progress/');
         }
 
         // The user does not have a relocation in-flight, but tried to view the in progress screen.
         // Since we have nothing to show them, take them back to the start of the flow.
         if (existingRelocationUUID === '' && stepId === 'in-progress') {
-          browserHistory.push('/relocation/get-started/');
+          navigate('/relocation/get-started/');
         }
 
         // The user tried to view a later step, but at least one bit of required data was missing in
         // their local storage. Take them back to the first screen.
         const {orgSlugs, regionUrl} = relocationState;
         if (stepId !== 'get-started' && (!orgSlugs || !regionUrl)) {
-          browserHistory.push('/relocation/get-started/');
+          navigate('/relocation/get-started/');
         }
 
         setExistingRelocation(existingRelocationUUID);
@@ -148,7 +142,7 @@ function RelocationOnboarding(props: Props) {
         setExistingRelocation('');
         setExistingRelocationState(LoadingState.ERROR);
       });
-  }, [api, regions, relocationState, stepId]);
+  }, [api, navigate, regions, relocationState, stepId]);
   useEffect(() => {
     fetchExistingRelocation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -193,7 +187,7 @@ function RelocationOnboarding(props: Props) {
     if (!stepObj) {
       return;
     }
-    props.router.push(normalizeUrl(`/relocation/${step.id}/`));
+    navigate(normalizeUrl(`/relocation/${step.id}/`));
   };
 
   const goNextStep = useCallback(
@@ -201,9 +195,9 @@ function RelocationOnboarding(props: Props) {
       const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
       const nextStep = onboardingSteps[currentStepIndex + 1]!;
 
-      props.router.push(normalizeUrl(`/relocation/${nextStep.id}/`));
+      navigate(normalizeUrl(`/relocation/${nextStep.id}/`));
     },
-    [onboardingSteps, props.router]
+    [onboardingSteps, navigate]
   );
 
   if (!stepObj || stepIndex === -1) {
@@ -291,9 +285,6 @@ function RelocationOnboarding(props: Props) {
             }}
             publicKeys={publicKeys}
             relocationState={relocationState}
-            route={props.route}
-            router={props.router}
-            location={props.location}
           />
         )}
       </OnboardingStep>
@@ -351,7 +342,7 @@ const Container = styled('div')`
 `;
 
 const Header = styled('header')`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   padding-left: ${space(4)};
   padding-right: ${space(4)};
   position: sticky;
@@ -417,5 +408,3 @@ const OnboardingWrapper = styled('main')`
   display: flex;
   flex-direction: column;
 `;
-
-export default RelocationOnboarding;

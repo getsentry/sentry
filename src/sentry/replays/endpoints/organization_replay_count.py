@@ -21,6 +21,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
+from sentry.replays.permissions import has_replay_permission
 from sentry.replays.usecases.replay_counts import get_replay_counts
 from sentry.snuba.dataset import Dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -84,6 +85,8 @@ class OrganizationReplayCountEndpoint(OrganizationEventsEndpointBase):
         """
         if not features.has("organizations:session-replay", organization, actor=request.user):
             return Response(status=404)
+        if not has_replay_permission(request, organization):
+            return Response(status=403)
 
         try:
             snuba_params = self.get_snuba_params(request, organization)

@@ -208,6 +208,22 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data == expected_matches
 
+    def test_idor_project_from_different_org(self) -> None:
+        """Regression test: Cannot access projects from other organizations (IDOR)."""
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        config_data = {
+            "projectId": other_project.id,
+            "stackRoot": "/stack/root",
+            "sourceRoot": "/source/root",
+            "defaultBranch": "master",
+            "repoName": "getsentry/codemap",
+        }
+        response = self.client.post(self.url, data=config_data, format="json")
+        # Should return 404 (not found), not 403 (forbidden) to prevent ID enumeration
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.data == {"text": "Could not find project"}
+
     def test_non_project_member_permissions(self) -> None:
         config_data = {
             "projectId": self.project.id,

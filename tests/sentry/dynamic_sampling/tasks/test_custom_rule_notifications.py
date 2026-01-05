@@ -129,8 +129,10 @@ class CustomRuleNotificationsTest(TestCase, SnubaTestCase):
         expired_rule.refresh_from_db()
         assert not expired_rule.is_active
 
-    @override_options({"notifications.platform-rate.custom-rule-samples-fulfilled": 1.0})
-    @with_feature("organizations:notification-platform")
+    @override_options(
+        {"notifications.platform-rollout.internal-testing": {"custom-rule-samples-fulfilled": 1.0}}
+    )
+    @with_feature("organizations:notification-platform.internal-testing")
     def test_custom_rule_samples_with_notification_platform(self) -> None:
         self._generate_samples(MIN_SAMPLES_FOR_NOTIFICATION)
 

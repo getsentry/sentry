@@ -65,7 +65,7 @@ function PartnerPlanEndingBanner({
         <PartnerPlanEndingText>
           <PartnerPlanEndingBannerTitle>
             {t('Your current promotional plan is ending')}
-            <DaysLeftTag type="error" icon={<IconClock size="xs" />}>
+            <DaysLeftTag variant="danger" icon={<IconClock size="xs" />}>
               {tn('%s day left', '%s days left', daysLeft)}
             </DaysLeftTag>
           </PartnerPlanEndingBannerTitle>
@@ -81,7 +81,7 @@ function PartnerPlanEndingBanner({
             analyticsEventName="Partner Plan Ending Banner: Manage Subscription"
             size="md"
             onClick={() => handleAnalytics()}
-            to={`/settings/${organization.slug}/billing/checkout/?referrer=partner_plan_ending_banner`}
+            to={`/checkout/${organization.slug}/?referrer=partner_plan_ending_banner`}
           >
             {t('Upgrade to %s', planToUpgradeTo)}
           </LinkButton>
@@ -117,7 +117,7 @@ const IllustrationContainer = styled('img')`
 
   @media (min-width: ${p => p.theme.breakpoints.xl}) {
     display: block;
-    border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+    border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
     pointer-events: none;
     flex-grow: 1;
   }

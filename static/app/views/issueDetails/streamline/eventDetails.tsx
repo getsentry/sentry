@@ -73,9 +73,9 @@ function StickyEventNav({event, group}: {event: Event; group: Group}) {
 
 const FloatingEventNavigation = styled(EventTitle)`
   position: sticky;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   z-index: ${p => p.theme.zIndex.header};
-  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+  border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
 
   &[data-stuck='true'] {
     border-radius: 0;
@@ -84,9 +84,9 @@ const FloatingEventNavigation = styled(EventTitle)`
 
 const GroupContent = styled('div')`
   position: relative;
-  border: 1px solid ${p => p.theme.translucentBorder};
-  background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  background: ${p => p.theme.tokens.background.primary};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const ContentPadding = styled('div')`

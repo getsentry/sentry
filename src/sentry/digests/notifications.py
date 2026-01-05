@@ -291,8 +291,6 @@ def build_digest(project: Project, records: Sequence[Record]) -> DigestInfo:
 
     for group_id, g in groups.items():
         assert g.project_id == project.id, "Group must belong to Project"
-    for rule_id, rule in rules.items():
-        assert rule.project_id == project.id, "Rule must belong to Project"
 
     tenant_ids = {"organization_id": project.organization_id}
     event_counts = tsdb.backend.get_timeseries_sums(

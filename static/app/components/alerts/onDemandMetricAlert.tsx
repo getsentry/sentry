@@ -5,6 +5,7 @@ import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconClose, IconWarning} from 'sentry/icons';
+import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import type {Color} from 'sentry/utils/theme';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
@@ -55,7 +56,7 @@ export function OnDemandMetricAlert({
 
   return (
     <Alert.Container>
-      <InfoAlert type="info">
+      <InfoAlert variant="info">
         {message}
         {dismissable && (
           <Button
@@ -86,7 +87,7 @@ const InfoAlert = styled(Alert)`
 `;
 
 const HoverableIconWarning = styled(IconWarning)`
-  min-width: ${p => p.theme.iconSizes.sm};
+  min-width: ${() => SvgIcon.ICON_SIZES.sm};
   &:hover {
     cursor: pointer;
   }

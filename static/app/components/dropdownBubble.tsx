@@ -44,7 +44,7 @@ const getMenuBorderRadius = ({
   width,
   theme,
 }: DropdownBubbleProps & {theme: Theme}) => {
-  const radius = theme.borderRadius;
+  const radius = theme.radius.md;
   if (!blendCorner || detached) {
     return css`
       border-radius: ${radius};
@@ -72,7 +72,7 @@ const DropdownBubble = styled(
   ),
   {shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop)}
 )`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   color: ${p => p.theme.tokens.content.primary};
   border: 1px solid ${p => p.theme.border};
   position: absolute;

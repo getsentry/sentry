@@ -210,8 +210,8 @@ export const BILLED_DATA_CATEGORY_INFO = {
   [DataCategoryExact.SEER_USER]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SEER_USER],
     feature: 'seer-user-billing',
-    canProductTrial: true,
-    maxAdminGift: 10_000, // TODO(seer): Update this to the actual max admin gift
+    canProductTrial: false,
+    maxAdminGift: 100,
     freeEventsMultiple: 1,
     tallyType: 'seat',
     shortenedUnitName: t('contributor'),

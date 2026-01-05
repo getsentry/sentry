@@ -371,7 +371,7 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
             self.base_artifact.id,
             status_code=403,
         )
-        assert response.data["error"] == "Feature not enabled"
+        assert response.data["detail"] == "Feature not enabled"
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
     def test_get_comparison_multiple_metrics(self):
@@ -639,7 +639,10 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         response = self.client.post(self._get_url())
 
         assert response.status_code == 400
-        assert "Head and base size metrics cannot be compared" in response.json()["detail"]
+        detail = response.json()["detail"]
+        assert "Head and base have different numbers of size metrics" in detail
+        assert "Head has 2 metric(s)" in detail
+        assert "base has 1 metric(s)" in detail
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
     @patch("sentry.preprod.size_analysis.tasks.manual_size_analysis_comparison.apply_async")
@@ -700,7 +703,7 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
     def test_post_comparison_no_matching_base_metric(self):
-        """Test POST endpoint returns 400 when head and base metrics cannot be compared"""
+        """Test POST endpoint returns 400 when head has more metrics than base"""
         # Create head metric with different identifier that won't match base
         self.create_preprod_artifact_size_metrics(
             self.head_artifact,
@@ -713,7 +716,40 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         response = self.client.post(self._get_url())
 
         assert response.status_code == 400
-        assert "Head and base size metrics cannot be compared" in response.json()["detail"]
+        detail = response.json()["detail"]
+        # This test creates 2 head metrics vs 1 base metric, so it hits the length check
+        assert "Head and base have different numbers of size metrics" in detail
+        assert "Head has 2 metric(s)" in detail
+        assert "base has 1 metric(s)" in detail
+
+    @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
+    def test_post_comparison_mismatched_metric_types(self):
+        """Test POST endpoint returns detailed error when comparing mismatched metric types/identifiers"""
+        # Replace the default head metric with one that has a different identifier
+        self.head_size_metric.delete()
+        self.head_size_metric = self.create_preprod_artifact_size_metrics(
+            self.head_artifact,
+            analysis_file_id=self.head_analysis_file.id,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="release",
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            max_install_size=1000,
+            max_download_size=500,
+        )
+
+        # Base has identifier "main", head has identifier "release" - same count but mismatched
+        response = self.client.post(self._get_url())
+
+        assert response.status_code == 400
+        detail = response.json()["detail"]
+        # Should get detailed error about mismatched metrics
+        assert "Head and base size metrics cannot be compared due to mismatched metrics" in detail
+        # Should mention both the head-only and base-only metrics
+        assert (
+            "Head has metric(s) not in base" in detail or "Base has metric(s) not in head" in detail
+        )
+        # Should mention the identifiers involved
+        assert "release" in detail.lower() or "main" in detail.lower()
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
     def test_post_comparison_different_build_configurations(self):
@@ -734,4 +770,4 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
             method="post",
             status_code=400,
         )
-        assert response.data["error"] == "Head and base build configurations must be the same."
+        assert response.data["detail"] == "Head and base build configurations must be the same."

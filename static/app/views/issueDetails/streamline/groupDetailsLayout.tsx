@@ -7,8 +7,6 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {DemoTourStep, SharedTourElement} from 'sentry/utils/demoMode/demoTours';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {chonkStyled} from 'sentry/utils/theme/theme';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import {
   IssueDetailsTour,
   IssueDetailsTourContext,
@@ -102,7 +100,7 @@ const StyledLayoutBody = styled('div')<{
   sidebarOpen: boolean;
 }>`
   display: grid;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   grid-template-columns: ${p => (p.sidebarOpen ? 'minmax(100px, 100%) 325px' : '100%')};
 
   @media (max-width: ${p => p.theme.breakpoints.lg}) {
@@ -117,36 +115,24 @@ const GroupContent = styled('section')`
   display: flex;
   flex-direction: column;
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    border-right: 1px solid ${p => p.theme.translucentBorder};
+    border-right: 1px solid ${p => p.theme.tokens.border.primary};
   }
   @media (max-width: ${p => p.theme.breakpoints.lg}) {
-    border-bottom-width: 1px solid ${p => p.theme.translucentBorder};
+    border-bottom-width: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
-const NavigationSidebarWrapper = withChonk(
-  styled('div')<{
-    hasToggleSidebar: boolean;
-  }>`
-    position: relative;
-    display: flex;
-    padding: ${p =>
-      p.hasToggleSidebar
-        ? `${p.theme.space.md} 0 ${p.theme.space.sm} ${p.theme.space['2xl']}`
-        : `${p.theme.space.sm} ${p.theme.space['2xl']} ${p.theme.space.xs} ${p.theme.space['2xl']}`};
-  `,
-  chonkStyled('div')<{
-    hasToggleSidebar: boolean;
-  }>`
-    position: relative;
-    display: flex;
-    gap: ${space(0.5)};
-    padding: ${p =>
-      p.hasToggleSidebar
-        ? `${p.theme.space.md} 0 ${p.theme.space.sm} ${p.theme.space['2xl']}`
-        : `${p.theme.space.sm} ${p.theme.space['2xl']} ${p.theme.space.xs} ${p.theme.space['2xl']}`};
-  `
-);
+const NavigationSidebarWrapper = styled('div')<{
+  hasToggleSidebar: boolean;
+}>`
+  position: relative;
+  display: flex;
+  gap: ${space(0.5)};
+  padding: ${p =>
+    p.hasToggleSidebar
+      ? `${p.theme.space.md} 0 ${p.theme.space.sm} ${p.theme.space['2xl']}`
+      : `${p.theme.space.sm} ${p.theme.space['2xl']} ${p.theme.space.xs} ${p.theme.space['2xl']}`};
+`;
 
 const ContentPadding = styled('div')`
   min-height: 100vh;

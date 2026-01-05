@@ -57,7 +57,7 @@ const MeterBarContainer = styled('div')<{clickable?: boolean}>`
 
 const MeterBarBody = styled('div')`
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+  border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
   border-bottom: none;
   padding: ${space(1)} 0 ${space(0.5)} 0;
 `;
@@ -98,7 +98,7 @@ const MeterBarFooterContainer = styled('div')<{
   status: PerformanceScore;
 }>`
   color: ${p => makePerformanceScoreColors(p.theme)[p.status].normal};
-  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+  border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   background-color: ${p =>
     p.status === 'none' ? 'none' : makePerformanceScoreColors(p.theme)[p.status].light};
   border: solid 1px ${p => makePerformanceScoreColors(p.theme)[p.status].border};

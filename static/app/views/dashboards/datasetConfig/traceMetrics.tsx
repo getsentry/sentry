@@ -1,12 +1,18 @@
+import type {ReactNode} from 'react';
 import pickBy from 'lodash/pickBy';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {ApiResult, Client} from 'sentry/api';
-import type {PageFilters, SelectValue} from 'sentry/types/core';
+import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import toArray from 'sentry/utils/array/toArray';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {parseFunction, type QueryFieldValue} from 'sentry/utils/discover/fields';
+import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
+import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
@@ -21,21 +27,25 @@ import {
 import {
   getTableSortOptions,
   getTimeseriesSortOptions,
+  transformEventsResponseToTable,
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {useHasTraceMetricsDashboards} from 'sentry/views/dashboards/hooks/useHasTraceMetricsDashboards';
 import {DisplayType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
+import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {
   TraceItemSearchQueryBuilder,
-  useSearchQueryBuilderProps,
+  useTraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceItemAttributesWithConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
+import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 // This is a placeholder that currently signals that no metric is selected
@@ -72,21 +82,26 @@ function TraceMetricsSearchBar({
   const hasTraceMetricsDashboards = useHasTraceMetricsDashboards();
   const {state: widgetBuilderState} = useWidgetBuilderContext();
 
-  // TODO: Make decision on how filtering works with multiple trace metrics
-  // We should probably limit it to only one metric for now because there's no way
-  // to filter by multiple metrics at the same time, unless the filter _ONLY_ includes
-  // tags for both metrics.
-  const traceMetric = widgetBuilderState.traceMetrics?.[0];
+  const traceMetric = widgetBuilderState.traceMetric ?? {name: '', type: ''};
 
   const traceItemAttributeConfig = {
     traceItemType: TraceItemDataset.TRACEMETRICS,
     enabled: hasTraceMetricsDashboards,
+    query: createTraceMetricFilter(traceMetric),
   };
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'string');
+    useTraceItemAttributesWithConfig(
+      traceItemAttributeConfig,
+      'string',
+      HiddenTraceMetricSearchFields
+    );
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number');
+    useTraceItemAttributesWithConfig(
+      traceItemAttributeConfig,
+      'number',
+      HiddenTraceMetricSearchFields
+    );
 
   return (
     <TraceItemSearchQueryBuilder
@@ -113,10 +128,14 @@ function useTraceMetricsSearchBarDataProvider(
 ): SearchBarData {
   const {pageFilters, widgetQuery} = props;
   const hasTraceMetricsDashboards = useHasTraceMetricsDashboards();
+  const {state: widgetBuilderState} = useWidgetBuilderContext();
+
+  const traceMetric = widgetBuilderState.traceMetric ?? {name: '', type: ''};
 
   const traceItemAttributeConfig = {
     traceItemType: TraceItemDataset.TRACEMETRICS,
     enabled: hasTraceMetricsDashboards,
+    query: createTraceMetricFilter(traceMetric),
   };
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
@@ -124,16 +143,17 @@ function useTraceMetricsSearchBarDataProvider(
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number');
 
-  const {filterKeys, filterKeySections, getTagValues} = useSearchQueryBuilderProps({
-    itemType: TraceItemDataset.TRACEMETRICS,
-    numberAttributes,
-    stringAttributes,
-    numberSecondaryAliases,
-    stringSecondaryAliases,
-    searchSource: 'dashboards',
-    initialQuery: widgetQuery?.conditions ?? '',
-    projects: pageFilters.projects,
-  });
+  const {filterKeys, filterKeySections, getTagValues} =
+    useTraceItemSearchQueryBuilderProps({
+      itemType: TraceItemDataset.TRACEMETRICS,
+      numberAttributes,
+      stringAttributes,
+      numberSecondaryAliases,
+      stringSecondaryAliases,
+      searchSource: 'dashboards',
+      initialQuery: widgetQuery?.conditions ?? '',
+      projects: pageFilters.projects,
+    });
 
   return {
     getFilterKeySections: () => filterKeySections,
@@ -142,15 +162,21 @@ function useTraceMetricsSearchBarDataProvider(
   };
 }
 
-function prettifySortOption(option: SelectValue<string>) {
-  const parsedFunction = parseFunction(option.value);
+export function formatTraceMetricsFunction(
+  valueToParse: string,
+  defaultValue: string | ReactNode = ''
+) {
+  const parsedFunction = parseFunction(valueToParse);
   if (parsedFunction) {
     return `${parsedFunction.name}(${parsedFunction.arguments[1] ?? '…'})`;
   }
-  return option.label;
+  return defaultValue;
 }
 
-export const TraceMetricsConfig: DatasetConfig<EventsTimeSeriesResponse, never> = {
+export const TraceMetricsConfig: DatasetConfig<
+  EventsTimeSeriesResponse,
+  EventsTableData
+> = {
   defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: false,
@@ -164,13 +190,44 @@ export const TraceMetricsConfig: DatasetConfig<EventsTimeSeriesResponse, never> 
   // we only want to allow sorting by selected aggregates.
   getTableSortOptions: (organization, widgetQuery) =>
     getTableSortOptions(organization, widgetQuery).map(option => ({
-      label: prettifySortOption(option),
+      label: formatTraceMetricsFunction(option.value, option.label),
       value: option.value,
     })),
   getGroupByFieldOptions,
-  supportedDisplayTypes: [DisplayType.AREA, DisplayType.BAR, DisplayType.LINE],
+  supportedDisplayTypes: [
+    DisplayType.AREA,
+    DisplayType.BAR,
+    DisplayType.LINE,
+    DisplayType.BIG_NUMBER,
+  ],
+  getTableRequest: (
+    api: Client,
+    _widget: Widget,
+    query: WidgetQuery,
+    organization: Organization,
+    pageFilters: PageFilters,
+    _onDemandControlContext?: OnDemandControlContext,
+    limit?: number,
+    cursor?: string,
+    referrer?: string,
+    _mepSetting?: MEPState | null,
+    samplingMode?: SamplingMode
+  ) => {
+    return getEventsRequest(
+      api,
+      query,
+      organization,
+      pageFilters,
+      limit,
+      cursor,
+      referrer,
+      undefined,
+      undefined,
+      samplingMode
+    );
+  },
   getSeriesRequest,
-  transformTable: () => ({data: []}),
+  transformTable: transformEventsResponseToTable,
   transformSeries: (data, _widgetQuery) =>
     data.timeSeries.map(timeSeries => {
       const func = parseFunction(timeSeries.yAxis);
@@ -179,12 +236,15 @@ export const TraceMetricsConfig: DatasetConfig<EventsTimeSeriesResponse, never> 
       }
       return {
         data: timeSeries.values.map(value => ({
-          name: value.timestamp / 1000, // Account for microseconds to milliseconds precision
+          name: value.timestamp,
           value: value.value ?? 0,
         })),
         seriesName: formatTimeSeriesLabel(timeSeries),
       };
     }),
+  getCustomFieldRenderer: (field, meta, _organization) => {
+    return getFieldRenderer(field, meta, false);
+  },
 };
 
 function getPrimaryFieldOptions(
@@ -250,6 +310,9 @@ function getSeriesRequest(
     };
   }
 
+  // The events-timeseries response errors on duplicate yAxis values, so we need to remove them
+  requestData.yAxis = [...new Set(requestData.yAxis)];
+
   if (samplingMode) {
     requestData.sampling = samplingMode;
   }
@@ -257,6 +320,56 @@ function getSeriesRequest(
   return doEventsRequest<true>(api, requestData) as unknown as Promise<
     ApiResult<EventsTimeSeriesResponse>
   >;
+}
+
+function getEventsRequest(
+  api: Client,
+  query: WidgetQuery,
+  organization: Organization,
+  pageFilters: PageFilters,
+  limit?: number,
+  cursor?: string,
+  referrer?: string,
+  _mepSetting?: MEPState | null,
+  _queryExtras?: any,
+  samplingMode?: SamplingMode
+) {
+  const url = `/organizations/${organization.slug}/events/`;
+  const eventView = eventViewFromWidget('', query, pageFilters);
+  const hasQueueFeature = organization.features.includes(
+    'visibility-dashboards-async-queue'
+  );
+
+  const params: DiscoverQueryRequestParams = {
+    per_page: limit,
+    cursor,
+    referrer,
+    dataset: DiscoverDatasets.TRACEMETRICS,
+  };
+
+  if (query.orderby) {
+    params.sort = toArray(query.orderby);
+  }
+
+  return doDiscoverQuery<EventsTableData>(
+    api,
+    url,
+    {
+      ...eventView.generateQueryStringObject(),
+      ...params,
+      ...(samplingMode ? {sampling: samplingMode} : {}),
+    },
+    // Tries events request up to 10 times on rate limit
+    {
+      retry: hasQueueFeature
+        ? // The queue will handle retries, so we don't need to retry here
+          undefined
+        : {
+            statusCodes: [429],
+            tries: 10,
+          },
+    }
+  );
 }
 
 function filterSeriesSortOptions(columns: Set<string>) {

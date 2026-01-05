@@ -50,7 +50,6 @@ runs:
         ### pytest configuration ###
         echo "PY_COLORS=1" >> "$GITHUB_ENV"
         echo "PYTEST_ADDOPTS=--reruns=5 --durations=10 --fail-slow=60s" >> $GITHUB_ENV
-        echo "COVERAGE_CORE=sysmon" >> "$GITHUB_ENV"
 
         ### pytest-sentry configuration ###
         if [ "$GITHUB_REPOSITORY" = "getsentry/sentry" ]; then
@@ -80,6 +79,15 @@ runs:
           echo "TEST_GROUP=$MATRIX_INSTANCE" >> $GITHUB_ENV
           echo "TOTAL_TEST_GROUPS=$MATRIX_INSTANCE_TOTAL" >> $GITHUB_ENV
         fi
+
+    - name: Clear Python cache
+      shell: bash --noprofile --norc -eo pipefail -ux {0}
+      env:
+        WORKDIR: ${{ inputs.workdir }}
+      run: |
+        cd "$WORKDIR"
+        find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+        find . -type f -name "*.pyc" -delete 2>/dev/null || true
 
     - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
       with:

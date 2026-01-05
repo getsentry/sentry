@@ -32,12 +32,15 @@ function ConditionsPanel({triggers, actionFilters}: ConditionsPanelProps) {
     <Panel>
       <ConditionGroupWrapper>
         <ConditionGroupHeader>
-          {tct('[when:When] [logicType] of the following occur', {
-            when: <ConditionBadge />,
-            logicType:
-              TRIGGER_MATCH_OPTIONS.find(choice => choice.value === triggers?.logicType)
-                ?.label || t('any'),
-          })}
+          {tct(
+            '[when:When] an issue event is captured and [logicType] of the following occur',
+            {
+              when: <ConditionBadge />,
+              logicType:
+                TRIGGER_MATCH_OPTIONS.find(choice => choice.value === triggers?.logicType)
+                  ?.label || t('any'),
+            }
+          )}
         </ConditionGroupHeader>
         {triggers?.conditions?.map((trigger, index) => (
           <div key={index}>
@@ -163,7 +166,7 @@ const Panel = styled('div')`
   gap: ${p => p.theme.space.lg};
   background-color: ${p => p.theme.backgroundSecondary};
   border: 1px solid ${p => p.theme.translucentBorder};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space.lg};
   word-break: break-word;
 `;

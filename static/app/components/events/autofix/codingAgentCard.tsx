@@ -33,12 +33,12 @@ interface CodingAgentCardProps {
 }
 
 function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
-  const getTagType = (status: CodingAgentStatus): TagProps['type'] => {
+  const getTagVariant = (status: CodingAgentStatus): TagProps['variant'] => {
     switch (status) {
       case CodingAgentStatus.COMPLETED:
         return 'success';
       case CodingAgentStatus.FAILED:
-        return 'error';
+        return 'danger';
       case CodingAgentStatus.PENDING:
       case CodingAgentStatus.RUNNING:
       default:
@@ -101,7 +101,7 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                   <CardHeader>
                     <AgentTitle>{codingAgentState.name}</AgentTitle>
                     <div>
-                      <Tag type={getTagType(codingAgentState.status)}>
+                      <Tag variant={getTagVariant(codingAgentState.status)}>
                         {getStatusText(codingAgentState.status)}
                       </Tag>
                     </div>
@@ -228,12 +228,12 @@ const ContentWrapper = styled(motion.div)`
 
 const StyledCard = styled('div')`
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   box-shadow: ${p => p.theme.dropShadowMedium};
   padding-left: ${p => p.theme.space.xl};
   padding-right: ${p => p.theme.space.xl};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const HeaderWrapper = styled('div')`

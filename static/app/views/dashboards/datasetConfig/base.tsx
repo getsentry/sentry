@@ -13,6 +13,7 @@ import type {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {isEquation} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {FieldKind} from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import type {
@@ -53,10 +54,15 @@ export type SearchBarDataProviderProps = {
   widgetQuery?: WidgetQuery;
 };
 
+export type GetTagValues = (
+  tag: Pick<Tag, 'key' | 'name'> & {kind: FieldKind | undefined},
+  searchQuery: string
+) => Promise<string[]>;
+
 export interface SearchBarData {
   getFilterKeySections: () => FilterKeySection[];
   getFilterKeys: () => TagCollection;
-  getTagValues: (tag: Tag, searchQuery: string) => Promise<string[]>;
+  getTagValues: GetTagValues;
 }
 
 export interface DatasetConfig<SeriesResponse, TableResponse> {

@@ -134,7 +134,7 @@ const CloseButton = styled(Button)`
   height: 30px;
   width: 30px;
   border-radius: 50%;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   color: ${p => p.theme.tokens.content.primary};
 `;
 

@@ -185,13 +185,13 @@ const SectionTitleWrapper = styled('div')`
 `;
 
 const StyledIcon = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.colors.gray400};
   display: flex;
   align-items: center;
 `;
 
 const SectionTitle = styled('h6')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
   font-size: ${p => p.theme.fontSize.md};
   font-weight: 600;
   text-transform: uppercase;
@@ -208,7 +208,7 @@ const SectionContent = styled(MarkedText)`
     font-family: ${p => p.theme.text.familyMono};
     padding: ${space(0.25)} ${space(0.5)};
     background: ${p => p.theme.backgroundSecondary};
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
     font-size: 0.9em;
   }
 

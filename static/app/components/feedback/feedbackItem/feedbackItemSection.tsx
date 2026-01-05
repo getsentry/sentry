@@ -70,7 +70,7 @@ const SectionTitle = styled('h3')`
 
   padding: ${space(1)} ${space(0.75)};
   margin-inline: -${space(1)} -${space(0.75)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const LeftAlignedContent = styled('div')`

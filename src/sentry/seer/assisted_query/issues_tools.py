@@ -1,15 +1,21 @@
 import logging
+import re
 from typing import Any
 
 from sentry.api import client
 from sentry.issues.grouptype import registry as group_type_registry
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.release import Release
+from sentry.models.team import Team, TeamStatus
 from sentry.seer.autofix.constants import FixabilityScoreThresholds
 from sentry.seer.endpoints.utils import validate_date_params
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.types.group import PriorityLevel
+from sentry.users.services.user.model import RpcUser
+from sentry.users.services.user.service import user_service
 
 logger = logging.getLogger(__name__)
 
@@ -52,24 +58,238 @@ FIXABILITY_VALUES = [
     FixabilityScoreThresholds.SUPER_LOW.to_str(),
 ]
 
-FIELDS_WITHOUT_PREDEFINED_VALUES = (
-    "assigned",
-    "assigned_or_suggested",
-    "bookmarks",
-    "lastSeen",
-    "firstSeen",
-    "firstRelease",
-    "event.timestamp",
-    "timesSeen",
-    "issue.seer_last_run",
-)
+# Field value types mapping - used by _get_static_values() to determine how to handle field value queries
+_FIELD_VALUE_TYPES: dict[str, str] = {
+    "error.handled": "boolean",
+    "error.unhandled": "boolean",
+    "error.main_thread": "boolean",
+    "symbolicated_in_app": "boolean",
+    "app.in_foreground": "boolean",
+    "lastSeen": "datetime",
+    "firstSeen": "datetime",
+    "event.timestamp": "datetime",
+    "timestamp": "datetime",
+    "issue.seer_last_run": "datetime",
+    "id": "uuid",
+    "issue": "issue_short_id",
+    "device.class": "device_class",
+    "timesSeen": "integer",
+    "detector": "dynamic_id",
+}
 
-# API key scopes required for issue queries
+# Event context fields available for issue search (from frontend's ISSUE_EVENT_PROPERTY_FIELDS)
+# These are fields that filter on event-level data within issues
+_EVENT_CONTEXT_FIELDS = [
+    # Device fields
+    "device.arch",
+    "device.brand",
+    "device.class",
+    "device.family",
+    "device.locale",
+    "device.model_id",
+    "device.name",
+    "device.orientation",
+    "device.uuid",
+    # Error fields
+    "error.handled",
+    "error.main_thread",
+    "error.mechanism",
+    "error.type",
+    "error.unhandled",
+    "error.value",
+    # Event metadata
+    "event.timestamp",
+    "event.type",
+    "id",
+    "timestamp",
+    "title",
+    "message",
+    "location",
+    # Geographic
+    "geo.city",
+    "geo.country_code",
+    "geo.region",
+    "geo.subdivision",
+    # HTTP
+    "http.method",
+    "http.referer",
+    "http.status_code",
+    "http.url",
+    # OS
+    "os.build",
+    "os.kernel_version",
+    "os.distribution_name",
+    "os.distribution_version",
+    # Platform
+    "platform.name",
+    # Release
+    "release",
+    "release.build",
+    "release.package",
+    "release.version",
+    # SDK
+    "sdk.name",
+    "sdk.version",
+    # Stack
+    "stack.abs_path",
+    "stack.filename",
+    "stack.function",
+    "stack.module",
+    "stack.package",
+    "stack.stack_level",
+    # Other
+    "dist",
+    "trace",
+    "transaction",
+    "symbolicated_in_app",
+    "unreal.crash_type",
+    "app.in_foreground",
+    # User
+    "user.email",
+    "user.id",
+    "user.ip",
+    "user.username",
+    # OTA Updates
+    "ota_updates.channel",
+    "ota_updates.runtime_version",
+    "ota_updates.update_id",
+]
+
+DEVICE_CLASS_VALUES = ["high", "medium", "low"]
+SPECIAL_ASSIGNEE_VALUES = ["me", "my_teams", "none"]
 API_KEY_SCOPES = ["org:read", "project:read", "event:read"]
+RELEASE_STAGE_VALUES = ["adopted", "low_adoption", "replaced"]
+
+
+def _format_username(user: RpcUser) -> str | None:
+    """
+    Format username to match frontend search values.
+    - If username is a UUID (32 hex chars), use email instead
+    - Otherwise use username if available, fallback to email
+    Returns the formatted username/email, or None if neither is available.
+    """
+    uuid_pattern = re.compile(r"[0-9a-f]{32}$")
+    if user.username and uuid_pattern.match(user.username):
+        return user.email
+    elif user.username:
+        return user.username
+    else:
+        return user.email
+
+
+def _get_assignee_values(organization: Organization) -> list[dict[str, Any]]:
+    """
+    Get assignee values for the assigned and assigned_or_suggested fields.
+
+    Returns a list of suggested assignee values including:
+    - Special values: "me", "my_teams", "none"
+    - Team slugs prefixed with "#" (e.g., "#backend-team")
+    - Member usernames/emails
+
+    This mirrors the frontend's useAssignedSearchValues hook behavior.
+    """
+    values: list[dict[str, Any]] = []
+
+    # Add special values first (suggested values)
+    for val in SPECIAL_ASSIGNEE_VALUES:
+        values.append({"value": val})
+
+    # Get all active teams in the organization
+    teams = Team.objects.filter(organization=organization, status=TeamStatus.ACTIVE).values_list(
+        "slug", flat=True
+    )
+    for team_slug in teams:
+        values.append({"value": f"#{team_slug}"})
+
+    # Get all approved organization members and their usernames
+    member_user_ids = OrganizationMember.objects.filter(
+        organization=organization,
+        invite_status=InviteStatus.APPROVED.value,
+        user_id__isnull=False,
+    ).values_list("user_id", flat=True)
+
+    if member_user_ids:
+        # Fetch user details to get usernames
+        users = user_service.get_many(filter={"user_ids": list(member_user_ids)})
+        for user in users:
+            username = _format_username(user)
+            if username:
+                values.append({"value": username})
+
+    return values
+
+
+def _get_username_values(organization: Organization) -> list[dict[str, Any]]:
+    """
+    Get username values for the bookmarks and subscribed fields.
+
+    Returns a list of member usernames/emails in the organization.
+    """
+    values: list[dict[str, Any]] = []
+
+    # Get all approved organization members
+    member_user_ids = OrganizationMember.objects.filter(
+        organization=organization,
+        invite_status=InviteStatus.APPROVED.value,
+        user_id__isnull=False,
+    ).values_list("user_id", flat=True)
+
+    if member_user_ids:
+        users = user_service.get_many(filter={"user_ids": list(member_user_ids)})
+        for user in users:
+            username = _format_username(user)
+            if username:
+                values.append({"value": username})
+
+    return values
+
+
+def _get_release_values(organization: Organization, project_ids: list[int]) -> list[dict[str, Any]]:
+    """
+    Get release version values for release-related fields.
+
+    Returns a list of recent release versions for the organization/projects.
+    """
+    queryset = Release.objects.filter(organization=organization)
+
+    if project_ids:
+        queryset = queryset.filter(projects__id__in=project_ids)
+
+    # Get most recent releases
+    versions = queryset.order_by("-date_added").values_list("version", flat=True).distinct()[:50]
+
+    return [{"value": version} for version in versions]
+
+
+def _get_static_values(key: str) -> list[dict[str, Any]] | None:
+    """
+    Get values for keys with a static set of values based on their field type.
+    Similar to _get_static_values() in discover_tools.py.
+
+    Returns:
+    - [] for fields that shouldn't be queried (uuid, datetime, issue_short_id, integer, dynamic_id)
+    - [{"value": x}] for fields with static enum values (boolean, device_class)
+    - None if the key's values are dynamic and should be queried
+    """
+    value_type = _FIELD_VALUE_TYPES.get(key, "")
+
+    # Fields that shouldn't have value suggestions
+    if value_type in ("uuid", "issue_short_id", "datetime", "integer", "dynamic_id"):
+        return []
+
+    if value_type == "boolean":
+        return [{"value": "true"}, {"value": "false"}]
+    if value_type == "device_class":
+        return [{"value": val} for val in DEVICE_CLASS_VALUES]
+    # Text fields and others - return None to fall through to API query
+    return None
 
 
 def _get_built_in_field_values(
-    attribute_key: str, organization: Organization, tag_keys: list[str] | None = None
+    attribute_key: str,
+    organization: Organization,
+    project_ids: list[int],
+    tag_keys: list[str] | None = None,
 ) -> list[dict[str, Any]] | None:
     """
     Get values for a built-in issue field.
@@ -77,11 +297,17 @@ def _get_built_in_field_values(
     Args:
         attribute_key: The built-in field key (e.g., "is", "issue.priority", "assigned_or_suggested")
         organization: Organization instance
+        project_ids: List of project IDs to query
         tag_keys: Optional list of tag keys (used for 'has' field)
 
     Returns:
         List of value dicts in the format expected by the API, or None if not a built-in field
     """
+    # First check for static values based on field type (boolean, datetime, uuid, etc.)
+    static_values = _get_static_values(attribute_key)
+    if static_values is not None:
+        return static_values
+
     if attribute_key == "is":
         return [{"value": val} for val in IS_VALUES]
 
@@ -91,40 +317,37 @@ def _get_built_in_field_values(
             return []
         return [{"value": tag_key} for tag_key in sorted(tag_keys)]
 
-    # ISSUE_PRIORITY field values
+    if attribute_key in ("assigned", "assigned_or_suggested"):
+        return _get_assignee_values(organization)
+    if attribute_key in ("bookmarks", "subscribed"):
+        return _get_username_values(organization)
     if attribute_key == "issue.priority":
         return [{"value": val} for val in PRIORITY_VALUES]
-
-    # ISSUE_SEER_ACTIONABILITY field values
     if attribute_key == "issue.seer_actionability":
         return [{"value": val} for val in FIXABILITY_VALUES]
-
-    # ISSUE_CATEGORY field values
     if attribute_key == "issue.category":
         return [{"value": val} for val in ISSUE_CATEGORY_VALUES]
-
-    # ISSUE_TYPE field values
     if attribute_key == "issue.type":
         visible_group_types = group_type_registry.get_visible(organization)
         issue_type_values = [gt.slug for gt in visible_group_types]
         return [{"value": val} for val in issue_type_values]
-
-    if attribute_key in FIELDS_WITHOUT_PREDEFINED_VALUES:
-        # These fields don't have predefined values
-        # Return empty list to indicate no suggested values available
-        return []
+    if attribute_key in ("release", "firstRelease"):
+        return _get_release_values(organization, project_ids)
+    if attribute_key == "release.stage":
+        return [{"value": val} for val in RELEASE_STAGE_VALUES]
 
     return None
 
 
 def _get_built_in_issue_fields(
-    organization: Organization, tag_keys: list[str]
+    organization: Organization, project_ids: list[int], tag_keys: list[str]
 ) -> list[dict[str, Any]]:
     """
     Generate built-in issue search fields similar to the frontend's builtInIssuesFields.
 
     Args:
         organization: Organization instance
+        project_ids: List of project IDs to query
         tag_keys: List of tag keys from the tags API (used for 'has' field values)
 
     Returns:
@@ -132,114 +355,57 @@ def _get_built_in_issue_fields(
     """
     built_in_fields: list[dict[str, Any]] = []
 
-    # IS field - Status field with exact values from IsFieldValues enum
-    built_in_fields.append(
-        {
-            "key": "is",
-            "values": IS_VALUES,
-        }
-    )
+    built_in_fields.append({"key": "is", "values": IS_VALUES})
 
-    # HAS field - Has Tag field with tag keys as values
-    has_field_values = sorted(tag_keys)
-    built_in_fields.append(
-        {
-            "key": "has",
-            "values": has_field_values,
-        }
-    )
+    built_in_fields.append({"key": "has", "values": sorted(tag_keys)})
 
-    # ASSIGNED field - Assigned To field
-    built_in_fields.append(
-        {
-            "key": "assigned",
-            "values": [],  # Values would come from user/team data
-        }
-    )
+    assignee_values = _get_assignee_values(organization)
+    assignee_value_strings = [v["value"] for v in assignee_values]
 
-    # ASSIGNED_OR_SUGGESTED field
-    built_in_fields.append(
-        {
-            "key": "assigned_or_suggested",
-            "isInput": True,
-            "values": [],  # Values would come from user/team data
-        }
-    )
+    username_values = _get_username_values(organization)
+    username_value_strings = [v["value"] for v in username_values]
 
-    # BOOKMARKS field
-    built_in_fields.append(
-        {
-            "key": "bookmarks",
-            "values": [],  # Values would come from user data
-        }
-    )
+    built_in_fields.append({"key": "assigned", "values": assignee_value_strings})
+    built_in_fields.append({"key": "assigned_or_suggested", "values": assignee_value_strings})
 
-    # ISSUE_CATEGORY field
-    built_in_fields.append(
-        {
-            "key": "issue.category",
-            "values": ISSUE_CATEGORY_VALUES,
-        }
-    )
+    built_in_fields.append({"key": "bookmarks", "values": username_value_strings})
+    built_in_fields.append({"key": "subscribed", "values": username_value_strings})
 
-    # ISSUE_TYPE field - Get visible issue types
+    built_in_fields.append({"key": "issue.category", "values": ISSUE_CATEGORY_VALUES})
     visible_group_types = group_type_registry.get_visible(organization)
     issue_type_values = [gt.slug for gt in visible_group_types]
-    built_in_fields.append(
-        {
-            "key": "issue.type",
-            "values": issue_type_values,
-        }
-    )
+    built_in_fields.append({"key": "issue.type", "values": issue_type_values})
 
-    # LAST_SEEN field
-    built_in_fields.append(
-        {
-            "key": "lastSeen",
-            "values": [],
-        }
-    )
+    release_values = _get_release_values(organization, project_ids)
+    release_value_strings = [v["value"] for v in release_values]
+    built_in_fields.append({"key": "firstRelease", "values": release_value_strings})
+    built_in_fields.append({"key": "release", "values": release_value_strings})
+    built_in_fields.append({"key": "release.stage", "values": RELEASE_STAGE_VALUES})
 
-    # FIRST_SEEN field
-    built_in_fields.append(
-        {
-            "key": "firstSeen",
-            "values": [],
-        }
-    )
+    built_in_fields.append({"key": "issue.priority", "values": PRIORITY_VALUES})
+    built_in_fields.append({"key": "issue.seer_actionability", "values": FIXABILITY_VALUES})
 
-    # TIMES_SEEN field
-    built_in_fields.append(
-        {
-            "key": "timesSeen",
-            "isInput": True,
-            "values": [],
-        }
-    )
+    # Fields with empty values
+    empty_value_types = ("datetime", "uuid", "issue_short_id", "integer", "dynamic_id")
+    for key, value_type in _FIELD_VALUE_TYPES.items():
+        if value_type in empty_value_types:
+            built_in_fields.append({"key": key, "values": []})
 
-    # ISSUE_PRIORITY field
-    built_in_fields.append(
-        {
-            "key": "issue.priority",
-            "values": PRIORITY_VALUES,
-        }
-    )
+    # Event-level fields
+    added_keys = {f["key"] for f in built_in_fields}
+    for field_key in _EVENT_CONTEXT_FIELDS:
+        if field_key in added_keys:
+            continue
 
-    # ISSUE_SEER_ACTIONABILITY field
-    built_in_fields.append(
-        {
-            "key": "issue.seer_actionability",
-            "values": FIXABILITY_VALUES,
-        }
-    )
+        value_type = _FIELD_VALUE_TYPES.get(field_key, "")
+        if value_type == "boolean":
+            field_values = ["true", "false"]
+        elif value_type == "device_class":
+            field_values = DEVICE_CLASS_VALUES
+        else:
+            field_values = []
 
-    # ISSUE_SEER_LAST_RUN field
-    built_in_fields.append(
-        {
-            "key": "issue.seer_last_run",
-            "values": [],
-        }
-    )
+        built_in_fields.append({"key": field_key, "values": field_values})
 
     return built_in_fields
 
@@ -280,9 +446,7 @@ def get_issue_filter_keys(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
-    stats_period, start, end = validate_date_params(
-        stats_period, start, end, default_stats_period="7d"
-    )
+    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     api_key = ApiKey(organization_id=organization.id, scope_list=API_KEY_SCOPES)
 
@@ -345,7 +509,7 @@ def get_issue_filter_keys(
 
     # Get built-in issue fields
     tag_keys = [tag.get("key") for tag in tags if tag.get("key")]
-    built_in_fields = _get_built_in_issue_fields(organization, tag_keys)
+    built_in_fields = _get_built_in_issue_fields(organization, project_ids, tag_keys)
 
     return {
         "tags": tags,
@@ -396,9 +560,7 @@ def get_filter_key_values(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
-    stats_period, start, end = validate_date_params(
-        stats_period, start, end, default_stats_period="7d"
-    )
+    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     # Check if this is a built-in field first
     # For 'has' field, we need to get tag keys first
@@ -413,7 +575,7 @@ def get_filter_key_values(
                 tag.get("key") for tag in filter_keys_result.get("tags", []) if tag.get("key")
             ]
 
-    built_in_values = _get_built_in_field_values(attribute_key, organization, tag_keys)
+    built_in_values = _get_built_in_field_values(attribute_key, organization, project_ids, tag_keys)
     if built_in_values is not None:
         # Apply substring filtering if provided
         if substring:
@@ -532,9 +694,7 @@ def execute_issues_query(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
-    stats_period, start, end = validate_date_params(
-        stats_period, start, end, default_stats_period="7d"
-    )
+    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     api_key = ApiKey(organization_id=organization.id, scope_list=API_KEY_SCOPES)
 
@@ -605,9 +765,7 @@ def get_issues_stats(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
-    stats_period, start, end = validate_date_params(
-        stats_period, start, end, default_stats_period="7d"
-    )
+    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     if not issue_ids:
         return []

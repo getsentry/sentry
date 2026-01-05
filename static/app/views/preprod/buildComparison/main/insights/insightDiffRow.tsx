@@ -7,9 +7,9 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import type {DiffItem, InsightDiffItem} from 'sentry/views/preprod/types/appSizeTypes';
 import {getInsightConfig} from 'sentry/views/preprod/utils/insightProcessing';
+import {formattedSizeDiff} from 'sentry/views/preprod/utils/labelUtils';
 
 interface InsightDiffRowProps {
   children: React.ReactNode;
@@ -66,15 +66,17 @@ export function InsightDiffRow({
                 <Heading as="h3">{config.name}</Heading>
                 <Flex align="center" gap="xs">
                   {statusCounts.new > 0 && (
-                    <Tag type="promotion">{t('New (%s)', statusCounts.new)}</Tag>
+                    <Tag variant="promotion">{t('New (%s)', statusCounts.new)}</Tag>
                   )}
                   {statusCounts.unresolved > 0 && (
-                    <Tag type="warning">
+                    <Tag variant="warning">
                       {t('Unresolved (%s)', statusCounts.unresolved)}
                     </Tag>
                   )}
                   {statusCounts.resolved > 0 && (
-                    <Tag type="success">{t('Resolved (%s)', statusCounts.resolved)}</Tag>
+                    <Tag variant="success">
+                      {t('Resolved (%s)', statusCounts.resolved)}
+                    </Tag>
                   )}
                 </Flex>
               </Flex>
@@ -84,7 +86,7 @@ export function InsightDiffRow({
                   <Text>
                     {t(
                       'Potential savings: %s',
-                      formatBytesBase10(insight.total_savings_change)
+                      formattedSizeDiff(insight.total_savings_change)
                     )}{' '}
                     <Text
                       variant={insight.total_savings_change > 0 ? 'danger' : 'success'}

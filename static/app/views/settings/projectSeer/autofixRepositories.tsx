@@ -51,7 +51,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
     | 'solution'
     | 'code_changes'
     | 'open_pr' => {
-    if (organization.features.includes('seer-settings-gtm')) {
+    if (organization.features.includes('seat-based-seer-enabled')) {
       return organization.autoOpenPrs ? 'open_pr' : 'code_changes';
     }
     return 'root_cause';
@@ -237,7 +237,6 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
         selectedRepoIds={selectedRepoIds}
         onSave={handleSaveModalSelections}
         isFetchingRepositories={isFetchingRepositories}
-        maxReposLimit={MAX_REPOS_LIMIT}
       />
     ));
   }, [repositories, selectedRepoIds, handleSaveModalSelections, isFetchingRepositories]);
@@ -322,7 +321,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
       </PanelHeader>
 
       {showSaveNotice && (
-        <Alert type="info" system>
+        <Alert variant="info" system>
           {t(
             'Changes will apply on future Seer runs. Hit "Start Over" in the Seer panel to start a new run and use your new selected repositories.'
           )}

@@ -164,7 +164,7 @@ const Header = styled('header')<{hideBar?: boolean; hideCloseButton?: boolean}>`
   position: sticky;
   top: 0;
   z-index: ${p => p.theme.zIndex.drawer + 1};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   justify-content: flex-start;
   display: flex;
   flex-shrink: 0;
@@ -248,7 +248,7 @@ const ResizeHandle = styled('div')`
   &:hover,
   &:active {
     &::after {
-      background: ${p => p.theme.purple400};
+      background: ${p => p.theme.colors.blue500};
     }
   }
 
@@ -265,7 +265,7 @@ const ResizeHandle = styled('div')`
   }
 
   &[data-resizing]::after {
-    background: ${p => p.theme.purple400};
+    background: ${p => p.theme.colors.blue500};
   }
 `;
 

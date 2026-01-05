@@ -47,6 +47,7 @@ import {
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
+import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useNavContext} from 'sentry/views/nav/context';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
@@ -73,6 +74,7 @@ function TraceItemAttributeProviderFromDataset({children}: {children: React.Reac
 
   let enabled = false;
   let traceItemType = TraceItemDataset.SPANS;
+  let query = undefined;
 
   if (state.dataset === WidgetType.SPANS) {
     enabled = organization.features.includes('visibility-explore-view');
@@ -84,13 +86,18 @@ function TraceItemAttributeProviderFromDataset({children}: {children: React.Reac
     traceItemType = TraceItemDataset.LOGS;
   }
 
-  if (state.dataset === WidgetType.TRACEMETRICS) {
+  if (state.dataset === WidgetType.TRACEMETRICS && state.traceMetric) {
     enabled = hasTraceMetricsDashboards;
     traceItemType = TraceItemDataset.TRACEMETRICS;
+    query = createTraceMetricFilter(state.traceMetric);
   }
 
   return (
-    <TraceItemAttributeProvider traceItemType={traceItemType} enabled={enabled}>
+    <TraceItemAttributeProvider
+      traceItemType={traceItemType}
+      enabled={enabled}
+      query={query}
+    >
       {children}
     </TraceItemAttributeProvider>
   );
@@ -442,9 +449,9 @@ const Backdrop = styled('div')`
 const SampleWidgetCard = styled(motion.div)`
   width: 100%;
   min-width: 100%;
-  border: 1px dashed ${p => p.theme.gray300};
-  border-radius: ${p => p.theme.borderRadius};
-  background-color: ${p => p.theme.background};
+  border: 1px dashed ${p => p.theme.colors.gray400};
+  background-color: ${p => p.theme.tokens.background.primary};
+  border-radius: ${p => p.theme.radius.md};
   z-index: ${p => p.theme.zIndex.initial};
   position: relative;
 
@@ -542,8 +549,8 @@ const SurroundingWidgetContainer = styled('div')`
 
 const FilterBarContainer = styled(motion.div)`
   margin-top: ${space(1)};
-  background-color: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
+  background-color: ${p => p.theme.tokens.background.primary};
+  border-radius: ${p => p.theme.radius.md};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     width: 40vw;

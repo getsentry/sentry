@@ -440,6 +440,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "crispy_forms",
     "rest_framework",
     "sentry",
+    "sentry.autopilot",
     "sentry.analytics",
     "sentry.auth_v2",
     "sentry.incidents.apps.Config",
@@ -825,6 +826,7 @@ TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 # Taskworkers need to import task modules to make tasks
 # accessible to the worker.
 TASKWORKER_IMPORTS: tuple[str, ...] = (
+    "sentry.autopilot.tasks",
     "sentry.conduit.tasks",
     "sentry.data_export.tasks",
     "sentry.debug_files.tasks",
@@ -1055,6 +1057,14 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "dynamic-sampling-boost-low-volume-projects": {
         "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_projects",
+        "schedule": task_crontab("*/10", "*", "*", "*", "*"),
+    },
+    "autopilot-run-sdk-update-detector": {
+        "task": "autopilot:sentry.autopilot.tasks.run_sdk_update_detector",
+        "schedule": task_crontab("*/5", "*", "*", "*", "*"),
+    },
+    "autopilot-run-missing-sdk-integration-detector": {
+        "task": "autopilot:sentry.autopilot.tasks.run_missing_sdk_integration_detector",
         "schedule": task_crontab("*/10", "*", "*", "*", "*"),
     },
     "dynamic-sampling-boost-low-volume-transactions": {
@@ -2130,7 +2140,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.11.1"
+SELF_HOSTED_STABLE_VERSION = "25.12.1"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses

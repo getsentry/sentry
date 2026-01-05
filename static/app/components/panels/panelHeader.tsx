@@ -40,8 +40,8 @@ const PanelHeader = styled('div')<Props>`
   }
 
   border-bottom: 1px solid ${p => p.theme.border};
-  border-radius: calc(${p => p.theme.borderRadius} + 1px)
-    calc(${p => p.theme.borderRadius} + 1px) 0 0;
+  border-radius: calc(${p => p.theme.radius.md} + 1px)
+    calc(${p => p.theme.radius.md} + 1px) 0 0;
   background: ${p => p.theme.backgroundSecondary};
   position: relative;
   ${getPadding};

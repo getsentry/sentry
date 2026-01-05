@@ -125,11 +125,11 @@ const HovercardRow = styled(Link)`
   min-height: 64px;
 
   &:first-child {
-    border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+    border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
   }
 
   &:last-child {
-    border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+    border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   }
 
   &:hover {

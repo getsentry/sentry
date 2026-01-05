@@ -8,19 +8,30 @@
  * - Theme type exports
  */
 import type {CSSProperties} from 'react';
-import {css, useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
+import {css} from '@emotion/react';
 import modifyColor from 'color';
 import {spring, type Transition} from 'framer-motion';
 
-import {color} from 'sentry/utils/theme/scraps/color';
-import {breakpoints, radius, size, space} from 'sentry/utils/theme/scraps/size';
+import {withLegacyTokens, type LegacyTokens} from 'sentry/utils/theme/compat';
+// eslint-disable-next-line no-restricted-imports
+import {darkTheme as baseDarkTheme} from 'sentry/utils/theme/scraps/theme/dark';
+// eslint-disable-next-line no-restricted-imports
+import {lightTheme as baseLightTheme} from 'sentry/utils/theme/scraps/theme/light';
+import {color} from 'sentry/utils/theme/scraps/tokens/color';
+import {typography} from 'sentry/utils/theme/scraps/tokens/typography';
 
-type SimpleMotionName = 'smooth' | 'snap' | 'enter' | 'exit';
+import type {
+  AlertVariant,
+  ButtonVariant,
+  FormSize,
+  LevelVariant,
+  MotionDuration,
+  MotionEasing,
+  TagVariant,
+} from './types';
 
-type PhysicsMotionName = 'spring';
-
-type MotionDuration = 'fast' | 'moderate' | 'slow';
+type Tokens = typeof baseLightTheme.tokens | typeof baseDarkTheme.tokens;
+type TokensWithLegacy = Tokens & LegacyTokens;
 
 type MotionDefinition = Record<MotionDuration, string>;
 
@@ -30,7 +41,10 @@ const motionDurations: Record<MotionDuration, number> = {
   slow: 240,
 };
 
-const motionCurves: Record<SimpleMotionName, [number, number, number, number]> = {
+const motionCurves: Record<
+  Exclude<MotionEasing, keyof typeof motionTransitions>,
+  [number, number, number, number]
+> = {
   smooth: [0.72, 0, 0.16, 1],
   snap: [0.8, -0.4, 0.5, 1],
   enter: [0.24, 1, 0.32, 1],
@@ -65,7 +79,7 @@ const motionCurveWithDuration = (
   return [motion, framerMotion];
 };
 
-const motionTransitions: Record<PhysicsMotionName, Record<MotionDuration, Transition>> = {
+const motionTransitions: Record<'spring', Record<MotionDuration, Transition>> = {
   spring: {
     fast: {
       type: 'spring',
@@ -143,9 +157,8 @@ function generateMotion() {
   };
 }
 
-type Alert = 'muted' | 'info' | 'warning' | 'success' | 'error';
 type AlertColors = Record<
-  Alert,
+  AlertVariant,
   {
     background: string;
     backgroundLight: string;
@@ -199,11 +212,15 @@ const generateThemePrismVariables = (
     ...prismColors,
   });
 
-const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColors => ({
+const generateButtonTheme = (
+  colors: Colors,
+  alias: Aliases,
+  tokens: Tokens
+): ButtonColors => ({
   default: {
     // all alias-based, already derived from new theme
-    color: alias.textColor,
-    colorActive: alias.textColor,
+    color: tokens.content.primary,
+    colorActive: tokens.content.primary,
     background: alias.background,
     backgroundActive: alias.hover,
     border: alias.border,
@@ -257,8 +274,8 @@ const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColors => ({
     focusShadow: 'transparent',
   },
   transparent: {
-    color: alias.textColor,
-    colorActive: alias.textColor,
+    color: tokens.content.primary,
+    colorActive: tokens.content.primary,
     background: 'transparent',
     backgroundActive: 'transparent',
     border: 'transparent',
@@ -298,7 +315,7 @@ const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
     borderHover: colors.yellow400,
     color: colors.yellow500,
   },
-  error: {
+  danger: {
     background: colors.red400,
     backgroundLight: colors.red100,
     border: colors.red200,
@@ -308,21 +325,23 @@ const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
   },
 });
 
-const generateLevelTheme = (colors: Colors): LevelColors => ({
-  sample: colors.blue400,
-  info: colors.blue400,
-  warning: colors.yellow400,
-  // Hardcoded legacy color (orange400). We no longer use orange anywhere
-  // else in the app (except for the chart palette). This needs to be harcoded
-  // here because existing users may still associate orange with the "error" level.
-  error: '#FF7738',
-  fatal: colors.red400,
-  default: colors.gray400,
-  unknown: colors.gray200,
+const generateLevelTheme = (tokens: Tokens, mode: 'light' | 'dark'): LevelColors => ({
+  sample: tokens.dataviz.semantic.accent,
+  info: tokens.dataviz.semantic.accent,
+  // BAD: accessing named colors is forbidden
+  // but necessary to differente from orange
+  warning: color.categorical[mode].yellow,
+  // BAD: hardcoded legacy color! We no longer use orange in the main UI,
+  // but do have it in the chart palette. This needs to be harcoded
+  // because existing users still associate orange with the "error" level.
+  error: color.categorical[mode].orange,
+  fatal: tokens.dataviz.semantic.bad,
+  default: tokens.dataviz.semantic.neutral,
+  unknown: tokens.dataviz.semantic.other,
 });
 
 const generateTagTheme = (colors: Colors): TagColors => ({
-  default: {
+  muted: {
     background: colors.surface500,
     border: colors.gray200,
     color: colors.gray500,
@@ -332,12 +351,6 @@ const generateTagTheme = (colors: Colors): TagColors => ({
     background: colors.pink100,
     border: colors.pink100,
     color: colors.pink500,
-  },
-
-  highlight: {
-    background: colors.blue100,
-    border: colors.blue100,
-    color: colors.blue500,
   },
 
   warning: {
@@ -352,7 +365,7 @@ const generateTagTheme = (colors: Colors): TagColors => ({
     color: colors.green500,
   },
 
-  error: {
+  danger: {
     background: colors.red100,
     border: colors.red100,
     color: colors.red500,
@@ -363,18 +376,6 @@ const generateTagTheme = (colors: Colors): TagColors => ({
     border: colors.blue100,
     color: colors.blue500,
   },
-
-  white: {
-    background: colors.white,
-    border: colors.white,
-    color: colors.black,
-  },
-
-  black: {
-    background: colors.black,
-    border: colors.black,
-    color: colors.white,
-  },
 });
 
 /**
@@ -383,20 +384,8 @@ const generateTagTheme = (colors: Colors): TagColors => ({
 
 type Colors = typeof lightColors;
 
-type Tag =
-  | 'default'
-  | 'promotion'
-  | 'highlight'
-  | 'warning'
-  | 'success'
-  | 'error'
-  | 'info'
-  // @TODO(jonasbadalic): What are white and black tags?
-  | 'white'
-  | 'black';
-
 type TagColors = Record<
-  Tag,
+  TagVariant,
   {
     background: string;
     border: string;
@@ -404,14 +393,10 @@ type TagColors = Record<
   }
 >;
 
-// @TODO: is this loose coupling enough?
-type Level = 'sample' | 'info' | 'warning' | 'error' | 'fatal' | 'default' | 'unknown';
-type LevelColors = Record<Level, string>;
+type LevelColors = Record<LevelVariant, string>;
 
-// @TODO(jonasbadalic): Disabled is not a button variant, it's a state
-type Button = 'default' | 'primary' | 'danger' | 'link' | 'disabled' | 'transparent';
 type ButtonColors = Record<
-  Button,
+  ButtonVariant,
   {
     background: string;
     backgroundActive: string;
@@ -425,76 +410,83 @@ type ButtonColors = Record<
   }
 >;
 
-type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
-
-// @TODO: this needs to directly reference the icon direction
-type IconDirection = 'up' | 'right' | 'down' | 'left';
-const iconDirectionToAngle: Record<IconDirection, number> = {
-  up: 0,
-  right: 90,
-  down: 180,
-  left: 270,
+const legacyTypography = {
+  fontSize: typography.font.size,
+  fontWeight: {
+    normal: typography.font.weight.sans.regular,
+    bold: typography.font.weight.sans.medium,
+  },
+  text: {
+    family: typography.font.family.sans,
+    familyMono: typography.font.family.mono,
+    lineHeightHeading: typography.font.lineHeight.default,
+    lineHeightBody: typography.font.lineHeight.comfortable,
+  },
 } as const;
-
-/**
- * Unless you are implementing a new component in the `sentry/components/core`
- * directory, use `ComponentProps['size']` instead.
- * @internal
- */
-export type FormSize = 'xs' | 'sm' | 'md';
-
-export type Space = keyof typeof space;
 
 type FormTheme = {
   form: Record<
     FormSize,
     {
+      borderRadius: string;
       fontSize: string;
       height: string;
       lineHeight: string;
       minHeight: string;
-    }
-  >;
-  formPadding: Record<
-    FormSize,
-    {
       paddingBottom: number;
       paddingLeft: number;
       paddingRight: number;
       paddingTop: number;
     }
   >;
-  formRadius: Record<
-    FormSize,
-    {
-      borderRadius: string;
-    }
-  >;
-  formSpacing: Record<FormSize, string>;
 };
-
-const iconSizes: Record<Size, string> = {
-  xs: '12px',
-  sm: '14px',
-  md: '18px',
-  lg: '24px',
-  xl: '32px',
-  '2xl': '72px',
-} as const;
+const formTheme: FormTheme = {
+  /**
+   * Common styles for form inputs & buttons, separated by size.
+   * Should be used to ensure consistent sizing among form elements.
+   */
+  form: {
+    md: {
+      height: '36px',
+      minHeight: '36px',
+      fontSize: '0.875rem',
+      lineHeight: '1rem',
+      paddingLeft: 16,
+      paddingRight: 16,
+      paddingTop: 12,
+      paddingBottom: 12,
+      borderRadius: baseLightTheme.radius.lg,
+    },
+    sm: {
+      height: '32px',
+      minHeight: '32px',
+      fontSize: '0.875rem',
+      lineHeight: '1rem',
+      paddingLeft: 12,
+      paddingRight: 12,
+      paddingTop: 8,
+      paddingBottom: 8,
+      borderRadius: baseLightTheme.radius.md,
+    },
+    xs: {
+      height: '28px',
+      minHeight: '28px',
+      fontSize: '0.75rem',
+      lineHeight: '1rem',
+      paddingLeft: 8,
+      paddingRight: 8,
+      paddingTop: 6,
+      paddingBottom: 6,
+      borderRadius: baseLightTheme.radius.sm,
+    },
+  },
+};
 
 /**
  * Values shared between light and dark theme
  */
 const commonTheme = {
-  breakpoints,
-
-  space,
-  size,
   motion: generateMotion(),
-
-  // Icons
-  iconSizes,
-  iconDirections: iconDirectionToAngle,
 
   // Try to keep these ordered plz
   zIndex: {
@@ -564,39 +556,27 @@ const commonTheme = {
     },
   },
 
-  borderRadius: '6px',
-  fontSize: {
-    xs: '11px',
-    sm: '12px',
-    md: '14px',
-    lg: '16px',
-    xl: '18px',
-    '2xl': '20px',
-  } satisfies Record<'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl', string>,
-
-  fontWeight: {
-    normal: 400 as const,
-    bold: 600 as const,
-  },
-
-  text: {
-    family: "'Rubik', 'Avenir Next', sans-serif",
-    familyMono: "'Roboto Mono', Monaco, Consolas, 'Courier New', monospace",
-    lineHeightHeading: 1.2,
-    lineHeightBody: 1.4,
-  },
+  ...legacyTypography,
+  ...typography,
+  ...formTheme,
 };
 
 export type Color = keyof ReturnType<typeof deprecatedColorMappings>;
-export type IconSize = keyof typeof iconSizes;
 type Aliases = typeof lightAliases;
+/**
+ * Do not use this type. Use direct colors access via theme.colors or encapsulate
+ * colors into human readable variants that signify the color's purpose.
+ * @deprecated
+ */
 export type ColorOrAlias = keyof Aliases | Color;
-export interface SentryTheme extends Omit<typeof lightThemeDefinition, 'chart'> {
+export interface SentryTheme
+  extends Omit<typeof lightThemeDefinition, 'chart' | 'tokens'> {
   chart: {
     colors: typeof CHART_PALETTE_LIGHT | typeof CHART_PALETTE_DARK;
     getColorPalette: ReturnType<typeof makeChartColorPalette>;
     neutral: string;
   };
+  tokens: TokensWithLegacy;
 }
 
 const ccl = color.categorical.light;
@@ -984,125 +964,6 @@ function makeChartColorPalette<T extends ChartColorPalette>(
   };
 }
 
-const formTheme: FormTheme = {
-  /**
-   * Common styles for form inputs & buttons, separated by size.
-   * Should be used to ensure consistent sizing among form elements.
-   */
-  form: {
-    md: {
-      height: '36px',
-      minHeight: '36px',
-      fontSize: '0.875rem',
-      lineHeight: '1rem',
-    },
-    sm: {
-      height: '32px',
-      minHeight: '32px',
-      fontSize: '0.875rem',
-      lineHeight: '1rem',
-    },
-    xs: {
-      height: '28px',
-      minHeight: '28px',
-      fontSize: '0.75rem',
-      lineHeight: '1rem',
-    },
-  },
-
-  /**
-   * Padding for form inputs
-   * @TODO(jonasbadalic) This should exist on form component
-   */
-  formPadding: {
-    md: {
-      paddingLeft: 16,
-      paddingRight: 16,
-      paddingTop: 12,
-      paddingBottom: 12,
-    },
-    sm: {
-      paddingLeft: 12,
-      paddingRight: 12,
-      paddingTop: 8,
-      paddingBottom: 8,
-    },
-    xs: {
-      paddingLeft: 8,
-      paddingRight: 8,
-      paddingTop: 6,
-      paddingBottom: 6,
-    },
-  },
-  formRadius: {
-    md: {
-      borderRadius: '8px',
-    },
-    sm: {
-      borderRadius: '6px',
-    },
-    xs: {
-      borderRadius: '5px',
-    },
-  },
-  formSpacing: {
-    md: '8px',
-    sm: '6px',
-    xs: '4px',
-  },
-};
-
-// @TODO(jonasbadalic): eventually, we should port component usage to these values
-function generateChonkTokens(colorScheme: typeof lightColors) {
-  return {
-    content: {
-      primary: colorScheme.gray800,
-      muted: colorScheme.gray500,
-      accent: colorScheme.blue500,
-      promotion: colorScheme.pink500,
-      danger: colorScheme.red500,
-      warning: colorScheme.yellow500,
-      success: colorScheme.green500,
-    },
-    graphics: {
-      muted: colorScheme.gray400,
-      accent: colorScheme.blue400,
-      promotion: colorScheme.pink400,
-      danger: colorScheme.red400,
-      warning: colorScheme.yellow400,
-      success: colorScheme.green400,
-    },
-    background: {
-      primary: colorScheme.surface500,
-      secondary: colorScheme.surface400,
-      tertiary: colorScheme.surface300,
-    },
-    border: {
-      primary: colorScheme.surface100,
-      muted: colorScheme.surface200,
-      accent: colorScheme.blue400,
-      promotion: colorScheme.pink400,
-      danger: colorScheme.red400,
-      warning: colorScheme.yellow400,
-      success: colorScheme.green400,
-    },
-    component: {
-      link: {
-        muted: {
-          default: colorScheme.gray500,
-          hover: colorScheme.gray600,
-          active: colorScheme.gray700,
-        },
-        accent: {
-          default: colorScheme.blue500,
-          hover: colorScheme.blue600,
-          active: colorScheme.blue700,
-        },
-      },
-    },
-  };
-}
-
 const lightColors = {
   black: color.black,
   white: color.white,
@@ -1302,34 +1163,16 @@ const darkShadows = {
   dropShadowHeavyTop: '0 -4px 24px rgba(10, 8, 12, 0.36)',
 };
 
-const generateAliases = (
-  tokens: ReturnType<typeof generateChonkTokens>,
-  colors: typeof lightColors
-) => ({
-  /**
-   * Primary text color
-   */
-  textColor: tokens.content.primary,
-
+const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
   /**
    * Text that should not have as much emphasis
    */
-  subText: tokens.content.muted,
-
-  /**
-   * Background for the main content area of a page?
-   */
-  bodyBackground: tokens.background.secondary,
+  subText: tokens.content.secondary,
 
   /**
    * Primary background color
    */
   background: tokens.background.primary,
-
-  /**
-   * Elevated background color
-   */
-  backgroundElevated: tokens.background.primary,
 
   /**
    * Secondary background color used as a slight contrast against primary background
@@ -1350,44 +1193,37 @@ const generateAliases = (
    * Primary border color
    */
   border: tokens.border.primary,
-  translucentBorder: tokens.border.primary,
+  translucentBorder: tokens.border.transparent.neutral.muted,
 
   /**
    * Inner borders, e.g. borders inside of a grid
    */
-  innerBorder: tokens.border.muted,
-  translucentInnerBorder: tokens.border.muted,
+  innerBorder: tokens.border.secondary,
+  translucentInnerBorder: tokens.border.transparent.neutral.muted,
 
   /**
    * A color that denotes a "success", or something good
    */
   success: tokens.content.success,
   successText: tokens.content.success,
-  // @TODO(jonasbadalic): should this reference a chonk color?
-  successFocus: tokens.border.success, // Not being used
 
   /**
    * A color that denotes an error, or something that is wrong
    */
   error: tokens.content.danger,
   errorText: tokens.content.danger,
-  errorFocus: tokens.border.danger,
 
   /**
    * A color that denotes danger, for dangerous actions like deletion
    */
   danger: tokens.content.danger,
   dangerText: tokens.content.danger,
-  // @TODO(jonasbadalic): should this reference a chonk color?
-  dangerFocus: tokens.border.danger, // Not being used
 
   /**
    * A color that denotes a warning
    */
   warning: tokens.content.warning,
   warningText: tokens.content.warning,
-  // @TODO(jonasbadalic): should this reference a chonk color?
-  warningFocus: tokens.border.warning, // Not being used
 
   /**
    * A color that indicates something is disabled where user can not interact or use
@@ -1408,45 +1244,23 @@ const generateAliases = (
    * Indicates that something is "active" or "selected"
    * NOTE: These are largely used for form elements, which I haven't mocked in ChonkUI
    */
-  active: tokens.component.link.accent.active,
-  activeHover: tokens.component.link.accent.hover,
-  activeText: tokens.component.link.accent.default,
+  active: tokens.interactive.link.accent.active,
+  activeHover: tokens.interactive.link.accent.hover,
+  activeText: tokens.interactive.link.accent.rest,
 
   /**
    * Indicates that something has "focus", which is different than "active" state as it is more temporal
    * and should be a bit subtler than active
    */
-  focus: tokens.border.accent,
-  focusBorder: tokens.border.accent,
+  focus: tokens.border.accent.vibrant,
+  focusBorder: tokens.border.accent.vibrant,
 
   /**
    * Link color indicates that something is clickable
    */
-  linkColor: tokens.component.link.accent.default,
-  linkHoverColor: tokens.component.link.accent.hover,
-  linkUnderline: tokens.component.link.accent.default,
-  linkFocus: tokens.border.accent,
-
-  /**
-   * Form placeholder text color
-   */
-  formPlaceholder: colors.gray300,
-
-  /**
-   * Color of lines that flow across the background of the chart to indicate axes levels
-   * (This should only be used for yAxis)
-   */
-  chartLineColor: colors.gray300,
-
-  /**
-   * Color for chart label text
-   */
-  chartLabel: tokens.content.muted,
-
-  /**
-   * Color for the 'others' series in topEvent charts
-   */
-  chartOther: tokens.content.muted,
+  linkColor: tokens.interactive.link.accent.rest,
+  linkHoverColor: tokens.interactive.link.accent.hover,
+  linkUnderline: tokens.interactive.link.accent.rest,
 
   /**
    * Default Progressbar color
@@ -1482,20 +1296,8 @@ const generateAliases = (
   },
 });
 
-const fontSize = {
-  xs: '11px' as const,
-  sm: '12px' as const,
-  md: '14px' as const,
-  lg: '16px' as const,
-  xl: '20px' as const,
-  '2xl': '24px' as const,
-} satisfies Record<'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl', string>;
-
-const lightTokens = generateChonkTokens(lightColors);
-const darkTokens = generateChonkTokens(darkColors);
-
-const lightAliases = generateAliases(lightTokens, lightColors);
-const darkAliases = generateAliases(generateChonkTokens(darkColors), darkColors);
+const lightAliases = generateAliases(baseLightTheme.tokens, lightColors);
+const darkAliases = generateAliases(baseDarkTheme.tokens, darkColors);
 
 const deprecatedColorMappings = (colors: Colors) => ({
   /** @deprecated */
@@ -1505,45 +1307,6 @@ const deprecatedColorMappings = (colors: Colors) => ({
   /** @deprecated */
   get white() {
     return colors.white;
-  },
-
-  /** @deprecated */
-  get lightModeBlack() {
-    return colors.black;
-  },
-  /** @deprecated */
-  get lightModeWhite() {
-    return colors.white;
-  },
-
-  /** @deprecated */
-  get surface100() {
-    return colors.surface200;
-  },
-  /** @deprecated */
-  get surface200() {
-    return colors.surface300;
-  },
-  /** @deprecated */
-  get surface300() {
-    return colors.surface400;
-  },
-  /** @deprecated */
-  get surface400() {
-    return colors.surface500;
-  },
-  /** @deprecated */
-  get surface500() {
-    return colors.surface500;
-  },
-
-  /** @deprecated */
-  get translucentSurface100() {
-    return colors.surface100;
-  },
-  /** @deprecated */
-  get translucentSurface200() {
-    return colors.surface200;
   },
 
   /** @deprecated */
@@ -1564,15 +1327,6 @@ const deprecatedColorMappings = (colors: Colors) => ({
   },
   /** @deprecated */
   get gray100() {
-    return colors.gray100;
-  },
-
-  /** @deprecated */
-  get translucentGray200() {
-    return colors.gray200;
-  },
-  /** @deprecated */
-  get translucentGray100() {
     return colors.gray100;
   },
 
@@ -1680,18 +1434,15 @@ const deprecatedColorMappings = (colors: Colors) => ({
 });
 
 const lightThemeDefinition = {
-  isChonk: true,
   type: 'light' as 'light' | 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
-  fontSize,
-  ...formTheme,
   ...deprecatedColorMappings(lightColors),
+  ...baseLightTheme,
   ...lightAliases,
   ...lightShadows,
-
-  tokens: lightTokens,
-  radius,
+  // @TODO: remove backwards-compatability shim
+  tokens: withLegacyTokens(baseLightTheme.tokens),
   focusRing: (baseShadow = `0 0 0 0 ${lightAliases.background}`) => ({
     outline: 'none',
     boxShadow: `${baseShadow}, 0 0 0 2px ${lightAliases.focusBorder}`,
@@ -1700,12 +1451,12 @@ const lightThemeDefinition = {
   // @TODO: these colors need to be ported
   ...generateThemeUtils(deprecatedColorMappings(lightColors), lightAliases),
   alert: generateAlertTheme(lightColors, lightAliases),
-  button: generateButtonTheme(lightColors, lightAliases),
+  button: generateButtonTheme(lightColors, lightAliases, baseLightTheme.tokens),
   tag: generateTagTheme(lightColors),
-  level: generateLevelTheme(lightColors),
+  level: generateLevelTheme(baseLightTheme.tokens, 'light'),
 
   chart: {
-    neutral: modifyColor(lightColors.gray400).lighten(0.8).toString(),
+    neutral: baseLightTheme.tokens.dataviz.semantic.neutral,
     colors: CHART_PALETTE_LIGHT,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT),
   },
@@ -1716,7 +1467,7 @@ const lightThemeDefinition = {
   ),
   prismDarkVariables: generateThemePrismVariables(
     prismDark,
-    darkAliases.backgroundElevated
+    baseDarkTheme.tokens.background.primary
   ),
 
   colors: lightColors,
@@ -1731,18 +1482,16 @@ export const lightTheme: SentryTheme = lightThemeDefinition;
  * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
  */
 export const darkTheme: SentryTheme = {
-  isChonk: true,
   type: 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
-  fontSize,
-  ...formTheme,
+
   ...deprecatedColorMappings(darkColors),
+  ...baseDarkTheme,
   ...darkAliases,
   ...darkShadows,
-  tokens: darkTokens,
-
-  radius,
+  // @TODO: remove backwards-compatability shim
+  tokens: withLegacyTokens(baseDarkTheme.tokens),
   focusRing: (baseShadow = `0 0 0 0 ${darkAliases.background}`) => ({
     outline: 'none',
     boxShadow: `${baseShadow}, 0 0 0 2px ${darkAliases.focusBorder}`,
@@ -1751,12 +1500,12 @@ export const darkTheme: SentryTheme = {
   // @TODO: these colors need to be ported
   ...generateThemeUtils(deprecatedColorMappings(darkColors), darkAliases),
   alert: generateAlertTheme(darkColors, darkAliases),
-  button: generateButtonTheme(darkColors, darkAliases),
+  button: generateButtonTheme(darkColors, darkAliases, baseDarkTheme.tokens),
   tag: generateTagTheme(darkColors),
-  level: generateLevelTheme(darkColors),
+  level: generateLevelTheme(baseDarkTheme.tokens, 'dark'),
 
   chart: {
-    neutral: modifyColor(darkColors.gray400).darken(0.35).toString(),
+    neutral: baseDarkTheme.tokens.dataviz.semantic.neutral,
     colors: CHART_PALETTE_DARK,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
   },
@@ -1764,7 +1513,7 @@ export const darkTheme: SentryTheme = {
   prismVariables: generateThemePrismVariables(prismDark, darkAliases.backgroundSecondary),
   prismDarkVariables: generateThemePrismVariables(
     prismDark,
-    darkAliases.backgroundElevated
+    baseDarkTheme.tokens.background.primary
   ),
 
   colors: darkColors,
@@ -1784,8 +1533,3 @@ export type StrictCSSObject = {
   [key: `> ${string}:last-child`]: StrictCSSObject; // Allow some nested selectors
   [key: `> ${string}:first-child`]: StrictCSSObject; // Allow some nested selectors
 }>;
-
-// tkdodo: kept for backwards compatibility, to be deleted
-
-export const chonkStyled = styled;
-export const useChonkTheme = useTheme;

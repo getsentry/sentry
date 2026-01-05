@@ -1013,7 +1013,7 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   [AggregationKey.PERFORMANCE_SCORE]: {
     desc: t('Returns the performance score for a given web vital'),
     kind: FieldKind.FUNCTION,
-    valueType: FieldValueType.NUMBER,
+    valueType: FieldValueType.SCORE,
     parameters: [
       {
         name: 'value',
