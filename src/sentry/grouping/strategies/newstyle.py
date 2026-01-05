@@ -717,6 +717,12 @@ def filter_exceptions_for_exception_groups(
     exception_components: dict[int, dict[str, ExceptionGroupingComponent]],
     event: Event,
 ) -> list[SingleException]:
+    """
+    Attempt to filter exceptions in exception groups in order to deduplicate sibling exceptions, and
+    in order to ignore wrapper aggregate exceptions if all they do is add a level to the chain.
+
+    If the data is malformed in any way, return the list of exceptions as is.
+    """
     # This function only filters exceptions if there are at least two exceptions.
     if len(exceptions) <= 1:
         return exceptions
