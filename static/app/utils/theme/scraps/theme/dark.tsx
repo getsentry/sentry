@@ -949,14 +949,14 @@ const graphics = {
     moderate: color.neutral.dark.opaque900,
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0I2QjBCRSIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0E0OUVBRiIvPgogIDwvc3ZnPg==)
      *
-     * `neutral.vibrant` `#B6B0BE`
+     * `neutral.vibrant` `#A49EAF`
      *
      * Used situationally, but its primary purpose is to emphasize shapes in
      * data visualisations. This is the most intense token of its family.
      */
-    vibrant: color.neutral.dark.opaque1200,
+    vibrant: color.neutral.dark.opaque1100,
   },
   accent: {
     /**
@@ -981,14 +981,14 @@ const graphics = {
     moderate: color.blue.dark.opaque900,
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzdCNTJGRiIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzlBOTRGOSIvPgogIDwvc3ZnPg==)
      *
-     * `accent.vibrant` `#7B52FF`
+     * `accent.vibrant` `#9A94F9`
      *
      * Used situationally, but its primary purpose is to emphasize shapes in
      * data visualisations. This is the most intense token of its family.
      */
-    vibrant: color.blue.dark.opaque900,
+    vibrant: color.blue.dark.opaque1100,
   },
   promotion: {
     /**
@@ -1014,14 +1014,14 @@ const graphics = {
     moderate: color.pink.dark.opaque900,
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGMjZBQiIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0VENzdBQSIvPgogIDwvc3ZnPg==)
      *
-     * `promotion.vibrant` `#FF26AB`
+     * `promotion.vibrant` `#ED77AA`
      *
      * Used situationally, but its primary purpose is to emphasize shapes in
      * data visualisations. This is the most intense token of its family.
      */
-    vibrant: color.pink.dark.opaque1000,
+    vibrant: color.pink.dark.opaque1100,
   },
   danger: {
     /**
@@ -1046,14 +1046,14 @@ const graphics = {
     moderate: color.red.dark.opaque900,
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGMDAxNSIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZFNzI2RSIvPgogIDwvc3ZnPg==)
      *
-     * `danger.vibrant` `#FF0015`
+     * `danger.vibrant` `#FE726E`
      *
      * Used situationally, but its primary purpose is to emphasize shapes in
      * data visualisations. This is the most intense token of its family.
      */
-    vibrant: color.red.dark.opaque900,
+    vibrant: color.red.dark.opaque1100,
   },
   warning: {
     /**
@@ -1110,14 +1110,14 @@ const graphics = {
     moderate: color.green.dark.opaque900,
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzAwRjc0NiIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzAwRDI2NyIvPgogIDwvc3ZnPg==)
      *
-     * `success.vibrant` `#00F746`
+     * `success.vibrant` `#00D267`
      *
      * Used situationally, but its primary purpose is to emphasize shapes in
      * data visualisations. This is the most intense token of its family.
      */
-    vibrant: color.green.dark.opaque1100,
+    vibrant: color.green.dark.opaque1200,
   },
 };
 
@@ -1689,40 +1689,40 @@ const interactive = {
         background: {
           /**
            *
-           * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiM0QzI3QkY5NCIvPgogIDwvc3ZnPg==)
+           * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiM2MDI1Rjk1RSIvPgogIDwvc3ZnPg==)
            *
-           * `transparent.accent.selected.background.rest` `#4C27BF94`
+           * `transparent.accent.selected.background.rest` `#6025F95E`
            *
            * Used specifically for the default state of selected transparent
            * interactive elements. This token is intended to be used with
            * `controls.transparent.accent.content`.* to complete a accent
            * variant of transparent interactive elements.
            */
-          rest: color.blue.dark.transparent500,
+          rest: color.blue.dark.transparent400,
           /**
            *
-           * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiM0NDI4OUZEMSIvPgogIDwvc3ZnPg==)
+           * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiM0QzI3QkY5NCIvPgogIDwvc3ZnPg==)
            *
-           * `transparent.accent.selected.background.hover` `#44289FD1`
+           * `transparent.accent.selected.background.hover` `#4C27BF94`
            *
            * Used specifically for the hover state of selected transparent
            * interactive elements. This token is intended to be used with
            * `controls.transparent.accent.content`.* to complete a accent
            * variant of transparent interactive elements.
            */
-          hover: color.blue.dark.transparent600,
+          hover: color.blue.dark.transparent500,
           /**
            *
-           * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiM2NzNFRTFBQiIvPgogIDwvc3ZnPg==)
+           * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiM0NDI4OUZEMSIvPgogIDwvc3ZnPg==)
            *
-           * `transparent.accent.selected.background.active` `#673EE1AB`
+           * `transparent.accent.selected.background.active` `#44289FD1`
            *
            * Used specifically for the pressed state of selected transparent
            * interactive elements. This token is intended to be used with
            * `controls.transparent.accent.content`.* to complete a accent
            * variant of transparent interactive elements.
            */
-          active: color.blue.dark.transparent700,
+          active: color.blue.dark.transparent600,
         },
       },
     },
