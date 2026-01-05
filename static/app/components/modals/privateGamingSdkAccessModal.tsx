@@ -167,13 +167,6 @@ export function PrivateGamingSdkAccessModal({
     mutate({platforms: gamingPlatforms});
   }
 
-  function stringToConsoleOption(value: string): {label: string; value: string} {
-    return {
-      value,
-      label: CONSOLE_PLATFORM_METADATA[value]?.displayName ?? value,
-    };
-  }
-
   return (
     <Fragment>
       <Header closeButton>
@@ -218,8 +211,12 @@ export function PrivateGamingSdkAccessModal({
               name="gamingPlatforms"
               label={t('Select Gaming Platforms')}
               placeholder={t('Select one or more gaming platforms')}
-              options={organization.enabledConsolePlatforms?.map(stringToConsoleOption)}
-              defaultValue={gamingPlatforms.map(stringToConsoleOption)}
+              options={organization.enabledConsolePlatforms?.map(value => ({
+                value,
+                label:
+                  CONSOLE_PLATFORM_METADATA[value as GamingPlatform]?.displayName ??
+                  value,
+              }))}
               onChange={setGamingPlatforms}
               multiple
               required
