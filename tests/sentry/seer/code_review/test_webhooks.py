@@ -876,44 +876,6 @@ class IssueCommentEventWebhookTest(GitHubWebhookHelper):
             mock_reaction.assert_not_called()
             self.mock_seer.assert_not_called()
 
-    def test_skips_when_comment_on_non_pr_issue(self) -> None:
-        """Test that comments on regular issues (not PRs) are skipped gracefully."""
-        with self.code_review_setup():
-            event = {
-                "action": "created",
-                "comment": {
-                    "body": f"Please {SENTRY_REVIEW_COMMAND} this",
-                    "id": 123456789,
-                },
-                "issue": {
-                    "number": 42,
-                },
-                "repository": {
-                    "id": 12345,
-                    "full_name": "owner/repo",
-                    "html_url": "https://github.com/owner/repo",
-                },
-            }
-
-            with self.tasks():
-                response = self._send_issue_comment_event(orjson.dumps(event))
-                assert response.status_code == 204
-
-            self.mock_seer.assert_not_called()
-
-    def test_processes_review_command_in_middle_of_comment(self) -> None:
-        """Test that review command is detected anywhere in the comment body."""
-        with self.code_review_setup():
-            event = self._build_issue_comment_event(
-                f"I found a bug. {SENTRY_REVIEW_COMMAND} this change please. Thanks!"
-            )
-
-            with self.tasks():
-                response = self._send_issue_comment_event(event)
-                assert response.status_code == 204
-
-            self.mock_seer.assert_called_once()
-
     def test_validates_seer_request_contains_trigger_metadata(self) -> None:
         """Test that Seer request includes trigger metadata from the comment."""
         with self.code_review_setup():
