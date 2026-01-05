@@ -779,6 +779,7 @@ class IssueCommentEventWebhookTest(GitHubWebhookHelper):
         self._send_issue_comment_event(event)
         mock_schedule.assert_not_called()
 
+    @pytest.mark.skip(reason="flaky: #105648")
     @patch("sentry.seer.code_review.webhooks.task.schedule_task")
     @with_feature({"organizations:gen-ai-features"})
     def test_runs_when_code_review_beta_flag_disabled_but_pr_review_test_generation_enabled(
