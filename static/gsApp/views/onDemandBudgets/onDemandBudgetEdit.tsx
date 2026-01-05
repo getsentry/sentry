@@ -1,16 +1,11 @@
 import {Component, Fragment} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
-import {Tag} from 'sentry/components/core/badge/tag';
 import {Input} from 'sentry/components/core/input';
 import {Container} from 'sentry/components/core/layout';
-import {Radio} from 'sentry/components/core/radio';
 import {Heading} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelItem from 'sentry/components/panels/panelItem';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -24,12 +19,8 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {CronsOnDemandStepWarning} from 'getsentry/components/cronsOnDemandStepWarning';
 import type {OnDemandBudgets, Plan, Subscription} from 'getsentry/types';
 import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
-import {
-  displayBudgetName,
-  getOnDemandCategories,
-  hasNewBillingUI,
-} from 'getsentry/utils/billing';
-import {getPlanCategoryName, listDisplayNames} from 'getsentry/utils/dataCategory';
+import {displayBudgetName, getOnDemandCategories} from 'getsentry/utils/billing';
+import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import {parseOnDemandBudgetsFromSubscription} from 'getsentry/views/onDemandBudgets/utils';
 import EmbeddedSpendLimitSettings from 'getsentry/views/spendLimits/embeddedSettings';
 
@@ -224,129 +215,7 @@ class OnDemandBudgetEdit extends Component<Props> {
   };
 
   render() {
-    const {
-      onDemandBudget,
-      onDemandEnabled,
-      onDemandSupported,
-      currentBudgetMode,
-      setBudgetMode,
-      activePlan,
-      subscription,
-      organization,
-    } = this.props;
-
-    const isNewBillingUI = hasNewBillingUI(organization);
-
-    const selectedBudgetMode = onDemandBudget.budgetMode;
-    const perCategoryCategories = listDisplayNames({
-      plan: activePlan,
-      categories: getOnDemandCategories({
-        plan: activePlan,
-        budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-      }),
-    });
-
-    if (!isNewBillingUI) {
-      if (subscription.planDetails.budgetTerm === 'pay-as-you-go') {
-        return (
-          <PaygBody>
-            <BudgetDetails>
-              <Description>
-                {t(
-                  "This budget ensures continued monitoring after you've used up your reserved event volume. We'll only charge you for actual usage, so this is your maximum charge for overage.%s",
-                  subscription.isSelfServePartner
-                    ? ` This will be part of your ${subscription.partner?.partnership.displayName} bill.`
-                    : ''
-                )}
-              </Description>
-              {this.renderInputFields(OnDemandBudgetMode.SHARED)}
-            </BudgetDetails>
-          </PaygBody>
-        );
-      }
-
-      return (
-        <PanelBody>
-          <BudgetModeOption isSelected={selectedBudgetMode === OnDemandBudgetMode.SHARED}>
-            <Label aria-label={t('Shared')}>
-              <div>
-                <BudgetContainer>
-                  <StyledRadio
-                    readOnly
-                    id="shared"
-                    value="shared"
-                    data-test-id="shared-budget-radio"
-                    checked={selectedBudgetMode === OnDemandBudgetMode.SHARED}
-                    disabled={!onDemandSupported}
-                    onClick={() => {
-                      setBudgetMode(OnDemandBudgetMode.SHARED);
-                    }}
-                  />
-                  <BudgetDetails>
-                    <Title>
-                      <OnDemandType>{t('Shared')}</OnDemandType>
-                      {onDemandEnabled &&
-                        currentBudgetMode === OnDemandBudgetMode.SHARED && (
-                          <Tag variant="muted">{t('Current Budget')}</Tag>
-                        )}
-                    </Title>
-                    <Description>
-                      {tct(
-                        'The [budgetTerm] is shared among all categories on a first come, first serve basis. There are no restrictions for any single category consuming the entire budget.',
-                        {
-                          budgetTerm: displayBudgetName(activePlan),
-                        }
-                      )}
-                    </Description>
-                    {this.renderInputFields(OnDemandBudgetMode.SHARED)}
-                  </BudgetDetails>
-                </BudgetContainer>
-              </div>
-            </Label>
-          </BudgetModeOption>
-          <BudgetModeOption
-            isSelected={selectedBudgetMode === OnDemandBudgetMode.PER_CATEGORY}
-          >
-            <Label aria-label={t('Per-Category')}>
-              <div>
-                <BudgetContainer>
-                  <StyledRadio
-                    readOnly
-                    id="per_category"
-                    value="per_category"
-                    data-test-id="per-category-budget-radio"
-                    checked={selectedBudgetMode === OnDemandBudgetMode.PER_CATEGORY}
-                    disabled={!onDemandSupported}
-                    onClick={() => {
-                      setBudgetMode(OnDemandBudgetMode.PER_CATEGORY);
-                    }}
-                  />
-                  <BudgetDetails>
-                    <Title>
-                      <OnDemandType>{t('Per-Category')}</OnDemandType>
-                      {onDemandEnabled &&
-                        currentBudgetMode === OnDemandBudgetMode.PER_CATEGORY && (
-                          <Tag variant="muted">{t('Current Budget')}</Tag>
-                        )}
-                    </Title>
-                    <Description>
-                      {tct(
-                        'Dedicated [budgetTerm] for [perCategoryCategories]. Any overages in one category will not consume the budget of another category.',
-                        {
-                          budgetTerm: displayBudgetName(activePlan, {withBudget: true}),
-                          perCategoryCategories,
-                        }
-                      )}
-                    </Description>
-                    {this.renderInputFields(OnDemandBudgetMode.PER_CATEGORY)}
-                  </BudgetDetails>
-                </BudgetContainer>
-              </div>
-            </Label>
-          </BudgetModeOption>
-        </PanelBody>
-      );
-    }
+    const {subscription, organization} = this.props;
 
     const addOnDataCategories = Object.values(
       subscription.planDetails.addOnCategories
@@ -382,58 +251,10 @@ class OnDemandBudgetEdit extends Component<Props> {
   }
 }
 
-const BudgetModeOption = styled(PanelItem)<{isSelected?: boolean}>`
-  padding: 0;
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
-
-  ${p =>
-    p.isSelected &&
-    css`
-      background: ${p.theme.backgroundSecondary};
-      color: ${p.theme.tokens.content.primary};
-    `}
-`;
-
-const Label = styled('label')`
-  padding: ${space(2)} ${space(4)};
-  font-weight: normal;
-  width: 100%;
-  margin: 0;
-`;
-
-const PaygBody = styled('div')`
-  padding: ${space(2)} ${space(4)};
-  font-weight: normal;
-`;
-
-const BudgetContainer = styled('div')`
-  display: grid;
-  grid-template-columns: max-content auto;
-  gap: ${space(1.5)};
-`;
-
 const InputFields = styled('div')`
   color: ${p => p.theme.gray400};
   font-size: ${p => p.theme.fontSize.md};
   margin-bottom: 1px;
-`;
-
-const StyledRadio = styled(Radio)`
-  background: ${p => p.theme.tokens.background.primary};
-`;
-
-const BudgetDetails = styled('div')`
-  display: inline-grid;
-  gap: ${space(0.75)};
-  font-size: ${p => p.theme.fontSize.xl};
-  color: ${p => p.theme.tokens.content.primary};
-`;
-
-const Title = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: 1rem;
-  flex-wrap: nowrap;
 `;
 
 const Description = styled(TextBlock)`
@@ -458,10 +279,6 @@ const OnDemandInput = styled(Input)`
   color: ${p => p.theme.tokens.content.primary};
   max-width: 140px;
   height: 36px;
-`;
-
-const OnDemandType = styled('div')`
-  font-weight: 600;
 `;
 
 const MediumTitle = styled('div')`

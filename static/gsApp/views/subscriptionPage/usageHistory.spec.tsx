@@ -60,24 +60,7 @@ describe('Subscription > UsageHistory', () => {
     });
   });
 
-  it('renders for old billing UI', async () => {
-    MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/history/`,
-      method: 'GET',
-      body: [BillingHistoryFixture()],
-    });
-    const subscription = SubscriptionFixture({organization});
-    SubscriptionStore.set(organization.slug, subscription);
-
-    render(<UsageHistory {...RouteComponentPropsFixture()} />, {organization});
-    expect(await screen.findByTestId('history-expand')).toBeInTheDocument();
-    expect(
-      screen.queryByRole('heading', {name: /Usage History/i})
-    ).not.toBeInTheDocument();
-  });
-
-  it('renders for new billing UI', async () => {
-    organization.features = ['subscriptions-v3'];
+  it('renders', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/history/`,
       method: 'GET',
