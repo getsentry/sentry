@@ -26,9 +26,9 @@ from sentry.api.utils import handle_query_errors
 from sentry.apidocs import constants as api_constants
 from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPerformanceExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models.organization import Organization
-from sentry.ratelimits.config import RateLimitConfig
 from sentry.search.eap.trace_metrics.config import (
     TraceMetricsSearchResolverConfig,
     get_trace_metric_from_request,
@@ -50,7 +50,6 @@ from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import DATASET_LABELS, RPC_DATASETS
-from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.snuba import SnubaTSResult
 
 TOP_EVENTS_DATASETS = {
@@ -78,25 +77,12 @@ def null_zero(value: float) -> float | None:
         return value
 
 
-@extend_schema(tags=["Discover"])
+@extend_schema(tags=["Explore"])
 @region_silo_endpoint
 class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
-
-    enforce_rate_limit = True
-
-    # These are copied from /events for now
-    rate_limits = RateLimitConfig(
-        limit_overrides={
-            "GET": {
-                RateLimitCategory.IP: RateLimit(limit=30, window=1, concurrent_limit=15),
-                RateLimitCategory.USER: RateLimit(limit=30, window=1, concurrent_limit=15),
-                RateLimitCategory.ORGANIZATION: RateLimit(limit=30, window=1, concurrent_limit=15),
-            }
-        }
-    )
 
     def get_features(
         self, organization: Organization, request: Request
@@ -154,27 +140,40 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
 
     @extend_schema(
         operation_id="Query Explore Events in Timeseries Format",
-        parameters=[  # TODO
+        parameters=[
             GlobalParams.END,
             GlobalParams.ENVIRONMENT,
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
             GlobalParams.START,
             GlobalParams.STATS_PERIOD,
-            VisibilityParams.FIELD,
-            VisibilityParams.PER_PAGE,
-            VisibilityParams.QUERY,
+            VisibilityParams.TOP_EVENTS,
+            VisibilityParams.COMPARISON_DELTA,
+            VisibilityParams.DATASET,
+            VisibilityParams.INTERVAL,
             VisibilityParams.SORT,
+            VisibilityParams.GROUP_BY,
+            VisibilityParams.Y_AXIS,
+            VisibilityParams.QUERY,
+            VisibilityParams.DISABLE_AGGREGATE_EXTRAPOLATION,
+            VisibilityParams.PREVENT_METRIC_AGGREGATES,
+            VisibilityParams.EXCLUDE_OTHER,
         ],
         responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationEventsTimeseriesResponse", StatsResponse
+            ),
             400: OpenApiResponse(description="Invalid Query"),
             404: api_constants.RESPONSE_NOT_FOUND,
         },
-        examples=DiscoverAndPerformanceExamples.QUERY_DISCOVER_EVENTS,  # TODO
+        examples=DiscoverAndPerformanceExamples.QUERY_TIMESERIES,
     )
     def get(self, request: Request, organization: Organization) -> Response:
         """
-        TODO
+        Retrieves explore data for a given organization.
+
+        This endpoint can return timeseries for 1-many axis, and the top grouped results depending on the parameters
+        passed
         """
         with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
             span.set_data("organization", organization)

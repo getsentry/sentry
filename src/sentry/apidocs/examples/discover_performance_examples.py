@@ -39,3 +39,48 @@ class DiscoverAndPerformanceExamples:
             response_only=True,
         )
     ]
+
+    QUERY_TIMESERIES = [
+        OpenApiExample(
+            "Query Top Events as a Timeseries",
+            value={
+                "timeSeries": [
+                    {
+                        "values": [
+                            {"timestamp": 1741368281123, "value": 5},
+                            {"timestamp": 1741368281123, "value": 5},
+                        ],
+                        "axis": "count()",
+                        "groupBy": [
+                            {"transaction": "foo"},
+                            {"project": "bar"},
+                            {"tag[foo]": "baz"},
+                        ],
+                        "meta": {
+                            "valueType": "integer",
+                            "interval": 3600,
+                        },
+                    },
+                    {
+                        "values": [
+                            {"timestamp": 1741368281123, "value": 5},
+                            {"timestamp": 1741368281123, "value": 5},
+                        ],
+                        "axis": "count()",
+                        "groupBy": [
+                            {"transaction": "foo"},
+                            {"project": "ball"},
+                            {"tag[foo]": "baz"},
+                        ],
+                        "meta": {
+                            "valueType": "integer",
+                            "interval": 3600,
+                        },
+                    },
+                ],
+                "meta": {"dataset": "spans", "start": 1741368281123, "end": 1741368281123},
+            },
+            status_codes=["200"],
+            response_only=True,
+        ),
+    ]
