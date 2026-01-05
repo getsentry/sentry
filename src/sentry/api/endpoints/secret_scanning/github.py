@@ -161,11 +161,7 @@ class SecretScanningGitHubEndpoint(View):
                     context=context,
                 )
 
-                # only send email to users in the allowlist
-                allowed_emails = options.get("secret-scanning.github.notifications.email-allowlist")
-                recipients = [u.email for u in users if u.email in allowed_emails]
-                if recipients:
-                    msg.send_async(recipients)
+                msg.send_async([u.email for u in users])
 
                 response.append(
                     {

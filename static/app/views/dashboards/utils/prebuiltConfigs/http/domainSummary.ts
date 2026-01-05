@@ -11,10 +11,51 @@ import {
   THROUGHPUT_TEXT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/http/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
+import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
 const FILTER_STRING = MutableSearch.fromQueryObject(BASE_FILTERS).formatString();
+
+const DOMAIN_WIDGET: Widget = {
+  id: 'domain-widget',
+  title: t('Domain'),
+  displayType: DisplayType.DETAILS,
+  widgetType: WidgetType.SPANS,
+  interval: '5m',
+  queries: [
+    {
+      name: '',
+      fields: [
+        SpanFields.ID,
+        SpanFields.SPAN_OP,
+        SpanFields.SPAN_GROUP,
+        SpanFields.SPAN_DESCRIPTION,
+        SpanFields.SPAN_CATEGORY,
+      ] satisfies DefaultDetailWidgetFields[],
+      aggregates: [],
+      columns: [
+        SpanFields.ID,
+        SpanFields.SPAN_OP,
+        SpanFields.SPAN_GROUP,
+        SpanFields.SPAN_DESCRIPTION,
+        SpanFields.SPAN_CATEGORY,
+      ] satisfies DefaultDetailWidgetFields[],
+      fieldAliases: [],
+      conditions: FILTER_STRING,
+      orderby: SpanFields.ID,
+      onDemand: [],
+      linkedDashboards: [],
+    },
+  ],
+  layout: {
+    x: 0,
+    y: 0,
+    minH: 1,
+    h: 1,
+    w: 6,
+  },
+};
 
 const BIG_NUMBER_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
   [
@@ -121,7 +162,7 @@ const BIG_NUMBER_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
       ],
     },
   ],
-  0,
+  1,
   {h: 1, minH: 1}
 );
 
@@ -195,7 +236,7 @@ const CHART_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
       ],
     },
   ],
-  1
+  2
 );
 
 const TRANSACTIONS_TABLE: Widget = {
@@ -231,7 +272,7 @@ const TRANSACTIONS_TABLE: Widget = {
   ],
   layout: {
     x: 0,
-    y: 3,
+    y: 4,
     minH: 2,
     h: 5,
     w: 6,
@@ -255,5 +296,10 @@ export const HTTP_DOMAIN_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
       },
     ],
   },
-  widgets: [...BIG_NUMBER_ROW_WIDGETS, ...CHART_ROW_WIDGETS, TRANSACTIONS_TABLE],
+  widgets: [
+    DOMAIN_WIDGET,
+    ...BIG_NUMBER_ROW_WIDGETS,
+    ...CHART_ROW_WIDGETS,
+    TRANSACTIONS_TABLE,
+  ],
 };
