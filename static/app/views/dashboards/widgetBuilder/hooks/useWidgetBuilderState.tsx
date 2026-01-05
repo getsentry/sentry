@@ -36,6 +36,7 @@ import {
 import {generateMetricAggregate} from 'sentry/views/dashboards/widgetBuilder/utils/generateMetricAggregate';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+import {OPTIONS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -575,6 +576,26 @@ function useWidgetBuilderState(): {
             // Clear the sort if there is no grouping
             setSort([], options);
           }
+
+          if (
+            dataset === WidgetType.TRACEMETRICS &&
+            traceMetric &&
+            sort &&
+            sort.length > 0 &&
+            action.payload.length > 0
+          ) {
+            if (!checkTraceMetricSortUsed(sort, traceMetric, action.payload, fields)) {
+              setSort(
+                [
+                  {
+                    kind: 'desc',
+                    field: generateMetricAggregate(traceMetric, action.payload[0]!),
+                  },
+                ],
+                options
+              );
+            }
+          }
           break;
         case BuilderStateAction.SET_QUERY:
           setQuery(action.payload, options);
@@ -635,7 +656,70 @@ function useWidgetBuilderState(): {
           setThresholds(action.payload, options);
           break;
         case BuilderStateAction.SET_TRACE_METRIC:
-          setTraceMetric(action.payload, options);
+          if (dataset === WidgetType.TRACEMETRICS) {
+            setTraceMetric(action.payload, options);
+
+            if (!action.payload) {
+              break;
+            }
+
+            // Check the validity of the aggregates against the new trace metric and
+            // set fields and sorting accordingly
+            let updatedAggregates: Column[] = [];
+            const aggregateSource = isChartDisplayType(displayType) ? yAxis : fields;
+            const validAggregateOptions = OPTIONS_BY_TYPE[action.payload.type] ?? [];
+
+            if (aggregateSource && validAggregateOptions.length > 0) {
+              updatedAggregates = aggregateSource.map(field => {
+                if (field.kind === 'function' && field.function?.[0]) {
+                  const aggregate = field.function[0];
+                  const isValid = validAggregateOptions.some(
+                    opt => opt.value === aggregate
+                  );
+
+                  if (!isValid) {
+                    // Replace with first valid aggregate
+                    return {
+                      function: [
+                        validAggregateOptions[0]?.value ?? '',
+                        'value',
+                        undefined,
+                        undefined,
+                      ],
+                      alias: undefined,
+                      kind: 'function',
+                    } as QueryFieldValue;
+                  }
+                }
+                return field;
+              });
+
+              // Update the appropriate source
+              if (isChartDisplayType(displayType)) {
+                setYAxis(updatedAggregates, options);
+              } else {
+                setFields(updatedAggregates, options);
+              }
+            }
+
+            if (
+              sort &&
+              !checkTraceMetricSortUsed(sort, action.payload, updatedAggregates, fields)
+            ) {
+              setSort(
+                [
+                  {
+                    field: generateMetricAggregate(
+                      action.payload,
+                      updatedAggregates?.[0]!
+                    ),
+                    kind: 'desc',
+                  },
+                ],
+                options
+              );
+            }
+          }
           break;
         default:
           break;
@@ -825,6 +909,21 @@ function deserializeTraceMetric(traceMetric: string): TraceMetric | undefined {
     return undefined;
   }
   return JSON.parse(traceMetric);
+}
+
+function checkTraceMetricSortUsed(
+  sort: Sort[],
+  traceMetric: TraceMetric,
+  yAxis: Column[] = [],
+  fields: Column[] = []
+): boolean {
+  const sortInFields = fields?.some(
+    field => generateFieldAsString(field) === sort[0]?.field
+  );
+  const sortInYAxis = yAxis?.some(
+    field => generateMetricAggregate(traceMetric, field) === sort[0]?.field
+  );
+  return sortInFields || sortInYAxis;
 }
 
 export default useWidgetBuilderState;
