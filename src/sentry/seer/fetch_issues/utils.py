@@ -84,13 +84,14 @@ def get_repo_and_projects(
         }
     )
     repo = Repository.objects.get(
-        organization_id=organization_id, provider=provider, external_id=external_id
+        organization_id=organization_id,
+        provider=provider,
+        external_id=external_id,
+        status=ObjectStatus.ACTIVE,
     )
     repo_configs = list(
         RepositoryProjectPathConfig.objects.filter(
-            organization_id=organization_id,
-            repository_id=repo.id,
-            status=ObjectStatus.ACTIVE,
+            organization_id=organization_id, repository_id=repo.id
         )
     )
     projects = [config.project for config in repo_configs]
