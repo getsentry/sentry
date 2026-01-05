@@ -1,5 +1,7 @@
 from collections.abc import Generator
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import orjson
@@ -41,6 +43,16 @@ class GitHubWebhookHelper(GitHubWebhookTestCase):
     def _enable_code_review(self) -> None:
         """Enable all required options for code review to work."""
         self.organization.update_option("sentry:enable_pr_review_test_generation", True)
+
+    @contextmanager
+    def code_review_setup(self, features: set[str] | dict[str, Any] = CODE_REVIEW_FEATURES):
+        """Helper to set up code review test context."""
+        self._enable_code_review()
+        with (
+            self.feature(features),
+            self.options({"github.webhook.issue-comment": False}),
+        ):
+            yield
 
     def _send_webhook_event(
         self, github_event: GithubWebhookType, event_data: bytes | str
@@ -777,26 +789,18 @@ class IssueCommentEventWebhookTest(GitHubWebhookHelper):
 
     def test_skips_when_code_review_features_are_missing(self) -> None:
         """Test that processing is skipped when code review features are missing."""
-        self._enable_code_review()
-        with (
-            self.feature({}),  # Missing on purpose
-            self.options({"github.webhook.issue-comment": False}),
-        ):
+        with self.code_review_setup(features={}):  # Missing on purpose
             event = self._build_issue_comment_event(f"Please {SENTRY_REVIEW_COMMAND} this PR")
 
             with self.tasks():
                 response = self._send_issue_comment_event(event)
                 assert response.status_code == 204
 
-        self.mock_seer.assert_not_called()
+            self.mock_seer.assert_not_called()
 
     def test_skips_when_no_review_command(self) -> None:
         """Test that processing is skipped when comment doesn't contain review command."""
-        self._enable_code_review()
-        with (
-            self.feature(CODE_REVIEW_FEATURES),
-            self.options({"github.webhook.issue-comment": False}),
-        ):
+        with self.code_review_setup():
             event = self._build_issue_comment_event("This is a regular comment without the command")
 
             with self.tasks():
@@ -824,11 +828,7 @@ class IssueCommentEventWebhookTest(GitHubWebhookHelper):
 
     def test_adds_reaction_and_forwards_when_valid(self) -> None:
         """Test successful PR review command processing with reaction and Seer request."""
-        self._enable_code_review()
-        with (
-            self.feature(CODE_REVIEW_FEATURES),
-            self.options({"github.webhook.issue-comment": False}),
-        ):
+        with self.code_review_setup():
             event = self._build_issue_comment_event(f"Please {SENTRY_REVIEW_COMMAND} this PR")
 
             with self.tasks():
@@ -849,11 +849,7 @@ class IssueCommentEventWebhookTest(GitHubWebhookHelper):
     @patch("sentry.seer.code_review.webhooks.issue_comment._add_eyes_reaction_to_comment")
     def test_skips_reaction_when_no_comment_id(self, mock_reaction: MagicMock) -> None:
         """Test that reaction is skipped when comment has no ID, but processing continues."""
-        self._enable_code_review()
-        with (
-            self.feature(CODE_REVIEW_FEATURES),
-            self.options({"github.webhook.issue-comment": False}),
-        ):
+        with self.code_review_setup():
             event = self._build_issue_comment_event(SENTRY_REVIEW_COMMAND, comment_id=None)
 
             with self.tasks():
@@ -882,11 +878,7 @@ class IssueCommentEventWebhookTest(GitHubWebhookHelper):
 
     def test_skips_when_comment_on_non_pr_issue(self) -> None:
         """Test that comments on regular issues (not PRs) are skipped gracefully."""
-        self._enable_code_review()
-        with (
-            self.feature(CODE_REVIEW_FEATURES),
-            self.options({"github.webhook.issue-comment": False}),
-        ):
+        with self.code_review_setup():
             event = {
                 "action": "created",
                 "comment": {
@@ -911,11 +903,7 @@ class IssueCommentEventWebhookTest(GitHubWebhookHelper):
 
     def test_processes_review_command_in_middle_of_comment(self) -> None:
         """Test that review command is detected anywhere in the comment body."""
-        self._enable_code_review()
-        with (
-            self.feature(CODE_REVIEW_FEATURES),
-            self.options({"github.webhook.issue-comment": False}),
-        ):
+        with self.code_review_setup():
             event = self._build_issue_comment_event(
                 f"I found a bug. {SENTRY_REVIEW_COMMAND} this change please. Thanks!"
             )
@@ -928,11 +916,7 @@ class IssueCommentEventWebhookTest(GitHubWebhookHelper):
 
     def test_validates_seer_request_contains_trigger_metadata(self) -> None:
         """Test that Seer request includes trigger metadata from the comment."""
-        self._enable_code_review()
-        with (
-            self.feature(CODE_REVIEW_FEATURES),
-            self.options({"github.webhook.issue-comment": False}),
-        ):
+        with self.code_review_setup():
             event_dict = orjson.loads(
                 self._build_issue_comment_event(f"Please {SENTRY_REVIEW_COMMAND} this PR")
             )
