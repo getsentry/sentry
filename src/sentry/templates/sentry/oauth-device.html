@@ -1,24 +1,23 @@
 {% extends "sentry/bases/auth.html" %}
 
 {% load crispy_forms_tags %}
-{% load i18n %}
 
-{% block title %}{% trans "Authorize Device" %} | {{ block.super }}{% endblock %}
+{% block title %}Authorize Device | {{ block.super }}{% endblock %}
 
 {% block auth_main %}
   <form class="form-stacked" action="." method="post" autocomplete="off">
     {% csrf_token %}
 
     <div>
-      <h2>{% trans "Enter Device Code" %}</h2>
-      <p>{% trans "Enter the code displayed on your device to authorize it." %}</p>
+      <h2>Enter Device Code</h2>
+      <p>Enter the code displayed on your device to authorize it.</p>
 
       {% if error %}
         <div class="alert alert-error">{{ error }}</div>
       {% endif %}
 
       <div class="form-group">
-        <label for="user_code">{% trans "Device Code" %}</label>
+        <label for="user_code">Device Code</label>
         <input type="text"
                name="user_code"
                id="user_code"
@@ -29,12 +28,12 @@
                style="text-transform: uppercase; letter-spacing: 2px; font-size: 1.5em; text-align: center;"
                autofocus
                required>
-        <p class="help-block">{% trans "The code should be 8 letters, like ABCD-EFGH" %}</p>
+        <p class="help-block">The code should be 8 letters, like ABCD-EFGH</p>
       </div>
     </div>
 
     <div class="auth-footer">
-      <button type="submit" class="btn btn-primary">{% trans "Continue" %}</button>
+      <button type="submit" class="btn btn-primary">Continue</button>
     </div>
   </form>
 {% endblock %}

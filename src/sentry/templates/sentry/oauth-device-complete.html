@@ -1,14 +1,12 @@
 {% extends "sentry/bases/auth.html" %}
 
-{% load i18n %}
-
-{% block title %}{% trans "Device Authorization Complete" %} | {{ block.super }}{% endblock %}
+{% block title %}Device Authorization Complete | {{ block.super }}{% endblock %}
 
 {% block auth_main %}
   <div>
     {% if application %}
       <div class="alert alert-success">
-        <h4>{% trans "Success!" %}</h4>
+        <h4>Success!</h4>
         <p>{{ message }}</p>
       </div>
     {% else %}
@@ -18,7 +16,7 @@
     {% endif %}
 
     <div class="auth-footer" style="margin-top: 2em;">
-      <a href="/" class="btn btn-default">{% trans "Go to Sentry" %}</a>
+      <a href="/" class="btn btn-default">Go to Sentry</a>
     </div>
   </div>
 {% endblock %}

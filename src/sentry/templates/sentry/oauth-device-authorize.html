@@ -1,10 +1,9 @@
 {% extends "sentry/bases/auth.html" %}
 
 {% load crispy_forms_tags %}
-{% load i18n %}
 {% load sentry_avatars %}
 
-{% block title %}{% trans "Authorize Device" %} | {{ block.super }}{% endblock %}
+{% block title %}Authorize Device | {{ block.super }}{% endblock %}
 
 {% block auth_main %}
   <form class="form-stacked" action="." method="post" autocomplete="off">
@@ -13,22 +12,20 @@
 
     <div>
       <div class="alert alert-info">
-        <strong>{% trans "Device Authorization" %}</strong><br>
-        {% trans "Code:" %} <code style="font-size: 1.2em;">{{ user_code }}</code>
+        <strong>Device Authorization</strong><br>
+        Code: <code style="font-size: 1.2em;">{{ user_code }}</code>
       </div>
 
-      <p><strong>{{ application.name }}</strong> {% trans "is requesting access to your Sentry account linked to" %} ({{ user.username }}). {% trans "Granting this access will give" %} {{ application.name }} {% trans "access to your account details, including:" %}</p>
+      <p><strong>{{ application.name }}</strong> is requesting access to your Sentry account ({{ user.username }}). Granting this access will give {{ application.name }} access to your account details, including:</p>
       <ul>
-        <li>{% trans "Your name" %}</li>
-        <li>{% trans "Your email address" %}</li>
+        <li>Your name</li>
+        <li>Your email address</li>
       </ul>
       <p>
         {% if organization_options|length != 1 %}
-        <!-- If application needs user level access or it's org level access and user has multiple orgs -->
-          {{ application.name }} {% trans "will also have the following permissions to your Sentry organizations:" %}
+          {{ application.name }} will also have the following permissions to your Sentry organizations:
         {% else %}
-        <!-- If user only has one org and application requires org level access, choose that org by default -->
-          {{ application.name }} {% trans "will also have the following permissions to your Sentry organization" %} <strong>{{ organization_options.0.name }}</strong>:
+          {{ application.name }} will also have the following permissions to your Sentry organization <strong>{{ organization_options.0.name }}</strong>:
           <input type="hidden" name="selected_organization_id" value="{{ organization_options.0.id }}">
         {% endif %}
       </p>
@@ -39,8 +36,7 @@
       </ul>
 
       {% if organization_options|length > 1 %}
-        <!-- If there are multiple organizations and application requires org level access, show the selector -->
-        <label for="organization">{% trans "Select one of your Sentry organizations to grant access to:" %}</label>
+        <label for="organization">Select one of your Sentry organizations to grant access to:</label>
         <select name="selected_organization_id" id="organization_id" class="form-control">
             {% for organization in organization_options %}
                 <option value="{{ organization.id }}">{{ organization.name }}</option>
@@ -51,24 +47,24 @@
       {% if application.terms_url or application.privacy_url %}
         <p><small>
           {% if application.terms_url %}
-            <a href="{{ application.terms_url }}">{% trans "Terms of Use" %}</a>
+            <a href="{{ application.terms_url }}">Terms of Use</a>
             {% if application.privacy_url %} &mdash; {% endif %}
           {% endif %}
           {% if application.privacy_url %}
-            <a href="{{ application.privacy_url }}">{% trans "Privacy Policy" %}</a>
+            <a href="{{ application.privacy_url }}">Privacy Policy</a>
           {% endif %}
         </small></p>
       {% endif %}
 
       <div class="alert alert-warning" style="margin-top: 1em;">
-        <strong>{% trans "Security Notice" %}</strong><br>
-        {% trans "Only approve this request if you initiated it from a trusted device. If you didn't request this authorization, click Deny." %}
+        <strong>Security Notice</strong><br>
+        Only approve this request if you initiated it from a trusted device. If you didn't request this authorization, click Deny.
       </div>
     </div>
 
     <div class="auth-footer">
-      <button type="submit" class="btn btn-primary" name="op" value="approve">{% trans "Approve" %}</button>
-      <button type="submit" class="btn btn-danger" name="op" value="deny">{% trans "Deny" %}</button>
+      <button type="submit" class="btn btn-primary" name="op" value="approve">Approve</button>
+      <button type="submit" class="btn btn-danger" name="op" value="deny">Deny</button>
     </div>
   </form>
 {% endblock %}
