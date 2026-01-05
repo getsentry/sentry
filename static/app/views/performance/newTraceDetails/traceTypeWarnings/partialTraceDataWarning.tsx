@@ -75,7 +75,7 @@ export function PartialTraceDataWarning({
 
   return (
     <Alert
-      type="warning"
+      variant="warning"
       trailingItems={
         <Link to={exploreUrl}>{t('Search similar traces in the past 24 hours')}</Link>
       }

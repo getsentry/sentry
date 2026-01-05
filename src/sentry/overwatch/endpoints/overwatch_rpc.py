@@ -205,7 +205,15 @@ class CodeReviewRepoSettingsEndpoint(Endpoint):
 
         if repo_settings is None:
             organization = Organization.objects.filter(id=sentry_org_id).first()
-            if organization and features.has("organizations:code-review-beta", organization):
+            if organization and (
+                features.has("organizations:code-review-beta", organization)
+                or bool(
+                    organization.get_option(
+                        "sentry:enable_pr_review_test_generation",
+                        False,
+                    )
+                )
+            ):
                 return Response(
                     {
                         "enabledCodeReview": True,

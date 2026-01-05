@@ -16,16 +16,50 @@ import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import type {TabListItemProps} from './item';
 import {TabListItem} from './item';
 import {Tab} from './tab';
-import type {BaseTabProps} from './tab.chonk';
-import {ChonkStyledTabListOverflowWrap, ChonkStyledTabListWrap} from './tabList.chonk';
+import type {BaseTabProps} from './tab';
 import {TabsContext} from './tabs';
 import {tabsShouldForwardProp} from './utils';
+
+const StyledTabListWrap = styled('ul', {
+  shouldForwardProp: tabsShouldForwardProp,
+})<{
+  orientation: Orientation;
+  variant: BaseTabProps['variant'];
+}>`
+  position: relative;
+  display: grid;
+  padding: 0;
+  margin: 0;
+  list-style-type: none;
+  flex-shrink: 0;
+  gap: ${p => p.theme.space.xs};
+
+  ${p =>
+    p.orientation === 'horizontal'
+      ? css`
+          grid-auto-flow: column;
+          justify-content: start;
+        `
+      : css`
+          height: 100%;
+          grid-auto-flow: row;
+          align-content: start;
+          padding-right: ${space(0.5)};
+        `};
+`;
+
+const StyledTabListOverflowWrap = styled('div')`
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: ${p => p.theme.zIndex.dropdown};
+`;
 
 /**
  * Uses IntersectionObserver API to detect overflowing tabs. Returns an array
@@ -295,46 +329,9 @@ const TabListOuterWrap = styled('div')`
   position: relative;
 `;
 
-const TabListWrap = withChonk(
-  styled('ul', {shouldForwardProp: tabsShouldForwardProp})<{
-    orientation: Orientation;
-    variant: BaseTabProps['variant'];
-  }>`
-    position: relative;
-    display: grid;
-    padding: 0;
-    margin: 0;
-    list-style-type: none;
-    flex-shrink: 0;
+const TabListWrap = StyledTabListWrap;
 
-    ${p =>
-      p.orientation === 'horizontal'
-        ? css`
-            grid-auto-flow: column;
-            justify-content: start;
-            gap: ${p.variant === 'floating' ? 0 : space(2)};
-            border-bottom: solid 1px ${p.theme.border};
-          `
-        : css`
-            height: 100%;
-            grid-auto-flow: row;
-            align-content: start;
-            gap: 1px;
-            padding-right: ${space(2)};
-            border-right: solid 1px ${p.theme.border};
-          `}
-  `,
-  ChonkStyledTabListWrap
-);
-
-const TabListOverflowWrap = withChonk(
-  styled('div')`
-    position: absolute;
-    right: 0;
-    bottom: ${space(0.75)};
-  `,
-  ChonkStyledTabListOverflowWrap
-);
+const TabListOverflowWrap = StyledTabListOverflowWrap;
 
 const OverflowMenuTrigger = styled(SelectTrigger.IconButton)`
   padding-left: ${space(1)};

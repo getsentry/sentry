@@ -60,7 +60,7 @@ export const CONSOLE_PLATFORM_INSTRUCTIONS = {
         )}
       </p>
       <p>{t("We'll receive your request and get back to you with the next steps.")}</p>
-      <Alert type="info" showIcon>
+      <Alert variant="info" showIcon>
         {t('Sentry supports both the original Switch and Switch 2.')}
       </Alert>
     </Flex>

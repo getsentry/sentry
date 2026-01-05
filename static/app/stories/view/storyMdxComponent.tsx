@@ -16,12 +16,12 @@ type HeadingProps = {
   children: React.ReactNode;
 };
 
-const calloutToAlertType: Record<string, AlertProps['type']> = {
+const calloutToAlertType: Record<string, AlertProps['variant']> = {
   tip: 'muted',
   note: 'info',
   important: 'success',
   warning: 'warning',
-  caution: 'error',
+  caution: 'danger',
 };
 
 // Heading levels shifted N+1 for proper semantics on /stories pages
@@ -47,7 +47,7 @@ export const storyMdxComponents = {
     const expand = props.isFoldable ? children : undefined;
     return (
       <Alert
-        type={calloutToAlertType[props.type.toLowerCase()] ?? 'muted'}
+        variant={calloutToAlertType[props.type.toLowerCase()] ?? 'muted'}
         expand={expand}
         defaultExpanded={!props.defaultFolded}
       >
