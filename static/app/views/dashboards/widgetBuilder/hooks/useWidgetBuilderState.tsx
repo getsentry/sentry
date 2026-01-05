@@ -706,6 +706,7 @@ function useWidgetBuilderState(): {
             // any of the current fields
             if (
               sort &&
+              sort.length > 0 &&
               !checkTraceMetricSortUsed(
                 sort,
                 action.payload,
