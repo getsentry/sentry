@@ -48,7 +48,6 @@ const settingsRoutes = (): SentryRouteObject => ({
           path: 'usage/',
           name: 'Usage History',
           component: make(() => import('../views/subscriptionPage/usageHistory')),
-          deprecatedRouteProps: true,
         },
         {
           path: 'receipts/',
