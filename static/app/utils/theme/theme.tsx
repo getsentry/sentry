@@ -252,7 +252,7 @@ const generateButtonTheme = (
     focusShadow: colors.red200,
   },
   link: {
-    color: alias.linkColor,
+    color: tokens.interactive.link.accent.rest,
     colorActive: alias.linkHoverColor,
     background: 'transparent',
     backgroundActive: 'transparent',
