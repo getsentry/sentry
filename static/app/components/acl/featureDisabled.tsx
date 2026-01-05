@@ -123,7 +123,7 @@ function FeatureDisabled({
   const AlertComponent = typeof alert === 'boolean' ? Alert : alert;
   return (
     <Alert.Container>
-      <AlertComponent type="warning" expand={renderHelp()}>
+      <AlertComponent variant="warning" expand={renderHelp()}>
         {message}
       </AlertComponent>
     </Alert.Container>

@@ -52,7 +52,7 @@ function FirstPartyIntegrationAlertHook({
   }
   const wrappedAlert = (
     <Alert.Container>
-      <Alert type="warning">
+      <Alert variant="warning">
         <InnerAlertWrapper>
           {alert}
           {!hideCTA && (

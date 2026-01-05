@@ -100,7 +100,6 @@ export default function PreprodBuilds() {
   const pageLinks = getResponseHeader?.('Link') || null;
 
   const hasSearchQuery = !!urlSearchQuery?.trim();
-  const shouldShowSearchBar = builds.length > 0 || hasSearchQuery;
   const showOnboarding = builds.length === 0 && !hasSearchQuery && !isLoadingBuilds;
 
   const handleBuildRowClick = useCallback(
@@ -125,15 +124,14 @@ export default function PreprodBuilds() {
           projectSlug={projectSlug}
         />
         {buildsError && <LoadingError onRetry={refetch} />}
-        {shouldShowSearchBar && (
-          <Container paddingBottom="md">
-            <SearchBar
-              placeholder={t('Search by build, SHA, branch name, or pull request')}
-              onChange={handleSearch}
-              query={localSearchQuery}
-            />
-          </Container>
-        )}
+        <Container paddingBottom="md">
+          <SearchBar
+            placeholder={t('Search by build, SHA, branch name, or pull request')}
+            onChange={handleSearch}
+            query={localSearchQuery}
+            disabled={isLoadingBuilds}
+          />
+        </Container>
         {showOnboarding ? (
           <PreprodOnboarding
             organizationSlug={organization.slug}
@@ -147,7 +145,6 @@ export default function PreprodBuilds() {
             error={!!buildsError}
             pageLinks={pageLinks}
             organizationSlug={organization.slug}
-            projectSlug={projectSlug}
             onRowClick={handleBuildRowClick}
             hasSearchQuery
           />

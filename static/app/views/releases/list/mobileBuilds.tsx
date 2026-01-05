@@ -18,10 +18,10 @@ import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsT
 
 type Props = {
   organization: Organization;
-  projectSlug: string | undefined;
+  selectedProjectIds: string[];
 };
 
-export default function MobileBuilds({organization, projectSlug}: Props) {
+export default function MobileBuilds({organization, selectedProjectIds}: Props) {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -42,8 +42,13 @@ export default function MobileBuilds({organization, projectSlug}: Props) {
       query.query = searchQuery.trim();
     }
 
+    // Add project filter for multi-project endpoint
+    if (selectedProjectIds.length > 0) {
+      query.project = selectedProjectIds;
+    }
+
     return query;
-  }, [cursor, location, searchQuery]);
+  }, [cursor, location, searchQuery, selectedProjectIds]);
 
   const {
     data: buildsData,
@@ -56,12 +61,12 @@ export default function MobileBuilds({organization, projectSlug}: Props) {
     RequestError
   > = useApiQuery<ListBuildsApiResponse>(
     [
-      `/projects/${organization.slug}/${projectSlug}/preprodartifacts/list-builds/`,
+      `/organizations/${organization.slug}/preprodartifacts/list-builds/`,
       {query: buildsQueryParams},
     ],
     {
       staleTime: 0,
-      enabled: !!projectSlug,
+      enabled: selectedProjectIds.length > 0,
     }
   );
 
@@ -75,24 +80,23 @@ export default function MobileBuilds({organization, projectSlug}: Props) {
     [location, navigate]
   );
 
-  if (!projectSlug) {
+  if (selectedProjectIds.length === 0) {
     return <LoadingIndicator />;
   }
 
   const builds = buildsData?.builds ?? [];
   const pageLinks = getResponseHeader?.('Link') ?? undefined;
   const hasSearchQuery = !!searchQuery?.trim();
-  const shouldShowSearchBar = builds.length > 0 || hasSearchQuery;
+  const showProjectColumn = selectedProjectIds.length > 1;
 
   return (
     <Stack gap="xl">
-      {shouldShowSearchBar && (
-        <SearchBar
-          placeholder={t('Search by build, SHA, branch name, or pull request')}
-          onSearch={handleSearch}
-          query={searchQuery ?? undefined}
-        />
-      )}
+      <SearchBar
+        placeholder={t('Search by build, SHA, branch name, or pull request')}
+        onSearch={handleSearch}
+        query={searchQuery ?? undefined}
+        disabled={isLoadingBuilds}
+      />
 
       {buildsError && <LoadingError onRetry={refetch} />}
 
@@ -102,8 +106,8 @@ export default function MobileBuilds({organization, projectSlug}: Props) {
         error={!!buildsError}
         pageLinks={pageLinks}
         organizationSlug={organization.slug}
-        projectSlug={projectSlug}
         hasSearchQuery={hasSearchQuery}
+        showProjectColumn={showProjectColumn}
       />
     </Stack>
   );

@@ -249,12 +249,14 @@ const MeasurementContainer = styled('div')`
   position: absolute;
   top: 0;
   left: 0;
+  right: 0;
   visibility: hidden;
   pointer-events: none;
   display: flex;
   gap: ${p => p.theme.space.xs};
   flex-wrap: nowrap;
   white-space: nowrap;
+  overflow: hidden;
 `;
 
 const LegendItem = styled('div')<{isActive: boolean}>`
