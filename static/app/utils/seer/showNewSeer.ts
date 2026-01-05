@@ -21,7 +21,10 @@ export default function showNewSeer(organization: Organization) {
   }
 
   // This is the launch flag
-  if (organization.features.includes('seer-user-billing')) {
+  if (
+    organization.features.includes('seer-user-billing') &&
+    organization.features.includes('seer-user-billing-launch')
+  ) {
     return true;
   }
 
