@@ -4,6 +4,8 @@ Utilities for testing GitHub integration webhooks.
 
 from __future__ import annotations
 
+from collections.abc import Collection, Generator, Mapping
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 from typing import Any
 from uuid import uuid4
@@ -131,3 +133,19 @@ class GitHubWebhookTestCase(APITestCase):
             content_type="application/json",
             **headers,
         )
+
+
+class GitHubWebhookCodeReviewTestCase(GitHubWebhookTestCase):
+    CODE_REVIEW_FEATURES = {"organizations:gen-ai-features", "organizations:code-review-beta"}
+
+    @contextmanager
+    def code_review_setup(
+        self, features: Collection[str] | Mapping[str, Any] | None = None
+    ) -> Generator[None]:
+        """Helper to set up code review test context."""
+        self.organization.update_option("sentry:enable_pr_review_test_generation", True)
+        with (
+            self.feature(features or self.CODE_REVIEW_FEATURES),
+            self.options({"github.webhook.issue-comment": False}),
+        ):
+            yield
