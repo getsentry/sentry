@@ -33,6 +33,7 @@ import globals from 'globals';
 import invariant from 'invariant';
 import typescript from 'typescript-eslint';
 
+// eslint-disable-next-line boundaries/element-types
 import * as sentryScrapsPlugin from './static/eslint/eslintPluginScraps/index.mjs';
 
 invariant(react.configs.flat, 'For typescript');
@@ -985,6 +986,9 @@ export default typescript.config([
       boundaries,
     },
     settings: {
+      // Analyze both static and dynamic imports for boundary checks
+      // https://www.jsboundaries.dev/docs/setup/settings/#boundariesdependency-nodes
+      'boundaries/dependency-nodes': ['import', 'dynamic-import'],
       // order matters here because of nested directories
       'boundaries/elements': [
         // --- stories ---
@@ -1100,7 +1104,7 @@ export default typescript.config([
       'boundaries/no-ignored': 'off',
       'boundaries/no-private': 'off',
       'boundaries/element-types': [
-        'warn',
+        'error',
         {
           default: 'disallow',
           message: '${file.type} is not allowed to import ${dependency.type}',
