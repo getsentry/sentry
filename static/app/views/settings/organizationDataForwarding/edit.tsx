@@ -7,6 +7,8 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import Feature from 'sentry/components/acl/feature';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import NotFound from 'sentry/components/errors/notFound';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -30,6 +32,7 @@ import {
   useMutateDataForwarder,
 } from 'sentry/views/settings/organizationDataForwarding/util/hooks';
 import {
+  DATA_FORWARDING_FEATURES,
   ProviderLabels,
   type DataForwarder,
 } from 'sentry/views/settings/organizationDataForwarding/util/types';
@@ -37,12 +40,12 @@ import {
 export default function OrganizationDataForwardingEditWrapper() {
   const organization = useOrganization();
   const {dataForwarderId} = useParams();
-  const {data: dataForwarders, isPending} = useDataForwarders({
+  const {data: dataForwarders, isLoading} = useDataForwarders({
     params: {orgSlug: organization.slug},
   });
   const dataForwarder = dataForwarders?.find(df => df.id === dataForwarderId);
 
-  if (isPending) {
+  if (isLoading) {
     return <LoadingIndicator />;
   }
 
@@ -140,93 +143,120 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
             {t('Back')}
           </LinkButton>
         </Flex>
-        <Tabs value={dataForwarder.provider} disableOverflow>
-          <TabList variant="floating">
-            {Object.entries(ProviderLabels).map(([key, label]) => (
-              <TabList.Item
-                key={key}
-                disabled={key !== provider}
-                tooltip={
-                  key === provider
-                    ? undefined
-                    : {
-                        title: t(
-                          'Cannot update provider after setup, create a new forwarder instead.'
-                        ),
-                      }
-                }
-              >
-                <Flex align="center" gap="sm">
-                  <PluginIcon pluginId={key} />
-                  <b>{label}</b>
-                </Flex>
-              </TabList.Item>
-            ))}
-          </TabList>
-        </Tabs>
-        <Form
-          model={formModel}
-          onSubmit={data => {
-            const {enroll_new_projects, project_ids = [], is_enabled, ...config} = data;
-            const dataForwardingPayload: Record<string, any> = {
-              provider,
-              config,
-              is_enabled,
-              enroll_new_projects,
-              project_ids,
-            };
-            updateDataForwarder({
-              ...dataForwarder,
-              ...dataForwardingPayload,
-            });
-          }}
-          extraButton={
-            <DataForwarderDeleteConfirm dataForwarder={dataForwarder}>
-              <Button icon={<IconDelete color="danger" />}>
-                {t('Delete Data Forwarder')}
-              </Button>
-            </DataForwarderDeleteConfirm>
-          }
-          submitLabel={t('Update Forwarder')}
-          footerStyle={{
-            borderTop: 0,
-            borderBottom: `1px solid ${theme.border}`,
-            marginTop: `-${theme.space.lg}`,
-            paddingBottom: theme.space['3xl'],
-          }}
+        <Feature
+          features={DATA_FORWARDING_FEATURES}
+          hookName="feature-disabled:data-forwarding"
         >
-          <JsonForm
-            forms={getDataForwarderFormGroups({
-              provider,
-              projects,
-              dataForwarder,
-            })}
-          />
-        </Form>
-        <Flex align="center" justify="between" gap="2xl">
-          <Flex direction="column" gap="sm">
-            <Flex align="center" gap="lg">
-              <Heading as="h2" size="2xl">
-                {t('Manage your overrides')}
-              </Heading>
-            </Flex>
-            <Text variant="muted">
-              {t(
-                'These configurations apply to individual projects under your %s forwarder.',
-                ProviderLabels[provider]
+          {({hasFeature, features}) => (
+            <Fragment>
+              {!hasFeature && (
+                <FeatureDisabled
+                  alert
+                  featureName={t('Data Forwarding')}
+                  features={features}
+                  message={t(
+                    'This feature is currently disabled, data will not be forwarded.'
+                  )}
+                />
               )}
-            </Text>
-          </Flex>
-        </Flex>
-        <Stack gap="xl">
-          {dataForwarder.enrolledProjects.map(project => (
-            <ProjectOverrideForm
-              key={project.id}
-              project={project}
-              dataForwarder={dataForwarder}
-            />
-          ))}
-        </Stack>
+              <Tabs value={dataForwarder.provider} disableOverflow>
+                <TabList variant="floating">
+                  {Object.entries(ProviderLabels).map(([key, label]) => (
+                    <TabList.Item
+                      key={key}
+                      disabled={key !== provider || !hasFeature}
+                      tooltip={
+                        key === provider
+                          ? undefined
+                          : {
+                              title: t(
+                                'Cannot update provider after setup, create a new forwarder instead.'
+                              ),
+                            }
+                      }
+                    >
+                      <Flex align="center" gap="sm">
+                        <PluginIcon pluginId={key} />
+                        <b>{label}</b>
+                      </Flex>
+                    </TabList.Item>
+                  ))}
+                </TabList>
+              </Tabs>
+              <Form
+                submitDisabled={!hasFeature}
+                model={formModel}
+                onSubmit={data => {
+                  const {
+                    enroll_new_projects,
+                    project_ids = [],
+                    is_enabled,
+                    ...config
+                  } = data;
+                  const dataForwardingPayload: Record<string, any> = {
+                    provider,
+                    config,
+                    is_enabled,
+                    enroll_new_projects,
+                    project_ids,
+                  };
+                  updateDataForwarder({
+                    ...dataForwarder,
+                    ...dataForwardingPayload,
+                  });
+                }}
+                extraButton={
+                  <DataForwarderDeleteConfirm dataForwarder={dataForwarder}>
+                    <Button icon={<IconDelete variant="danger" />}>
+                      {t('Delete Data Forwarder')}
+                    </Button>
+                  </DataForwarderDeleteConfirm>
+                }
+                submitLabel={t('Update Forwarder')}
+                footerStyle={{
+                  borderTop: 0,
+                  borderBottom: `1px solid ${theme.border}`,
+                  marginTop: `-${theme.space.lg}`,
+                  paddingBottom: theme.space['3xl'],
+                }}
+              >
+                <JsonForm
+                  disabled={!hasFeature}
+                  forms={getDataForwarderFormGroups({
+                    provider,
+                    projects,
+                    dataForwarder,
+                  })}
+                />
+              </Form>
+              <Flex align="center" justify="between" gap="2xl">
+                <Flex direction="column" gap="sm">
+                  <Flex align="center" gap="lg">
+                    <Heading as="h2" size="2xl">
+                      {t('Manage your overrides')}
+                    </Heading>
+                  </Flex>
+                  <Text variant="muted">
+                    {t(
+                      'These configurations apply to individual projects under your %s forwarder.',
+                      ProviderLabels[provider]
+                    )}
+                  </Text>
+                </Flex>
+              </Flex>
+              <Stack gap="xl">
+                {dataForwarder.enrolledProjects.map(project => (
+                  <ProjectOverrideForm
+                    key={project.id}
+                    project={project}
+                    dataForwarder={dataForwarder}
+                    disabled={!hasFeature}
+                  />
+                ))}
+              </Stack>
+            </Fragment>
+          )}
+        </Feature>
       </Flex>
     </Fragment>
   );
