@@ -371,7 +371,7 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
             self.base_artifact.id,
             status_code=403,
         )
-        assert response.data["error"] == "Feature not enabled"
+        assert response.data["detail"] == "Feature not enabled"
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
     def test_get_comparison_multiple_metrics(self):
@@ -770,4 +770,4 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
             method="post",
             status_code=400,
         )
-        assert response.data["error"] == "Head and base build configurations must be the same."
+        assert response.data["detail"] == "Head and base build configurations must be the same."
