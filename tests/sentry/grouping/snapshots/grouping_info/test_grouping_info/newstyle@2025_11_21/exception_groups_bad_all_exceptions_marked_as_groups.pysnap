@@ -4,7 +4,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
 {
   "grouping_config": "newstyle:2025-11-21",
   "variants": {
-    "app_exception_message": {
+    "app_chained_exception_message": {
       "component": {
         "contributes": true,
         "hint": null,
@@ -14,43 +14,84 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
           {
             "contributes": true,
             "hint": null,
-            "id": "exception",
-            "name": "exception",
+            "id": "chained_exception",
+            "name": null,
             "values": [
               {
                 "contributes": true,
                 "hint": null,
-                "id": "type",
-                "name": null,
+                "id": "exception",
+                "name": "exception",
                 "values": [
-                  "System.AggregateException"
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "type",
+                    "name": null,
+                    "values": [
+                      "InnerException"
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "value",
+                    "name": null,
+                    "values": [
+                      "Nope"
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": null,
+                    "id": "stacktrace",
+                    "name": "stacktrace",
+                    "values": []
+                  }
                 ]
               },
               {
                 "contributes": true,
                 "hint": null,
-                "id": "value",
-                "name": null,
+                "id": "exception",
+                "name": "exception",
                 "values": [
-                  "One or more errors occurred."
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "type",
+                    "name": null,
+                    "values": [
+                      "System.AggregateException"
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "value",
+                    "name": null,
+                    "values": [
+                      "One or more errors occurred."
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": null,
+                    "id": "stacktrace",
+                    "name": "stacktrace",
+                    "values": []
+                  }
                 ]
-              },
-              {
-                "contributes": false,
-                "hint": null,
-                "id": "stacktrace",
-                "name": "stacktrace",
-                "values": []
               }
             ]
           }
         ]
       },
       "contributes": true,
-      "description": "exception message",
-      "hash": "0809098f9f613b63467605dd1739cc9b",
+      "description": "chained exception messages",
+      "hash": "93b26686d00504b4e5aa1cb0244d8b37",
       "hint": null,
-      "key": "app_exception_message",
+      "key": "app_chained_exception_message",
       "type": "component"
     }
   }
