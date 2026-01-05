@@ -80,6 +80,15 @@ runs:
           echo "TOTAL_TEST_GROUPS=$MATRIX_INSTANCE_TOTAL" >> $GITHUB_ENV
         fi
 
+    - name: Clear Python cache
+      shell: bash --noprofile --norc -eo pipefail -ux {0}
+      env:
+        WORKDIR: ${{ inputs.workdir }}
+      run: |
+        cd "$WORKDIR"
+        find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+        find . -type f -name "*.pyc" -delete 2>/dev/null || true
+
     - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
       with:
         version: '0.8.2'

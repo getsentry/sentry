@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
@@ -181,16 +182,16 @@ class CheckRunEventWebhookTest(GitHubWebhookHelper):
 
     @patch("sentry.seer.code_review.webhooks.task.process_github_webhook_event")
     @with_feature({"organizations:gen-ai-features"})
-    def test_check_run_skips_when_code_review_beta_flag_disabled(
+    def test_check_run_runs_when_code_review_beta_flag_disabled_but_pr_review_test_generation_enabled(
         self, mock_task: MagicMock
     ) -> None:
-        """Test that task is not enqueued when code-review-beta flag is off."""
+        """Test that task is enqueued when code-review-beta flag is off but pr_review_test_generation is enabled."""
         self._enable_code_review()
         self._send_webhook_event(
             GithubWebhookType.CHECK_RUN,
             CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE,
         )
-        mock_task.delay.assert_not_called()
+        mock_task.delay.assert_called_once()
 
     @patch("sentry.seer.code_review.utils.make_seer_request")
     @with_feature(CODE_REVIEW_FEATURES)
@@ -612,20 +613,30 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_request.return_value = self._mock_response(200, b'{"run_id": 123}')
 
         event_payload = {
+            "request_type": "pr-review",
+            "external_owner_id": "456",
             "data": {
                 "repo": {
                     "provider": "github",
                     "owner": "test-owner",
                     "name": "test-repo",
                     "external_id": "456",
+                    "base_commit_sha": None,
                 },
                 "pr_id": 123,
-                "codecov_status": None,
-                "more_readable_repos": [],
+                "bug_prediction_specific_information": {
+                    "organization_id": 789,
+                },
+                "config": {
+                    "features": {
+                        "bug_prediction": True,
+                    },
+                    "trigger": "on_new_commit",
+                    "trigger_comment_id": None,
+                    "trigger_comment_type": None,
+                    "trigger_user": None,
+                },
             },
-            "external_owner_id": "456",
-            "request_type": "pr-review",
-            "organization_id": 789,
         }
 
         process_github_webhook_event._func(
@@ -660,10 +671,24 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_request.reset_mock()
 
         event_payload = {
-            "data": {"repo": {}, "pr_id": 123},
-            "external_owner_id": "456",
             "request_type": "pr-review",
-            "organization_id": 789,
+            "external_owner_id": "456",
+            "data": {
+                "repo": {},
+                "pr_id": 123,
+                "bug_prediction_specific_information": {
+                    "organization_id": 789,
+                },
+                "config": {
+                    "features": {
+                        "bug_prediction": True,
+                    },
+                    "trigger": "on_new_commit",
+                    "trigger_comment_id": None,
+                    "trigger_comment_type": None,
+                    "trigger_user": None,
+                },
+            },
         }
 
         process_github_webhook_event._func(
@@ -694,6 +719,27 @@ class TestIsPrReviewCommand:
 
 class IssueCommentEventWebhookTest(GitHubWebhookHelper):
     """Integration tests for GitHub issue_comment webhook events."""
+
+    @pytest.fixture(autouse=True)
+    def mock_github_api_calls(self) -> Generator[None]:
+        """
+        Prevents real HTTP requests to GitHub API across all tests.
+        Uses autouse fixture to apply mocking automatically without @patch decorators on each test.
+        """
+        mock_client_instance = MagicMock()
+        mock_client_instance.get_pull_request.return_value = {"head": {"sha": "abc123"}}
+
+        with (
+            patch(
+                "sentry.integrations.github.client.GitHubApiClient.create_comment_reaction"
+            ) as mock_reaction,
+            patch(
+                "sentry.seer.code_review.utils.GitHubApiClient", return_value=mock_client_instance
+            ) as mock_api_client,
+        ):
+            self.mock_reaction = mock_reaction
+            self.mock_api_client = mock_api_client
+            yield
 
     def _send_issue_comment_event(self, event_data: bytes | str) -> HttpResponseBase:
         return self._send_webhook_event(GithubWebhookType.ISSUE_COMMENT, event_data)
@@ -733,12 +779,31 @@ class IssueCommentEventWebhookTest(GitHubWebhookHelper):
         self._send_issue_comment_event(event)
         mock_schedule.assert_not_called()
 
+    @patch("sentry.seer.code_review.webhooks.task.schedule_task")
+    @with_feature({"organizations:gen-ai-features"})
+    def test_runs_when_code_review_beta_flag_disabled_but_pr_review_test_generation_enabled(
+        self, mock_schedule: MagicMock
+    ) -> None:
+        with self.options(
+            {"organizations:code-review-beta": False, "github.webhook.issue-comment": False}
+        ):
+            self.organization.update_option("sentry:enable_pr_review_test_generation", True)
+            event = self._build_issue_comment_event(f"Please {SENTRY_REVIEW_COMMAND} this PR")
+            self._send_issue_comment_event(event)
+        mock_schedule.assert_called_once()
+
     @patch("sentry.seer.code_review.webhooks.task.make_seer_request")
+    @patch("sentry.seer.code_review.utils.GitHubApiClient")
     @patch("sentry.integrations.github.client.GitHubApiClient.create_comment_reaction")
     @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
     def test_adds_reaction_and_forwards_when_valid(
-        self, mock_create_reaction: MagicMock, mock_seer: MagicMock
+        self, mock_create_reaction: MagicMock, mock_api_client: MagicMock, mock_seer: MagicMock
     ) -> None:
+        # Mock the GitHub API client to return PR data with head SHA
+        mock_client_instance = MagicMock()
+        mock_client_instance.get_pull_request.return_value = {"head": {"sha": "abc123"}}
+        mock_api_client.return_value = mock_client_instance
+
         self._enable_code_review()
         with self.options({"github.webhook.issue-comment": False}):
             event = self._build_issue_comment_event(f"Please {SENTRY_REVIEW_COMMAND} this PR")
@@ -749,12 +814,18 @@ class IssueCommentEventWebhookTest(GitHubWebhookHelper):
         mock_create_reaction.assert_called_once()
         mock_seer.assert_called_once()
 
+    @patch("sentry.seer.code_review.utils.GitHubApiClient")
     @patch("sentry.seer.code_review.webhooks.issue_comment._add_eyes_reaction_to_comment")
     @patch("sentry.seer.code_review.webhooks.task.schedule_task")
     @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
     def test_skips_reaction_when_no_comment_id(
-        self, mock_schedule: MagicMock, mock_reaction: MagicMock
+        self, mock_schedule: MagicMock, mock_reaction: MagicMock, mock_api_client: MagicMock
     ) -> None:
+        # Mock the GitHub API client to return PR data with head SHA
+        mock_client_instance = MagicMock()
+        mock_client_instance.get_pull_request.return_value = {"head": {"sha": "abc123"}}
+        mock_api_client.return_value = mock_client_instance
+
         self._enable_code_review()
         with self.options({"github.webhook.issue-comment": False}):
             event = self._build_issue_comment_event(SENTRY_REVIEW_COMMAND, comment_id=None)

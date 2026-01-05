@@ -379,3 +379,46 @@ class OrganizationCodeMappingsTest(APITestCase):
         response = self.make_post({"defaultBranch": "prod/deploy-branch/"})
         assert response.status_code == 400
         assert response.data == {"defaultBranch": [BRANCH_NAME_ERROR_MESSAGE]}
+
+    def test_get_with_integration_from_another_org_returns_404(self) -> None:
+        """GET with integrationId from another organization returns 404."""
+        other_org = self.create_organization(name="other-org")
+        other_integration = self.create_integration(
+            organization=other_org,
+            external_id="other-external-id",
+            provider="github",
+        )
+
+        url_path = f"{self.url}?integrationId={other_integration.id}"
+        response = self.client.get(url_path, format="json")
+
+        assert response.status_code == 404, response.content
+
+    def test_get_with_integrationId_enforces_project_access(self) -> None:
+        """GET with integrationId only returns mappings for projects user can access."""
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # user2 is only on team2, which has access to project2 but not project1
+        self.login_as(user=self.user2)
+
+        self.create_code_mapping(
+            project=self.project1,
+            repo=self.repo1,
+            stack_root="inaccessible/path",
+            source_root="source/root",
+        )
+        accessible_mapping = self.create_code_mapping(
+            project=self.project2,
+            repo=self.repo1,
+            stack_root="accessible/path",
+            source_root="source/root",
+        )
+
+        url_path = f"{self.url}?integrationId={self.integration.id}"
+        response = self.client.get(url_path, format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(accessible_mapping.id)
+        assert response.data[0]["projectId"] == str(self.project2.id)
