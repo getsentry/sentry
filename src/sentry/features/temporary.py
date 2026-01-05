@@ -288,8 +288,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:insights-queries-dashboard-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable http module dashboard on dashboards platform
     manager.add("organizations:insights-http-dashboard-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable frontend overview dashboard on dashboards platform
-    manager.add("organizations:insights-frontend-overview-dashboard-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable backend overview dashboard on dashboards platform
+    manager.add("organizations:insights-backend-overview-dashboard-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Mobile Vitals Insights module on dashboards platform
     manager.add("organizations:insights-mobile-vitals-dashboard-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable web vitals module dashboard on dashboards platform
