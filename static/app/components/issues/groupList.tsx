@@ -181,6 +181,7 @@ function GroupList({
 
   const {
     data: groupsData,
+    dataUpdatedAt,
     isPending,
     isError: isQueryError,
     isSuccess: isQuerySuccess,
@@ -234,7 +235,12 @@ function GroupList({
     if (isQuerySuccess) {
       notifyFetchSuccess();
     }
-  }, [isQuerySuccess]);
+  }, [
+    isQuerySuccess,
+    // Sometimes data is already cached, so we need to include this in order to
+    // trigger onFetchSuccess when new data is shown
+    dataUpdatedAt,
+  ]);
 
   const columns: GroupListColumn[] = useMemo(
     () => [...withColumns, 'firstSeen', 'lastSeen'],
