@@ -1048,9 +1048,7 @@ function ViewerTableV2({
   const aliases = decodeColumnAliases(
     tableColumns,
     tableWidget.queries[selectedQueryIndex]?.fieldAliases ?? [],
-    tableWidget.widgetType === WidgetType.ISSUE
-      ? datasetConfig?.getFieldHeaderMap?.()
-      : {}
+    datasetConfig?.getFieldHeaderMap?.(tableWidget.queries[selectedQueryIndex]) ?? {}
   );
 
   // Inject any prettified function names that aren't currently aliased into the aliases
