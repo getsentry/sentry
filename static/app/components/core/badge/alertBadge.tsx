@@ -89,7 +89,7 @@ function getDiamondTheme(
   if (status === IncidentStatus.WARNING) {
     return {
       text: t('Warning'),
-      backgroundColor: theme.warningText,
+      backgroundColor: theme.tokens.content.warning,
       icon: IconExclamation,
     };
   }
