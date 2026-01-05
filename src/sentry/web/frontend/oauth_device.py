@@ -227,8 +227,15 @@ class OAuthDeviceView(AuthLoginView):
 
     def _handle_deny(self, request: HttpRequest, device_code: ApiDeviceCode) -> HttpResponseBase:
         """Handle deny action for a device code."""
-        device_code.status = DeviceCodeStatus.DENIED
-        device_code.save(update_fields=["status"])
+        # Atomically mark as denied only if still pending (prevents race with approve)
+        updated = ApiDeviceCode.objects.filter(
+            id=device_code.id,
+            status=DeviceCodeStatus.PENDING,
+        ).update(status=DeviceCodeStatus.DENIED)
+
+        if not updated:
+            # Another request already processed this device code
+            return self._error_response(request, ERR_INVALID_CODE)
 
         metrics.incr("oauth_device.deny", sample_rate=1.0)
         logger.info(
