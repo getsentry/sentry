@@ -34,10 +34,14 @@ export default function BuildList() {
     queryParams.cursor = cursor;
   }
 
+  if (projectId) {
+    queryParams.project = projectId;
+  }
+
   const buildsQuery: UseApiQueryResult<ListBuildsApiResponse, RequestError> =
     useApiQuery<ListBuildsApiResponse>(
       [
-        `/projects/${organization.slug}/${projectId}/preprodartifacts/list-builds/`,
+        `/organizations/${organization.slug}/preprodartifacts/list-builds/`,
         {query: queryParams},
       ],
       {
