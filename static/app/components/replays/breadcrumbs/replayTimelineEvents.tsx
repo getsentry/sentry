@@ -218,4 +218,37 @@ const IconNode = styled('button')<{
 const TooltipWrapper = styled('div')`
   max-height: 80vh;
   overflow: auto;
+
+  /* Override breadcrumb item styling for timeline tooltip context */
+  /* Reduce padding and remove backgrounds from breadcrumb items */
+  > div {
+    padding: ${space(0.25)} ${space(0.5)} !important;
+    margin: 0 !important;
+    background: transparent !important;
+
+    &:hover {
+      background: transparent !important;
+
+      /* Keep icon wrapper background transparent on hover */
+      .timeline-icon-wrapper {
+        background: transparent !important;
+      }
+    }
+
+    /* Remove connecting lines between items in tooltip */
+    &::before {
+      display: none !important;
+    }
+
+    /* Reduce title font size - target grid column 2 which contains the title */
+    /* Timeline.Item uses a grid with 3 columns: icon | content | timestamp */
+    > div:nth-child(2) {
+      font-size: ${p => p.theme.fontSize.sm} !important;
+
+      /* The title div inside the Flex component */
+      > div:first-child {
+        font-size: ${p => p.theme.fontSize.sm} !important;
+      }
+    }
+  }
 `;
