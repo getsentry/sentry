@@ -226,6 +226,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/data-export/'
   | '/organizations/$organizationIdOrSlug/data-export/$dataExportId/'
   | '/organizations/$organizationIdOrSlug/data-scrubbing-selector-suggestions/'
+  | '/organizations/$organizationIdOrSlug/data-secrecy/'
   | '/organizations/$organizationIdOrSlug/derive-code-mappings/'
   | '/organizations/$organizationIdOrSlug/detector-types/'
   | '/organizations/$organizationIdOrSlug/detector-workflow/'
