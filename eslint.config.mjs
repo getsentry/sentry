@@ -12,7 +12,6 @@ import * as emotion from '@emotion/eslint-plugin';
 import eslint from '@eslint/js';
 import pluginQuery from '@tanstack/eslint-plugin-query';
 import prettier from 'eslint-config-prettier';
-// @ts-expect-error TS(7016): Could not find a declaration file
 import boundaries from 'eslint-plugin-boundaries';
 import importPlugin from 'eslint-plugin-import';
 import jest from 'eslint-plugin-jest';
@@ -33,6 +32,7 @@ import globals from 'globals';
 import invariant from 'invariant';
 import typescript from 'typescript-eslint';
 
+// eslint-disable-next-line boundaries/element-types
 import * as sentryScrapsPlugin from './static/eslint/eslintPluginScraps/index.mjs';
 
 invariant(react.configs.flat, 'For typescript');
@@ -985,6 +985,9 @@ export default typescript.config([
       boundaries,
     },
     settings: {
+      // Analyze both static and dynamic imports for boundary checks
+      // https://www.jsboundaries.dev/docs/setup/settings/#boundariesdependency-nodes
+      'boundaries/dependency-nodes': ['import', 'dynamic-import'],
       // order matters here because of nested directories
       'boundaries/elements': [
         // --- stories ---
@@ -1099,8 +1102,9 @@ export default typescript.config([
       ...boundaries.configs.strict.rules,
       'boundaries/no-ignored': 'off',
       'boundaries/no-private': 'off',
+      'boundaries/no-unknown': 'off',
       'boundaries/element-types': [
-        'warn',
+        'error',
         {
           default: 'disallow',
           message: '${file.type} is not allowed to import ${dependency.type}',

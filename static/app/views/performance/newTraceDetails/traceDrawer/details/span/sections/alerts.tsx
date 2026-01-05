@@ -10,7 +10,7 @@ function Alerts({node}: {node: SpanNode}) {
 
   return (
     <Alert.Container>
-      <Alert type="info" system>
+      <Alert variant="info" system>
         {t(
           'This is a span that has no parent span within this transaction. It has been attached to the transaction root span by default.'
         )}

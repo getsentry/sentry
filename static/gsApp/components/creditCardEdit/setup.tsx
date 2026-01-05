@@ -54,7 +54,7 @@ function CreditCardSetup({
       <Fragment>
         {referrer?.includes('billing-failure') && (
           <Alert.Container>
-            <Alert type="warning" showIcon={false}>
+            <Alert variant="warning" showIcon={false}>
               {t('Your credit card will be charged upon update.')}
             </Alert>
           </Alert.Container>

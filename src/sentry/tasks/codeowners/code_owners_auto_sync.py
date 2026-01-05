@@ -18,7 +18,7 @@ from sentry.taskworker.retry import Retry
     name="sentry.tasks.code_owners_auto_sync",
     namespace=issues_tasks,
     retry=Retry(times=3, delay=60),
-    processing_deadline_duration=60,
+    processing_deadline_duration=300,
     silo_mode=SiloMode.REGION,
 )
 @retry(on=(Commit.DoesNotExist,))
@@ -77,7 +77,8 @@ def code_owners_auto_sync(commit_id: int, **kwargs: Any) -> None:
 
         # If we fail to fetch the codeowners file, the user can manually sync. We'll send them an email on failure.
         if not codeowner_contents:
-            return AutoSyncNotification(code_mapping.project).send()
+            AutoSyncNotification(code_mapping.project).send()
+            return
 
         codeowners: ProjectCodeOwners = ProjectCodeOwners.objects.get(
             repository_project_path_config=code_mapping

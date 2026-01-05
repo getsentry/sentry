@@ -61,8 +61,15 @@ function PreprodBuildDetailsFixture(
 ): BuildDetailsApiResponse {
   return {
     id: 'artifact-1',
+    project_id: 1,
+    project_slug: 'test-project',
     state: BuildDetailsState.PROCESSED,
     app_info: PreprodAppInfoFixture(),
+    distribution_info: {
+      is_installable: false,
+      download_count: 0,
+      release_notes: null,
+    },
     vcs_info: PreprodVcsInfoFixture(),
     size_info: undefined,
     ...params,
