@@ -23,8 +23,10 @@ import type {DataForwarder} from 'sentry/views/settings/organizationDataForwardi
 export function ProjectOverrideForm({
   project,
   dataForwarder,
+  disabled,
 }: {
   dataForwarder: DataForwarder;
+  disabled: boolean;
   project: AvatarProject;
 }) {
   const organization = useOrganization();
@@ -65,7 +67,8 @@ export function ProjectOverrideForm({
       hideFooter
     >
       <OverrideForm
-        forms={[getProjectOverrideForm({dataForwarder, project})]}
+        disabled={disabled}
+        forms={[getProjectOverrideForm({dataForwarder, project, omitTag: disabled})]}
         collapsible
         renderHeader={() => (
           <Flex padding="sm lg" borderBottom="primary" gap="md" align="center">
@@ -80,6 +83,7 @@ export function ProjectOverrideForm({
             <Button
               size="sm"
               icon={<IconRefresh color="danger" transform="scale(-1, 1)" />}
+              disabled={disabled}
               onClick={() => {
                 updateDataForwarder({
                   project_id: `${project.id}`,
@@ -90,7 +94,7 @@ export function ProjectOverrideForm({
             >
               {t('Clear Override')}
             </Button>
-            <Button priority="primary" size="sm" type="submit">
+            <Button priority="primary" size="sm" type="submit" disabled={disabled}>
               {t('Save Override')}
             </Button>
           </Flex>

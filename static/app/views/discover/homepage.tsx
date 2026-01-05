@@ -1,7 +1,5 @@
 import {useEffect} from 'react';
-import type {Location} from 'history';
 
-import type {Client} from 'sentry/api';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -10,41 +8,30 @@ import {
   normalizeDateTimeString,
 } from 'sentry/components/organizations/pageFilters/parse';
 import {getPageFilterStorage} from 'sentry/components/organizations/pageFilters/persistence';
-import type {PageFilters} from 'sentry/types/core';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {useApiQuery, useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
-import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
-import withPageFilters from 'sentry/utils/withPageFilters';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 
 import {Results} from './results';
-
-type Props = {
-  api: Client;
-  loading: boolean;
-  location: Location;
-  organization: Organization;
-  router: InjectedRouter;
-  selection: PageFilters;
-  setSavedQuery: (savedQuery: SavedQuery) => void;
-};
 
 function makeDiscoverHomepageQueryKey(organization: Organization): ApiQueryKey {
   return [`/organizations/${organization.slug}/discover/homepage/`];
 }
 
-function Homepage(props: Props) {
+function Homepage() {
   const organization = useOrganization();
+  const api = useApi();
   const queryClient = useQueryClient();
   const location = useLocation();
   const navigate = useNavigate();
+  const {selection} = usePageFilters();
   const {data, isLoading, isError, refetch} = useApiQuery<SavedQuery>(
     makeDiscoverHomepageQueryKey(organization),
     {
@@ -123,21 +110,23 @@ function Homepage(props: Props) {
 
   return (
     <Results
-      {...props}
-      savedQuery={savedQuery}
+      api={api}
       loading={isLoading}
+      location={location}
+      navigate={navigate}
+      organization={organization}
+      selection={selection}
       setSavedQuery={setSavedQuery}
       isHomepage
+      savedQuery={savedQuery}
     />
   );
 }
 
-function HomepageContainer(props: Props) {
+export default function HomepageContainer() {
   return (
     <PageFiltersContainer skipInitializeUrlParams>
-      <Homepage {...props} />
+      <Homepage />
     </PageFiltersContainer>
   );
 }
-
-export default withApi(withOrganization(withPageFilters(HomepageContainer)));

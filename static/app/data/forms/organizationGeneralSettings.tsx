@@ -20,7 +20,7 @@ const formGroups: JsonFormObject[] = [
         help: t('A unique ID used to identify this organization'),
         transformInput: slugify,
         saveOnBlur: false,
-        saveMessageAlertType: 'info',
+        saveMessageAlertVariant: 'info',
         saveMessage: tct(
           'Changing your organization slug will break organization tokens, may impact integrations, and break links to your organization. You will be redirected to the new slug after saving. [link:Learn more]',
           {

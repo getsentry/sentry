@@ -47,6 +47,95 @@ sentry/
 └── config/               # Configuration files
 ```
 
+## Command Execution Requirements
+
+**CRITICAL**: When running Python commands (pytest, mypy, pre-commit, etc.), you MUST use the virtual environment.
+
+### For AI Agents (automated commands)
+
+Use the full relative path to virtualenv executables:
+
+```bash
+cd /path/to/sentry && .venv/bin/pytest tests/...
+cd /path/to/sentry && .venv/bin/python -m mypy ...
+```
+
+Or source the activate script in your command:
+
+```bash
+cd /path/to/sentry && source .venv/bin/activate && pytest tests/...
+```
+
+**Important for AI agents:**
+
+- Always use `required_permissions: ['all']` when running Python commands to avoid sandbox permission issues
+- The `.venv/bin/` prefix ensures you're using the correct Python interpreter and dependencies
+
+### For Human Developers (interactive shells)
+
+Run `direnv allow` once to trust the `.envrc` file. After that, direnv will automatically activate the virtual environment when you cd into the directory.
+
+```bash
+cd /path/to/sentry
+direnv allow  # Only needed once, or after .envrc changes
+# Now pytest, python, etc. will automatically use .venv
+```
+
+## Security Guidelines
+
+### Preventing Indirect Object References (IDOR)
+
+**Indirect Object Reference** vulnerabilities occur when an attacker can access resources they shouldn't by manipulating IDs passed in requests. This is one of the most critical security issues in multi-tenant applications like Sentry.
+
+**Core Principle: Always Scope Queries by Organization/Project**
+
+When querying resources, ALWAYS include `organization_id` and/or `project_id` in your query filters. Never trust user-supplied IDs alone.
+
+```python
+# WRONG: Vulnerable to IDOR - user can access any resource by guessing IDs
+resource = Resource.objects.get(id=request.data["resource_id"])
+
+# RIGHT: Properly scoped to organization
+resource = Resource.objects.get(
+    id=request.data["resource_id"],
+    organization_id=organization.id
+)
+
+# RIGHT: Properly scoped to project
+resource = Resource.objects.get(
+    id=request.data["resource_id"],
+    project_id=project.id
+)
+```
+
+**Project ID Handling: Use `self.get_projects()`**
+
+When project IDs are passed in the request (query string or body), NEVER directly access or trust `request.data["project_id"]` or `request.GET["project_id"]`. Instead, use the endpoint's `self.get_projects()` method which performs proper permission checks.
+
+```python
+# WRONG: Direct access bypasses permission checks
+project_ids = request.data.get("project_id")
+projects = Project.objects.filter(id__in=project_ids)
+
+# RIGHT: Use self.get_projects() which validates permissions
+projects = self.get_projects(
+    request=request,
+    organization=organization,
+    project_ids=request.data.get("project_id")
+)
+```
+
+## Exception Handling
+
+- Avoid blanket exception handling (`except Exception:` or bare `except:`)
+- Only catch specific exceptions when you have a meaningful way to handle them
+- We have global exception handlers in tasks and endpoints that automatically log errors and report them to Sentry
+- Let exceptions bubble up unless you need to:
+  - Add context to the error
+  - Perform cleanup operations
+  - Convert one exception type to another with additional information
+  - Recover from expected error conditions
+
 ## Development Commands
 
 ### Setup
@@ -68,7 +157,27 @@ devservices up
 devservices serve
 ```
 
-**Note**: Always run `direnv allow` to activate the Python virtual environment before running tests or Python commands. This ensures you're using the correct Python interpreter and dependencies.
+> **See "Command Execution Requirements" above** for critical `direnv allow` guidance.
+
+### Linting
+
+```bash
+# Preferred: Run pre-commit hooks on specific files
+pre-commit run --files src/sentry/path/to/file.py
+
+# Run all pre-commit hooks
+pre-commit run --all-files
+```
+
+### Testing
+
+```bash
+# Run Python tests (always use these parameters)
+pytest -svv --reuse-db
+
+# Run specific test file
+pytest tests/sentry/api/test_base.py
+```
 
 ### Database Operations
 
