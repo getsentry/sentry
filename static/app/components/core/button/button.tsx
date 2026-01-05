@@ -8,7 +8,7 @@ import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 
 import {
   DO_NOT_USE_BUTTON_ICON_SIZES as BUTTON_ICON_SIZES,
-  DO_NOT_USE_getChonkButtonStyles as getChonkButtonStyles,
+  DO_NOT_USE_getButtonStyles as getButtonStyles,
 } from './styles';
 import type {
   DO_NOT_USE_ButtonProps as ButtonProps,
@@ -71,7 +71,7 @@ export function Button({
 }
 
 export const StyledButton = styled('button')<ButtonProps>`
-  ${p => getChonkButtonStyles(p as any)}
+  ${p => getButtonStyles(p)}
 `;
 
 const ButtonLabel = styled('span', {

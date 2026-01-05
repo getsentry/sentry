@@ -48,7 +48,7 @@ const elevation = {
 
 const hoverElevation = '1px';
 
-export function DO_NOT_USE_getChonkButtonStyles(
+export function DO_NOT_USE_getButtonStyles(
   p: Pick<ButtonProps, 'priority' | 'busy' | 'disabled' | 'borderless'> & {
     size: NonNullable<ButtonProps['size']>;
     theme: Theme;
