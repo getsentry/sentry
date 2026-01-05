@@ -366,7 +366,7 @@ const TagBarSegment = styled('div')`
   position: absolute;
   top: 0;
   min-width: ${p => p.theme.space['2xs']};
-  border-right: 1px solid ${p => p.theme.translucentBorder};
+  border-right: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
 
   &:last-child {
     border-right: none;

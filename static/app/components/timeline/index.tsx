@@ -145,7 +145,7 @@ const Text = styled('div')`
 const Data = styled('div')`
   border-radius: ${space(0.5)};
   padding: ${space(0.25)} ${space(0.75)};
-  border: 1px solid ${p => p.theme.translucentInnerBorder};
+  border: 1px solid ${p => p.theme.tokens.border.secondary};
   margin: ${space(0.75)} 0 0 -${space(0.75)};
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.sm};
@@ -166,7 +166,7 @@ const Container = styled('div')`
     width: 1px;
     top: 0;
     bottom: 0;
-    background: ${p => p.theme.border};
+    background: ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 `;
 

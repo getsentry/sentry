@@ -84,7 +84,7 @@ const FloatingEventNavigation = styled(EventTitle)`
 
 const GroupContent = styled('div')`
   position: relative;
-  border: 1px solid ${p => p.theme.translucentBorder};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   background: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
 `;

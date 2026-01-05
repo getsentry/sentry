@@ -115,10 +115,10 @@ const GroupContent = styled('section')`
   display: flex;
   flex-direction: column;
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    border-right: 1px solid ${p => p.theme.translucentBorder};
+    border-right: 1px solid ${p => p.theme.tokens.border.primary};
   }
   @media (max-width: ${p => p.theme.breakpoints.lg}) {
-    border-bottom-width: 1px solid ${p => p.theme.translucentBorder};
+    border-bottom-width: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 

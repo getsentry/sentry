@@ -223,7 +223,7 @@ const BreadcrumbItem = styled(Timeline.Item)`
     border-image: linear-gradient(
         to right,
         transparent 20px,
-        ${p => p.theme.translucentInnerBorder} 20px
+        ${p => p.theme.tokens.border.secondary} 20px
       )
       100% 1;
   }
