@@ -1,11 +1,14 @@
 import type {ComponentType} from 'react';
+import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {promptsUpdate} from 'sentry/actionCreators/prompts';
 import {Client} from 'sentry/api';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
 import type {PromotionModalBodyProps} from 'getsentry/components/promotionModal';
@@ -19,6 +22,7 @@ import type {
   PromotionClaimed,
   Subscription,
 } from 'getsentry/types';
+import {displayBudgetName, hasBillingAccess, supportsPayg} from 'getsentry/utils/billing';
 import type {AM2UpdateSurfaces} from 'getsentry/utils/trackGetsentryAnalytics';
 
 type UpsellModalOptions = {
@@ -115,6 +119,39 @@ export async function openPartnerPlanEndingModal(options: PartnerPlanModalProps)
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss, onClose});
 }
+
+interface OpenOnDemandBudgetEditModalProps {
+  organization: Organization;
+  subscription: Subscription;
+  theme?: Theme;
+}
+
+export async function openOnDemandBudgetEditModal(
+  options: OpenOnDemandBudgetEditModalProps
+) {
+  const {default: Modal} = await import('getsentry/views/spendLimits/editModal');
+  const {theme, organization, subscription} = options;
+  const hasBillingPerms = hasBillingAccess(organization);
+  const canUsePayg = supportsPayg(subscription);
+
+  if (hasBillingPerms && canUsePayg) {
+    openModal(deps => <Modal {...deps} {...options} />, {
+      modalCss: theme ? onDemandBudgetEditModalCss(theme) : undefined,
+    });
+  }
+
+  addErrorMessage(
+    tct("You don't have permission to edit [budgetTerm] budgets.", {
+      budgetTerm: displayBudgetName(subscription.planDetails),
+    })
+  );
+}
+
+const onDemandBudgetEditModalCss = (theme: Theme) => css`
+  @media (min-width: ${theme.breakpoints.md}) {
+    width: 1000px;
+  }
+`;
 
 type OpenInvoicePaymentOptions = {
   invoice: Invoice;

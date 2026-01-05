@@ -64,7 +64,7 @@ import {getBucket} from 'getsentry/views/amCheckout/utils';
 import {
   getOnDemandBudget,
   parseOnDemandBudgetsFromSubscription,
-} from 'getsentry/views/onDemandBudgets/utils';
+} from 'getsentry/views/spendLimits/utils';
 import {
   calculateCategorySpend,
   calculateTotalSpend,

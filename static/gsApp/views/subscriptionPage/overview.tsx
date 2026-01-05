@@ -24,7 +24,7 @@ import type {
 import {hasAccessToSubscriptionOverview} from 'getsentry/utils/billing';
 import withPromotions from 'getsentry/utils/withPromotions';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
-import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
+import {openOnDemandBudgetEditModal} from 'getsentry/views/spendLimits/editModal';
 import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 import UsageOverview from 'getsentry/views/subscriptionPage/usageOverview';
 

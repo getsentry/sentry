@@ -27,7 +27,7 @@ import StartTrialButton from 'getsentry/components/startTrialButton';
 import useSubscription from 'getsentry/hooks/useSubscription';
 import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
 import {getPotentialProductTrial, getSeerTrialCategory} from 'getsentry/utils/billing';
-import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
+import {openOnDemandBudgetEditModal} from 'getsentry/views/spendLimits/editModal';
 
 type AiSetupDataConsentProps = {
   groupId?: string;
