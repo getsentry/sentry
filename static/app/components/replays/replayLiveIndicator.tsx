@@ -72,12 +72,12 @@ const LiveIndicator = styled('div')`
 export function LiveBadge() {
   return (
     <Flex align="center" gap="xs">
-      <Text bold variant="success" data-test-id="live-badge">
-        {t('LIVE')}
-      </Text>
       <Tooltip title={LIVE_TOOLTIP_MESSAGE} underlineColor="success" showUnderline>
         <LiveIndicator />
       </Tooltip>
+      <Text size="xs" bold variant="success" data-test-id="live-badge">
+        {t('LIVE')}
+      </Text>
     </Flex>
   );
 }
