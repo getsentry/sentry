@@ -38,40 +38,37 @@ export function usePreprodBuildsAnalytics({
   const {selection} = usePageFilters();
 
   const datetimeSelection = `${selection.datetime.start || ''}-${selection.datetime.end || ''}-${selection.datetime.period || ''}`;
-  const resolvedProjectCount = projectCount ?? selection.projects.length;
-  const normalizedSearchQuery = searchQuery?.trim() ?? '';
-  const hasSearchQuery = normalizedSearchQuery.length > 0;
-  const buildCountOnPage = builds.length;
 
   useEffect(() => {
     if (!enabled || isLoading) {
       return;
     }
+    const buildCountOnPage = builds.length;
 
     trackAnalytics('preprod.builds.list.metadata', {
       organization,
       build_count_on_page: buildCountOnPage,
       query_status: error ? 'error' : 'success',
       is_empty: !error && buildCountOnPage === 0,
-      has_search_query: hasSearchQuery,
+      has_search_query: (searchQuery?.trim() ?? '').length > 0,
       page_source: pageSource,
       display,
       cursor: cursor ?? null,
-      project_count: resolvedProjectCount,
+      project_count: projectCount ?? selection.projects.length,
       datetime_selection: datetimeSelection,
     });
   }, [
-    buildCountOnPage,
+    builds.length,
     cursor,
     datetimeSelection,
     display,
     enabled,
     error,
-    hasSearchQuery,
     isLoading,
-    normalizedSearchQuery,
     organization,
     pageSource,
-    resolvedProjectCount,
+    projectCount,
+    searchQuery,
+    selection.projects.length,
   ]);
 }

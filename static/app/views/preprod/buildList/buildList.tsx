@@ -61,6 +61,7 @@ export default function BuildList() {
     builds,
     cursor,
     display: PreprodBuildsDisplay.SIZE,
+    enabled: !!projectId,
     error: !!error,
     isLoading,
     pageSource: 'preprod_builds_list',
