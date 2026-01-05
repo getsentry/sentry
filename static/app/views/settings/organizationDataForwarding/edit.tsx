@@ -40,12 +40,12 @@ import {
 export default function OrganizationDataForwardingEditWrapper() {
   const organization = useOrganization();
   const {dataForwarderId} = useParams();
-  const {data: dataForwarders, isPending} = useDataForwarders({
+  const {data: dataForwarders, isLoading} = useDataForwarders({
     params: {orgSlug: organization.slug},
   });
   const dataForwarder = dataForwarders?.find(df => df.id === dataForwarderId);
 
-  if (isPending) {
+  if (isLoading) {
     return <LoadingIndicator />;
   }
 

@@ -28,7 +28,7 @@ export default function OrganizationDataForwarding() {
   const organization = useOrganization();
   const {
     data: dataForwarders = [],
-    isPending,
+    isLoading,
     isError,
   } = useDataForwarders({
     params: {orgSlug: organization.slug},
@@ -122,7 +122,7 @@ export default function OrganizationDataForwarding() {
             </Text>
           </Flex>
         </Flex>
-        {isPending ? (
+        {isLoading ? (
           <LoadingIndicator />
         ) : isError ? (
           <LoadingError message={t('Failed to load data forwarders')} />

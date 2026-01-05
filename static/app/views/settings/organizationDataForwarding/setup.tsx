@@ -130,7 +130,7 @@ export default function OrganizationDataForwardingSetup() {
             <Fragment>
               {!canCreateForwarder && (
                 <AlertLink
-                  type="warning"
+                  variant="warning"
                   to={`/settings/${organization.slug}/data-forwarding/`}
                 >
                   {t(
