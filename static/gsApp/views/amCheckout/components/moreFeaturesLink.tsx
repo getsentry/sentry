@@ -1,25 +1,21 @@
 import styled from '@emotion/styled';
 
 import {ExternalLink} from 'sentry/components/core/link';
-import {IconBusiness, IconCheckmark} from 'sentry/icons';
+import {IconCheckmark} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 type Props = {
   color?: string;
-  isNewCheckout?: boolean;
   legacySize?: SVGIconProps['legacySize'];
 };
 
-function MoreFeaturesLink({color, legacySize, isNewCheckout}: Props) {
+function MoreFeaturesLink({color, legacySize}: Props) {
   return (
     <MoreLink href="https://sentry.io/pricing" color={color}>
-      {isNewCheckout ? (
-        <IconCheckmark legacySize={legacySize} />
-      ) : (
-        <IconBusiness legacySize={legacySize} />
-      )}
+      <IconCheckmark legacySize={legacySize} />
+
       {t('And more...')}
     </MoreLink>
   );

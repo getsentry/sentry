@@ -61,7 +61,7 @@ class OrganizationPullRequestDetailsEndpoint(OrganizationEndpoint):
 
         try:
             # TODO(telkins): handle pagination
-            pr_files = client.get_pullrequest_files(repo_name, pr_number)
+            pr_files = client.get_pull_request_files(repo_name, pr_number)
             # TODO(telkins): push this into client
             pr_details = client.get(f"/repos/{repo_name}/pulls/{pr_number}")
 

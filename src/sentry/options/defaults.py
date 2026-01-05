@@ -690,6 +690,12 @@ register("overwatch.enabled-regions", default=[], flags=FLAG_AUTOMATOR_MODIFIABL
 # enable verbose debug logging for overwatch webhook forwarding
 register("overwatch.forward-webhooks.verbose", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# Control forwarding of specific GitHub webhook types to overwatch (True) or seer (False)
+register("github.webhook.issue-comment", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("github.webhook.pr", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("github.webhook.pr-review-comment", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("github.webhook.pr-review", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # GitHub Integration
 register("github-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("github-app.name", default="", flags=FLAG_AUTOMATOR_MODIFIABLE)

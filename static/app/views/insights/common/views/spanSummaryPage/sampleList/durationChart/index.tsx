@@ -53,7 +53,7 @@ function DurationChart({
   subregions,
   additionalFilters,
 }: Props) {
-  const {setPageError} = usePageAlert();
+  const {setPageDanger} = usePageAlert();
 
   const filters: SpanQueryFilters = {
     'span.group': groupId,
@@ -108,7 +108,7 @@ function DurationChart({
   );
 
   if (spanMetricsSeriesError || spanMetricsError) {
-    setPageError(t('An error has occurred while loading chart data'));
+    setPageDanger(t('An error has occurred while loading chart data'));
   }
 
   const avg = data.at(0)?.[`avg(${SPAN_SELF_TIME})`] ?? 0;
