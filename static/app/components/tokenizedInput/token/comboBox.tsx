@@ -311,7 +311,11 @@ export function ComboBox({
   }, [isOpen]);
 
   const onResize = useCallback(
-    (sourceRef: HTMLInputElement, size: {height: number; width: number}) => {
+    (
+      _event: Event | null,
+      sourceRef: HTMLInputElement,
+      size: {height: number; width: number}
+    ) => {
       if (parameterDefinition?.kind === 'column') {
         const maxWidth = Math.min(size.width, 130);
         sourceRef.style.width = `${maxWidth}px`;

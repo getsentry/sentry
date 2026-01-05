@@ -1,13 +1,6 @@
 import type React from 'react';
 import {useCallback, useLayoutEffect, useRef} from 'react';
 
-const defaultOnResize = (
-  inputRef: HTMLInputElement,
-  size: {height: number; width: number}
-) => {
-  inputRef.style.width = `${size.width}px`;
-};
-
 /**
  * This hook is used to automatically resize an input element based on its content.
  * It is useful for creating "growing" inputs that can resize to fit their content.
@@ -22,7 +15,11 @@ const defaultOnResize = (
 
 interface UseAutosizeInputOptions {
   enabled?: boolean;
-  onResize?: (sourceRef: HTMLInputElement, size: {height: number; width: number}) => void;
+  onResize?: (
+    event: Event | null,
+    input: HTMLInputElement,
+    size: {height: number; width: number}
+  ) => void;
   value?: React.InputHTMLAttributes<HTMLInputElement>['value'] | undefined;
 }
 
@@ -31,8 +28,7 @@ export function useAutosizeInput(
 ): React.RefCallback<HTMLInputElement> {
   const enabled = options?.enabled ?? true;
   const sourceRef = useRef<HTMLInputElement | null>(null);
-
-  const onResize = options?.onResize ?? defaultOnResize;
+  const onResizeRef = useRef<UseAutosizeInputOptions['onResize']>(options?.onResize);
 
   // A controlled input value change does not trigger a change event,
   // so we need to manually observe the value...
@@ -43,33 +39,37 @@ export function useAutosizeInput(
 
     if (sourceRef.current) {
       const size = getInputSize(sourceRef.current);
-      onResize(sourceRef.current, size);
-    }
-  }, [options?.value, enabled, onResize]);
-
-  const onInputChange = useCallback(
-    (_event: any) => {
-      if (sourceRef.current) {
-        const size = getInputSize(sourceRef.current);
-        onResize(sourceRef.current, size);
+      if (onResizeRef.current) {
+        onResizeRef.current(null, sourceRef.current, size);
+      } else {
+        sourceRef.current.style.width = `${size.width}px`;
       }
-    },
-    [onResize]
-  );
+    }
+  }, [enabled]);
+
+  const onInputChange = useCallback((event: Event) => {
+    if (!sourceRef.current) return;
+
+    if (onResizeRef.current) {
+      const size = getInputSize(sourceRef.current);
+      onResizeRef.current(event, sourceRef.current, size);
+    } else {
+      const size = getInputSize(sourceRef.current);
+      sourceRef.current.style.width = `${size.width}px`;
+    }
+  }, []);
 
   const autosizingCallbackRef: React.RefCallback<HTMLInputElement> = useCallback(
     (element: HTMLInputElement | null) => {
       if (!enabled || !element) {
         sourceRef.current?.removeEventListener('input', onInputChange);
       } else {
-        const size = getInputSize(element);
-        onResize(element, size);
         element.addEventListener('input', onInputChange);
       }
 
       sourceRef.current = element;
     },
-    [onInputChange, enabled, onResize]
+    [enabled, onInputChange]
   );
 
   return autosizingCallbackRef;
