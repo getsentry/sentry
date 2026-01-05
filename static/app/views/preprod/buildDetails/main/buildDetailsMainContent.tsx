@@ -188,14 +188,17 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     );
   }
 
-  // TODO(EME-302): Currently we don't set the size metrics
-  // error_{code,message} correctly so we often see this.
   if (isAppSizeError) {
+    const errorMessage = appSizeError ? parseApiError(appSizeError) : 'Unknown API Error';
     return (
       <Flex width="100%" justify="center" align="center" minHeight="60vh">
         <BuildError
           title={t('Size analysis failed')}
-          message={appSizeError?.message ?? t('The treemap data could not be loaded')}
+          message={
+            errorMessage === 'Unknown API Error'
+              ? t('The treemap data could not be loaded')
+              : errorMessage
+          }
         >
           <Button
             priority="primary"
