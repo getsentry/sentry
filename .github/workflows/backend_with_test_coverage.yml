@@ -41,14 +41,6 @@ jobs:
           echo "Coverage files before combining:"
           ls -lah .coverage* 2>/dev/null || echo "No coverage files found"
 
-          # If there are sharded coverage files, combine them first
-          # This ensures each job uploads only ONE combined .coverage file
-          if compgen -G ".coverage.*" > /dev/null; then
-            echo "Found sharded coverage files, combining..."
-            # Combine without --keep to remove sharded files after combining
-            coverage combine
-          fi
-
           # Ensure we have a .coverage file
           if [[ ! -f .coverage ]]; then
             echo "Error: No .coverage file found after tests"
