@@ -12,7 +12,6 @@ import {
 } from 'sentry/components/replays/replayAccess';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
@@ -35,7 +34,9 @@ export default function ReplayDetails() {
       <ReplayAccess
         fallback={
           <Fragment>
-            <NewTopHeader>{t('Replay Details')}</NewTopHeader>
+            <TopHeader justify="between" align="center" gap="md">
+              {t('Replay Details')}
+            </TopHeader>
             <Layout.Body>
               <ReplayAccessFallbackAlert />
             </Layout.Body>
@@ -79,28 +80,18 @@ function ReplayDetailsContent() {
     ? `${replayRecord.user.display_name ?? t('Anonymous User')} — Session Replay — ${orgSlug}`
     : `Session Replay — ${orgSlug}`;
 
-  const content = organization.features.includes('replay-details-new-ui') ? (
+  const content = (
     <Fragment>
       <Flex direction="column">
-        <NewTopHeader>
+        <TopHeader justify="between" align="center" gap="md">
           <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
           <ReplayDetailsHeaderActions readerResult={readerResult} />
-        </NewTopHeader>
-        <NewBottonHeader justify="between" align="center">
+        </TopHeader>
+        <BottonHeader justify="between" align="center">
           <ReplayDetailsUserBadge readerResult={readerResult} />
           <ReplayDetailsMetadata readerResult={readerResult} />
-        </NewBottonHeader>
+        </BottonHeader>
       </Flex>
-      <ReplayDetailsPage readerResult={readerResult} />
-    </Fragment>
-  ) : (
-    <Fragment>
-      <Header>
-        <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
-        <ReplayDetailsHeaderActions readerResult={readerResult} />
-        <ReplayDetailsUserBadge readerResult={readerResult} />
-        <ReplayDetailsMetadata readerResult={readerResult} />
-      </Header>
       <ReplayDetailsPage readerResult={readerResult} />
     </Fragment>
   );
@@ -120,28 +111,13 @@ function ReplayDetailsContent() {
   );
 }
 
-const Header = styled(Layout.Header)`
-  gap: ${space(1)};
-  padding-bottom: ${space(1.5)};
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    gap: ${space(1)} ${space(3)};
-    padding: ${space(2)} ${space(1)} ${space(0.5)} ${space(2)};
-  }
-`;
-
-const NewTopHeader = styled('div')`
-  padding-left: ${p => p.theme.space.lg};
-  padding-right: ${p => p.theme.space.lg};
+const TopHeader = styled(Flex)`
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: ${space(1)};
-  flex-flow: row wrap;
-  height: 44px;
+  flex-wrap: wrap;
 `;
 
-const NewBottonHeader = styled(Flex)`
+const BottonHeader = styled(Flex)`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
 `;
