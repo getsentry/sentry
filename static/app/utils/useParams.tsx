@@ -52,6 +52,7 @@ type ParamKeys =
   | 'step'
   | 'tagKey'
   | 'teamId'
+  | 'templateId'
   | 'tokenId'
   | 'traceSlug'
   | 'userId'
