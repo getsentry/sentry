@@ -7,6 +7,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.models.commitcomparison import CommitComparison
 from sentry.preprod.eap.write import (
+    THIRTEEN_MONTHS,
     produce_preprod_build_distribution_to_eap,
     produce_preprod_size_metric_to_eap,
 )
@@ -82,7 +83,7 @@ class WritePreprodSizeMetricToEAPTest(TestCase):
         assert trace_item.organization_id == self.organization.id
         assert trace_item.project_id == self.project.id
         assert trace_item.item_type == TraceItemType.TRACE_ITEM_TYPE_PREPROD
-        assert trace_item.retention_days == 90
+        assert trace_item.retention_days == THIRTEEN_MONTHS
 
         attrs = trace_item.attributes
 
@@ -231,7 +232,7 @@ class WritePreprodBuildDistributionToEAPTest(TestCase):
         assert trace_item.organization_id == self.organization.id
         assert trace_item.project_id == self.project.id
         assert trace_item.item_type == TraceItemType.TRACE_ITEM_TYPE_PREPROD
-        assert trace_item.retention_days == 90
+        assert trace_item.retention_days == THIRTEEN_MONTHS
 
         attrs = trace_item.attributes
 
