@@ -20,14 +20,10 @@ import {
   useMutation,
   useQueryClient,
 } from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 
 type GamingPlatform = 'playstation' | 'xbox' | 'nintendo-switch';
-
-interface ConsoleSdkInviteErrorResponse {
-  detail: string;
-  error: string;
-}
 
 interface ConsoleSdkInvitePlatformError {
   error: string;
@@ -84,7 +80,7 @@ export function PrivateGamingSdkAccessModal({
 
   const {mutate} = useMutation<
     ConsoleSdkInviteResponse,
-    ConsoleSdkInviteErrorResponse,
+    RequestError,
     ConsoleSdkInviteRequest
   >({
     mutationFn: ({platforms}: ConsoleSdkInviteRequest) =>
@@ -126,9 +122,9 @@ export function PrivateGamingSdkAccessModal({
       });
     },
     onError: errorResponse => {
-      const errorMessage = tct('[error] [detail]', {
-        error: errorResponse.error,
-        detail: errorResponse.detail,
+      const errorMessage = tct('[error] - [detail]', {
+        error: errorResponse.responseJSON?.error as string,
+        detail: errorResponse.responseJSON?.detail as string,
       });
       addErrorMessage(errorMessage);
       setRequestError(errorMessage);
