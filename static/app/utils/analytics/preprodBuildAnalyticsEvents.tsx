@@ -1,5 +1,6 @@
 import type {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import type {Organization} from 'sentry/types/organization';
+import type {PreprodBuildsAnalyticsPageSource} from 'sentry/views/preprod/hooks/usePreprodBuildsAnalytics';
 
 type BasePreprodBuildEvent = {
   organization: Organization;
@@ -36,10 +37,7 @@ export type PreprodBuildEventParameters = {
     has_search_query: boolean;
     is_empty: boolean;
     organization: Organization;
-    page_source:
-      | 'preprod_builds_list'
-      | 'releases_mobile_builds_tab'
-      | 'releases_details_preprod_builds';
+    page_source: PreprodBuildsAnalyticsPageSource;
     project_count: number;
     query_status: 'success' | 'error';
     cursor?: string | null;
