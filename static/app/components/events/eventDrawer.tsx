@@ -57,7 +57,7 @@ export const EventNavigator = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   z-index: 2; /* Just above EventStickyControls */
   min-height: ${MIN_NAV_HEIGHT}px;
-  box-shadow: ${p => p.theme.translucentBorder} 0 1px;
+  box-shadow: ${p => p.theme.tokens.border.primary} 0 1px;
 `;
 
 export const EventStickyControls = styled('div')`
