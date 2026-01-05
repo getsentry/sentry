@@ -5,6 +5,7 @@ from snuba_sdk import Column, Condition, Limit, Op
 
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.search.eap.utils import add_start_end_conditions
+from sentry.search.events.datasets.discover import InvalidIssueSearchQuery
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
@@ -152,6 +153,17 @@ def get_aggregation_value(
         results = query_builder.run_query(referrer="subscription_processor.comparison_query")
         comparison_aggregate = list(results["data"][0].values())[0]
 
+    except InvalidIssueSearchQuery:
+        # Queries that reference non-existent issue IDs are not useful and
+        # we should help users fix them, but they're not unexpected.
+        logger.info(
+            "Comparison query references non-existent issue IDs",
+            extra={
+                "subscription_id": subscription_update.get("subscription_id"),
+                "organization_id": organization_id,
+            },
+        )
+        return None
     except Exception:
         logger.exception(
             "Failed to run comparison query",
