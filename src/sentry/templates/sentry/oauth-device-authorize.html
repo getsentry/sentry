@@ -9,6 +9,7 @@
 {% block auth_main %}
   <form class="form-stacked" action="." method="post" autocomplete="off">
     {% csrf_token %}
+    <input type="hidden" name="user_code" value="{{ user_code }}">
 
     <div>
       <div class="alert alert-info">

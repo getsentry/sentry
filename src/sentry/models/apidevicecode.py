@@ -154,6 +154,11 @@ class ApiDeviceCode(Model):
         return self.status == DeviceCodeStatus.DENIED
 
     @classmethod
+    def get_lock_key(cls, device_code_id: int) -> str:
+        """Return lock key for preventing race conditions during token exchange."""
+        return f"api_device_code:{device_code_id}"
+
+    @classmethod
     def sanitize_relocation_json(
         cls, json: Any, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
     ) -> None:

@@ -93,8 +93,10 @@ class OAuthDeviceVerificationTest(TestCase):
         # First show approval form to set up session
         self.client.post(self.path, {"user_code": self.device_code.user_code})
 
-        # Then approve
-        resp = self.client.post(self.path, {"op": "approve"})
+        # Then approve (user_code in hidden field identifies the session)
+        resp = self.client.post(
+            self.path, {"op": "approve", "user_code": self.device_code.user_code}
+        )
         assert resp.status_code == 200
         assert b"approved" in resp.content.lower()
 
@@ -115,7 +117,7 @@ class OAuthDeviceVerificationTest(TestCase):
         self.client.post(self.path, {"user_code": self.device_code.user_code})
 
         # Then deny
-        resp = self.client.post(self.path, {"op": "deny"})
+        resp = self.client.post(self.path, {"op": "deny", "user_code": self.device_code.user_code})
         assert resp.status_code == 200
         assert b"denied" in resp.content.lower()
 
@@ -144,18 +146,29 @@ class OAuthDeviceVerificationTest(TestCase):
         self.client.post(self.path, {"user_code": self.device_code.user_code})
 
         # Then submit invalid operation
-        resp = self.client.post(self.path, {"op": "invalid"})
+        resp = self.client.post(
+            self.path, {"op": "invalid", "user_code": self.device_code.user_code}
+        )
         assert resp.status_code == 200
         assert b"invalid" in resp.content.lower()
 
     def test_session_expired_shows_error(self) -> None:
-        """Stale session should show error."""
+        """Missing user_code should show error."""
         self.login_as(self.user)
 
-        # Submit without setting up session first
+        # Submit without user_code
         resp = self.client.post(self.path, {"op": "approve"})
         assert resp.status_code == 200
-        assert b"session" in resp.content.lower() or b"start over" in resp.content.lower()
+        assert b"invalid request" in resp.content.lower() or b"start over" in resp.content.lower()
+
+    def test_invalid_user_code_in_session_shows_error(self) -> None:
+        """User code not in session should show session expired error."""
+        self.login_as(self.user)
+
+        # Submit with user_code that has no corresponding session
+        resp = self.client.post(self.path, {"op": "approve", "user_code": "FAKE-CODE"})
+        assert resp.status_code == 200
+        assert b"session expired" in resp.content.lower() or b"start over" in resp.content.lower()
 
     def test_rate_limiting(self) -> None:
         """Rate limiting should prevent brute force attacks."""
@@ -201,4 +214,4 @@ class OAuthDeviceVerificationOrgLevelTest(TestCase):
         # This correctly shows the "must be member of organization" error
         resp = self.client.post(self.path, {"user_code": device_code.user_code})
         assert resp.status_code == 200
-        assert b"members of an organization" in resp.content
+        assert b"member of an organization" in resp.content

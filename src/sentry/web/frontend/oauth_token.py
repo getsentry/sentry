@@ -15,6 +15,7 @@ from django.views.generic.base import View
 from rest_framework.request import Request
 
 from sentry import options
+from sentry.locks import locks
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apidevicecode import DEFAULT_INTERVAL, ApiDeviceCode, DeviceCodeStatus
 from sentry.models.apigrant import ApiGrant, ExpiredGrantError, InvalidGrantError
@@ -459,44 +460,72 @@ class OAuthTokenView(View):
                 reason="user denied authorization",
             )
         elif device_code.status == DeviceCodeStatus.APPROVED:
-            # User approved - issue tokens
-            if device_code.user is None:
-                # This shouldn't happen, but handle it gracefully
-                logger.error(
-                    "Device code approved but no user set",
+            # Use locking to prevent race condition where multiple requests
+            # could create tokens for the same device code (TOCTOU)
+            lock = locks.get(
+                ApiDeviceCode.get_lock_key(device_code.id),
+                duration=10,
+                name="api_device_code",
+            )
+
+            with lock.acquire():
+                # Re-fetch inside lock to prevent TOCTOU race condition
+                try:
+                    device_code = ApiDeviceCode.objects.get(id=device_code.id)
+                except ApiDeviceCode.DoesNotExist:
+                    # Another request already processed this device code
+                    return self.error(
+                        request=request,
+                        name="invalid_grant",
+                        reason="invalid device_code",
+                    )
+
+                # Re-check status inside lock
+                if device_code.status != DeviceCodeStatus.APPROVED:
+                    return self.error(
+                        request=request,
+                        name="invalid_grant",
+                        reason="device code in invalid state",
+                    )
+
+                # User approved - issue tokens
+                if device_code.user is None:
+                    # This shouldn't happen, but handle it gracefully
+                    logger.error(
+                        "Device code approved but no user set",
+                        extra={
+                            "device_code_id": device_code.id,
+                            "application_id": application.id,
+                        },
+                    )
+                    device_code.delete()
+                    return self.error(
+                        request=request,
+                        name="invalid_grant",
+                        reason="device code in invalid state",
+                    )
+
+                # Create the access token
+                token = ApiToken.objects.create(
+                    application=application,
+                    user_id=device_code.user_id,
+                    scope_list=device_code.scope_list,
+                    scoping_organization_id=device_code.organization_id,
+                )
+
+                metrics.incr("oauth_device.token_exchange", sample_rate=1.0)
+                logger.info(
+                    "oauth.device-code-exchanged",
                     extra={
                         "device_code_id": device_code.id,
                         "application_id": application.id,
+                        "user_id": device_code.user_id,
+                        "token_id": token.id,
                     },
                 )
+
+                # Delete the device code (one-time use)
                 device_code.delete()
-                return self.error(
-                    request=request,
-                    name="invalid_grant",
-                    reason="device code in invalid state",
-                )
-
-            # Create the access token
-            token = ApiToken.objects.create(
-                application=application,
-                user_id=device_code.user_id,
-                scope_list=device_code.scope_list,
-                scoping_organization_id=device_code.organization_id,
-            )
-
-            metrics.incr("oauth_device.token_exchange", sample_rate=1.0)
-            logger.info(
-                "oauth.device-code-exchanged",
-                extra={
-                    "device_code_id": device_code.id,
-                    "application_id": application.id,
-                    "user_id": device_code.user_id,
-                    "token_id": token.id,
-                },
-            )
-
-            # Delete the device code (one-time use)
-            device_code.delete()
 
             return self.process_token_details(token=token)
 
