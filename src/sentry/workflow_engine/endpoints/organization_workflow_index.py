@@ -128,9 +128,6 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                 raise ValidationError({"detector": ["Invalid detector ID format"]})
             queryset = queryset.filter(detectorworkflow__detector_id__in=detector_ids).distinct()
 
-            # If detector IDs are provided, skip query and project filtering
-            return queryset
-
         if raw_query := request.GET.get("query"):
             for filter in parse_workflow_query(raw_query):
                 assert isinstance(filter, SearchFilter)
