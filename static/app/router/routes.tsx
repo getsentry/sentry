@@ -1381,6 +1381,7 @@ function buildRoutes(): RouteObject[] {
           index: true,
           component: make(() => import('sentry/views/dashboards/manage')),
         },
+        traceView,
       ],
       deprecatedRouteProps: true,
     },
