@@ -10,6 +10,7 @@ from urllib3.exceptions import HTTPError
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.seer.code_review.utils import transform_webhook_to_codegen_request
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -47,12 +48,19 @@ def schedule_task(
     event: Mapping[str, Any],
     organization: Organization,
     repo: Repository,
+    target_commit_sha: str,
+    trigger: CodeReviewTrigger,
 ) -> None:
     """Transform and forward a webhook event to Seer for processing."""
     from .task import process_github_webhook_event
 
     transformed_event = transform_webhook_to_codegen_request(
-        event_payload=dict(event), organization_id=organization.id, repo=repo
+        github_event=github_event,
+        event_payload=dict(event),
+        organization=organization,
+        repo=repo,
+        target_commit_sha=target_commit_sha,
+        trigger=trigger,
     )
 
     if transformed_event is None:
