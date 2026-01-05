@@ -101,6 +101,17 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils.numbers import format_grouped_length
 
 
+class InvalidIssueSearchQuery(InvalidSearchQuery):
+    """Raised when an issue filter references non-existent issue IDs."""
+
+    def __init__(self, invalid_ids: list[str]):
+        self.invalid_ids = invalid_ids
+        super().__init__(f"Issue IDs do not exist: {invalid_ids}")
+
+    def __str__(self) -> str:
+        return f"Issue IDs do not exist: {self.invalid_ids}"
+
+
 class DiscoverDatasetConfig(DatasetConfig):
     custom_threshold_columns = {
         "apdex()",
@@ -1859,6 +1870,8 @@ class DiscoverDatasetConfig(DatasetConfig):
                     self.builder.params.organization.id,
                     group_short_ids,
                 )
+            except Group.DoesNotExist:
+                raise InvalidIssueSearchQuery(group_short_ids)
             except Exception:
                 raise InvalidSearchQuery(f"Invalid value '{group_short_ids}' for 'issue:' filter")
             else:
