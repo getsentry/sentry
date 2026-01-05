@@ -16,10 +16,10 @@ logger = logging.getLogger(__name__)
 """
 Clickhouse can only handle a query of size 131072b. Our IDs are about 10b and there are
 commas & spaces, so each ID ends up ~12b in the query. That gives ~10k possible group
-IDs; we quarter that here both for breathing room and to ensure that we're still fine if
-a poorly-formatted query has the same list twice.
+IDs; we less-than-half that here both for breathing room and to ensure that we're still
+fine if a poorly-formatted query has the same list twice.
 """
-SIZE_THRESHOLD_FOR_CLICKHOUSE = 2500
+SIZE_THRESHOLD_FOR_CLICKHOUSE = 4000
 
 
 def _build_group_redirect_by_group_id_cache_key(group_id: str | int) -> str:
