@@ -524,6 +524,6 @@ describe('NotificationSettingsByType', () => {
     expect(screen.queryByText('Transactions')).not.toBeInTheDocument();
     expect(screen.queryByText('Seer Budget')).not.toBeInTheDocument();
     expect(screen.queryByText('Logs')).not.toBeInTheDocument();
-    expect(screen.queryByText('Prevent Users')).not.toBeInTheDocument();
+    expect(screen.queryByText('Active Contributors')).not.toBeInTheDocument();
   });
 });
