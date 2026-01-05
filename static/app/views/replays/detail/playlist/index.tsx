@@ -1,3 +1,5 @@
+import {parseAsString, useQueryState} from 'nuqs';
+
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -34,13 +36,15 @@ const MOBILE_COLUMNS = [
 export default function Playlist() {
   const {replays, currentReplayIndex, isLoading} = useReplayPlaylist();
   const location = useLocation();
-  const query = typeof location.query.query === 'string' ? location.query.query : '';
+  const [query] = useQueryState('query', parseAsString.withDefault(''));
 
   const {allMobileProj} = useAllMobileProj({});
   const columns = allMobileProj ? MOBILE_COLUMNS : VISIBLE_COLUMNS;
+  const rows = query ? 'max-content auto' : 'auto';
+
   return (
     <Flex height="100%" overflow="auto">
-      <Grid gap="md" rows="max-content auto" height="100%" width="100%">
+      <Grid gap="md" rows={rows} height="100%" width="100%">
         {query ? (
           <Alert
             variant="info"
