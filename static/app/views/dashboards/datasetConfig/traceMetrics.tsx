@@ -164,13 +164,13 @@ function useTraceMetricsSearchBarDataProvider(
 
 export function formatTraceMetricsFunction(
   valueToParse: string,
-  defaultValue: string | ReactNode = ''
+  defaultValue?: string | ReactNode
 ) {
   const parsedFunction = parseFunction(valueToParse);
   if (parsedFunction) {
     return `${parsedFunction.name}(${parsedFunction.arguments[1] ?? '…'})`;
   }
-  return defaultValue;
+  return defaultValue ?? valueToParse;
 }
 
 export const TraceMetricsConfig: DatasetConfig<
@@ -258,6 +258,17 @@ export const TraceMetricsConfig: DatasetConfig<
   },
   getCustomFieldRenderer: (field, meta, _organization) => {
     return getFieldRenderer(field, meta, false);
+  },
+  getFieldHeaderMap: widgetQuery => {
+    return (
+      widgetQuery?.aggregates.reduce(
+        (acc, aggregate) => {
+          acc[aggregate] = formatTraceMetricsFunction(aggregate) as string;
+          return acc;
+        },
+        {} as Record<string, string>
+      ) ?? {}
+    );
   },
 };
 
