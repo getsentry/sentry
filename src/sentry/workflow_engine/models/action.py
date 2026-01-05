@@ -138,6 +138,7 @@ class Action(DefaultFieldsModel, JSONConfigBase):
                 event_data=event_data,
                 action=self,
                 detector=detector,
+                notification_uuid=notification_uuid,
             )
             handler.execute(invocation)
 
