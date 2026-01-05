@@ -11,7 +11,6 @@ on:
       seed:
         description: The seed for the test ordering
         required: false
-  pull_request:
 
   # Run once a day
   schedule:
