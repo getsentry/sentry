@@ -63,7 +63,7 @@ function getEnablementForm({
         type: 'boolean',
         defaultValue: dataForwarder?.isEnabled ?? true,
         // Need to set 'undefined' instead of false so that the field can still be disabled by the form
-        disabled: hasCompleteSetup ? true : undefined,
+        disabled: hasCompleteSetup ? undefined : true,
         help: hasCompleteSetup
           ? t('Will override all projects to shut-off data forwarding altogether.')
           : t('Will be enabled after the initial setup is complete.'),
