@@ -155,7 +155,7 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
         These fields are used to render a form for the user,
         and are then passed in the format of:
 
-        >>>{'title': 'TypeError: Object [object Object] has no method "updateFrom"'}
+        >>>{'title': 'TypeError: Cannot read property \'get\' of undefined'}
 
         to `create_issue`, which handles creation of the issue
         in Jira, VSTS, GitHub, etc
