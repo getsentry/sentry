@@ -15,8 +15,8 @@ from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_events_stats import SENTRY_BACKEND_REFERRERS
 from sentry.api.endpoints.timeseries import (
     EMPTY_STATS_RESPONSE,
-    INGESTION_DELAY_MESSAGE,
     INGESTION_DELAY,
+    INGESTION_DELAY_MESSAGE,
     Row,
     SeriesMeta,
     StatsMeta,
