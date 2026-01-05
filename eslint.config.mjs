@@ -12,7 +12,6 @@ import * as emotion from '@emotion/eslint-plugin';
 import eslint from '@eslint/js';
 import pluginQuery from '@tanstack/eslint-plugin-query';
 import prettier from 'eslint-config-prettier';
-// @ts-expect-error TS(7016): Could not find a declaration file
 import boundaries from 'eslint-plugin-boundaries';
 import importPlugin from 'eslint-plugin-import';
 import jest from 'eslint-plugin-jest';
@@ -1103,6 +1102,7 @@ export default typescript.config([
       ...boundaries.configs.strict.rules,
       'boundaries/no-ignored': 'off',
       'boundaries/no-private': 'off',
+      'boundaries/no-unknown': 'off',
       'boundaries/element-types': [
         'error',
         {
