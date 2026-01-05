@@ -43,6 +43,8 @@ export function uptimeFormDataToEndpointPayload(
         timeoutMs: data.timeoutMs,
         traceSampling: data.traceSampling,
         url: data.url,
+        headers: data.headers,
+        body: data.body || null,
       },
     ],
     config: {
