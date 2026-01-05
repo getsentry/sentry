@@ -702,6 +702,8 @@ function useWidgetBuilderState(): {
               }
             }
 
+            // Update the sort if the current sort is not used in
+            // any of the current fields
             if (
               sort &&
               !checkTraceMetricSortUsed(sort, action.payload, updatedAggregates, fields)
