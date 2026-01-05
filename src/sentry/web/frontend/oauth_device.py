@@ -293,10 +293,18 @@ class OAuthDeviceView(AuthLoginView):
                 auth.scope_list = list(set(auth.scope_list) | set(scopes))
                 auth.save(update_fields=["scope_list"])
 
-        # Mark as approved
-        device_code.status = DeviceCodeStatus.APPROVED
-        device_code.user_id = request.user.id
-        device_code.save(update_fields=["status", "user_id", "organization_id"])
+        # Atomically mark as approved only if still pending (prevents race condition)
+        updated = ApiDeviceCode.objects.filter(
+            id=device_code.id,
+            status=DeviceCodeStatus.PENDING,
+        ).update(
+            status=DeviceCodeStatus.APPROVED,
+            user_id=request.user.id,
+            organization_id=selected_org_id_int,
+        )
+        if not updated:
+            # Another request already processed this device code
+            return self._error_response(request, ERR_INVALID_CODE)
 
         metrics.incr(
             "oauth_device.approve",
@@ -309,7 +317,7 @@ class OAuthDeviceView(AuthLoginView):
                 "device_code_id": device_code.id,
                 "application_id": device_code.application_id,
                 "user_id": request.user.id,
-                "organization_id": device_code.organization_id,
+                "organization_id": selected_org_id_int,
             },
         )
 
