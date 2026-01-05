@@ -2505,6 +2505,10 @@ function buildRoutes(): RouteObject[] {
       path: 'compare/',
       children: [
         {
+          index: true,
+          component: errorHandler(RouteNotFound),
+        },
+        {
           path: ':headArtifactId/',
           component: make(
             () => import('sentry/views/preprod/buildComparison/buildComparison')
