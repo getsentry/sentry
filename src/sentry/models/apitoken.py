@@ -288,8 +288,6 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         return token
 
     def save(self, *args: Any, **kwargs: Any) -> None:
-        from sentry import options
-
         self.hashed_token = hashlib.sha256(self.token.encode()).hexdigest()
 
         if self.refresh_token:
@@ -303,17 +301,9 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         token_last_characters = self.token[-4:]
         self.token_last_characters = token_last_characters
 
-        has_async_flush = options.get("api-token-async-flush")
-        if has_async_flush:
-            self.default_flush = False
-
-        result = super().save(*args, **kwargs)
-
-        return result
+        return super().save(*args, **kwargs)
 
     def update(self, *args: Any, **kwargs: Any) -> int:
-        from sentry import options
-
         # if the token or refresh_token was updated, we need to
         # re-calculate the hashed values
         if "token" in kwargs:
@@ -327,12 +317,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         if "token" in kwargs:
             kwargs["token_last_characters"] = kwargs["token"][-4:]
 
-        has_async_flush = options.get("api-token-async-flush")
-        if has_async_flush:
-            self.default_flush = False
-        result = super().update(*args, **kwargs)
-
-        return result
+        return super().update(*args, **kwargs)
 
     def outbox_region_names(self) -> Collection[str]:
         return list(find_all_region_names())
@@ -575,6 +560,17 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
             return install_token.sentry_app_installation.organization_id
 
         return installation.organization_id
+
+    @property
+    def default_flush(self) -> bool:
+        from sentry import options
+
+        has_async_flush = options.get("api-token-async-flush")
+        return not has_async_flush
+
+    @default_flush.setter
+    def default_flush(self, value: bool) -> None:
+        self.default_flush = value
 
 
 def is_api_token_auth(auth: object) -> bool:
