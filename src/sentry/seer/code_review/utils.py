@@ -6,7 +6,12 @@ import orjson
 from django.conf import settings
 from urllib3.exceptions import HTTPError
 
+from sentry.integrations.github.client import GitHubApiClient
+from sentry.integrations.github.webhook_types import GithubWebhookType
+from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.net.http import connection_from_url
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 
@@ -55,18 +60,83 @@ def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:
         return response.data
 
 
-# XXX: Do a thorough review of this function and make sure it's correct.
-def transform_webhook_to_codegen_request(
+def _get_trigger_metadata(event_payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Extract trigger metadata fields from the event payload."""
+    comment = event_payload.get("comment")
+
+    if comment:
+        trigger_user = comment.get("user", {}).get("login")
+        trigger_comment_id = comment.get("id")
+        trigger_comment_type = (
+            "pull_request_review_comment"
+            if comment.get("pull_request_review_id") is not None
+            else "issue_comment"
+        )
+    else:
+        trigger_user = event_payload.get("sender", {}).get("login") or event_payload.get(
+            "pull_request", {}
+        ).get("user", {}).get("login")
+        trigger_comment_id = None
+        trigger_comment_type = None
+
+    return {
+        "trigger_user": trigger_user,
+        "trigger_comment_id": trigger_comment_id,
+        "trigger_comment_type": trigger_comment_type,
+    }
+
+
+def _get_target_commit_sha(
+    github_event: GithubWebhookType,
     event_payload: Mapping[str, Any],
-    organization_id: int,
     repo: Repository,
+    integration: RpcIntegration | None,
+) -> str:
+    """
+    Get the target commit SHA for code review.
+    """
+    if github_event == GithubWebhookType.PULL_REQUEST:
+        sha = event_payload.get("pull_request", {}).get("head", {}).get("sha")
+        if not isinstance(sha, str) or not sha:
+            raise ValueError("missing-pr-head-sha")
+        return sha
+
+    if github_event == GithubWebhookType.ISSUE_COMMENT:
+        if integration is None:
+            raise ValueError("missing-integration-for-sha")
+        pr_number = event_payload.get("issue", {}).get("number")
+        if not isinstance(pr_number, int):
+            raise ValueError("missing-pr-number-for-sha")
+        sha = (
+            GitHubApiClient(integration=integration)
+            .get_pull_request(repo.name, pr_number)
+            .get("head", {})
+            .get("sha")
+        )
+        if not isinstance(sha, str) or not sha:
+            raise ValueError("missing-api-pr-head-sha")
+        return sha
+
+    raise ValueError("unsupported-event-for-sha")
+
+
+def transform_webhook_to_codegen_request(
+    github_event: GithubWebhookType,
+    event_payload: Mapping[str, Any],
+    organization: Organization,
+    repo: Repository,
+    target_commit_sha: str,
+    trigger: CodeReviewTrigger,
 ) -> dict[str, Any] | None:
     """
     Transform a GitHub webhook payload into CodecovTaskRequest format for Seer.
 
     Args:
         event_payload: The full webhook event payload from GitHub
-        organization_id: The Sentry organization ID
+        organization: The Sentry organization
+        repo: The repository model
+        target_commit_sha: The target commit SHA for PR review (head of the PR at the time of webhook event)
+        trigger: The trigger type for the PR review
 
     Returns:
         Dictionary in CodecovTaskRequest format with request_type, data, and external_owner_id,
@@ -106,20 +176,28 @@ def transform_webhook_to_codegen_request(
         "owner": owner,
         "name": repo_name,
         "external_id": repo.external_id,
+        "base_commit_sha": target_commit_sha,
     }
 
-    # Build CodegenBaseRequest (minimal required fields)
-    codegen_request = {
-        "repo": repo_definition,
-        "pr_id": pr_number,
-        "codecov_status": None,
-        "more_readable_repos": [],
-    }
+    trigger_metadata = _get_trigger_metadata(event_payload)
 
     # Build CodecovTaskRequest
     return {
-        "data": codegen_request,
-        "external_owner_id": repo.external_id,
         "request_type": request_type,
-        "organization_id": organization_id,
+        "external_owner_id": repo.external_id,
+        "data": {
+            "repo": repo_definition,
+            "pr_id": pr_number,
+            "bug_prediction_specific_information": {
+                "organization_id": organization.id,
+                "organization_slug": organization.slug,
+            },
+            "config": {
+                "features": {
+                    "bug_prediction": True,
+                },
+                "trigger": trigger,
+                **trigger_metadata,
+            },
+        },
     }

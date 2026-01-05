@@ -122,7 +122,7 @@ class OrganizationPullRequestDetailsEndpointTest(TestCase):
         )
 
     @with_feature("organizations:pr-page")
-    @patch("sentry.integrations.github.client.GitHubApiClient.get_pullrequest_files")
+    @patch("sentry.integrations.github.client.GitHubApiClient.get_pull_request_files")
     @patch("sentry.integrations.github.client.GitHubApiClient.get")
     def test_successful_pr_details_fetch(self, mock_get, mock_get_files):
         """Test successful PR details and files fetch with proper normalization."""
@@ -185,7 +185,7 @@ class OrganizationPullRequestDetailsEndpointTest(TestCase):
         assert "No GitHub integration found" in response.data["message"]
 
     @with_feature("organizations:pr-page")
-    @patch("sentry.integrations.github.client.GitHubApiClient.get_pullrequest_files")
+    @patch("sentry.integrations.github.client.GitHubApiClient.get_pull_request_files")
     def test_github_api_error(self, mock_get_files):
         """Test GitHub API error handling."""
         # Simulate GitHub API error
@@ -198,7 +198,7 @@ class OrganizationPullRequestDetailsEndpointTest(TestCase):
         assert "Failed to fetch pull request data from GitHub" in response.data["message"]
 
     @with_feature("organizations:pr-page")
-    @patch("sentry.integrations.github.client.GitHubApiClient.get_pullrequest_files")
+    @patch("sentry.integrations.github.client.GitHubApiClient.get_pull_request_files")
     @patch("sentry.integrations.github.client.GitHubApiClient.get")
     def test_empty_pr_files(self, mock_get, mock_get_files):
         """Test handling of PR with no files changed."""
@@ -221,7 +221,7 @@ class OrganizationPullRequestDetailsEndpointTest(TestCase):
         assert "No GitHub integration found" in response.data["message"]
 
     @with_feature("organizations:pr-page")
-    @patch("sentry.integrations.github.client.GitHubApiClient.get_pullrequest_files")
+    @patch("sentry.integrations.github.client.GitHubApiClient.get_pull_request_files")
     @patch("sentry.integrations.github.client.GitHubApiClient.get")
     def test_missing_timestamps_handled_correctly(self, mock_get, mock_get_files):
         """Test that missing timestamps are properly handled without type errors."""

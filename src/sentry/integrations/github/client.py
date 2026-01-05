@@ -348,7 +348,7 @@ class GitHubBaseClient(
         """
         Get the merge commit sha from a commit sha.
         """
-        response = self.get_pullrequest_from_commit(repo.name, sha)
+        response = self.get_pull_request_from_commit(repo.name, sha)
         if not response or (isinstance(response, list) and len(response) != 1):
             # the response should return a single merged PR, return if multiple
             return None
@@ -363,7 +363,7 @@ class GitHubBaseClient(
 
         return pull_request.get("merge_commit_sha")
 
-    def get_pullrequest_from_commit(self, repo: str, sha: str) -> Any:
+    def get_pull_request_from_commit(self, repo: str, sha: str) -> Any:
         """
         https://docs.github.com/en/rest/commits/commits#list-pull-requests-associated-with-a-commit
 
@@ -371,13 +371,21 @@ class GitHubBaseClient(
         """
         return self.get(f"/repos/{repo}/commits/{sha}/pulls")
 
-    def get_pullrequest_files(self, repo: str, pull_number: str) -> Any:
+    def get_pull_request_files(self, repo: str, pull_number: str) -> Any:
         """
         https://docs.github.com/en/rest/pulls/pulls#list-pull-requests-files
 
         Returns up to 30 files associated with a pull request. Responses are paginated.
         """
         return self.get(f"/repos/{repo}/pulls/{pull_number}/files")
+
+    def get_pull_request(self, repo: str, pull_number: int) -> Any:
+        """
+        https://docs.github.com/en/rest/pulls/pulls#get-a-pull-request
+
+        Returns a single pull request.
+        """
+        return self.get(f"/repos/{repo}/pulls/{pull_number}")
 
     def get_repo(self, repo: str) -> Any:
         """
@@ -539,7 +547,7 @@ class GitHubBaseClient(
         """
         return self.get(f"/repos/{repo}/issues/{issue_number}/comments")
 
-    def get_pullrequest_comments(self, repo: str, pull_number: str) -> Any:
+    def get_pull_request_comments(self, repo: str, pull_number: str) -> Any:
         """
         https://docs.github.com/en/rest/pulls/comments#list-review-comments-on-a-pull-request
         """
