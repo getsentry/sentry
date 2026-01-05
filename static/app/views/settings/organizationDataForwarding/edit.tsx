@@ -207,7 +207,7 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
                 }}
                 extraButton={
                   <DataForwarderDeleteConfirm dataForwarder={dataForwarder}>
-                    <Button icon={<IconDelete color="danger" />}>
+                    <Button icon={<IconDelete variant="danger" />}>
                       {t('Delete Data Forwarder')}
                     </Button>
                   </DataForwarderDeleteConfirm>
