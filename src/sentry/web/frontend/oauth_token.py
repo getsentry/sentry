@@ -16,8 +16,10 @@ from rest_framework.request import Request
 
 from sentry import options
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
+from sentry.models.apidevicecode import DEFAULT_INTERVAL, ApiDeviceCode, DeviceCodeStatus
 from sentry.models.apigrant import ApiGrant, ExpiredGrantError, InvalidGrantError
 from sentry.models.apitoken import ApiToken
+from sentry.ratelimits import backend as ratelimiter
 from sentry.sentry_apps.token_exchange.util import GrantTypes
 from sentry.silo.safety import unguarded_write
 from sentry.utils import json, metrics
@@ -86,7 +88,7 @@ class OAuthTokenView(View):
 
         Purpose
         - Exchanges an authorization code for tokens, or uses a refresh token to
-          obtain a new access token.
+          obtain a new access token, or exchanges a device code for tokens.
 
         Supported grant types
         - `authorization_code` (RFC 6749 §4.1): requires `code` and, if bound,
@@ -94,6 +96,8 @@ class OAuthTokenView(View):
           signing is configured, an `id_token` (OIDC Core 1.0) is included.
         - `refresh_token` (RFC 6749 §6): requires `refresh_token`. Supplying `scope`
           is not supported here and returns `invalid_request`.
+        - `urn:ietf:params:oauth:grant-type:device_code` (RFC 8628 §3.4): requires
+          `device_code`. Used by headless clients to poll for authorization.
 
         Client authentication
         - Either Authorization header (Basic) or form fields `client_id`/`client_secret`
@@ -109,6 +113,8 @@ class OAuthTokenView(View):
         - Errors (RFC 6749 §5.2): 400 JSON for `invalid_request`, `invalid_grant`,
           `unsupported_grant_type`; 401 JSON for `invalid_client` (with
           `WWW-Authenticate: Basic realm="oauth"`).
+        - Device flow errors (RFC 8628 §3.5): `authorization_pending`, `slow_down`,
+          `expired_token`, `access_denied`.
         """
         grant_type = request.POST.get("grant_type")
 
@@ -136,7 +142,7 @@ class OAuthTokenView(View):
 
         if not grant_type:
             return self.error(request=request, name="invalid_request", reason="missing grant_type")
-        if grant_type not in [GrantTypes.AUTHORIZATION, GrantTypes.REFRESH]:
+        if grant_type not in [GrantTypes.AUTHORIZATION, GrantTypes.REFRESH, GrantTypes.DEVICE_CODE]:
             return self.error(request=request, name="unsupported_grant_type")
 
         try:
@@ -179,6 +185,13 @@ class OAuthTokenView(View):
                     # SentryAppInstallation.api_grant, which is a cross-model write
                     with unguarded_write(using=router.db_for_write(ApiGrant)):
                         ApiGrant.objects.filter(application=application, code=code).delete()
+            # For device_code, invalidate the device code
+            elif grant_type == GrantTypes.DEVICE_CODE:
+                device_code_value = request.POST.get("device_code")
+                if device_code_value:
+                    ApiDeviceCode.objects.filter(
+                        application=application, device_code=device_code_value
+                    ).delete()
             # Use invalid_grant per RFC 6749 §5.2: grants/tokens are effectively "revoked"
             # when the application is deactivated. invalid_client would be incorrect here
             # since client authentication succeeded (we verified the credentials).
@@ -209,6 +222,8 @@ class OAuthTokenView(View):
 
         if grant_type == GrantTypes.AUTHORIZATION:
             token_data = self.get_access_tokens(request=request, application=application)
+        elif grant_type == GrantTypes.DEVICE_CODE:
+            return self.handle_device_code_grant(request=request, application=application)
         else:
             token_data = self.get_refresh_token(request=request, application=application)
         if "error" in token_data:
@@ -369,6 +384,136 @@ class OAuthTokenView(View):
         refresh_token.refresh()
 
         return {"token": refresh_token}
+
+    def handle_device_code_grant(
+        self, request: Request, application: ApiApplication
+    ) -> HttpResponse:
+        """
+        Handle device code grant type (RFC 8628 §3.4).
+
+        This is used by headless clients to poll for authorization status after
+        initiating a device authorization flow.
+
+        Returns:
+        - On success (approved): Access token response
+        - authorization_pending: User hasn't completed authorization yet
+        - slow_down: Client is polling too fast
+        - expired_token: Device code has expired
+        - access_denied: User denied the authorization
+        """
+        device_code_value = request.POST.get("device_code")
+
+        if not device_code_value:
+            return self.error(
+                request=request,
+                name="invalid_request",
+                reason="missing device_code",
+            )
+
+        # Rate limit polling per device_code (RFC 8628 §3.5)
+        # Allow 1 request per interval (default 5 seconds) = 12 requests/minute
+        rate_limit_key = f"oauth:device_poll:{device_code_value}"
+        if ratelimiter.is_limited(rate_limit_key, limit=1, window=DEFAULT_INTERVAL):
+            return self.error(
+                request=request,
+                name="slow_down",
+                reason="polling too fast",
+            )
+
+        # Look up the device code
+        try:
+            device_code = ApiDeviceCode.objects.get(
+                device_code=device_code_value,
+                application=application,
+            )
+        except ApiDeviceCode.DoesNotExist:
+            return self.error(
+                request=request,
+                name="invalid_grant",
+                reason="invalid device_code",
+            )
+
+        # Check if expired (RFC 8628 §3.5)
+        if device_code.is_expired():
+            device_code.delete()
+            return self.error(
+                request=request,
+                name="expired_token",
+                reason="device code expired",
+            )
+
+        # Check authorization status (RFC 8628 §3.5)
+        if device_code.status == DeviceCodeStatus.PENDING:
+            # User hasn't completed authorization yet
+            return self.error(
+                request=request,
+                name="authorization_pending",
+                reason="user authorization pending",
+            )
+        elif device_code.status == DeviceCodeStatus.DENIED:
+            # User denied the authorization
+            device_code.delete()
+            return self.error(
+                request=request,
+                name="access_denied",
+                reason="user denied authorization",
+            )
+        elif device_code.status == DeviceCodeStatus.APPROVED:
+            # User approved - issue tokens
+            if device_code.user is None:
+                # This shouldn't happen, but handle it gracefully
+                logger.error(
+                    "Device code approved but no user set",
+                    extra={
+                        "device_code_id": device_code.id,
+                        "application_id": application.id,
+                    },
+                )
+                device_code.delete()
+                return self.error(
+                    request=request,
+                    name="invalid_grant",
+                    reason="device code in invalid state",
+                )
+
+            # Create the access token
+            token = ApiToken.objects.create(
+                application=application,
+                user_id=device_code.user_id,
+                scope_list=device_code.scope_list,
+                scoping_organization_id=device_code.organization_id,
+            )
+
+            metrics.incr("oauth_device.token_exchange", sample_rate=1.0)
+            logger.info(
+                "oauth.device-code-exchanged",
+                extra={
+                    "device_code_id": device_code.id,
+                    "application_id": application.id,
+                    "user_id": device_code.user_id,
+                    "token_id": token.id,
+                },
+            )
+
+            # Delete the device code (one-time use)
+            device_code.delete()
+
+            return self.process_token_details(token=token)
+
+        # Unknown status - shouldn't happen
+        logger.error(
+            "Device code has unknown status",
+            extra={
+                "device_code_id": device_code.id,
+                "status": device_code.status,
+            },
+        )
+        device_code.delete()
+        return self.error(
+            request=request,
+            name="invalid_grant",
+            reason="device code in invalid state",
+        )
 
     def process_token_details(
         self, token: ApiToken, id_token: OpenIDToken | None = None
