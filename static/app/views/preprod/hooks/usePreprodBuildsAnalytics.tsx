@@ -2,20 +2,16 @@ import {useEffect} from 'react';
 
 import type {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {BuildListPageSource} from 'sentry/utils/analytics/preprodBuildAnalyticsEvents';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
-
-export type PreprodBuildsAnalyticsPageSource =
-  | 'preprod_builds_list'
-  | 'releases_mobile_builds_tab'
-  | 'releases_details_preprod_builds';
 
 interface UsePreprodBuildsAnalyticsProps {
   builds: BuildDetailsApiResponse[];
   display: PreprodBuildsDisplay;
   isLoading: boolean;
-  pageSource: PreprodBuildsAnalyticsPageSource;
+  pageSource: BuildListPageSource;
   cursor?: string | null;
   enabled?: boolean;
   error?: boolean;
