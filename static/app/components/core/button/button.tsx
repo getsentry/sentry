@@ -71,7 +71,7 @@ export function Button({
 }
 
 export const StyledButton = styled('button')<ButtonProps>`
-  ${p => getButtonStyles(p)}
+  ${p => getButtonStyles(p as any)}
 `;
 
 const ButtonLabel = styled('span', {
