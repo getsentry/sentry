@@ -736,7 +736,7 @@ CONSOLE_SDK_INVITE_QUOTA_DEFAULT = 0
 ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT = False
 INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT = "disabled"
 
-# Repository owner for console SDK repositories
+# Repository owner for console SDK repositories. Helpful for testing: add your test org here
 CONSOLE_SDK_REPO_OWNER = "getsentry"
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
