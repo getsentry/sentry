@@ -19,9 +19,7 @@ import ReplayDetailsUserBadge from 'sentry/views/replays/detail/header/replayDet
 import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
 const {organization, project} = initializeOrg({
-  organization: OrganizationFixture({
-    features: ['replay-refresh-background'],
-  }),
+  organization: OrganizationFixture({}),
 });
 
 const mockInvalidateQueries = jest.fn();

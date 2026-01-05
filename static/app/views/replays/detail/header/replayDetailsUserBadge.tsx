@@ -67,22 +67,18 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
 
   const handleRefresh = async () => {
     trackAnalytics('replay.details-refresh-clicked', {organization});
-    if (organization.features.includes('replay-refresh-background')) {
-      await queryClient.refetchQueries({
-        queryKey: [`/organizations/${orgSlug}/replays/${replayId}/`],
-        exact: true,
-        type: 'all',
-      });
-      await queryClient.invalidateQueries({
-        queryKey: [
-          `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/`,
-        ],
-        type: 'all',
-      });
-      startSummaryRequest();
-    } else {
-      window.location.reload();
-    }
+    await queryClient.refetchQueries({
+      queryKey: [`/organizations/${orgSlug}/replays/${replayId}/`],
+      exact: true,
+      type: 'all',
+    });
+    await queryClient.invalidateQueries({
+      queryKey: [
+        `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/`,
+      ],
+      type: 'all',
+    });
+    startSummaryRequest();
   };
 
   const isReplayExpired =
