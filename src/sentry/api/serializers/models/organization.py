@@ -34,6 +34,7 @@ from sentry.constants import (
     ATTACHMENTS_ROLE_DEFAULT,
     AUTO_ENABLE_CODE_REVIEW,
     AUTO_OPEN_PRS_DEFAULT,
+    CONSOLE_SDK_INVITE_QUOTA_DEFAULT,
     DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
@@ -812,8 +813,10 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             ENABLED_CONSOLE_PLATFORMS_DEFAULT,
         )
 
-        quota_limit = obj.get_option("sentry:console_sdk_invite_quota_limit", 1)
-        context["consoleSdkInviteQuota"] = quota_limit
+        context["consoleSdkInviteQuota"] = obj.get_option(
+            "sentry:console_sdk_invite_quota_limit",
+            CONSOLE_SDK_INVITE_QUOTA_DEFAULT,
+        )
 
         if access.role is not None:
             context["role"] = access.role  # Deprecated
