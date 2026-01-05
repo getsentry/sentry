@@ -129,8 +129,6 @@ export enum DataCategoryExact {
   SEER_AUTOFIX = 'seer_autofix',
   SEER_SCANNER = 'seer_scanner',
   SEER_USER = 'seer_user',
-  PREVENT_USER = 'prevent_user',
-  PREVENT_REVIEW = 'prevent_review',
   USER_REPORT_V2 = 'feedback',
   TRACE_METRIC = 'trace_metric',
 }
