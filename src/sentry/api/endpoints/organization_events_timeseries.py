@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import sentry_sdk
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -22,8 +23,12 @@ from sentry.api.endpoints.timeseries import (
     TimeSeries,
 )
 from sentry.api.utils import handle_query_errors
+from sentry.apidocs import constants as api_constants
+from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPerformanceExamples
+from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models.organization import Organization
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.search.eap.trace_metrics.config import (
     TraceMetricsSearchResolverConfig,
     get_trace_metric_from_request,
@@ -45,6 +50,7 @@ from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import DATASET_LABELS, RPC_DATASETS
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.snuba import SnubaTSResult
 
 TOP_EVENTS_DATASETS = {
@@ -72,11 +78,25 @@ def null_zero(value: float) -> float | None:
         return value
 
 
+@extend_schema(tags=["Discover"])
 @region_silo_endpoint
 class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC,
     }
+
+    enforce_rate_limit = True
+
+    # These are copied from /events for now
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=30, window=1, concurrent_limit=15),
+                RateLimitCategory.USER: RateLimit(limit=30, window=1, concurrent_limit=15),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=30, window=1, concurrent_limit=15),
+            }
+        }
+    )
 
     def get_features(
         self, organization: Organization, request: Request
@@ -132,7 +152,30 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         else:
             return None
 
+    @extend_schema(
+        operation_id="Query Explore Events in Timeseries Format",
+        parameters=[  # TODO
+            GlobalParams.END,
+            GlobalParams.ENVIRONMENT,
+            GlobalParams.ORG_ID_OR_SLUG,
+            OrganizationParams.PROJECT,
+            GlobalParams.START,
+            GlobalParams.STATS_PERIOD,
+            VisibilityParams.FIELD,
+            VisibilityParams.PER_PAGE,
+            VisibilityParams.QUERY,
+            VisibilityParams.SORT,
+        ],
+        responses={
+            400: OpenApiResponse(description="Invalid Query"),
+            404: api_constants.RESPONSE_NOT_FOUND,
+        },
+        examples=DiscoverAndPerformanceExamples.QUERY_DISCOVER_EVENTS,  # TODO
+    )
     def get(self, request: Request, organization: Organization) -> Response:
+        """
+        TODO
+        """
         with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
             span.set_data("organization", organization)
 
