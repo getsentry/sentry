@@ -36,6 +36,9 @@ from sentry.models.pullrequest import (
     PullRequestCommit,
 )
 from sentry.models.repository import Repository
+from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
+from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.events.types import SnubaParams
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -45,6 +48,7 @@ from sentry.shared_integrations.exceptions import (
     UnknownHostError,
 )
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.occurrences_rpc import Occurrences
 from sentry.snuba.referrer import Referrer
 from sentry.users.models.identity import Identity
 from sentry.utils import metrics
@@ -479,10 +483,10 @@ class PRCommentWorkflow(ABC):
             )
             return [issue_id for (issue_id,) in cursor.fetchall()]
 
-    def get_top_5_issues_by_count(
+    def _get_top_5_issues_by_count_snuba(
         self, issue_ids: list[int], project: Project
     ) -> list[dict[str, Any]]:
-        """Given a list of issue group ids, return a sublist of the top 5 ordered by event count"""
+        """Snuba implementation: Given a list of issue group ids, return a sublist of the top 5 ordered by event count"""
         request = SnubaRequest(
             dataset=Dataset.Events.value,
             app_id="default",
@@ -505,6 +509,76 @@ class PRCommentWorkflow(ABC):
             ),
         )
         return raw_snql_query(request, referrer=self.referrer.value)["data"]
+
+    def _get_top_5_issues_by_count_eap(
+        self, issue_ids: list[int], project: Project
+    ) -> list[dict[str, Any]]:
+        """EAP implementation: Given a list of issue group ids, return a sublist of the top 5 ordered by event count"""
+        organization = Organization.objects.get(id=project.organization_id)
+        now = datetime.now()
+        start = now - timedelta(days=30)
+
+        snuba_params = SnubaParams(
+            start=start,
+            end=now,
+            organization=organization,
+            projects=[project],
+        )
+
+        group_id_filter = " OR ".join([f"group_id:{gid}" for gid in issue_ids])
+        group_id_query = (
+            f"({group_id_filter})" if len(issue_ids) > 1 else f"group_id:{issue_ids[0]}"
+        )
+        query_string = f"{group_id_query} !level:info"
+
+        try:
+            result = Occurrences.run_table_query(
+                params=snuba_params,
+                query_string=query_string,
+                selected_columns=["group_id", "count()"],
+                orderby=["-count()"],
+                offset=0,
+                limit=5,
+                referrer=self.referrer.value,
+                config=SearchResolverConfig(),
+            )
+            return [
+                {"group_id": row["group_id"], "event_count": row["count()"]}
+                for row in result["data"]
+            ]
+        except Exception:
+            logger.exception(
+                "Fetching top 5 issues by count from EAP failed",
+                extra={
+                    "issue_ids": issue_ids,
+                    "project_id": project.id,
+                    "organization_id": project.organization_id,
+                },
+            )
+            return []
+
+    def get_top_5_issues_by_count(
+        self, issue_ids: list[int], project: Project
+    ) -> list[dict[str, Any]]:
+        """Given a list of issue group ids, return a sublist of the top 5 ordered by event count"""
+        if not issue_ids:
+            return []
+
+        snuba_results = self._get_top_5_issues_by_count_snuba(issue_ids, project)
+        results = snuba_results
+
+        if EAPOccurrencesComparator.should_check_experiment(
+            "integrations.pr_comment.get_top_5_issues_by_count"
+        ):
+            eap_results = self._get_top_5_issues_by_count_eap(issue_ids, project)
+            results = EAPOccurrencesComparator.check_and_choose(
+                snuba_results,
+                eap_results,
+                "integrations.pr_comment.get_top_5_issues_by_count",
+                is_experimental_data_a_null_result=len(eap_results) == 0,
+            )
+
+        return results
 
     @staticmethod
     def _truncate_title(title: str, max_length: int = ISSUE_TITLE_MAX_LENGTH) -> str:

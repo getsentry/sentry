@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
+from sentry.integrations.github.integration import GitHubPRCommentWorkflow
 from sentry.integrations.gitlab.constants import GITLAB_CLOUD_BASE_URL
 from sentry.integrations.source_code_management.commit_context import (
     CommitContextClient,
@@ -10,6 +11,7 @@ from sentry.integrations.source_code_management.commit_context import (
 )
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.repository import Repository
+from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.shared_integrations.exceptions import ApiError, ApiHostError
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric, assert_slo_metric
 from sentry.testutils.cases import TestCase
@@ -207,3 +209,83 @@ class TestCommitContextIntegrationSLO(TestCase):
         assert result == []
         assert len(mock_record.mock_calls) == 2
         assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+
+
+class TestGetTop5IssuesByCountEAP(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration = MockCommitContextIntegration()
+        self.pr_comment_workflow = GitHubPRCommentWorkflow(self.integration)
+
+    @patch(
+        "sentry.integrations.source_code_management.commit_context.PRCommentWorkflow._get_top_5_issues_by_count_eap"
+    )
+    @patch(
+        "sentry.integrations.source_code_management.commit_context.PRCommentWorkflow._get_top_5_issues_by_count_snuba"
+    )
+    def test_uses_snuba_as_source_of_truth(
+        self,
+        mock_snuba: MagicMock,
+        mock_eap: MagicMock,
+    ) -> None:
+        mock_snuba.return_value = [
+            {"group_id": 1, "event_count": 100},
+            {"group_id": 2, "event_count": 50},
+        ]
+        mock_eap.return_value = [
+            {"group_id": 1, "event_count": 90},
+            {"group_id": 2, "event_count": 45},
+        ]
+
+        with self.options({EAPOccurrencesComparator._should_eval_option_name(): True}):
+            result = self.pr_comment_workflow.get_top_5_issues_by_count([1, 2], self.project)
+
+        # Should use Snuba results by default
+        assert result == [
+            {"group_id": 1, "event_count": 100},
+            {"group_id": 2, "event_count": 50},
+        ]
+        mock_snuba.assert_called_once()
+        mock_eap.assert_called_once()
+
+    @patch(
+        "sentry.integrations.source_code_management.commit_context.PRCommentWorkflow._get_top_5_issues_by_count_eap"
+    )
+    @patch(
+        "sentry.integrations.source_code_management.commit_context.PRCommentWorkflow._get_top_5_issues_by_count_snuba"
+    )
+    def test_uses_eap_as_source_of_truth(
+        self,
+        mock_snuba: MagicMock,
+        mock_eap: MagicMock,
+    ) -> None:
+        mock_snuba.return_value = [
+            {"group_id": 1, "event_count": 100},
+            {"group_id": 2, "event_count": 50},
+        ]
+        mock_eap.return_value = [
+            {"group_id": 1, "event_count": 90},
+            {"group_id": 2, "event_count": 45},
+        ]
+
+        with self.options(
+            {
+                EAPOccurrencesComparator._should_eval_option_name(): True,
+                EAPOccurrencesComparator._callsite_allowlist_option_name(): [
+                    "integrations.pr_comment.get_top_5_issues_by_count"
+                ],
+            }
+        ):
+            result = self.pr_comment_workflow.get_top_5_issues_by_count([1, 2], self.project)
+
+        # Should use EAP results when in allowlist
+        assert result == [
+            {"group_id": 1, "event_count": 90},
+            {"group_id": 2, "event_count": 45},
+        ]
+        mock_snuba.assert_called_once()
+        mock_eap.assert_called_once()
+
+    def test_empty_issue_ids_returns_empty(self) -> None:
+        result = self.pr_comment_workflow.get_top_5_issues_by_count([], self.project)
+        assert result == []
