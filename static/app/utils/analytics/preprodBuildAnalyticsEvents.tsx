@@ -9,11 +9,6 @@ type BasePreprodBuildEvent = {
   project_type?: string | null;
 };
 
-type BuildListPageSource =
-  | 'preprod_builds_list'
-  | 'releases_mobile_builds_tab'
-  | 'releases_details_preprod_builds';
-
 export type PreprodBuildEventParameters = {
   'preprod.builds.compare.go_to_build_details': BasePreprodBuildEvent & {
     slot?: 'head' | 'base';
@@ -41,7 +36,10 @@ export type PreprodBuildEventParameters = {
     has_search_query: boolean;
     is_empty: boolean;
     organization: Organization;
-    page_source: BuildListPageSource;
+    page_source:
+      | 'preprod_builds_list'
+      | 'releases_mobile_builds_tab'
+      | 'releases_details_preprod_builds';
     project_count: number;
     query_status: 'success' | 'error';
     cursor?: string | null;
