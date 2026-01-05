@@ -254,7 +254,7 @@ class RepositoryCodeReviewSettingsTest(TestCase):
             provider="integrations:github",
         )
 
-        settings = RepositorySettings.objects.create(
+        settings = self.create_repository_settings(
             repository=repo,
             enabled_code_review=True,
             code_review_triggers=[],
@@ -271,7 +271,7 @@ class RepositoryCodeReviewSettingsTest(TestCase):
             provider="integrations:github",
         )
 
-        settings = RepositorySettings.objects.create(
+        settings = self.create_repository_settings(
             repository=repo,
             enabled_code_review=True,
             code_review_triggers=[
@@ -296,7 +296,7 @@ class RepositoryCodeReviewSettingsTest(TestCase):
             provider="integrations:github",
         )
 
-        settings = RepositorySettings.objects.create(
+        settings = self.create_repository_settings(
             repository=repo,
             enabled_code_review=True,
             code_review_triggers=[
@@ -321,7 +321,7 @@ class RepositoryCodeReviewSettingsTest(TestCase):
             provider="integrations:github",
         )
 
-        settings = RepositorySettings.objects.create(
+        settings = self.create_repository_settings(
             repository=repo,
             enabled_code_review=True,
             code_review_triggers=[
