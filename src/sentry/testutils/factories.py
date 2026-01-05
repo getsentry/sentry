@@ -2661,6 +2661,8 @@ class Factories:
             user = Factories.create_user()
         if "external_id" not in kwargs:
             kwargs["external_id"] = f"github-user-{user.id}"
+        if "status" not in kwargs:
+            kwargs["status"] = IdentityStatus.VALID
 
         identity, _ = Identity.objects.update_or_create(user=user, idp=idp, defaults=kwargs)
         return identity
