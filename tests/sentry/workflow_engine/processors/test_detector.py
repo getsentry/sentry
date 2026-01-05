@@ -838,7 +838,7 @@ class TestGetDetectorsForEvent(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
-        self.group = self.create_group(project=self.project)
+        self.group = self.create_group(project=self.project, type=MetricIssue.type_id)
         self.detector = self.create_detector(project=self.project, type=MetricIssue.slug)
         self.error_detector = self.create_detector(project=self.project, type=ErrorGroupType.slug)
         self.issue_stream_detector = self.create_detector(
@@ -950,7 +950,7 @@ class TestGetDetectorsForEvent(TestCase):
 class TestGetDetectorByEvent(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.group = self.create_group(project=self.project)
+        self.group = self.create_group(project=self.project, type=MetricIssue.type_id)
         self.detector = self.create_detector(project=self.project, type=MetricIssue.slug)
         self.error_detector = self.create_detector(project=self.project, type=ErrorGroupType.slug)
         self.event = self.store_event(project_id=self.project.id, data={})
@@ -981,6 +981,7 @@ class TestGetDetectorByEvent(TestCase):
         assert result == self.detector
 
     def test_without_occurrence(self) -> None:
+        self.group.type = ErrorGroupType.type_id
         group_event = GroupEvent.from_event(self.event, self.group)
         group_event.occurrence = None
 
@@ -1028,7 +1029,7 @@ class TestGetDetectorByEvent(TestCase):
         with pytest.raises(Detector.DoesNotExist):
             get_detector_by_event(event_data)
 
-    def test_defaults_to_error_detector(self) -> None:
+    def test_errors_on_no_detector(self) -> None:
         occurrence = IssueOccurrence(
             id=uuid.uuid4().hex,
             project_id=self.project.id,
@@ -1051,9 +1052,8 @@ class TestGetDetectorByEvent(TestCase):
 
         event_data = WorkflowEventData(event=group_event, group=self.group)
 
-        result = get_detector_by_event(event_data)
-
-        assert result == self.error_detector
+        with pytest.raises(Detector.DoesNotExist):
+            get_detector_by_event(event_data)
 
 
 class TestAssociateNewGroupWithDetector(TestCase):
