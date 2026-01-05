@@ -1,3 +1,5 @@
+import moment from 'moment-timezone';
+
 import type {
   AskSeerSearchItems,
   NoneOfTheseItem,
@@ -79,6 +81,42 @@ export function formatQueryToNaturalLanguage(query: string): string {
   return `${formattedQuery} `;
 }
 
+/**
+ * Formats a date range for display.
+ *
+ * The endpoint returns times in UTC format, but the values represent what the user
+ * intended in their local context. E.g., if user asks for "9pm", endpoint returns
+ * "T21:00:00Z" - we want to display "9:00 PM", not convert to local timezone.
+ */
+export function formatDateRange(start: string, end: string, separator = ' to '): string {
+  // Parse as UTC but display the UTC values directly (without timezone conversion)
+  const startMoment = moment.utc(start);
+  const endMoment = moment.utc(end);
+
+  // Check if times are at midnight (date-only range)
+  const startIsMidnight =
+    startMoment.hours() === 0 &&
+    startMoment.minutes() === 0 &&
+    startMoment.seconds() === 0;
+  const endIsMidnight =
+    endMoment.hours() === 0 && endMoment.minutes() === 0 && endMoment.seconds() === 0;
+  const endIsEndOfDay =
+    endMoment.hours() === 23 && endMoment.minutes() === 59 && endMoment.seconds() === 59;
+
+  // Use date-only format if both are midnight or end of day
+  const useDateOnly = startIsMidnight && (endIsMidnight || endIsEndOfDay);
+
+  const dateFormat = 'MMM D, YYYY';
+  const dateTimeFormat = 'MMM D, YYYY h:mm A';
+
+  const formatStr = useDateOnly ? dateFormat : dateTimeFormat;
+
+  const startFormatted = startMoment.format(formatStr);
+  const endFormatted = endMoment.format(formatStr);
+
+  return `${startFormatted}${separator}${endFormatted}`;
+}
+
 export function generateQueryTokensString(args: QueryTokensProps): string {
   const parts = [];
 
@@ -103,7 +141,10 @@ export function generateQueryTokensString(args: QueryTokensProps): string {
     parts.push(`groupBys are '${groupByText}'`);
   }
 
-  if (args?.statsPeriod && args.statsPeriod.length > 0) {
+  // Prefer absolute date range over statsPeriod
+  if (args?.start && args?.end) {
+    parts.push(`time range is '${formatDateRange(args.start, args.end)}'`);
+  } else if (args?.statsPeriod && args.statsPeriod.length > 0) {
     parts.push(`time range is '${args?.statsPeriod}'`);
   }
 

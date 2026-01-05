@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
+import {formatDateRange} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
@@ -11,6 +12,8 @@ function QueryTokens({
   query,
   sort,
   statsPeriod,
+  start,
+  end,
   visualizations,
 }: QueryTokensProps) {
   const tokens = [];
@@ -55,7 +58,15 @@ function QueryTokens({
     );
   }
 
-  if (statsPeriod && statsPeriod.length > 0) {
+  // Display absolute date range if start and end are provided
+  if (start && end) {
+    tokens.push(
+      <Token key="timeRange">
+        <ExploreParamTitle>{t('Time Range')}</ExploreParamTitle>
+        <ExploreGroupBys>{formatDateRange(start, end, ' - ')}</ExploreGroupBys>
+      </Token>
+    );
+  } else if (statsPeriod && statsPeriod.length > 0) {
     tokens.push(
       <Token key="timeRange">
         <ExploreParamTitle>{t('Time Range')}</ExploreParamTitle>
