@@ -25,6 +25,11 @@ OCCURRENCE_ATTRIBUTE_DEFINITIONS = {
                 search_type="string",
                 validator=is_event_id_or_list,
             ),
+            ResolvedAttribute(
+                public_alias="level",
+                internal_name="level",
+                search_type="string",
+            ),
         ]
     )
 }
