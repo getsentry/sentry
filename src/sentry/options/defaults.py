@@ -3534,6 +3534,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# enable rate limiting on the timeseries endpoint
+register(
+    "visibility.events-timeseries.rate-limit",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "performance.event-tracker.sample-rate.transactions",
     default=0.0,
