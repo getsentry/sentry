@@ -90,14 +90,7 @@ export type ReplayEventParameters = {
     platform: string | undefined;
     project_id: string | undefined;
     referrer: string;
-    referrer_table?:
-      | 'main'
-      | 'selector-widget'
-      | 'header'
-      | 'playlist'
-      | 'preview'
-      | 'transactions'
-      | 'issues';
+    referrer_table?: 'main' | 'selector-widget' | 'details';
   };
   'replay.list-paginated': {
     direction: 'next' | 'prev';

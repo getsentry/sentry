@@ -26,7 +26,6 @@ import {IconPlay} from 'sentry/icons/iconPlay';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {ReplayEventParameters} from 'sentry/utils/analytics/replayAnalyticsEvents';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
@@ -53,7 +52,6 @@ interface HeaderProps {
 
 interface CellProps {
   columnIndex: number;
-  referrerTable: ReplayEventParameters['replay.list-navigate-to-details']['referrer_table'];
   replay: ListRecord;
   rowIndex: number;
   showDropdownFilters: boolean;
@@ -507,7 +505,7 @@ export const ReplaySessionColumn: ReplayTableColumn = {
   interactive: true,
   sortKey: 'started_at',
   width: 'minmax(150px, 1fr)',
-  Component: ({replay, to, className, referrerTable}) => {
+  Component: ({replay, to, className}) => {
     const routes = useRoutes();
     const referrer = getRouteStringFromRoutes(routes);
 
@@ -529,7 +527,7 @@ export const ReplaySessionColumn: ReplayTableColumn = {
         platform: project?.platform,
         organization,
         referrer,
-        referrer_table: referrerTable,
+        referrer_table: referrer === '/explore/replays/:replaySlug/' ? 'details' : 'main',
       });
 
     return (

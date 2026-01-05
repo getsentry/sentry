@@ -124,7 +124,6 @@ export default function ReplayIndexTable({
           </Fragment>
         ) : (
           <ReplayTable
-            referrer="main"
             query={playlistQuery}
             ref={tableRef}
             columns={columns}
