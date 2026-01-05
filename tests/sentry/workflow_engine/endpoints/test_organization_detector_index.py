@@ -115,7 +115,7 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         response = self.get_success_response(
             self.organization.slug, qs_params={"project": self.project.id}
         )
-        assert response.data[0]["dataSources"][0]["queryObj"] == serialize(subscription)
+        assert response.data[2]["dataSources"][0]["queryObj"] == serialize(subscription)
 
     def test_default_detector_result(self) -> None:
         """
