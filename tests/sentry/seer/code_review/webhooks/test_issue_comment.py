@@ -13,26 +13,6 @@ from sentry.testutils.helpers.github import GitHubWebhookCodeReviewTestCase
 class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
     """Integration tests for GitHub issue_comment webhook events."""
 
-    def _send_webhook_event(
-        self, github_event: GithubWebhookType, event_data: bytes | str
-    ) -> HttpResponseBase:
-        """Helper to send a GitHub webhook event."""
-        self.event_dict = (
-            orjson.loads(event_data) if isinstance(event_data, (bytes, str)) else event_data
-        )
-        repo_id = int(self.event_dict["repository"]["id"])
-
-        integration = self.create_github_integration()
-        self.create_repo(
-            project=self.project,
-            provider="integrations:github",
-            external_id=repo_id,
-            integration_id=integration.id,
-        )
-        response = self.send_github_webhook_event(github_event, event_data)
-        assert response.status_code == 204
-        return response
-
     @pytest.fixture(autouse=True)
     def mock_github_api_calls(self) -> Generator[None]:
         """
