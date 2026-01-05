@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
@@ -718,6 +719,27 @@ class TestIsPrReviewCommand:
 
 class IssueCommentEventWebhookTest(GitHubWebhookHelper):
     """Integration tests for GitHub issue_comment webhook events."""
+
+    @pytest.fixture(autouse=True)
+    def mock_github_api_calls(self) -> Generator[None]:
+        """
+        Prevents real HTTP requests to GitHub API across all tests.
+        Uses autouse fixture to apply mocking automatically without @patch decorators on each test.
+        """
+        mock_client_instance = MagicMock()
+        mock_client_instance.get_pull_request.return_value = {"head": {"sha": "abc123"}}
+
+        with (
+            patch(
+                "sentry.integrations.github.client.GitHubApiClient.create_comment_reaction"
+            ) as mock_reaction,
+            patch(
+                "sentry.seer.code_review.utils.GitHubApiClient", return_value=mock_client_instance
+            ) as mock_api_client,
+        ):
+            self.mock_reaction = mock_reaction
+            self.mock_api_client = mock_api_client
+            yield
 
     def _send_issue_comment_event(self, event_data: bytes | str) -> HttpResponseBase:
         return self._send_webhook_event(GithubWebhookType.ISSUE_COMMENT, event_data)
