@@ -2,14 +2,13 @@ import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Button, ButtonBar} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {IconCopy, IconNext, IconPrevious} from 'sentry/icons';
+import {IconChevron, IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -71,38 +70,24 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
         path: '/',
         organization,
       }),
-      query: eventView.generateQueryStringObject(),
-    },
-    label: t('Session Replay'),
-  };
-
-  const projectCrumb = {
-    to: {
-      pathname: makeReplaysPathname({
-        path: '/',
-        organization,
-      }),
       query: {
         ...eventView.generateQueryStringObject(),
         project: replayRecord?.project_id,
       },
     },
-    label: project ? (
-      <ProjectBadge disableLink project={project} avatarSize={16} />
-    ) : (
-      t('Project')
-    ),
+    label: t('Session Replay'),
   };
 
   const replayCrumb = {
     label: replayRecord ? (
       <Flex>
-        <Flex align="center" gap="xs">
+        <Flex align="center" gap="sm">
           {organization.features.includes('replay-playlist-view') && (
-            <StyledButtonBar merged gap="0">
+            <div>
               <LinkButton
-                size="xs"
-                icon={<IconPrevious />}
+                size="zero"
+                borderless
+                icon={<IconChevron direction="left" size="xs" />}
                 disabled={!previousReplay}
                 to={{
                   pathname: previousReplay
@@ -121,8 +106,9 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
                 }
               />
               <LinkButton
-                size="xs"
-                icon={<IconNext />}
+                size="zero"
+                borderless
+                icon={<IconChevron direction="right" size="xs" />}
                 disabled={!nextReplay}
                 to={{
                   pathname: nextReplay
@@ -137,14 +123,20 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
                   })
                 }
               />
-            </StyledButtonBar>
+            </div>
           )}
           <Flex
             align="center"
+            gap="xs"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
           >
-            <ShortId
+            {project ? (
+              <ProjectBadge disableLink project={project} avatarSize={16} hideName />
+            ) : (
+              <Placeholder width="16px" height="16px" />
+            )}
+            <div
               onClick={() =>
                 copy(replayUrlWithTimestamp, {
                   successMessage: t('Copied replay link to clipboard'),
@@ -152,21 +144,20 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
               }
             >
               {getShortEventId(replayRecord?.id)}
-            </ShortId>
-            <Tooltip title={t('Copy link to replay at current timestamp')}>
-              <Button
-                aria-label={t('Copy link to replay at current timestamp')}
-                onClick={() =>
-                  copy(replayUrlWithTimestamp, {
-                    successMessage: t('Copied replay link to clipboard'),
-                  })
-                }
-                size="zero"
-                borderless
-                style={isHovered ? {} : {visibility: 'hidden'}}
-                icon={<IconCopy size="xs" color="subText" />}
-              />
-            </Tooltip>
+            </div>
+            <Button
+              title={t('Copy link to replay at current timestamp')}
+              aria-label={t('Copy link to replay at current timestamp')}
+              onClick={() =>
+                copy(replayUrlWithTimestamp, {
+                  successMessage: t('Copied replay link to clipboard'),
+                })
+              }
+              size="zero"
+              borderless
+              style={isHovered ? {} : {visibility: 'hidden'}}
+              icon={<IconCopy size="xs" variant="muted" />}
+            />
           </Flex>
         </Flex>
       </Flex>
@@ -175,25 +166,11 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
     ),
   };
 
-  const crumbs = [
-    listPageCrumb,
-    project ? projectCrumb : null,
-    replayRecord ? replayCrumb : null,
-  ].filter(defined);
+  const crumbs = [listPageCrumb, replayRecord ? replayCrumb : null].filter(defined);
 
   return <StyledBreadcrumbs crumbs={crumbs} />;
 }
 
 const StyledBreadcrumbs = styled(Breadcrumbs)`
   padding: 0;
-`;
-
-const ShortId = styled('div')`
-  margin-left: 10px;
-`;
-
-// Breadcrumbs have overflow: hidden, so we need to set the margin-top to 2px
-// to avoid the buttons from being cut off.
-const StyledButtonBar = styled(ButtonBar)`
-  margin-top: 2px;
 `;
