@@ -241,8 +241,9 @@ class Occurrences(rpc_dataset_common.RPCBase):
             col.internal_name: col.public_alias for col in groupbys_resolved
         }
 
-        # Process results into flat list format
-        results: list[dict[str, Any]] = []
+        # Group timeseries by their groupby attributes, then merge aggregates
+        # This handles multiple y_axes correctly by merging them into the same rows
+        results_by_key: dict[tuple, dict[int, dict[str, Any]]] = {}
 
         for timeseries in rpc_response.result_timeseries:
             # Extract groupby values using public aliases
@@ -250,23 +251,36 @@ class Occurrences(rpc_dataset_common.RPCBase):
             for internal_name, value in timeseries.group_by_attributes.items():
                 public_alias = groupby_internal_to_public.get(internal_name)
                 if public_alias:
-                    # Process the value (handle type conversions)
                     groupby_values[public_alias] = process_value(value)
 
-            # Convert each bucket to a flat row
-            for i, bucket in enumerate(timeseries.buckets):
-                row: dict[str, Any] = {
-                    **groupby_values,
-                    "time": bucket.seconds,
-                }
+            # Create a hashable key from groupby values
+            groupby_key = tuple(sorted(groupby_values.items()))
 
-                # Add aggregate values
+            if groupby_key not in results_by_key:
+                results_by_key[groupby_key] = {}
+
+            # Merge each bucket's aggregate value into the result
+            for i, bucket in enumerate(timeseries.buckets):
+                time_key = bucket.seconds
+
+                if time_key not in results_by_key[groupby_key]:
+                    results_by_key[groupby_key][time_key] = {
+                        **groupby_values,
+                        "time": time_key,
+                    }
+
+                # Add/merge aggregate value
                 if i < len(timeseries.data_points):
                     data_point = timeseries.data_points[i]
-                    row[timeseries.label] = process_value(data_point.data)
+                    results_by_key[groupby_key][time_key][timeseries.label] = process_value(
+                        data_point.data
+                    )
                 else:
-                    row[timeseries.label] = 0
+                    results_by_key[groupby_key][time_key][timeseries.label] = 0
 
-                results.append(row)
+        # Flatten the nested dict into a list
+        results: list[dict[str, Any]] = []
+        for time_dict in results_by_key.values():
+            results.extend(time_dict.values())
 
         return results
