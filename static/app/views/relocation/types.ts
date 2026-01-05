@@ -1,5 +1,3 @@
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-
 export type RelocationState = {
   orgSlugs: string;
   promoCode: string;
@@ -12,7 +10,7 @@ export type MaybeUpdateRelocationState = {
   regionUrl?: string;
 };
 
-export type StepProps = Pick<RouteComponentProps, 'router' | 'route' | 'location'> & {
+export type StepProps = {
   active: boolean;
   existingRelocationUUID: string;
   onComplete: (uuid?: string) => void;
