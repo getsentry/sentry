@@ -43,7 +43,12 @@ import {
   getFilterToken,
   parseFilterValue,
 } from 'sentry/views/dashboards/globalFilter/utils';
-import type {GlobalFilter} from 'sentry/views/dashboards/types';
+import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
+import {
+  SpanFields,
+  subregionCodeToName,
+  type SubregionCode,
+} from 'sentry/views/insights/types';
 
 type FilterSelectorProps = {
   globalFilter: GlobalFilter;
@@ -179,7 +184,7 @@ function FilterSelector({
 
   const {data: fetchedFilterValues, isFetching} = queryResult;
 
-  const options = useMemo(() => {
+  const options = useMemo((): Array<SelectOption<string>> => {
     if (predefinedValues && !canSelectMultipleValues) {
       return predefinedValues.flatMap(section =>
         section.suggestions.map(suggestion => ({
@@ -228,6 +233,8 @@ function FilterSelector({
     searchQuery,
     canSelectMultipleValues,
   ]);
+
+  const translatedOptions = translateKnownFilterOptions(options, globalFilter);
 
   const handleChange = (opts: string[]) => {
     if (isEqual(opts, activeFilterValues) && stagedOperator === initialOperator) {
@@ -303,7 +310,7 @@ function FilterSelector({
       globalFilter={globalFilter}
       activeFilterValues={filterValues}
       operator={stagedOperator}
-      options={options}
+      options={translatedOptions}
       queryResult={queryResult}
     />
   );
@@ -313,7 +320,7 @@ function FilterSelector({
       <CompactSelect
         multiple={false}
         disabled={false}
-        options={options}
+        options={translatedOptions}
         value={activeFilterValues.length > 0 ? activeFilterValues[0] : undefined}
         onChange={option => {
           const newValue = option?.value;
@@ -340,7 +347,7 @@ function FilterSelector({
       checkboxPosition="leading"
       searchable
       disabled={false}
-      options={options}
+      options={translatedOptions}
       value={activeFilterValues}
       searchPlaceholder={t('Search or enter a custom value...')}
       onSearch={setSearchQuery}
@@ -390,6 +397,22 @@ function FilterSelector({
     />
   );
 }
+
+const translateKnownFilterOptions = (
+  options: Array<SelectOption<string>>,
+  globalFilter: GlobalFilter
+) => {
+  const key = globalFilter.tag.key;
+  const dataset = globalFilter.dataset;
+
+  if (key === SpanFields.USER_GEO_SUBREGION && dataset === WidgetType.SPANS) {
+    return options.map(option => ({
+      ...option,
+      label: subregionCodeToName[option.value as SubregionCode] || option.label,
+    }));
+  }
+  return options;
+};
 
 export default FilterSelector;
 
