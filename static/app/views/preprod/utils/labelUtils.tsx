@@ -62,7 +62,7 @@ export function getReadableArtifactTypeTooltip(
   }
 }
 
-interface Labels {
+export interface Labels {
   appId: string;
   buildConfiguration: string;
   downloadSizeDescription: string;

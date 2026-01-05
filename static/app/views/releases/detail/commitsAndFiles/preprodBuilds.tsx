@@ -146,7 +146,7 @@ export default function PreprodBuilds() {
             pageLinks={pageLinks}
             organizationSlug={organization.slug}
             onRowClick={handleBuildRowClick}
-            hasSearchQuery
+            hasSearchQuery={hasSearchQuery}
           />
         )}
       </Layout.Main>
