@@ -1,7 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {DO_NOT_USE_getChonkButtonStyles} from 'sentry/components/core/button/styles.chonk';
+import {DO_NOT_USE_getButtonStyles} from 'sentry/components/core/button/styles';
 import {space} from 'sentry/styles/space';
 import type {FormSize, Theme} from 'sentry/utils/theme';
 
@@ -75,7 +75,7 @@ export const ChonkStyledSegmentWrap = styled('label')<{
   font-weight: ${p => p.theme.font.weight.sans.regular};
 
   ${p => ({
-    ...DO_NOT_USE_getChonkButtonStyles({
+    ...DO_NOT_USE_getButtonStyles({
       ...p,
       disabled: p.isDisabled,
       priority: p.isSelected && p.priority === 'primary' ? 'primary' : 'default',
