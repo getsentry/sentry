@@ -8,7 +8,6 @@ import NotFound from 'sentry/components/errors/notFound';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -19,18 +18,10 @@ import {useTimeseriesVisualizationEnabled} from 'sentry/views/dashboards/utils/u
 import DashboardDetail from './detail';
 import OrgDashboards from './orgDashboards';
 
-type Props = RouteComponentProps<{
-  dashboardId: string;
-  orgId: string;
-  widgetId?: number | string;
-}> & {
-  children: React.ReactNode;
-};
-
-function ViewEditDashboard(props: Props) {
+export default function ViewEditDashboard() {
   const api = useApi();
   const organization = useOrganization();
-  const {dashboardId} = useParams();
+  const {dashboardId} = useParams<{dashboardId: string}>();
 
   const orgSlug = organization.slug;
 
@@ -51,7 +42,6 @@ function ViewEditDashboard(props: Props) {
           ) : dashboard ? (
             <ErrorBoundary>
               <DashboardDetail
-                {...props}
                 key={dashboard.id}
                 initialState={DashboardState.VIEW}
                 dashboard={dashboard}
@@ -69,8 +59,6 @@ function ViewEditDashboard(props: Props) {
   );
 }
 
-export default ViewEditDashboard;
-
 type FeatureProps = {
   children: React.ReactNode;
   organization: Organization;
@@ -80,7 +68,7 @@ export function DashboardBasicFeature({organization, children}: FeatureProps) {
   const renderDisabled = () => (
     <Layout.Page withPadding>
       <Alert.Container>
-        <Alert type="warning" showIcon={false}>
+        <Alert variant="warning" showIcon={false}>
           {t("You don't have access to this feature")}
         </Alert>
       </Alert.Container>

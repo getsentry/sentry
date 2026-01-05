@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import partnerMigrationHero from 'getsentry-images/partnership/plan-ending.svg';
 import moment from 'moment-timezone';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
@@ -108,7 +110,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
       <ImageHeader />
       <div>
         <PartnerPlanHeading>
-          <Tag icon={<IconClock />} type="promotion">
+          <Tag icon={<IconClock />} variant="promotion">
             {tn('%s day left', '%s days left', daysLeft)}
           </Tag>
           <h2 data-test-id="partner-plan-ending-header">
@@ -132,7 +134,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
             )}
           </p>
         </PartnerPlanHeading>
-        <PathWrapper>
+        <Flex justify="between">
           <PathContainer>
             <SubHeading>{tct(`New Plan on [endDate]`, {endDate})}</SubHeading>
             <PathHeading>{t('Developer')}</PathHeading>
@@ -148,7 +150,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
               {rightColumnItems.map(UpgradeItem)}
             </Bullets>
           </PathContainer>
-        </PathWrapper>
+        </Flex>
         <div style={{display: 'block'}}>
           <StyledButtonBar>
             <Button data-test-id="maybe-later" priority="default" onClick={closeModal}>
@@ -199,11 +201,6 @@ const PartnerPlanHeading = styled('div')`
   h2 {
     font-size: 1.5em;
   }
-`;
-
-const PathWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
 `;
 
 const PathContainer = styled('div')`

@@ -119,19 +119,19 @@ function getContainerTheme(theme: Theme, type: Indicator['type']): React.CSSProp
   }
 }
 
-interface ChonkToastContainerProps extends HTMLMotionProps<'div'> {
+interface ToastContainerProps extends HTMLMotionProps<'div'> {
   children: React.ReactNode;
   type: Indicator['type'];
 }
 
-const ToastContainer = styled((props: ChonkToastContainerProps) => {
+const ToastContainer = styled((props: ToastContainerProps) => {
   const {type, children, ...rest} = props;
   return (
     <ToastOuterContainer type={type} {...rest}>
       <ToastInnerContainer type={type}>{children}</ToastInnerContainer>
     </ToastOuterContainer>
   );
-})<ChonkToastContainerProps>``;
+})<ToastContainerProps>``;
 
 const ToastOuterContainer = styled(motion.div)<{type: Indicator['type']}>`
   overflow: hidden;
