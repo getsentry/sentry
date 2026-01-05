@@ -176,16 +176,14 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
 
         integration_id = request.GET.get("integrationId")
 
-        queryset = RepositoryProjectPathConfig.objects.all()
+        # Always filter by projects the user can access
+        projects = self.get_projects(request, organization)
+        queryset = RepositoryProjectPathConfig.objects.filter(project__in=projects)
 
         if integration_id:
             # get_organization_integration will raise a 404 if no org_integration is found
             org_integration = self.get_organization_integration(organization, integration_id)
             queryset = queryset.filter(organization_integration_id=org_integration.id)
-        else:
-            # Filter by project
-            projects = self.get_projects(request, organization)
-            queryset = queryset.filter(project__in=projects)
 
         return self.paginate(
             request=request,
