@@ -1,3 +1,4 @@
+import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
@@ -18,5 +19,9 @@ export default function ProjectDetailContainer() {
       : {}
   );
 
-  return <ProjectDetail />;
+  return (
+    <PageAlertProvider>
+      <ProjectDetail />;
+    </PageAlertProvider>
+  );
 }
