@@ -7,10 +7,10 @@ from sentry.notifications.notification_action.action_handler_registry.common imp
     NOTES_SCHEMA,
     TAGS_SCHEMA,
 )
-from sentry.workflow_engine.models import Action, Detector
+from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.transformers import TargetTypeConfigTransformer
-from sentry.workflow_engine.types import ActionHandler, ConfigTransformer, WorkflowEventData
+from sentry.workflow_engine.types import ActionHandler, ActionInvocation, ConfigTransformer
 
 
 @action_handler_registry.register(Action.Type.SLACK)
@@ -36,11 +36,7 @@ class SlackActionHandler(IntegrationActionHandler):
         return TargetTypeConfigTransformer.from_config_schema(SlackActionHandler.config_schema)
 
     @staticmethod
-    def execute(
-        job: WorkflowEventData,
-        action: Action,
-        detector: Detector,
-    ) -> None:
+    def execute(invocation: ActionInvocation) -> None:
         from sentry.notifications.notification_action.utils import execute_via_group_type_registry
 
-        execute_via_group_type_registry(job, action, detector)
+        execute_via_group_type_registry(invocation)

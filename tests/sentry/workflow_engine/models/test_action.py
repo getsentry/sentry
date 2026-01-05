@@ -7,7 +7,7 @@ from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.cases import TestCase
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import Action, Detector
-from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
+from sentry.workflow_engine.types import ActionHandler, ActionInvocation, WorkflowEventData
 
 
 class TestAction(TestCase):
@@ -73,14 +73,18 @@ class TestAction(TestCase):
     @patch("sentry.workflow_engine.processors.detector.get_detector_from_event_data")
     def test_trigger_calls_handler_execute(self, mock_get_detector: MagicMock) -> None:
         mock_handler = Mock(spec=ActionHandler)
-        mock_get_detector.return_value = Mock(spec=Detector, type="error")
+        mock_detector = Mock(spec=Detector, type="error")
+        mock_get_detector.return_value = mock_detector
 
         with patch.object(self.action, "get_handler", return_value=mock_handler):
             self.action.trigger(self.mock_event)
 
-            mock_handler.execute.assert_called_once_with(
-                self.mock_event, self.action, mock_get_detector.return_value
-            )
+            assert mock_handler.execute.call_count == 1
+            invocation = mock_handler.execute.call_args[0][0]
+            assert isinstance(invocation, ActionInvocation)
+            assert invocation.event_data == self.mock_event
+            assert invocation.action == self.action
+            assert invocation.detector == mock_detector
 
     @patch("sentry.workflow_engine.processors.detector.get_detector_from_event_data")
     def test_trigger_with_failing_handler(self, mock_get_detector: MagicMock) -> None:
