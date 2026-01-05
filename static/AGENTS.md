@@ -608,6 +608,23 @@ expect(await screen.findByRole('alert')).toBeInTheDocument();
 await waitForElementToBeRemoved(() => screen.getByRole('alert'));
 ```
 
+#### Avoid waiting for loading indicators
+
+Do not use `findBy` with `.not.toBeInTheDocument()` for loading indicators. `findBy` will error if the element is not found, but we're asserting it should NOT exist. Loading indicators are also flakey since they appear on screen for only a few ticks.
+
+```tsx
+// ❌ Wrong - findBy errors if element not found, and loading indicators are flakey
+expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
+
+// ✅ Correct - wait for the actual content you care about
+await waitFor(() => {
+  expect(screen.getByRole('button', {name: 'Submit'})).toBeInTheDocument();
+});
+
+// ✅ Also correct - use findBy on the content that appears after loading
+expect(await screen.findByRole('button', {name: 'Submit'})).toBeInTheDocument();
+```
+
 #### User interactions
 
 ```tsx
