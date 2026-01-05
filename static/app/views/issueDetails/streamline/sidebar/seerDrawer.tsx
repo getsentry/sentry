@@ -17,6 +17,7 @@ import {AutofixStartBox} from 'sentry/components/events/autofix/autofixStartBox'
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
 import {AutofixStepType} from 'sentry/components/events/autofix/types';
 import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
+import {AutofixConfigureSeer} from 'sentry/components/events/autofix/v2/autofixConfigureSeer';
 import {ExplorerSeerDrawer} from 'sentry/components/events/autofix/v2/explorerSeerDrawer';
 import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
@@ -35,6 +36,7 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 import {SeerNotices} from 'sentry/views/issueDetails/streamline/sidebar/seerNotices';
@@ -44,6 +46,19 @@ interface SeerDrawerProps {
   group: Group;
   project: Project;
 }
+
+const AiSetupConfiguration = HookOrDefault({
+  hookName: 'component:ai-setup-configuration',
+  defaultComponent: ({
+    event,
+    group,
+    project,
+  }: {
+    event: Event;
+    group: Group;
+    project: Project;
+  }) => <AutofixConfigureSeer event={event} group={group} project={project} />,
+});
 
 const AiSetupDataConsent = HookOrDefault({
   hookName: 'component:ai-setup-data-consent',
@@ -77,13 +92,15 @@ function WelcomeScreen({
 export function SeerDrawer({group, project, event}: SeerDrawerProps) {
   const organization = useOrganization();
   const aiConfig = useAiConfig(group, project);
+  const seerOnboardingCheck = useSeerOnboardingCheck();
 
-  const showWelcomeScreen =
-    aiConfig.orgNeedsGenAiAcknowledgement ||
-    (!aiConfig.hasAutofixQuota && organization.features.includes('seer-billing'));
+  const seatBasedSeer = organization.features.includes('seat-based-seer-enabled');
 
   // Handle loading state at the top level
-  if (aiConfig.isAutofixSetupLoading) {
+  if (
+    aiConfig.isAutofixSetupLoading ||
+    (seatBasedSeer && seerOnboardingCheck.isPending)
+  ) {
     return (
       <SeerDrawerContainer className="seer-drawer-container">
         <SeerDrawerHeader>
@@ -113,8 +130,62 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
     );
   }
 
-  // Handle welcome/consent screen at the top level
-  if (showWelcomeScreen) {
+  const noAutofixQuota =
+    !aiConfig.hasAutofixQuota && organization.features.includes('seer-billing');
+
+  if (seatBasedSeer) {
+    // No easy way to add a hook for only configuring quotas.
+    // So the condition here captures all the possible cases
+    // that requires some kind of configuration change.
+    //
+    // Instead, we bundle all the configuration into 1 hook.
+    //
+    // If the hook is not defined, we always direct them to
+    // the seer configs.
+    //
+    // If the hook is defined, the hook will render a different
+    // component as needed to configure quotas.
+    if (
+      // needs to configure quota
+      noAutofixQuota ||
+      // needs to configure repos
+      !aiConfig.seerReposLinked ||
+      // needs to have autofix enabled for this group's project
+      !aiConfig.autofixEnabled ||
+      // needs to enable autofix
+      !seerOnboardingCheck.data?.isAutofixEnabled ||
+      // catch all, ensure seer is configured
+      !seerOnboardingCheck.data?.isSeerConfigured
+    ) {
+      return (
+        <SeerDrawerContainer className="seer-drawer-container">
+          <SeerDrawerHeader>
+            <NavigationCrumbs
+              crumbs={[
+                {
+                  label: (
+                    <CrumbContainer>
+                      <ProjectAvatar project={project} />
+                      <ShortId>{group.shortId}</ShortId>
+                    </CrumbContainer>
+                  ),
+                },
+                {label: getShortEventId(event.id)},
+                {label: t('Seer')},
+              ]}
+            />
+          </SeerDrawerHeader>
+          <SeerDrawerBody>
+            <AiSetupConfiguration event={event} group={group} project={project} />
+          </SeerDrawerBody>
+        </SeerDrawerContainer>
+      );
+    }
+  } else if (
+    // Handle welcome/consent screen at the top level
+    aiConfig.orgNeedsGenAiAcknowledgement ||
+    noAutofixQuota
+  ) {
     return (
       <SeerDrawerContainer className="seer-drawer-container">
         <SeerDrawerHeader>
@@ -354,7 +425,8 @@ function LegacySeerDrawer({group, project, event, aiConfig}: LegacySeerDrawerPro
           <ButtonBar>
             <Feature features={['organizations:autofix-seer-preferences']}>
               <LinkButton
-                to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
+                external
+                href={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
                 size="xs"
                 title={t('Project Settings for Seer')}
                 aria-label={t('Project Settings for Seer')}
@@ -484,7 +556,7 @@ const PlaceholderStack = styled('div')`
 `;
 
 const StyledCard = styled('div')`
-  background: ${p => p.theme.backgroundElevated};
+  background: ${p => p.theme.tokens.background.primary};
   overflow: visible;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.radius.md};

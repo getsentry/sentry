@@ -125,7 +125,11 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
         )}
       </BottomFormWrapper>
       <AlertLink.Container>
-        <AlertLink type="info" to="/settings/account/emails" trailingItems={<IconMail />}>
+        <AlertLink
+          variant="info"
+          to="/settings/account/emails"
+          trailingItems={<IconMail />}
+        >
           {t('Looking to add or remove an email address? Use the emails panel.')}
         </AlertLink>
       </AlertLink.Container>

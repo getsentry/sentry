@@ -19,7 +19,7 @@ function AddToOrgModal({Header, Body, userId, closeModal}: AddOrRemoveOrgModalPr
   const onSubmit = async (data: Record<string, any>) => {
     try {
       await api
-        .requestPromise(`/_admin/${data.organizationSlug}/users/${userId}/members/`, {
+        .requestPromise(`/customers/${data.organizationSlug}/users/${userId}/members/`, {
           method: 'POST',
           data: {
             orgRole: data.role,
@@ -54,7 +54,7 @@ function AddToOrgModal({Header, Body, userId, closeModal}: AddOrRemoveOrgModalPr
           </Fragment>
           {error && (
             <Alert.Container>
-              <Alert type="error" showIcon={false}>
+              <Alert variant="danger" showIcon={false}>
                 {error}
               </Alert>
             </Alert.Container>
@@ -78,7 +78,7 @@ function RemoveFromOrgModal({
   const onSubmit = async (data: Record<string, any>) => {
     try {
       await api
-        .requestPromise(`/_admin/${data.organizationSlug}/users/${userId}/members/`, {
+        .requestPromise(`/customers/${data.organizationSlug}/users/${userId}/members/`, {
           method: 'DELETE',
         })
         .then(() => {
@@ -109,7 +109,7 @@ function RemoveFromOrgModal({
           </Fragment>
           {error && (
             <Alert.Container>
-              <Alert type="error">{error}</Alert>
+              <Alert variant="danger">{error}</Alert>
             </Alert.Container>
           )}
         </Form>

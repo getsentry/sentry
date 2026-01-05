@@ -11,6 +11,7 @@ from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.seer.explorer.client_utils import fetch_run_status
 from sentry.seer.explorer.on_completion_hook import ExplorerOnCompletionHook
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
+from sentry.sentry_apps.utils.webhooks import SeerActionType
 
 if TYPE_CHECKING:
     from sentry.seer.explorer.client_models import Artifact, SeerRunState
@@ -69,7 +70,9 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         cls._maybe_continue_pipeline(organization, run_id, state, artifacts)
 
     @classmethod
-    def _send_step_webhook(cls, organization, run_id, artifacts: dict[str, Artifact], state):
+    def _send_step_webhook(
+        cls, organization, run_id, artifacts: dict[str, Artifact], state: SeerRunState
+    ):
         """
         Send webhook for the completed step.
 
@@ -78,39 +81,56 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         """
         # Determine which artifact was just created and send appropriate webhook
         # We check in reverse priority order (most recent step first)
-        webhook_event = None
         webhook_payload = {"run_id": run_id}
 
-        if "triage" in artifacts and artifacts["triage"].data:
-            webhook_event = "triage_completed"
-            webhook_payload["triage"] = artifacts["triage"].data
+        # Iterate through blocks in reverse order (most recent first)
+        # to find which step just completed
+        webhook_action_type: SeerActionType | None = None
+        for block in reversed(state.blocks):
+            # Check for code changes
+            if block.file_patches:
+                webhook_action_type = SeerActionType.CODING_COMPLETED
+                diffs_by_repo = state.get_diffs_by_repo()
+                webhook_payload["code_changes"] = {
+                    repo: [
+                        {
+                            "path": p.patch.path,
+                            "type": p.patch.type,
+                            "added": p.patch.added,
+                            "removed": p.patch.removed,
+                        }
+                        for p in patches
+                    ]
+                    for repo, patches in diffs_by_repo.items()
+                }
+                break
 
-        elif "impact_assessment" in artifacts and artifacts["impact_assessment"].data:
-            webhook_event = "impact_assessment_completed"
-            webhook_payload["impact_assessment"] = artifacts["impact_assessment"].data
+            # Check for artifacts
+            if block.artifacts:
+                artifact_map = {artifact.key: artifact for artifact in block.artifacts}
 
-        elif state.has_code_changes()[0]:
-            # Code changes step - check file patches
-            webhook_event = "coding_completed"
-            patches_by_repo = state.get_file_patches_by_repo()
-            webhook_payload["code_changes"] = {
-                repo: [{"path": p.patch.path, "type": p.patch.type} for p in patches]
-                for repo, patches in patches_by_repo.items()
-            }
+                if "solution" in artifact_map and artifact_map["solution"].data:
+                    webhook_action_type = SeerActionType.SOLUTION_COMPLETED
+                    webhook_payload["solution"] = artifact_map["solution"].data
+                    break
+                elif "root_cause" in artifact_map and artifact_map["root_cause"].data:
+                    webhook_action_type = SeerActionType.ROOT_CAUSE_COMPLETED
+                    webhook_payload["root_cause"] = artifact_map["root_cause"].data
+                    break
+                elif "impact_assessment" in artifact_map and artifact_map["impact_assessment"].data:
+                    webhook_action_type = SeerActionType.IMPACT_ASSESSMENT_COMPLETED
+                    webhook_payload["impact_assessment"] = artifact_map["impact_assessment"].data
+                    break
+                elif "triage" in artifact_map and artifact_map["triage"].data:
+                    webhook_action_type = SeerActionType.TRIAGE_COMPLETED
+                    webhook_payload["triage"] = artifact_map["triage"].data
+                    break
 
-        elif "solution" in artifacts and artifacts["solution"].data:
-            webhook_event = "solution_completed"
-            webhook_payload["solution"] = artifacts["solution"].data
-
-        elif "root_cause" in artifacts and artifacts["root_cause"].data:
-            webhook_event = "root_cause_completed"
-            webhook_payload["root_cause"] = artifacts["root_cause"].data
-
-        if webhook_event:
+        if webhook_action_type:
             try:
                 broadcast_webhooks_for_organization.delay(
                     resource_name="seer",
-                    event_name=webhook_event,
+                    event_name=webhook_action_type.value,
                     organization_id=organization.id,
                     payload=webhook_payload,
                 )
@@ -120,7 +140,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                     extra={
                         "run_id": run_id,
                         "organization_id": organization.id,
-                        "webhook_event": webhook_event,
+                        "webhook_event": webhook_action_type.value,
                     },
                 )
 

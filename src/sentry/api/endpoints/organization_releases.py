@@ -722,6 +722,8 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
             for project in projects_from_request:
                 allowed_projects[project.slug] = project
                 allowed_projects[project.id] = project
+                # Also accept project IDs as strings (Sentry CLI serializes project IDs as strings)
+                allowed_projects[str(project.id)] = project
 
             projects: list[Project] = []
             for id_or_slug in result["projects"]:

@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import * as React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -20,7 +21,6 @@ import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
 import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
-import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import DropdownButton from 'sentry/components/dropdownButton';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
@@ -33,6 +33,7 @@ import useOverlay from 'sentry/utils/useOverlay';
 import usePrevious from 'sentry/utils/usePrevious';
 
 import type {SingleListProps} from './list';
+import {type ButtonTriggerProps, type SelectTriggerProps} from './trigger';
 import type {SelectKey, SelectOptionOrSection} from './types';
 
 // autoFocus react attribute is sync called on render, this causes
@@ -55,11 +56,13 @@ interface SelectContextValue {
    * Search string to determine whether an option should be rendered in the select list.
    */
   search: string;
+  disabled?: boolean;
   /**
    * The control's overlay state. Useful for opening/closing the menu from inside the
    * selector.
    */
   overlayState?: OverlayTriggerState;
+  size?: FormSize;
 }
 
 export const SelectContext = createContext<SelectContextValue>({
@@ -145,6 +148,7 @@ export interface ControlProps
   menuHeaderTrailingItems?:
     | React.ReactNode
     | ((actions: {closeOverlay: () => void}) => React.ReactNode);
+  menuHeight?: number | string;
   /**
    * Title to display in the menu's header. Keep the title as short as possible.
    */
@@ -180,17 +184,12 @@ export interface ControlProps
    * forward `props` and `ref` its outer wrap, otherwise many accessibility features
    * won't work correctly.
    */
-  trigger?: (
-    props: Omit<React.HTMLAttributes<HTMLButtonElement>, 'children'> & {
-      ref?: React.Ref<HTMLButtonElement | null>;
-    },
-    isOpen: boolean
-  ) => React.ReactNode;
+  trigger?: (props: SelectTriggerProps, isOpen: boolean) => React.ReactNode;
 
   /**
    * Props to be passed to the default trigger button.
    */
-  triggerProps?: DropdownButtonProps;
+  triggerProps?: Partial<ButtonTriggerProps>;
 }
 
 /**
@@ -217,6 +216,7 @@ export function Control({
   menuTitle,
   maxMenuHeight = '32rem',
   menuWidth,
+  menuHeight,
   menuHeaderTrailingItems,
   menuBody,
   menuFooter,
@@ -235,9 +235,11 @@ export function Control({
   loading = false,
   grid = false,
   children,
+  menuRef,
   ...wrapperProps
 }: ControlProps & {
   items?: Array<SelectOptionOrSection<SelectKey>>;
+  menuRef?: React.Ref<HTMLDivElement>;
   value?: SelectKey | SelectKey[] | undefined;
 }) {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -435,7 +437,7 @@ export function Control({
       <Fragment>
         <TriggerLabel>{options[0]?.label}</TriggerLabel>
         {options.length > 1 && (
-          <StyledBadge type="default">{`+${options.length - 1}`}</StyledBadge>
+          <StyledBadge variant="muted">{`+${options.length - 1}`}</StyledBadge>
         )}
       </Fragment>
     );
@@ -464,8 +466,10 @@ export function Control({
       overlayState,
       overlayIsOpen,
       search,
+      size,
+      disabled,
     };
-  }, [overlayState, overlayIsOpen, search]);
+  }, [overlayState, overlayIsOpen, search, size, disabled]);
 
   const theme = useTheme();
 
@@ -473,7 +477,10 @@ export function Control({
     <SelectContext value={contextValue}>
       <ControlWrap {...wrapperProps}>
         {trigger ? (
-          trigger(mergeProps(triggerKeyboardProps, overlayTriggerProps), overlayIsOpen)
+          trigger(
+            mergeProps({id: triggerProps.id}, triggerKeyboardProps, overlayTriggerProps),
+            overlayIsOpen
+          )
         ) : (
           <DropdownButton
             size={size}
@@ -491,7 +498,9 @@ export function Control({
         >
           {overlayIsOpen && (
             <StyledOverlay
+              ref={menuRef}
               width={menuWidth ?? menuFullWidth}
+              height={menuHeight}
               minWidth={overlayProps.style!.minWidth}
               maxWidth={
                 overlayProps.style?.maxWidth
@@ -570,7 +579,6 @@ const ControlWrap = styled('div')`
 export const TriggerLabel = styled('span')`
   ${p => p.theme.overflowEllipsis}
   text-align: left;
-  ${p => !p.theme.isChonk && 'line-height: normal;'}
 `;
 
 const StyledBadge = styled(Badge)`
@@ -611,7 +619,7 @@ const MenuHeaderTrailingItems = styled('div')`
 
 const MenuTitle = styled('span')`
   font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: ${p => p.theme.font.weight.medium};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   white-space: nowrap;
   margin-right: ${space(2)};
 `;
@@ -626,7 +634,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 const ClearButton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: ${p => p.theme.font.weight.regular};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.subText};
   padding: 0 ${space(0.5)};
   margin: -${space(0.25)} -${space(0.5)};
@@ -646,9 +654,10 @@ const SearchInput = styled(Input)`
 const withUnits = (value: unknown) => (typeof value === 'string' ? value : `${value}px`);
 
 const StyledOverlay = styled(Overlay, {
-  shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
+  shouldForwardProp: prop => isPropValid(prop),
 })<{
   maxHeightProp: string | number;
+  height?: string | number;
   maxHeight?: string | number;
   maxWidth?: string | number;
   minWidth?: string | number;
@@ -661,6 +670,7 @@ const StyledOverlay = styled(Overlay, {
   overflow: hidden;
 
   ${p => p.width && `width: ${withUnits(p.width)};`}
+  ${p => p.height && `height: ${withUnits(p.height)};`}
   ${p => p.minWidth && `min-width: ${withUnits(p.minWidth)};`}
   max-width: ${p => (p.maxWidth ? `min(${withUnits(p.maxWidth)}, 100%)` : `100%`)};
   max-height: ${p =>

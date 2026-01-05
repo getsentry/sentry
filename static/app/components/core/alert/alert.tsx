@@ -1,7 +1,5 @@
 import {Fragment, useRef, useState} from 'react';
-import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useHover} from '@react-aria/interactions';
 import classNames from 'classnames';
 import type {DistributedOmit} from 'type-fest';
 
@@ -11,13 +9,13 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import PanelProvider from 'sentry/utils/panelProvider';
-import {withChonk} from 'sentry/utils/theme/withChonk';
+import type {AlertVariant} from 'sentry/utils/theme';
 import {unreachable} from 'sentry/utils/unreachable';
 
 import * as ChonkAlert from './alert.chonk';
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
-  type: 'muted' | 'info' | 'warning' | 'success' | 'error';
+  variant: AlertVariant;
   defaultExpanded?: boolean;
   expand?: React.ReactNode;
   handleExpandChange?: (isExpanded: boolean) => void;
@@ -34,20 +32,11 @@ export function Alert({
   trailingItems,
   className,
   children,
-  type,
+  variant,
   ...props
 }: AlertProps) {
   const showExpand = defined(expand);
   const [isExpanded, setIsExpanded] = useState(!!props.defaultExpanded);
-
-  // Show the hover state (with darker borders) only when hovering over the
-  // IconWrapper or MessageContainer.
-  const {hoverProps, isHovered} = useHover({
-    isDisabled: !showExpand,
-  });
-  const {hoverProps: expandHoverProps, isHovered: expandIsHovered} = useHover({
-    isDisabled: !showExpand,
-  });
 
   const expandRef = useRef<HTMLDivElement>(null);
   function handleClick(e: React.MouseEvent<HTMLDivElement>) {
@@ -73,22 +62,20 @@ export function Alert({
       expand={expand}
       trailingItems={trailingItems}
       onClick={handleClick}
-      hovered={isHovered && !expandIsHovered}
-      className={classNames(type ? `ref-${type}` : '', className)}
-      type={type}
-      {...hoverProps}
+      className={classNames(variant ? `ref-${variant}` : '', className)}
+      variant={variant}
       {...props}
       showIcon={showIcon}
     >
       <PanelProvider>
         {showIcon && (
-          <IconWrapper type={type} onClick={handleClick}>
-            {icon ?? <AlertIcon type={type} />}
+          <IconWrapper variant={variant} onClick={handleClick}>
+            {icon ?? <AlertIcon variant={variant} />}
           </IconWrapper>
         )}
         <Message>{children}</Message>
         {!!trailingItems && (
-          <TrailingItems showIcon={!!showIcon} onClick={e => e.stopPropagation()}>
+          <TrailingItems onClick={e => e.stopPropagation()}>
             {trailingItems}
           </TrailingItems>
         )}
@@ -112,7 +99,6 @@ export function Alert({
               ref={expandRef}
               showIcon={!!showIcon}
               showTrailingItems={!!trailingItems}
-              {...expandHoverProps}
             >
               {Array.isArray(expand) ? expand.map(item => item) : expand}
             </ExpandContainer>
@@ -123,204 +109,31 @@ export function Alert({
   );
 }
 
-function getAlertColors(theme: Theme, type: NonNullable<AlertProps['type']>) {
-  switch (type) {
-    case 'muted':
-      return {
-        background: theme.gray200,
-        backgroundLight: theme.backgroundSecondary,
-        border: theme.border,
-        borderHover: theme.border,
-        color: 'inherit',
-      };
-    case 'info':
-      return {
-        background: theme.blue300,
-        backgroundLight: theme.blue100,
-        border: theme.blue200,
-        borderHover: theme.blue300,
-        color: theme.blue400,
-      };
-    case 'warning':
-      return {
-        background: theme.yellow300,
-        backgroundLight: theme.yellow100,
-        border: theme.yellow200,
-        borderHover: theme.yellow300,
-        color: theme.yellow400,
-      };
-    case 'success':
-      return {
-        background: theme.green300,
-        backgroundLight: theme.green100,
-        border: theme.green200,
-        borderHover: theme.green300,
-        color: theme.green400,
-      };
-    case 'error':
-      return {
-        background: theme.red300,
-        backgroundLight: theme.red100,
-        border: theme.red200,
-        borderHover: theme.red300,
-        color: theme.red400,
-      };
-    default:
-      unreachable(type);
-  }
+const AlertContainer = ChonkAlert.AlertPanel;
 
-  throw new Error(`Invalid alert type, got ${type}`);
-}
+const IconWrapper = ChonkAlert.IconWrapper;
 
-function getAlertGridLayout(p: AlertProps) {
-  if (p.showIcon) {
-    return `min-content 1fr ${p.trailingItems ? 'auto' : ''} ${
-      p.expand ? 'min-content' : ''
-    }`;
-  }
+const Message = ChonkAlert.Message;
 
-  return `1fr ${p.trailingItems ? 'auto' : ''} ${p.expand ? 'min-content' : ''}`;
-}
+const TrailingItems = ChonkAlert.TrailingItems;
 
-const AlertPanel = styled('div')<AlertProps & {hovered: boolean}>`
-  display: grid;
-  grid-template-columns: ${p => getAlertGridLayout(p)};
-  gap: ${space(1)};
-  color: ${p => getAlertColors(p.theme, p.type).color};
-  font-size: ${p => p.theme.font.size.md};
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => getAlertColors(p.theme, p.type).border};
-  padding: ${space(1.5)} ${space(2)};
-  background-image: ${p =>
-    `linear-gradient(${getAlertColors(p.theme, p.type).backgroundLight}), linear-gradient(${p.theme.tokens.background.primary})`};
+const ExpandIconWrap = ChonkAlert.ExpandIconWrap;
 
-  a:not([role='button']) {
-    color: ${p => getAlertColors(p.theme, p.type).color};
-    text-decoration-color: ${p => getAlertColors(p.theme, p.type).border};
-    text-decoration-style: solid;
-    text-decoration-line: underline;
-    text-decoration-thickness: 0.08em;
-    text-underline-offset: 0.06em;
-  }
-  a:not([role='button']):hover {
-    text-decoration-color: ${p => getAlertColors(p.theme, p.type).color};
-    text-decoration-style: solid;
-  }
+const ExpandContainer = ChonkAlert.ExpandContainer;
 
-  pre {
-    background: ${p => getAlertColors(p.theme, p.type).backgroundLight};
-    margin: ${space(0.5)} 0 0;
-  }
-
-  ${p =>
-    p.hovered &&
-    css`
-      border-color: ${getAlertColors(p.theme, p.type).borderHover};
-    `}
-
-  ${p =>
-    !!p.expand &&
-    css`
-      cursor: pointer;
-      ${TrailingItems} {
-        cursor: auto;
-      }
-    `}
-
-${p =>
-    p.system &&
-    css`
-      border-width: 0 0 1px 0;
-      border-radius: 0;
-    `}
-`;
-
-const AlertContainer = withChonk(
-  AlertPanel,
-  ChonkAlert.AlertPanel,
-  ChonkAlert.chonkAlertPropMapping
-);
-
-const IconWrapper = withChonk(
-  styled('div')<{type: AlertProps['type']}>`
-    display: flex;
-    align-items: center;
-    height: calc(
-      ${p => p.theme.font.size.md} * ${p => p.theme.font.lineHeight.comfortable}
-    );
-  `,
-  ChonkAlert.IconWrapper
-);
-
-const Message = withChonk(
-  styled('span')`
-    position: relative;
-    line-height: ${p => p.theme.font.lineHeight.comfortable};
-  `,
-  ChonkAlert.Message
-);
-
-const TrailingItems = withChonk(
-  styled('div')<{showIcon: boolean}>`
-    height: calc(
-      ${p => p.theme.font.size.md} * ${p => p.theme.font.lineHeight.comfortable}
-    );
-    display: grid;
-    grid-auto-flow: column;
-    grid-template-rows: 100%;
-    align-items: center;
-    gap: ${space(1)};
-
-    @media (max-width: ${p => p.theme.breakpoints.sm}) {
-      /* In mobile, TrailingItems should wrap to a second row and be vertically aligned
-    with Message. When there is a leading icon, Message is in the second grid column.
-    Otherwise it's in the first grid column. */
-      grid-row: 2;
-      grid-column: ${p => (p.showIcon ? 2 : 1)} / -1;
-      justify-items: start;
-      margin: ${space(0.5)} 0;
-    }
-  `,
-  ChonkAlert.TrailingItems
-);
-
-const ExpandIconWrap = withChonk(
-  styled('div')`
-    display: flex;
-    align-items: center;
-    margin-left: ${space(0.5)};
-  `,
-  ChonkAlert.ExpandIconWrap
-);
-
-const ExpandContainer = withChonk(
-  styled('div')<{showIcon: boolean; showTrailingItems: boolean}>`
-    grid-row: 2;
-    /* ExpandContainer should be vertically aligned with Message. When there is a leading icon,
-  Message is in the second grid column. Otherwise it's in the first column. */
-    grid-column: ${p => (p.showIcon ? 2 : 1)} / -1;
-    cursor: auto;
-
-    @media (max-width: ${p => p.theme.breakpoints.sm}) {
-      grid-row: ${p => (p.showTrailingItems ? 3 : 2)};
-    }
-  `,
-  ChonkAlert.ExpandContainer
-);
-
-function AlertIcon({type}: {type: AlertProps['type']}): React.ReactNode {
-  switch (type) {
+function AlertIcon({variant}: {variant: AlertProps['variant']}): React.ReactNode {
+  switch (variant) {
     case 'warning':
       return <IconWarning />;
     case 'success':
       return <IconCheckmark />;
-    case 'error':
+    case 'danger':
       return <IconNot />;
     case 'info':
     case 'muted':
       return <IconInfo />;
     default:
-      unreachable(type);
+      unreachable(variant);
   }
 
   return null;
@@ -338,8 +151,7 @@ const Container = styled('div')`
 Alert.Container = Container;
 
 function AlertButton(props: DistributedOmit<ButtonProps, 'size'>) {
-  const theme = useTheme();
-  return <Button {...props} size={theme.isChonk ? 'zero' : 'sm'} />;
+  return <Button {...props} size="zero" />;
 }
 
 Alert.Button = AlertButton;

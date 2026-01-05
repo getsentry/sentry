@@ -165,7 +165,7 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
         </StyledHeaderActions>
       )}
       <Tabs onChange={props.onViewChange} value={props.view}>
-        <TabList hideBorder>
+        <TabList>
           <TabList.Item key="flamegraph">{t('Flamegraph')}</TabList.Item>
           <TabList.Item key="profiles">{t('Sampled Profiles')}</TabList.Item>
         </TabList>

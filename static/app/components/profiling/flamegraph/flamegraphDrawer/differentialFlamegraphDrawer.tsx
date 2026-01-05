@@ -217,7 +217,7 @@ const DifferentialFlamegraphDrawer = memo(function FlamegraphDrawer(
             <Tooltip title={t('Table left')} skipWrapper>
               <StyledButton
                 // @ts-expect-error transparent is not a valid priority in legacy UI
-                priority={theme.isChonk ? 'transparent' : undefined}
+                priority="transparent"
                 active={flamegraphPreferences.layout === 'table left'}
                 onClick={onTableLeftClick}
                 title={t('Table left')}
@@ -229,7 +229,7 @@ const DifferentialFlamegraphDrawer = memo(function FlamegraphDrawer(
             <Tooltip title={t('Table bottom')} skipWrapper>
               <StyledButton
                 // @ts-expect-error transparent is not a valid priority in legacy UI
-                priority={theme.isChonk ? 'transparent' : undefined}
+                priority="transparent"
                 active={flamegraphPreferences.layout === 'table bottom'}
                 onClick={onTableBottomClick}
                 title={t('Table bottom')}
@@ -241,7 +241,7 @@ const DifferentialFlamegraphDrawer = memo(function FlamegraphDrawer(
             <Tooltip title={t('Table right')} skipWrapper>
               <StyledButton
                 // @ts-expect-error transparent is not a valid priority in legacy UI
-                priority={theme.isChonk ? 'transparent' : undefined}
+                priority="transparent"
                 active={flamegraphPreferences.layout === 'table right'}
                 onClick={onTableRightClick}
                 title={t('Table right')}
@@ -351,7 +351,7 @@ const ProfilingDetailsFrameTabs = styled('ul')`
   padding: 0 ${space(1)};
   margin: 0;
   border-top: 1px solid ${prop => prop.theme.border};
-  background-color: ${props => props.theme.surface200};
+  background-color: ${props => props.theme.colors.surface300};
   user-select: none;
   grid-area: tabs;
 `;

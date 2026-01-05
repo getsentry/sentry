@@ -2140,6 +2140,54 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert response.status_code == 400
         assert response.data == {"refs": ["Invalid repository names: not_a_repo"]}
 
+    def test_project_ids_as_strings(self) -> None:
+        """
+        Test that project IDs can be passed as strings (common in JSON payloads).
+        This ensures compatibility with clients that serialize numeric IDs as strings.
+        """
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.create_organization()
+        team = self.create_team(organization=org)
+        project = self.create_project(name="test-project", organization=org, teams=[team])
+
+        self.create_member(teams=[team], user=user, organization=org)
+
+        # Create a token with project:releases scope
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=user, scope_list=["project:releases"])
+
+        url = reverse(
+            "sentry-api-0-organization-releases",
+            kwargs={"organization_id_or_slug": org.slug},
+        )
+
+        # Test with project ID as string (common in JSON)
+        response = self.client.post(
+            url,
+            data={"version": "1.0.0", "projects": [str(project.id)]},
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+        )
+        assert response.status_code == 201, response.content
+        assert Release.objects.filter(version="1.0.0", organization_id=org.id).exists()
+
+        # Test with project ID as integer
+        response = self.client.post(
+            url,
+            data={"version": "2.0.0", "projects": [project.id]},
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+        )
+        assert response.status_code == 201, response.content
+        assert Release.objects.filter(version="2.0.0", organization_id=org.id).exists()
+
+        # Test with project slug
+        response = self.client.post(
+            url,
+            data={"version": "3.0.0", "projects": [project.slug]},
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+        )
+        assert response.status_code == 201, response.content
+        assert Release.objects.filter(version="3.0.0", organization_id=org.id).exists()
+
 
 class OrganizationReleaseCommitRangesTest(SetRefsTestCase):
     def setUp(self) -> None:

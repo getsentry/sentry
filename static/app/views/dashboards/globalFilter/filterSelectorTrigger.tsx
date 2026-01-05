@@ -59,7 +59,7 @@ function FilterSelectorTrigger({
       )}
       {isFetching && <StyledLoadingIndicator size={14} />}
       {shouldShowBadge && (
-        <StyledBadge type="default">{`+${activeFilterValues.length - 1}`}</StyledBadge>
+        <StyledBadge variant="muted">{`+${activeFilterValues.length - 1}`}</StyledBadge>
       )}
     </ButtonLabelWrapper>
   );
@@ -95,6 +95,6 @@ export const FilterValueTruncated = styled('div')`
 `;
 
 const SubText = styled('span')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
   font-weight: ${p => p.theme.fontWeight.normal};
 `;

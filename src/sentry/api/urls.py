@@ -19,6 +19,7 @@ from sentry.api.endpoints.organization_plugin_deprecation_info import (
 )
 from sentry.api.endpoints.organization_plugins_configs import OrganizationPluginsConfigsEndpoint
 from sentry.api.endpoints.organization_plugins_index import OrganizationPluginsEndpoint
+from sentry.api.endpoints.organization_project_keys import OrganizationProjectKeysEndpoint
 from sentry.api.endpoints.organization_releases import (
     OrganizationReleasesEndpoint,
     OrganizationReleasesStatsEndpoint,
@@ -438,6 +439,7 @@ from sentry.notifications.platform.api.endpoints import urls as notification_pla
 from sentry.objectstore.endpoints.organization import OrganizationObjectstoreEndpoint
 from sentry.overwatch.endpoints.overwatch_rpc import (
     CodeReviewRepoSettingsEndpoint,
+    PreventPrReviewEligibilityEndpoint,
     PreventPrReviewResolvedConfigsEndpoint,
     PreventPrReviewSentryOrgEndpoint,
 )
@@ -532,7 +534,7 @@ from sentry.seer.endpoints.organization_seer_explorer_update import (
 )
 from sentry.seer.endpoints.organization_seer_onboarding_check import OrganizationSeerOnboardingCheck
 from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpoint
-from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheck
+from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheckEndpoint
 from sentry.seer.endpoints.organization_trace_summary import OrganizationTraceSummaryEndpoint
 from sentry.seer.endpoints.project_seer_preferences import ProjectSeerPreferencesEndpoint
 from sentry.seer.endpoints.seer_rpc import SeerRpcServiceEndpoint
@@ -984,6 +986,11 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             GroupAiSummaryEndpoint.as_view(),
             name=f"{name_prefix}-group-ai-summary",
         ),
+        re_path(
+            r"^(?P<issue_id>[^/]+)/related-issues/$",
+            RelatedIssuesEndpoint.as_view(),
+            name=f"{name_prefix}-related-issues",
+        ),
         # Load plugin group urls
         re_path(
             r"^(?P<issue_id>[^/]+)/plugins?/",
@@ -1025,14 +1032,6 @@ BROADCAST_URLS = [
         r"^(?P<broadcast_id>[^/]+)/$",
         BroadcastDetailsEndpoint.as_view(),
         name="sentry-api-0-broadcast-details",
-    ),
-]
-
-ISSUES_URLS = [
-    re_path(
-        r"^(?P<issue_id>[^/]+)/related-issues/$",
-        RelatedIssuesEndpoint.as_view(),
-        name="sentry-api-0-issues-related-issues",
     ),
 ]
 
@@ -1606,6 +1605,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/api-keys/(?P<api_key_id>[^/]+)/$",
         OrganizationApiKeyDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-api-key-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/project-keys/$",
+        OrganizationProjectKeysEndpoint.as_view(),
+        name="sentry-api-0-organization-project-keys",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/audit-logs/$",
@@ -2345,7 +2349,7 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/setup-check/$",
-        OrganizationSeerSetupCheck.as_view(),
+        OrganizationSeerSetupCheckEndpoint.as_view(),
         name="sentry-api-0-organization-seer-setup-check",
     ),
     re_path(
@@ -2646,6 +2650,7 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         OrganizationObjectstoreEndpoint.as_view(),
         name="sentry-api-0-organization-objectstore",
     ),
+    *preprod_urls.preprod_organization_urlpatterns,
 ]
 
 PROJECT_URLS: list[URLPattern | URLResolver] = [
@@ -3276,7 +3281,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         ProjectUserIssueEndpoint.as_view(),
         name="sentry-api-0-project-user-issue",
     ),
-    *preprod_urls.preprod_urlpatterns,
+    *preprod_urls.preprod_project_urlpatterns,
 ]
 
 TEAM_URLS = [
@@ -3526,6 +3531,11 @@ INTERNAL_URLS = [
         name="sentry-api-0-prevent-pr-review-configs-resolved",
     ),
     re_path(
+        r"^prevent/pr-review/eligibility/$",
+        PreventPrReviewEligibilityEndpoint.as_view(),
+        name="sentry-api-0-prevent-pr-review-eligibility",
+    ),
+    re_path(
         r"^prevent/pr-review/github/sentry-org/$",
         PreventPrReviewSentryOrgEndpoint.as_view(),
         name="sentry-api-0-prevent-pr-review-github-sentry-org",
@@ -3564,10 +3574,6 @@ urlpatterns = [
     re_path(
         r"^(?:issues|groups)/",
         include(create_group_urls("sentry-api-0")),
-    ),
-    re_path(
-        r"^issues/",
-        include(ISSUES_URLS),
     ),
     # Organizations
     re_path(

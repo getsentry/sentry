@@ -12,10 +12,7 @@ import * as Sentry from '@sentry/react';
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import type {SearchQueryBuilderProps} from 'sentry/components/searchQueryBuilder';
-import type {
-  CaseInsensitive,
-  SetCaseInsensitive,
-} from 'sentry/components/searchQueryBuilder/hooks';
+import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {useHandleSearch} from 'sentry/components/searchQueryBuilder/hooks/useHandleSearch';
 import {
   useQueryBuilderState,
@@ -27,13 +24,14 @@ import type {
 } from 'sentry/components/searchQueryBuilder/types';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import type {ParseResult} from 'sentry/components/searchSyntax/parser';
-import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
+import type {SavedSearchType, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import type {FieldDefinition, FieldKind} from 'sentry/utils/fields';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
+import type {GetTagValues} from 'sentry/views/dashboards/datasetConfig/base';
 
 interface SearchQueryBuilderContextData {
   actionBarRef: React.RefObject<HTMLDivElement | null>;
@@ -57,7 +55,7 @@ interface SearchQueryBuilderContextData {
   gaveSeerConsent: boolean;
   getFieldDefinition: (key: string, kind?: FieldKind) => FieldDefinition | null;
   getSuggestedFilterKey: (key: string) => string | null;
-  getTagValues: (tag: Tag, query: string) => Promise<string[]>;
+  getTagValues: GetTagValues;
   handleSearch: (query: string) => void;
   parseQuery: (query: string) => ParseResult | null;
   parsedQuery: ParseResult | null;
@@ -72,7 +70,7 @@ interface SearchQueryBuilderContextData {
   filterKeyAliases?: TagCollection;
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
   namespace?: string;
-  onCaseInsensitiveClick?: SetCaseInsensitive;
+  onCaseInsensitiveClick?: (value: CaseInsensitive) => void;
   placeholder?: string;
   /**
    * The element to render the combobox popovers into.

@@ -3,8 +3,9 @@ import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {Badge} from 'sentry/components/core/badge';
-import DropdownButton from 'sentry/components/dropdownButton';
 import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
 import {useTestSuites} from 'sentry/components/prevent/testSuiteDropdown/useTestSuites';
 import {t} from 'sentry/locale';
@@ -108,14 +109,14 @@ export function TestSuiteDropdown() {
           : value.length - suitesToShow.length;
 
         return (
-          <DropdownButton {...triggerProps}>
+          <SelectTrigger.Button {...triggerProps}>
             <TriggerLabelWrap>
               <TriggerLabel>{label}</TriggerLabel>
             </TriggerLabelWrap>
             {remainingCount > 0 && (
-              <StyledBadge type="default">{`+${remainingCount}`}</StyledBadge>
+              <StyledBadge variant="muted">{`+${remainingCount}`}</StyledBadge>
             )}
-          </DropdownButton>
+          </SelectTrigger.Button>
         );
       }}
     />

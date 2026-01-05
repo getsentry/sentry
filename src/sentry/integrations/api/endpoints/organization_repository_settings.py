@@ -2,6 +2,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -21,21 +22,19 @@ class RepositorySettingsSerializer(serializers.Serializer):
         help_text="List of repository IDs to update settings for. Maximum 1000 repositories.",
     )
     enabledCodeReview = serializers.BooleanField(
-        required=True,
+        required=False,
         help_text="Whether code review is enabled for these repositories",
     )
     codeReviewTriggers = serializers.ListField(
         child=serializers.ChoiceField(choices=[trigger.value for trigger in CodeReviewTrigger]),
-        required=True,
+        required=False,
         help_text="List of triggers for code review",
     )
 
     def validate(self, data):
-        if data.get("enabledCodeReview") and not data.get("codeReviewTriggers"):
+        if "enabledCodeReview" not in data and "codeReviewTriggers" not in data:
             raise serializers.ValidationError(
-                {
-                    "codeReviewTriggers": "At least one trigger is required when code review is enabled."
-                }
+                "At least one of 'enabledCodeReview' or 'codeReviewTriggers' must be provided."
             )
         return data
 
@@ -64,39 +63,68 @@ class OrganizationRepositorySettingsEndpoint(OrganizationEndpoint):
 
         data = serializer.validated_data
         repository_ids = data["repositoryIds"]
-        enabled_code_review = data["enabledCodeReview"]
-        code_review_triggers = data["codeReviewTriggers"]
 
-        repositories = Repository.objects.filter(
-            id__in=repository_ids,
-            organization_id=organization.id,
+        updated_enabled_code_review = data.get("enabledCodeReview")
+        updated_code_review_triggers = data.get("codeReviewTriggers")
+
+        update_fields = []
+        if updated_enabled_code_review is not None:
+            update_fields.append("enabled_code_review")
+        if updated_code_review_triggers is not None:
+            update_fields.append("code_review_triggers")
+
+        repositories = list(
+            Repository.objects.filter(
+                id__in=repository_ids,
+                organization_id=organization.id,
+            )
         )
 
-        if repositories.count() != len(repository_ids):
+        if len(repositories) != len(repository_ids):
             return Response(
                 {"detail": "One or more repositories were not found in this organization."},
                 status=400,
             )
 
-        settings_to_upsert = [
-            RepositorySettings(
-                repository=repo,
-                enabled_code_review=enabled_code_review,
-                code_review_triggers=code_review_triggers,
-            )
-            for repo in repositories
-        ]
+        existing_settings = {
+            setting.repository_id: setting
+            for setting in RepositorySettings.objects.filter(repository_id__in=repository_ids)
+        }
+
+        settings_to_upsert = []
+        for repo in repositories:
+            setting = existing_settings.get(repo.id) or RepositorySettings(repository=repo)
+
+            if updated_enabled_code_review is not None:
+                setting.enabled_code_review = updated_enabled_code_review
+            if updated_code_review_triggers is not None:
+                setting.code_review_triggers = updated_code_review_triggers
+
+            settings_to_upsert.append(setting)
 
         RepositorySettings.objects.bulk_create(
             settings_to_upsert,
             update_conflicts=True,
             unique_fields=["repository"],
-            update_fields=["enabled_code_review", "code_review_triggers"],
+            update_fields=update_fields,
+        )
+
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=organization.id,
+            event=audit_log.get_event_id("REPO_SETTINGS_EDIT"),
+            data={
+                "repository_count": len(repositories),
+                "repository_ids": repository_ids,
+                "enabled_code_review": updated_enabled_code_review,
+                "code_review_triggers": updated_code_review_triggers,
+            },
         )
 
         return Response(
             serialize(
-                list(repositories),
+                repositories,
                 request.user,
                 RepositorySerializer(expand=["settings"]),
             ),

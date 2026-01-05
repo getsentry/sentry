@@ -6,10 +6,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 // eslint-disable-next-line boundaries/element-types
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 
-import {
-  DO_NOT_USE_BUTTON_ICON_SIZES as BUTTON_ICON_SIZES,
-  DO_NOT_USE_getButtonStyles as getButtonStyles,
-} from './styles';
+import {DO_NOT_USE_BUTTON_ICON_SIZES as BUTTON_ICON_SIZES} from './styles';
 import {DO_NOT_USE_getChonkButtonStyles as getChonkButtonStyles} from './styles.chonk';
 import type {
   DO_NOT_USE_ButtonProps as ButtonProps,
@@ -72,7 +69,7 @@ export function Button({
 }
 
 export const StyledButton = styled('button')<ButtonProps>`
-  ${p => (p.theme.isChonk ? getChonkButtonStyles(p as any) : getButtonStyles(p as any))}
+  ${p => getChonkButtonStyles(p as any)}
 `;
 
 const ButtonLabel = styled('span', {
@@ -81,6 +78,7 @@ const ButtonLabel = styled('span', {
     isPropValid(prop) &&
     !['size', 'borderless'].includes(prop),
 })<Pick<CommonButtonProps, 'size' | 'borderless'>>`
+  height: 100%;
   min-width: 0;
   display: flex;
   align-items: center;

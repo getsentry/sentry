@@ -1,26 +1,35 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {motion, type MotionNodeAnimationOptions} from 'framer-motion';
+import {motion} from 'framer-motion';
 
 import {Container, Flex} from '@sentry/scraps/layout';
+import {Separator} from '@sentry/scraps/separator';
 import {Heading} from '@sentry/scraps/text';
 
 import {assignToActor} from 'sentry/actionCreators/group';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {CommitRow} from 'sentry/components/commitRow';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
 import {Text} from 'sentry/components/core/text';
+import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import type {
   ImpactAssessmentArtifact,
   ImpactItem,
   RootCauseArtifact,
   SolutionArtifact,
+  SuspectCommit,
   TriageArtifact,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {
+  cardAnimationProps,
+  StyledMarkedText,
+} from 'sentry/components/events/autofix/v2/utils';
 import {
   AssigneeSelector,
   useHandleAssigneeChange,
 } from 'sentry/components/group/assigneeSelector';
+import Panel from 'sentry/components/panels/panel';
 import {Timeline} from 'sentry/components/timeline';
 import {
   IconCheckmark,
@@ -31,19 +40,20 @@ import {
   IconFire,
   IconFix,
   IconFocus,
+  IconGroup,
   IconUser,
   IconWarning,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import type {Commit} from 'sentry/types/integrations';
 import type {Member, Organization} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import testableTransition from 'sentry/utils/testableTransition';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/fileDiffViewer';
 import type {ExplorerFilePatch, RepoPRState} from 'sentry/views/seerExplorer/types';
 
-type ArtifactData = Record<string, unknown>;
+export type ArtifactData = Record<string, unknown>;
 
 /**
  * Get the colored icon for an artifact type.
@@ -66,7 +76,7 @@ export function getArtifactIcon(
     case 'impact_assessment':
       return <IconFire size={size} color="error" />;
     case 'triage':
-      return <IconUser size={size} color="blue400" />;
+      return <IconGroup size={size} color="blue400" />;
     case 'code_changes':
       return <IconCode size={size} color="blue400" />;
     default:
@@ -80,30 +90,9 @@ interface CardProps {
   icon?: React.ReactNode;
 }
 
-const cardAnimationProps: MotionNodeAnimationOptions = {
-  exit: {opacity: 0, height: 0, scale: 0.8, y: -20},
-  initial: {opacity: 0, height: 0, scale: 0.8},
-  animate: {opacity: 1, height: 'auto', scale: 1},
-  transition: testableTransition({
-    duration: 0.1,
-    height: {
-      type: 'spring',
-      bounce: 0.2,
-    },
-    scale: {
-      type: 'spring',
-      bounce: 0.2,
-    },
-    y: {
-      type: 'tween',
-      ease: 'easeOut',
-    },
-  }),
-};
-
 function ArtifactCard({title, icon, children}: CardProps) {
   return (
-    <AnimatedCard {...cardAnimationProps} initial={false}>
+    <AnimatedCard {...cardAnimationProps}>
       <Container border="primary" radius="md" background="primary" padding="md">
         <Flex align="center" justify="between" padding="md">
           <Flex align="center" gap="md">
@@ -148,7 +137,9 @@ function WhyTreeRow({
               <TreeBranchIcon />
             </Fragment>
           )}
-          <TreeKey>{why}</TreeKey>
+          <TreeKey as="div">
+            <StyledMarkedText text={why} inline as="span" />
+          </TreeKey>
         </TreeKeyTrunk>
       </TreeRow>
       {hasChild && nextWhy !== undefined && (
@@ -212,7 +203,9 @@ function TreeRowWithDescription({
             </Fragment>
           )}
           <ImpactTreeKeyContainer>
-            <ImpactTreeKey>{title}</ImpactTreeKey>
+            <ImpactTreeKey as="div">
+              <StyledMarkedText text={title} inline as="span" />
+            </ImpactTreeKey>
             {showIcon && icon}
           </ImpactTreeKeyContainer>
         </TreeKeyTrunk>
@@ -223,7 +216,9 @@ function TreeRowWithDescription({
         <TreeKeyTrunk spacerCount={spacerCount + 1}>
           <TreeSpacer spacerCount={spacerCount + 1} hasStem={false} />
           <TreeBranchIcon />
-          <SolutionTreeValue>{description}</SolutionTreeValue>
+          <SolutionTreeValue as="div">
+            <StyledMarkedText text={description} inline as="span" />
+          </SolutionTreeValue>
         </TreeKeyTrunk>
       </TreeRow>
     </Fragment>
@@ -297,7 +292,9 @@ function ImpactTreeRow({
             {isCollapsible && hasSubItems && (
               <IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />
             )}
-            <ImpactTreeKey>{impact.label}</ImpactTreeKey>
+            <ImpactTreeKey as="div">
+              <StyledMarkedText text={impact.label} inline as="span" />
+            </ImpactTreeKey>
             {getSeverityIcon()}
           </ImpactTreeKeyContainer>
         </TreeKeyTrunk>
@@ -309,7 +306,9 @@ function ImpactTreeRow({
           <TreeKeyTrunk spacerCount={spacerCount + 1}>
             <TreeSpacer spacerCount={spacerCount + 1} hasStem={false} />
             <TreeBranchIcon />
-            <TreeValue>{impact.impact_description}</TreeValue>
+            <TreeValue as="div">
+              <StyledMarkedText text={impact.impact_description} inline as="span" />
+            </TreeValue>
           </TreeKeyTrunk>
         </TreeRow>
       )}
@@ -320,7 +319,9 @@ function ImpactTreeRow({
           <TreeKeyTrunk spacerCount={spacerCount + 2}>
             <TreeSpacer spacerCount={spacerCount + 2} hasStem={false} />
             <TreeBranchIcon />
-            <TreeSubValue>{impact.evidence}</TreeSubValue>
+            <TreeSubValue as="div">
+              <StyledMarkedText text={impact.evidence} inline as="span" />
+            </TreeSubValue>
           </TreeKeyTrunk>
         </TreeRow>
       )}
@@ -363,21 +364,27 @@ export function RootCauseCard({data}: {data: ArtifactData}) {
 
   return (
     <ArtifactCard title={t('Root Cause')} icon={getArtifactIcon('root_cause')}>
-      <Text>{typedData.one_line_description}</Text>
+      <Text size="lg" as="div">
+        <StyledMarkedText text={typedData.one_line_description} inline as="span" />
+      </Text>
 
       {typedData.five_whys.length > 0 && <FiveWhysTree whys={typedData.five_whys} />}
 
       {typedData.reproduction_steps && typedData.reproduction_steps.length > 0 && (
         <Flex direction="column" gap="sm">
-          <Text size="md" variant="muted">
+          <Text size="sm" bold>
             {t('Reproduction Steps')}
           </Text>
           <Timeline.Container>
             {typedData.reproduction_steps.map((step, index) => (
               <DenseTimelineItem
                 key={index}
-                icon={<IconCircle size="xs" color="pink400" />}
-                title={<NonBoldTitle size="sm">{step}</NonBoldTitle>}
+                icon={<IconCircle size="xs" />}
+                title={
+                  <NonBoldTitle size="sm" as="div">
+                    <StyledMarkedText text={step} inline as="span" />
+                  </NonBoldTitle>
+                }
               />
             ))}
           </Timeline.Container>
@@ -417,7 +424,9 @@ export function SolutionCard({data}: {data: ArtifactData}) {
 
   return (
     <ArtifactCard title={t('Solution')} icon={getArtifactIcon('solution')}>
-      <Text>{typedData.one_line_summary}</Text>
+      <Text size="lg" as="div">
+        <StyledMarkedText text={typedData.one_line_summary} inline as="span" />
+      </Text>
 
       {typedData.steps.length > 0 && <SolutionTree steps={typedData.steps} />}
     </ArtifactCard>
@@ -432,7 +441,9 @@ export function ImpactCard({data}: {data: ArtifactData}) {
 
   return (
     <ArtifactCard title={t('Impact')} icon={getArtifactIcon('impact_assessment')}>
-      <Text>{typedData.one_line_description}</Text>
+      <Text size="lg" as="div">
+        <StyledMarkedText text={typedData.one_line_description} inline as="span" />
+      </Text>
 
       {typedData.impacts.length > 0 && <ImpactTree impacts={typedData.impacts} />}
     </ArtifactCard>
@@ -446,43 +457,28 @@ interface TriageCardProps {
 }
 
 /**
- * Triage artifact card.
+ * Hook to look up a Sentry member by email, falling back to name.
  */
-export function TriageCard({data, group, organization}: TriageCardProps) {
-  const typedData = data as unknown as TriageArtifact;
-  const hasSuspect = typedData.suspect_commit;
-  const hasAssignee = typedData.suggested_assignee;
-  const [isAssigning, setIsAssigning] = useState(false);
-
-  // Use the standard assignee selector hook for fallback
-  const {handleAssigneeChange, assigneeLoading} = useHandleAssigneeChange({
-    group,
-    organization,
-  });
-
-  // Look up member by email first, then by name if email doesn't match
-  const assigneeEmail = typedData.suggested_assignee?.email;
-  const assigneeName = typedData.suggested_assignee?.name;
-
+function useMemberLookup(organization: Organization, email?: string, name?: string) {
   // Try matching by email first
   const {data: memberDataByEmail} = useApiQuery<Member[]>(
-    assigneeEmail
+    email
       ? [
           `/organizations/${organization.slug}/members/`,
-          {query: {query: `email:${assigneeEmail}`}},
+          {query: {query: `email:${email}`}},
         ]
       : [''],
     {
-      enabled: !!assigneeEmail,
+      enabled: !!email,
       staleTime: 0,
     }
   );
 
   // If no email match, try matching by name
-  const shouldTryNameMatch = assigneeName && !memberDataByEmail?.length;
+  const shouldTryNameMatch = name && !memberDataByEmail?.length;
   const {data: memberDataByName} = useApiQuery<Member[]>(
     shouldTryNameMatch
-      ? [`/organizations/${organization.slug}/members/`, {query: {query: assigneeName}}]
+      ? [`/organizations/${organization.slug}/members/`, {query: {query: name}}]
       : [''],
     {
       enabled: !!shouldTryNameMatch,
@@ -491,10 +487,77 @@ export function TriageCard({data, group, organization}: TriageCardProps) {
   );
 
   const member = memberDataByEmail?.[0] || memberDataByName?.[0];
-  const user = member?.user;
+  return member?.user;
+}
+
+/**
+ * Build a Commit object from suspect commit data for use with CommitRow.
+ */
+function useSuspectCommitData(
+  suspectCommit: SuspectCommit | null | undefined,
+  organization: Organization
+): Commit | null {
+  const {data: repositories} = useOrganizationRepositories();
+
+  // Look up commit author in Sentry members
+  const authorUser = useMemberLookup(
+    organization,
+    suspectCommit?.author_email,
+    suspectCommit?.author_name
+  );
+
+  return useMemo((): Commit | null => {
+    if (!suspectCommit) {
+      return null;
+    }
+
+    // Find matching repository by name
+    const repository = repositories?.find(repo => repo.name === suspectCommit.repo_name);
+
+    // Build author - use Sentry user if matched, otherwise create a minimal author object
+    // CommitRow only uses name/email/id with optional chaining, so this is safe
+    const author =
+      authorUser ??
+      ({
+        name: suspectCommit.author_name,
+        email: suspectCommit.author_email,
+      } as Commit['author']);
+
+    return {
+      id: suspectCommit.sha,
+      message: suspectCommit.message,
+      dateCreated: suspectCommit.committed_date,
+      releases: [],
+      author,
+      repository,
+    };
+  }, [suspectCommit, repositories, authorUser]);
+}
+
+/**
+ * Triage artifact card.
+ */
+export function TriageCard({data, group, organization}: TriageCardProps) {
+  const typedData = data as unknown as TriageArtifact;
+  const hasSuspect = typedData.suspect_commit;
+  const hasAssignee = typedData.suggested_assignee;
+  const [isAssigning, setIsAssigning] = useState(false);
+
+  const {handleAssigneeChange, assigneeLoading} = useHandleAssigneeChange({
+    group,
+    organization,
+  });
+
+  const commit = useSuspectCommitData(typedData.suspect_commit, organization);
+
+  const assigneeUser = useMemberLookup(
+    organization,
+    typedData.suggested_assignee?.email,
+    typedData.suggested_assignee?.name
+  );
 
   const handleAssign = async () => {
-    if (!user) {
+    if (!assigneeUser) {
       addErrorMessage(t('Unable to find user to assign'));
       return;
     }
@@ -504,7 +567,7 @@ export function TriageCard({data, group, organization}: TriageCardProps) {
       await assignToActor({
         id: group.id,
         orgSlug: organization.slug,
-        actor: {id: String(user.id), type: 'user'},
+        actor: {id: String(assigneeUser.id), type: 'user'},
         assignedBy: 'suggested_assignee',
       });
       addSuccessMessage(t('Issue assigned successfully'));
@@ -516,18 +579,18 @@ export function TriageCard({data, group, organization}: TriageCardProps) {
   };
 
   // Create a minimal user object for avatar display
-  const userForAvatar: AvatarUser | undefined =
-    assigneeEmail && user
-      ? {
-          email: assigneeEmail,
-          name: typedData.suggested_assignee?.name || assigneeEmail,
-          id: user.id,
-          username: user.username || assigneeEmail.split('@')[0] || '',
-          ip_address: '',
-        }
-      : undefined;
+  // Use the email from Sentry's member data (assigneeUser.email) instead of the AI-suggested email
+  const userForAvatar: AvatarUser | undefined = assigneeUser
+    ? {
+        email: assigneeUser.email,
+        name: typedData.suggested_assignee?.name || assigneeUser.email,
+        id: assigneeUser.id,
+        username: assigneeUser.username || assigneeUser.email.split('@')[0] || '',
+        ip_address: '',
+      }
+    : undefined;
 
-  const hasMatch = !!user;
+  const hasAssigneeMatch = !!assigneeUser;
 
   if (!hasSuspect && !hasAssignee) {
     return (
@@ -539,60 +602,105 @@ export function TriageCard({data, group, organization}: TriageCardProps) {
 
   return (
     <ArtifactCard title={t('Triage')} icon={getArtifactIcon('triage')}>
-      {hasSuspect && (
-        <Flex direction="column" gap="sm">
-          <Container padding="md">
-            <Flex direction="column" gap="sm">
-              <Text monospace>{typedData.suspect_commit?.sha}</Text>
-              {typedData.suspect_commit?.description && (
-                <Text variant="muted">{typedData.suspect_commit.description}</Text>
-              )}
-            </Flex>
-          </Container>
-        </Flex>
-      )}
-
-      {hasAssignee && (
-        <Flex direction="column" gap="sm">
-          <Container radius="md">
-            <Flex direction="column" gap="md">
-              <Flex align="center" gap="sm">
-                {hasMatch && userForAvatar ? (
-                  <UserAvatar user={userForAvatar} size={24} gravatar />
-                ) : (
-                  <IconUser size="md" color="gray400" />
+      <Flex direction="column" gap="sm">
+        {hasSuspect && commit && (
+          <Flex direction="column" gap="lg">
+            <Flex direction="column" gap="xl">
+              <SuspectCommitPanel>
+                <CommitRow commit={commit} />
+                {typedData.suspect_commit?.description && (
+                  <Container padding="lg" paddingTop="0">
+                    <Text size="sm" variant="muted">
+                      <StyledMarkedText
+                        text={typedData.suspect_commit.description}
+                        inline
+                        as="span"
+                      />
+                    </Text>
+                  </Container>
                 )}
-                <Flex direction="column" gap="xs">
-                  <Text bold>{typedData.suggested_assignee?.name}</Text>
-                </Flex>
-              </Flex>
-
-              {typedData.suggested_assignee?.why && (
-                <Container paddingLeft="3xl">
-                  <Text>{typedData.suggested_assignee.why}</Text>
-                </Container>
-              )}
-              <Flex justify="end">
-                {hasMatch ? (
-                  <Button size="sm" onClick={handleAssign} disabled={isAssigning}>
-                    {isAssigning ? t('Assigning...') : t('Assign Issue')}
-                  </Button>
-                ) : (
-                  <AssigneeSelector
-                    group={group}
-                    assigneeLoading={assigneeLoading}
-                    handleAssigneeChange={handleAssigneeChange}
-                    showLabel
-                  />
-                )}
-              </Flex>
+              </SuspectCommitPanel>
             </Flex>
+          </Flex>
+        )}
+
+        {hasSuspect && hasAssignee && (
+          <Container paddingBottom="lg">
+            <Separator orientation="horizontal" border="primary" />
           </Container>
-        </Flex>
-      )}
+        )}
+
+        {hasAssignee && (
+          <Flex direction="column" gap="lg">
+            <Container>
+              <Flex direction="column" gap="xl">
+                <SuspectCommitPanel>
+                  <Container padding="md" paddingTop="0" paddingBottom="0">
+                    <Flex justify="between">
+                      <Flex align="center" gap="md" paddingLeft="xs">
+                        {hasAssigneeMatch && userForAvatar ? (
+                          <UserAvatar user={userForAvatar} size={24} gravatar />
+                        ) : (
+                          <IconUser size="md" color="gray400" />
+                        )}
+                        <Flex direction="column" gap="xs">
+                          <Text size="lg">{typedData.suggested_assignee?.name}</Text>
+                        </Flex>
+                      </Flex>
+                    </Flex>
+
+                    {typedData.suggested_assignee?.why && (
+                      <Container
+                        padding="md"
+                        paddingTop="lg"
+                        paddingBottom="lg"
+                        paddingLeft="xs"
+                      >
+                        <Text size="sm" variant="muted">
+                          <StyledMarkedText
+                            text={typedData.suggested_assignee.why}
+                            inline
+                            as="span"
+                          />
+                        </Text>
+                      </Container>
+                    )}
+
+                    <Flex justify="end">
+                      {hasAssigneeMatch ? (
+                        <Button size="sm" onClick={handleAssign} disabled={isAssigning}>
+                          {isAssigning
+                            ? t('Assigning...')
+                            : t(
+                                'Assign to %s',
+                                typedData.suggested_assignee?.name.split(' ')[0]
+                              )}
+                        </Button>
+                      ) : (
+                        <AssigneeSelector
+                          group={group}
+                          assigneeLoading={assigneeLoading}
+                          handleAssigneeChange={handleAssigneeChange}
+                          showLabel
+                        />
+                      )}
+                    </Flex>
+                  </Container>
+                </SuspectCommitPanel>
+              </Flex>
+            </Container>
+          </Flex>
+        )}
+      </Flex>
     </ArtifactCard>
   );
 }
+
+const SuspectCommitPanel = styled(Panel)`
+  line-height: 1.2;
+  border: none;
+  margin: 0;
+`;
 
 interface CodeChangesCardProps {
   patches: ExplorerFilePatch[];
@@ -601,58 +709,12 @@ interface CodeChangesCardProps {
 }
 
 /**
- * Merge consecutive patches to the same file into a single unified diff.
- * This is needed because the Explorer may create multiple patches for the same file.
- */
-function mergeFilePatches(patches: ExplorerFilePatch[]): ExplorerFilePatch[] {
-  const patchesByFile = new Map<string, ExplorerFilePatch[]>();
-
-  // Group patches by repo + file path
-  for (const patch of patches) {
-    const key = `${patch.repo_name}:${patch.patch.path}`;
-    const existing = patchesByFile.get(key) || [];
-    existing.push(patch);
-    patchesByFile.set(key, existing);
-  }
-
-  // Merge patches for each file
-  const merged: ExplorerFilePatch[] = [];
-  for (const [, filePatches] of patchesByFile) {
-    const firstPatch = filePatches[0];
-    if (!firstPatch) {
-      continue;
-    }
-
-    if (filePatches.length === 1) {
-      merged.push(firstPatch);
-    } else {
-      // Merge hunks from multiple patches
-      const mergedHunks = filePatches.flatMap(p => p.patch.hunks);
-
-      merged.push({
-        repo_name: firstPatch.repo_name,
-        patch: {
-          ...firstPatch.patch,
-          hunks: mergedHunks,
-          added: filePatches.reduce((sum, p) => sum + p.patch.added, 0),
-          removed: filePatches.reduce((sum, p) => sum + p.patch.removed, 0),
-        },
-      });
-    }
-  }
-
-  return merged;
-}
-
-/**
  * Code Changes card showing file diffs.
  */
 export function CodeChangesCard({patches, prStates, onCreatePR}: CodeChangesCardProps) {
-  const mergedPatches = mergeFilePatches(patches);
-
   // Group by repo
   const patchesByRepo = new Map<string, ExplorerFilePatch[]>();
-  for (const patch of mergedPatches) {
+  for (const patch of patches) {
     const existing = patchesByRepo.get(patch.repo_name) || [];
     existing.push(patch);
     patchesByRepo.set(patch.repo_name, existing);
@@ -670,12 +732,12 @@ export function CodeChangesCard({patches, prStates, onCreatePR}: CodeChangesCard
             <RepoHeader>
               <RepoName>{repoName}</RepoName>
               {hasPR ? (
-                <PRLink href={prState.pr_url} target="_blank" rel="noopener noreferrer">
+                <a href={prState.pr_url} target="_blank" rel="noopener noreferrer">
                   {t('View PR #%s', prState.pr_number)}
-                </PRLink>
+                </a>
               ) : onCreatePR ? (
                 <Button
-                  size="xs"
+                  size="sm"
                   onClick={() => onCreatePR(repoName)}
                   disabled={isCreatingPR}
                 >
@@ -684,11 +746,17 @@ export function CodeChangesCard({patches, prStates, onCreatePR}: CodeChangesCard
               ) : null}
             </RepoHeader>
 
-            {repoPatches.map((patch, index) => (
-              <DiffViewContainer key={`${patch.patch.path}-${index}`}>
-                <FileDiffViewer patch={patch.patch} showBorder />
-              </DiffViewContainer>
-            ))}
+            <Flex direction="column" gap="sm">
+              {repoPatches.map((patch, index) => (
+                <FileDiffViewer
+                  patch={patch.patch}
+                  showBorder
+                  collapsible
+                  defaultExpanded={repoPatches.length > 1 ? false : true}
+                  key={`${patch.patch.path}-${index}`}
+                />
+              ))}
+            </Flex>
           </RepoSection>
         );
       })}
@@ -761,11 +829,11 @@ const TreeValue = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   word-break: break-word;
   grid-column: span 1;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const TreeKey = styled(TreeValue)`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const ImpactTreeKey = styled(TreeKey)`
@@ -805,24 +873,13 @@ const RepoHeader = styled('div')`
   margin-bottom: ${p => p.theme.space.xl};
 `;
 
-const PRLink = styled('a')`
-  font-size: ${p => p.theme.fontSize.sm};
-`;
-
-const DiffViewContainer = styled('div')`
-  margin-top: ${p => p.theme.space.md};
-
-  &:not(:last-child) {
-    margin-bottom: ${p => p.theme.space.xl};
-  }
-`;
-
 const AnimatedCard = styled(motion.div)`
   transform-origin: top center;
 `;
 
 const NonBoldTitle = styled(Text)`
   font-weight: ${p => p.theme.fontWeight.normal};
+  margin-top: ${p => p.theme.space.xs};
 `;
 
 const DenseTimelineItem = styled(Timeline.Item)`

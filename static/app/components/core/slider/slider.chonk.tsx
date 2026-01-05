@@ -1,8 +1,8 @@
 import {useState, type CSSProperties} from 'react';
+import styled from '@emotion/styled';
 
 import {chonkFor} from 'sentry/components/core/chonk';
 import {space} from 'sentry/styles/space';
-import {chonkStyled} from 'sentry/utils/theme/theme';
 
 import type {SliderProps} from './index';
 
@@ -57,7 +57,7 @@ function SliderTicks({progress, numSteps}: {numSteps: number; progress: number})
   );
 }
 
-const StepsContainer = chonkStyled('div')`
+const StepsContainer = styled('div')`
   pointer-events: none;
   position: absolute;
   bottom: 0;
@@ -80,7 +80,7 @@ const StepsContainer = chonkStyled('div')`
   }
 `;
 
-const StepMark = chonkStyled('span')<{filled?: boolean}>`
+const StepMark = styled('span')<{filled?: boolean}>`
   box-sizing: border-box;
   position: relative;
   flex-grow: 1;
@@ -118,122 +118,122 @@ function resolveMinMaxValue(props: SliderProps) {
   return {value, min, max};
 }
 
-const StyledSlider = chonkStyled('input')`
-    -webkit-appearance: none;
-    appearance: none;
-    position: relative;
-    width: 100%;
-    height: 16px;
-    background: transparent;
-    border-radius: ${p => p.theme.radius['2xs']};
-    transition: box-shadow ${p => p.theme.motion.smooth.fast};
-    box-shadow:
-      0 0 0 8px transparent,
-      0 0 0 10px transparent;
+const StyledSlider = styled('input')`
+  -webkit-appearance: none;
+  appearance: none;
+  position: relative;
+  width: 100%;
+  height: 16px;
+  background: transparent;
+  border-radius: ${p => p.theme.radius['2xs']};
+  transition: box-shadow ${p => p.theme.motion.smooth.fast};
+  box-shadow:
+    0 0 0 8px transparent,
+    0 0 0 10px transparent;
 
-    &:focus-visible {
-      ${p => p.theme.focusRing()};
-    }
+  &:focus-visible {
+    ${p => p.theme.focusRing()};
+  }
 
-    &[disabled] {
-      cursor: not-allowed;
+  &[disabled] {
+    cursor: not-allowed;
 
-      &::-webkit-slider-runnable-track {
-        cursor: not-allowed;
-      }
-
-      &::-webkit-slider-thumb {
-        cursor: not-allowed;
-        border-bottom-width: 1px;
-      }
-    }
-
-    &::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      margin: auto 0;
-      min-width: calc(${p => p.theme.radius['2xs']} * 6);
-      width: var(--p, 50%);
-      height: 4px;
-      background: ${p => p.theme.colors.chonk.blue400};
-      border: 1px solid ${p => p.theme.colors.chonk.blue400};
-      border-radius: ${p => p.theme.radius['2xs']};
-    }
-
-    /* Chrome styling */
     &::-webkit-slider-runnable-track {
-      width: 100%;
-      height: 4px;
-      background: ${p => p.theme.colors.surface100};
-      border: 1px solid ${p => p.theme.colors.surface100};
-      border-radius: ${p => p.theme.radius['2xs']};
+      cursor: not-allowed;
     }
 
     &::-webkit-slider-thumb {
-      appearance: none;
-      width: 16px;
-      height: 16px;
-      background: ${p => p.theme.colors.white};
-      border: 1px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
-      border-bottom: 2px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
-      border-radius: ${p => p.theme.radius.sm};
-      transform: translateY(-7px);
-      z-index: 10;
+      cursor: not-allowed;
+      border-bottom-width: 1px;
     }
+  }
 
-    /* Firefox styling */
-    &::-moz-range-track {
-      width: 100%;
-      height: 4px;
-      background: ${p => p.theme.colors.surface100};
-      border: 1px solid ${p => p.theme.colors.surface100};
-      border-radius: ${p => p.theme.radius['2xs']};
-    }
-
-    &::-moz-range-thumb {
-      appearance: none;
-      width: 16px;
-      height: 16px;
-      background: ${p => p.theme.colors.white};
-      border: 1px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
-      border-bottom: 2px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
-      border-radius: ${p => p.theme.radius.sm};
-      transform: translateY(-7px);
-      z-index: 1;
-    }
-`;
-
-const SliderOutput = chonkStyled('output')`
-  --tx: clamp(-50%, calc(-50% + var(--p, 0)), 50%);
-    --ty: var(--label-ty);
-    --o: var(--label-opacity);
-
-    /* disable interactions */
-    pointer-events: none;
-    user-select: none;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: ${p => p.theme.font.size.sm};
+  &::before {
+    content: '';
     position: absolute;
-    height: 24px;
-    width: calc(100% - 16px);
-    margin-inline: auto;
-    left: 0;
-    right: 0;
-    bottom: 20px;
-    text-align: center;
+    inset: 0;
+    margin: auto 0;
+    min-width: calc(${p => p.theme.radius['2xs']} * 6);
+    width: var(--p, 50%);
+    height: 4px;
+    background: ${p => p.theme.colors.chonk.blue400};
+    border: 1px solid ${p => p.theme.colors.chonk.blue400};
+    border-radius: ${p => p.theme.radius['2xs']};
+  }
 
-    opacity: var(--o);
-    transform: translate(var(--tx), var(--ty));
-    transition:
-      opacity ${p => p.theme.motion.exit.fast},
-      transform ${p => p.theme.motion.smooth.fast};
+  /* Chrome styling */
+  &::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 4px;
+    background: ${p => p.theme.colors.surface100};
+    border: 1px solid ${p => p.theme.colors.surface100};
+    border-radius: ${p => p.theme.radius['2xs']};
+  }
+
+  &::-webkit-slider-thumb {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: ${p => p.theme.colors.white};
+    border: 1px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
+    border-bottom: 2px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
+    border-radius: ${p => p.theme.radius.sm};
+    transform: translateY(-7px);
+    z-index: 10;
+  }
+
+  /* Firefox styling */
+  &::-moz-range-track {
+    width: 100%;
+    height: 4px;
+    background: ${p => p.theme.colors.surface100};
+    border: 1px solid ${p => p.theme.colors.surface100};
+    border-radius: ${p => p.theme.radius['2xs']};
+  }
+
+  &::-moz-range-thumb {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: ${p => p.theme.colors.white};
+    border: 1px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
+    border-bottom: 2px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
+    border-radius: ${p => p.theme.radius.sm};
+    transform: translateY(-7px);
+    z-index: 1;
+  }
 `;
 
-const SliderLabel = chonkStyled('span')`
+const SliderOutput = styled('output')`
+  --tx: clamp(-50%, calc(-50% + var(--p, 0)), 50%);
+  --ty: var(--label-ty);
+  --o: var(--label-opacity);
+
+  /* disable interactions */
+  pointer-events: none;
+  user-select: none;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: ${p => p.theme.font.size.sm};
+  position: absolute;
+  height: 24px;
+  width: calc(100% - 16px);
+  margin-inline: auto;
+  left: 0;
+  right: 0;
+  bottom: 20px;
+  text-align: center;
+
+  opacity: var(--o);
+  transform: translate(var(--tx), var(--ty));
+  transition:
+    opacity ${p => p.theme.motion.exit.fast},
+    transform ${p => p.theme.motion.smooth.fast};
+`;
+
+const SliderLabel = styled('span')`
   font-size: inherit;
   display: block;
   min-width: calc(3ch + ${space(0.5)});
@@ -247,7 +247,7 @@ const SliderLabel = chonkStyled('span')`
   z-index: ${p => p.theme.zIndex.tooltip};
 `;
 
-const SliderContainer = chonkStyled('div')`
+const SliderContainer = styled('div')`
   position: relative;
   width: 100%;
   flex-grow: 1;

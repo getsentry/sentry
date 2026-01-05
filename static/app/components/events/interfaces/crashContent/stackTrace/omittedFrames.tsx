@@ -25,8 +25,8 @@ const FramesOmittedListItem = styled('li')`
   color: #493e54;
   font-size: 14px;
   font-weight: ${p => p.theme.fontWeight.bold};
-  border-left: 2px solid ${p => p.theme.red300};
+  border-left: 2px solid ${p => p.theme.colors.red400};
   border-top: 1px solid ${p => p.theme.border};
-  background: ${p => p.theme.red100};
+  background: ${p => p.theme.colors.red100};
   padding: ${space(1)} ${space(2)};
 `;

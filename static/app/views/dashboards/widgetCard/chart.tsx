@@ -5,8 +5,6 @@ import type {LegendComponentOption} from 'echarts';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
-import {Flex} from '@sentry/scraps/layout';
-
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
@@ -20,7 +18,6 @@ import {getSeriesSelection, isChartHovered} from 'sentry/components/charts/utils
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {PlaceholderProps} from 'sentry/components/placeholder';
 import Placeholder from 'sentry/components/placeholder';
-import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -80,16 +77,11 @@ import {
   convertTableDataToTabularData,
   decodeColumnAliases,
 } from 'sentry/views/dashboards/widgets/tableWidget/utils';
+import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWidget/wheelWidgetVisualization';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
-import {PerformanceScoreSubtext} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
-import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
-import {
-  getWebVitalScoresFromTableDataRow,
-  type WebVitalScores,
-} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/getWebVitalScoresFromTableDataRow';
-import {type SpanResponse} from 'sentry/views/insights/types';
+import type {SpanResponse} from 'sentry/views/insights/types';
 
 import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
 
@@ -242,7 +234,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     : [];
   // TODO(wmak): Need to change this when updating dashboards to support variable topEvents
   if (shouldColorOther) {
-    colors[colors.length] = theme.chartOther;
+    colors[colors.length] = theme.tokens.content.muted;
   }
 
   // Create a list of series based on the order of the fields,
@@ -374,7 +366,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     },
     yAxis: {
       axisLabel: {
-        color: theme.chartLabel,
+        color: theme.tokens.content.muted,
         formatter: (value: number) => {
           if (timeseriesResultsTypes) {
             return axisLabelFormatterUsingAggregateOutputType(
@@ -686,7 +678,9 @@ function BigNumberComponent({
         type={meta.fields?.[field] ?? null}
         unit={(meta.units?.[field] as DataUnit) ?? null}
         thresholds={widget.thresholds ?? undefined}
-        preferredPolarity="-"
+        // TODO: preferredPolarity has been added to ThresholdsConfig as a property,
+        // we should remove this prop fromBigNumberWidgetVisualization
+        preferredPolarity={widget.thresholds?.preferredPolarity ?? '-'}
       />
     );
   });
@@ -708,41 +702,12 @@ function DetailsComponent(props: TableComponentProps): React.ReactNode {
 }
 
 function WheelComponent(props: TableComponentProps): React.ReactNode {
-  const {tableResults, loading, selection} = props;
-  const theme = useTheme();
-  const ringSegmentColors = theme.chart.getColorPalette(4).slice() as unknown as string[];
-  const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
-
-  const projectScore = tableResults?.[0]?.data?.[0]
-    ? getWebVitalScoresFromTableDataRow(
-        tableResults?.[0]?.data?.[0] as unknown as WebVitalScores
-      )
-    : undefined;
-  const score = projectScore?.totalScore;
-  const period = loading ? null : selection.datetime.period;
-  const performanceScoreSubtext =
-    (period &&
-      DEFAULT_RELATIVE_PERIODS[period as keyof typeof DEFAULT_RELATIVE_PERIODS]) ??
-    '';
-
-  if (!defined(projectScore)) {
-    return null;
-  }
-
   return (
-    <React.Fragment>
-      <PerformanceScoreSubtext>{performanceScoreSubtext}</PerformanceScoreSubtext>
-      <Flex justify="center" align="center">
-        <PerformanceScoreRingWithTooltips
-          projectScore={projectScore}
-          text={score}
-          width={220}
-          height={200}
-          ringBackgroundColors={ringBackgroundColors}
-          ringSegmentColors={ringSegmentColors}
-        />
-      </Flex>
-    </React.Fragment>
+    <WheelWidgetVisualization
+      tableResults={props.tableResults}
+      loading={props.loading}
+      selection={props.selection}
+    />
   );
 }
 
@@ -830,7 +795,7 @@ function LoadingScreen({
 const LoadingPlaceholder = styled(({className}: PlaceholderProps) => (
   <Placeholder height="200px" className={className} />
 ))`
-  background-color: ${p => p.theme.surface300};
+  background-color: ${p => p.theme.colors.surface400};
 `;
 
 const BigNumberResizeWrapper = styled('div')<{noPadding?: boolean}>`

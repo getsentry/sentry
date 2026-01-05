@@ -6,6 +6,7 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 import * as formIndicatorActions from 'sentry/components/forms/formIndicators';
 import Indicators from 'sentry/components/indicators';
 import ConfigStore from 'sentry/stores/configStore';
+import OrganizationStore from 'sentry/stores/organizationStore';
 import * as RegionUtils from 'sentry/utils/regions';
 import OrganizationSettingsForm from 'sentry/views/settings/organizationGeneralSettings/organizationSettingsForm';
 
@@ -15,10 +16,12 @@ jest.mock('sentry/utils/regions');
 describe('OrganizationSettingsForm', () => {
   const {organization, routerProps} = initializeOrg();
   let putMock: jest.Mock;
+  let membersRequest: jest.Mock;
   const onSave = jest.fn();
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    OrganizationStore.onUpdate(organization, {replace: true});
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/auth-provider/`,
       method: 'GET',
@@ -29,6 +32,10 @@ describe('OrganizationSettingsForm', () => {
       body: {
         providers: [{canAdd: true}],
       },
+    });
+    membersRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
     });
     onSave.mockReset();
   });
@@ -227,7 +234,7 @@ describe('OrganizationSettingsForm', () => {
     });
   });
 
-  it('shows hideAiFeatures togglefor DE region', () => {
+  it('shows hideAiFeatures togglefor DE region', async () => {
     // Mock the region util to return DE region
     jest.mocked(RegionUtils.getRegionDataFromOrganization).mockImplementation(() => ({
       name: 'de',
@@ -249,11 +256,13 @@ describe('OrganizationSettingsForm', () => {
       }
     );
 
+    await waitFor(() => expect(membersRequest).toHaveBeenCalled());
+
     const toggle = screen.getByRole('checkbox', {name: 'Show Generative AI Features'});
     expect(toggle).toBeEnabled();
   });
 
-  it('disables "Show Generative AI Features" toggle when feature flag is off', () => {
+  it('disables "Show Generative AI Features" toggle when feature flag is off', async () => {
     render(
       <OrganizationSettingsForm
         {...routerProps}
@@ -268,6 +277,8 @@ describe('OrganizationSettingsForm', () => {
       }
     );
 
+    await waitFor(() => expect(membersRequest).toHaveBeenCalled());
+
     const checkbox = screen.getByRole('checkbox', {
       name: 'Show Generative AI Features',
     });
@@ -276,7 +287,7 @@ describe('OrganizationSettingsForm', () => {
     expect(checkbox).not.toBeChecked();
   });
 
-  it('renders AI Code Review field', () => {
+  it('renders AI Code Review field', async () => {
     render(
       <OrganizationSettingsForm
         {...routerProps}
@@ -290,6 +301,8 @@ describe('OrganizationSettingsForm', () => {
         },
       }
     );
+
+    await waitFor(() => expect(membersRequest).toHaveBeenCalled());
 
     expect(screen.getByText('Enable AI Code Review')).toBeInTheDocument();
 
@@ -307,7 +320,7 @@ describe('OrganizationSettingsForm', () => {
     );
   });
 
-  it('hides AI Code Review field when AI features are disabled', () => {
+  it('hides AI Code Review field when AI features are disabled', async () => {
     render(
       <OrganizationSettingsForm
         {...routerProps}
@@ -323,6 +336,8 @@ describe('OrganizationSettingsForm', () => {
       }
     );
 
+    await waitFor(() => expect(membersRequest).toHaveBeenCalled());
+
     expect(screen.queryByText('Enable AI Code Review')).not.toBeInTheDocument();
     expect(
       screen.queryByText(
@@ -331,7 +346,7 @@ describe('OrganizationSettingsForm', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('shows PR Review and Test Generation field when AI features are enabled', () => {
+  it('shows PR Review and Test Generation field when AI features are enabled', async () => {
     render(
       <OrganizationSettingsForm
         {...routerProps}
@@ -345,6 +360,8 @@ describe('OrganizationSettingsForm', () => {
         },
       }
     );
+
+    await waitFor(() => expect(membersRequest).toHaveBeenCalled());
 
     expect(screen.getByText('Enable AI Code Review')).toBeInTheDocument();
     expect(
@@ -388,7 +405,7 @@ describe('OrganizationSettingsForm', () => {
   });
 
   describe('AI Code Review field', () => {
-    it('is enabled when US region', () => {
+    it('is enabled when US region', async () => {
       jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
         name: 'us',
         displayName: 'United States of America (US)',
@@ -409,6 +426,8 @@ describe('OrganizationSettingsForm', () => {
         }
       );
 
+      await waitFor(() => expect(membersRequest).toHaveBeenCalled());
+
       const preventAiField = screen.getByRole('checkbox', {
         name: /Enable AI Code Review/i,
       });
@@ -417,7 +436,7 @@ describe('OrganizationSettingsForm', () => {
       expect(screen.queryByTestId('prevent-ai-disabled-tag')).not.toBeInTheDocument();
     });
 
-    it('is disabled when feature flag is off', () => {
+    it('is disabled when feature flag is off', async () => {
       jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
         name: 'us',
         displayName: 'United States of America (US)',
@@ -438,6 +457,8 @@ describe('OrganizationSettingsForm', () => {
         }
       );
 
+      await waitFor(() => expect(membersRequest).toHaveBeenCalled());
+
       const preventAiField = screen.getByRole('checkbox', {
         name: /Enable AI Code Review/i,
       });
@@ -447,7 +468,7 @@ describe('OrganizationSettingsForm', () => {
       expect(screen.queryByTestId('prevent-ai-disabled-tag')).not.toBeInTheDocument();
     });
 
-    it('is enabled when EU region', () => {
+    it('is enabled when EU region', async () => {
       jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
         name: 'de',
         displayName: 'Europe (Frankfurt)',
@@ -468,6 +489,8 @@ describe('OrganizationSettingsForm', () => {
         }
       );
 
+      await waitFor(() => expect(membersRequest).toHaveBeenCalled());
+
       const preventAiField = screen.getByRole('checkbox', {
         name: /Enable AI Code Review/i,
       });
@@ -476,7 +499,7 @@ describe('OrganizationSettingsForm', () => {
       expect(screen.queryByTestId('prevent-ai-disabled-tag')).not.toBeInTheDocument();
     });
 
-    it('is enabled when user is an admin (has org:write access)', () => {
+    it('is enabled when user is an admin (has org:write access)', async () => {
       jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
         name: 'us',
         displayName: 'United States of America (US)',
@@ -499,6 +522,8 @@ describe('OrganizationSettingsForm', () => {
           },
         }
       );
+
+      await waitFor(() => expect(membersRequest).toHaveBeenCalled());
 
       const preventAiField = screen.getByRole('checkbox', {
         name: /Enable AI Code Review/i,

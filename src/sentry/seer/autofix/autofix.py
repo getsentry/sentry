@@ -10,7 +10,6 @@ import requests
 import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
-from django.db import router, transaction
 from django.utils import timezone
 from rest_framework.response import Response
 
@@ -23,19 +22,14 @@ from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import WebVitalsGroup
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.group import Group
-from sentry.models.options.organization_option import OrganizationOption
-from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import EventsResponse, SnubaParams
-from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
-    bulk_set_project_preferences,
     get_autofix_repos_from_project_code_mappings,
 )
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
-from sentry.seer.models import SeerRepoDefinition
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.services import eventstore
@@ -580,74 +574,6 @@ def get_all_tags_overview(group: Group) -> dict[str, Any] | None:
     return {
         "tags_overview": all_tags,
     }
-
-
-def onboarding_seer_settings_update(
-    organization_id: int,
-    is_rca_enabled: bool,
-    is_auto_open_prs_enabled: bool,
-    project_repo_dict: dict[int, list[SeerRepoDefinition]],
-) -> None:
-    """
-    Update Seer settings for new orgs that are onboarding to the seat-based Seer tier.
-    """
-    # Get organization and list of projects
-    organization = Organization.objects.get(id=organization_id)
-    projects = Project.objects.filter(organization_id=organization_id, status=ObjectStatus.ACTIVE)
-
-    # If RCA is explicitly disabled, set the automation tuning to off for org and projects.
-    # If RCA is disabled then other settings don't matter.
-    if not is_rca_enabled:
-        # Ensure org and all projects are updated in a single transaction to maintain consistency
-        with transaction.atomic(using=router.db_for_write(OrganizationOption)):
-            organization.update_option(
-                "sentry:default_autofix_automation_tuning", AutofixAutomationTuningSettings.OFF
-            )
-            for project in projects:
-                project.update_option(
-                    "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.OFF
-                )
-        logger.info(
-            "RCA is disabled for org and projects, setting automation tuning to off",
-            extra={
-                "organization_id": organization_id,
-                "org_slug": organization.slug,
-                "num_projects": len(projects),
-            },
-        )
-        return
-
-    # Set the default stopping point for projects
-    stopping_point = AutofixStoppingPoint.CODE_CHANGES
-    if is_auto_open_prs_enabled:
-        stopping_point = AutofixStoppingPoint.OPEN_PR
-
-    # Build preferences for each project with its repositories
-    preferences_to_set = []
-    for project_id, repositories in project_repo_dict.items():
-        preferences_to_set.append(
-            {
-                "organization_id": organization_id,
-                "project_id": project_id,
-                "repositories": [repo.dict() for repo in repositories],
-                "automated_run_stopping_point": stopping_point,
-            }
-        )
-
-    # Call Seer API to set preferences
-    if preferences_to_set:
-        bulk_set_project_preferences(organization_id, preferences_to_set)
-
-    logger.info(
-        "onboarding_seer_settings_update for new org completed",
-        extra={
-            "organization_id": organization_id,
-            "org_slug": organization.slug,
-            "is_rca_enabled": is_rca_enabled,
-            "is_auto_open_prs_enabled": is_auto_open_prs_enabled,
-            "num_projects": len(project_repo_dict),
-        },
-    )
 
 
 def trigger_autofix(

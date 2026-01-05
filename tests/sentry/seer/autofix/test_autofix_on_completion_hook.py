@@ -1,3 +1,4 @@
+from typing import TypedDict
 from unittest.mock import MagicMock, patch
 
 from sentry.seer.autofix.autofix_agent import AutofixStep
@@ -7,7 +8,14 @@ from sentry.seer.autofix.on_completion_hook import (
     AutofixOnCompletionHook,
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint
-from sentry.seer.explorer.client_models import Artifact
+from sentry.seer.explorer.client_models import (
+    Artifact,
+    ExplorerFilePatch,
+    FilePatch,
+    MemoryBlock,
+    Message,
+)
+from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
 
 
@@ -191,3 +199,119 @@ class TestPipelineConstants(TestCase):
         assert STOPPING_POINT_TO_STEP[AutofixStoppingPoint.SOLUTION] == AutofixStep.SOLUTION
         assert STOPPING_POINT_TO_STEP[AutofixStoppingPoint.CODE_CHANGES] == AutofixStep.CODE_CHANGES
         assert AutofixStoppingPoint.OPEN_PR not in STOPPING_POINT_TO_STEP
+
+
+class TestAutofixOnCompletionHookWebhooks(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.organization = self.create_organization()
+
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    def test_send_step_webhook_artifact_types(self, mock_broadcast):
+        """Tests webhook sending for all artifact-based step types."""
+        state = MagicMock()
+        run_id = 123
+
+        class TestCaseDict(TypedDict):
+            artifact_key: str
+            artifact_data: dict
+            expected_event: SeerActionType
+            expected_payload_key: str
+
+        test_cases: list[TestCaseDict] = [
+            {
+                "artifact_key": "root_cause",
+                "artifact_data": {"cause": "test"},
+                "expected_event": SeerActionType.ROOT_CAUSE_COMPLETED,
+                "expected_payload_key": "root_cause",
+            },
+            {
+                "artifact_key": "solution",
+                "artifact_data": {"steps": ["step1"]},
+                "expected_event": SeerActionType.SOLUTION_COMPLETED,
+                "expected_payload_key": "solution",
+            },
+            {
+                "artifact_key": "triage",
+                "artifact_data": {"suspect_commit": "abc123"},
+                "expected_event": SeerActionType.TRIAGE_COMPLETED,
+                "expected_payload_key": "triage",
+            },
+            {
+                "artifact_key": "impact_assessment",
+                "artifact_data": {"impact": "high"},
+                "expected_event": SeerActionType.IMPACT_ASSESSMENT_COMPLETED,
+                "expected_payload_key": "impact_assessment",
+            },
+        ]
+
+        for i, test_case in enumerate(test_cases):
+            mock_broadcast.reset_mock()
+            block = MemoryBlock(
+                id=f"block{i+1}",
+                message=Message(message="test", role="tool_use"),
+                timestamp="2024-01-01T00:00:00Z",
+                artifacts=[
+                    Artifact(
+                        key=test_case["artifact_key"],
+                        data=test_case["artifact_data"],
+                        reason="test",
+                    )
+                ],
+            )
+            state.blocks = [block]
+            AutofixOnCompletionHook._send_step_webhook(self.organization, run_id, {}, state)
+
+            mock_broadcast.assert_called_once()
+            call_kwargs = mock_broadcast.call_args.kwargs
+            if i == 0:  # First test - verify common fields
+                assert call_kwargs["resource_name"] == "seer"
+                assert call_kwargs["organization_id"] == self.organization.id
+                assert call_kwargs["payload"]["run_id"] == run_id
+            assert call_kwargs["event_name"] == test_case["expected_event"].value
+            assert (
+                call_kwargs["payload"][test_case["expected_payload_key"]]
+                == test_case["artifact_data"]
+            )
+
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    def test_send_step_webhook_coding(self, mock_broadcast):
+        """Sends coding_completed webhook when file patches exist."""
+        state = MagicMock()
+        file_patch = ExplorerFilePatch(
+            repo_name="test-repo",
+            patch=FilePatch(path="test.py", type="M", added=5, removed=2),
+        )
+        block = MemoryBlock(
+            id="block_coding",
+            message=Message(message="test", role="tool_use"),
+            timestamp="2024-01-01T00:00:00Z",
+            file_patches=[file_patch],
+        )
+        state.blocks = [block]
+        state.get_diffs_by_repo.return_value = {"test-repo": [file_patch]}
+
+        AutofixOnCompletionHook._send_step_webhook(self.organization, 123, {}, state)
+
+        mock_broadcast.assert_called_once()
+        call_kwargs = mock_broadcast.call_args.kwargs
+        assert call_kwargs["event_name"] == SeerActionType.CODING_COMPLETED.value
+        assert call_kwargs["payload"]["code_changes"]["test-repo"][0]["path"] == "test.py"
+        assert call_kwargs["payload"]["code_changes"]["test-repo"][0]["added"] == 5
+        assert call_kwargs["payload"]["code_changes"]["test-repo"][0]["removed"] == 2
+
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    def test_send_step_webhook_no_artifacts_no_webhook(self, mock_broadcast):
+        """Does not send webhook when no artifacts or file patches exist."""
+        state = MagicMock()
+        block = MemoryBlock(
+            id="block_empty",
+            message=Message(message="test", role="tool_use"),
+            timestamp="2024-01-01T00:00:00Z",
+            artifacts=[],
+        )
+        state.blocks = [block]
+
+        AutofixOnCompletionHook._send_step_webhook(self.organization, 123, {}, state)
+
+        mock_broadcast.assert_not_called()

@@ -1,4 +1,4 @@
-import {cloneElement, Component, Fragment, isValidElement} from 'react';
+import {Component, Fragment} from 'react';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -49,11 +49,11 @@ import {OnDemandControlProvider} from 'sentry/utils/performance/contexts/onDeman
 import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useApi from 'sentry/utils/useApi';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
-import withProjects from 'sentry/utils/withProjects';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import {
   cloneDashboard,
   getCurrentPageFilters,
@@ -134,9 +134,7 @@ type Props = RouteComponentProps<RouteParams> & {
   route: PlainRoute;
   theme: Theme;
   children?: React.ReactNode;
-  newWidget?: Widget;
   onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
-  onSetNewWidget?: () => void;
   useTimeseriesVisualization?: boolean;
 };
 
@@ -592,7 +590,7 @@ class DashboardDetail extends Component<Props, State> {
     const {dashboard} = this.props;
     const {modifiedDashboard} = this.state;
     const newModifiedDashboard = modifiedDashboard || dashboard;
-    this.onUpdateWidget([...newModifiedDashboard.widgets, widget]);
+    this.handleUpdateEditStateWidgets([...newModifiedDashboard.widgets, widget]);
   };
 
   handleScrollToNewWidgetComplete = () => {
@@ -721,7 +719,7 @@ class DashboardDetail extends Component<Props, State> {
     try {
       if (this.isEditingDashboard) {
         // If we're in edit mode, update the edit state
-        this.onUpdateWidget(newWidgets);
+        this.handleUpdateEditStateWidgets(newWidgets);
       } else {
         // If we're not in edit mode, send a request to update the dashboard
         addLoadingMessage(t('Saving widget'));
@@ -898,33 +896,17 @@ class DashboardDetail extends Component<Props, State> {
     });
   };
 
-  onUpdateWidget = (widgets: Widget[]) => {
-    this.setState((state: State) => ({
-      ...state,
-      widgetLimitReached: widgets.length >= MAX_WIDGETS,
-      modifiedDashboard: {
-        ...(state.modifiedDashboard || this.props.dashboard),
+  handleUpdateEditStateWidgets = (widgets: Widget[]) => {
+    this.setState(state => {
+      const modifiedDashboard = {
+        ...cloneDashboard(state.modifiedDashboard ?? this.props.dashboard),
         widgets,
-      },
-    }));
-  };
-
-  renderWidgetBuilder = () => {
-    const {children, dashboard} = this.props;
-    const {modifiedDashboard} = this.state;
-
-    return (
-      <Fragment>
-        {isValidElement(children)
-          ? cloneElement<any>(children, {
-              dashboard: modifiedDashboard ?? dashboard,
-              onSave: this.isEditingDashboard
-                ? this.onUpdateWidget
-                : this.handleUpdateWidgetList,
-            })
-          : children}
-      </Fragment>
-    );
+      };
+      return {
+        widgetLimitReached: widgets.length >= MAX_WIDGETS,
+        modifiedDashboard,
+      };
+    });
   };
 
   renderDefaultDashboardDetail() {
@@ -997,7 +979,7 @@ class DashboardDetail extends Component<Props, State> {
                           dashboard={modifiedDashboard ?? dashboard}
                           isEditingDashboard={this.isEditingDashboard}
                           widgetLimitReached={widgetLimitReached}
-                          onUpdate={this.onUpdateWidget}
+                          onUpdate={this.handleUpdateEditStateWidgets}
                           handleUpdateWidgetList={this.handleUpdateWidgetList}
                           handleAddCustomWidget={this.handleAddCustomWidget}
                           isEmbedded={this.isEmbedded}
@@ -1034,10 +1016,7 @@ class DashboardDetail extends Component<Props, State> {
       organization,
       dashboard,
       dashboards,
-      router,
       location,
-      newWidget,
-      onSetNewWidget,
       onDashboardUpdate,
       projects,
       useTimeseriesVisualization,
@@ -1177,8 +1156,6 @@ class DashboardDetail extends Component<Props, State> {
                                   organization={organization}
                                   eventView={eventView}
                                   projects={projects}
-                                  location={location}
-                                  router={router}
                                   source={DiscoverQueryPageSource.DISCOVER}
                                   {...metricsDataSide}
                                 />
@@ -1274,12 +1251,10 @@ class DashboardDetail extends Component<Props, State> {
                                       dashboard={modifiedDashboard ?? dashboard}
                                       isEditingDashboard={this.isEditingDashboard}
                                       widgetLimitReached={widgetLimitReached}
-                                      onUpdate={this.onUpdateWidget}
+                                      onUpdate={this.handleUpdateEditStateWidgets}
                                       handleUpdateWidgetList={this.handleUpdateWidgetList}
                                       handleAddCustomWidget={this.handleAddCustomWidget}
                                       onAddWidget={this.onAddWidget}
-                                      newWidget={newWidget}
-                                      onSetNewWidget={onSetNewWidget}
                                       isEmbedded={this.isEmbedded}
                                       isPreview={this.isPreview}
                                       widgetLegendState={this.state.widgetLegendState}
@@ -1352,12 +1327,25 @@ const StyledPageHeader = styled('div')`
   }
 `;
 
-function DashboardDetailWithThemeAndNavigate(props: Omit<Props, 'theme' | 'navigate'>) {
+interface DashboardDetailWithInjectedPropsProps
+  extends Omit<Props, 'theme' | 'navigate' | 'api' | 'organization' | 'projects'> {}
+
+function DashboardDetailWithInjectedProps(props: DashboardDetailWithInjectedPropsProps) {
   const theme = useTheme();
   const navigate = useNavigate();
-  return <DashboardDetail {...props} theme={theme} navigate={navigate} />;
+  const api = useApi();
+  const organization = useOrganization();
+  const {projects} = useProjects();
+  return (
+    <DashboardDetail
+      {...props}
+      theme={theme}
+      navigate={navigate}
+      api={api}
+      organization={organization}
+      projects={projects}
+    />
+  );
 }
 
-export default withProjects(
-  withApi(withOrganization(DashboardDetailWithThemeAndNavigate))
-);
+export default DashboardDetailWithInjectedProps;

@@ -182,7 +182,8 @@ const IssueLink = styled('div')`
 `;
 
 const StyledIntegrationLink = styled(IntegrationLink)<{disabled?: boolean}>`
-  color: ${({disabled, theme}) => (disabled ? theme.disabled : theme.textColor)};
+  color: ${({disabled, theme}) =>
+    disabled ? theme.disabled : theme.tokens.content.primary};
   ${p => p.disabled && 'cursor: not-allowed;'}
 `;
 

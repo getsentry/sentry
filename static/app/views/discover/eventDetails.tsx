@@ -9,18 +9,17 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
-type Props = RouteComponentProps<{eventSlug: string}>;
-
-function EventDetails({params}: Props) {
+export default function EventDetails() {
   const organization = useOrganization();
   const location = useLocation();
+  const params = useParams<{eventSlug: string}>();
   const eventSlug = typeof params.eventSlug === 'string' ? params.eventSlug.trim() : '';
   const datetimeSelection = normalizeDateTimeParams(location.query);
   const navigate = useNavigate();
@@ -77,7 +76,7 @@ function EventDetails({params}: Props) {
 
     return (
       <Alert.Container>
-        <Alert type="error">{error.message}</Alert>
+        <Alert variant="danger">{error.message}</Alert>
       </Alert.Container>
     );
   }
@@ -105,5 +104,3 @@ const LoadingWrapper = styled('div')`
   margin: auto;
   height: 100%;
 `;
-
-export default EventDetails;

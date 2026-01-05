@@ -1,4 +1,11 @@
-from sentry.seer.autofix.autofix_agent import AutofixStep, build_step_prompt
+from unittest.mock import MagicMock, patch
+
+from sentry.seer.autofix.autofix_agent import (
+    AutofixStep,
+    build_step_prompt,
+    trigger_autofix_explorer,
+)
+from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
 
 
@@ -70,3 +77,62 @@ class TestBuildStepPrompt(TestCase):
             # Dedented prompts should not start with whitespace
             assert not prompt.startswith(" "), f"{step} prompt starts with whitespace"
             assert not prompt.startswith("\t"), f"{step} prompt starts with tab"
+
+
+class TestTriggerAutofixExplorer(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.group = self.create_group(project=self.project)
+
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
+    def test_trigger_autofix_explorer_sends_started_webhook_for_all_steps(
+        self, mock_client_class, mock_broadcast
+    ):
+        """Sends correct started webhook for all autofix steps."""
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.start_run.return_value = 12345
+        mock_client.continue_run.return_value = 12345
+
+        step_to_action = {
+            AutofixStep.ROOT_CAUSE: SeerActionType.ROOT_CAUSE_STARTED,
+            AutofixStep.SOLUTION: SeerActionType.SOLUTION_STARTED,
+            AutofixStep.CODE_CHANGES: SeerActionType.CODING_STARTED,
+            AutofixStep.IMPACT_ASSESSMENT: SeerActionType.IMPACT_ASSESSMENT_STARTED,
+            AutofixStep.TRIAGE: SeerActionType.TRIAGE_STARTED,
+        }
+
+        for step, expected_action in step_to_action.items():
+            mock_broadcast.reset_mock()
+            trigger_autofix_explorer(
+                group=self.group,
+                step=step,
+                run_id=None,
+            )
+            mock_broadcast.assert_called_once()
+            call_kwargs = mock_broadcast.call_args.kwargs
+            assert call_kwargs["event_name"] == expected_action.value
+
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
+    def test_trigger_autofix_explorer_sends_started_webhook_for_continued_run(
+        self, mock_client_class, mock_broadcast
+    ):
+        """Sends started webhook when continuing an existing run."""
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.continue_run.return_value = 67890
+
+        result = trigger_autofix_explorer(
+            group=self.group,
+            step=AutofixStep.SOLUTION,
+            run_id=67890,
+        )
+
+        assert result == 67890
+        # Verify started webhook was sent with the existing run_id
+        mock_broadcast.assert_called_once()
+        call_kwargs = mock_broadcast.call_args.kwargs
+        assert call_kwargs["event_name"] == SeerActionType.SOLUTION_STARTED.value
+        assert call_kwargs["payload"]["run_id"] == 67890

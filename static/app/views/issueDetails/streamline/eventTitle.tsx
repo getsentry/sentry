@@ -210,7 +210,7 @@ const EventInfoJumpToWrapper = styled('div')<{hasProcessingError: boolean}>`
   align-items: center;
   padding: 0 ${p => p.theme.space.lg};
   min-height: ${MIN_NAV_HEIGHT}px;
-  border-bottom: 1px solid ${p => p.theme.translucentBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 
   @media (max-width: ${p =>
       p.hasProcessingError ? p.theme.breakpoints.lg : p.theme.breakpoints.sm}) {
@@ -233,11 +233,11 @@ const EventInfo = styled('div')`
 `;
 
 const ProcessingErrorButton = styled(Button)`
-  color: ${p => p.theme.red300};
+  color: ${p => p.theme.colors.red400};
   font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.sm};
   :hover {
-    color: ${p => p.theme.red300};
+    color: ${p => p.theme.colors.red400};
   }
 `;
 
@@ -250,7 +250,7 @@ const JsonLinkWrapper = styled('div')`
 const JsonLink = styled(ExternalLink)`
   color: ${p => p.theme.subText};
   text-decoration: underline;
-  text-decoration-color: ${p => Color(p.theme.gray300).alpha(0.5).string()};
+  text-decoration-color: ${p => Color(p.theme.colors.gray400).alpha(0.5).string()};
 
   :hover {
     color: ${p => p.theme.subText};
@@ -262,7 +262,7 @@ const JsonLink = styled(ExternalLink)`
 const MarkdownButton = styled(Button)`
   color: ${p => p.theme.subText};
   text-decoration: underline;
-  text-decoration-color: ${p => Color(p.theme.gray300).alpha(0.5).string()};
+  text-decoration-color: ${p => Color(p.theme.colors.gray400).alpha(0.5).string()};
   font-size: inherit;
   font-weight: normal;
   cursor: pointer;

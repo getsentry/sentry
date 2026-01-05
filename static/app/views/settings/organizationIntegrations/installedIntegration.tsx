@@ -69,7 +69,9 @@ export default class InstalledIntegration extends Component<Props> {
     const message = (
       <Fragment>
         <Alert.Container>
-          <Alert type="error">{t('Deleting this integration has consequences!')}</Alert>
+          <Alert variant="danger">
+            {t('Deleting this integration has consequences!')}
+          </Alert>
         </Alert.Container>
         {body}
       </Fragment>
@@ -87,7 +89,9 @@ export default class InstalledIntegration extends Component<Props> {
     const message = (
       <Fragment>
         <Alert.Container>
-          <Alert type="error">{t('This integration cannot be removed in Sentry')}</Alert>
+          <Alert variant="danger">
+            {t('This integration cannot be removed in Sentry')}
+          </Alert>
         </Alert.Container>
         {body}
       </Fragment>
@@ -217,7 +221,7 @@ function IntegrationStatus(
 ) {
   const theme = useTheme();
   const {status, hideTooltip, ...p} = props;
-  const color = status === 'active' ? theme.success : theme.gray300;
+  const color = status === 'active' ? theme.success : theme.colors.gray400;
   const inner = (
     <div {...p}>
       <CircleIndicator size={6} color={color} />
@@ -257,7 +261,7 @@ const StyledIntegrationStatus = styled(IntegrationStatus)`
   text-transform: capitalize;
   &:before {
     content: '|';
-    color: ${p => p.theme.gray200};
+    color: ${p => p.theme.colors.gray200};
     margin-right: ${space(1)};
     font-weight: ${p => p.theme.fontWeight.normal};
   }

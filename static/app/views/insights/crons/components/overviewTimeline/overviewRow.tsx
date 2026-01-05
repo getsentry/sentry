@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
@@ -59,7 +59,6 @@ export function OverviewRow({
   onToggleStatus,
 }: Props) {
   const organization = useOrganization();
-  const theme = useTheme();
 
   const {data: monitorStats, isPending} = useMonitorStats({
     monitors: [monitor.id],
@@ -119,8 +118,8 @@ export function OverviewRow({
             {scheduleAsText(monitor.config)}
           </ScheduleDetails>
           <MonitorStatuses>
-            {monitor.isMuted && <Tag>{t('Muted')}</Tag>}
-            {isDisabled && <Tag>{t('Disabled')}</Tag>}
+            {monitor.isMuted && <Tag variant="muted">{t('Muted')}</Tag>}
+            {isDisabled && <Tag variant="muted">{t('Disabled')}</Tag>}
           </MonitorStatuses>
         </DetailsContainer>
       </DetailsLink>
@@ -195,7 +194,7 @@ export function OverviewRow({
                   <EnvActionButton
                     {...triggerProps}
                     aria-label={t('Monitor environment actions')}
-                    size={theme.isChonk ? 'zero' : 'xs'}
+                    size="zero"
                     icon={<IconEllipsis />}
                   />
                 )}
