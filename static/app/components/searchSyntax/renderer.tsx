@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useRef, useState} from 'react';
-import {css, keyframes} from '@emotion/react';
+import {css, keyframes, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import modifyColor from 'color';
 import {useReducedMotion} from 'framer-motion';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -286,9 +287,36 @@ const colorType = (p: TokenGroupProps) =>
     p.active ? 'Active' : ''
   }` as const;
 
+/**
+ * Search filter "token" border
+ * NOTE: Not being used anymore in the new Search UI
+ */
+function makeSearchTokenVariants(theme: Theme) {
+  return {
+    searchTokenBorder: {
+      valid: theme.colors.blue200,
+      validActive: modifyColor(theme.colors.blue200).opaquer(1).string(),
+      invalid: theme.colors.red200,
+      invalidActive: modifyColor(theme.colors.red200).opaquer(1).string(),
+      warning: theme.colors.yellow200,
+      warningActive: modifyColor(theme.colors.yellow200).opaquer(1).string(),
+    },
+    searchTokenBackground: {
+      valid: theme.colors.blue100,
+      validActive: modifyColor(theme.colors.blue100).opaquer(1.0).string(),
+      invalid: theme.colors.red100,
+      invalidActive: modifyColor(theme.colors.red100).opaquer(0.8).string(),
+      warning: theme.colors.yellow100,
+      warningActive: modifyColor(theme.colors.yellow100).opaquer(0.8).string(),
+    },
+  };
+}
+
 const TokenGroup = styled('span')<TokenGroupProps>`
-  --token-bg: ${p => p.theme.searchTokenBackground[colorType(p)]};
-  --token-border: ${p => p.theme.searchTokenBorder[colorType(p)]};
+  --token-bg: ${p =>
+    makeSearchTokenVariants(p.theme).searchTokenBackground[colorType(p)]};
+  --token-border: ${p =>
+    makeSearchTokenVariants(p.theme).searchTokenBorder[colorType(p)]};
   --token-value-color: ${p =>
     p.invalid
       ? p.theme.colors.red500

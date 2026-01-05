@@ -46,7 +46,7 @@ export function OverlayArrow({
               ${size / 2 - 2},${size * heightRatio + topOffset}`}
             fill={
               border
-                ? ((theme[border as ColorOrAlias] as string) ?? border)
+                ? (theme[border as ColorOrAlias] ?? border)
                 : theme.tokens.border.primary
             }
           />
@@ -55,7 +55,7 @@ export function OverlayArrow({
           points={`0,0 ${size},0 ${size / 2},${size * heightRatio + topOffset}`}
           fill={
             border
-              ? ((theme[border as ColorOrAlias] as string) ?? border)
+              ? (theme[border as ColorOrAlias] ?? border)
               : theme.tokens.border.primary
           }
         />
@@ -63,7 +63,7 @@ export function OverlayArrow({
           points={`${offset},0 ${size - offset}, 0 ${size / 2},${size * heightRatio}`}
           fill={
             background
-              ? ((theme[background as ColorOrAlias] as string) ?? background)
+              ? (theme[background as ColorOrAlias] ?? background)
               : theme.tokens.background.primary
           }
         />
