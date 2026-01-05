@@ -775,9 +775,13 @@ class IssueCommentEventWebhookTest(GitHubWebhookHelper):
         }
         return orjson.dumps(event)
 
-    def test_skips_when_code_review_not_enabled(self) -> None:
-        """Test that processing is skipped when code review features are not enabled."""
-        with self.options({"github.webhook.issue-comment": False}):
+    def test_skips_when_code_review_features_are_missing(self) -> None:
+        """Test that processing is skipped when code review features are missing."""
+        self._enable_code_review()
+        with (
+            self.feature({}),  # Missing on purpose
+            self.options({"github.webhook.issue-comment": False}),
+        ):
             event = self._build_issue_comment_event(f"Please {SENTRY_REVIEW_COMMAND} this PR")
 
             with self.tasks():
@@ -786,18 +790,20 @@ class IssueCommentEventWebhookTest(GitHubWebhookHelper):
 
         self.mock_seer.assert_not_called()
 
-    @with_feature(CODE_REVIEW_FEATURES)
     def test_skips_when_no_review_command(self) -> None:
         """Test that processing is skipped when comment doesn't contain review command."""
         self._enable_code_review()
-        with self.options({"github.webhook.issue-comment": False}):
+        with (
+            self.feature(CODE_REVIEW_FEATURES),
+            self.options({"github.webhook.issue-comment": False}),
+        ):
             event = self._build_issue_comment_event("This is a regular comment without the command")
 
             with self.tasks():
                 response = self._send_issue_comment_event(event)
                 assert response.status_code == 204
 
-        self.mock_seer.assert_not_called()
+            self.mock_seer.assert_not_called()
 
     @with_feature({"organizations:gen-ai-features"})
     def test_runs_when_code_review_beta_flag_disabled_but_pr_review_test_generation_enabled(
@@ -816,61 +822,71 @@ class IssueCommentEventWebhookTest(GitHubWebhookHelper):
 
         self.mock_seer.assert_called_once()
 
-    @with_feature(CODE_REVIEW_FEATURES)
     def test_adds_reaction_and_forwards_when_valid(self) -> None:
         """Test successful PR review command processing with reaction and Seer request."""
         self._enable_code_review()
-        with self.options({"github.webhook.issue-comment": False}):
+        with (
+            self.feature(CODE_REVIEW_FEATURES),
+            self.options({"github.webhook.issue-comment": False}),
+        ):
             event = self._build_issue_comment_event(f"Please {SENTRY_REVIEW_COMMAND} this PR")
 
             with self.tasks():
                 response = self._send_issue_comment_event(event)
                 assert response.status_code == 204
 
-        self.mock_reaction.assert_called_once_with("owner/repo", "123456789", GitHubReaction.EYES)
-        self.mock_seer.assert_called_once()
+            self.mock_reaction.assert_called_once_with(
+                "owner/repo", "123456789", GitHubReaction.EYES
+            )
+            self.mock_seer.assert_called_once()
 
-        call_args = self.mock_seer.call_args
-        assert call_args[1]["path"] == "/v1/automation/overwatch-request"
-        payload = call_args[1]["payload"]
-        assert payload["request_type"] == "pr-review"
-        assert payload["data"]["repo"]["base_commit_sha"] == "abc123"
+            call_args = self.mock_seer.call_args
+            assert call_args[1]["path"] == "/v1/automation/overwatch-request"
+            payload = call_args[1]["payload"]
+            assert payload["request_type"] == "pr-review"
+            assert payload["data"]["repo"]["base_commit_sha"] == "abc123"
 
     @patch("sentry.seer.code_review.webhooks.issue_comment._add_eyes_reaction_to_comment")
-    @with_feature(CODE_REVIEW_FEATURES)
     def test_skips_reaction_when_no_comment_id(self, mock_reaction: MagicMock) -> None:
         """Test that reaction is skipped when comment has no ID, but processing continues."""
         self._enable_code_review()
-        with self.options({"github.webhook.issue-comment": False}):
+        with (
+            self.feature(CODE_REVIEW_FEATURES),
+            self.options({"github.webhook.issue-comment": False}),
+        ):
             event = self._build_issue_comment_event(SENTRY_REVIEW_COMMAND, comment_id=None)
 
             with self.tasks():
                 response = self._send_issue_comment_event(event)
                 assert response.status_code == 204
 
-        mock_reaction.assert_not_called()
-        self.mock_seer.assert_called_once()
+            mock_reaction.assert_not_called()
+            self.mock_seer.assert_called_once()
 
     @patch("sentry.seer.code_review.webhooks.issue_comment._add_eyes_reaction_to_comment")
-    @with_feature(CODE_REVIEW_FEATURES)
     def test_skips_processing_when_option_is_true(self, mock_reaction: MagicMock) -> None:
         """Test that when github.webhook.issue-comment option is True (kill switch), no processing occurs."""
         self._enable_code_review()
-        with self.options({"github.webhook.issue-comment": True}):
+        with (
+            self.feature(CODE_REVIEW_FEATURES),
+            self.options({"github.webhook.issue-comment": True}),
+        ):
             event = self._build_issue_comment_event(f"Please {SENTRY_REVIEW_COMMAND} this PR")
 
             with self.tasks():
                 response = self._send_issue_comment_event(event)
                 assert response.status_code == 204
 
-        mock_reaction.assert_not_called()
-        self.mock_seer.assert_not_called()
+            mock_reaction.assert_not_called()
+            self.mock_seer.assert_not_called()
 
-    @with_feature(CODE_REVIEW_FEATURES)
     def test_skips_when_comment_on_non_pr_issue(self) -> None:
         """Test that comments on regular issues (not PRs) are skipped gracefully."""
         self._enable_code_review()
-        with self.options({"github.webhook.issue-comment": False}):
+        with (
+            self.feature(CODE_REVIEW_FEATURES),
+            self.options({"github.webhook.issue-comment": False}),
+        ):
             event = {
                 "action": "created",
                 "comment": {
@@ -891,13 +907,15 @@ class IssueCommentEventWebhookTest(GitHubWebhookHelper):
                 response = self._send_issue_comment_event(orjson.dumps(event))
                 assert response.status_code == 204
 
-        self.mock_seer.assert_not_called()
+            self.mock_seer.assert_not_called()
 
-    @with_feature(CODE_REVIEW_FEATURES)
     def test_processes_review_command_in_middle_of_comment(self) -> None:
         """Test that review command is detected anywhere in the comment body."""
         self._enable_code_review()
-        with self.options({"github.webhook.issue-comment": False}):
+        with (
+            self.feature(CODE_REVIEW_FEATURES),
+            self.options({"github.webhook.issue-comment": False}),
+        ):
             event = self._build_issue_comment_event(
                 f"I found a bug. {SENTRY_REVIEW_COMMAND} this change please. Thanks!"
             )
@@ -906,13 +924,15 @@ class IssueCommentEventWebhookTest(GitHubWebhookHelper):
                 response = self._send_issue_comment_event(event)
                 assert response.status_code == 204
 
-        self.mock_seer.assert_called_once()
+            self.mock_seer.assert_called_once()
 
-    @with_feature(CODE_REVIEW_FEATURES)
     def test_validates_seer_request_contains_trigger_metadata(self) -> None:
         """Test that Seer request includes trigger metadata from the comment."""
         self._enable_code_review()
-        with self.options({"github.webhook.issue-comment": False}):
+        with (
+            self.feature(CODE_REVIEW_FEATURES),
+            self.options({"github.webhook.issue-comment": False}),
+        ):
             event_dict = orjson.loads(
                 self._build_issue_comment_event(f"Please {SENTRY_REVIEW_COMMAND} this PR")
             )
@@ -923,11 +943,11 @@ class IssueCommentEventWebhookTest(GitHubWebhookHelper):
                 response = self._send_issue_comment_event(event)
                 assert response.status_code == 204
 
-        self.mock_seer.assert_called_once()
-        payload = self.mock_seer.call_args[1]["payload"]
-        assert payload["data"]["config"]["trigger_user"] == "test-user"
-        assert payload["data"]["config"]["trigger_comment_id"] == 123456789
-        assert payload["data"]["config"]["trigger_comment_type"] == "issue_comment"
+            self.mock_seer.assert_called_once()
+            payload = self.mock_seer.call_args[1]["payload"]
+            assert payload["data"]["config"]["trigger_user"] == "test-user"
+            assert payload["data"]["config"]["trigger_comment_id"] == 123456789
+            assert payload["data"]["config"]["trigger_comment_type"] == "issue_comment"
 
 
 class AddEyesReactionTest(TestCase):
