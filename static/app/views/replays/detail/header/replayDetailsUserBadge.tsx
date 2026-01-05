@@ -1,17 +1,30 @@
 import styled from '@emotion/styled';
+import invariant from 'invariant';
 
+import {Flex} from '@sentry/scraps/layout';
+
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
+import {Grid} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
+import {DateTime} from 'sentry/components/dateTime';
 import Placeholder from 'sentry/components/placeholder';
 import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
-import {useLiveRefresh} from 'sentry/components/replays/replayLiveIndicator';
-import {ReplaySessionColumn} from 'sentry/components/replays/table/replayTableColumns';
-import {IconRefresh} from 'sentry/icons';
+import {
+  LiveBadge,
+  useLiveBadge,
+  useLiveRefresh,
+} from 'sentry/components/replays/replayLiveIndicator';
+import TimeSince from 'sentry/components/timeSince';
+import {IconRefresh, IconTimer} from 'sentry/icons';
+import {IconCalendar} from 'sentry/icons/iconCalendar';
+import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
-import {useLocation} from 'sentry/utils/useLocation';
+import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 interface Props {
   readerResult: ReturnType<typeof useLoadReplayReader>;
@@ -19,7 +32,6 @@ interface Props {
 export default function ReplayDetailsUserBadge({readerResult}: Props) {
   const organization = useOrganization();
   const replayRecord = readerResult.replayRecord;
-  const replayId = replayRecord?.id;
   const {shouldShowRefreshButton, doRefresh} = useLiveRefresh({replay: replayRecord});
 
   // Generate search query based on available user data
@@ -40,7 +52,6 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
   };
   const searchQuery = getUserSearchQuery();
 
-  const location = useLocation();
   const linkQuery = searchQuery
     ? {
         pathname: makeReplaysPathname({
@@ -51,36 +62,24 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
           query: searchQuery,
         },
       }
-    : {
-        pathname: makeReplaysPathname({
-          path: `/${replayId}/`,
-          organization,
-        }),
-        query: {
-          ...location.query,
-        },
-      };
+    : null;
 
   const badge = replayRecord ? (
-    <ColumnWrapper gap="md">
-      <StyledReplaySessionColumn
-        referrerTable="header"
-        replay={replayRecord}
-        rowIndex={0}
-        columnIndex={0}
-        showDropdownFilters={false}
-        to={linkQuery}
-      />
+    <Flex gap="md" align="center">
+      <ReplayBadge replay={replayRecord} />
       <Button
         title={t('Replay is outdated. Refresh for latest activity.')}
         data-test-id="refresh-button"
-        size="xs"
+        size="zero"
         onClick={doRefresh}
-        style={{visibility: shouldShowRefreshButton ? 'visible' : 'hidden'}}
+        style={{
+          visibility: shouldShowRefreshButton ? 'visible' : 'visible',
+        }}
+        icon={<IconRefresh size="xs" />}
       >
-        <IconRefresh />
+        <Text size="xs">{t('Refresh')}</Text>
       </Button>
-    </ColumnWrapper>
+    </Flex>
   ) : null;
 
   return (
@@ -100,11 +99,84 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
   );
 }
 
-// column components expect to be stored in a relative container
-const ColumnWrapper = styled(Flex)`
-  position: relative;
-`;
+/**
+ * Modified <ReplayBadge /> that is only used in header of Replay Details
+ */
+function ReplayBadge({replay}: {replay: ReplayRecord}) {
+  const [prefs] = useReplayPrefs();
+  const timestampType = prefs.timestampType;
 
-const StyledReplaySessionColumn = styled(ReplaySessionColumn.Component)`
-  flex: 0;
-`;
+  const {isLive} = useLiveBadge({
+    startedAt: replay.started_at,
+    finishedAt: replay.finished_at,
+  });
+
+  if (replay.is_archived) {
+    return (
+      <Grid columns="24px 1fr" gap="md" align="center" justify="center">
+        <Flex align="center" justify="center">
+          <IconDelete color="gray500" size="md" />
+        </Flex>
+
+        <Flex direction="column" gap="xs" justify="center">
+          <Text size="md" bold>
+            {t('Deleted Replay')}
+          </Text>
+        </Flex>
+      </Grid>
+    );
+  }
+
+  invariant(
+    replay.started_at,
+    'For TypeScript: replay.started_at is implied because replay.is_archived is false'
+  );
+
+  return (
+    <Flex gap="md" align="center" justify="center">
+      <UserAvatar
+        user={{
+          username: replay.user?.display_name || '',
+          email: replay.user?.email || '',
+          id: replay.user?.id || '',
+          ip_address: replay.user?.ip || '',
+          name: replay.user?.username || '',
+        }}
+        size={24}
+      />
+
+      <Flex direction="column" gap="xs" justify="center">
+        <Flex direction="row" align="center" gap="xs">
+          {/* We use div here because the Text component has width 100% and will take up the
+          full width of the container, causing a gap between the text and the badge */}
+          <div>
+            <Text size="md" bold ellipsis data-underline-on-hover>
+              {replay.user.display_name || t('Anonymous User')}
+            </Text>
+          </div>
+          {isLive ? <LiveBadge /> : null}
+        </Flex>
+
+        <Flex gap="sm">
+          <Flex gap="xs" align="center">
+            <IconCalendar variant="muted" size="xs" />
+
+            <Text size="sm" variant="muted">
+              {timestampType === 'absolute' ? (
+                <DateTime year timeZone date={replay.started_at} />
+              ) : (
+                <TimeSince date={replay.started_at} />
+              )}
+            </Text>
+          </Flex>
+          <Flex gap="xs" align="center">
+            <IconTimer variant="muted" size="xs" />
+            <Text size="sm" variant="muted">
+              {replay.duration.humanize()}
+            </Text>
+          </Flex>
+        </Flex>
+      </Flex>
+    </Flex>
+  );
+}
