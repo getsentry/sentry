@@ -708,18 +708,22 @@ function useWidgetBuilderState(): {
               sort &&
               !checkTraceMetricSortUsed(sort, action.payload, updatedAggregates, fields)
             ) {
-              setSort(
-                [
-                  {
-                    field: generateMetricAggregate(
-                      action.payload,
-                      updatedAggregates?.[0]!
-                    ),
-                    kind: 'desc',
-                  },
-                ],
-                options
-              );
+              if (updatedAggregates.length > 0) {
+                setSort(
+                  [
+                    {
+                      field: generateMetricAggregate(
+                        action.payload,
+                        updatedAggregates[0]!
+                      ),
+                      kind: 'desc',
+                    },
+                  ],
+                  options
+                );
+              } else {
+                setSort([], options);
+              }
             }
           }
           break;
