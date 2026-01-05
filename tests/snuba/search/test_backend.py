@@ -1941,9 +1941,6 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         with self.options(
             {
                 "snuba.search.max-pre-snuba-candidates": 1,
-                "snuba.search.truncate-group-ids-for-selective-filters-project-allowlist": [
-                    self.project.id
-                ],
             }
         ):
             # Mock calculate_hits to return 0, simulating failed sampling
