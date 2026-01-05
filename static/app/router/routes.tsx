@@ -1371,7 +1371,6 @@ function buildRoutes(): RouteObject[] {
         },
         traceView,
       ],
-      deprecatedRouteProps: true,
     },
     {
       path: '/organizations/:orgId/dashboards/',
@@ -1383,37 +1382,31 @@ function buildRoutes(): RouteObject[] {
         },
         traceView,
       ],
-      deprecatedRouteProps: true,
     },
     {
       path: '/dashboards/new/',
       component: make(() => import('sentry/views/dashboards/create')),
-      deprecatedRouteProps: true,
       withOrgPath: true,
       children: [
         // new widget builder routes
         {
           path: 'widget-builder/widget/:widgetIndex/edit/',
           component: make(() => import('sentry/views/dashboards/create')),
-          deprecatedRouteProps: true,
         },
         {
           path: 'widget-builder/widget/new/',
           component: make(() => import('sentry/views/dashboards/create')),
-          deprecatedRouteProps: true,
         },
       ],
     },
     {
       path: '/dashboards/new/:templateId',
       component: make(() => import('sentry/views/dashboards/create')),
-      deprecatedRouteProps: true,
       withOrgPath: true,
       children: [
         {
           path: 'widget/:widgetId/',
           component: make(() => import('sentry/views/dashboards/create')),
-          deprecatedRouteProps: true,
         },
       ],
     },
@@ -1429,23 +1422,19 @@ function buildRoutes(): RouteObject[] {
     {
       path: '/dashboard/:dashboardId/',
       component: make(() => import('sentry/views/dashboards/view')),
-      deprecatedRouteProps: true,
       withOrgPath: true,
       children: [
         {
           path: 'widget-builder/widget/:widgetIndex/edit/',
           component: make(() => import('sentry/views/dashboards/view')),
-          deprecatedRouteProps: true,
         },
         {
           path: 'widget-builder/widget/new/',
           component: make(() => import('sentry/views/dashboards/view')),
-          deprecatedRouteProps: true,
         },
         {
           path: 'widget/:widgetId/',
           component: make(() => import('sentry/views/dashboards/view')),
-          deprecatedRouteProps: true,
         },
       ],
     },
