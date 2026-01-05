@@ -11,6 +11,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -553,7 +554,7 @@ describe('ReleasesList', () => {
     );
   });
 
-  it('shows distribution display as disabled in the mobile-builds tab', async () => {
+  it('toggles display mode in the mobile-builds tab', async () => {
     const organizationWithDistribution = OrganizationFixture({
       slug: organization.slug,
       features: [...organization.features, 'preprod-build-distribution'],
@@ -617,11 +618,10 @@ describe('ReleasesList', () => {
     await userEvent.click(displayTrigger);
 
     const distributionOption = screen.getByRole('option', {name: 'Distribution'});
-    expect(distributionOption).toHaveAttribute('aria-disabled', 'true');
     await userEvent.click(distributionOption);
 
-    expect(router.location.query.display).toBe('users');
-    expect(router.location.query.cursor).toBe('123');
+    expect(router.location.query.display).toBe(PreprodBuildsDisplay.DISTRIBUTION);
+    expect(router.location.query.cursor).toBeUndefined();
   });
 
   it('allows searching within the mobile-builds tab', async () => {
