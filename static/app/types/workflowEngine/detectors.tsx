@@ -190,6 +190,8 @@ interface UpdateUptimeDataSourcePayload {
   timeoutMs: number;
   traceSampling: boolean;
   url: string;
+  body?: string | null;
+  headers?: Array<[string, string]>;
 }
 
 export interface BaseDetectorUpdatePayload {
