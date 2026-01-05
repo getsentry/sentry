@@ -19,7 +19,6 @@ from pydantic import BaseModel, Field, ValidationError  # noqa: F401
 
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.organization import Organization
-from sentry.models.repository import Repository
 from sentry.utils import metrics
 
 from ..utils import SeerEndpoint, make_seer_request
@@ -82,7 +81,6 @@ def handle_check_run_event(
     github_event: GithubWebhookType,
     event: Mapping[str, Any],
     organization: Organization,
-    repo: Repository,
     **kwargs: Any,
 ) -> None:
     """
@@ -94,7 +92,6 @@ def handle_check_run_event(
         github_event: The GitHub webhook event type from X-GitHub-Event header (e.g., "check_run")
         event: The webhook event payload
         organization: The Sentry organization that the webhook event belongs to
-        repo: The repository the webhook event is for
         **kwargs: Additional keyword arguments
     """
     if github_event != GithubWebhookType.CHECK_RUN:

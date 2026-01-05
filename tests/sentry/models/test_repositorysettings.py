@@ -9,17 +9,6 @@ from sentry.models.repositorysettings import (
 from sentry.testutils.cases import TestCase
 
 
-class TestCodeReviewTrigger(TestCase):
-    def test_as_choices_returns_tuple_of_tuples(self) -> None:
-        choices = CodeReviewTrigger.as_choices()
-
-        assert isinstance(choices, tuple)
-        assert len(choices) == 3
-        assert ("on_command_phrase", "on_command_phrase") in choices
-        assert ("on_new_commit", "on_new_commit") in choices
-        assert ("on_ready_for_review", "on_ready_for_review") in choices
-
-
 class TestCodeReviewSettings(TestCase):
     def test_initialization(self) -> None:
         triggers = [CodeReviewTrigger.ON_COMMAND_PHRASE, CodeReviewTrigger.ON_NEW_COMMIT]

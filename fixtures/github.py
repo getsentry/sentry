@@ -3548,7 +3548,6 @@ ISSUES_REOPENED_EVENT_EXAMPLE = r"""{
 # Simplified example of a check_run rerequested action event
 # Note: installation.id must match the external_id used in create_github_integration (default: "12345")
 # Note: repository.id must match a Repository created for the organization (use create_repo in tests)
-# Note: check_run events are linked to PRs via check_run.pull_requests - we use user.id as fallback for billing
 CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE = b"""{
     "action": "rerequested",
     "installation": {"id": 12345},
@@ -3559,8 +3558,7 @@ CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE = b"""{
     },
     "check_run": {
         "external_id": "4663713",
-        "html_url": "https://github.com/test/repo/runs/4",
-        "pull_requests": []
+        "html_url": "https://github.com/test/repo/runs/4"
     },
     "user": {
         "id": 12345678,
