@@ -43,6 +43,7 @@ from sentry.search.eap.constants import (
     SAMPLING_MODE_MAP,
     VALID_GRANULARITIES,
 )
+from sentry.search.eap.types import AdditionalQueries
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
@@ -200,11 +201,12 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         if "statsPeriod" not in request.GET:
             return params
         results = params.copy()
-        duration = (params["end"] - params["start"]).total_seconds()
+        duration = params["end"] - params["start"]
         # Only perform rounding on durations longer than an hour
-        if duration > 3600:
-            # Round to 15 minutes if over 30 days, otherwise round to the minute
-            round_to = 15 * 60 if duration >= 30 * 24 * 3600 else 60
+        if duration > timedelta(hours=1):
+            minutes = 3 if duration >= timedelta(days=30) else 1
+            round_to = int(timedelta(minutes=minutes).total_seconds())
+
             key = params.get("organization_id", 0)
 
             results["start"] = snuba.quantize_time(
@@ -770,6 +772,13 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                     }
                 )
         return serialized_values
+
+    def get_additional_queries(self, request: Request) -> AdditionalQueries:
+        return AdditionalQueries(
+            span=request.GET.getlist("spanQuery"),
+            log=request.GET.getlist("logQuery"),
+            metric=request.GET.getlist("metricQuery"),
+        )
 
 
 class KeyTransactionBase(OrganizationEventsEndpointBase):

@@ -66,7 +66,7 @@ function EndPeriodEarlyModal({
           cancelLabel="Cancel"
         >
           <Alert.Container>
-            <Alert type="warning" showIcon={false}>
+            <Alert variant="warning" showIcon={false}>
               Ending the current billing period will immediately start the next billing
               cycle and may impact invoicing and usage proration.
             </Alert>

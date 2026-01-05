@@ -1,11 +1,14 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import debounce from 'lodash/debounce';
 
+import {Heading} from '@sentry/scraps/text';
+
 import {IconSiren} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 
+import {SelectTrigger} from './trigger';
 import {CompactSelect} from './';
 
 const countryNameToCode = {
@@ -399,24 +402,81 @@ export default Storybook.story('CompactSelect', story => {
     return (
       <Fragment>
         <p>
-          <code>CompactSelect</code> should always be triggered by a <code>button</code>.
-          By default, it will render a <code>DropdownButton</code> for you. You can
-          customize its appearance by passing <code>triggerProps</code>.
+          <code>CompactSelect</code> should always be triggered by a{' '}
+          <code>SelectTrigger</code>. By default, it will render a{' '}
+          <code>SelectTrigger.Button</code> for you, which is a{' '}
+          <code>DropdownButton</code> under the hood. You can pass a custom trigger with
+          the <code>trigger</code> prop.
         </p>
         <p>
-          To customize the label text inside the trigger button, set{' '}
-          <code>triggerProps.children</code>. By default the selected option's label will
-          be used.
+          Note that <code>props</code> passed to the trigger need to be spread onto the
+          underlying <code>SelectTrigger</code>. Always use a <code>SelectTrigger</code>,
+          there will be type errors when you're trying to use other components.
+        </p>
+        <p>
+          <code>SelectTrigger</code> will inherit props like <code>size</code>,{' '}
+          <code>isOpen</code> and <code>disabled</code> from the{' '}
+          <code>CompactSelect</code>, so you don't need to pass them manually.
         </p>
 
         <CompactSelect
           value={value}
-          triggerProps={{
-            prefix: 'Status Code',
-            priority: 'danger',
-            icon: <IconSiren />,
-            children: option ? `${option.label} (${option.details})` : 'None',
+          trigger={props => (
+            <SelectTrigger.Button
+              {...props}
+              prefix="Status Code"
+              priority="danger"
+              icon={<IconSiren />}
+            >
+              {option ? `${option.label} (${option.details})` : 'None'}
+            </SelectTrigger.Button>
+          )}
+          onChange={newValue => {
+            setValue(newValue.value);
           }}
+          options={options}
+        />
+      </Fragment>
+    );
+  });
+
+  story('Virtualization', () => {
+    const [value, setValue] = useState<string>('');
+    const options = COUNTRY_NAMES.map(name => ({
+      value: name,
+      label: name,
+    }));
+
+    return (
+      <Fragment>
+        <p>
+          <code>CompactSelect</code> can be virtualized for large lists of options. This
+          improves performance when rendering large lists.
+        </p>
+        <p>
+          To enable virtualization, set the <code>virtualizeThreshold</code> prop to the
+          number of options above which virtualization should be enabled. By default,
+          virtualization is enabled for lists with more than 150 options.
+        </p>
+        <Heading as="h3">Known Limitations</Heading>
+        <p>
+          Virtualization comes with some limitations. Currently, it does not support items
+          that are grouped into sections, so virtualization will be disabled if sections
+          are found.
+        </p>
+        <p>
+          Additionally, since not all items are rendered to the DOM, we cannot
+          automatically calculate the width of the underlying menu. To address this, we
+          are trying to find out which option will be the longest to render & measure it
+          when the menu is first opened. This process only looks at <code>textValue</code>{' '}
+          and <code>label</code> of the option, so it might fail in cases where different{' '}
+          <code>trailingItems</code> or <code>leadingItems</code> are used, or when long{' '}
+          <code>details</code> are rendered. You can instead also pass a hardcoded{' '}
+          <code>menuWidth</code> to <code>CompactSelect</code>.
+        </p>
+
+        <CompactSelect
+          value={value}
           onChange={newValue => {
             setValue(newValue.value);
           }}

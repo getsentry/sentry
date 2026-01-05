@@ -2,7 +2,6 @@ import {useCallback, useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
-import type {Location} from 'history';
 
 import {openDiffModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
@@ -18,15 +17,12 @@ import {t} from 'sentry/locale';
 import GroupingStore from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
 type Props = {
   groupId: Group['id'];
   hasSimilarityEmbeddingsFeature: boolean;
   issue: Group;
-  location: Location;
-  orgId: Organization['id'];
   project: Project;
   aggregate?: {
     exception: number;
@@ -85,15 +81,13 @@ export function SimilarStackTraceItem(props: Props) {
 
   const handleShowDiff = useCallback(
     (event: React.MouseEvent) => {
-      const {orgId, groupId: baseIssueId, project, location} = props;
+      const {groupId: baseIssueId, project} = props;
       const {id: targetIssueId} = issue;
 
       openDiffModal({
         baseIssueId,
         targetIssueId,
         project,
-        orgId,
-        location,
       });
       event.stopPropagation();
     },

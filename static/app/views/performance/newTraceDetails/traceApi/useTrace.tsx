@@ -10,7 +10,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {isValidEventUUID} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled';
 
@@ -291,3 +290,9 @@ export function useTrace(
 
   return isDemoMode ? demoTrace : isEAPEnabled ? eapTraceQuery : traceQuery;
 }
+
+const isValidEventUUID = (id: string): boolean => {
+  const uuidRegex =
+    /^[0-9a-f]{8}[0-9a-f]{4}[1-5][0-9a-f]{3}[89ab][0-9a-f]{3}[0-9a-f]{12}$/i;
+  return uuidRegex.test(id);
+};

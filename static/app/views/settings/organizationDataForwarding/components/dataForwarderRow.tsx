@@ -36,7 +36,7 @@ export function DataForwarderRow({
                 provider: ProviderLabels[dataForwarder.provider],
               })}
             </Text>
-            <Tag type={dataForwarder.isEnabled ? 'success' : 'error'}>
+            <Tag variant={dataForwarder.isEnabled ? 'success' : 'danger'}>
               {dataForwarder.isEnabled ? t('Enabled') : t('Disabled')}
             </Tag>
           </Flex>

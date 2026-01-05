@@ -58,8 +58,8 @@ export const HeaderTitle = styled('div')`
 // Header element for charts within panels
 // This header can be rendered while the chart is still loading
 export const HeaderTitleLegend = styled(HeaderTitle)`
-  background-color: ${p => p.theme.background};
-  border-bottom-right-radius: ${p => p.theme.borderRadius};
+  background-color: ${p => p.theme.tokens.background.primary};
+  border-bottom-right-radius: ${p => p.theme.radius.md};
   position: absolute;
   z-index: 1;
 `;
@@ -70,7 +70,7 @@ export const HeaderValue = styled('div')`
   grid-auto-flow: column;
   gap: ${space(1)};
   align-items: baseline;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   position: absolute;
   top: 40px;
   z-index: 1;

@@ -80,7 +80,7 @@ interface BaseField {
   resetsForm?: boolean;
   rows?: number;
   saveMessage?: React.ReactNode | ((params: {value: FieldValue}) => string);
-  saveMessageAlertType?: AlertProps['type'];
+  saveMessageAlertVariant?: AlertProps['variant'];
   /**
    * If false, disable saveOnBlur for field, instead show a save/cancel button
    */
@@ -196,6 +196,11 @@ type SentryProjectSelectorType = {
   avatarSize?: number;
 };
 
+type SentryMemberSelectorType = {
+  type: 'sentry_member_selector';
+  multiple?: boolean;
+};
+
 type SentryOrganizationRoleSelectorType = {
   type: 'sentry_organization_role_selector';
 };
@@ -215,6 +220,7 @@ export type Field = (
   | TableType
   | ProjectMapperType
   | SentryProjectSelectorType
+  | SentryMemberSelectorType
   | SentryOrganizationRoleSelectorType
   | SelectAsyncType
   | ChoiceMapperType

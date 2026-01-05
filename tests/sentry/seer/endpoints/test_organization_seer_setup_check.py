@@ -89,7 +89,7 @@ class OrganizationSeerSetupCheckSuccessTest(OrganizationSeerSetupCheckTestBase):
             "userHasAcknowledged": False,
         }
 
-    @patch("sentry.quotas.backend.has_available_reserved_budget")
+    @patch("sentry.quotas.backend.check_seer_quota")
     def test_no_autofix_quota(self, mock_has_budget: MagicMock) -> None:
         """
         Test when the organization has no autofix quota available.
@@ -112,7 +112,7 @@ class OrganizationSeerSetupCheckSuccessTest(OrganizationSeerSetupCheckTestBase):
             "hasScannerQuota": True,
         }
 
-    @patch("sentry.quotas.backend.has_available_reserved_budget")
+    @patch("sentry.quotas.backend.check_seer_quota")
     def test_no_scanner_quota(self, mock_has_budget: MagicMock) -> None:
         """
         Test when the organization has no scanner quota available.
@@ -135,7 +135,7 @@ class OrganizationSeerSetupCheckSuccessTest(OrganizationSeerSetupCheckTestBase):
             "hasScannerQuota": False,
         }
 
-    @patch("sentry.quotas.backend.has_available_reserved_budget")
+    @patch("sentry.quotas.backend.check_seer_quota")
     def test_no_quotas_available(self, mock_has_budget: MagicMock) -> None:
         """
         Test when the organization has no quotas available for either service.

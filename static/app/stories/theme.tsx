@@ -29,7 +29,7 @@ export function ThemeToggle({children}: ThemeToggleProps) {
           value={localThemeName}
           onChange={() => setLocalThemeName(localThemeName === 'dark' ? 'light' : 'dark')}
         >
-          <TabList hideBorder>
+          <TabList>
             <TabList.Item key="light">Light Theme</TabList.Item>
             <TabList.Item key="dark">Dark Theme</TabList.Item>
           </TabList>
@@ -51,10 +51,10 @@ const Background = styled('div')`
   display: flex;
   gap: ${p => p.theme.space.md};
   flex-direction: column;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   padding: ${p => p.theme.space.md};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 export function ThemeSwitcher() {

@@ -1,6 +1,7 @@
 import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectIssues from 'sentry/views/projectDetail/projectIssues';
@@ -10,11 +11,10 @@ describe('ProjectDetail > ProjectIssues', () => {
     filteredEndpointMock: ReturnType<typeof MockApiClient.addMockResponse>,
     newIssuesEndpointMock: ReturnType<typeof MockApiClient.addMockResponse>;
 
-  const {organization, router, project} = initializeOrg({
-    organization: {
-      features: ['discover-basic'],
-    },
+  const organization = OrganizationFixture({
+    features: ['discover-basic'],
   });
+  const project = ProjectFixture();
 
   beforeEach(() => {
     endpointMock = MockApiClient.addMockResponse({
@@ -62,13 +62,11 @@ describe('ProjectDetail > ProjectIssues', () => {
       <ProjectIssues
         api={new MockApiClient()}
         organization={organization}
-        location={router.location}
+        location={{query: {}} as any}
         projectId={parseInt(project.id, 10)}
       />,
       {
-        router,
         organization,
-        deprecatedRouterMocks: true,
       }
     );
 
@@ -76,17 +74,15 @@ describe('ProjectDetail > ProjectIssues', () => {
   });
 
   it('renders a link to Issues', async () => {
-    render(
+    const {router} = render(
       <ProjectIssues
         api={new MockApiClient()}
         organization={organization}
         projectId={parseInt(project.id, 10)}
-        location={router.location}
+        location={{query: {}} as any}
       />,
       {
-        router,
         organization,
-        deprecatedRouterMocks: true,
       }
     );
 
@@ -94,14 +90,12 @@ describe('ProjectDetail > ProjectIssues', () => {
     expect(link).toBeInTheDocument();
     await userEvent.click(link);
 
-    expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/issues/',
-      query: {
-        limit: '5',
-        query: 'error.unhandled:true is:unresolved',
-        sort: 'freq',
-        statsPeriod: '14d',
-      },
+    expect(router.location.pathname).toBe('/organizations/org-slug/issues/');
+    expect(router.location.query).toEqual({
+      limit: '5',
+      query: 'error.unhandled:true is:unresolved',
+      sort: 'freq',
+      statsPeriod: '14d',
     });
   });
 
@@ -110,13 +104,11 @@ describe('ProjectDetail > ProjectIssues', () => {
       <ProjectIssues
         api={new MockApiClient()}
         organization={organization}
-        location={router.location}
+        location={{query: {}} as any}
         projectId={parseInt(project.id, 10)}
       />,
       {
-        router,
         organization,
-        deprecatedRouterMocks: true,
       }
     );
 
@@ -137,17 +129,15 @@ describe('ProjectDetail > ProjectIssues', () => {
   });
 
   it('renders a link to Discover', async () => {
-    render(
+    const {router} = render(
       <ProjectIssues
         api={new MockApiClient()}
         organization={organization}
-        location={router.location}
+        location={{query: {}} as any}
         projectId={parseInt(project.id, 10)}
       />,
       {
-        router,
         organization,
-        deprecatedRouterMocks: true,
       }
     );
 
@@ -155,35 +145,34 @@ describe('ProjectDetail > ProjectIssues', () => {
     expect(link).toBeInTheDocument();
     await userEvent.click(link);
 
-    expect(router.push).toHaveBeenCalledWith({
-      pathname: `/organizations/${organization.slug}/explore/discover/results/`,
-      query: {
-        display: 'top5',
-        field: ['issue', 'title', 'count()', 'count_unique(user)', 'project'],
-        name: 'Frequent Unhandled Issues',
-        query: 'event.type:error error.unhandled:true',
-        queryDataset: 'error-events',
-        sort: '-count',
-        statsPeriod: '14d',
-      },
+    expect(router.location.pathname).toBe(
+      `/organizations/${organization.slug}/explore/discover/results/`
+    );
+    expect(router.location.query).toEqual({
+      display: 'top5',
+      field: ['issue', 'title', 'count()', 'count_unique(user)', 'project'],
+      name: 'Frequent Unhandled Issues',
+      query: 'event.type:error error.unhandled:true',
+      queryDataset: 'error-events',
+      sort: '-count',
+      statsPeriod: '14d',
     });
   });
 
   it('changes according to global header', async () => {
-    render(
+    const locationWithQuery = {
+      query: {statsPeriod: '7d', environment: 'staging', somethingBad: 'nope'},
+    } as any;
+
+    const {router} = render(
       <ProjectIssues
         organization={organization}
         api={new MockApiClient()}
         projectId={parseInt(project.id, 10)}
-        location={{
-          ...router.location,
-          query: {statsPeriod: '7d', environment: 'staging', somethingBad: 'nope'},
-        }}
+        location={locationWithQuery}
       />,
       {
-        router,
         organization,
-        deprecatedRouterMocks: true,
       }
     );
 
@@ -194,15 +183,13 @@ describe('ProjectDetail > ProjectIssues', () => {
     expect(link).toBeInTheDocument();
     await userEvent.click(link);
 
-    expect(router.push).toHaveBeenCalledWith({
-      pathname: `/organizations/${organization.slug}/issues/`,
-      query: {
-        limit: '5',
-        environment: 'staging',
-        statsPeriod: '7d',
-        query: 'error.unhandled:true is:unresolved',
-        sort: 'freq',
-      },
+    expect(router.location.pathname).toBe(`/organizations/${organization.slug}/issues/`);
+    expect(router.location.query).toEqual({
+      limit: '5',
+      environment: 'staging',
+      statsPeriod: '7d',
+      query: 'error.unhandled:true is:unresolved',
+      sort: 'freq',
     });
   });
 });

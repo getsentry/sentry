@@ -1,6 +1,7 @@
+import styled from '@emotion/styled';
+
 import type {AlertBadgeProps} from 'sentry/components/core/badge/alertBadge';
 import type {Theme} from 'sentry/utils/theme';
-import {chonkStyled} from 'sentry/utils/theme/theme';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 
 function makeChonkAlertBadgeDiamondBackgroundTheme(
@@ -11,14 +12,14 @@ function makeChonkAlertBadgeDiamondBackgroundTheme(
 ): React.CSSProperties {
   if (isDisabled) {
     return {
-      color: theme.textColor,
+      color: theme.tokens.content.primary,
       background: theme.colors.surface500,
       border: `1px solid ${theme.colors.surface100}`,
     };
   }
   if (isIssue) {
     return {
-      color: theme.textColor,
+      color: theme.tokens.content.primary,
       background: theme.colors.surface500,
       border: `1px solid ${theme.colors.surface100}`,
     };
@@ -44,7 +45,7 @@ function makeChonkAlertBadgeDiamondBackgroundTheme(
   };
 }
 
-export const ChonkAlertBadgeDiamondBackground = chonkStyled('div')<AlertBadgeProps>`
+export const ChonkAlertBadgeDiamondBackground = styled('div')<AlertBadgeProps>`
   ${p => ({
     ...makeChonkAlertBadgeDiamondBackgroundTheme(
       p.status,

@@ -28,7 +28,7 @@ describe('MetricDetectorTriggeredSection', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/?end=2017-10-17T02%3A41%3A20.000Z&limit=5&query=issue.type%3Aerror%20event.type%3Aerror%20is%3Aunresolved&sort=freq&start=2019-05-21T17%3A59%3A00.000Z',
+      url: '/organizations/org-slug/issues/?end=2017-10-17T02%3A41%3A20.000Z&limit=5&project=1&query=issue.type%3Aerror%20event.type%3Aerror%20is%3Aunresolved&sort=freq&start=2019-05-21T17%3A59%3A00.000Z',
       body: [],
     });
   });
@@ -140,7 +140,7 @@ describe('MetricDetectorTriggeredSection', () => {
     const startDate = '2023-12-31T23:58:00.000Z';
 
     const contributingIssuesMock = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/?end=2017-10-17T02%3A41%3A20.000Z&limit=5&query=issue.type%3Aerror%20event.type%3Aerror%20is%3Aunresolved&sort=freq&start=${encodeURIComponent(startDate)}`,
+      url: `/organizations/org-slug/issues/?end=2017-10-17T02%3A41%3A20.000Z&limit=5&project=1&query=issue.type%3Aerror%20event.type%3Aerror%20is%3Aunresolved&sort=freq&start=${encodeURIComponent(startDate)}`,
       body: [GroupFixture()],
     });
 

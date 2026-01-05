@@ -1,6 +1,8 @@
 import React, {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -20,6 +22,8 @@ import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/w
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import useHasDashboardsPlatformizedWebVitals from 'sentry/views/insights/browser/webVitals/utils/useHasDashboardsPlatformizedWebVitals';
+import {PlatformizedWebVitalsOverview} from 'sentry/views/insights/browser/webVitals/views/platformizedOverview';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
@@ -102,7 +106,7 @@ function WebVitalsLandingPage() {
                   />
                 </WebVitalMetersContainer>
                 <PagePerformanceTable />
-                <PagesTooltipContainer>
+                <Flex>
                   <Tooltip
                     isHoverable
                     title={
@@ -128,7 +132,7 @@ function WebVitalsLandingPage() {
                   >
                     <PagesTooltip>{t('Why are my pages not showing up?')}</PagesTooltip>
                   </Tooltip>
-                </PagesTooltipContainer>
+                </Flex>
               </ModulesOnboarding>
             </MainContentContainer>
           </Layout.Main>
@@ -152,6 +156,11 @@ function PageWithProviders() {
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.SPANS],
   });
+
+  const hasDashboardsPlatformizedWebVitals = useHasDashboardsPlatformizedWebVitals();
+  if (hasDashboardsPlatformizedWebVitals) {
+    return <PlatformizedWebVitalsOverview />;
+  }
 
   return (
     <ModulePageProviders
@@ -199,16 +208,12 @@ const LoadingBox = styled('div')`
   flex: 1;
   min-width: 140px;
   height: 90px;
-  background-color: ${p => p.theme.gray100};
-  border-radius: ${p => p.theme.borderRadius};
+  background-color: ${p => p.theme.colors.gray100};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const PagesTooltip = styled('span')`
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
-  text-decoration: underline dotted ${p => p.theme.gray300};
-`;
-
-const PagesTooltipContainer = styled('div')`
-  display: flex;
+  text-decoration: underline dotted ${p => p.theme.colors.gray400};
 `;

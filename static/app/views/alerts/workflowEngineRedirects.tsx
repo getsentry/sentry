@@ -4,7 +4,6 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useUser} from 'sentry/utils/useUser';
 import {
   makeAutomationDetailsPathname,
   makeAutomationEditPathname,
@@ -44,12 +43,14 @@ function withRuleRedirect<P extends Record<string, any>>(
   makeRedirectPath: (workflowId: string, orgSlug: string) => string
 ) {
   return function WorkflowEngineRedirectWrapper(props: P) {
-    const user = useUser();
     const organization = useOrganization();
     const {ruleId} = useParams();
 
+    const hasRedirectOptOut = organization.features.includes(
+      'workflow-engine-redirect-opt-out'
+    );
     const shouldRedirect =
-      !user.isStaff && organization.features.includes('workflow-engine-ui');
+      !hasRedirectOptOut && organization.features.includes('workflow-engine-ui');
 
     const {data: alertRuleWorkflow, isPending} = useApiQuery<AlertRuleWorkflow>(
       [
@@ -90,12 +91,14 @@ function withAlertRuleRedirect<P extends Record<string, any>>(
   makeRedirectPath: (detectorId: string, orgSlug: string) => string
 ) {
   return function WorkflowEngineRedirectWrapper(props: P) {
-    const user = useUser();
     const organization = useOrganization();
     const {ruleId, detectorId} = useParams();
 
+    const hasRedirectOptOut = organization.features.includes(
+      'workflow-engine-redirect-opt-out'
+    );
     const shouldRedirect =
-      !user.isStaff && organization.features.includes('workflow-engine-ui');
+      !hasRedirectOptOut && organization.features.includes('workflow-engine-ui');
 
     const {data: alertRuleDetector, isPending} = useApiQuery<AlertRuleDetector>(
       [
@@ -147,14 +150,21 @@ export const withDetectorDetailsRedirect = <P extends Record<string, any>>(
   Component: React.ComponentType<P>
 ) => {
   return function WorkflowEngineRedirectWrapper(props: P) {
-    const user = useUser();
     const organization = useOrganization();
     const {ruleId, detectorId} = useParams();
     const location = useLocation();
     const alertId = location.query.alert as string | undefined;
+    const notificationUuid = location.query.notification_uuid;
 
+    const hasWorkflowEngineUI = organization.features.includes('workflow-engine-ui');
+    const hasRedirectOptOut = organization.features.includes(
+      'workflow-engine-redirect-opt-out'
+    );
     const shouldRedirect =
-      !user.isStaff && organization.features.includes('workflow-engine-ui');
+      (!hasRedirectOptOut ||
+        // When clicking from a notification, we never want to opt out of the redirect
+        !!notificationUuid) &&
+      hasWorkflowEngineUI;
 
     // Check for incident open period if alertId is present
     const {data: incidentGroupOpenPeriod, isPending: isOpenPeriodPending} =
@@ -248,12 +258,14 @@ export function withDetectorCreateRedirect<P extends Record<string, any>>(
   Component: React.ComponentType<P>
 ) {
   return function WorkflowEngineRedirectWrapper(props: P) {
-    const user = useUser();
     const organization = useOrganization();
     const {alertType} = useParams();
 
+    const hasRedirectOptOut = organization.features.includes(
+      'workflow-engine-redirect-opt-out'
+    );
     const shouldRedirect =
-      !user.isStaff && organization.features.includes('workflow-engine-ui');
+      !hasRedirectOptOut && organization.features.includes('workflow-engine-ui');
 
     if (shouldRedirect) {
       const detectorType = getDetectionType(alertType);
@@ -272,12 +284,14 @@ export function withOpenPeriodRedirect<P extends Record<string, any>>(
   Component: React.ComponentType<P>
 ) {
   return function OpenPeriodRedirectWrapper(props: P) {
-    const user = useUser();
     const organization = useOrganization();
     const {alertId} = useParams();
 
+    const hasRedirectOptOut = organization.features.includes(
+      'workflow-engine-redirect-opt-out'
+    );
     const shouldRedirect =
-      !user.isStaff && organization.features.includes('workflow-engine-ui');
+      !hasRedirectOptOut && organization.features.includes('workflow-engine-ui');
 
     const {data: incidentGroupOpenPeriod, isPending} =
       useApiQuery<IncidentGroupOpenPeriod>(

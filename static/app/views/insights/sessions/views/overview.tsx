@@ -130,9 +130,10 @@ function ViewSpecificCharts({
 }
 
 function PageWithProviders() {
+  const {view = ''} = useDomainViewFilters();
   const hasDashboardsPlatformizedSessionHealth =
     useHasDashboardsPlatformizedSessionHealth();
-  if (hasDashboardsPlatformizedSessionHealth) {
+  if (hasDashboardsPlatformizedSessionHealth && view === FRONTEND_LANDING_SUB_PATH) {
     return <PlatformizedSessionsOverview />;
   }
   return (

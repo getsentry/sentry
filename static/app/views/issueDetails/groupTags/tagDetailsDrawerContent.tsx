@@ -365,7 +365,7 @@ const ColumnSort = styled(Link)`
   font-weight: ${p => p.theme.fontWeight.bold};
   text-decoration: underline;
   text-decoration-style: dotted;
-  text-decoration-color: ${p => p.theme.textColor};
+  text-decoration-color: ${p => p.theme.tokens.content.primary};
   &:hover {
     color: ${p => p.theme.subText};
   }
@@ -411,7 +411,7 @@ const UserSubtitle = styled('div')`
 `;
 
 const ValueLink = styled(Link)`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   word-break: break-all;
 `;
 

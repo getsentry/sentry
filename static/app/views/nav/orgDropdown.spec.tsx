@@ -3,8 +3,10 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
+import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
+import {readStorageValue} from 'sentry/utils/useSessionStorage';
 import {OrgDropdown} from 'sentry/views/nav/orgDropdown';
 
 describe('OrgDropdown', () => {
@@ -101,5 +103,19 @@ describe('OrgDropdown', () => {
     expect(
       within(inactiveGroup).getByRole('menuitemradio', {name: /Deleting org/})
     ).toBeInTheDocument();
+  });
+
+  it('clicking project sets referrer in session storage', async () => {
+    render(<OrgDropdown />, {organization});
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
+    // We use onAction to navigate, no href is set:
+    expect(screen.getByRole('menuitemradio', {name: 'Projects'})).not.toHaveAttribute(
+      'href'
+    );
+    // onClick should take precedence setting session storage value and navigating:
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Projects'}));
+    expect(readStorageValue<string | null>(CUSTOM_REFERRER_KEY, null)).toBe(
+      'org-dropdown'
+    );
   });
 });

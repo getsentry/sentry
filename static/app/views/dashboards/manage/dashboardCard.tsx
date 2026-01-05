@@ -56,7 +56,7 @@ function DashboardCard({
         to={to}
         aria-label={title}
       >
-        <InteractionStateLayer as="div" color={theme.textColor} />
+        <InteractionStateLayer as="div" color={theme.tokens.content.primary} />
 
         <CardHeader>
           <CardContent>
@@ -146,11 +146,11 @@ const CardLink = styled(Link)`
   display: flex;
   flex-direction: column;
 
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 
   &:focus,
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
 
     ${Title} {
       text-decoration: underline;
@@ -172,12 +172,12 @@ const Detail = styled('div')`
 `;
 
 const CardBody = styled('div')`
-  background: ${p => p.theme.gray100};
+  background: ${p => p.theme.colors.gray100};
   padding: ${space(1.5)} ${space(2)};
   max-height: 100px;
   min-height: 100px;
   overflow: hidden;
-  border-bottom: 1px solid ${p => p.theme.gray100};
+  border-bottom: 1px solid ${p => p.theme.colors.gray100};
 `;
 
 const CardFooter = styled('div')`
@@ -192,7 +192,7 @@ const DateSelected = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   display: grid;
   grid-column-gap: ${space(1)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   ${p => p.theme.overflowEllipsis};
 `;
 
@@ -206,7 +206,7 @@ const ContextMenuWrapper = styled('div')`
   right: ${space(2)};
   bottom: ${space(1)};
   display: flex;
-  ${p => (p.theme.isChonk ? `gap: ${space(0.5)};` : '')}
+  gap: ${space(0.5)};
 `;
 
 const StyledButton = styled(Button)`

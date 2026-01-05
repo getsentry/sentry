@@ -56,7 +56,7 @@ export default function EmptyState({
         <Setup>
           <BodyTitle>{t('Install instructions')}</BodyTitle>
           <Alert.Container>
-            <Alert type="info">
+            <Alert variant="info">
               {t(
                 "Note: You need PlayStation access to complete these instructions. Sentry admin access alone isn't sufficient."
               )}
@@ -187,7 +187,7 @@ const Title = styled('div')`
 const Description = styled('div')``;
 
 const HeaderWrapper = styled('div')`
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${space(4)};
 `;
 

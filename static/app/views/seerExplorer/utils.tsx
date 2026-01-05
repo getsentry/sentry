@@ -1,11 +1,20 @@
+import {useCallback, useState} from 'react';
 import type {LocationDescriptor} from 'history';
+import queryString from 'query-string';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {
   LOGS_GROUP_BY_KEY,
   LOGS_QUERY_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
-import type {Block, ToolCall, ToolLink} from 'sentry/views/seerExplorer/types';
+import type {
+  Block,
+  ToolCall,
+  ToolLink,
+  ToolResult,
+} from 'sentry/views/seerExplorer/types';
 
 /**
  * Tool formatter function type.
@@ -17,6 +26,14 @@ type ToolFormatter = (
   isLoading: boolean,
   toolLinkParams?: Record<string, any> | null
 ) => string;
+
+export const makeSeerExplorerQueryKey = (
+  orgSlug: string,
+  runId?: number
+): ApiQueryKey => [
+  `/organizations/${orgSlug}/seer/explorer-chat/${runId ? `${runId}/` : ''}`,
+  {},
+];
 
 /**
  * Registry of custom tool formatters.
@@ -84,14 +101,27 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
   },
 
   get_issue_details: (args, isLoading) => {
-    const issueId = args.issue_id || '';
-    const selectedEvent = args.selected_event;
-    if (selectedEvent) {
+    const {issue_id, event_id, start, end} = args;
+
+    if (issue_id) {
+      if (start && end) {
+        return isLoading
+          ? `Inspecting issue ${issue_id} between ${start} to ${end}...`
+          : `Inspected issue ${issue_id} between ${start} to ${end}`;
+      }
       return isLoading
-        ? `Inspecting issue ${issueId} (${selectedEvent} event)...`
-        : `Inspected issue ${issueId} (${selectedEvent} event)`;
+        ? `Inspecting issue ${issue_id}...`
+        : `Inspected issue ${issue_id}`;
     }
-    return isLoading ? `Inspecting issue ${issueId}...` : `Inspected issue ${issueId}`;
+
+    if (event_id) {
+      return isLoading
+        ? `Inspecting event ${event_id}...`
+        : `Inspected event ${event_id}`;
+    }
+
+    // Should not happen unless there's a bug.
+    return isLoading ? `Inspecting issue...` : `Inspected issue`;
   },
 
   code_search: (args, isLoading) => {
@@ -310,6 +340,16 @@ export function getToolsStringFromBlock(block: Block): string[] {
       // Use custom formatter with tool link params for metadata like rejection status
       const args = parseToolArgs(tool.args);
       tools.push(formatter(args, isLoading, toolLink?.params));
+    } else if (tool.function.startsWith('artifact_write_')) {
+      // Handle artifact_write_<artifact_name> tools
+      const artifactName = tool.function
+        .replace('artifact_write_', '')
+        .replace(/_/g, ' ');
+      tools.push(
+        isLoading
+          ? `Submitting ${artifactName} artifact...`
+          : `Submitted ${artifactName} artifact`
+      );
     } else {
       // Fall back to generic message
       const verb = isLoading ? 'Using' : 'Used';
@@ -394,6 +434,24 @@ export function postProcessLLMMarkdown(text: string | null | undefined): string 
   // Add more processing rules here as needed
 
   return processed;
+}
+
+/**
+ * Simulates the keyboard shortcut to toggle the Seer Explorer panel.
+ * This dispatches a keyboard event that matches the Cmd+/ (Mac) or Ctrl+/ (non-Mac) shortcut.
+ */
+export function toggleSeerExplorerPanel(): void {
+  const isMac = navigator.platform.toUpperCase().includes('MAC');
+  const keyboardEvent = new KeyboardEvent('keydown', {
+    key: '/',
+    code: 'Slash',
+    keyCode: 191,
+    which: 191,
+    metaKey: isMac,
+    ctrlKey: !isMac,
+    bubbles: true,
+  } as KeyboardEventInit);
+  document.dispatchEvent(keyboardEvent);
 }
 
 /**
@@ -561,7 +619,11 @@ export function buildToolLinkUrl(
     case 'get_issue_details': {
       const {event_id, issue_id} = toolLink.params;
 
-      return {pathname: `/issues/${issue_id}/events/${event_id}/`};
+      if (event_id && issue_id) {
+        return {pathname: `/issues/${issue_id}/events/${event_id}/`};
+      }
+
+      return null;
     }
     case 'get_replay_details': {
       const {replay_id} = toolLink.params;
@@ -640,4 +702,170 @@ export function buildToolLinkUrl(
     default:
       return null;
   }
+}
+
+export function getValidToolLinks(
+  tool_links: Array<ToolLink | null>,
+  tool_results: Array<ToolResult | null>,
+  tool_calls: ToolCall[],
+  orgSlug: string,
+  projects?: Array<{id: string; slug: string}>
+) {
+  // Get valid tool links sorted by their corresponding tool call indices
+  // Also create a mapping from tool call index to sorted link index
+  const mappedLinks = tool_links
+    .map((link, idx) => {
+      if (!link) {
+        return null;
+      }
+
+      // Don't show links for tools that returned errors, but do show for empty results
+      if (link.params?.is_error === true) {
+        return null;
+      }
+
+      // get tool_call_id from tool_results, which we expect to be aligned with tool_links.
+      const toolCallId = tool_results[idx]?.tool_call_id;
+      const toolCallIndex = tool_calls.findIndex(call => call.id === toolCallId);
+      const canBuildUrl = buildToolLinkUrl(link, orgSlug, projects) !== null;
+
+      if (toolCallIndex !== undefined && toolCallIndex >= 0 && canBuildUrl) {
+        return {link, toolCallIndex};
+      }
+      return null;
+    })
+    .filter(item => item !== null)
+    .sort((a, b) => a.toolCallIndex - b.toolCallIndex);
+
+  // Create mapping from tool call index to sorted link index
+  const toolCallToLinkMap = new Map<number, number>();
+  mappedLinks.forEach((item, sortedIndex) => {
+    toolCallToLinkMap.set(item.toolCallIndex, sortedIndex);
+  });
+
+  return {
+    sortedToolLinks: mappedLinks.map(item => item.link),
+    toolCallToLinkIndexMap: toolCallToLinkMap,
+  };
+}
+
+export function useCopySessionDataToClipboard({
+  blocks,
+  orgSlug,
+  projects,
+  enabled,
+}: {
+  blocks: Block[];
+  enabled: boolean;
+  orgSlug: string;
+  projects?: Array<{id: string; slug: string}>;
+}) {
+  const [isError, setIsError] = useState(false);
+
+  const copySessionToClipboard = useCallback(async () => {
+    if (!enabled || !orgSlug || !blocks) {
+      return;
+    }
+    setIsError(false);
+    try {
+      await navigator.clipboard.writeText(formatSessionData(blocks, orgSlug, projects));
+      addSuccessMessage('Copied conversation to clipboard');
+    } catch (err) {
+      setIsError(true);
+      addErrorMessage('Failed to copy conversation to clipboard');
+    }
+  }, [enabled, blocks, orgSlug, projects]);
+
+  return {copySessionToClipboard, isError};
+}
+
+function formatSessionData(
+  blocks: Block[],
+  orgSlug: string,
+  projects?: Array<{id: string; slug: string}>
+): string {
+  const formatBlock = (block: Block): string => {
+    const {message, timestamp, tool_links, tool_results} = block;
+
+    const {content: messageContent, role, tool_calls, thinking_content} = message;
+
+    const {sortedToolLinks, toolCallToLinkIndexMap} = getValidToolLinks(
+      tool_links || [],
+      tool_results || [],
+      tool_calls || [],
+      orgSlug,
+      projects
+    );
+
+    const toolCallsWithLinks: Array<{
+      metadata: Record<string, any> | null;
+      tool_call: ToolCall;
+      url: string | null;
+    }> = (tool_calls || []).map((tool_call, idx) => {
+      // Build URL if a valid tool link exists for this call.
+      const validLinkIdx = toolCallToLinkIndexMap.get(idx);
+      const validLink =
+        validLinkIdx === undefined ? null : (sortedToolLinks[validLinkIdx] ?? null);
+      const location = validLink ? buildToolLinkUrl(validLink, orgSlug, projects) : null;
+      const url = location ? locationToUrl(location) : null;
+
+      // Get metadata from raw tool_links array.
+      const metadata = tool_links?.[idx]?.params || null;
+
+      return {metadata, tool_call, url};
+    });
+
+    const lines: string[] = [];
+    lines.push(`# ${role.toUpperCase()} ${timestamp}`);
+    if (messageContent) {
+      lines.push(messageContent);
+    }
+    if (thinking_content) {
+      lines.push('');
+      lines.push('## THINKING CONTENT');
+      lines.push(thinking_content);
+    }
+
+    if (toolCallsWithLinks.length > 0) {
+      lines.push('');
+      lines.push('## TOOL CALLS');
+      toolCallsWithLinks.forEach((item, idx) => {
+        const isError = !!item.metadata?.is_error;
+        const emptyResults = !!item.metadata?.empty_results;
+        const status = isError ? 'ERRORED' : emptyResults ? 'EMPTY RESULTS' : 'SUCCESS';
+
+        lines.push(`${item.tool_call.function} (${status}) (${item.tool_call.id}):`);
+        lines.push(`args: ${item.tool_call.args}`);
+        if (item.url) {
+          lines.push(`URL: ${item.url}`);
+        }
+
+        if (idx < toolCallsWithLinks.length - 1) {
+          lines.push('');
+        }
+      });
+    }
+    lines.push('');
+    return lines.join('\n');
+  };
+
+  return blocks
+    .map(block => formatBlock(block))
+    .join('\n--------------------------------------------------\n\n');
+}
+
+function locationToUrl(location: LocationDescriptor): string | null {
+  if (typeof location === 'string') {
+    const hasOrigin = /^https?:\/\//.test(location);
+    return hasOrigin ? location : `${window.location.origin}${location}`;
+  }
+
+  const {pathname = '', hash, query} = location;
+  const base = `${window.location.origin}${pathname}`;
+
+  const queryPart = query ? `?${queryString.stringify(query)}` : '';
+
+  const hashPart = hash ? (hash.startsWith('#') ? hash : `#${hash}`) : '';
+
+  return `${base}${queryPart}${hashPart}`;
 }

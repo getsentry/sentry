@@ -23,8 +23,8 @@ from sentry.utils import json
 
 
 class LLMIssueDetectionTest(TestCase):
-    @patch("sentry.tasks.llm_issue_detection.detection.detect_llm_issues_for_project.delay")
-    def test_run_detection_dispatches_sub_tasks(self, mock_delay):
+    @patch("sentry.tasks.llm_issue_detection.detection.detect_llm_issues_for_project.apply_async")
+    def test_run_detection_dispatches_sub_tasks(self, mock_apply_async):
         """Test run_detection spawns sub-tasks for each project."""
         project = self.create_project()
 
@@ -36,8 +36,7 @@ class LLMIssueDetectionTest(TestCase):
         ):
             run_llm_issue_detection()
 
-        assert mock_delay.called
-        assert mock_delay.call_args[0][0] == project.id
+        mock_apply_async.assert_called_once_with(args=[project.id], countdown=0)
 
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
@@ -84,8 +83,12 @@ class LLMIssueDetectionTest(TestCase):
             impact="High - may cause request failures",
             evidence="Connection pool at 95% capacity",
             missing_telemetry="Database connection metrics",
+            offender_span_ids=["span_1", "span_2"],
             trace_id="abc123xyz",
             transaction_name="test_transaction",
+            subcategory="Connection Pool Exhaustion",
+            category="Database",
+            verification_reason="Problem is correctly identified",
         )
 
         create_issue_occurrence_from_detection(
@@ -140,29 +143,6 @@ class LLMIssueDetectionTest(TestCase):
         assert "received" in event_data
         assert "timestamp" in event_data
 
-    @patch("sentry.tasks.llm_issue_detection.detection.produce_occurrence_to_kafka")
-    def test_create_issue_occurrence_without_missing_telemetry(self, mock_produce_occurrence):
-        detected_issue = DetectedIssue(
-            title="Slow API Response",
-            explanation="API calls taking too long",
-            impact="Medium",
-            evidence="Response time > 2s",
-            trace_id="xyz789",
-            transaction_name="api_endpoint",
-        )
-
-        create_issue_occurrence_from_detection(
-            detected_issue=detected_issue,
-            project_id=self.project.id,
-        )
-
-        occurrence = mock_produce_occurrence.call_args.kwargs["occurrence"]
-
-        assert len(occurrence.evidence_display) == 3
-
-        evidence_names = {e.name for e in occurrence.evidence_display}
-        assert evidence_names == {"Explanation", "Impact", "Evidence"}
-
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.tasks.llm_issue_detection.detection.produce_occurrence_to_kafka")
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
@@ -211,8 +191,12 @@ class LLMIssueDetectionTest(TestCase):
                     "impact": "High - causes performance degradation",
                     "evidence": "15 queries executed sequentially",
                     "missing_telemetry": "Database query attribution",
+                    "offender_span_ids": ["span_1", "span_2"],
                     "trace_id": "trace_id_1",
                     "transaction_name": "POST /some/thing",
+                    "category": "Database",
+                    "subcategory": "N+1 Query",
+                    "verification_reason": "Problem is correctly identified",
                 },
                 {
                     "title": "Memory Leak Risk",
@@ -220,32 +204,47 @@ class LLMIssueDetectionTest(TestCase):
                     "impact": "Medium - may cause OOM",
                     "evidence": "Objects not released after use",
                     "missing_telemetry": None,
+                    "offender_span_ids": ["span_3"],
                     "trace_id": "trace_id_2",
                     "transaction_name": "GET /another/",
+                    "category": "Memory",
+                    "subcategory": "Memory Leak",
+                    "verification_reason": "Problem is correctly identified",
                 },
-            ]
+            ],
+            "traces_analyzed": 1,
         }
 
-        mock_response = Mock()
-        mock_response.status = 200
-        mock_response.json.return_value = seer_response_data
-        mock_seer_request.return_value = mock_response
+        mock_response_with_2_issues = Mock()
+        mock_response_with_2_issues.status = 200
+        mock_response_with_2_issues.json.return_value = seer_response_data
+        mock_response_with_no_issues = Mock()
+        mock_response_with_no_issues.status = 200
+        mock_response_with_no_issues.json.return_value = {"issues": [], "traces_analyzed": 1}
+        mock_seer_request.side_effect = [mock_response_with_2_issues, mock_response_with_no_issues]
 
         detect_llm_issues_for_project(self.project.id)
 
         assert mock_spans_query.call_count == 3  # 1 for transactions, 2 for traces
-        assert mock_seer_request.called
-        seer_call_kwargs = mock_seer_request.call_args.kwargs
-        assert seer_call_kwargs["path"] == "/v1/automation/issue-detection/analyze"
+        assert mock_seer_request.call_count == 2  # 1 per trace
 
-        request_body = json.loads(seer_call_kwargs["body"].decode("utf-8"))
-        assert request_body["project_id"] == self.project.id
-        assert request_body["organization_id"] == self.project.organization_id
-        assert len(request_body["traces"]) == 2
-        assert request_body["traces"][0]["trace_id"] == "trace_id_1"
-        assert request_body["traces"][0]["transaction_name"] == "POST /some/thing"
-        assert request_body["traces"][1]["trace_id"] == "trace_id_2"
-        assert request_body["traces"][1]["transaction_name"] == "GET /another/"
+        first_seer_call = mock_seer_request.call_args_list[0].kwargs
+        assert first_seer_call["path"] == "/v1/automation/issue-detection/analyze"
+        first_request_body = json.loads(first_seer_call["body"].decode("utf-8"))
+        assert first_request_body["project_id"] == self.project.id
+        assert first_request_body["organization_id"] == self.project.organization_id
+        assert len(first_request_body["traces"]) == 1
+        assert first_request_body["traces"][0]["trace_id"] == "trace_id_1"
+        assert first_request_body["traces"][0]["transaction_name"] == "POST /some/thing"
+
+        second_seer_call = mock_seer_request.call_args_list[1].kwargs
+        assert second_seer_call["path"] == "/v1/automation/issue-detection/analyze"
+        second_request_body = json.loads(second_seer_call["body"].decode("utf-8"))
+        assert second_request_body["project_id"] == self.project.id
+        assert second_request_body["organization_id"] == self.project.organization_id
+        assert len(second_request_body["traces"]) == 1
+        assert second_request_body["traces"][0]["trace_id"] == "trace_id_2"
+        assert second_request_body["traces"][0]["transaction_name"] == "GET /another/"
 
         assert mock_produce_occurrence.call_count == 2
 
@@ -259,6 +258,71 @@ class LLMIssueDetectionTest(TestCase):
         second_occurrence = mock_produce_occurrence.call_args_list[1].kwargs["occurrence"]
         assert second_occurrence.issue_title == "Memory Leak Risk"
         assert len(second_occurrence.evidence_display) == 3
+
+    @with_feature("organizations:gen-ai-features")
+    @patch("sentry.tasks.llm_issue_detection.detection.produce_occurrence_to_kafka")
+    @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
+    @patch("sentry.tasks.llm_issue_detection.trace_data.Spans.run_table_query")
+    @patch("sentry.tasks.llm_issue_detection.detection.random.shuffle")
+    @patch("sentry.tasks.llm_issue_detection.detection.logger.error")
+    def test_detect_llm_issues_continues_on_seer_error(
+        self,
+        mock_logger_error,
+        mock_shuffle,
+        mock_spans_query,
+        mock_seer_request,
+        mock_produce_occurrence,
+    ):
+        mock_shuffle.return_value = None
+
+        mock_spans_query.side_effect = [
+            {
+                "data": [
+                    {"transaction": "POST /some/thing", "sum(span.duration)": 1007},
+                    {"transaction": "GET /another/", "sum(span.duration)": 1003},
+                ],
+                "meta": {},
+            },
+            {"data": [{"trace": "trace_id_1", "precise.start_ts": 1234}], "meta": {}},
+            {"data": [{"trace": "trace_id_2", "precise.start_ts": 1235}], "meta": {}},
+        ]
+
+        mock_error_response = Mock()
+        mock_error_response.status = 500
+        mock_error_response.data.decode.return_value = "Internal Server Error"
+
+        mock_success_response = Mock()
+        mock_success_response.status = 200
+        mock_success_response.json.return_value = {
+            "issues": [
+                {
+                    "title": "Success Issue",
+                    "explanation": "This one worked",
+                    "impact": "Low",
+                    "evidence": "All good",
+                    "missing_telemetry": None,
+                    "offender_span_ids": ["span_1"],
+                    "trace_id": "trace_id_2",
+                    "transaction_name": "GET /another/",
+                    "category": "General",
+                    "subcategory": "Success",
+                    "verification_reason": "Problem is correctly identified",
+                }
+            ],
+            "traces_analyzed": 1,
+        }
+
+        mock_seer_request.side_effect = [mock_error_response, mock_success_response]
+
+        detect_llm_issues_for_project(self.project.id)
+
+        assert mock_seer_request.call_count == 2
+        assert mock_logger_error.call_count == 1
+        assert mock_produce_occurrence.call_count == 1
+
+        occurrence = mock_produce_occurrence.call_args.kwargs["occurrence"]
+        assert occurrence.issue_title == "Success Issue"
+        assert occurrence.culprit == "GET /another/"
 
 
 class TestGetProjectTopTransactionTracesForLLMDetection(

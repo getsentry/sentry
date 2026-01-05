@@ -75,7 +75,7 @@ function TargetIdentifierField() {
     <AutomationBuilderInput
       name={`${actionId}.config.targetIdentifier`}
       placeholder={t('channel ID or URL')}
-      value={action.config.targetIdentifier}
+      value={action.config.targetIdentifier ?? ''}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
         onUpdate({
           config: {...action.config, targetIdentifier: e.target.value},

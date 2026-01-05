@@ -154,7 +154,6 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
                 meta=attrs_meta,
                 limit=max_attributes,
                 type=attr_type,
-                intersecting_attributes_filter=cohort_2,
             )
             attrs_response = snuba_rpc.attribute_names_rpc(attrs_request)
 

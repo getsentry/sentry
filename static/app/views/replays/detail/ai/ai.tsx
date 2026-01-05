@@ -309,7 +309,7 @@ const Wrapper = styled('div')`
   flex-wrap: nowrap;
   min-height: 0;
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const LoadingContainer = styled('div')`

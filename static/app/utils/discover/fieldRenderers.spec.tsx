@@ -58,6 +58,7 @@ describe('getFieldRenderer', () => {
       filteredCount: 3000,
       count: 6000,
       selectionDateString: 'last 7 days',
+      'opportunity_score(measurements.score.total)': 0.0345,
     };
 
     MockApiClient.addMockResponse({
@@ -486,5 +487,17 @@ describe('getFieldRenderer', () => {
 
       expect(getWidths()).toEqual(['40%', '13.333%', '20%', '26.667%', '0%']);
     });
+  });
+
+  it('renders opportunity score', () => {
+    const renderer = getFieldRenderer('opportunity_score(measurements.score.total)', {
+      'opportunity_score(measurements.score.total)': 'score',
+    });
+
+    render(
+      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+    );
+
+    expect(screen.getByText('3.45')).toBeInTheDocument();
   });
 });

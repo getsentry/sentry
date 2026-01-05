@@ -8,13 +8,13 @@ import {Button} from 'sentry/components/core/button/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
-import {useUpdateProjectAutomation} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectAutomation';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import {useCodingAgentIntegrations} from 'sentry/components/events/autofix/useAutofix';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Project} from 'sentry/types/project';
+import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface CursorIntegrationCtaProps {
@@ -30,7 +30,7 @@ export function CursorIntegrationCta({project}: CursorIntegrationCtaProps) {
     useUpdateProjectSeerPreferences(project);
   const {data: codingAgentIntegrations, isLoading: isLoadingIntegrations} =
     useCodingAgentIntegrations();
-  const {mutateAsync: updateProjectAutomation} = useUpdateProjectAutomation(project);
+  const {mutateAsync: updateProjectAutomation} = useUpdateProject(project);
 
   const cursorIntegration = codingAgentIntegrations?.integrations.find(
     integration => integration.provider === 'cursor'
@@ -184,7 +184,7 @@ const Card = styled('div')`
   position: relative;
   padding: ${p => p.theme.space.xl};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   margin-top: ${p => p.theme.space['2xl']};
   margin-bottom: ${p => p.theme.space['2xl']};
 `;

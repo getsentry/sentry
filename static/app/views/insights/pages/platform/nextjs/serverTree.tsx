@@ -409,7 +409,7 @@ const TreeGrid = styled('div')`
   & > * {
     text-align: right;
     padding: ${space(0.75)} ${space(1.5)};
-    background-color: ${p => p.theme.background};
+    background-color: ${p => p.theme.tokens.background.primary};
     line-height: 1.1;
   }
 

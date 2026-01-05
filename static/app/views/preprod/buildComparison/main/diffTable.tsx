@@ -17,19 +17,19 @@ export type DiffTableSort = {
 type DiffChangeElements = {
   icon: React.ReactNode;
   label: string;
-  type: 'success' | 'error' | 'warning';
+  type: 'success' | 'danger' | 'warning';
 };
 
 export function getDiffChangeElements(diffItem: DiffItem): DiffChangeElements {
   let change: {
     icon: React.ReactNode;
     label: string;
-    type: 'success' | 'error' | 'warning';
+    type: 'success' | 'danger' | 'warning';
   };
   switch (diffItem.type) {
     case 'added':
       change = {
-        type: 'error',
+        type: 'danger',
         label: t('Added'),
         icon: <IconAdd />,
       };
@@ -43,7 +43,7 @@ export function getDiffChangeElements(diffItem: DiffItem): DiffChangeElements {
       break;
     case 'increased':
       change = {
-        type: 'error',
+        type: 'danger',
         label: t('Increased'),
         icon: <IconAdd />,
       };
@@ -72,7 +72,7 @@ export const DiffTableWithColumns = styled(SimpleTable)<{
   overflow-x: auto;
   overflow-y: auto;
   grid-template-columns: ${p => p.gridTemplateColumns};
-  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+  border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   border-left: 0px;
   border-right: 0px;
 `;

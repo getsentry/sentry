@@ -172,7 +172,7 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
         </Panel>
         <AlertLink
           to="/settings/account/notifications/quota/"
-          type="info"
+          variant="info"
           trailingItems={<IconInfo />}
         >
           {t(
@@ -220,7 +220,7 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
         )}
         <AlertLink
           to="/settings/account/notifications/quota/"
-          type="info"
+          variant="info"
           trailingItems={<IconInfo />}
         >
           {t(

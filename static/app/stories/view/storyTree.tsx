@@ -614,12 +614,12 @@ const FolderName = styled('div')`
   position: relative;
 
   &:before {
-    background: ${p => p.theme.gray100};
+    background: ${p => p.theme.colors.gray100};
     content: '';
     inset: 0 ${p => p.theme.space['2xs']} 0 -${p => p.theme.space['2xs']};
     position: absolute;
     z-index: -1;
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
     opacity: 0;
   }
 
@@ -645,12 +645,12 @@ const FolderLink = styled(Link, {
   transition: none;
 
   &:before {
-    background: ${p => (p.theme.isChonk ? p.theme.colors.blue100 : p.theme.blue100)};
+    background: ${p => p.theme.colors.blue100};
     content: '';
     inset: 0 ${p => p.theme.space.md} 0 -${p => p.theme.space['2xs']};
     position: absolute;
     z-index: -1;
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
     opacity: ${p => (p.active ? 1 : 0)};
     transition: none;
   }
@@ -662,7 +662,7 @@ const FolderLink = styled(Link, {
     height: 20px;
     background: ${p => p.theme.tokens.graphics.accent};
     width: 4px;
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
     opacity: ${p => (p.active ? 1 : 0)};
     transition: none;
   }
@@ -672,7 +672,7 @@ const FolderLink = styled(Link, {
       p.active ? p.theme.tokens.content.accent : p.theme.tokens.content.primary};
 
     &:before {
-      background: ${p => (p.active ? p.theme.blue100 : p.theme.gray100)};
+      background: ${p => (p.active ? p.theme.colors.blue100 : p.theme.colors.gray100)};
       opacity: 1;
     }
   }
@@ -682,7 +682,7 @@ const FolderLink = styled(Link, {
       p.active ? p.theme.tokens.content.accent : p.theme.tokens.content.primary};
 
     &:before {
-      background: ${p => (p.active ? p.theme.blue200 : p.theme.gray200)};
+      background: ${p => (p.active ? p.theme.colors.blue200 : p.theme.colors.gray200)};
       opacity: 1;
     }
   }

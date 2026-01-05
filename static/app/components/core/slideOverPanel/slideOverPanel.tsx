@@ -1,8 +1,10 @@
-import {useCallback, useDeferredValue, useEffect} from 'react';
+import {useEffect, useId, useState, useTransition} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion, type Transition} from 'framer-motion';
+
+import {BoundaryContextProvider} from '@sentry/scraps/boundaryContext';
 
 import {space} from 'sentry/styles/space';
 
@@ -30,17 +32,9 @@ type ChildRenderFunction = (renderPropProps: ChildRenderProps) => React.ReactNod
 
 type SlideOverPanelProps = {
   children: React.ReactNode | ChildRenderFunction;
-  /**
-   * Whether the panel is visible. In most cases it's better to use this prop rather than render the panel conditionally, since it'll defer rendering the contents of the panel to a lower priority React lane.
-   */
-  open: boolean;
   ariaLabel?: string;
   className?: string;
   'data-test-id'?: string;
-  /**
-   * Callback that fires every time the panel opens.
-   */
-  onOpen?: () => void;
   panelWidth?: string;
   position?: 'right' | 'bottom' | 'left';
   ref?: React.Ref<HTMLDivElement>;
@@ -53,10 +47,8 @@ type SlideOverPanelProps = {
 export function SlideOverPanel({
   'data-test-id': testId,
   ariaLabel,
-  open: isOpen,
   children,
   className,
-  onOpen,
   position,
   transitionProps = {},
   panelWidth,
@@ -64,79 +56,80 @@ export function SlideOverPanel({
 }: SlideOverPanelProps) {
   const theme = useTheme();
 
-  // Create a deferred version of `isOpen`. Here's how the rendering flow works
-  // when the visibility changes to `true`:
+  const [isTransitioning, startTransition] = useTransition();
+
+  // Defer rendering the children on initial mount. Here's how the flow works:
   //
-  // 1. Parent component sets `isOpen` to `true`. This triggers a render.
-  // 2. The render runs with `isOpen` `true` and `isContentVisible` `false`. We
-  // pass `isOpening: true` to the `children` render prop. The render prop
-  // contents should render a fast skeleton.
-  // 3. The next render runs, with `isOpen` `true` and `isContentVisible`
-  // `true`. This render is scheduled in the "transition" React lane. When this
-  // is done, we pass `isOpening: false` to the children, and the render prop
-  // should render the full UI. React periodically polls the main thread and
-  // interrupt rendering of the full UI it if a high-priority render comes in.
-  // Other state transitions are simpler, because we _only_ show the skeleton
-  // during that "opening" transition.
-  const isContentVisible = useDeferredValue(isOpen);
+  // 1. On mount (the first render), `isContentVisible` is set to `false` and
+  // `isTransitioning` set to `false`. We render the children and pass
+  // `isOpening: true`. The children may choose to show a fast-to-render
+  // skeleton UI, or nothing.
+  // 2. Immediately after mount, `useEffect` runs and schedules a transition
+  // that will update `isContentVisible` state to `true`.
+  // 3. The "transition" starts. This component renders with `isContentVisible`
+  // set to `false` but `isTransitioning` set to `true`, since the transition is
+  // running.
+  // 4. The transition makes the state update. This component re-renders with
+  // `isTransitioning` set to `false` and `isContentVisible` set to `true`. We
+  // render the children with `isOpening: false`. The children render their full
+  // contents in a lower priority lane. When the render is complete, the content
+  // is displayed.
+  // Subsequent updates of the `children` are not deferred.
+  const [isContentVisible, setIsContentVisible] = useState<boolean>(false);
 
   useEffect(() => {
-    if (isOpen && onOpen) {
-      onOpen();
-    }
-  }, [isOpen, onOpen]);
+    startTransition(() => {
+      setIsContentVisible(true);
+    });
+  }, []);
 
-  // Create a fallback render function, in case the parent component passes
-  // `React.ReactNode` as `children`. This way, even if they don't pass a render
-  // prop they still get the benefit of fast panel opening.
-  const fallbackRenderFunction = useCallback<ChildRenderFunction>(
-    ({isOpening}: ChildRenderProps) => {
-      return isOpening ? null : (children as React.ReactNode); // This function should only ever run for `React.ReactNode`, its whole purpose is to create a render function for `React.ReactNode`
-    },
-    [children]
-  );
+  const id = useId();
 
   const renderFunctionProps: ChildRenderProps = {
-    isOpening: isOpen !== isContentVisible && !isContentVisible,
+    isOpening: isTransitioning || !isContentVisible,
   };
 
   const openStyle = position ? OPEN_STYLES[position] : OPEN_STYLES.right;
 
   const collapsedStyle = position ? COLLAPSED_STYLES[position] : COLLAPSED_STYLES.right;
 
-  return isOpen ? (
-    <_SlideOverPanel
-      ref={ref}
-      initial={collapsedStyle}
-      animate={openStyle}
-      exit={collapsedStyle}
-      position={position}
-      transition={{
-        ...theme.motion.framer.spring.moderate,
-        ...transitionProps,
-      }}
-      role="complementary"
-      aria-hidden={!isOpen}
-      aria-label={ariaLabel ?? 'slide out drawer'}
-      className={className}
-      data-test-id={testId}
-      panelWidth={panelWidth}
-    >
-      {/* Render the child content. If it's a render prop, pass the `isOpening`
+  return (
+    <BoundaryContextProvider value={id}>
+      <_SlideOverPanel
+        ref={ref}
+        id={id}
+        initial={collapsedStyle}
+        animate={openStyle}
+        exit={collapsedStyle}
+        position={position}
+        transition={{
+          ...theme.motion.framer.spring.moderate,
+          ...transitionProps,
+        }}
+        role="complementary"
+        aria-hidden={false}
+        aria-label={ariaLabel ?? 'slide out drawer'}
+        className={className}
+        data-test-id={testId}
+        panelWidth={panelWidth}
+      >
+        {/* Render the child content. If it's a render prop, pass the `isOpening`
       prop. We expect the render prop to render a skeleton UI if `isOpening` is
-      true. Otherwise, use the fallback render prop, which shows a blank panel
-      while opening. */}
-      {typeof children === 'function'
-        ? children(renderFunctionProps)
-        : fallbackRenderFunction(renderFunctionProps)}
-    </_SlideOverPanel>
-  ) : null;
+      true. If `children` is not a render prop, render nothing while
+      transitioning. */}
+        {typeof children === 'function'
+          ? children(renderFunctionProps)
+          : renderFunctionProps.isOpening
+            ? null
+            : children}
+      </_SlideOverPanel>
+    </BoundaryContextProvider>
+  );
 }
 
 const _SlideOverPanel = styled(motion.div, {
   shouldForwardProp: prop =>
-    ['initial', 'animate', 'exit', 'transition'].includes(prop) ||
-    (prop !== 'isOpen' && isPropValid(prop)),
+    ['initial', 'animate', 'exit', 'transition'].includes(prop) || isPropValid(prop),
 })<{
   panelWidth?: string;
   position?: 'right' | 'bottom' | 'left';
@@ -154,9 +147,8 @@ const _SlideOverPanel = styled(motion.div, {
 
   z-index: ${p => p.theme.zIndex.modal - 1};
 
-  box-shadow: ${p => (p.theme.isChonk ? undefined : p.theme.dropShadowHeavy)};
-  background: ${p => p.theme.background};
-  color: ${p => p.theme.textColor};
+  background: ${p => p.theme.tokens.background.primary};
+  color: ${p => p.theme.tokens.content.primary};
 
   text-align: left;
 

@@ -39,6 +39,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
   const hasAttachments = planDetails?.categories?.includes(DataCategory.ATTACHMENTS);
   const hasLogBytes = planDetails?.categories?.includes(DataCategory.LOG_BYTE);
   const hasLegacySeer = AddOnCategory.LEGACY_SEER in planDetails.addOnCategories;
+  const hasSeer = AddOnCategory.SEER in planDetails.addOnCategories;
 
   // Create a safe default for planCategories if it doesn't exist
   const safeCategories = planDetails?.planCategories || {};
@@ -255,6 +256,14 @@ export function SubscriptionFixture(props: Props): TSubscription {
           order: 15,
         }),
       }),
+      ...(hasSeer && {
+        seerUsers: MetricHistoryFixture({
+          category: DataCategory.SEER_USER,
+          reserved: 0,
+          prepaid: 0,
+          order: 16,
+        }),
+      }),
     },
     effectiveRetentions: {},
     ...planData,
@@ -285,6 +294,9 @@ export function SubscriptionWithLegacySeerFixture(props: Props): TSubscription {
       order: 28,
     }),
   };
+  if (subscription.categories.seerUsers) {
+    delete subscription.categories.seerUsers;
+  }
   subscription.reservedBudgets = [SeerReservedBudgetFixture({})];
   subscription.addOns = {
     ...subscription.addOns,
@@ -295,6 +307,11 @@ export function SubscriptionWithLegacySeerFixture(props: Props): TSubscription {
       isAvailable: true,
     },
   };
+  if (subscription.addOns?.[AddOnCategory.SEER]) {
+    subscription.addOns[AddOnCategory.SEER].enabled = false;
+    subscription.addOns[AddOnCategory.SEER].isAvailable = false;
+    delete subscription.categories.seerUsers;
+  }
   return subscription;
 }
 

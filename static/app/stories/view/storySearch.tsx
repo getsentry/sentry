@@ -182,7 +182,7 @@ function SearchInput(
       </InputGroup.LeadingItems>
       <InputGroup.Input ref={props.ref} nativeSize={nativeSize} {...nativeProps} />
       <InputGroup.TrailingItems>
-        <Badge type="internal">/</Badge>
+        <Badge variant="internal">/</Badge>
       </InputGroup.TrailingItems>
     </InputGroup>
   );
@@ -295,12 +295,12 @@ const StyledOverlay = styled(Overlay)`
 
   /* Make section headers darker in this component */
   p[id][aria-hidden='true'] {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 
 const SectionTitle = styled('span')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-weight: 600;
   text-transform: uppercase;
 `;

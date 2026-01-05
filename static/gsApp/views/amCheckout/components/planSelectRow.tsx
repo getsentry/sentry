@@ -135,7 +135,7 @@ function PlanSelectRow({
                             highlightedFeatures.length === 1 ? (
                               <Fragment>
                                 <strong>{feature}</strong>
-                                <Tag>{t('Looking for this?')}</Tag>
+                                <Tag variant="muted">{t('Looking for this?')}</Tag>
                               </Fragment>
                             ) : (
                               <b>{feature}</b>
@@ -155,7 +155,7 @@ function PlanSelectRow({
                         </Feature>
                       ))}
                     {/* custom to match text size */}
-                    {hasMoreLink && <MoreFeaturesLink iconSize="14px" />}
+                    {hasMoreLink && <MoreFeaturesLink legacySize="14px" />}
                   </FeatureList>
                 ) : (
                   <FeatureList>
@@ -167,7 +167,7 @@ function PlanSelectRow({
                       </Feature>
                     ))}
                     {/* custom to match text size */}
-                    {hasMoreLink && <MoreFeaturesLink iconSize="14px" />}
+                    {hasMoreLink && <MoreFeaturesLink legacySize="14px" />}
                   </FeatureList>
                 ))}
             </PlanDetails>
@@ -181,10 +181,10 @@ function PlanSelectRow({
               <BillingInterval>{`/${billingInterval}`}</BillingInterval>
             </Price>
             {errorsStartingPrice && (
-              <EventPriceTag>{`${displayUnitPrice({cents: errorsStartingPrice})} / error`}</EventPriceTag>
+              <EventPriceTag variant="muted">{`${displayUnitPrice({cents: errorsStartingPrice})} / error`}</EventPriceTag>
             )}
             {spansStartingPrice && (
-              <EventPriceTag>{`${displayUnitPrice({cents: spansStartingPrice})} / span`}</EventPriceTag>
+              <EventPriceTag variant="muted">{`${displayUnitPrice({cents: spansStartingPrice})} / span`}</EventPriceTag>
             )}
             {discountInfo && (
               <DiscountWrapper>
@@ -217,7 +217,7 @@ const PlanOption = styled(PanelItem)<{isSelected?: boolean}>`
     p.isSelected &&
     css`
       background: ${p.theme.backgroundSecondary};
-      color: ${p.theme.textColor};
+      color: ${p.theme.tokens.content.primary};
     `}
 `;
 
@@ -264,14 +264,14 @@ const PriceContainer = styled('div')<{hasFeatures?: boolean}>`
 `;
 
 const StyledRadio = styled(Radio)`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const PlanDetails = styled('div')`
   display: inline-grid;
   gap: ${space(0.75)};
   font-size: ${p => p.theme.fontSize.xl};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const PlanName = styled('div')`
@@ -294,7 +294,7 @@ const PriceHeader = styled('div')`
 const Price = styled('div')`
   display: inline-grid;
   grid-template-columns: repeat(3, auto);
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const Currency = styled('span')`

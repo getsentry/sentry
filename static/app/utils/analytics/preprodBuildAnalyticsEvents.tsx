@@ -25,7 +25,13 @@ export type PreprodBuildEventParameters = {
   'preprod.builds.details.open_insights_sidebar': BasePreprodBuildEvent & {
     source: 'metric_card' | 'insight_table';
   };
+  'preprod.builds.install_modal.opened': BasePreprodBuildEvent & {
+    source: 'build_details_sidebar' | 'builds_table';
+  };
   'preprod.builds.release.build_row_clicked': BasePreprodBuildEvent;
+  'preprod.releases.mobile-builds.tab-clicked': {
+    organization: Organization;
+  };
 };
 
 type PreprodBuildAnalyticsKey = keyof PreprodBuildEventParameters;
@@ -45,4 +51,7 @@ export const preprodBuildEventMap: Record<PreprodBuildAnalyticsKey, string | nul
   'preprod.builds.compare.select_base_build': 'Preprod Build Comparison: Base Selected',
   'preprod.builds.compare.trigger_comparison':
     'Preprod Build Comparison: Compare Triggered',
+  'preprod.builds.install_modal.opened': 'Preprod Builds: Install Modal Opened',
+  'preprod.releases.mobile-builds.tab-clicked':
+    'Preprod Releases: Mobile Builds Tab Clicked',
 };

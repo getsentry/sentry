@@ -345,7 +345,7 @@ function stripNodeModulesPrefix(str: string): string {
 const StoryTableContainer = styled('div')`
   overflow: hidden;
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const StoryTypesSearchContainer = styled('div')`
@@ -356,12 +356,12 @@ const StoryTypesTable = styled('table')`
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 0;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   word-break: normal;
   table-layout: fixed;
 
   th {
-    background-color: ${p => p.theme.surface200};
+    background-color: ${p => p.theme.colors.surface300};
   }
 
   tr:not(:last-child) {
@@ -380,13 +380,13 @@ const StoryTypesTable = styled('table')`
 
 const StoryTypesTableHeader = styled('thead')`
   tr {
-    background-color: ${p => p.theme.surface200};
+    background-color: ${p => p.theme.colors.surface300};
     border-bottom: 1px solid ${p => p.theme.border};
   }
 `;
 
 const StoryTypesTableHeaderCell = styled('th')`
-  background-color: ${p => p.theme.surface200};
+  background-color: ${p => p.theme.colors.surface300};
   padding: ${p => p.theme.space.md};
 `;
 
@@ -398,7 +398,7 @@ const StoryTypesTableCell = styled('td')`
 const StoryTypesTableDefinitionCell = styled('td')`
   padding: ${p => p.theme.space.md};
   padding-left: 0;
-  background-color: ${p => p.theme.surface200};
+  background-color: ${p => p.theme.colors.surface300};
 
   button {
     margin-left: ${p => p.theme.space['2xs']};

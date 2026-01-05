@@ -359,6 +359,10 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
           fullWidth
           showDetailsPane={showDetailsPane}
           hasAiFeatures={enableAISearch}
+          onMouseDown={e => {
+            // Prevent the input from losing focus when interacting with the menu
+            e.preventDefault();
+          }}
         >
           {isOpen ? (
             <FilterKeyMenuContent
@@ -385,6 +389,10 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
         ref={popoverRef}
         width={filterKeyMenuWidth}
         hasAiFeatures={enableAISearch}
+        onMouseDown={e => {
+          // Prevent the input from losing focus when interacting with the menu
+          e.preventDefault();
+        }}
       >
         {isOpen ? (
           <FilterKeyMenuContent
@@ -461,8 +469,7 @@ const SectionedOverlay = styled(Overlay, {
   overflow: hidden;
   height: 400px;
   width: ${p => (p.fullWidth ? '100%' : `${p.width}px`)};
-  ${p =>
-    p.fullWidth && `border-radius: 0 0 ${p.theme.borderRadius} ${p.theme.borderRadius}`};
+  ${p => p.fullWidth && `border-radius: 0 0 ${p.theme.radius.md} ${p.theme.radius.md}`};
 `;
 
 const SectionedOverlayFooter = styled('div')`
@@ -513,9 +520,9 @@ const RecentFilterPill = styled('li')`
   font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.md};
   padding: 0 ${p => p.theme.space.lg} 0 ${p => p.theme.space.sm};
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   box-shadow: inset 0 0 0 1px ${p => p.theme.innerBorder};
-  border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
   cursor: pointer;
 
   /* Fade out on right side to represent that this is a filter key only */
@@ -549,9 +556,9 @@ const SectionButton = styled(Button)`
   border: 0;
 
   &[aria-selected='true'] {
-    background-color: ${p => p.theme.purple100};
-    box-shadow: inset 0 0 0 1px ${p => p.theme.purple100};
-    color: ${p => p.theme.purple300};
+    background-color: ${p => p.theme.colors.blue100};
+    box-shadow: inset 0 0 0 1px ${p => p.theme.colors.blue100};
+    color: ${p => p.theme.colors.blue400};
     font-weight: ${p => p.theme.fontWeight.bold};
   }
 `;

@@ -12,7 +12,6 @@ import {IconBroadcast, IconChevron, IconCode, IconUser} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 import type {AutofixTimelineEvent} from './types';
 
@@ -39,17 +38,10 @@ function getEventColor(
   theme: Theme,
   isActive?: boolean
 ): TimelineItemProps['colorConfig'] {
-  if (isChonkTheme(theme)) {
-    return {
-      title: theme.tokens.content.primary,
-      icon: isActive ? theme.colors.pink400 : theme.tokens.content.muted,
-      iconBorder: isActive ? theme.colors.pink400 : theme.tokens.content.muted,
-    };
-  }
   return {
-    title: theme.gray400,
-    icon: isActive ? theme.pink400 : theme.gray400,
-    iconBorder: isActive ? theme.pink400 : theme.gray400,
+    title: theme.tokens.content.primary,
+    icon: isActive ? theme.colors.pink400 : theme.tokens.content.muted,
+    iconBorder: isActive ? theme.colors.pink400 : theme.tokens.content.muted,
   };
 }
 
@@ -168,14 +160,13 @@ const StyledTimelineHeader = styled('div')<{isActive?: boolean}>`
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: ${space(0.25)};
-  padding-right: 0;
-  border-radius: ${p => p.theme.borderRadius};
+  padding: ${p => p.theme.space[0]} ${p => p.theme.space.xs};
+  border-radius: ${p => p.theme.radius.md};
   cursor: pointer;
   font-weight: ${p => p.theme.fontWeight.normal};
   gap: ${space(1)};
   text-decoration: ${p => (p.isActive ? 'underline dashed' : 'none')};
-  text-decoration-color: ${p => p.theme.pink300};
+  text-decoration-color: ${p => p.theme.colors.pink400};
   text-decoration-thickness: 1px;
   text-underline-offset: 4px;
 

@@ -93,7 +93,7 @@ SavedEntityTable.Row = styled(SimpleTable.Row, {
   height: 40px;
 
   &:last-child {
-    border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+    border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   }
 
   ${p =>
@@ -139,7 +139,7 @@ SavedEntityTable.CellStar = function CellStar({
 };
 
 const StyledLink = styled(Link)`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   text-decoration: underline;
   text-decoration-color: ${p => p.theme.border};
   ${p => p.theme.overflowEllipsis};

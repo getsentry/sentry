@@ -1,3 +1,4 @@
+import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import classNames from 'classnames';
 import {motion, type HTMLMotionProps} from 'framer-motion';
@@ -13,7 +14,6 @@ import {IconCheckmark, IconRefresh, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import testableTransition from 'sentry/utils/testableTransition';
 import type {Theme} from 'sentry/utils/theme';
-import {chonkStyled} from 'sentry/utils/theme/theme';
 
 export interface ToastProps {
   indicator: Indicator;
@@ -119,21 +119,21 @@ function getContainerTheme(theme: Theme, type: Indicator['type']): React.CSSProp
   }
 }
 
-interface ChonkToastContainerProps extends HTMLMotionProps<'div'> {
+interface ToastContainerProps extends HTMLMotionProps<'div'> {
   children: React.ReactNode;
   type: Indicator['type'];
 }
 
-const ToastContainer = chonkStyled((props: ChonkToastContainerProps) => {
+const ToastContainer = styled((props: ToastContainerProps) => {
   const {type, children, ...rest} = props;
   return (
     <ToastOuterContainer type={type} {...rest}>
       <ToastInnerContainer type={type}>{children}</ToastInnerContainer>
     </ToastOuterContainer>
   );
-})<ChonkToastContainerProps>``;
+})<ToastContainerProps>``;
 
-const ToastOuterContainer = chonkStyled(motion.div)<{type: Indicator['type']}>`
+const ToastOuterContainer = styled(motion.div)<{type: Indicator['type']}>`
   overflow: hidden;
   /* The outer container is a separate element because the colors are not opaque,
    * so we set the background color here to the background color so that the
@@ -145,7 +145,7 @@ const ToastOuterContainer = chonkStyled(motion.div)<{type: Indicator['type']}>`
   box-shadow: ${p => getContainerTheme(p.theme, p.type).boxShadow};
 `;
 
-const ToastInnerContainer = chonkStyled('div')<{type: Indicator['type']}>`
+const ToastInnerContainer = styled('div')<{type: Indicator['type']}>`
   display: flex;
   align-items: stretch;
   background: ${p => getContainerTheme(p.theme, p.type).background};
@@ -173,7 +173,7 @@ function getToastIconContainerTheme(
       };
   }
 }
-const ToastIconContainer = chonkStyled('div')<{type: Indicator['type']}>`
+const ToastIconContainer = styled('div')<{type: Indicator['type']}>`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -184,13 +184,15 @@ const ToastIconContainer = chonkStyled('div')<{type: Indicator['type']}>`
   svg {
     width: 16px;
     height: 16px;
-    color: ${p => (p.type === 'success' ? p.theme.colors.black : p.type === 'error' ? p.theme.colors.white : undefined)} !important;
+    color: ${p =>
+      p.type === 'success'
+        ? p.theme.colors.black
+        : p.type === 'error'
+          ? p.theme.colors.white
+          : undefined} !important;
   }
 `;
 
-const ToastLoadingIndicator = chonkStyled(LoadingIndicator)`
+const ToastLoadingIndicator = styled(LoadingIndicator)`
   margin: 0;
-  .loading-indicator {
-
-  }
 `;

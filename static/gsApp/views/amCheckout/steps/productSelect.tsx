@@ -142,7 +142,7 @@ function ProductSelect({
                 ariaRole="checkbox"
               >
                 <Flex align="center" gap="lg" padding="xl">
-                  <IconSeer variant="waiting" size="lg" />
+                  <IconSeer animation="waiting" size="lg" />
                   <Heading as="h2">
                     {t('Detect and fix issues faster with our AI agent')}
                   </Heading>
@@ -166,7 +166,7 @@ function ProductSelect({
                       <Flex align="center" gap="md">
                         {formattedMonthlyBudget && (
                           <Tag
-                            type="promotion"
+                            variant="promotion"
                             data-test-id="product-option-feature-credits"
                           >
                             {tct('Includes [includedBudget]/mo in credits', {
@@ -242,13 +242,13 @@ function ProductSelect({
           return (
             <Flex direction="column" gap="xl" key={apiName}>
               <Flex gap="sm" align="center">
-                <Badge type="new">{t('New')}</Badge>
+                <Badge variant="new">{t('New')}</Badge>
                 <Heading as="h2">
                   {t('Find and fix issues anywhere with Seer AI debugger')}
                 </Heading>
               </Flex>
               {!isSelected && subscription.addOns?.[AddOnCategory.SEER]?.enabled && (
-                <Alert type="warning" icon={<IconWarning />}>
+                <Alert variant="warning" icon={<IconWarning />}>
                   {t(
                     'Billing continues through the current cycle. New contributors and repos won’t get code reviews after cancellation.'
                   )}
@@ -337,6 +337,6 @@ const FeatureItem = styled('div')`
   display: grid;
   grid-template-columns: ${p => p.theme.space.xl} 1fr;
   align-items: start;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   gap: ${p => p.theme.space.md};
 `;

@@ -314,6 +314,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 ## Flags
 /src/sentry/flags/                                              @getsentry/replay-backend
 /tests/sentry/flags/                                            @getsentry/replay-backend
+/static/app/components/featureFlags/                            @getsentry/replay-frontend
 /static/app/components/events/featureFlags/                     @getsentry/replay-frontend
 /static/app/views/issueDetails/groupDistributionsDrawer.tsx     @getsentry/replay-frontend
 /static/app/views/issueDetails/groupFeatureFlags/               @getsentry/replay-frontend
@@ -697,17 +698,24 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/app/stories/                                  @getsentry/design-engineering
 /static/.cursor/BUGBOT.md                             @getsentry/design-engineering
 /static/CLAUDE.md                                     @getsentry/design-engineering
+/static/AGENTS.md                                     @getsentry/design-engineering
 /scripts/analyze-styled.ts                            @getsentry/design-engineering
 ## End of Frontend Platform
 
 # Prevent
-/src/sentry/prevent/                                      @getsentry/prevent
-/src/sentry/overwatch/                                    @getsentry/prevent
-/src/sentry/overwatch_webhooks/                           @getsentry/prevent
-/static/app/components/prevent/                           @getsentry/prevent
-/static/app/views/prevent/                                @getsentry/prevent
-/static/app/views/nav/secondary/sections/prevent/         @getsentry/prevent
+/src/sentry/prevent/                                      @getsentry/coding-workflows
+/src/sentry/overwatch/                                    @getsentry/coding-workflows
+/src/sentry/overwatch_webhooks/                           @getsentry/coding-workflows
+/static/app/components/prevent/                           @getsentry/coding-workflows
+/static/app/views/prevent/                                @getsentry/coding-workflows
+/static/app/views/nav/secondary/sections/prevent/         @getsentry/coding-workflows
 # End of Prevent
+
+# Coding Workflows
+/src/sentry/integrations/api/endpoints/organization_repository_settings.py   @getsentry/coding-workflows
+/src/sentry/seer/code_review/                                                @getsentry/coding-workflows
+/tests/sentry/seer/code_review/                                              @getsentry/coding-workflows
+# End of Coding Workflows
 
 # Conduit
 /src/sentry/conduit/                                  @getsentry/sre-infrastructure-engineering

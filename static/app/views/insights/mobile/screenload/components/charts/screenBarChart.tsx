@@ -42,14 +42,10 @@ export function ScreensBarChart({
   chartProps?: BaseChartProps;
 }) {
   const theme = useTheme();
-  const {
-    isLoading: isReleasesLoading,
-    primaryRelease,
-    secondaryRelease,
-  } = useReleaseSelection();
+  const {isLoading: isReleasesLoading, primaryRelease} = useReleaseSelection();
 
   const groupBy: SpanProperty[] = [SpanFields.DEVICE_CLASS];
-  if (defined(primaryRelease) || defined(secondaryRelease)) {
+  if (defined(primaryRelease)) {
     groupBy.push(SpanFields.RELEASE);
   }
   const breakdownMetric: SpanProperty =
@@ -77,7 +73,6 @@ export function ScreensBarChart({
   const transformedEvents = transformDeviceClassEvents({
     yAxes: [type === 'ttid' ? YAxis.TTID : YAxis.TTFD],
     primaryRelease,
-    secondaryRelease,
     data: deviceClassEvents,
     theme,
   });

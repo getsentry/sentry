@@ -61,7 +61,6 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
         analytics.record(
             PreprodArtifactApiListBuildsEvent(
                 organization_id=project.organization_id,
-                project_id=project.id,
                 user_id=request.user.id,
             )
         )
@@ -80,7 +79,13 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
         except InvalidParams:
             raise ParseError(detail="Invalid date range")
 
-        queryset = PreprodArtifact.objects.filter(project=project)
+        queryset = (
+            PreprodArtifact.objects.select_related(
+                "project", "build_configuration", "commit_comparison"
+            )
+            .prefetch_related("preprodartifactsizemetrics_set")
+            .filter(project=project)
+        )
 
         release_version_parsed = False
         release_version = params.get("release_version")
@@ -96,7 +101,7 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
         if not release_version_parsed:
             app_id = params.get("app_id")
             if app_id:
-                queryset = queryset.filter(app_id__icontains=app_id)
+                queryset = queryset.filter(app_id__exact=app_id)
 
             build_version = params.get("build_version")
             if build_version:
@@ -133,7 +138,7 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
 
         build_configuration = params.get("build_configuration")
         if build_configuration:
-            queryset = queryset.filter(build_configuration__name__icontains=build_configuration)
+            queryset = queryset.filter(build_configuration__name__exact=build_configuration)
 
         platform = params.get("platform")
         if platform:
@@ -148,10 +153,12 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
                     ]
                 )
 
-        queryset = queryset.order_by("-date_added")
-
         if start and end:
             queryset = queryset.filter(date_added__gte=start, date_added__lte=end)
+
+        annotated_queryset = queryset.annotate_download_count().order_by(  # type: ignore[attr-defined]  # mypy doesn't know about PreprodArtifactQuerySet
+            "-date_added"
+        )
 
         def transform_results(results: list[PreprodArtifact]) -> dict[str, Any]:
             build_details_list = []
@@ -166,7 +173,7 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
 
         return self.paginate(
             request=request,
-            queryset=queryset,
+            queryset=annotated_queryset,
             order_by="-date_added",
             on_results=transform_results,
             paginator_cls=OffsetPaginator,

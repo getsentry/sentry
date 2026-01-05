@@ -456,7 +456,7 @@ export function ActionableItems({event, project}: ActionableItemsProps) {
   return (
     <StyledAlert
       defaultExpanded
-      type={hasErrorAlert ? 'error' : 'warning'}
+      variant={hasErrorAlert ? 'danger' : 'warning'}
       expand={
         <Fragment>
           {Object.keys(errorMessages).map((error, idx) => {
@@ -495,7 +495,7 @@ const ToggleButton = styled(Button)`
 
   :hover,
   :focus {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 

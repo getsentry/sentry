@@ -1,7 +1,9 @@
-import {useCallback, useEffect, useRef} from 'react';
+import {useCallback} from 'react';
 import * as echarts from 'echarts/core';
 
 import {formatAbbreviatedNumberWithDynamicPrecision} from 'sentry/utils/formatters';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
 import {prettifyAggregation} from 'sentry/views/explore/utils';
 
 /**
@@ -10,26 +12,8 @@ import {prettifyAggregation} from 'sentry/views/explore/utils';
  * Elements within any ancestor marked with `data-seer-explorer-root` are excluded.
  */
 function useAsciiSnapshot() {
-  const mousePosRef = useRef<{inWindow: boolean; x: number; y: number} | null>(null);
-
-  useEffect(() => {
-    const handleMove = (e: MouseEvent) => {
-      mousePosRef.current = {x: e.clientX, y: e.clientY, inWindow: true};
-    };
-    const handleLeave = () => {
-      if (mousePosRef.current) {
-        mousePosRef.current.inWindow = false;
-      } else {
-        mousePosRef.current = {x: 0, y: 0, inWindow: false};
-      }
-    };
-    window.addEventListener('mousemove', handleMove, {passive: true});
-    window.addEventListener('mouseleave', handleLeave, {passive: true});
-    return () => {
-      window.removeEventListener('mousemove', handleMove as EventListener);
-      window.removeEventListener('mouseleave', handleLeave as EventListener);
-    };
-  }, []);
+  const {selection} = usePageFilters();
+  const {projects} = useProjects();
 
   const capture = useCallback(() => {
     if (typeof document === 'undefined' || typeof window === 'undefined') {
@@ -381,18 +365,102 @@ function useAsciiSnapshot() {
           // Sort x-values
           const sortedXValues = Array.from(allXValues).sort((a, b) => a - b);
 
-          // Limit table size for performance (max 50 rows)
-          const maxRows = 50;
-          const stride = Math.max(1, Math.ceil(sortedXValues.length / maxRows));
-          const sampledXValues = sortedXValues.filter((_, i) => i % stride === 0);
+          // Predefined bucket sizes (in milliseconds) for deterministic bucketing
+          const BUCKET_SIZES = [
+            {ms: 60_000, label: '1min'},
+            {ms: 300_000, label: '5min'},
+            {ms: 1_800_000, label: '30min'},
+            {ms: 3_600_000, label: '1hr'},
+            {ms: 21_600_000, label: '6hr'},
+            {ms: 43_200_000, label: '12hr'},
+            {ms: 86_400_000, label: '1d'},
+            {ms: 259_200_000, label: '3d'},
+          ];
+          const maxBuckets = 50;
 
-          // Format timestamp for display
+          const minX = sortedXValues[0]!;
+          const maxX = sortedXValues[sortedXValues.length - 1]!;
+          const timeRange = maxX - minX;
+
+          // Find the smallest bucket size that keeps us under maxBuckets
+          let chosenBucketSize = BUCKET_SIZES[BUCKET_SIZES.length - 1]!;
+          for (const bucket of BUCKET_SIZES) {
+            if (Math.ceil(timeRange / bucket.ms) <= maxBuckets) {
+              chosenBucketSize = bucket;
+              break;
+            }
+          }
+
+          let displayTimestamps: number[];
+          let displaySeriesData: Array<{data: Map<number, number>; name: string}>;
+          let bucketSizeMs: number;
+
+          if (sortedXValues.length <= maxBuckets && timeRange < chosenBucketSize.ms) {
+            // No bucketing needed - use original data
+            displayTimestamps = sortedXValues;
+            displaySeriesData = uniqueSeries;
+            bucketSizeMs = 0; // Indicates no bucketing
+          } else {
+            bucketSizeMs = chosenBucketSize.ms;
+
+            // Align bucket start to round intervals (e.g., start of minute/hour)
+            const alignedMinX = Math.floor(minX / bucketSizeMs) * bucketSizeMs;
+            const numBuckets = Math.ceil((maxX - alignedMinX) / bucketSizeMs);
+
+            // Generate bucket start timestamps
+            displayTimestamps = [];
+            for (let i = 0; i < numBuckets; i++) {
+              displayTimestamps.push(alignedMinX + i * bucketSizeMs);
+            }
+
+            // Sum each series' values into buckets
+            displaySeriesData = uniqueSeries.map(s => {
+              const bucketedData = new Map<number, number>();
+
+              for (const [x, y] of s.data) {
+                // Find which bucket this timestamp belongs to
+                const bucketIndex = Math.min(
+                  numBuckets - 1,
+                  Math.floor((x - alignedMinX) / bucketSizeMs)
+                );
+                const bucketTime = displayTimestamps[bucketIndex]!;
+
+                // Sum into the bucket
+                const existing = bucketedData.get(bucketTime) ?? 0;
+                bucketedData.set(bucketTime, existing + y);
+              }
+
+              return {data: bucketedData, name: s.name};
+            });
+          }
+
+          // Format timestamp or time range for display (no seconds since intervals are round)
           const formatTimestamp = (ts: number): string => {
-            // If timestamp looks like milliseconds (large number), format as date
             if (ts > 1000000000000) {
               try {
-                const date = new Date(ts);
-                return date.toISOString().replace('T', ' ').substring(0, 19);
+                const startDate = new Date(ts);
+                const startStr = startDate
+                  .toISOString()
+                  .replace('T', ' ')
+                  .substring(0, 16); // "YYYY-MM-DD HH:MM"
+
+                if (bucketSizeMs > 0) {
+                  // Show time range for bucketed data
+                  const endDate = new Date(ts + bucketSizeMs);
+                  const sameDay =
+                    startDate.toISOString().substring(0, 10) ===
+                    endDate.toISOString().substring(0, 10);
+
+                  if (sameDay) {
+                    // Same day: "YYYY-MM-DD HH:MM-HH:MM"
+                    const endTime = endDate.toISOString().substring(11, 16);
+                    return `${startStr}-${endTime}`;
+                  }
+                  // Different day: "YYYY-MM-DD HH:MM - YYYY-MM-DD HH:MM"
+                  const endStr = endDate.toISOString().replace('T', ' ').substring(0, 16);
+                  return `${startStr} - ${endStr}`;
+                }
+                return startStr;
               } catch (e) {
                 return String(ts);
               }
@@ -413,22 +481,22 @@ function useAsciiSnapshot() {
           writeOverlay(chartRow, chartCol - Math.floor(marker.length / 2), marker);
 
           // Build table with fixed-width columns (pandas-style, no separators)
-          const columnNames = ['Time', ...uniqueSeries.map(s => s.name)];
+          const columnNames = ['Time (UTC)', ...displaySeriesData.map(s => s.name)];
 
           // Calculate max width for each column
           const columnWidths = columnNames.map((name, idx) => {
             let maxWidth = name.length;
             if (idx === 0) {
               // Time column: check all timestamps
-              for (const x of sampledXValues) {
+              for (const x of displayTimestamps) {
                 const tsStr = formatTimestamp(x);
                 maxWidth = Math.max(maxWidth, tsStr.length);
               }
             } else {
               // Data columns: check all values
               const seriesIdx = idx - 1;
-              for (const x of sampledXValues) {
-                const y = uniqueSeries[seriesIdx]?.data.get(x);
+              for (const x of displayTimestamps) {
+                const y = displaySeriesData[seriesIdx]?.data.get(x);
                 if (y === undefined) {
                   maxWidth = Math.max(maxWidth, 1); // '-' is 1 char
                 } else {
@@ -453,9 +521,9 @@ function useAsciiSnapshot() {
           const tableRows: string[] = [headerRow];
 
           // Build data rows
-          for (const x of sampledXValues) {
+          for (const x of displayTimestamps) {
             const timestampStr = formatTimestamp(x);
-            const values = uniqueSeries.map((s, idx) => {
+            const values = displaySeriesData.map((s, idx) => {
               const y = s.data.get(x);
               const valStr =
                 y === undefined ? '-' : formatAbbreviatedNumberWithDynamicPrecision(y);
@@ -665,37 +733,48 @@ function useAsciiSnapshot() {
       node = walker.nextNode();
     }
 
-    // Overlay the user's mouse cursor marker if within the viewport
-    const cursorLabel = '[USER CURSOR]';
-    const pos = mousePosRef.current;
-    if (pos?.inWindow) {
-      const within = !(
-        pos.x <= 0 ||
-        pos.y <= 0 ||
-        pos.x >= viewportWidth ||
-        pos.y >= viewportHeight
-      );
-      if (within) {
-        const rowIdx = Math.min(rows - 1, Math.max(0, Math.floor(pos.y / cellHeightPx)));
-        const colIdx = Math.max(0, Math.floor((pos.x - leftShiftPx) / cellWidthPx));
-        writeOverlay(rowIdx, colIdx, cursorLabel);
-      }
-    }
-
     // Top line: full URL of the current page
     const url = window.location.href;
     let result = url + '\n' + grid.map(row => row.join('')).join('\n');
 
-    // Append chart tables as footnotes
-    if (chartTables.length > 0) {
-      result += '\n\n=== CHART DATA FOOTNOTES ===\n\n';
-      chartTables.forEach((table, index) => {
-        result += `Chart ${index + 1}:\n${table}\n\n`;
-      });
+    // Check if project selector exists on the page and get selected project slugs
+    const projectSlugs: string[] = [];
+    const projectSelector = document.querySelector(
+      '[data-test-id="page-filter-project-selector"]'
+    );
+    if (projectSelector && selection.projects.length > 0) {
+      // Convert project IDs to slugs
+      const projectIdToSlug = new Map(projects.map(p => [parseInt(p.id, 10), p.slug]));
+      for (const projectId of selection.projects) {
+        const slug = projectIdToSlug.get(projectId);
+        if (slug) {
+          projectSlugs.push(slug);
+        }
+      }
+    }
+
+    // Append footnotes if either charts or projects are present
+    if (chartTables.length > 0 || projectSlugs.length > 0) {
+      result += '\n\n=== FOOTNOTES ===\n\n';
+
+      // Append selected project slugs if project selector exists
+      if (projectSlugs.length > 0) {
+        result += `This page has the following projects selected: ${projectSlugs.join(', ')}\n`;
+        if (chartTables.length > 0) {
+          result += '\n';
+        }
+      }
+
+      // Append chart tables
+      if (chartTables.length > 0) {
+        chartTables.forEach((table, index) => {
+          result += `Chart ${index + 1}:\n${table}\n\n`;
+        });
+      }
     }
 
     return result;
-  }, []);
+  }, [selection.projects, projects]);
 
   return capture;
 }

@@ -32,7 +32,7 @@ function EditAdminOptionModal({
       <Header closeButton>Edit Option {option.groupingInfo ? 'Group' : null}</Header>
       <Body>
         <Alert.Container>
-          <Alert type="info" showIcon={false}>
+          <Alert variant="info" showIcon={false}>
             Options setting through _admin is deprecated. Please use the options
             automator.
           </Alert>

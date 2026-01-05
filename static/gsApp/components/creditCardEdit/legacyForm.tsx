@@ -128,19 +128,19 @@ function CreditCardFormInner({
 
   const stripeElementStyles = {
     base: {
-      backgroundColor: theme.isChonk ? theme.tokens.background.primary : theme.background,
-      color: theme.isChonk ? theme.tokens.content.primary : theme.textColor,
+      backgroundColor: theme.tokens.background.primary,
+      color: theme.tokens.content.primary,
       fontFamily: theme.text.family,
       fontWeight: 400,
       fontSize: theme.fontSize.lg,
       '::placeholder': {
-        color: theme.isChonk ? theme.tokens.content.muted : theme.gray300,
+        color: theme.tokens.content.muted,
       },
-      iconColor: theme.isChonk ? theme.tokens.content.primary : theme.gray300,
+      iconColor: theme.tokens.content.primary,
     },
     invalid: {
-      color: theme.isChonk ? theme.tokens.content.danger : theme.red300,
-      iconColor: theme.isChonk ? theme.tokens.content.danger : theme.red300,
+      color: theme.tokens.content.danger,
+      iconColor: theme.tokens.content.danger,
     },
   };
 
@@ -190,7 +190,7 @@ function CreditCardFormInner({
     >
       {error && (
         <Alert.Container>
-          <Alert type="error" showIcon={false}>
+          <Alert variant="danger" showIcon={false}>
             <AlertContent>
               {error}
               {errorRetry && (
@@ -205,7 +205,7 @@ function CreditCardFormInner({
       {loading && <LoadingIndicator />}
       {referrer?.includes('billing-failure') && (
         <Alert.Container>
-          <Alert type="warning" showIcon={false}>
+          <Alert variant="warning" showIcon={false}>
             {t('Your credit card will be charged upon update.')}
           </Alert>
         </Alert.Container>
@@ -221,7 +221,6 @@ function CreditCardFormInner({
             <CardElement
               options={{
                 style: stripeElementStyles,
-                ...(theme.isChonk ? undefined : {hidePostalCode: false}),
               }}
               onReady={() => setLoading(false)}
             />
@@ -282,7 +281,7 @@ function CreditCardFormInner({
 const FormControl = styled(Input.withComponent('div'))`
   /* Allow stripe form element to fill whatever height it needs to based
    * on the config that we are providing it with. */
-  height: ${p => (p.theme.isChonk ? 'auto' : undefined)};
+  height: auto;
 `;
 
 const fieldCss = css`
@@ -305,7 +304,7 @@ const Info = styled('div')`
 const FinePrint = styled('div')`
   margin-top: ${space(1)};
   font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => (p.theme.isChonk ? p.theme.tokens.content.muted : p.theme.gray300)};
+  color: ${p => p.theme.tokens.content.muted};
 `;
 
 const CreditCardInfoWrapper = styled('div')<{isLoading?: boolean}>`

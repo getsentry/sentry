@@ -71,6 +71,7 @@ function ChartSelectionStateProvider({children}: ChartSelectionProviderProps) {
     fieldName: 'chartSelection',
     deserializer: deserializeChartSelection,
     serializer: serializeChartSelection,
+    syncStateWithUrl: true,
   });
 
   const value = useMemo<ChartSelectionContextValue>(

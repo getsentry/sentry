@@ -40,16 +40,16 @@ export const DesyncedFilterIndicator = styled('div')`
   height: 8px;
   border-radius: 50%;
   background: ${p => p.theme.active};
-  border: solid 1px ${p => p.theme.background};
+  border: solid 1px ${p => p.theme.tokens.background.primary};
   position: absolute;
-  top: -${space(0.25)};
+  top: 0;
   right: -${space(0.75)};
 `;
 
 const DesyncedFilterMessageWrap = styled('div')`
   border: solid 1px ${p => p.theme.border};
   background: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   margin: ${space(0.25)} ${space(0.5)} ${space(0.5)};
   padding: ${space(0.75)};
 

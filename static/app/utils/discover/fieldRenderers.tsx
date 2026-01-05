@@ -59,7 +59,6 @@ import toPercent from 'sentry/utils/number/toPercent';
 import Projects from 'sentry/utils/projects';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {isUrl} from 'sentry/utils/string/isUrl';
-import {hasDrillDownFlowsFeature} from 'sentry/views/dashboards/hooks/useHasDrillDownFlows';
 import {
   DashboardFilterKeys,
   type DashboardFilters,
@@ -423,6 +422,8 @@ const DownloadCount = styled('span')`
 const RightAlignedContainer = styled('span')`
   margin-left: auto;
   margin-right: 0;
+  display: block;
+  text-align: right;
 `;
 
 /**
@@ -784,7 +785,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       const label = ADOPTION_STAGE_LABELS[data.adoption_stage];
       return data.adoption_stage && label ? (
         <Tooltip title={label.tooltipTitle} isHoverable>
-          <Tag type={label.type}>{label.name}</Tag>
+          <Tag variant={label.variant}>{label.name}</Tag>
         </Tooltip>
       ) : (
         <Container>{emptyValue}</Container>
@@ -917,6 +918,18 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         <RightAlignedContainer>
           <PerformanceBadge score={Math.round(score * 100)} />
         </RightAlignedContainer>
+      );
+    },
+  },
+  'opportunity_score(measurements.score.total)': {
+    sortField: 'opportunity_score(measurements.score.total)',
+    renderFunc: data => {
+      const score = data['opportunity_score(measurements.score.total)'];
+      if (typeof score !== 'number') {
+        return <Container>{emptyValue}</Container>;
+      }
+      return (
+        <RightAlignedContainer>{Math.round(score * 10000) / 100}</RightAlignedContainer>
       );
     },
   },
@@ -1322,7 +1335,7 @@ const RectangleRelativeOpsBreakdown = styled(RowRectangle)`
 `;
 
 const OtherRelativeOpsBreakdown = styled(RectangleRelativeOpsBreakdown)`
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.colors.gray100};
 `;
 
 const StyledLink = styled(Link)`
@@ -1407,7 +1420,7 @@ function wrapFieldRendererInDashboardLink(
       widget,
       dashboardFilters
     );
-    if (hasDrillDownFlowsFeature(organization) && dashboardUrl) {
+    if (dashboardUrl) {
       return <Link to={dashboardUrl}>{renderer(data, baggage)}</Link>;
     }
     return renderer(data, baggage);

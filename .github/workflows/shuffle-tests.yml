@@ -8,6 +8,10 @@ on:
         description: Whether to get per-test coverage (uses ./github/workflows/codecov_per_test_coverage.yml)
         required: true
         default: 'true'
+      seed:
+        description: The seed for the test ordering
+        required: false
+
   # Run once a day
   schedule:
     - cron: '0 1 * * *'
@@ -18,7 +22,6 @@ concurrency:
 
 env:
   SENTRY_SHUFFLE_TESTS: true
-
 jobs:
   per-test-coverage:
     if: ${{ inputs.per-test-coverage == 'true' || github.event_name == 'schedule' }}
@@ -52,10 +55,14 @@ jobs:
         id: setup
         with:
           mode: backend-ci
+        env:
+          SENTRY_SHUFFLE_TESTS_SEED: ${{ inputs.seed }}
 
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
           make test-python-ci
+        env:
+          SENTRY_SHUFFLE_TESTS_SEED: ${{ inputs.seed }}
 
       - name: Inspect failure
         if: failure()
