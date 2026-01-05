@@ -1,0 +1,57 @@
+---
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
+---
+{
+  "grouping_config": "newstyle:2023-01-11",
+  "variants": {
+    "app_exception_message": {
+      "component": {
+        "contributes": true,
+        "hint": null,
+        "id": "app",
+        "name": "in-app",
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "exception",
+            "name": "exception",
+            "values": [
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "type",
+                "name": null,
+                "values": [
+                  "System.AggregateException"
+                ]
+              },
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "value",
+                "name": null,
+                "values": [
+                  "One or more errors occurred."
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": null,
+                "id": "stacktrace",
+                "name": "stacktrace",
+                "values": []
+              }
+            ]
+          }
+        ]
+      },
+      "contributes": true,
+      "description": "exception message",
+      "hash": "0809098f9f613b63467605dd1739cc9b",
+      "hint": null,
+      "key": "app_exception_message",
+      "type": "component"
+    }
+  }
+}
