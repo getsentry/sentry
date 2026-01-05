@@ -189,12 +189,12 @@ describe('IntegrationDetailedView', () => {
       initialRouterConfig: createRouterConfig('bitbucket', {tab: 'configurations'}),
       organization,
     });
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
-
-    expect(screen.getByRole('button', {name: 'Uninstall'})).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Uninstall'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    });
   });
 
   it('allows members to configure github/gitlab', async () => {
