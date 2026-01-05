@@ -1443,8 +1443,9 @@ function getDashboardUrl(
 
       // Format the value as a proper filter condition string
       const mutableSearch = new MutableSearch('');
-      mutableSearch.addFilterValueList(field, [data[field]]);
-      const formattedValue = mutableSearch.toString();
+      const formattedValue = mutableSearch
+        .addFilterValueList(field, [data[field]])
+        .toString();
 
       newTemporaryFilters.push({
         dataset: widget.widgetType,
