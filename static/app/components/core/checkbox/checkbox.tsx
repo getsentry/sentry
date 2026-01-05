@@ -5,13 +5,56 @@ import {mergeRefs} from '@react-aria/utils';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import type {FormSize} from 'sentry/utils/theme';
 
-import * as ChonkCheckbox from './checkbox.chonk';
-
 type CheckboxConfig = {
   borderRadius: string;
   box: string;
   icon: string;
 };
+
+const NativeHiddenCheckbox = styled('input')`
+  position: absolute;
+  opacity: 0;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+
+  & + * {
+    color: ${p => p.theme.colors.white};
+    border: 1px solid ${p => p.theme.colors.surface100};
+
+    svg {
+      stroke: ${p => p.theme.colors.white};
+    }
+  }
+
+  &:focus-visible + * {
+    ${p => p.theme.focusRing()};
+  }
+
+  &:disabled + *,
+  &[aria-disabled='true'] + * {
+    background-color: ${p => p.theme.colors.surface500};
+    border: 1px solid ${p => p.theme.colors.surface100};
+    cursor: not-allowed;
+  }
+
+  &:checked + *,
+  &:indeterminate + * {
+    background-color: ${p => p.theme.colors.chonk.blue400};
+    color: ${p => p.theme.white};
+  }
+
+  &:disabled:checked + *,
+  &:disabled:indeterminate + * {
+    background-color: ${p => p.theme.colors.chonk.blue400};
+    border: 1px solid ${p => p.theme.colors.chonk.blue400};
+    opacity: 0.6;
+  }
+`;
 
 const checkboxSizeMap: Record<NonNullable<CheckboxProps['size']>, CheckboxConfig> = {
   xs: {box: '12px', borderRadius: '2px', icon: '10px'},
@@ -90,8 +133,6 @@ const CheckboxWrapper = styled('div')<{
   justify-content: flex-start;
   border-radius: ${p => checkboxSizeMap[p.size].borderRadius};
 `;
-
-const NativeHiddenCheckbox = ChonkCheckbox.ChonkNativeHiddenCheckbox;
 
 const FakeCheckbox = styled('div')<{
   size: NonNullable<CheckboxProps['size']>;
