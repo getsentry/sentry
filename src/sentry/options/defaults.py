@@ -3842,10 +3842,10 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Enables users for API token async flush
+# Global flag to enable API token async flush
 register(
-    "users:api-token-async-flush",
-    default=[],
-    type=Sequence,
+    "api-token-async-flush",
+    default=False,
+    type=Bool,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )

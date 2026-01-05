@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import base64
-import contextlib
 import hashlib
 import logging
 import re
 import secrets
-from collections.abc import Collection, Generator, Mapping
+from collections.abc import Collection, Mapping
 from datetime import timedelta
 from typing import Any, ClassVar
 
@@ -22,10 +21,8 @@ from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import SentryAppStatus
 from sentry.db.models import FlexibleForeignKey, control_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.base import ControlOutboxProducingManager, ReplicatedControlModel
-from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
-from sentry.hybridcloud.tasks.deliver_from_outbox import drain_outbox_shards_control
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.locks import locks
 from sentry.models.apiapplication import ApiApplicationStatus
 from sentry.models.apigrant import ApiGrant, ExpiredGrantError, InvalidGrantError
@@ -179,6 +176,9 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
     __relocation_scope__ = {RelocationScope.Global, RelocationScope.Config}
     category = OutboxCategory.API_TOKEN_UPDATE
 
+    # Outbox settings
+    enqueue_after_flush = True
+
     # users can generate tokens without being application-bound
     application = FlexibleForeignKey("sentry.ApiApplication", null=True)
     user = FlexibleForeignKey("sentry.User")
@@ -288,6 +288,8 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         return token
 
     def save(self, *args: Any, **kwargs: Any) -> None:
+        from sentry import options
+
         self.hashed_token = hashlib.sha256(self.token.encode()).hexdigest()
 
         if self.refresh_token:
@@ -301,18 +303,17 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         token_last_characters = self.token[-4:]
         self.token_last_characters = token_last_characters
 
-        result = super().save(*args, **kwargs)
+        has_async_flush = options.get("api-token-async-flush")
+        if has_async_flush:
+            self.default_flush = False
 
-        # Schedule async replication if using async mode
-        if not self._should_flush_outbox():
-            transaction.on_commit(
-                lambda: self._schedule_async_replication(),
-                using=router.db_for_write(type(self)),
-            )
+        result = super().save(*args, **kwargs)
 
         return result
 
     def update(self, *args: Any, **kwargs: Any) -> int:
+        from sentry import options
+
         # if the token or refresh_token was updated, we need to
         # re-calculate the hashed values
         if "token" in kwargs:
@@ -326,77 +327,15 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         if "token" in kwargs:
             kwargs["token_last_characters"] = kwargs["token"][-4:]
 
+        has_async_flush = options.get("api-token-async-flush")
+        if has_async_flush:
+            self.default_flush = False
         result = super().update(*args, **kwargs)
-
-        # Schedule async replication if using async mode
-        if not self._should_flush_outbox():
-            transaction.on_commit(
-                lambda: self._schedule_async_replication(),
-                using=router.db_for_write(type(self)),
-            )
 
         return result
 
     def outbox_region_names(self) -> Collection[str]:
         return list(find_all_region_names())
-
-    def _should_flush_outbox(self) -> bool:
-        from sentry import options
-
-        has_async_flush = self.user_id in options.get("users:api-token-async-flush")
-        logger.info(
-            "async_flush_check",
-            extra={
-                "has_async_flush": has_async_flush,
-                "user_id": self.user_id,
-                "token_id": self.id,
-            },
-        )
-        if has_async_flush:
-            return False
-
-        return True
-
-    @contextlib.contextmanager
-    def _maybe_prepare_outboxes(self, *, outbox_before_super: bool) -> Generator[None]:
-        # Overriding to get around how default_flush cannot be cleanly feature flagged
-        flush = self._should_flush_outbox()
-
-        with outbox_context(
-            transaction.atomic(router.db_for_write(type(self))),
-            flush=flush,
-        ):
-            if not outbox_before_super:
-                yield
-            for outbox in self.outboxes_for_update():
-                outbox.save()
-            if outbox_before_super:
-                yield
-
-    def _schedule_async_replication(self) -> None:
-        # Query for the outboxes we just created for this specific token
-        outboxes = ControlOutbox.objects.filter(
-            shard_scope=OutboxScope.USER_SCOPE,
-            shard_identifier=self.user_id,
-            category=OutboxCategory.API_TOKEN_UPDATE,
-            object_identifier=self.id,
-        ).order_by("id")
-
-        if not outboxes.exists():
-            return
-
-        # Get the ID range of our specific token's outboxes
-        first_row = outboxes.first()
-        last_row = outboxes.last()
-
-        if first_row is None or last_row is None:
-            return
-
-        drain_outbox_shards_control.delay(
-            outbox_identifier_low=first_row.id,
-            outbox_identifier_hi=last_row.id + 1,
-            outbox_name="sentry.ControlOutbox",
-        )
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
         from sentry.auth.services.auth.serial import serialize_api_token
