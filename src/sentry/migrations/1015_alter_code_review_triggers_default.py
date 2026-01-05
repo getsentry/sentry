@@ -18,14 +18,21 @@ def backfill_on_command_phrase_trigger(
     settings_to_update = []
     batch_size = 1000
 
-    for setting in RepositorySettings.objects.all():
-        triggers = setting.code_review_triggers or []
+    for setting in RepositorySettings.objects.all().iterator(chunk_size=batch_size):
+        triggers = list(setting.code_review_triggers or [])
         if CodeReviewTrigger.ON_COMMAND_PHRASE.value not in triggers:
             setting.code_review_triggers = list(triggers) + [
                 CodeReviewTrigger.ON_COMMAND_PHRASE.value
             ]
             settings_to_update.append(setting)
 
+        if len(settings_to_update) >= batch_size:
+            RepositorySettings.objects.bulk_update(
+                settings_to_update, ["code_review_triggers"], batch_size=batch_size
+            )
+            settings_to_update = []
+
+    # Update remaining items
     if settings_to_update:
         RepositorySettings.objects.bulk_update(
             settings_to_update, ["code_review_triggers"], batch_size=batch_size

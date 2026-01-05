@@ -45,12 +45,9 @@ class RepositorySettings(Model):
 
     def save(self, *args: Any, **kwargs: Any) -> None:
         # Ensure ON_COMMAND_PHRASE is always a trigger
-        if self.code_review_triggers is None:
-            self.code_review_triggers = [CodeReviewTrigger.ON_COMMAND_PHRASE.value]
-        else:
-            triggers = list(self.code_review_triggers)
-            if CodeReviewTrigger.ON_COMMAND_PHRASE.value not in triggers:
-                triggers.append(CodeReviewTrigger.ON_COMMAND_PHRASE.value)
-                self.code_review_triggers = triggers
+        triggers = list(self.code_review_triggers or [])
+        if CodeReviewTrigger.ON_COMMAND_PHRASE.value not in triggers:
+            triggers.append(CodeReviewTrigger.ON_COMMAND_PHRASE.value)
+            self.code_review_triggers = triggers
 
         super().save(*args, **kwargs)
