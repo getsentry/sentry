@@ -4,9 +4,8 @@ from abc import ABC
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.utils import execute_via_issue_alert_handler
-from sentry.workflow_engine.models import Action, Detector
 from sentry.workflow_engine.transformers import TargetTypeConfigTransformer
-from sentry.workflow_engine.types import ActionHandler, ConfigTransformer, WorkflowEventData
+from sentry.workflow_engine.types import ActionHandler, ActionInvocation, ConfigTransformer
 
 logger = logging.getLogger(__name__)
 
@@ -60,9 +59,5 @@ class TicketingActionHandler(IntegrationActionHandler, ABC):
         return TargetTypeConfigTransformer.from_config_schema(TicketingActionHandler.config_schema)
 
     @staticmethod
-    def execute(
-        job: WorkflowEventData,
-        action: Action,
-        detector: Detector,
-    ) -> None:
-        execute_via_issue_alert_handler(job, action, detector)
+    def execute(invocation: ActionInvocation) -> None:
+        execute_via_issue_alert_handler(invocation)

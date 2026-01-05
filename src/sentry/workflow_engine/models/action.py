@@ -21,7 +21,7 @@ from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.utils import metrics
 from sentry.workflow_engine.models.json_config import JSONConfigBase
 from sentry.workflow_engine.registry import action_handler_registry
-from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
+from sentry.workflow_engine.types import ActionHandler, ActionInvocation, WorkflowEventData
 
 logger = logging.getLogger(__name__)
 
@@ -134,7 +134,12 @@ class Action(DefaultFieldsModel, JSONConfigBase):
             sample_rate=1.0,
         ):
             handler = self.get_handler()
-            handler.execute(event_data, self, detector)
+            invocation = ActionInvocation(
+                event_data=event_data,
+                action=self,
+                detector=detector,
+            )
+            handler.execute(invocation)
 
         metrics.incr(
             "workflow_engine.action.trigger",

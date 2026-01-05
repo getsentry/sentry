@@ -97,6 +97,18 @@ class WorkflowEventData:
     workflow_env: Environment | None = None
 
 
+@dataclass(frozen=True)
+class ActionInvocation:
+    """
+    Represents a single invocation of a workflow action, containing all the information
+    needed to route and execute the action through the appropriate handler.
+    """
+
+    event_data: WorkflowEventData
+    action: Action
+    detector: Detector
+
+
 class WorkflowEvaluationSnapshot(TypedDict):
     """
     A snapshot of data used to evaluate a workflow.
@@ -279,7 +291,7 @@ class ActionHandler:
         return None
 
     @staticmethod
-    def execute(event_data: WorkflowEventData, action: Action, detector: Detector) -> None:
+    def execute(invocation: ActionInvocation) -> None:
         # TODO - do we need to pass all of this data to an action?
         raise NotImplementedError
 

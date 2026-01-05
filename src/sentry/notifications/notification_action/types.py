@@ -38,7 +38,7 @@ from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
 from sentry.workflow_engine.models import Action, AlertRuleWorkflow, Detector
-from sentry.workflow_engine.types import DetectorPriorityLevel, WorkflowEventData
+from sentry.workflow_engine.types import ActionInvocation, DetectorPriorityLevel, WorkflowEventData
 from sentry.workflow_engine.typings.notification_action import (
     ACTION_FIELD_MAPPINGS,
     ActionFieldMapping,
@@ -63,9 +63,7 @@ class LegacyRegistryHandler(ABC):
 
     @staticmethod
     @abstractmethod
-    def handle_workflow_action(
-        event_data: WorkflowEventData, action: Action, detector: Detector
-    ) -> None:
+    def handle_workflow_action(invocation: ActionInvocation) -> None:
         """
         Implement this method to handle the specific notification logic for your handler.
         """
@@ -310,12 +308,7 @@ class BaseIssueAlertHandler(ABC):
             callback(event_data.event, future)
 
     @classmethod
-    def invoke_legacy_registry(
-        cls,
-        event_data: WorkflowEventData,
-        action: Action,
-        detector: Detector,
-    ) -> None:
+    def invoke_legacy_registry(cls, invocation: ActionInvocation) -> None:
         """
         This method will create a rule instance from the Action model, and then invoke the legacy registry.
         This method encompasses the following logic in our legacy system:
@@ -327,14 +320,16 @@ class BaseIssueAlertHandler(ABC):
         notification_uuid = str(uuid.uuid4())
 
         # Create a rule
-        rule = cls.create_rule_instance_from_action(action, detector, event_data)
+        rule = cls.create_rule_instance_from_action(
+            invocation.action, invocation.detector, invocation.event_data
+        )
 
         logger.info(
             "notification_action.execute_via_issue_alert_handler",
             extra={
-                "action_id": action.id,
-                "detector_id": detector.id,
-                "event_data": asdict(event_data),
+                "action_id": invocation.action.id,
+                "detector_id": invocation.detector.id,
+                "event_data": asdict(invocation.event_data),
                 "rule_id": rule.id,
                 "rule_project_id": rule.project.id,
                 "rule_environment_id": rule.environment_id,
@@ -343,14 +338,14 @@ class BaseIssueAlertHandler(ABC):
             },
         )
         # Get the futures
-        futures = cls.get_rule_futures(event_data, rule, notification_uuid)
+        futures = cls.get_rule_futures(invocation.event_data, rule, notification_uuid)
 
         # Execute the futures
         # If the rule id is -1, we are sending a test notification
         if rule.id == TEST_NOTIFICATION_ID:
-            cls.send_test_notification(event_data, futures)
+            cls.send_test_notification(invocation.event_data, futures)
         else:
-            cls.execute_futures(event_data, futures)
+            cls.execute_futures(invocation.event_data, futures)
 
 
 class TicketingIssueAlertHandler(BaseIssueAlertHandler):
@@ -473,14 +468,9 @@ class BaseMetricAlertHandler(ABC):
         return evidence_data, priority
 
     @classmethod
-    def invoke_legacy_registry(
-        cls,
-        event_data: WorkflowEventData,
-        action: Action,
-        detector: Detector,
-    ) -> None:
+    def invoke_legacy_registry(cls, invocation: ActionInvocation) -> None:
 
-        event = event_data.event
+        event = invocation.event_data.event
 
         # Extract evidence data and priority based on event type
         if isinstance(event, GroupEvent):
@@ -492,26 +482,26 @@ class BaseMetricAlertHandler(ABC):
                 "WorkflowEventData.event must be a GroupEvent or Activity to invoke metric alert legacy registry"
             )
 
-        notification_context = cls.build_notification_context(action)
+        notification_context = cls.build_notification_context(invocation.action)
         alert_context = cls.build_alert_context(
-            detector, evidence_data, event_data.group.status, priority
+            invocation.detector, evidence_data, invocation.event_data.group.status, priority
         )
 
         metric_issue_context = cls.build_metric_issue_context(
-            event_data.group, evidence_data, priority
+            invocation.event_data.group, evidence_data, priority
         )
-        open_period_context = cls.build_open_period_context(event_data.group)
+        open_period_context = cls.build_open_period_context(invocation.event_data.group)
 
-        trigger_status = cls.get_trigger_status(event_data.group)
+        trigger_status = cls.get_trigger_status(invocation.event_data.group)
 
         notification_uuid = str(uuid.uuid4())
 
         logger.info(
             "notification_action.execute_via_metric_alert_handler",
             extra={
-                "action_id": action.id,
-                "detector_id": detector.id,
-                "event_data": asdict(event_data),
+                "action_id": invocation.action.id,
+                "detector_id": invocation.detector.id,
+                "event_data": asdict(invocation.event_data),
                 "notification_context": asdict(notification_context),
                 "alert_context": asdict(alert_context),
                 "metric_issue_context": asdict(metric_issue_context),
@@ -526,8 +516,8 @@ class BaseMetricAlertHandler(ABC):
             open_period_context=open_period_context,
             trigger_status=trigger_status,
             notification_uuid=notification_uuid,
-            organization=detector.project.organization,
-            project=detector.project,
+            organization=invocation.detector.project.organization,
+            project=invocation.detector.project,
         )
 
 
