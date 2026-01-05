@@ -18,21 +18,11 @@ class BackfillOnCommandPhraseTriggerTest(TestMigrations):
             name="test-repo",
             provider="integrations:github",
         )
-        self.setting_empty = RepositorySettings.objects.create(
-            repository=self.repo_empty,
-            enabled_code_review=True,
-            code_review_triggers=[],
-        )
 
         self.repo_with_triggers = Repository.objects.create(
             organization_id=self.org.id,
             name="test-repo-2",
             provider="integrations:github",
-        )
-        self.setting_with_triggers = RepositorySettings.objects.create(
-            repository=self.repo_with_triggers,
-            enabled_code_review=True,
-            code_review_triggers=["on_new_commit", "on_ready_for_review"],
         )
 
         self.repo_already_has = Repository.objects.create(
@@ -40,28 +30,44 @@ class BackfillOnCommandPhraseTriggerTest(TestMigrations):
             name="test-repo-3",
             provider="integrations:github",
         )
+
+    def setup_before_migration(self, apps) -> None:
+        RepositorySettings = apps.get_model("sentry", "RepositorySettings")
+
+        self.setting_empty = RepositorySettings.objects.create(
+            repository_id=self.repo_empty.id,
+            enabled_code_review=True,
+            code_review_triggers=[],
+        )
+
+        self.setting_with_triggers = RepositorySettings.objects.create(
+            repository_id=self.repo_with_triggers.id,
+            enabled_code_review=True,
+            code_review_triggers=["on_new_commit", "on_ready_for_review"],
+        )
+
         self.setting_already_has = RepositorySettings.objects.create(
-            repository=self.repo_already_has,
+            repository_id=self.repo_already_has.id,
             enabled_code_review=True,
             code_review_triggers=["on_command_phrase", "on_new_commit"],
         )
 
     def test_backfills_on_command_phrase_trigger(self) -> None:
-        self.setting_empty.refresh_from_db()
-        assert set(self.setting_empty.code_review_triggers) == {"on_command_phrase"}
-        assert len(self.setting_empty.code_review_triggers) == 1
+        setting_empty = RepositorySettings.objects.get(id=self.setting_empty.id)
+        assert set(setting_empty.code_review_triggers) == {"on_command_phrase"}
+        assert len(setting_empty.code_review_triggers) == 1
 
-        self.setting_with_triggers.refresh_from_db()
-        assert set(self.setting_with_triggers.code_review_triggers) == {
+        setting_with_triggers = RepositorySettings.objects.get(id=self.setting_with_triggers.id)
+        assert set(setting_with_triggers.code_review_triggers) == {
             "on_command_phrase",
             "on_new_commit",
             "on_ready_for_review",
         }
-        assert len(self.setting_with_triggers.code_review_triggers) == 3
+        assert len(setting_with_triggers.code_review_triggers) == 3
 
-        self.setting_already_has.refresh_from_db()
-        assert self.setting_already_has.code_review_triggers.count("on_command_phrase") == 1
-        assert set(self.setting_already_has.code_review_triggers) == {
+        setting_already_has = RepositorySettings.objects.get(id=self.setting_already_has.id)
+        assert setting_already_has.code_review_triggers.count("on_command_phrase") == 1
+        assert set(setting_already_has.code_review_triggers) == {
             "on_command_phrase",
             "on_new_commit",
         }
