@@ -1,5 +1,7 @@
 import type {Location} from 'history';
 
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {getContextKeys} from 'sentry/components/events/contexts/utils';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
@@ -58,13 +60,31 @@ export function getTraceContextData({
           if (!traceId) {
             return undefined;
           }
-          const link = generateTraceTarget(event, organization, location);
-          const hasPerformanceView = organization.features.includes('performance-view');
+
+          // We want to default to true for backwards compatibility, but we want to show
+          // a tooltip if the trace was not sampled.
+          const traceWasSampled = data?.sampled ?? true;
+
+          if (traceWasSampled) {
+            const link = generateTraceTarget(event, organization, location);
+            const hasPerformanceView = organization.features.includes('performance-view');
+
+            return {
+              key: ctxKey,
+              subject: t('Trace ID'),
+              value: traceId,
+              action: hasPerformanceView ? {link} : undefined,
+            };
+          }
+
           return {
             key: ctxKey,
             subject: t('Trace ID'),
-            value: traceId,
-            action: hasPerformanceView ? {link} : undefined,
+            value: (
+              <Tooltip showUnderline title={t('Trace was not sampled.')}>
+                {traceId}
+              </Tooltip>
+            ),
           };
         }
         case TraceContextKeys.SPAN_ID: {
