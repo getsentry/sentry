@@ -79,9 +79,7 @@ describe('AddBillingInformation', () => {
       <AMCheckout
         {...RouteComponentPropsFixture()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
-        isNewCheckout
         navigate={jest.fn()}
       />,
       {organization}
@@ -104,9 +102,7 @@ describe('AddBillingInformation', () => {
       <AMCheckout
         {...RouteComponentPropsFixture()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
-        isNewCheckout
         navigate={jest.fn()}
       />,
       {organization}
@@ -135,9 +131,7 @@ describe('AddBillingInformation', () => {
       <AMCheckout
         {...RouteComponentPropsFixture()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
-        isNewCheckout
         navigate={jest.fn()}
       />,
       {organization}

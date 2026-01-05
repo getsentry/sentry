@@ -1,4 +1,3 @@
-import type {Client} from 'sentry/api';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 
@@ -10,7 +9,6 @@ import type {
   OnDemandBudgets,
   Plan,
   PlanTier,
-  Promotion,
   Subscription,
 } from 'getsentry/types';
 
@@ -33,11 +31,10 @@ export type CheckoutAPIData = Omit<BaseCheckoutData, 'addOns'> & {
 } & Partial<Reservations> &
   Partial<Record<`addOn${Capitalize<AddOnCategory>}`, boolean>>;
 
-type BaseStepProps = {
+export type StepProps = {
   activePlan: Plan;
   billingConfig: BillingConfig;
   formData: CheckoutFormData;
-  onEdit: (stepNumber: number) => void;
   onUpdate: (data: any) => void;
   organization: Organization;
   stepNumber: number;
@@ -45,22 +42,6 @@ type BaseStepProps = {
   checkoutTier?: PlanTier;
   referrer?: string;
 };
-
-export type StepProps = BaseStepProps & {
-  isActive: boolean;
-  isCompleted: boolean;
-  onCompleteStep: (stepNumber: number) => void;
-  prevStepCompleted: boolean;
-  isNewCheckout?: boolean;
-  onToggleLegacy?: (tier: string) => void;
-  promotion?: Promotion;
-};
-
-export interface StepPropsWithApi extends StepProps {
-  api: Client;
-}
-
-export type CheckoutV3StepProps = BaseStepProps;
 
 export type PlanContent = {
   description: React.ReactNode;
