@@ -152,6 +152,7 @@ export function InstallDetailsContent({
               gap="md"
               width="100%"
               direction={{xs: 'column', sm: 'row'}}
+              justify="center"
               align={{xs: 'stretch', sm: 'center'}}
             >
               <Flex width={{xs: '100%', sm: 'auto'}}>
