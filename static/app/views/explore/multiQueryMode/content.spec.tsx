@@ -1,6 +1,5 @@
-import {useMemo, type ReactNode} from 'react';
+import {type ReactNode} from 'react';
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -13,62 +12,21 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import {useResettableState} from 'sentry/utils/useResettableState';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
-import {
-  defaultAggregateFields,
-  defaultAggregateSortBys,
-  defaultFields,
-  defaultQuery,
-  defaultSortBys,
-} from 'sentry/views/explore/metrics/metricQuery';
 import {MultiQueryModeContent} from 'sentry/views/explore/multiQueryMode/content';
 import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
-import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/context';
-import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
-import {defaultCursor} from 'sentry/views/explore/queryParams/cursor';
-import {Mode} from 'sentry/views/explore/queryParams/mode';
-import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 jest.mock('sentry/components/lazyRender', () => ({
   LazyRender: ({children}: {children: React.ReactNode}) => children,
 }));
 
-function Wrapper(crossEvents?: CrossEvent[]) {
+function Wrapper() {
   return function ({children}: {children: ReactNode}) {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const [query] = useResettableState(defaultQuery);
-
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const readableQueryParams = useMemo(
-      () =>
-        new ReadableQueryParams({
-          aggregateCursor: defaultCursor(),
-          aggregateFields: defaultAggregateFields(),
-          aggregateSortBys: defaultAggregateSortBys(defaultAggregateFields()),
-          cursor: defaultCursor(),
-          extrapolate: true,
-          fields: defaultFields(),
-          mode: Mode.AGGREGATE,
-          query,
-          sortBys: defaultSortBys(defaultFields()),
-          crossEvents,
-        }),
-      [query]
-    );
-
     return (
-      <QueryParamsContextProvider
-        isUsingDefaultFields={false}
-        queryParams={readableQueryParams}
-        setQueryParams={jest.fn()}
-        shouldManageFields={false}
-      >
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          {children}
-        </TraceItemAttributeProvider>
-      </QueryParamsContextProvider>
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+        {children}
+      </TraceItemAttributeProvider>
     );
   };
 }
@@ -1145,22 +1103,18 @@ describe('MultiQueryModeContent', () => {
   });
 
   it('sets interval correctly', async () => {
-    const router = RouterFixture({
-      location: {
-        pathname: '/traces/compare',
-        query: {
-          queries: [
-            '{"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["avg(span.duration)"]}',
-          ],
+    const {router} = render(<MultiQueryModeContent />, {
+      organization,
+      additionalWrapper: Wrapper(),
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/compare',
+          query: {
+            queries:
+              '{"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["avg(span.duration)"]}',
+          },
         },
       },
-    });
-
-    render(<MultiQueryModeContent />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
-      additionalWrapper: Wrapper(),
     });
 
     const section = screen.getByTestId('section-visualization-0');
@@ -1169,21 +1123,19 @@ describe('MultiQueryModeContent', () => {
     ).toBeInTheDocument();
     await userEvent.click(within(section).getByRole('button', {name: '30 minutes'}));
     await userEvent.click(within(section).getByRole('option', {name: '3 hours'}));
-    expect(router.push).toHaveBeenCalledWith({
-      pathname: '/traces/compare',
-      query: expect.objectContaining({
+    expect(router.location.pathname).toBe('/traces/compare');
+    expect(router.location.query).toEqual(
+      expect.objectContaining({
         interval: '3h',
-        queries: [
+        queries:
           '{"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["avg(span.duration)"]}',
-        ],
-      }),
-    });
+      })
+    );
   });
 
   it('renders a save query button', async () => {
     render(<MultiQueryModeContent />, {
       organization,
-      deprecatedRouterMocks: true,
       additionalWrapper: Wrapper(),
     });
     expect(await screen.findByLabelText('Save')).toBeInTheDocument();
@@ -1221,23 +1173,20 @@ describe('MultiQueryModeContent', () => {
       url: `/organizations/${organization.slug}/explore/saved/123/visit/`,
       method: 'POST',
     });
-    const router = RouterFixture({
-      location: {
-        pathname: '/traces/compare',
-        query: {
-          queries: [
-            '{"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["avg(span.duration)"]}',
-          ],
-          id: '123',
-        },
-      },
-    });
 
     render(<MultiQueryModeContent />, {
-      router,
       organization,
-      deprecatedRouterMocks: true,
       additionalWrapper: Wrapper(),
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/compare',
+          query: {
+            queries:
+              '{"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["avg(span.duration)"]}',
+            id: '123',
+          },
+        },
+      },
     });
     // No good way to check for highlighted css, so we just check for the text
     expect(await screen.findByText('Save')).toBeInTheDocument();

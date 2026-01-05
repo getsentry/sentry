@@ -108,7 +108,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {InteractiveTitle} = props;
-  const {setPageError} = usePageAlert();
+  const {setPageDanger} = usePageAlert();
   const dataset = DiscoverDatasets.SPANS;
 
   const queryParams: Record<string, string> = {...EAP_QUERY_PARAMS};
@@ -234,7 +234,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
               query={eventView.getQueryWithAdditionalConditions()}
               interval={interval}
               hideError
-              onError={setPageError}
+              onError={setPageDanger}
               queryExtras={extraQueryParams}
               topEvents={2}
               referrer="performance-line-chart-widget"

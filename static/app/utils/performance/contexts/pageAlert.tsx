@@ -1,12 +1,10 @@
 import type React from 'react';
 import {createContext, Fragment, useCallback, useContext, useState} from 'react';
-import type {Theme} from '@emotion/react';
 
 import {Alert} from 'sentry/components/core/alert';
 import {IconClose} from 'sentry/icons';
+import type {AlertVariant} from 'sentry/utils/theme';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-
-type PageAlertType = keyof Theme['alert'];
 
 export enum DismissId {
   RESOURCE_SIZE_ALERT = 0,
@@ -14,7 +12,7 @@ export enum DismissId {
 
 type PageAlertOptions = {
   message: React.ReactNode | undefined;
-  type: PageAlertType;
+  variant: AlertVariant;
   dismissId?: DismissId;
 };
 
@@ -26,7 +24,7 @@ type PageAlertSetter = (
 ) => void;
 
 const PageErrorContext = createContext<{
-  setPageError: PageAlertSetter;
+  setPageDanger: PageAlertSetter;
   setPageInfo: PageAlertSetter;
   setPageMuted: PageAlertSetter;
   setPageSuccess: PageAlertSetter;
@@ -34,7 +32,7 @@ const PageErrorContext = createContext<{
   pageAlert?: PageAlertOptions;
 }>({
   pageAlert: undefined,
-  setPageError: (_: React.ReactNode | undefined) => {},
+  setPageDanger: (_: React.ReactNode | undefined) => {},
   setPageInfo: (_: React.ReactNode | undefined) => {},
   setPageMuted: (_: React.ReactNode | undefined) => {},
   setPageSuccess: (_: React.ReactNode | undefined) => {},
@@ -45,23 +43,23 @@ export function PageAlertProvider({children}: {children: React.ReactNode}) {
   const [pageAlert, setPageAlert] = useState<PageAlertOptions | undefined>();
 
   const setPageInfo: PageAlertSetter = useCallback((message, options) => {
-    setPageAlert({message, type: 'info', ...options});
+    setPageAlert({message, variant: 'info', ...options});
   }, []);
 
   const setPageMuted: PageAlertSetter = useCallback((message, options) => {
-    setPageAlert({message, type: 'muted', ...options});
+    setPageAlert({message, variant: 'muted', ...options});
   }, []);
 
   const setPageSuccess: PageAlertSetter = useCallback((message, options) => {
-    setPageAlert({message, type: 'success', ...options});
+    setPageAlert({message, variant: 'success', ...options});
   }, []);
 
   const setPageWarning: PageAlertSetter = useCallback((message, options) => {
-    setPageAlert({message, type: 'warning', ...options});
+    setPageAlert({message, variant: 'warning', ...options});
   }, []);
 
-  const setPageError: PageAlertSetter = useCallback((message, options) => {
-    setPageAlert({message, type: 'error', ...options});
+  const setPageDanger: PageAlertSetter = useCallback((message, options) => {
+    setPageAlert({message, variant: 'danger', ...options});
   }, []);
 
   return (
@@ -72,7 +70,7 @@ export function PageAlertProvider({children}: {children: React.ReactNode}) {
         setPageMuted,
         setPageSuccess,
         setPageWarning,
-        setPageError,
+        setPageDanger,
       }}
     >
       {children}
@@ -108,7 +106,7 @@ export function PageAlert() {
   return (
     <Alert.Container>
       <Alert
-        type={pageAlert.type}
+        variant={pageAlert.variant}
         data-test-id="page-error-alert"
         trailingItems={dismissId && <IconClose size="sm" onClick={handleDismiss} />}
       >

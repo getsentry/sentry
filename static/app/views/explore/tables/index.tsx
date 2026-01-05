@@ -100,7 +100,7 @@ export function ExploreTables(props: ExploreTablesProps) {
             {attributeBreakdownsEnabled ? (
               <TabList.Item key={Tab.ATTRIBUTE_BREAKDOWNS}>
                 {t('Attribute Breakdowns')}
-                <Badge type="beta">Beta</Badge>
+                <Badge variant="beta">Beta</Badge>
               </TabList.Item>
             ) : null}
           </TabList>

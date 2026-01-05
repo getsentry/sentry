@@ -12,6 +12,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron, IconRefresh, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import parseApiError from 'sentry/utils/parseApiError';
 import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -109,11 +110,12 @@ export function SizeCompareMainContent() {
       );
     },
     onError: error => {
-      const errorMessage =
-        (typeof error?.responseJSON?.error === 'string'
-          ? error?.responseJSON.error
-          : null) ?? t('Failed to trigger comparison. Please try again.');
-      addErrorMessage(errorMessage);
+      const errorMessage = parseApiError(error);
+      addErrorMessage(
+        errorMessage === 'Unknown API Error'
+          ? t('Failed to trigger comparison. Please try again.')
+          : errorMessage
+      );
     },
   });
 
@@ -153,11 +155,16 @@ export function SizeCompareMainContent() {
   }
 
   if (sizeComparisonQuery.isError || !sizeComparisonQuery.data) {
+    const errorMessage = sizeComparisonQuery.error
+      ? parseApiError(sizeComparisonQuery.error)
+      : 'Unknown API Error';
     return (
       <BuildError
         title={t('Size comparison data unavailable')}
         message={
-          sizeComparisonQuery.error?.message || t('Failed to load size comparison data')
+          errorMessage === 'Unknown API Error'
+            ? t('Failed to load size comparison data')
+            : errorMessage
         }
       />
     );
