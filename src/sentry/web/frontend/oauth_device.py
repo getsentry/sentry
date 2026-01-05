@@ -157,17 +157,11 @@ class OAuthDeviceView(AuthLoginView):
         }
         return self.respond("sentry/oauth-device.html", context)
 
-    def _get_client_ip(self, request: HttpRequest) -> str:
-        """Get client IP for rate limiting."""
-        x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
-        if x_forwarded_for:
-            return x_forwarded_for.split(",")[0].strip()
-        return request.META.get("REMOTE_ADDR", "unknown")
-
     def _show_approval_form(self, request: HttpRequest, user_code: str) -> HttpResponseBase:
         """Show the approval form for a valid user code."""
         # Rate limit user code verification attempts (RFC 8628 §5.1)
-        client_ip = self._get_client_ip(request)
+        # Note: REMOTE_ADDR is set correctly by SetRemoteAddrFromForwardedFor middleware
+        client_ip = request.META.get("REMOTE_ADDR")
         rate_limit_key = f"oauth:device_verify:{client_ip}"
         if ratelimiter.is_limited(
             rate_limit_key, limit=USER_CODE_RATE_LIMIT, window=USER_CODE_RATE_LIMIT_WINDOW
