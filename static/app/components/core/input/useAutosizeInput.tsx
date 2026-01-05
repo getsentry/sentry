@@ -45,7 +45,7 @@ export function useAutosizeInput(
         sourceRef.current.style.width = `${size.width}px`;
       }
     }
-  }, [enabled]);
+  }, [enabled, options?.value]);
 
   const onInputChange = useCallback((event: Event) => {
     if (!sourceRef.current) return;
