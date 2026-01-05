@@ -29,6 +29,7 @@ import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
 import {Overlay} from 'sentry/components/overlay';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {defined} from 'sentry/utils';
+import type {AggregateParameter} from 'sentry/utils/fields';
 import useOverlay from 'sentry/utils/useOverlay';
 
 interface ComboBoxProps {
@@ -50,6 +51,7 @@ interface ComboBoxProps {
   onOpenChange?: (newOpenState: boolean) => void;
   onOptionSelected?: (option: SelectOptionWithKey<string>) => void;
   onPaste?: (e: ClipboardEvent<HTMLInputElement>) => void;
+  parameterDefinition?: AggregateParameter | undefined;
   placeholder?: string;
   ref?: Ref<HTMLInputElement>;
   /**
@@ -109,6 +111,7 @@ export function ComboBox({
   placeholder,
   tabIndex,
   ref,
+  parameterDefinition,
 }: ComboBoxProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const listBoxRef = useRef<HTMLUListElement>(null);
@@ -307,7 +310,19 @@ export function ComboBox({
     return () => {};
   }, [isOpen]);
 
-  const autosizeInputRef = useAutosizeInput({value: inputValue});
+  const onResize = useCallback(
+    (sourceRef: HTMLInputElement, size: {height: number; width: number}) => {
+      if (parameterDefinition?.kind === 'column') {
+        const maxWidth = Math.min(size.width, 130);
+        sourceRef.style.width = `${maxWidth}px`;
+      } else {
+        sourceRef.style.width = `${size.width}px`;
+      }
+    },
+    [parameterDefinition]
+  );
+
+  const autosizeInputRef = useAutosizeInput({value: inputValue, onResize});
 
   return (
     <Wrapper>
