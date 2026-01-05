@@ -1,3 +1,4 @@
+from datetime import timedelta
 from functools import cached_property
 from unittest.mock import patch
 
@@ -103,7 +104,7 @@ class OAuthDeviceVerificationTest(TestCase):
         # Verify device code was approved
         self.device_code.refresh_from_db()
         assert self.device_code.status == DeviceCodeStatus.APPROVED
-        assert self.device_code.user_id == self.user.id
+        assert self.device_code.user.id == self.user.id
 
         # Verify ApiAuthorization was created
         auth = ApiAuthorization.objects.get(application=self.application, user_id=self.user.id)
@@ -128,7 +129,7 @@ class OAuthDeviceVerificationTest(TestCase):
     def test_expired_device_code_shows_error(self) -> None:
         """Expired device code should show error."""
         self.login_as(self.user)
-        self.device_code.expires_at = timezone.now() - timezone.timedelta(minutes=1)
+        self.device_code.expires_at = timezone.now() - timedelta(minutes=1)
         self.device_code.save()
 
         resp = self.client.post(self.path, {"user_code": self.device_code.user_code})

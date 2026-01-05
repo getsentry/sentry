@@ -127,7 +127,7 @@ class ApiDeviceCode(Model):
         db_table = "sentry_apidevicecode"
 
     def __str__(self) -> str:
-        return f"device_code={self.id}, application={self.application_id}, status={self.status}"
+        return f"device_code={self.id}, application={self.application.id}, status={self.status}"
 
     def get_scopes(self) -> list[str]:
         """Return the list of requested scopes."""

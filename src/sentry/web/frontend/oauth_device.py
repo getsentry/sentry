@@ -235,7 +235,7 @@ class OAuthDeviceView(AuthLoginView):
             "oauth.device-code-denied",
             extra={
                 "device_code_id": device_code.id,
-                "application_id": device_code.application_id,
+                "application_id": device_code.application.id,
                 "user_id": request.user.id,
             },
         )
@@ -248,6 +248,10 @@ class OAuthDeviceView(AuthLoginView):
 
     def _handle_approve(self, request: HttpRequest, device_code: ApiDeviceCode) -> HttpResponseBase:
         """Handle approve action for a device code."""
+        # request.user.id is guaranteed to be int since we only reach here when authenticated
+        assert isinstance(request.user.id, int)
+        user_id: int = request.user.id
+
         application = device_code.application
 
         # Handle organization selection for org-level access apps
@@ -278,7 +282,7 @@ class OAuthDeviceView(AuthLoginView):
             with transaction.atomic(router.db_for_write(ApiAuthorization)):
                 ApiAuthorization.objects.create(
                     application=application,
-                    user_id=request.user.id,
+                    user_id=user_id,
                     scope_list=scopes,
                     organization_id=selected_org_id_int,
                 )
@@ -287,7 +291,7 @@ class OAuthDeviceView(AuthLoginView):
             if scopes:
                 auth = ApiAuthorization.objects.get(
                     application=application,
-                    user_id=request.user.id,
+                    user_id=user_id,
                     organization_id=selected_org_id_int,
                 )
                 auth.scope_list = list(set(auth.scope_list) | set(scopes))
@@ -299,7 +303,7 @@ class OAuthDeviceView(AuthLoginView):
             status=DeviceCodeStatus.PENDING,
         ).update(
             status=DeviceCodeStatus.APPROVED,
-            user_id=request.user.id,
+            user_id=user_id,
             organization_id=selected_org_id_int,
         )
         if not updated:
@@ -315,8 +319,8 @@ class OAuthDeviceView(AuthLoginView):
             "oauth.device-code-approved",
             extra={
                 "device_code_id": device_code.id,
-                "application_id": device_code.application_id,
-                "user_id": request.user.id,
+                "application_id": device_code.application.id,
+                "user_id": user_id,
                 "organization_id": selected_org_id_int,
             },
         )

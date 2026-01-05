@@ -24,6 +24,7 @@ from sentry.ratelimits import backend as ratelimiter
 from sentry.sentry_apps.token_exchange.util import GrantTypes
 from sentry.silo.safety import unguarded_write
 from sentry.utils import json, metrics
+from sentry.utils.locking import UnableToAcquireLock
 from sentry.web.frontend.base import control_silo_view
 from sentry.web.frontend.openidtoken import OpenIDToken
 
@@ -468,7 +469,17 @@ class OAuthTokenView(View):
                 name="api_device_code",
             )
 
-            with lock.acquire():
+            try:
+                lock_context = lock.acquire()
+            except UnableToAcquireLock:
+                # Another request is currently processing this device code
+                return self.error(
+                    request=request,
+                    name="invalid_grant",
+                    reason="device code already in use",
+                )
+
+            with lock_context:
                 # Re-fetch inside lock to prevent TOCTOU race condition
                 try:
                     device_code = ApiDeviceCode.objects.get(id=device_code.id)
@@ -508,7 +519,7 @@ class OAuthTokenView(View):
                 # Create the access token
                 token = ApiToken.objects.create(
                     application=application,
-                    user_id=device_code.user_id,
+                    user_id=device_code.user.id,
                     scope_list=device_code.scope_list,
                     scoping_organization_id=device_code.organization_id,
                 )
@@ -519,7 +530,7 @@ class OAuthTokenView(View):
                     extra={
                         "device_code_id": device_code.id,
                         "application_id": application.id,
-                        "user_id": device_code.user_id,
+                        "user_id": device_code.user.id,
                         "token_id": token.id,
                     },
                 )
