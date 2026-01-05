@@ -5,7 +5,7 @@ export enum ConsolePlatform {
 }
 
 // Repository owner for console SDK repositories. Change this for testing with your own GitHub org.
-export const CONSOLE_SDK_REPO_OWNER = 'getsentry';
+const CONSOLE_SDK_REPO_OWNER = 'getsentry';
 
 export const CONSOLE_PLATFORM_METADATA = {
   [ConsolePlatform.NINTENDO_SWITCH]: {
