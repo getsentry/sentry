@@ -124,7 +124,7 @@ export function createItem(
     type: 'item',
     trailingItems: (
       <TypeBadge
-        kind={fieldDefinition?.kind ?? undefined}
+        kind={(fieldDefinition?.kind || tag?.kind) ?? undefined}
         valueType={fieldDefinition?.valueType ?? undefined}
       />
     ),
