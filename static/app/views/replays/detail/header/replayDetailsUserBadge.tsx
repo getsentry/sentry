@@ -1,4 +1,3 @@
-import styled from '@emotion/styled';
 import invariant from 'invariant';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -6,6 +5,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
 import {Grid} from 'sentry/components/core/layout';
+import {Link} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
 import {DateTime} from 'sentry/components/dateTime';
 import Placeholder from 'sentry/components/placeholder';
@@ -30,55 +30,11 @@ interface Props {
   readerResult: ReturnType<typeof useLoadReplayReader>;
 }
 export default function ReplayDetailsUserBadge({readerResult}: Props) {
-  const organization = useOrganization();
   const replayRecord = readerResult.replayRecord;
-  const {shouldShowRefreshButton, doRefresh} = useLiveRefresh({replay: replayRecord});
-
-  // Generate search query based on available user data
-  const getUserSearchQuery = () => {
-    if (!replayRecord?.user) {
-      return null;
-    }
-
-    const user = replayRecord.user;
-    // Prefer email over id for search query
-    if (user.email) {
-      return `user.email:"${user.email}"`;
-    }
-    if (user.id) {
-      return `user.id:"${user.id}"`;
-    }
-    return null;
-  };
-  const searchQuery = getUserSearchQuery();
-
-  const linkQuery = searchQuery
-    ? {
-        pathname: makeReplaysPathname({
-          path: '/',
-          organization,
-        }),
-        query: {
-          query: searchQuery,
-        },
-      }
-    : null;
 
   const badge = replayRecord ? (
     <Flex gap="md" align="center">
       <ReplayBadge replay={replayRecord} />
-      <Button
-        title={t('Replay is outdated. Refresh for latest activity.')}
-        data-test-id="refresh-button"
-        size="zero"
-        onClick={doRefresh}
-        style={{
-          visibility: shouldShowRefreshButton ? 'visible' : 'visible',
-        }}
-        icon={<IconRefresh size="xs" />}
-      >
-        <Text size="xs">{t('Refresh')}</Text>
-      </Button>
     </Flex>
   ) : null;
 
@@ -103,8 +59,10 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
  * Modified <ReplayBadge /> that is only used in header of Replay Details
  */
 function ReplayBadge({replay}: {replay: ReplayRecord}) {
+  const organization = useOrganization();
   const [prefs] = useReplayPrefs();
   const timestampType = prefs.timestampType;
+  const {shouldShowRefreshButton, doRefresh} = useLiveRefresh({replay});
 
   const {isLive} = useLiveBadge({
     startedAt: replay.started_at,
@@ -115,7 +73,7 @@ function ReplayBadge({replay}: {replay: ReplayRecord}) {
     return (
       <Grid columns="24px 1fr" gap="md" align="center" justify="center">
         <Flex align="center" justify="center">
-          <IconDelete color="gray500" size="md" />
+          <IconDelete variant="muted" size="md" />
         </Flex>
 
         <Flex direction="column" gap="xs" justify="center">
@@ -132,6 +90,27 @@ function ReplayBadge({replay}: {replay: ReplayRecord}) {
     'For TypeScript: replay.started_at is implied because replay.is_archived is false'
   );
 
+  // Generate search query based on available user data
+  const searchQuery = getUserSearchQuery({user: replay.user});
+
+  const replaysIndexUrl = searchQuery
+    ? {
+        pathname: makeReplaysPathname({
+          path: '/',
+          organization,
+        }),
+        query: {
+          query: searchQuery,
+        },
+      }
+    : null;
+
+  const replaysIndexLinkText = (
+    <Text size="md" bold ellipsis data-underline-on-hover>
+      {replay.user.display_name || t('Anonymous User')}
+    </Text>
+  );
+
   return (
     <Flex gap="md" align="center" justify="center">
       <UserAvatar
@@ -146,15 +125,30 @@ function ReplayBadge({replay}: {replay: ReplayRecord}) {
       />
 
       <Flex direction="column" gap="xs" justify="center">
-        <Flex direction="row" align="center" gap="xs">
+        <Flex direction="row" align="center" gap="sm">
           {/* We use div here because the Text component has width 100% and will take up the
           full width of the container, causing a gap between the text and the badge */}
-          <div>
-            <Text size="md" bold ellipsis data-underline-on-hover>
-              {replay.user.display_name || t('Anonymous User')}
-            </Text>
-          </div>
+          {replaysIndexUrl ? (
+            <Link to={replaysIndexUrl}>{replaysIndexLinkText}</Link>
+          ) : (
+            <div>{replaysIndexLinkText}</div>
+          )}
+
           {isLive ? <LiveBadge /> : null}
+          {shouldShowRefreshButton ? (
+            <Button
+              title={t('Replay is outdated. Refresh for latest activity.')}
+              data-test-id="refresh-button"
+              size="zero"
+              priority="link"
+              onClick={doRefresh}
+              icon={<IconRefresh size="xs" variant="warning" />}
+            >
+              <Text size="sm" variant="warning">
+                {t('Refresh')}
+              </Text>
+            </Button>
+          ) : null}
         </Flex>
 
         <Flex gap="sm">
@@ -179,4 +173,19 @@ function ReplayBadge({replay}: {replay: ReplayRecord}) {
       </Flex>
     </Flex>
   );
+}
+
+function getUserSearchQuery({user}: {user: ReplayRecord['user']}) {
+  if (!user) {
+    return null;
+  }
+
+  // Prefer email over id for search query
+  if (user.email) {
+    return `user.email:"${user.email}"`;
+  }
+  if (user.id) {
+    return `user.id:"${user.id}"`;
+  }
+  return null;
 }
