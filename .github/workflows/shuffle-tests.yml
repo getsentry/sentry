@@ -11,6 +11,7 @@ on:
       seed:
         description: The seed for the test ordering
         required: false
+  pull_request:
 
   # Run once a day
   schedule:
@@ -23,10 +24,6 @@ concurrency:
 env:
   SENTRY_SHUFFLE_TESTS: true
 jobs:
-  per-test-coverage:
-    if: ${{ inputs.per-test-coverage == 'true' || github.event_name == 'schedule' }}
-    uses: ./.github/workflows/codecov_per_test_coverage.yml
-    secrets: inherit
   backend-test:
     name: run backend tests
     runs-on: ubuntu-24.04
