@@ -1,4 +1,4 @@
-import {useEffect, useMemo} from 'react';
+import {useMemo} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {t} from 'sentry/locale';
@@ -39,44 +39,6 @@ export function AggregateSelector({
     () => OPTIONS_BY_TYPE[traceMetric?.type ?? ''] ?? [],
     [traceMetric?.type]
   );
-
-  // Ensure the aggregate is valid for the trace metric type
-  useEffect(() => {
-    if (field.kind !== 'function' || !field.function?.[0] || !traceMetric.type) {
-      return;
-    }
-
-    const aggregate = field.function[0];
-    if (
-      aggregate &&
-      !aggregateOptions.some(option => option.value === aggregate) &&
-      aggregateSource
-    ) {
-      const validAggregate = aggregateOptions[0]?.value;
-      dispatch({
-        type: actionType,
-        payload:
-          aggregateSource?.map((axis, i) =>
-            i === index
-              ? ({
-                  function: [validAggregate, 'value', undefined, undefined],
-                  alias: undefined,
-                  kind: 'function',
-                } as QueryFieldValue)
-              : axis
-          ) ?? [],
-      });
-    }
-  }, [
-    aggregateOptions,
-    dispatch,
-    index,
-    aggregateSource,
-    actionType,
-    field.kind,
-    field,
-    traceMetric.type,
-  ]);
 
   return (
     <AggregateCompactSelect
