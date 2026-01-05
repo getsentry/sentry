@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useEffectEvent, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
@@ -183,6 +183,7 @@ function GroupList({
     data: groupsData,
     isPending,
     isError: isQueryError,
+    isSuccess: isQuerySuccess,
     error: queryError,
     getResponseHeader,
     refetch,
@@ -215,31 +216,25 @@ function GroupList({
   const hasError = hasLogicBoolean || isQueryError;
   const loading = !hasLogicBoolean && isPending;
 
-  useEffect(() => {
-    if (!onFetchSuccess || !groupsData) {
-      return;
-    }
-
-    onFetchSuccess(
+  const notifyFetchSuccess = useEffectEvent(() => {
+    onFetchSuccess?.(
       {
         error: false,
         errorData: null,
-        groups: groupsData,
+        groups: groupsData ?? [],
         loading: false,
         pageLinks,
         memberList,
       },
       handleCursorChange
     );
-  }, [
-    handleCursorChange,
-    hasError,
-    isPending,
-    groupsData,
-    memberList,
-    onFetchSuccess,
-    pageLinks,
-  ]);
+  });
+
+  useEffect(() => {
+    if (isQuerySuccess) {
+      notifyFetchSuccess();
+    }
+  }, [isQuerySuccess]);
 
   const columns: GroupListColumn[] = useMemo(
     () => [...withColumns, 'firstSeen', 'lastSeen'],
