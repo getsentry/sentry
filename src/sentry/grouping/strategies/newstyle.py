@@ -811,6 +811,13 @@ def filter_exceptions_for_exception_groups(
         # If there's no root exception, return the original list
         return exceptions
 
+    # It's possible to end up with no top-level exceptions, for example if all exceptions in the
+    # chain are marked as exception groups and therefore all get excluded, or if the exception tree
+    # contains a cycle. (Ideally SDKs should never mark the data this way, but we've run into this
+    # before.) In that case, return the list as is.
+    if not top_level_exceptions:
+        return exceptions
+
     # Figure out the distinct top-level exceptions, grouping by the hash of the grouping component values.
     distinct_top_level_exceptions = [
         next(group)
