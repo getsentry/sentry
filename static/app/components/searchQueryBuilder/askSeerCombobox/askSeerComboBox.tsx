@@ -249,6 +249,8 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
             query={item?.query}
             groupBys={item?.groupBys}
             statsPeriod={item?.statsPeriod}
+            start={item?.start}
+            end={item?.end}
             visualizations={item?.visualizations}
           />
         </Item>
