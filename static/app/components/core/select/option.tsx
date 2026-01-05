@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {ClassNames} from '@emotion/react';
 
-import {ChonkCheckWrap} from '@sentry/scraps/select/select.chonk';
+import {CheckWrap} from '@sentry/scraps/select';
 
 import {MenuListItem} from 'sentry/components/core/menuListItem';
 import type {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
@@ -80,5 +80,3 @@ export function SelectOption(props: Props) {
     </ClassNames>
   );
 }
-
-const CheckWrap = ChonkCheckWrap;
