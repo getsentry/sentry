@@ -6,8 +6,13 @@ import type {ApiResult, Client} from 'sentry/api';
 import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import toArray from 'sentry/utils/array/toArray';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {parseFunction, type QueryFieldValue} from 'sentry/utils/discover/fields';
+import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
+import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
@@ -22,11 +27,13 @@ import {
 import {
   getTableSortOptions,
   getTimeseriesSortOptions,
+  transformEventsResponseToTable,
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {useHasTraceMetricsDashboards} from 'sentry/views/dashboards/hooks/useHasTraceMetricsDashboards';
 import {DisplayType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
+import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
@@ -166,7 +173,10 @@ export function formatTraceMetricsFunction(
   return defaultValue;
 }
 
-export const TraceMetricsConfig: DatasetConfig<EventsTimeSeriesResponse, never> = {
+export const TraceMetricsConfig: DatasetConfig<
+  EventsTimeSeriesResponse,
+  EventsTableData
+> = {
   defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: false,
@@ -184,11 +194,47 @@ export const TraceMetricsConfig: DatasetConfig<EventsTimeSeriesResponse, never> 
       value: option.value,
     })),
   getGroupByFieldOptions,
-  supportedDisplayTypes: [DisplayType.AREA, DisplayType.BAR, DisplayType.LINE],
+  supportedDisplayTypes: [
+    DisplayType.AREA,
+    DisplayType.BAR,
+    DisplayType.LINE,
+    DisplayType.BIG_NUMBER,
+  ],
+  getTableRequest: (
+    api: Client,
+    _widget: Widget,
+    query: WidgetQuery,
+    organization: Organization,
+    pageFilters: PageFilters,
+    _onDemandControlContext?: OnDemandControlContext,
+    limit?: number,
+    cursor?: string,
+    referrer?: string,
+    _mepSetting?: MEPState | null,
+    samplingMode?: SamplingMode
+  ) => {
+    return getEventsRequest(
+      api,
+      query,
+      organization,
+      pageFilters,
+      limit,
+      cursor,
+      referrer,
+      undefined,
+      undefined,
+      samplingMode
+    );
+  },
   getSeriesRequest,
-  transformTable: () => ({data: []}),
-  transformSeries: (data, _widgetQuery) =>
-    data.timeSeries.map(timeSeries => {
+  transformTable: transformEventsResponseToTable,
+  transformSeries: (data, widgetQuery) => {
+    const multiYAxis = new Set(widgetQuery.aggregates ?? []).size > 1;
+    const hasGroupings = new Set(widgetQuery.columns).size > 0;
+
+    return data.timeSeries.map(timeSeries => {
+      // The function should always be defined when dealing with a successful
+      // time series response
       const func = parseFunction(timeSeries.yAxis);
       if (func) {
         timeSeries.yAxis = `${func.name}(${func.arguments[1] ?? '…'})`;
@@ -198,9 +244,21 @@ export const TraceMetricsConfig: DatasetConfig<EventsTimeSeriesResponse, never> 
           name: value.timestamp,
           value: value.value ?? 0,
         })),
-        seriesName: formatTimeSeriesLabel(timeSeries),
+
+        // The series name needs to distinctively refer to the yAxis it belongs to
+        // when multiple yAxes and groupings are present, otherwise the response
+        // returns each series with its grouping but they overlap each other in the
+        // legend
+        seriesName:
+          multiYAxis && hasGroupings && func
+            ? `${formatTimeSeriesLabel(timeSeries)} : ${func.name}(…)`
+            : formatTimeSeriesLabel(timeSeries),
       };
-    }),
+    });
+  },
+  getCustomFieldRenderer: (field, meta, _organization) => {
+    return getFieldRenderer(field, meta, false);
+  },
 };
 
 function getPrimaryFieldOptions(
@@ -276,6 +334,56 @@ function getSeriesRequest(
   return doEventsRequest<true>(api, requestData) as unknown as Promise<
     ApiResult<EventsTimeSeriesResponse>
   >;
+}
+
+function getEventsRequest(
+  api: Client,
+  query: WidgetQuery,
+  organization: Organization,
+  pageFilters: PageFilters,
+  limit?: number,
+  cursor?: string,
+  referrer?: string,
+  _mepSetting?: MEPState | null,
+  _queryExtras?: any,
+  samplingMode?: SamplingMode
+) {
+  const url = `/organizations/${organization.slug}/events/`;
+  const eventView = eventViewFromWidget('', query, pageFilters);
+  const hasQueueFeature = organization.features.includes(
+    'visibility-dashboards-async-queue'
+  );
+
+  const params: DiscoverQueryRequestParams = {
+    per_page: limit,
+    cursor,
+    referrer,
+    dataset: DiscoverDatasets.TRACEMETRICS,
+  };
+
+  if (query.orderby) {
+    params.sort = toArray(query.orderby);
+  }
+
+  return doDiscoverQuery<EventsTableData>(
+    api,
+    url,
+    {
+      ...eventView.generateQueryStringObject(),
+      ...params,
+      ...(samplingMode ? {sampling: samplingMode} : {}),
+    },
+    // Tries events request up to 10 times on rate limit
+    {
+      retry: hasQueueFeature
+        ? // The queue will handle retries, so we don't need to retry here
+          undefined
+        : {
+            statusCodes: [429],
+            tries: 10,
+          },
+    }
+  );
 }
 
 function filterSeriesSortOptions(columns: Set<string>) {

@@ -3,30 +3,18 @@ import type {PaymentIntentResult, Stripe} from '@stripe/stripe-js';
 import camelCase from 'lodash/camelCase';
 import moment from 'moment-timezone';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 
 import type {Reservations} from 'getsentry/components/upgradeNowModal/types';
-import {
-  DEFAULT_TIER,
-  MONTHLY,
-  RESERVED_BUDGET_QUOTA,
-  SUPPORTED_TIERS,
-} from 'getsentry/constants';
+import {MONTHLY, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {AddOnCategory, PlanTier, ReservedBudgetCategoryType} from 'getsentry/types';
 import type {
@@ -279,32 +267,6 @@ export function getReservedPriceCents({
   }
 
   return reservedCents;
-}
-
-/**
- * Gets the price in cents per reserved category, and returns the
- * reserved total in dollars.
- */
-export function getReservedTotal({
-  plan,
-  reserved,
-  amount,
-  discountType,
-  maxDiscount,
-  creditCategory,
-  addOns,
-}: ReservedTotalProps): string {
-  return formatPrice({
-    cents: getReservedPriceCents({
-      plan,
-      reserved,
-      amount,
-      discountType,
-      maxDiscount,
-      creditCategory,
-      addOns,
-    }),
-  });
 }
 
 type DiscountedPriceProps = {
@@ -751,125 +713,10 @@ export function useSubmitCheckout({
   });
 }
 
-/**
- * @deprecated use useSubmitCheckout instead
- */
-export async function submitCheckout(
-  organization: Organization,
-  subscription: Subscription,
-  previewData: PreviewData,
-  formData: CheckoutFormData,
-  api: Client,
-  onFetchPreviewData: () => void,
-  onHandleCardAction: (intentDetails: IntentDetails) => void,
-  onSubmitting?: (b: boolean) => void,
-  intentId?: string,
-  referrer = 'billing',
-  shouldUpdateOnDemand = true
-) {
-  const endpoint = `/customers/${organization.slug}/subscription/`;
-
-  // this is necessary for recording partner billing migration-specific analytics after
-  // the migration is successful (during which the flag is flipped off)
-  const isMigratingPartnerAccount = hasPartnerMigrationFeature(organization);
-
-  const data = normalizeAndGetCheckoutAPIData({
-    formData,
-    previewToken: previewData?.previewToken,
-    paymentIntent: intentId,
-    referrer,
-    shouldUpdateOnDemand,
-  });
-
-  addLoadingMessage(t('Saving changes\u{2026}'));
-  try {
-    onSubmitting?.(true);
-
-    await api.requestPromise(endpoint, {
-      method: 'PUT',
-      data,
-    });
-
-    addSuccessMessage(t('Success'));
-    recordAnalytics(organization, subscription, data, isMigratingPartnerAccount);
-
-    const alreadyHasSeer =
-      !isTrialPlan(subscription.plan) &&
-      (subscription.addOns?.seer?.enabled || subscription.addOns?.legacySeer?.enabled);
-    const justBoughtSeer = (data.addOnLegacySeer || data.addOnSeer) && !alreadyHasSeer;
-
-    // refresh org and subscription state
-    // useApi cancels open requests on unmount by default, so we create a new Client to ensure this
-    // request doesn't get cancelled
-    fetchOrganizationDetails(new Client(), organization.slug);
-    SubscriptionStore.loadData(organization.slug);
-    browserHistory.push(
-      normalizeUrl(
-        `/settings/${organization.slug}/billing/overview/?referrer=${referrer}${
-          justBoughtSeer ? '&showSeerAutomationAlert=true' : ''
-        }`
-      )
-    );
-  } catch (error: any) {
-    const body = error.responseJSON;
-
-    if (body?.previewToken) {
-      onSubmitting?.(false);
-      addErrorMessage(t('Your preview expired, please review changes and submit again'));
-      onFetchPreviewData?.();
-    } else if (body?.paymentIntent && body?.paymentSecret && body?.detail) {
-      // When an error response contains payment intent information
-      // we can retry the payment using the client-side confirmation flow
-      // in stripe.
-      // We don't re-enable the button here as we don't want users clicking it
-      // while there are UI transitions happening.
-      addErrorMessage(body.detail);
-      const intent: IntentDetails = {
-        paymentIntent: body.paymentIntent,
-        paymentSecret: body.paymentSecret,
-      };
-      onHandleCardAction?.(intent);
-    } else {
-      const msg =
-        body?.detail || t('An unknown error occurred while saving your subscription');
-      addErrorMessage(msg);
-      onSubmitting?.(false);
-
-      // TODO: add 402 ignoring once we've confirmed all valid error states
-      Sentry.withScope(scope => {
-        scope.setExtras({data});
-        Sentry.captureException(error);
-      });
-    }
-  }
-}
-
-export function getToggleTier(checkoutTier: PlanTier | undefined) {
-  // cannot toggle from or to AM3
-  if (checkoutTier === DEFAULT_TIER || !checkoutTier || SUPPORTED_TIERS.length === 0) {
-    return null;
-  }
-
-  if (SUPPORTED_TIERS.length === 1) {
-    return SUPPORTED_TIERS[0];
-  }
-
-  const tierIndex = SUPPORTED_TIERS.indexOf(checkoutTier);
-
-  // can toggle between AM1 and AM2 for AM1 customers
-  if (tierIndex === SUPPORTED_TIERS.length - 1) {
-    return SUPPORTED_TIERS[tierIndex - 1];
-  }
-
-  return SUPPORTED_TIERS[tierIndex + 1];
-}
-
-export function getContentForPlan(plan: Plan, isNewCheckout?: boolean): PlanContent {
+export function getContentForPlan(plan: Plan): PlanContent {
   if (isBizPlanFamily(plan)) {
     return {
-      description: isNewCheckout
-        ? t('For teams that need more powerful debugging')
-        : t('Everything in the Team plan + deeper insight into your application health.'),
+      description: t('For teams that need more powerful debugging'),
       features: {
         discover: t('Advanced analytics with Discover'),
         enhanced_priority_alerts: t('Enhanced issue priority and alerting'),
@@ -886,9 +733,7 @@ export function getContentForPlan(plan: Plan, isNewCheckout?: boolean): PlanCont
 
   if (isTeamPlanFamily(plan)) {
     return {
-      description: isNewCheckout
-        ? t('Everything to monitor your application as it scales')
-        : t('Resolve errors and track application performance as a team.'),
+      description: t('Everything to monitor your application as it scales'),
       features: {
         unlimited_members: t('Unlimited members'),
         integrations: t('Third-party integrations'),
@@ -897,7 +742,7 @@ export function getContentForPlan(plan: Plan, isNewCheckout?: boolean): PlanCont
     };
   }
 
-  // TODO(checkout v3): update copy
+  // TODO(billing): update copy when Developer is available in checkout
   return {
     description: t('For solo devs working on small projects'),
     features: {
@@ -934,11 +779,6 @@ export function reservedInvoiceItemTypeToAddOn(
     default:
       return null;
   }
-}
-
-// TODO(isabella): clean this up after GA
-export function hasNewCheckout(organization: Organization) {
-  return organization.features.includes('checkout-v3');
 }
 
 /**

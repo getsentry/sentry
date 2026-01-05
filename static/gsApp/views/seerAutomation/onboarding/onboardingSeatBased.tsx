@@ -57,7 +57,7 @@ export default function SeerOnboardingSeatBased() {
 
   if (!canWrite) {
     return (
-      <Alert type="warning">
+      <Alert variant="warning">
         {t('Only organization administrators can access the Seer Setup Wizard')}
       </Alert>
     );
