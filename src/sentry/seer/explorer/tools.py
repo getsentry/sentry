@@ -770,7 +770,7 @@ def _get_recommended_event(
     fallback_event: GroupEvent | None = None  # Highest recommended in most recent window
 
     while w_start >= start:
-        # Get up to 50 events with the recommended ordering.
+        # Get candidate events with the standard recommended ordering. This is an expensive orderby, hence the sliding window.
         events: list[Event] = eventstore.backend.get_events_snql(
             organization_id=organization.id,
             group_id=group.id,
@@ -799,11 +799,12 @@ def _get_recommended_event(
             spans_start = w_start - timedelta(days=1)
             spans_end = w_end + timedelta(days=1)
 
+            count_field = "count(span.duration)"
             result = execute_table_query(
                 org_id=organization.id,
                 dataset="spans",
                 per_page=len(trace_ids),
-                fields=["trace", "count()"],
+                fields=["trace", count_field],
                 query=f"trace:[{','.join(trace_ids)}]",
                 start=spans_start.isoformat(),
                 end=spans_end.isoformat(),
@@ -814,7 +815,7 @@ def _get_recommended_event(
                 traces_with_spans = {
                     item["trace"]
                     for item in result["data"]
-                    if item.get("trace") and item.get("count()", 0) > 0
+                    if item.get("trace") and item.get(count_field, 0) > 0
                 }
 
                 for e in events:
