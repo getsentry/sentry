@@ -238,7 +238,7 @@ class ApiTokenTest(TestCase):
     def test_async_replication_creates_replica_after_processing(self) -> None:
         user = self.create_user()
 
-        with outbox_runner():
+        with self.tasks():
             token = ApiToken.objects.create(user_id=user.id)
 
         # Verify outboxes were processed (should be deleted after processing)
@@ -261,7 +261,7 @@ class ApiTokenTest(TestCase):
         initial_expires_at = timezone.now() + timedelta(days=1)
         updated_expires_at = timezone.now() + timedelta(days=30)
 
-        with outbox_runner():
+        with self.tasks():
             token = ApiToken.objects.create(user_id=user.id, expires_at=initial_expires_at)
 
         with assume_test_silo_mode(SiloMode.REGION):
@@ -269,7 +269,7 @@ class ApiTokenTest(TestCase):
             assert replica.expires_at is not None
             assert abs((replica.expires_at - initial_expires_at).total_seconds()) < 1
 
-        with outbox_runner():
+        with self.tasks():
             token.update(expires_at=updated_expires_at)
 
         with assume_test_silo_mode(SiloMode.REGION):
@@ -314,3 +314,27 @@ class ApiTokenInternalIntegrationTest(TestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             assert ApiTokenReplica.objects.get(apitoken_id=token_1.id).organization_id is None
             assert ApiTokenReplica.objects.get(apitoken_id=token_2.id).organization_id is None
+
+    @override_options({"api-token-async-flush": True})
+    @mock.patch("sentry.hybridcloud.tasks.deliver_from_outbox.drain_outbox_shards_control.delay")
+    def test_async_replication_schedules_drain_task(self, mock_drain_task) -> None:
+        user = self.create_user()
+
+        token = ApiToken.objects.create(user_id=user.id)
+
+        assert mock_drain_task.called
+        call_args = mock_drain_task.call_args
+        assert call_args.kwargs["outbox_name"] == "sentry.ControlOutbox"
+
+        outboxes = ControlOutbox.objects.filter(
+            shard_scope=OutboxScope.USER_SCOPE,
+            shard_identifier=user.id,
+            category=OutboxCategory.API_TOKEN_UPDATE,
+            object_identifier=token.id,
+        )
+        assert outboxes.exists()
+
+        # Verify the task was called with the correct ID range
+        outbox_ids = list(outboxes.values_list("id", flat=True))
+        assert call_args.kwargs["outbox_identifier_low"] == min(outbox_ids)
+        assert call_args.kwargs["outbox_identifier_hi"] == max(outbox_ids) + 1
