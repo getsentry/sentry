@@ -252,7 +252,8 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
   const version = build.app_info?.version;
   const buildNumber = build.app_info?.build_number;
 
-  const hasGitInfo = prNumber || branchName || commitHash;
+  const hasGitInfo = Boolean(prNumber || branchName || commitHash);
+  const versionInfo = formatVersionInfo(version, buildNumber);
 
   return (
     <BuildItemContainer
@@ -262,7 +263,7 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
       gap="md"
     >
       <Flex direction="column" gap="sm" flex={1}>
-        {hasGitInfo && (
+        {(hasGitInfo || versionInfo) && (
           <Flex align="center" gap="md">
             {(prNumber || branchName) && <IconBranch size="xs" color="gray300" />}
             {prNumber && (
@@ -279,10 +280,10 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
                 <Text>{commitHash}</Text>
               </Flex>
             )}
-            {formatVersionInfo(version, buildNumber) && (
+            {versionInfo && (
               <Flex align="center" gap="sm">
                 <IconTag size="xs" color="gray300" />
-                <Text>{formatVersionInfo(version, buildNumber)}</Text>
+                <Text>{versionInfo}</Text>
               </Flex>
             )}
           </Flex>
