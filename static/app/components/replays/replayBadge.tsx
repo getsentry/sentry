@@ -74,7 +74,7 @@ export default function ReplayBadge({replay}: Props) {
 
       <Flex direction="column" gap="xs" justify="center">
         <Flex direction="row" align="center" gap="xs">
-          {/* We use div here because the Text component doesn't have display: block */}
+          {/* We use div here because the Text component has 100% width and will push live indicator to the far right */}
           <div>
             <Text size="md" bold ellipsis data-underline-on-hover>
               {replay.user.display_name || t('Anonymous User')}
