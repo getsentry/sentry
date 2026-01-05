@@ -286,6 +286,7 @@ class RepositoryCodeReviewSettingsTest(TestCase):
             CodeReviewTrigger.ON_NEW_COMMIT.value,
             CodeReviewTrigger.ON_READY_FOR_REVIEW.value,
         }
+        assert len(settings.code_review_triggers) == 3
 
     def test_save_does_not_duplicate_on_command_phrase(self):
         org = self.create_organization()
@@ -309,6 +310,7 @@ class RepositoryCodeReviewSettingsTest(TestCase):
             CodeReviewTrigger.ON_COMMAND_PHRASE.value,
             CodeReviewTrigger.ON_NEW_COMMIT.value,
         }
+        assert len(settings.code_review_triggers) == 2
 
     def test_save_enforces_on_command_phrase_on_update(self):
         """Test that save() enforces ON_COMMAND_PHRASE when updating an existing instance."""
@@ -340,3 +342,4 @@ class RepositoryCodeReviewSettingsTest(TestCase):
             CodeReviewTrigger.ON_NEW_COMMIT.value,
             CodeReviewTrigger.ON_READY_FOR_REVIEW.value,
         }
+        assert len(settings.code_review_triggers) == 3

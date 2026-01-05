@@ -31,7 +31,7 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0007_organizationmember_replay_access
 
-sentry: 1015_alter_code_review_triggers_default
+sentry: 1015_backfill_on_command_phrase_trigger
 
 social_auth: 0003_social_auth_json_field
 
