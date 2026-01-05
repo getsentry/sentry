@@ -572,29 +572,25 @@ function useWidgetBuilderState(): {
             }
           }
 
-          if (action.payload.length > 0 && fields?.length === 0) {
-            // Clear the sort if there is no grouping
+          // If there are yAxis fields but no groupings, clear the sort
+          if (action.payload.length > 0 && (!fields || fields.length === 0)) {
             setSort([], options);
-          }
-
-          if (
+          } else if (
+            action.payload.length > 0 &&
             dataset === WidgetType.TRACEMETRICS &&
             traceMetric &&
-            sort &&
-            sort.length > 0 &&
-            action.payload.length > 0
+            sort?.length &&
+            !checkTraceMetricSortUsed(sort, traceMetric, action.payload, fields)
           ) {
-            if (!checkTraceMetricSortUsed(sort, traceMetric, action.payload, fields)) {
-              setSort(
-                [
-                  {
-                    kind: 'desc',
-                    field: generateMetricAggregate(traceMetric, action.payload[0]!),
-                  },
-                ],
-                options
-              );
-            }
+            setSort(
+              [
+                {
+                  kind: 'desc',
+                  field: generateMetricAggregate(traceMetric, action.payload[0]!),
+                },
+              ],
+              options
+            );
           }
           break;
         case BuilderStateAction.SET_QUERY:
