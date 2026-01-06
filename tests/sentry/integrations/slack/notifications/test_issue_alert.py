@@ -385,7 +385,6 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         params when the alert rule filters by environment and block kit is enabled.
         """
         environment = self.create_environment(self.project, name="production")
-        ProjectOwnership.objects.create(project_id=self.project.id)
         action_data = {
             "id": "sentry.mail.actions.NotifyEmailAction",
             "targetType": "IssueOwners",
@@ -403,7 +402,6 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
     @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
     def test_issue_alert_issue_owners_environment_block__workflow_engine(self) -> None:
         environment = self.create_environment(self.project, name="production")
-        ProjectOwnership.objects.create(project_id=self.project.id)
         action_data = {
             "id": "sentry.mail.actions.NotifyEmailAction",
             "targetType": "IssueOwners",
