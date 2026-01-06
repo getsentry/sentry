@@ -305,10 +305,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       ) as TableDataWithTitle;
       transformedData.title = widget.queries[i]?.name ?? '';
 
-      // Overwrite the local var to work around state being stale in tests.
-      transformedTableResults = [...transformedTableResults, transformedData];
-
-      const meta = transformedTableResults?.[0]?.meta;
+      const meta = transformedData.meta;
       const widgetUnits = widget?.queries?.[i]?.units;
       if (widgetUnits && meta) {
         widgetUnits.forEach((unit, index) => {
@@ -319,6 +316,9 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
           }
         });
       }
+
+      // Overwrite the local var to work around state being stale in tests.
+      transformedTableResults = [...transformedTableResults, transformedData];
 
       // There is some inconsistency with the capitalization of "link" in response headers
       responsePageLinks =
