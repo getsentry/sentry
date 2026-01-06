@@ -85,7 +85,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
         if not features.has(
             "organizations:preprod-frontend-routes", project.organization, actor=request.user
         ):
-            return Response({"error": "Feature not enabled"}, status=403)
+            return Response({"detail": "Feature not enabled"}, status=403)
 
         logger.info(
             "preprod.size_analysis.compare.api.get",
@@ -93,7 +93,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
         )
 
         if head_artifact.project.id != project.id:
-            return Response({"error": "Project not found"}, status=404)
+            return Response({"detail": "Project not found"}, status=404)
 
         head_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
             preprod_artifact_id__in=[head_artifact.id],
@@ -108,7 +108,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
             )
 
         if base_artifact.project.id != project.id:
-            return Response({"error": "Project not found"}, status=404)
+            return Response({"detail": "Project not found"}, status=404)
 
         base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
             preprod_artifact_id__in=[base_artifact.id],
@@ -271,7 +271,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
         if not features.has(
             "organizations:preprod-frontend-routes", project.organization, actor=request.user
         ):
-            return Response({"error": "Feature not enabled"}, status=403)
+            return Response({"detail": "Feature not enabled"}, status=403)
 
         logger.info(
             "preprod.size_analysis.compare.api.post",
@@ -280,7 +280,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
 
         if head_artifact.build_configuration != base_artifact.build_configuration:
             return Response(
-                {"error": "Head and base build configurations must be the same."}, status=400
+                {"detail": "Head and base build configurations must be the same."}, status=400
             )
 
         head_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(

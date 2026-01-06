@@ -15,6 +15,7 @@ from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.models.repositorysettings import CodeReviewTrigger
 
 from ..metrics import (
     CodeReviewErrorType,
@@ -24,7 +25,7 @@ from ..metrics import (
     record_webhook_handler_error,
     record_webhook_received,
 )
-from ..permissions import has_code_review_enabled
+from ..utils import _get_target_commit_sha
 
 logger = logging.getLogger(__name__)
 
@@ -122,13 +123,6 @@ def handle_issue_comment_event(
     comment_id = comment.get("id")
     comment_body = comment.get("body")
 
-    if not has_code_review_enabled(organization):
-        record_webhook_filtered(
-            github_event, github_event_action, CodeReviewFilteredReason.NOT_ENABLED
-        )
-        logger.info(Log.NOT_ENABLED.value, extra=extra)
-        return
-
     if not is_pr_review_command(comment_body or ""):
         record_webhook_filtered(
             github_event, github_event_action, CodeReviewFilteredReason.NOT_REVIEW_COMMAND
@@ -142,6 +136,8 @@ def handle_issue_comment_event(
                 github_event, github_event_action, integration, organization, repo, str(comment_id)
             )
 
+        target_commit_sha = _get_target_commit_sha(github_event, event, repo, integration)
+
         from .task import schedule_task
 
         schedule_task(
@@ -150,5 +146,7 @@ def handle_issue_comment_event(
             event=event,
             organization=organization,
             repo=repo,
+            target_commit_sha=target_commit_sha,
+            trigger=CodeReviewTrigger.ON_COMMAND_PHRASE,
         )
         record_webhook_enqueued(github_event, github_event_action)

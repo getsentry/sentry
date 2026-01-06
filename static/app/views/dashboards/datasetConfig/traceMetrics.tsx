@@ -164,13 +164,13 @@ function useTraceMetricsSearchBarDataProvider(
 
 export function formatTraceMetricsFunction(
   valueToParse: string,
-  defaultValue: string | ReactNode = ''
+  defaultValue?: string | ReactNode
 ) {
   const parsedFunction = parseFunction(valueToParse);
   if (parsedFunction) {
     return `${parsedFunction.name}(${parsedFunction.arguments[1] ?? '…'})`;
   }
-  return defaultValue;
+  return defaultValue ?? valueToParse;
 }
 
 export const TraceMetricsConfig: DatasetConfig<
@@ -228,8 +228,13 @@ export const TraceMetricsConfig: DatasetConfig<
   },
   getSeriesRequest,
   transformTable: transformEventsResponseToTable,
-  transformSeries: (data, _widgetQuery) =>
-    data.timeSeries.map(timeSeries => {
+  transformSeries: (data, widgetQuery) => {
+    const multiYAxis = new Set(widgetQuery.aggregates ?? []).size > 1;
+    const hasGroupings = new Set(widgetQuery.columns).size > 0;
+
+    return data.timeSeries.map(timeSeries => {
+      // The function should always be defined when dealing with a successful
+      // time series response
       const func = parseFunction(timeSeries.yAxis);
       if (func) {
         timeSeries.yAxis = `${func.name}(${func.arguments[1] ?? '…'})`;
@@ -239,11 +244,31 @@ export const TraceMetricsConfig: DatasetConfig<
           name: value.timestamp,
           value: value.value ?? 0,
         })),
-        seriesName: formatTimeSeriesLabel(timeSeries),
+
+        // The series name needs to distinctively refer to the yAxis it belongs to
+        // when multiple yAxes and groupings are present, otherwise the response
+        // returns each series with its grouping but they overlap each other in the
+        // legend
+        seriesName:
+          multiYAxis && hasGroupings && func
+            ? `${formatTimeSeriesLabel(timeSeries)} : ${func.name}(…)`
+            : formatTimeSeriesLabel(timeSeries),
       };
-    }),
+    });
+  },
   getCustomFieldRenderer: (field, meta, _organization) => {
     return getFieldRenderer(field, meta, false);
+  },
+  getFieldHeaderMap: widgetQuery => {
+    return (
+      widgetQuery?.aggregates.reduce(
+        (acc, aggregate) => {
+          acc[aggregate] = formatTraceMetricsFunction(aggregate) as string;
+          return acc;
+        },
+        {} as Record<string, string>
+      ) ?? {}
+    );
   },
 };
 

@@ -380,6 +380,20 @@ class OrganizationCodeMappingsTest(APITestCase):
         assert response.status_code == 400
         assert response.data == {"defaultBranch": [BRANCH_NAME_ERROR_MESSAGE]}
 
+    def test_get_with_integration_from_another_org_returns_404(self) -> None:
+        """GET with integrationId from another organization returns 404."""
+        other_org = self.create_organization(name="other-org")
+        other_integration = self.create_integration(
+            organization=other_org,
+            external_id="other-external-id",
+            provider="github",
+        )
+
+        url_path = f"{self.url}?integrationId={other_integration.id}"
+        response = self.client.get(url_path, format="json")
+
+        assert response.status_code == 404, response.content
+
     def test_get_with_integrationId_enforces_project_access(self) -> None:
         """GET with integrationId only returns mappings for projects user can access."""
         self.organization.flags.allow_joinleave = False

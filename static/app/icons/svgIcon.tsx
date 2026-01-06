@@ -43,9 +43,13 @@ export function SvgIcon(props: SVGIconProps) {
       viewBox="0 0 16 16"
       {...rest}
       fill={
-        iconProps.variant
-          ? theme.tokens.content[iconProps.variant]
-          : resolveIconColor(theme, iconProps)
+        // Exception for warning icon variant. Design enginering needs to figure out what
+        // to align this color to, as content.warning looks too dark in this context.
+        iconProps.variant === 'warning'
+          ? theme.tokens.graphics.warning.vibrant
+          : iconProps.variant
+            ? theme.tokens.content[iconProps.variant]
+            : resolveIconColor(theme, iconProps)
       }
       height={size}
       width={size}

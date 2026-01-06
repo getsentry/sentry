@@ -28,10 +28,15 @@ from ..metrics import (
     record_webhook_handler_error,
     record_webhook_received,
 )
-from ..permissions import has_code_review_enabled
 from ..utils import SeerEndpoint, make_seer_request
 
 logger = logging.getLogger(__name__)
+
+
+class ErrorStatus(enum.StrEnum):
+    MISSING_ORGANIZATION = "missing_organization"
+    MISSING_ACTION = "missing_action"
+    INVALID_PAYLOAD = "invalid_payload"
 
 
 class Log(enum.StrEnum):
@@ -107,10 +112,6 @@ def handle_check_run_event(
 
     if action != GitHubCheckRunAction.REREQUESTED:
         record_webhook_filtered(github_event, action, CodeReviewFilteredReason.WRONG_ACTION)
-        return
-
-    if not has_code_review_enabled(organization):
-        record_webhook_filtered(github_event, action, CodeReviewFilteredReason.NOT_ENABLED)
         return
 
     try:
