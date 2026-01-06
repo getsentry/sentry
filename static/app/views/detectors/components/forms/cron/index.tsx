@@ -33,7 +33,7 @@ function CronDetectorForm({detector}: {detector?: CronDetector}) {
   const formSections = (
     <Fragment>
       {dataSource?.queryObj.isUpserting && (
-        <Alert type="warning">
+        <Alert variant="warning">
           {t(
             'This monitor is managed in code and updates automatically with each check-in. Changes made here may be overwritten!'
           )}

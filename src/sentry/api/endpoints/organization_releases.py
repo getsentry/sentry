@@ -24,7 +24,12 @@ from sentry.api.paginator import (
     MergingOffsetPaginator,
     OffsetPaginator,
 )
-from sentry.api.release_search import FINALIZED_KEY, RELEASE_FREE_TEXT_KEY, parse_search_query
+from sentry.api.release_search import (
+    FINALIZED_KEY,
+    RELEASE_CREATED_KEY,
+    RELEASE_FREE_TEXT_KEY,
+    parse_search_query,
+)
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
     ReleaseHeadCommitSerializer,
@@ -164,6 +169,13 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
                 OPERATOR_TO_DJANGO[operator],
                 search_filter.value.raw_value,
                 negated=negated,
+            )
+
+        if search_filter.key.name == RELEASE_CREATED_KEY:
+            queryset = queryset.filter(
+                **{
+                    f"date_added__{OPERATOR_TO_DJANGO[search_filter.operator]}": search_filter.value.raw_value
+                }
             )
 
     return queryset

@@ -52,6 +52,7 @@ import {getMessage, getTitle} from 'sentry/utils/events';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
@@ -70,12 +71,9 @@ interface AssignedEntity {
 interface ClusterSummary {
   assignedTo: AssignedEntity[];
   cluster_avg_similarity: number | null;
-  // unused
   cluster_id: number;
   cluster_min_similarity: number | null;
-  // unused
   cluster_size: number | null;
-  // unused
   description: string;
   fixability_score: number | null;
   group_ids: number[];
@@ -92,9 +90,6 @@ interface ClusterSummary {
   service_tags?: string[];
 }
 
-/**
- * Formats cluster information for copying to clipboard in a readable format.
- */
 function formatClusterInfoForClipboard(cluster: ClusterSummary): string {
   const lines: string[] = [];
 
@@ -113,18 +108,11 @@ function formatClusterInfoForClipboard(cluster: ClusterSummary): string {
   return lines.join('\n');
 }
 
-/**
- * Formats a prompt for Seer Explorer about the cluster.
- */
 function formatClusterPromptForSeer(cluster: ClusterSummary): string {
   const message = formatClusterInfoForClipboard(cluster);
   return `I'd like to investigate this cluster of issues:\n\n${message}\n\nPlease help me understand the root cause and potential fixes for these related issues.`;
 }
 
-/**
- * Parses a string and renders backtick-wrapped text as inline code elements.
- * Example: "Error in `Contains` filter" becomes ["Error in ", <InlineCode>Contains</InlineCode>, " filter"]
- */
 function renderWithInlineCode(text: string): React.ReactNode {
   const parts = text.split(/(`[^`]+`)/g);
   if (parts.length === 1) {
@@ -351,11 +339,17 @@ function ClusterIssues({groupIds}: {groupIds: number[]}) {
 
 interface ClusterCardProps {
   cluster: ClusterSummary;
+  onDismiss: (clusterId: number) => void;
   filterByEscalating?: boolean;
   filterByRegressed?: boolean;
 }
 
-function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCardProps) {
+function ClusterCard({
+  cluster,
+  filterByRegressed,
+  filterByEscalating,
+  onDismiss,
+}: ClusterCardProps) {
   const api = useApi();
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -449,7 +443,16 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
     });
   }, [api, cluster.group_ids, organization.slug, selection]);
 
-  const handleDismiss = () => {};
+  const handleDismiss = useCallback(() => {
+    openConfirmModal({
+      header: t('Dismiss Cluster'),
+      message: t('This will hide this cluster from your personal view.'),
+      confirmText: t('Dismiss'),
+      onConfirm: () => {
+        onDismiss(cluster.cluster_id);
+      },
+    });
+  }, [onDismiss, cluster.cluster_id]);
 
   const allTags = useMemo(() => {
     return [
@@ -475,7 +478,19 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
   return (
     <CardContainer>
       <CardHeader>
-        {cluster.impact && <ClusterTitle>{cluster.impact}</ClusterTitle>}
+        {cluster.impact && (
+          <ClusterTitle>
+            {cluster.impact}
+            <Text
+              as="span"
+              size="md"
+              variant="muted"
+              style={{fontWeight: 'normal', marginLeft: space(1)}}
+            >
+              [CLUSTER-{cluster.cluster_id}]
+            </Text>
+          </ClusterTitle>
+        )}
         {!clusterStats.isPending &&
           (clusterStats.newIssuesCount > 0 ||
             clusterStats.hasRegressedIssues ||
@@ -510,7 +525,7 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
         <StatsRow>
           <ClusterStats>
             <StatItem>
-              <IconFire size="xs" color="gray300" />
+              <IconFire size="xs" variant="muted" />
               {clusterStats.isPending ? (
                 <Text size="xs" variant="muted">
                   –
@@ -525,7 +540,7 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
               )}
             </StatItem>
             <StatItem>
-              <IconUser size="xs" color="gray300" />
+              <IconUser size="xs" variant="muted" />
               {clusterStats.isPending ? (
                 <Text size="xs" variant="muted">
                   –
@@ -545,7 +560,7 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
               <TimeStats>
                 {clusterStats.lastSeen && (
                   <StatItem>
-                    <IconClock size="xs" color="gray300" />
+                    <IconClock size="xs" variant="muted" />
                     <TimeSince
                       tooltipPrefix={t('Last Seen')}
                       date={clusterStats.lastSeen}
@@ -556,7 +571,7 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
                 )}
                 {clusterStats.firstSeen && (
                   <StatItem>
-                    <IconCalendar size="xs" color="gray300" />
+                    <IconCalendar size="xs" variant="muted" />
                     <TimeSince
                       tooltipPrefix={t('First Seen')}
                       date={clusterStats.firstSeen}
@@ -750,6 +765,14 @@ function DynamicGrouping() {
   const [visibleClusterCount, setVisibleClusterCount] = useState(CLUSTERS_PER_PAGE);
   const [filterByRegressed, setFilterByRegressed] = useState(false);
   const [filterByEscalating, setFilterByEscalating] = useState(false);
+  const [dismissedClusterIds, setDismissedClusterIds] = useLocalStorageState<number[]>(
+    `top-issues-dismissed-clusters:${organization.slug}`,
+    []
+  );
+
+  const handleDismissCluster = (clusterId: number) => {
+    setDismissedClusterIds(prev => [...prev, clusterId]);
+  };
 
   // Fetch cluster data from API
   const {data: topIssuesResponse, isPending} = useApiQuery<TopIssuesResponse>(
@@ -832,6 +855,10 @@ function DynamicGrouping() {
         return false;
       }
 
+      if (dismissedClusterIds.includes(cluster.cluster_id)) {
+        return false;
+      }
+
       if (
         selection.projects.length > 0 &&
         !selection.projects.includes(ALL_ACCESS_PROJECTS)
@@ -881,6 +908,7 @@ function DynamicGrouping() {
     userTeams,
     isTeamFilterActive,
     selectedTeamIds,
+    dismissedClusterIds,
   ]);
 
   const hasMoreClusters = filteredAndSortedClusters.length > visibleClusterCount;
@@ -905,24 +933,34 @@ function DynamicGrouping() {
     <PageFiltersContainer>
       <PageWrapper>
         <HeaderSection>
-          <Flex align="center" gap="md" style={{marginBottom: space(2)}}>
-            <ClickableHeading as="h1" onClick={() => setShowDevTools(prev => !prev)}>
-              {t('Top Issues (Experimental)')}
-            </ClickableHeading>
-            {isUsingCustomData && (
-              <CustomDataBadge>
-                <Text size="xs" bold>
-                  {t('Using Custom Data')}
-                </Text>
-                <Button
-                  size="zero"
-                  borderless
-                  icon={<IconClose size="xs" />}
-                  aria-label={t('Clear custom data')}
-                  onClick={handleClearCustomData}
-                />
-              </CustomDataBadge>
-            )}
+          <Flex
+            align="center"
+            gap="md"
+            justify="between"
+            style={{marginBottom: space(2)}}
+          >
+            <Flex align="center" gap="md">
+              <ClickableHeading as="h1" onClick={() => setShowDevTools(prev => !prev)}>
+                {t('Top Issues (Experimental)')}
+              </ClickableHeading>
+              {isUsingCustomData && (
+                <CustomDataBadge>
+                  <Text size="xs" bold>
+                    {t('Using Custom Data')}
+                  </Text>
+                  <Button
+                    size="zero"
+                    borderless
+                    icon={<IconClose size="xs" />}
+                    aria-label={t('Clear custom data')}
+                    onClick={handleClearCustomData}
+                  />
+                </CustomDataBadge>
+              )}
+            </Flex>
+            <Link to={`/organizations/${organization.slug}/issues/top-issues/`}>
+              <Button size="sm">{t('View Single Card Layout')}</Button>
+            </Link>
           </Flex>
 
           <Flex gap="sm" align="center" style={{marginBottom: space(2)}}>
@@ -1127,6 +1165,7 @@ function DynamicGrouping() {
                       cluster={cluster}
                       filterByRegressed={filterByRegressed}
                       filterByEscalating={filterByEscalating}
+                      onDismiss={handleDismissCluster}
                     />
                   ))}
               </CardsColumn>
@@ -1139,6 +1178,7 @@ function DynamicGrouping() {
                       cluster={cluster}
                       filterByRegressed={filterByRegressed}
                       filterByEscalating={filterByEscalating}
+                      onDismiss={handleDismissCluster}
                     />
                   ))}
               </CardsColumn>
@@ -1194,7 +1234,6 @@ const CardsColumn = styled('div')`
   min-width: 0;
 `;
 
-// Card with subtle hover effect
 const CardContainer = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.border};
@@ -1213,7 +1252,6 @@ const CardContainer = styled('div')`
   }
 `;
 
-// Zone 1: Title area - clean and prominent
 const CardHeader = styled('div')`
   padding: ${space(3)} ${space(3)} ${space(2)};
   display: flex;
@@ -1230,7 +1268,6 @@ const ClusterTitle = styled('h3')`
   word-break: break-word;
 `;
 
-// Stats container with left/right separation
 const StatsRow = styled('div')`
   display: flex;
   justify-content: space-between;
@@ -1238,7 +1275,6 @@ const StatsRow = styled('div')`
   gap: ${space(2)};
 `;
 
-// Stats row within header (left side)
 const ClusterStats = styled('div')`
   display: flex;
   flex-wrap: wrap;
@@ -1248,7 +1284,6 @@ const ClusterStats = styled('div')`
   color: ${p => p.theme.subText};
 `;
 
-// Time stats (right side) - first seen, last seen
 const TimeStats = styled('div')`
   display: flex;
   align-items: center;
@@ -1275,7 +1310,6 @@ const MoreProjectsCount = styled('span')`
   margin-left: ${space(0.25)};
 `;
 
-// Status tags row for new/regressed/escalating indicators
 const ClusterStatusTags = styled('div')`
   display: flex;
   flex-wrap: wrap;
@@ -1313,7 +1347,6 @@ const StatusTag = styled('div')<{color: 'purple' | 'yellow' | 'red'}>`
   }}
 `;
 
-// Tab section for Summary / Preview Issues
 const TabSection = styled('div')``;
 
 const TabBar = styled('div')`
@@ -1357,7 +1390,6 @@ const TabContent = styled('div')`
   padding: ${space(2)} ${space(3)};
 `;
 
-// Zone 4: Footer with actions
 const CardFooter = styled('div')`
   padding: ${space(2)} ${space(3)};
   border-top: 1px solid ${p => p.theme.innerBorder};
@@ -1373,7 +1405,6 @@ const FooterActions = styled('div')`
   gap: ${space(1)};
 `;
 
-// Split button for Send to Seer action
 const SeerButton = styled(Button)`
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
@@ -1385,7 +1416,6 @@ const SeerDropdownTrigger = styled(Button)`
   border-left: 1px solid rgba(255, 255, 255, 0.15);
 `;
 
-// Issue preview link with hover effect - consistent with issue feed cards
 const IssuePreviewLink = styled(Link)`
   display: block;
   padding: ${space(1.5)} ${space(2)};
@@ -1402,7 +1432,6 @@ const IssuePreviewLink = styled(Link)`
   }
 `;
 
-// Issue title with ellipsis and nested em styling for EventOrGroupTitle
 const IssueTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   font-weight: 600;
@@ -1418,7 +1447,6 @@ const IssueTitle = styled('div')`
   }
 `;
 
-// EventMessage override for compact display
 const IssueMessage = styled(EventMessage)`
   margin: 0;
   font-size: ${p => p.theme.fontSize.sm};
@@ -1426,7 +1454,6 @@ const IssueMessage = styled(EventMessage)`
   opacity: 0.9;
 `;
 
-// Meta separator line
 const MetaSeparator = styled('div')`
   height: 10px;
   width: 1px;

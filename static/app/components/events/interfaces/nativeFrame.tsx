@@ -299,7 +299,7 @@ function NativeFrame({
               >
                 <IconFileBroken
                   size="sm"
-                  color="errorText"
+                  variant="danger"
                   data-test-id="symbolication-error-icon"
                 />
               </Tooltip>
@@ -311,7 +311,7 @@ function NativeFrame({
               >
                 <IconWarning
                   size="sm"
-                  color="warningText"
+                  color="yellow300"
                   data-test-id="symbolication-warning-icon"
                 />
               </Tooltip>
@@ -432,7 +432,7 @@ function NativeFrame({
               </ErrorBoundary>
             )}
             <TypeCell>
-              {frame.inApp ? <Tag type="info">{t('In App')}</Tag> : null}
+              {frame.inApp ? <Tag variant="info">{t('In App')}</Tag> : null}
             </TypeCell>
           </Flex>
           <ExpandCell>

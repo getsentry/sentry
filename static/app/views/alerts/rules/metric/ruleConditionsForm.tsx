@@ -592,7 +592,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       <Fragment>
         {deprecateTransactionsAlertsWarning && (
           <Alert.Container>
-            <Alert type="warning">
+            <Alert variant="warning">
               {tctCode(
                 'Editing of transaction-based alerts is disabled, as we migrate to the span dataset. To expedite and re-enable edit functionality, use span-based alerts with the [code:is_transaction:true] filter instead. Please read these [FAQLink:FAQs] for more information.',
                 {
@@ -606,7 +606,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
         )}
         {showExtrapolationModeChangeWarning && (
           <Alert.Container>
-            <Alert type="info">
+            <Alert variant="info">
               {tct(
                 'The thresholds on this chart may look off. This is because, once saved, alerts will now take into account [samplingLink:sampling rate]. Before clicking save, take the time to update your [thresholdsLink:thresholds]. Click cancel to continue running this alert in compatibility mode.',
                 {
@@ -664,7 +664,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
               )}
               {confidenceEnabled && isLowConfidenceChartData && (
                 <Alert.Container>
-                  <Alert type="warning">
+                  <Alert variant="warning">
                     {t(
                       'Your low sample count may impact the accuracy of this alert. Edit your query or increase your sampling rate.'
                     )}
@@ -775,7 +775,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                           isOnDemandQueryString(value) &&
                           (isOnDemandLimitReached ? (
                             <OnDemandWarningIcon
-                              color="red400"
+                              variant="danger"
                               msg={tct(
                                 'We don’t routinely collect metrics from [fields] and you’ve already reached the limit of [docLink:alerts with advanced filters] for your organization.',
                                 {
@@ -795,7 +795,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                             />
                           ) : (
                             <OnDemandWarningIcon
-                              color="gray500"
+                              variant="primary"
                               msg={tct(
                                 'We don’t routinely collect metrics from [fields]. However, we’ll do so [strong:once this alert has been saved.]',
                                 {

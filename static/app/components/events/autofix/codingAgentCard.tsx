@@ -33,12 +33,12 @@ interface CodingAgentCardProps {
 }
 
 function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
-  const getTagType = (status: CodingAgentStatus): TagProps['type'] => {
+  const getTagVariant = (status: CodingAgentStatus): TagProps['variant'] => {
     switch (status) {
       case CodingAgentStatus.COMPLETED:
         return 'success';
       case CodingAgentStatus.FAILED:
-        return 'error';
+        return 'danger';
       case CodingAgentStatus.PENDING:
       case CodingAgentStatus.RUNNING:
       default:
@@ -91,7 +91,7 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                     {shouldShowSpinner(codingAgentState.status) ? (
                       <StyledLoadingIndicator size={16} />
                     ) : (
-                      <IconCode size="md" color="purple400" />
+                      <IconCode size="md" variant="accent" />
                     )}
                     {getProviderName(codingAgentState.provider)}
                   </HeaderText>
@@ -101,7 +101,7 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                   <CardHeader>
                     <AgentTitle>{codingAgentState.name}</AgentTitle>
                     <div>
-                      <Tag type={getTagType(codingAgentState.status)}>
+                      <Tag variant={getTagVariant(codingAgentState.status)}>
                         {getStatusText(codingAgentState.status)}
                       </Tag>
                     </div>
