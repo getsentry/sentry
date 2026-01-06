@@ -5,6 +5,7 @@ import type {Query} from 'history';
 import {Alert} from 'sentry/components/core/alert';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Pagination from 'sentry/components/pagination';
 import type {ReplayTableColumn} from 'sentry/components/replays/table/replayTableColumns';
 import ReplayTableHeader from 'sentry/components/replays/table/replayTableHeader';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -12,6 +13,7 @@ import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {ERROR_MAP} from 'sentry/utils/requestError/requestError';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
@@ -30,12 +32,14 @@ type Props = SortProps & {
   replays: ReplayListRecord[];
   showDropdownFilters: boolean;
   highlightedRowIndex?: number;
+  pageLinks?: string | null;
   query?: Query;
   ref?: RefObject<HTMLDivElement | null>;
   stickyHeader?: boolean;
 };
 
 export default function ReplayTable({
+  pageLinks,
   query,
   columns,
   error,
@@ -52,6 +56,7 @@ export default function ReplayTable({
   const gridTemplateColumns = columns.map(col => col.width ?? 'max-content').join(' ');
   const hasInteractiveColumn = columns.some(col => col.interactive);
   const organization = useOrganization();
+  const navigate = useNavigate();
 
   if (isPending) {
     return (
@@ -142,6 +147,17 @@ export default function ReplayTable({
           ))}
         </RowWithScrollIntoView>
       ))}
+      {pageLinks ? (
+        <StyledPagination
+          pageLinks={pageLinks}
+          onCursor={(cursor, path, searchQuery) => {
+            navigate({
+              pathname: path,
+              query: {...searchQuery, cursor},
+            });
+          }}
+        />
+      ) : null}
     </StyledSimpleTable>
   );
 }
@@ -174,6 +190,11 @@ const StyledSimpleTable = styled(SimpleTable)`
   [data-clickable='true'] {
     cursor: pointer;
   }
+`;
+
+const StyledPagination = styled(Pagination)`
+  margin: ${p => p.theme.space.md};
+  grid-column: 1 / -1;
 `;
 
 function getErrorMessage(fetchError: RequestError) {
