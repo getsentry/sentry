@@ -5,7 +5,7 @@ import logging
 from datetime import datetime
 from typing import Literal, NotRequired, TypedDict
 
-from django.db import router
+from django.db import router, transaction
 from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -516,13 +516,20 @@ class OAuthTokenView(View):
                         reason="device code in invalid state",
                     )
 
-                # Create the access token
-                token = ApiToken.objects.create(
-                    application=application,
-                    user_id=device_code.user.id,
-                    scope_list=device_code.scope_list,
-                    scoping_organization_id=device_code.organization_id,
-                )
+                # Use a transaction to ensure token creation and device code deletion
+                # are atomic. This prevents duplicate tokens if delete fails after
+                # token creation succeeds.
+                with transaction.atomic(router.db_for_write(ApiToken)):
+                    # Create the access token
+                    token = ApiToken.objects.create(
+                        application=application,
+                        user_id=device_code.user.id,
+                        scope_list=device_code.scope_list,
+                        scoping_organization_id=device_code.organization_id,
+                    )
+
+                    # Delete the device code (one-time use)
+                    device_code.delete()
 
                 metrics.incr("oauth_device.token_exchange", sample_rate=1.0)
                 logger.info(
@@ -534,9 +541,6 @@ class OAuthTokenView(View):
                         "token_id": token.id,
                     },
                 )
-
-                # Delete the device code (one-time use)
-                device_code.delete()
 
             return self.process_token_details(token=token)
 
