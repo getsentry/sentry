@@ -962,6 +962,45 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         assert widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS
         assert widget.dataset_source == DatasetSourcesTypes.FORCED.value
 
+    def test_idor_dashboard_widget_from_different_org(self) -> None:
+        """Regression test: Cannot access dashboard widgets from other organizations (IDOR)."""
+        # Create a widget in a DIFFERENT organization with discover_widget_split=None
+        # This means if the widget IS accessed, the split detection would run and UPDATE it
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        _, other_widget, __ = create_widget(
+            ["count()"],
+            "",
+            other_project,
+            discover_widget_split=None,  # Not yet split - would be updated if accessed
+        )
+
+        # Verify initial state
+        assert other_widget.discover_widget_split is None
+
+        # Request with cross-org widget ID should NOT access that widget
+        response = self.do_request(
+            {
+                "field": ["count()"],
+                "query": "",
+                "dataset": "metricsEnhanced",
+                "per_page": 50,
+                "dashboardWidgetId": other_widget.id,
+            }
+        )
+
+        # Request should succeed (the widget query fails silently and falls back)
+        assert response.status_code == 200, response.content
+
+        # KEY ASSERTION: The cross-org widget should NOT have been modified
+        # Without IDOR fix: widget is found, split detection runs, discover_widget_split gets set
+        # With IDOR fix: widget not found (wrong org), widget stays unchanged
+        other_widget.refresh_from_db()
+        assert other_widget.discover_widget_split is None, (
+            "Cross-org widget was modified - IDOR vulnerability! "
+            "The widget should not be accessible from a different organization."
+        )
+
     def test_inp_percentile(self) -> None:
         for hour in range(6):
             timestamp = self.day_ago + timedelta(hours=hour, minutes=30)
