@@ -528,6 +528,9 @@ importers:
       typescript:
         specifier: 5.9.2
         version: 5.9.2
+      ultramatter:
+        specifier: ^0.0.4
+        version: 0.0.4
       zrender:
         specifier: 6.0.0
         version: 6.0.0
@@ -8402,6 +8405,9 @@ packages:
     resolution: {integrity: sha512-v3Xu+yuwBXisp6QYTcH4UbH+xYJXqnq2m/LtQVWKWzYc1iehYnLixoQDN9FH6/j9/oybfd6W9Ghwkl8+UMKTKQ==}
     engines: {node: '>=0.8.0'}
     hasBin: true
+
+  ultramatter@0.0.4:
+    resolution: {integrity: sha512-1f/hO3mR+/Hgue4eInOF/Qm/wzDqwhYha4DxM0hre9YIUyso3fE2XtrAU6B4njLqTC8CM49EZaYgsVSa+dXHGw==}
 
   unbox-primitive@1.1.0:
     resolution: {integrity: sha512-nWJ91DjeOkej/TA8pXQ3myruKpKEYgqvpw9lz4OPHj/NWFNluYrjbz9j01CJ8yKQd2g4jFoOkINCTW2I5LEEyw==}
@@ -18617,6 +18623,8 @@ snapshots:
 
   uglify-js@3.19.3:
     optional: true
+
+  ultramatter@0.0.4: {}
 
   unbox-primitive@1.1.0:
     dependencies:
