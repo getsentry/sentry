@@ -288,41 +288,41 @@ class OAuthDeviceView(AuthLoginView):
 
         scopes = device_code.get_scopes()
 
-        # Use a transaction to ensure authorization and device code updates are atomic.
-        # This prevents orphaned authorizations if the device code update fails.
-        with transaction.atomic(router.db_for_write(ApiDeviceCode)):
-            # Atomically mark as approved only if still pending (prevents race condition)
-            updated = ApiDeviceCode.objects.filter(
-                id=device_code.id,
-                status=DeviceCodeStatus.PENDING,
-            ).update(
-                status=DeviceCodeStatus.APPROVED,
-                user_id=user_id,
-                organization_id=selected_org_id_int,
-            )
-            if not updated:
-                # Another request already processed this device code
-                return self._error_response(request, ERR_INVALID_CODE)
+        # Atomically mark as approved only if still pending (prevents race condition)
+        # This must happen first to claim the device code before creating authorization
+        updated = ApiDeviceCode.objects.filter(
+            id=device_code.id,
+            status=DeviceCodeStatus.PENDING,
+        ).update(
+            status=DeviceCodeStatus.APPROVED,
+            user_id=user_id,
+            organization_id=selected_org_id_int,
+        )
+        if not updated:
+            # Another request already processed this device code
+            return self._error_response(request, ERR_INVALID_CODE)
 
-            # Create or update ApiAuthorization record (same pattern as oauth_authorize)
-            # This happens inside the transaction so it rolls back if anything fails.
-            try:
+        # Create or update ApiAuthorization record (same pattern as oauth_authorize)
+        # The try/except must be OUTSIDE the atomic block because PostgreSQL aborts
+        # the transaction on IntegrityError, preventing subsequent DB operations.
+        try:
+            with transaction.atomic(router.db_for_write(ApiAuthorization)):
                 ApiAuthorization.objects.create(
                     application=application,
                     user_id=user_id,
                     scope_list=scopes,
                     organization_id=selected_org_id_int,
                 )
-            except IntegrityError:
-                # Authorization already exists, merge in any new scopes
-                if scopes:
-                    auth = ApiAuthorization.objects.get(
-                        application=application,
-                        user_id=user_id,
-                        organization_id=selected_org_id_int,
-                    )
-                    auth.scope_list = list(set(auth.scope_list) | set(scopes))
-                    auth.save(update_fields=["scope_list"])
+        except IntegrityError:
+            # Authorization already exists, merge in any new scopes
+            if scopes:
+                auth = ApiAuthorization.objects.get(
+                    application=application,
+                    user_id=user_id,
+                    organization_id=selected_org_id_int,
+                )
+                auth.scope_list = list(set(auth.scope_list) | set(scopes))
+                auth.save(update_fields=["scope_list"])
 
         metrics.incr(
             "oauth_device.approve",
