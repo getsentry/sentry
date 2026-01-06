@@ -8,6 +8,7 @@ from django.test import RequestFactory
 
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_URL_HEADER, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import IntegratedApiTestCase, TestCase
@@ -132,6 +133,14 @@ class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
             },
         )
 
+        with assume_test_silo_mode(SiloMode.REGION):
+            Repository.objects.create(
+                name="getsentry/sentry",
+                provider="integrations:github_enterprise",
+                organization_id=self.organization.id,
+                integration_id=self.model.id,
+            )
+
         form_data = {
             "repo": "getsentry/sentry",
             "title": "hello",
@@ -184,6 +193,14 @@ class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
                 "html_url": f"https://{self._IP_ADDRESS}/getsentry/sentry/issues/231",
             },
         )
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            Repository.objects.create(
+                name="getsentry/sentry",
+                provider="integrations:github_enterprise",
+                organization_id=self.organization.id,
+                integration_id=self.model.id,
+            )
 
         data = {"repo": "getsentry/sentry", "externalIssue": issue_id, "comment": "hello"}
 
