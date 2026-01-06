@@ -766,11 +766,12 @@ def _get_recommended_event(
     w_size = timedelta(days=3)
     w_start = max(end - w_size, start)
     w_end = end
-    event_query_limit = 50
+    event_query_limit = 100
     fallback_event: GroupEvent | None = None  # Highest recommended in most recent window
 
     while w_start >= start:
-        # Get candidate events with the standard recommended ordering. This is an expensive orderby, hence the sliding window.
+        # Get candidate events with the standard recommended ordering.
+        # This is an expensive orderby, hence the inner limit and sliding window.
         events: list[Event] = eventstore.backend.get_events_snql(
             organization_id=organization.id,
             group_id=group.id,
