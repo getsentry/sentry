@@ -5,7 +5,7 @@ from sentry import audit_log
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.grouping.fingerprinting import FingerprintingConfig
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
-from sentry.models.project import Project
+from sentry.shared_integrations.exceptions import ApiForbiddenError
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.models.detector import Detector
@@ -33,6 +33,12 @@ class ErrorDetectorValidator(BaseDetectorTypeValidator):
             )
         return value
 
+    def validate_name(self, value):
+        # if name is different from existing, raise an error
+        if self.instance and self.instance.name != value:
+            raise serializers.ValidationError("Name changes are not supported for error detectors")
+        return value
+
     def validate_fingerprinting_rules(self, value):
         if not value:
             return value
@@ -51,17 +57,13 @@ class ErrorDetectorValidator(BaseDetectorTypeValidator):
         return value
 
     def create(self, validated_data):
+        raise ApiForbiddenError("Creating error detectors is not supported")
+
+    def update(self, instance, validated_data):
         with transaction.atomic(router.db_for_write(Detector)):
-            detector = Detector.objects.create(
-                project_id=self.context["project"].id,
-                name=validated_data["name"],
-                # no workflow_condition_group
-                type=validated_data["type"].slug,
-                config={},
-            )
+            # ignores name update
 
-            project: Project = detector.project
-
+            project = instance.project
             # update configs, which are project options. continue using them
             for config in validated_data:
                 if config in Detector.error_detector_project_options:
@@ -72,8 +74,8 @@ class ErrorDetectorValidator(BaseDetectorTypeValidator):
             create_audit_entry(
                 request=self.context["request"],
                 organization=self.context["organization"],
-                target_object=detector.id,
-                event=audit_log.get_event_id("DETECTOR_ADD"),
-                data=detector.get_audit_log_data(),
+                target_object=instance.id,
+                event=audit_log.get_event_id("DETECTOR_EDIT"),
+                data=instance.get_audit_log_data(),
             )
-        return detector
+        return instance

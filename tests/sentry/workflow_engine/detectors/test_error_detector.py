@@ -1,9 +1,8 @@
-from unittest.mock import MagicMock, patch
-
+import pytest
 from rest_framework.exceptions import ErrorDetail
 
-from sentry import audit_log
 from sentry.models.environment import Environment
+from sentry.shared_integrations.exceptions import ApiForbiddenError
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators.error_detector import ErrorDetectorValidator
 from sentry.workflow_engine.models.detector import Detector
@@ -23,7 +22,7 @@ class TestErrorDetectorValidator(TestCase):
             "request": self.make_request(),
         }
         self.valid_data = {
-            "name": "Test Detector",
+            "name": "Existing Detector",
             "type": "error",
             "fingerprinting_rules": """message:"hello world 1" -> hw1 title="HW1""",
             "resolve_age": 30,
@@ -32,32 +31,11 @@ class TestErrorDetectorValidator(TestCase):
             name="Existing Detector", type="error", project_id=self.project.id, config={}
         )
 
-    @patch("sentry.workflow_engine.endpoints.validators.error_detector.create_audit_entry")
-    def test_create_with_valid_data(self, mock_audit: MagicMock) -> None:
-        validator = ErrorDetectorValidator(
-            data=self.valid_data,
-            context=self.context,
-        )
-        assert validator.is_valid(), validator.errors
-
-        with self.tasks():
-            detector = validator.save()
-
-        # Verify detector in DB
-        detector = Detector.objects.get(id=detector.id)
-        assert detector.name == "Test Detector"
-        assert detector.type == "error"
-        assert detector.project_id == self.project.id
-        assert detector.workflow_condition_group is None
-
-        # Verify audit log
-        mock_audit.assert_called_once_with(
-            request=self.context["request"],
-            organization=self.project.organization,
-            target_object=detector.id,
-            event=audit_log.get_event_id("DETECTOR_ADD"),
-            data=detector.get_audit_log_data(),
-        )
+    def test_create(self) -> None:
+        validator = ErrorDetectorValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid()
+        with pytest.raises(ApiForbiddenError):
+            validator.save()
 
     def test_invalid_detector_type(self) -> None:
         data = {**self.valid_data, "type": "metric_issue"}
@@ -106,14 +84,23 @@ class TestErrorDetectorValidator(TestCase):
         ]
 
     def test_update_existing_with_valid_data(self) -> None:
-        data = {**self.valid_data, "name": "Updated Detector"}
         validator = ErrorDetectorValidator(
-            data=data, context=self.context, instance=self.existing_error_detector
+            data=self.valid_data, context=self.context, instance=self.existing_error_detector
         )
         assert validator.is_valid()
         with self.tasks():
             detector = validator.save()
-        assert detector.name == "Updated Detector"
+        assert detector.name == "Existing Detector"
         assert detector.type == "error"
         assert detector.project_id == self.project.id
         assert detector.workflow_condition_group is None
+
+    def test_update_with_name_change(self) -> None:
+        data = {**self.valid_data, "name": "Updated Detector"}
+        validator = ErrorDetectorValidator(
+            data=data, context=self.context, instance=self.existing_error_detector
+        )
+        assert not validator.is_valid()
+        assert validator.errors.get("name") == [
+            ErrorDetail(string="Name changes are not supported for error detectors", code="invalid")
+        ]
