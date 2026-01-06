@@ -556,9 +556,9 @@ class AMCheckout extends Component<Props, State> {
     requestAnimationFrame(() => {
       const stepElement = document.getElementById(`step${stepNumber}`);
       if (stepElement) {
-        const offset = stepNumber <= 2 ? -100 : 0;
-        const targetScrollY =
-          stepElement.getBoundingClientRect().top + window.scrollY + offset;
+        // TODO(isabella): We should calculate some offset to add to account for the sticky header (which covers the title)
+        // and we will likely need to take screen size into account (steps 3 and 4 cannot have their headers at the top of the viewport unless it's a smaller screen)
+        const targetScrollY = stepElement.getBoundingClientRect().top + window.scrollY;
         window.scrollTo({top: targetScrollY, behavior: 'smooth'});
       }
     });
