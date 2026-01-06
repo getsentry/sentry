@@ -61,7 +61,15 @@ export function StorySearch() {
             });
           }
         }
+      } else if (section === 'product' && data.stories.length > 0) {
+        const flattenedStories = data.stories.flatMap(tree => tree.flat());
+        sections.push({
+          key: section,
+          label: SECTION_CONFIG[section].label,
+          options: flattenedStories,
+        });
       } else if (data.stories.length > 0) {
+        // Other sections (principles, patterns) don't need flattening
         sections.push({
           key: section,
           label: SECTION_CONFIG[section].label,
