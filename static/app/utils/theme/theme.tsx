@@ -9,7 +9,6 @@
  */
 import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
-import modifyColor from 'color';
 import {spring, type Transition} from 'framer-motion';
 
 import {withLegacyTokens, type LegacyTokens} from 'sentry/utils/theme/compat';
@@ -1270,29 +1269,6 @@ const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
    * Default Progressbar color
    */
   progressBackground: colors.gray100,
-
-  // @todo(jonasbadalic) should these reference chonk colors?
-  searchTokenBackground: {
-    valid: colors.blue100,
-    validActive: modifyColor(colors.blue100).opaquer(1.0).string(),
-    invalid: colors.red100,
-    invalidActive: modifyColor(colors.red100).opaquer(0.8).string(),
-    warning: colors.yellow100,
-    warningActive: modifyColor(colors.yellow100).opaquer(0.8).string(),
-  },
-
-  /**
-   * Search filter "token" border
-   * NOTE: Not being used anymore in the new Search UI
-   */
-  searchTokenBorder: {
-    valid: colors.blue200,
-    validActive: modifyColor(colors.blue200).opaquer(1).string(),
-    invalid: colors.red200,
-    invalidActive: modifyColor(colors.red200).opaquer(1).string(),
-    warning: colors.yellow200,
-    warningActive: modifyColor(colors.yellow200).opaquer(1).string(),
-  },
 });
 
 const lightAliases = generateAliases(baseLightTheme.tokens, lightColors);

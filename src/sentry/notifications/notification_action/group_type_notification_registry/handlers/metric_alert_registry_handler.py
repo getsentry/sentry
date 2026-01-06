@@ -10,8 +10,8 @@ from sentry.notifications.notification_action.registry import (
 )
 from sentry.notifications.notification_action.types import LegacyRegistryHandler
 from sentry.utils.registry import NoRegistrationExistsError
-from sentry.workflow_engine.models import Action, DataConditionGroupAction, Detector
-from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.models import Action, DataConditionGroupAction
+from sentry.workflow_engine.types import ActionInvocation
 
 logger = logging.getLogger(__name__)
 
@@ -19,21 +19,21 @@ logger = logging.getLogger(__name__)
 @group_type_notification_registry.register(MetricIssue.slug)
 class MetricAlertRegistryHandler(LegacyRegistryHandler):
     @staticmethod
-    def handle_workflow_action(job: WorkflowEventData, action: Action, detector: Detector) -> None:
+    def handle_workflow_action(invocation: ActionInvocation) -> None:
         try:
-            handler = metric_alert_handler_registry.get(action.type)
-            handler.invoke_legacy_registry(job, action, detector)
+            handler = metric_alert_handler_registry.get(invocation.action.type)
+            handler.invoke_legacy_registry(invocation)
         except NoRegistrationExistsError:
             logger.exception(
                 "No metric alert handler found for action type: %s",
-                action.type,
-                extra={"action_id": action.id},
+                invocation.action.type,
+                extra={"action_id": invocation.action.id},
             )
             raise
         except Exception:
             logger.exception(
                 "Error invoking metric alert handler",
-                extra={"action_id": action.id},
+                extra={"action_id": invocation.action.id},
             )
             raise
 
