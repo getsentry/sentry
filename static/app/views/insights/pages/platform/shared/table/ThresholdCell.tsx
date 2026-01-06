@@ -1,6 +1,9 @@
 import {useTheme} from '@emotion/react';
 
-const getCellColor = (value?: number, thresholds?: Record<string, number>) => {
+const getCellColor = (
+  value?: number,
+  thresholds?: Record<'danger' | 'warning', number>
+) => {
   if (!value || !thresholds) {
     return undefined;
   }
@@ -10,7 +13,7 @@ const getCellColor = (value?: number, thresholds?: Record<string, number>) => {
     | undefined;
 };
 
-export type CellThreshold = Record<string, number>;
+export type CellThreshold = Record<'danger' | 'warning', number>;
 
 export function ThresholdCell({
   value,
@@ -31,7 +34,7 @@ export function ThresholdCell({
             ? theme.tokens.content.danger
             : color === 'warning'
               ? theme.tokens.content.warning
-              : theme.success,
+              : undefined,
       }}
     >
       {children}
