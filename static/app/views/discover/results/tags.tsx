@@ -203,7 +203,7 @@ class Tags extends Component<Props, State> {
     if (error) {
       return (
         <ErrorPanel height="132px">
-          <IconWarning color="gray300" size="lg" />
+          <IconWarning variant="muted" size="lg" />
         </ErrorPanel>
       );
     }

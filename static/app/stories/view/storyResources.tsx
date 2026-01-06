@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import {Badge} from 'sentry/components/core/badge';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconGithub} from 'sentry/icons';
+import * as Stories from 'sentry/stories';
 import {
   isMDXStory,
   type StoryResources as Resources,
@@ -20,7 +21,7 @@ export function StoryResources() {
   const resources: Resources = story.exports.frontmatter?.resources ?? {};
 
   return (
-    <table style={{marginTop: theme.space['3xl']}}>
+    <Stories.Table style={{marginTop: theme.space['3xl']}}>
       <thead>
         <tr>
           <th>Type</th>
@@ -37,12 +38,14 @@ export function StoryResources() {
               return <JsResource key={type} href={data} />;
             case 'a11y':
               return <A11yResource key={type} items={data} />;
+            case 'reference':
+              return <ReferenceResource key={type} items={data} />;
             default:
               return null;
           }
         })}
       </tbody>
-    </table>
+    </Stories.Table>
   );
 }
 
@@ -96,6 +99,29 @@ function A11yResource(props: {items: Record<string, string>}) {
   return (
     <tr>
       <td>Accessibility</td>
+      <td>
+        <ul style={{listStyle: 'none', padding: 0}}>
+          {Object.entries(props.items).map(([text, href]) => (
+            <li style={{padding: `${theme.space.xs} 0`}} key={href}>
+              <a target="_blank" href={href} rel="noreferrer">
+                {text}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </td>
+      <td>
+        <Badge variant="internal">Reference</Badge>
+      </td>
+    </tr>
+  );
+}
+
+function ReferenceResource(props: {items: Record<string, string>}) {
+  const theme = useTheme();
+  return (
+    <tr>
+      <td>Further Reading</td>
       <td>
         <ul style={{listStyle: 'none', padding: 0}}>
           {Object.entries(props.items).map(([text, href]) => (

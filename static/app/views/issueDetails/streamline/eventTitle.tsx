@@ -26,7 +26,10 @@ import {Divider} from 'sentry/views/issueDetails/divider';
 import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
-import {issueAndEventToMarkdown} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
+import {
+  issueAndEventToMarkdown,
+  useActiveThreadId,
+} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
 import {IssueDetailsJumpTo} from 'sentry/views/issueDetails/streamline/issueDetailsJumpTo';
 
 type EventNavigationProps = {
@@ -45,14 +48,21 @@ export const MIN_NAV_HEIGHT = 44;
 
 function GroupMarkdownButton({group, event}: {event: Event; group: Group}) {
   const organization = useOrganization();
+  const activeThreadId = useActiveThreadId();
 
   // Get data for markdown copy functionality
   const {data: groupSummaryData} = useGroupSummaryData(group);
   const {data: autofixData} = useAutofixData({groupId: group.id});
 
   const markdownText = useMemo(() => {
-    return issueAndEventToMarkdown(group, event, groupSummaryData, autofixData);
-  }, [group, event, groupSummaryData, autofixData]);
+    return issueAndEventToMarkdown(
+      group,
+      event,
+      groupSummaryData,
+      autofixData,
+      activeThreadId
+    );
+  }, [group, event, groupSummaryData, autofixData, activeThreadId]);
   const markdownLines = markdownText.trim().split('\n').length.toLocaleString();
 
   const {copy} = useCopyToClipboard();
@@ -142,7 +152,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
               onClick={handleCopyEventId}
               size="zero"
               borderless
-              icon={<IconCopy size="xs" color="subText" />}
+              icon={<IconCopy size="xs" variant="muted" />}
             />
           </EventIdWrapper>
           <StyledTimeSince
@@ -178,7 +188,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
                 )}
                 borderless
                 size="zero"
-                icon={<IconWarning color="red300" />}
+                icon={<IconWarning variant="danger" />}
                 onClick={() => {
                   document
                     .getElementById(SectionKey.PROCESSING_ERROR)
@@ -210,7 +220,7 @@ const EventInfoJumpToWrapper = styled('div')<{hasProcessingError: boolean}>`
   align-items: center;
   padding: 0 ${p => p.theme.space.lg};
   min-height: ${MIN_NAV_HEIGHT}px;
-  border-bottom: 1px solid ${p => p.theme.translucentBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 
   @media (max-width: ${p =>
       p.hasProcessingError ? p.theme.breakpoints.lg : p.theme.breakpoints.sm}) {
