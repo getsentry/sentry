@@ -14,25 +14,15 @@ def backfill_on_command_phrase_trigger(
     RepositorySettings = apps.get_model("sentry", "RepositorySettings")
 
     settings_to_update = []
-    batch_size = 1000
 
-    for setting in RepositorySettings.objects.all().iterator(chunk_size=batch_size):
+    for setting in RepositorySettings.objects.all():
         triggers = list(setting.code_review_triggers or [])
         if "on_command_phrase" not in triggers:
             setting.code_review_triggers = triggers + ["on_command_phrase"]
             settings_to_update.append(setting)
 
-        if len(settings_to_update) >= batch_size:
-            RepositorySettings.objects.bulk_update(
-                settings_to_update, ["code_review_triggers"], batch_size=batch_size
-            )
-            settings_to_update = []
-
-    # Update remaining items
     if settings_to_update:
-        RepositorySettings.objects.bulk_update(
-            settings_to_update, ["code_review_triggers"], batch_size=batch_size
-        )
+        RepositorySettings.objects.bulk_update(settings_to_update, ["code_review_triggers"])
 
 
 class Migration(CheckedMigration):
