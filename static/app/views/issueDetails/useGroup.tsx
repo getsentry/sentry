@@ -21,7 +21,7 @@ export function makeFetchGroupQueryKey({
   const query: Record<string, string | string[]> = {
     ...(environments.length > 0 ? {environment: environments} : {}),
     expand: ['inbox', 'owners'],
-    collapse: ['release', 'tags'],
+    collapse: ['tags'],
   };
 
   return [`/organizations/${organizationSlug}/issues/${groupId}/`, {query}];

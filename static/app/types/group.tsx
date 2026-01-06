@@ -17,6 +17,7 @@ import type {
 } from './integrations';
 import type {Team} from './organization';
 import type {AvatarProject, PlatformKey, Project} from './project';
+import type {Release} from './release';
 import type {AvatarUser, User} from './user';
 
 export type EntryData = Record<string, any | any[]>;
@@ -970,8 +971,11 @@ export interface BaseGroup {
   title: string;
   type: EventOrGroupType;
   userReportCount: number;
+  // Only present when 'release' is not in the collapse array
+  firstRelease?: Release | null;
   inbox?: InboxDetails | null | false;
   integrationIssues?: ExternalIssue[];
+  lastRelease?: Release | null;
   latestEvent?: Event;
   latestEventHasAttachments?: boolean;
   owners?: SuggestedOwner[] | null;

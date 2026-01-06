@@ -13,9 +13,7 @@ import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {CurrentRelease, Release} from 'sentry/types/release';
-import {defined} from 'sentry/utils';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import type {CurrentRelease} from 'sentry/types/release';
 
 type Props = {
   environments: string[];
@@ -24,11 +22,6 @@ type Props = {
   allEnvironments?: Group;
   currentRelease?: CurrentRelease;
   group?: Group;
-};
-
-type GroupRelease = {
-  firstRelease: Release;
-  lastRelease: Release;
 };
 
 function GroupReleaseStats({
@@ -49,20 +42,8 @@ function GroupReleaseStats({
         ? environments[0]
         : undefined;
 
-  const {data: groupReleaseData} = useApiQuery<GroupRelease>(
-    [
-      defined(group)
-        ? `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`
-        : '',
-    ],
-    {
-      staleTime: 30000,
-      gcTime: 30000,
-    }
-  );
-
-  const firstRelease = groupReleaseData?.firstRelease;
-  const lastRelease = groupReleaseData?.lastRelease;
+  const firstRelease = group?.firstRelease;
+  const lastRelease = group?.lastRelease;
 
   const projectId = project.id;
   const projectSlug = project.slug;
