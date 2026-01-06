@@ -109,7 +109,7 @@ function NotificationActionItem({
           <Fragment>
             <div>{t('Send an email notification to the following roles')}</div>
             {recipientRoles?.map(role => (
-              <NotificationRecipientBadge type="default" key={role}>
+              <NotificationRecipientBadge variant="muted" key={role}>
                 {role}
               </NotificationRecipientBadge>
             ))}
@@ -119,7 +119,7 @@ function NotificationActionItem({
         return (
           <Fragment>
             <div>{t('Send a notification to the')}</div>
-            <NotificationRecipientBadge type="default">
+            <NotificationRecipientBadge variant="muted">
               {action.targetDisplay}
             </NotificationRecipientBadge>
             <div>{t('channel')}</div>
@@ -129,7 +129,7 @@ function NotificationActionItem({
         return (
           <Fragment>
             <div>{t('Send a notification to the')}</div>
-            <NotificationRecipientBadge type="default">
+            <NotificationRecipientBadge variant="muted">
               {action.targetDisplay}
             </NotificationRecipientBadge>
             <div>{t('service')}</div>
@@ -139,7 +139,7 @@ function NotificationActionItem({
         return (
           <Fragment>
             <div>{t('Send a notification to the')}</div>
-            <NotificationRecipientBadge type="default">
+            <NotificationRecipientBadge variant="muted">
               {action.targetDisplay}
             </NotificationRecipientBadge>
             <div>{t('team')}</div>
@@ -360,7 +360,8 @@ const StyledCard = styled(Card)<{isEditing: boolean}>`
   align-items: center;
   justify-content: space-between;
   margin-bottom: ${space(1)};
-  background-color: ${props => (props.isEditing ? props.theme.surface200 : 'inherit')};
+  background-color: ${props =>
+    props.isEditing ? props.theme.colors.surface300 : 'inherit'};
 `;
 
 const IconContainer = styled('div')`

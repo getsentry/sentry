@@ -49,6 +49,7 @@ import {
 import {MetricDetectorPreviewChart} from 'sentry/views/detectors/components/forms/metric/previewChart';
 import {DetectorQueryFilterBuilder} from 'sentry/views/detectors/components/forms/metric/queryFilterBuilder';
 import {ResolveSection} from 'sentry/views/detectors/components/forms/metric/resolveSection';
+import {sanitizeDetectorQuery} from 'sentry/views/detectors/components/forms/metric/sanitizeDetectorQuery';
 import {TemplateSection} from 'sentry/views/detectors/components/forms/metric/templateSection';
 import {useAutoMetricDetectorName} from 'sentry/views/detectors/components/forms/metric/useAutoMetricDetectorName';
 import {useDatasetChoices} from 'sentry/views/detectors/components/forms/metric/useDatasetChoices';
@@ -383,6 +384,7 @@ function CustomizeMetricSection() {
   const datasetChoices = useDatasetChoices();
   const formContext = useContext(FormContext);
   const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
+  const query = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.query);
   const isTransactionsDataset = dataset === DetectorDataset.TRANSACTIONS;
 
   return (
@@ -426,6 +428,17 @@ function CustomizeMetricSection() {
                       formContext.form?.setValue(
                         METRIC_DETECTOR_FORM_FIELDS.detectionType,
                         supportedDetectionTypes[0]
+                      );
+                    }
+
+                    const sanitizedQuery = sanitizeDetectorQuery({
+                      dataset: newDataset,
+                      query,
+                    });
+                    if (sanitizedQuery !== query) {
+                      formContext.form?.setValue(
+                        METRIC_DETECTOR_FORM_FIELDS.query,
+                        sanitizedQuery
                       );
                     }
                   }}
@@ -630,7 +643,7 @@ function MigratedAlertWarningListener() {
   if (isMigratedExtrapolation) {
     return (
       <Alert.Container>
-        <Alert type="info">
+        <Alert variant="info">
           {tct(
             'The thresholds on this chart may look off. This is because, once saved, alerts will now take into account [samplingLink:sampling rate]. Before clicking save, take the time to update your [thresholdsLink:thresholds]. Cancel to continue running this alert in compatibility mode.',
             {
@@ -667,7 +680,7 @@ function MigratedAlertWarningListener() {
 function WarningIcon({id, tooltipProps}: {id: string; tooltipProps?: TooltipProps}) {
   return (
     <Tooltip title={tooltipProps?.title} skipWrapper {...tooltipProps}>
-      <StyledIconWarning id={id} size="md" color="warning" />
+      <StyledIconWarning id={id} size="md" color="yellow300" />
     </Tooltip>
   );
 }

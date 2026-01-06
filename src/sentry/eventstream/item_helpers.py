@@ -85,9 +85,21 @@ def encode_attributes(
     if event.group_id:
         attributes["group_id"] = AnyValue(int_value=event.group_id)
 
-    for key, value in event_data["tags"]:
-        if value is None:
-            continue
-        attributes[f"tags[{key}]"] = _encode_value(value)
+    format_tag_key = lambda key: f"tags[{key}]"
+
+    tag_keys = set()
+    tags = event_data.get("tags")
+    if tags is not None:
+        for tag in tags:
+            if tag is None:
+                continue
+            key, value = tag
+            if value is None:
+                continue
+            formatted_key = format_tag_key(key)
+            attributes[formatted_key] = _encode_value(value)
+            tag_keys.add(formatted_key)
+
+    attributes["tag_keys"] = _encode_value(sorted(tag_keys))
 
     return attributes

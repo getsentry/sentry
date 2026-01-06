@@ -50,6 +50,17 @@ class DetectorManager(BaseManager["Detector"]):
             .exclude(status__in=(ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS))
         )
 
+    def with_type_filters(self) -> BaseQuerySet[Detector]:
+        """
+        Returns a queryset with detector type-specific filters applied. This
+        filters out detectors based on their type settings
+
+        Use this instead of get_queryset() in API endpoints and user-facing
+        code to ensure filtered detectors are hidden. This is the recommended
+        way to query detectors.
+        """
+        return self.get_queryset().filter(grouptype.registry.get_detector_type_filters())
+
 
 @region_silo_model
 class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):

@@ -8,6 +8,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -728,7 +729,7 @@ describe('DetectorEdit', () => {
                   aggregate: 'apdex(span.duration,100)',
                   dataset: 'events_analytics_platform',
                   eventTypes: ['trace_item_span'],
-                  query: 'is:unresolved',
+                  query: '',
                   queryType: 1,
                   timeWindow: 3600,
                   environment: null,
@@ -774,6 +775,22 @@ describe('DetectorEdit', () => {
         'https://uptime.example.com'
       );
 
+      // Change method to POST
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Method'}), 'POST');
+
+      // Add headers
+      const headerNameInput = screen.getByRole('textbox', {name: 'Name of header 1'});
+      await userEvent.type(headerNameInput, 'X-API-Key');
+      const headerValueInput = screen.getByRole('textbox', {name: 'Value of X-API-Key'});
+      await userEvent.type(headerValueInput, 'secret-key-123');
+
+      // Add body
+      const bodyInput = screen.getByRole('textbox', {name: 'Body'});
+      await userEvent.click(bodyInput);
+      await userEvent.paste('{"test": "data"}');
+
+      await selectEvent.select(screen.getByLabelText('Select Environment'), 'production');
+
       await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
 
       await waitFor(() => {
@@ -786,17 +803,19 @@ describe('DetectorEdit', () => {
           data: expect.objectContaining({
             config: {
               downtimeThreshold: 3,
-              environment: null,
+              environment: 'production',
               mode: 1,
               recoveryThreshold: 1,
             },
             dataSources: [
               {
                 intervalSeconds: 60,
-                method: 'GET',
+                method: 'POST',
                 timeoutMs: 5000,
                 traceSampling: undefined,
                 url: 'https://uptime.example.com',
+                headers: [['X-API-Key', 'secret-key-123']],
+                body: '{"test": "data"}',
               },
             ],
             name: 'Uptime Monitor',
@@ -825,6 +844,8 @@ describe('DetectorEdit', () => {
         'https://uptime-custom.example.com'
       );
 
+      await selectEvent.select(screen.getByLabelText('Select Environment'), 'production');
+
       await userEvent.clear(screen.getByRole('spinbutton', {name: 'Failure Threshold'}));
       await userEvent.type(
         screen.getByRole('spinbutton', {name: 'Failure Threshold'}),
@@ -849,7 +870,7 @@ describe('DetectorEdit', () => {
           data: expect.objectContaining({
             config: {
               downtimeThreshold: '5',
-              environment: null,
+              environment: 'production',
               mode: 1,
               recoveryThreshold: '4',
             },
@@ -860,6 +881,8 @@ describe('DetectorEdit', () => {
                 timeoutMs: 5000,
                 traceSampling: undefined,
                 url: 'https://uptime-custom.example.com',
+                headers: [],
+                body: null,
               },
             ],
             name: 'Uptime check for uptime-custom.example.com',

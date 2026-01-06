@@ -1,10 +1,10 @@
 import {Fragment, type CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
-import seerAutofixImg from 'sentry-images/autofix.png';
 import seerConfigCheckImg from 'sentry-images/spot/seer-config-check.svg';
 import seerConfigConnectImg from 'sentry-images/spot/seer-config-connect-2.svg';
 import seerConfigMainImg from 'sentry-images/spot/seer-config-main.svg';
+import seerConfigShipImg from 'sentry-images/spot/seer-config-ship.svg';
 
 import {Alert} from '@sentry/scraps/alert/alert';
 import {Stack} from '@sentry/scraps/layout/stack';
@@ -76,7 +76,7 @@ function AutofixConfigureQuota() {
                   {t('Try Out Seer Now')}
                 </LinkButton>
               ) : (
-                <Alert type="warning">
+                <Alert variant="warning">
                   {t(
                     'You need to be a billing member to try out Seer. Please contact your organization owner to upgrade your plan.'
                   )}
@@ -87,7 +87,7 @@ function AutofixConfigureQuota() {
         </MeetSeerPanel>
         <Stack width="70%" align="center">
           <ImageContainer width="250px" height="120px">
-            <Image alignSelf="flex-start" src={seerAutofixImg} alt="" width="100%" />
+            <Image alignSelf="flex-start" src={seerConfigShipImg} alt="" width="100%" />
           </ImageContainer>
           <SeerFeaturesPanel width="100%">
             <Stack direction="row" gap="md" padding="md">

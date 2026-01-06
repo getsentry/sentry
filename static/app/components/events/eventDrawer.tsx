@@ -4,7 +4,6 @@ import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumb
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {space} from 'sentry/styles/space';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 
 export const Header = styled('h3')`
@@ -14,14 +13,7 @@ export const Header = styled('h3')`
   margin: 0;
 `;
 
-export const SearchInput = withChonk(
-  styled(InputGroup.Input)`
-    border: 0;
-    box-shadow: unset;
-    color: inherit;
-  `,
-  InputGroup.Input
-);
+export const SearchInput = InputGroup.Input;
 
 export const NavigationCrumbs = styled(NavigationBreadcrumbs)`
   margin: 0;
@@ -65,7 +57,7 @@ export const EventNavigator = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   z-index: 2; /* Just above EventStickyControls */
   min-height: ${MIN_NAV_HEIGHT}px;
-  box-shadow: ${p => p.theme.translucentBorder} 0 1px;
+  box-shadow: ${p => p.theme.tokens.border.primary} 0 1px;
 `;
 
 export const EventStickyControls = styled('div')`

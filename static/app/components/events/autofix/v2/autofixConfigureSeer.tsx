@@ -1,8 +1,8 @@
 import {Fragment, type CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
-import seerAutofixImg from 'sentry-images/autofix.png';
 import seerConfigSeerImg from 'sentry-images/spot/seer-config-seer.svg';
+import seerConfigShipImg from 'sentry-images/spot/seer-config-ship.svg';
 
 import {Flex} from '@sentry/scraps/layout/flex';
 import {Stack} from '@sentry/scraps/layout/stack';
@@ -22,6 +22,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
 
 interface AutofixConfigureSeerProps {
   event: Event;
@@ -31,7 +32,14 @@ interface AutofixConfigureSeerProps {
 
 export function AutofixConfigureSeer({event, group, project}: AutofixConfigureSeerProps) {
   const organization = useOrganization();
+  const seerOnboardingCheck = useSeerOnboardingCheck();
   const {data, isPending, isError} = useGroupSummary(group, event, project);
+
+  const orgNeedsToConfigureSeer =
+    // needs to enable autofix
+    !seerOnboardingCheck.data?.isAutofixEnabled ||
+    // catch all, ensure seer is configured
+    !seerOnboardingCheck.data?.isSeerConfigured;
 
   return (
     <Fragment>
@@ -59,7 +67,7 @@ export function AutofixConfigureSeer({event, group, project}: AutofixConfigureSe
       </SeerFeaturesPanel>
       <Stack>
         <AngledImageContainer>
-          <Image src={seerAutofixImg} alt="" />
+          <Image src={seerConfigShipImg} alt="" />
         </AngledImageContainer>
         <SeerPreviewPanel alignSelf="flex-start">
           <Stack gap="md" padding="md">
@@ -68,7 +76,7 @@ export function AutofixConfigureSeer({event, group, project}: AutofixConfigureSe
               <Placeholder height="1rem" />
             ) : isError ? (
               <Stack gap="sm" direction="row">
-                <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+                <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
                 <Text>{t('Error loading what happened')}</Text>
               </Stack>
             ) : (
@@ -87,7 +95,7 @@ export function AutofixConfigureSeer({event, group, project}: AutofixConfigureSe
               <Placeholder height="1rem" />
             ) : isError ? (
               <Stack gap="sm" direction="row">
-                <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+                <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
                 <Text>{t('Error loading initial guess')}</Text>
               </Stack>
             ) : (
@@ -108,13 +116,23 @@ export function AutofixConfigureSeer({event, group, project}: AutofixConfigureSe
               )}
             </Text>
             <Stack align="start">
-              <LinkButton
-                priority="primary"
-                to={`/settings/${organization.slug}/seer/onboarding/`}
-                icon={<IconSeer />}
-              >
-                {t('Set Up Seer')}
-              </LinkButton>
+              {orgNeedsToConfigureSeer ? (
+                <LinkButton
+                  priority="primary"
+                  to={`/organizations/${organization.slug}/settings/seer/onboarding/`}
+                  icon={<IconSeer />}
+                >
+                  {t('Set Up Seer')}
+                </LinkButton>
+              ) : (
+                <LinkButton
+                  priority="primary"
+                  to={`/organizations/${organization.slug}/settings/projects/${project.slug}/seer/`}
+                  icon={<IconSeer />}
+                >
+                  {t('Set Up Seer for This Project')}
+                </LinkButton>
+              )}
             </Stack>
           </Stack>
         </SeerPreviewPanel>

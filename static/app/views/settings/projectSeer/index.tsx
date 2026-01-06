@@ -14,7 +14,10 @@ import {
 } from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
-import {useCodingAgentIntegrations} from 'sentry/components/events/autofix/useAutofix';
+import {
+  useCodingAgentIntegrations,
+  type CodingAgentIntegration,
+} from 'sentry/components/events/autofix/useAutofix';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -30,7 +33,6 @@ import {space} from 'sentry/styles/space';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -105,12 +107,6 @@ const autofixAutomationToggleField = {
   }),
 } satisfies FieldObject;
 
-interface CursorIntegration {
-  id: string;
-  name: string;
-  provider: string;
-}
-
 function CodingAgentSettings({
   preference,
   handleAutoCreatePrChange,
@@ -120,7 +116,7 @@ function CodingAgentSettings({
   cursorIntegrations,
 }: {
   canWriteProject: boolean;
-  cursorIntegrations: CursorIntegration[];
+  cursorIntegrations: CodingAgentIntegration[];
   handleAutoCreatePrChange: (value: boolean) => void;
   handleIntegrationChange: (integrationId: number) => void;
   preference: ProjectSeerPreferences | null | undefined;
@@ -311,9 +307,10 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
             addErrorMessage(t('Failed to update auto-open PR setting'));
             // Refetch to reset form state to backend value
             queryClient.invalidateQueries({
-              queryKey: [
-                makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
-              ],
+              queryKey: makeProjectSeerPreferencesQueryKey(
+                organization.slug,
+                project.slug
+              ),
             });
           },
         }
@@ -356,9 +353,10 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
               addErrorMessage(t('Failed to update Cursor handoff setting'));
               // Refetch to reset form state to backend value
               queryClient.invalidateQueries({
-                queryKey: [
-                  makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
-                ],
+                queryKey: makeProjectSeerPreferencesQueryKey(
+                  organization.slug,
+                  project.slug
+                ),
               });
             },
           }
@@ -377,9 +375,10 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
               addErrorMessage(t('Failed to update Cursor handoff setting'));
               // Refetch to reset form state to backend value
               queryClient.invalidateQueries({
-                queryKey: [
-                  makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
-                ],
+                queryKey: makeProjectSeerPreferencesQueryKey(
+                  organization.slug,
+                  project.slug
+                ),
               });
             },
           }
@@ -650,13 +649,7 @@ function ProjectSeer({
       />
       <SettingsPageHeader
         title={tct('Seer Settings for [projectName]', {
-          projectName: (
-            <span
-              dangerouslySetInnerHTML={{
-                __html: singleLineRenderer(`\`${project.slug}\``),
-              }}
-            />
-          ),
+          projectName: <code>{project.slug}</code>,
         })}
       />
       <ProjectSeerGeneralForm project={project} />
@@ -681,7 +674,7 @@ export default function ProjectSeerContainer() {
   if (!organization.features.includes('autofix-seer-preferences')) {
     return (
       <FeatureDisabled
-        features={['autofix-seer-preferences']}
+        features={['organizations:autofix-seer-preferences']}
         hideHelpToggle
         message={t('Autofix is not enabled for this organization.')}
         featureName={t('Autofix')}

@@ -5,7 +5,6 @@ import {Link} from 'sentry/components/core/link';
 import Duration from 'sentry/components/duration';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -13,10 +12,6 @@ import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {
-  PRIMARY_RELEASE_ALIAS,
-  SECONDARY_RELEASE_ALIAS,
-} from 'sentry/views/insights/common/components/releaseSelector';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
@@ -36,7 +31,6 @@ const VALID_SPAN_OPS = APP_START_SPANS;
 export function SpanOperationTable({
   transaction,
   primaryRelease,
-  secondaryRelease,
 }: SpanOperationTableProps) {
   const moduleURL = useModuleURL('mobile-vitals');
   const location = useLocation();
@@ -61,42 +55,17 @@ export function SpanOperationTable({
       ? [`${SpanFields.USER_GEO_SUBREGION}:[${subregions.join(',')}]`]
       : []),
   ]);
-  const queryStringPrimary = appendReleaseFilters(
-    searchQuery,
-    primaryRelease,
-    secondaryRelease
-  );
-
-  // Only show comparison when we have two different releases selected
-  const showComparison =
-    defined(primaryRelease) &&
-    defined(secondaryRelease) &&
-    primaryRelease !== secondaryRelease;
+  const queryStringPrimary = appendReleaseFilters(searchQuery, primaryRelease);
 
   const orderby = decodeScalar(location.query.sort, '');
 
   const baseFields = [PROJECT_ID, SPAN_OP, SPAN_GROUP, SPAN_DESCRIPTION];
-  let fields: any;
-
-  if (showComparison) {
-    fields = [
-      ...baseFields,
-      `division_if(mobile.slow_frames,mobile.total_frames,release,equals,${primaryRelease})`,
-      `division_if(mobile.slow_frames,mobile.total_frames,release,equals,${secondaryRelease})`,
-      `division_if(mobile.frozen_frames,mobile.total_frames,release,equals,${primaryRelease})`,
-      `division_if(mobile.frozen_frames,mobile.total_frames,release,equals,${secondaryRelease})`,
-      `avg_if(mobile.frames_delay,release,equals,${primaryRelease})`,
-      `avg_if(mobile.frames_delay,release,equals,${secondaryRelease})`,
-      `avg_compare(mobile.frames_delay,release,${primaryRelease},${secondaryRelease})`,
-    ] as any;
-  } else {
-    fields = [
-      ...baseFields,
-      'division(mobile.slow_frames,mobile.total_frames)',
-      'division(mobile.frozen_frames,mobile.total_frames)',
-      'avg(mobile.frames_delay)',
-    ] as any;
-  }
+  const fields: any = [
+    ...baseFields,
+    'division(mobile.slow_frames,mobile.total_frames)',
+    'division(mobile.frozen_frames,mobile.total_frames)',
+    'avg(mobile.frames_delay)',
+  ] as any;
 
   const newQuery: NewQuery = {
     name: '',
@@ -127,67 +96,16 @@ export function SpanOperationTable({
   };
   const columnTooltipMap: Record<string, string> = {};
 
-  if (showComparison) {
-    columnNameMap[
-      `division_if(mobile.slow_frames,mobile.total_frames,release,equals,${primaryRelease})`
-    ] = t('Slow (%s)', PRIMARY_RELEASE_ALIAS);
-    columnNameMap[
-      `division_if(mobile.slow_frames,mobile.total_frames,release,equals,${secondaryRelease})`
-    ] = t('Slow (%s)', SECONDARY_RELEASE_ALIAS);
-    columnNameMap[
-      `division_if(mobile.frozen_frames,mobile.total_frames,release,equals,${primaryRelease})`
-    ] = t('Frozen (%s)', PRIMARY_RELEASE_ALIAS);
-    columnNameMap[
-      `division_if(mobile.frozen_frames,mobile.total_frames,release,equals,${secondaryRelease})`
-    ] = t('Frozen (%s)', SECONDARY_RELEASE_ALIAS);
-    columnNameMap[`avg_if(mobile.frames_delay,release,equals,${primaryRelease})`] = t(
-      'Delay (%s)',
-      PRIMARY_RELEASE_ALIAS
-    );
-    columnNameMap[`avg_if(mobile.frames_delay,release,equals,${secondaryRelease})`] = t(
-      'Delay (%s)',
-      SECONDARY_RELEASE_ALIAS
-    );
-    columnNameMap[
-      `avg_compare(mobile.frames_delay,release,${primaryRelease},${secondaryRelease})`
-    ] = t('Change');
+  columnNameMap['division(mobile.slow_frames,mobile.total_frames)'] = t('Slow');
+  columnNameMap['division(mobile.frozen_frames,mobile.total_frames)'] = t('Frozen');
+  columnNameMap['avg(mobile.frames_delay)'] = t('Delay');
 
-    columnTooltipMap[
-      `division_if(mobile.slow_frames,mobile.total_frames,release,equals,${primaryRelease})`
-    ] = t(
-      'The number of slow frames divided by total frames (%s)',
-      PRIMARY_RELEASE_ALIAS
-    );
-    columnTooltipMap[
-      `division_if(mobile.slow_frames,mobile.total_frames,release,equals,${secondaryRelease})`
-    ] = t(
-      'The number of slow frames divided by total frames (%s)',
-      SECONDARY_RELEASE_ALIAS
-    );
-    columnTooltipMap[
-      `division_if(mobile.frozen_frames,mobile.total_frames,release,equals,${primaryRelease})`
-    ] = t(
-      'The number of frozen frames divided by total frames (%s)',
-      PRIMARY_RELEASE_ALIAS
-    );
-    columnTooltipMap[
-      `division_if(mobile.frozen_frames,mobile.total_frames,release,equals,${secondaryRelease})`
-    ] = t(
-      'The number of frozen frames divided by total frames (%s)',
-      SECONDARY_RELEASE_ALIAS
-    );
-  } else {
-    columnNameMap['division(mobile.slow_frames,mobile.total_frames)'] = t('Slow');
-    columnNameMap['division(mobile.frozen_frames,mobile.total_frames)'] = t('Frozen');
-    columnNameMap['avg(mobile.frames_delay)'] = t('Delay');
-
-    columnTooltipMap['division(mobile.slow_frames,mobile.total_frames)'] = t(
-      'The number of slow frames divided by total frames'
-    );
-    columnTooltipMap['division(mobile.frozen_frames,mobile.total_frames)'] = t(
-      'The number of frozen frames divided by total frames'
-    );
-  }
+  columnTooltipMap['division(mobile.slow_frames,mobile.total_frames)'] = t(
+    'The number of slow frames divided by total frames'
+  );
+  columnTooltipMap['division(mobile.frozen_frames,mobile.total_frames)'] = t(
+    'The number of frozen frames divided by total frames'
+  );
 
   function renderBodyCell(column: any, row: any) {
     if (column.key === SPAN_DESCRIPTION) {
@@ -226,39 +144,20 @@ export function SpanOperationTable({
     return null;
   }
 
-  const columnOrder = showComparison
-    ? [
-        String(SPAN_OP),
-        String(SPAN_DESCRIPTION),
-        `division_if(mobile.slow_frames,mobile.total_frames,release,equals,${primaryRelease})`,
-        `division_if(mobile.slow_frames,mobile.total_frames,release,equals,${secondaryRelease})`,
-        `division_if(mobile.frozen_frames,mobile.total_frames,release,equals,${primaryRelease})`,
-        `division_if(mobile.frozen_frames,mobile.total_frames,release,equals,${secondaryRelease})`,
-        `avg_if(mobile.frames_delay,release,equals,${primaryRelease})`,
-        `avg_if(mobile.frames_delay,release,equals,${secondaryRelease})`,
-        `avg_compare(mobile.frames_delay,release,${primaryRelease},${secondaryRelease})`,
-      ]
-    : [
-        String(SPAN_OP),
-        String(SPAN_DESCRIPTION),
-        'division(mobile.slow_frames,mobile.total_frames)',
-        'division(mobile.frozen_frames,mobile.total_frames)',
-        'avg(mobile.frames_delay)',
-      ];
+  const columnOrder = [
+    String(SPAN_OP),
+    String(SPAN_DESCRIPTION),
+    'division(mobile.slow_frames,mobile.total_frames)',
+    'division(mobile.frozen_frames,mobile.total_frames)',
+    'avg(mobile.frames_delay)',
+  ];
 
-  const defaultSort = showComparison
-    ? [
-        {
-          key: `avg_compare(mobile.frames_delay,release,${primaryRelease},${secondaryRelease})`,
-          order: 'desc' as const,
-        },
-      ]
-    : [
-        {
-          key: 'avg(mobile.frames_delay)',
-          order: 'desc' as const,
-        },
-      ];
+  const defaultSort = [
+    {
+      key: 'avg(mobile.frames_delay)',
+      order: 'desc' as const,
+    },
+  ];
 
   return (
     <ScreensTable

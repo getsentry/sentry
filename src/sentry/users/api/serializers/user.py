@@ -73,7 +73,6 @@ class _UserOptions(TypedDict):
     timezone: str
     clock24Hours: bool
     prefersIssueDetailsStreamlinedUI: bool | None
-    prefersChonkUI: bool | None
 
 
 class UserSerializerResponseOptional(TypedDict, total=False):
@@ -215,7 +214,6 @@ class UserSerializer(Serializer):
                 "prefersIssueDetailsStreamlinedUI": options.get(
                     "prefers_issue_details_streamlined_ui"
                 ),
-                "prefersChonkUI": options.get("prefers_chonk_ui"),
             }
 
             d["flags"] = {"newsletter_consent_prompt": bool(obj.flags.newsletter_consent_prompt)}

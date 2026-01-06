@@ -23,6 +23,7 @@ from sentry.models.repository import Repository
 from sentry.models.repositorysettings import RepositorySettings
 from sentry.prevent.models import PreventAIConfiguration
 from sentry.prevent.types.config import PREVENT_AI_CONFIG_DEFAULT, PREVENT_AI_CONFIG_DEFAULT_V1
+from sentry.seer.code_review.billing import passes_code_review_billing_check
 from sentry.silo.base import SiloMode
 from sentry.utils.seer import can_use_prevent_ai_features
 
@@ -203,7 +204,15 @@ class CodeReviewRepoSettingsEndpoint(Endpoint):
 
         if repo_settings is None:
             organization = Organization.objects.filter(id=sentry_org_id).first()
-            if organization and features.has("organizations:code-review-beta", organization):
+            if organization and (
+                features.has("organizations:code-review-beta", organization)
+                or bool(
+                    organization.get_option(
+                        "sentry:enable_pr_review_test_generation",
+                        False,
+                    )
+                )
+            ):
                 return Response(
                     {
                         "enabledCodeReview": True,
@@ -275,3 +284,93 @@ class PreventPrReviewSentryOrgEndpoint(Endpoint):
                 ]
             }
         )
+
+
+def _is_eligible_for_code_review(
+    organization: Organization, repository_id: int, integration_id: int, external_identifier: str
+) -> bool:
+    """
+    Check if a PR author is eligible for Overwatch code review forwarding.
+
+    Returns True if:
+    1. Organization IS in code-review-beta cohort (always forward), OR
+    2. Repository has code review explicitly enabled AND contributor has a seat
+    """
+    if features.has("organizations:code-review-beta", organization):
+        return True
+
+    # Check if code review is enabled for this repository
+    code_review_enabled = RepositorySettings.objects.filter(
+        repository_id=repository_id,
+        enabled_code_review=True,
+    ).exists()
+
+    if not code_review_enabled:
+        return False
+
+    return passes_code_review_billing_check(
+        organization_id=organization.id,
+        integration_id=integration_id,
+        external_identifier=external_identifier,
+    )
+
+
+@region_silo_endpoint
+class PreventPrReviewEligibilityEndpoint(Endpoint):
+    """
+    Check if a PR author is eligible for Overwatch code review forwarding.
+
+    GET /prevent/pr-review/eligibility?repoId={repoId}&prAuthorId={prAuthorId}
+
+    Returns true if the PR author is eligible for code review in any organization.
+    """
+
+    publish_status = {
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+    }
+    owner = ApiOwner.CODECOV
+    authentication_classes = (OverwatchRpcSignatureAuthentication,)
+    permission_classes = ()
+    enforce_rate_limit = False
+
+    def get(self, request: Request) -> Response:
+        if not request.auth or not isinstance(
+            request.successful_authenticator, OverwatchRpcSignatureAuthentication
+        ):
+            raise PermissionDenied
+
+        repo_id = request.GET.get("repoId")
+        pr_author_id = request.GET.get("prAuthorId")
+
+        if not repo_id:
+            raise ParseError("Missing required query parameter: repoId")
+        if not pr_author_id:
+            raise ParseError("Missing required query parameter: prAuthorId")
+
+        repositories = Repository.objects.filter(
+            external_id=repo_id,
+            provider="integrations:github",
+            status=ObjectStatus.ACTIVE,
+        )
+
+        if not repositories.exists():
+            return Response(data={"is_eligible": False})
+
+        org_ids = repositories.values_list("organization_id", flat=True)
+        organizations = {org.id: org for org in Organization.objects.filter(id__in=org_ids)}
+
+        # Just need a single org to be eligible
+        for repo in repositories:
+            org = organizations.get(repo.organization_id)
+            if not org or repo.integration_id is None:
+                continue
+
+            if _is_eligible_for_code_review(
+                organization=org,
+                repository_id=repo.id,
+                integration_id=repo.integration_id,
+                external_identifier=pr_author_id,
+            ):
+                return Response(data={"is_eligible": True})
+
+        return Response(data={"is_eligible": False})

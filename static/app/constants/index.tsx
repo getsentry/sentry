@@ -21,6 +21,10 @@ export const CUSTOMER_DOMAIN =
     ? undefined
     : window?.__initialData?.customerDomain?.subdomain;
 
+// Constant used for tracking referrer in session storage rather than
+// ?referrer=foo get parameter:
+export const CUSTOM_REFERRER_KEY = 'customReferrer';
+
 // This is considered the "default" route/view that users should be taken
 // to when the application does not have any further context
 //
@@ -621,36 +625,6 @@ export const DATA_CATEGORY_INFO = {
     statsInfo: {
       ...DEFAULT_STATS_INFO,
       showExternalStats: true,
-    },
-    formatting: DEFAULT_COUNT_FORMATTING,
-  },
-  [DataCategoryExact.PREVENT_USER]: {
-    name: DataCategoryExact.PREVENT_USER,
-    plural: DataCategory.PREVENT_USER,
-    singular: 'preventUser',
-    displayName: 'Prevent user',
-    titleName: t('Prevent Users'),
-    productName: t('Prevent Users'),
-    uid: 29,
-    isBilledCategory: true,
-    statsInfo: {
-      ...DEFAULT_STATS_INFO,
-      showExternalStats: false, // TODO(prevent): add external stats when ready
-    },
-    formatting: DEFAULT_COUNT_FORMATTING,
-  },
-  [DataCategoryExact.PREVENT_REVIEW]: {
-    name: DataCategoryExact.PREVENT_REVIEW,
-    plural: DataCategory.PREVENT_REVIEW,
-    singular: 'preventReview',
-    displayName: 'Prevent review',
-    titleName: t('Prevent Reviews'),
-    productName: t('Prevent Reviews'),
-    uid: 30,
-    isBilledCategory: false,
-    statsInfo: {
-      ...DEFAULT_STATS_INFO,
-      showExternalStats: false, // TODO(prevent): add external stats when ready
     },
     formatting: DEFAULT_COUNT_FORMATTING,
   },

@@ -2,6 +2,11 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
+import {
+  SelectTrigger,
+  type SelectTriggerProps,
+} from '@sentry/scraps/compactSelect/trigger';
+
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import {Button} from 'sentry/components/core/button';
@@ -12,7 +17,6 @@ import {
 } from 'sentry/components/core/compactSelect';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import DropdownButton from 'sentry/components/dropdownButton';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -106,10 +110,7 @@ interface AssigneeSelectorDropdownProps {
    * Optional trigger for the assignee selector. If nothing passed in,
    * the default trigger will be used
    */
-  trigger?: (
-    props: Omit<React.HTMLAttributes<HTMLElement>, 'children'>,
-    isOpen: boolean
-  ) => React.ReactNode;
+  trigger?: (props: SelectTriggerProps, isOpen: boolean) => React.ReactNode;
 }
 
 function AssigneeAvatar({
@@ -197,7 +198,7 @@ function AssigneeAvatar({
         </TooltipWrapper>
       }
     >
-      <StyledIconUser data-test-id="unassigned" size="md" color="gray400" />
+      <StyledIconUser data-test-id="unassigned" size="md" variant="primary" />
     </Tooltip>
   );
 }
@@ -508,10 +509,7 @@ export default function AssigneeSelectorDropdown({
     return options;
   };
 
-  const makeTrigger = (
-    props: Omit<React.HTMLAttributes<HTMLElement>, 'children'>,
-    isOpen: boolean
-  ) => {
+  const makeTrigger = (props: SelectTriggerProps) => {
     const avatarElement = (
       <AssigneeAvatar
         assignedTo={group.assignedTo}
@@ -524,15 +522,9 @@ export default function AssigneeSelectorDropdown({
           <LoadingIndicator mini style={{height: '24px', margin: 0, marginRight: 11}} />
         )}
         {!loading && !noDropdown && (
-          <AssigneeDropdownButton
-            borderless
-            size="sm"
-            isOpen={isOpen}
-            data-test-id="assignee-selector"
-            {...props}
-          >
+          <AssigneeTrigger borderless data-test-id="assignee-selector" {...props}>
             {avatarElement}
-          </AssigneeDropdownButton>
+          </AssigneeTrigger>
         )}
         {!loading && noDropdown && avatarElement}
       </Fragment>
@@ -592,7 +584,7 @@ const AssigneeWrapper = styled('div')`
   text-align: left;
 `;
 
-const AssigneeDropdownButton = styled(DropdownButton)`
+const AssigneeTrigger = styled(SelectTrigger.Button)`
   z-index: 0;
   padding-left: ${space(0.5)};
   padding-right: ${space(0.5)};

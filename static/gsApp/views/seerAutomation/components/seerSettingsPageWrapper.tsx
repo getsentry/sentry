@@ -9,6 +9,7 @@ import Feature from 'sentry/components/acl/feature';
 import {NoAccess} from 'sentry/components/noAccess';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
+import showNewSeer from 'sentry/utils/seer/showNewSeer';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -29,8 +30,9 @@ export default function SeerSettingsPageWrapper({children}: Props) {
 
   useEffect(() => {
     // If the org is on the old-seer plan then they shouldn't be here on this new settings page
-    // they need to goto the old settings page, or get downgraded off old seer.
-    if (organization.features.includes('seer-added')) {
+    // Or if we havn't launched the new seer yet.
+    // Then they need to see old settings page, or get downgraded off old seer.
+    if (!showNewSeer(organization)) {
       navigate(normalizeUrl(`/organizations/${organization.slug}/settings/seer/`));
       return;
     }
@@ -40,11 +42,13 @@ export default function SeerSettingsPageWrapper({children}: Props) {
       navigate(normalizeUrl(`/organizations/${organization.slug}/settings/seer/trial/`));
       return;
     }
-  }, [navigate, organization.features, organization.slug]);
+
+    // Else you do have the new seer plan, then stay here and edit some settings.
+  }, [navigate, organization.features, organization.slug, organization]);
 
   return (
     <Feature
-      features={['seer-settings-gtm']}
+      features={['seat-based-seer-enabled']}
       organization={organization}
       renderDisabled={NoAccess}
     >
@@ -78,7 +82,7 @@ export default function SeerSettingsPageWrapper({children}: Props) {
         <SettingsPageTabs />
 
         {canWrite ? null : (
-          <Alert data-test-id="org-permission-alert" type="warning">
+          <Alert data-test-id="org-permission-alert" variant="warning">
             {t(
               'These settings can only be edited by users with the organization owner or manager role.'
             )}

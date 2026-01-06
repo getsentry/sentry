@@ -24,6 +24,7 @@ import {
   type DiffTableSort,
 } from 'sentry/views/preprod/buildComparison/main/diffTable';
 import type {DiffItem, DiffType} from 'sentry/views/preprod/types/appSizeTypes';
+import {formattedSizeDiff} from 'sentry/views/preprod/utils/labelUtils';
 
 const tableHeaders = [
   {
@@ -175,10 +176,10 @@ export function SizeCompareItemDiffTable({
         {currentDiffItems.map((diffItem, index) => {
           let changeTypeLabel: string;
           let changeTypeIcon: React.ReactNode;
-          let changeTypeTagType: 'success' | 'error' | 'warning';
+          let changeTypeTagType: 'success' | 'danger' | 'warning';
           switch (diffItem.type) {
             case 'added':
-              changeTypeTagType = 'error';
+              changeTypeTagType = 'danger';
               changeTypeLabel = t('Added');
               changeTypeIcon = <IconAdd />;
               break;
@@ -197,7 +198,7 @@ export function SizeCompareItemDiffTable({
           return (
             <SimpleTable.Row key={startIndex + index}>
               <SimpleTable.RowCell>
-                <Tag icon={changeTypeIcon} type={changeTypeTagType}>
+                <Tag icon={changeTypeIcon} variant={changeTypeTagType}>
                   {changeTypeLabel}
                 </Tag>
               </SimpleTable.RowCell>
@@ -205,8 +206,10 @@ export function SizeCompareItemDiffTable({
                 <Tooltip
                   title={
                     diffItem.path ? (
-                      <Flex align="start" gap="xs">
-                        <Text monospace>{diffItem.path}</Text>
+                      <Flex align="center" gap="xs">
+                        <Text wordBreak="break-all" monospace>
+                          {diffItem.path}
+                        </Text>
                         <CopyToClipboardButton
                           borderless
                           size="zero"
@@ -240,8 +243,7 @@ export function SizeCompareItemDiffTable({
                     : '-'}
               </SimpleTable.RowCell>
               <DiffTableChangeAmountCell changeType={diffItem.type}>
-                {diffItem.size_diff > 0 ? '+' : '-'}
-                {formatBytesBase10(Math.abs(diffItem.size_diff))}
+                {formattedSizeDiff(diffItem.size_diff)}
               </DiffTableChangeAmountCell>
             </SimpleTable.Row>
           );

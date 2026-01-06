@@ -133,7 +133,7 @@ interface SkipConfirmationProps {
 
 function SkipConfirmation({onConfirm, onDismiss}: SkipConfirmationProps) {
   return (
-    <Alert type="info">
+    <Alert variant="info">
       <Flex direction="column" gap="md">
         {t("Not sure what to do? We're here for you!")}
         <Flex justify="between" gap="xs" flex={1}>
@@ -288,7 +288,7 @@ function Task({task, hidePanel}: TaskProps) {
         icon={
           task.skippable ? (
             <Button
-              icon={<IconNot size="sm" color="subText" />}
+              icon={<IconNot size="sm" variant="muted" />}
               aria-label={t('Skip Task')}
               onClick={event => {
                 event.stopPropagation();
@@ -304,7 +304,7 @@ function Task({task, hidePanel}: TaskProps) {
         title={<strong>{task.title}</strong>}
         actions={
           <ClickIndicator>
-            <IconChevron direction="right" size="xs" color="subText" />
+            <IconChevron direction="right" size="xs" variant="muted" />
           </ClickIndicator>
         }
       />
@@ -468,7 +468,7 @@ function TaskGroup({
           ) : (
             <ProgressRing
               value={(doneTasks.length / tasks.length) * 100}
-              backgroundColor={theme.gray200}
+              backgroundColor={theme.colors.gray200}
               progressEndcaps="round"
               progressColor={theme.tokens.content.accent}
               size={22}

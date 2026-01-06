@@ -453,13 +453,13 @@ function BaseChart({
           lineStyle: {
             color: previousPeriodColors
               ? previousPeriodColors[seriesIndex]
-              : theme.colors.gray400,
+              : theme.tokens.dataviz.semantic.neutral,
             type: 'dotted',
           },
           itemStyle: {
             color: previousPeriodColors
               ? previousPeriodColors[seriesIndex]
-              : theme.colors.gray400,
+              : theme.tokens.dataviz.semantic.neutral,
           },
           stack: 'previous',
           animation: false,
@@ -781,7 +781,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     &.arrow-top {
       bottom: 100%;
       top: auto;
-      border-bottom: 8px solid ${p.theme.backgroundElevated};
+      border-bottom: 8px solid ${p.theme.tokens.background.primary};
       border-top: none;
       &:before {
         border-top: none;
@@ -797,7 +797,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     pointer-events: none;
     border-left: 8px solid transparent;
     border-right: 8px solid transparent;
-    border-top: 8px solid ${p.theme.backgroundElevated};
+    border-top: 8px solid ${p.theme.tokens.background.primary};
     margin-left: -8px;
     &:before {
       border-left: 8px solid transparent;

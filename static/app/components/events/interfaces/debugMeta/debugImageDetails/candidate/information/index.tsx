@@ -209,7 +209,7 @@ function Information({
       <Fragment>
         <Tooltip title={tooltipDesc}>
           <TimeSinceWrapper>
-            {displayIcon && <IconWarning color="errorText" size="xs" />}
+            {displayIcon && <IconWarning variant="danger" size="xs" />}
             {tct('Uploaded [timesince]', {
               timesince: <TimeSince disabledAbsoluteTooltip date={dateCreated} />,
             })}
@@ -265,7 +265,7 @@ const Details = styled('div')`
   grid-auto-flow: column;
   grid-auto-columns: max-content;
   gap: ${space(1)};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
   font-size: ${p => p.theme.fontSize.sm};
 `;
 

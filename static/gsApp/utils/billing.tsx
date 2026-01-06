@@ -2,12 +2,12 @@ import moment from 'moment-timezone';
 
 import type {PromptData} from 'sentry/actionCreators/prompts';
 import {IconBuilding, IconGroup, IconSeer, IconUser} from 'sentry/icons';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import type {IconSize} from 'sentry/utils/theme';
 
 import {
   BILLION,
@@ -339,10 +339,6 @@ export const hasActiveVCFeature = (organization: Organization) =>
   organization.features.includes('vc-marketplace-active-customer');
 
 // TODO(isabella): clean this up after GA
-export const hasNewBillingUI = (organization: Organization) =>
-  organization.features.includes('subscriptions-v3');
-
-// TODO(isabella): clean this up after GA
 export const hasStripeComponentsFeature = (organization: Organization) =>
   organization.features.includes('stripe-components');
 
@@ -474,15 +470,6 @@ export const isNewPayingCustomer = (
   hasPartnerMigrationFeature(organization);
 
 /**
- * Promotion utility functions that are based off of formData which has the plan as a string
- * instead of a Plan
- */
-
-export const getBusinessPlanOfTier = (plan: string) => plan.slice(0, 4) + 'business';
-
-export const isTeamPlan = (plan: string) => plan.includes('team');
-
-/**
  * Get the number of days left on trial
  */
 export function getTrialDaysLeft(subscription: Subscription): number {
@@ -601,7 +588,7 @@ export function getPlanIcon(plan: Plan) {
   return <IconUser />;
 }
 
-export function getProductIcon(product: AddOnCategory, size?: IconSize) {
+export function getProductIcon(product: AddOnCategory, size?: SVGIconProps['size']) {
   if ([AddOnCategory.LEGACY_SEER, AddOnCategory.SEER].includes(product)) {
     return <IconSeer size={size} />;
   }
@@ -1062,5 +1049,36 @@ export function productIsEnabled(
     metricHistory.onDemandBudget > 0 ||
     (subscription.onDemandBudgets?.budgetMode === OnDemandBudgetMode.SHARED &&
       subscription.onDemandBudgets.sharedMaxBudget > 0)
+  );
+}
+
+/**
+ * Given a data category and potential metric history, returns a normalized metric history object.
+ *
+ * If the metric history is null or undefined, we return a default metric history object with all
+ * fields set to 0, null, or false.
+ */
+export function normalizeMetricHistory(
+  category: DataCategory,
+  metricHistory: BillingMetricHistory | null | undefined
+): BillingMetricHistory {
+  return (
+    metricHistory ?? {
+      category,
+      reserved: 0,
+      usage: 0,
+      prepaid: 0,
+      free: 0,
+      onDemandSpendUsed: 0,
+      onDemandBudget: 0,
+      onDemandQuantity: 0,
+      customPrice: null,
+      order: 0,
+      paygCpe: null,
+      sentUsageWarning: false,
+      softCapType: null,
+      trueForward: false,
+      usageExceeded: false,
+    }
   );
 }

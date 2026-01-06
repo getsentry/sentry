@@ -7,6 +7,7 @@ from enum import IntEnum, StrEnum
 from logging import Logger
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypedDict, TypeVar
 
+from django.db.models import Q
 from sentry_sdk import logger as sentry_logger
 
 from sentry import features, options
@@ -94,6 +95,19 @@ class WorkflowEventData:
     has_reappeared: bool | None = None
     has_escalated: bool | None = None
     workflow_env: Environment | None = None
+
+
+@dataclass(frozen=True)
+class ActionInvocation:
+    """
+    Represents a single invocation of a workflow action, containing all the information
+    needed to route and execute the action through the appropriate handler.
+    """
+
+    event_data: WorkflowEventData
+    action: Action
+    detector: Detector
+    notification_uuid: str
 
 
 class WorkflowEvaluationSnapshot(TypedDict):
@@ -278,7 +292,7 @@ class ActionHandler:
         return None
 
     @staticmethod
-    def execute(event_data: WorkflowEventData, action: Action, detector: Detector) -> None:
+    def execute(invocation: ActionInvocation) -> None:
         # TODO - do we need to pass all of this data to an action?
         raise NotImplementedError
 
@@ -383,3 +397,4 @@ class DetectorSettings:
     handler: type[DetectorHandler] | None = None
     validator: type[BaseDetectorTypeValidator] | None = None
     config_schema: dict[str, Any] = field(default_factory=dict)
+    filter: Q | None = None

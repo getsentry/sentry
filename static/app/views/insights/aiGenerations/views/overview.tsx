@@ -19,13 +19,9 @@ import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {IconChevron, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
 import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {TableActionButton} from 'sentry/views/explore/components/tableActionButton';
@@ -44,22 +40,13 @@ import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/componen
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
+import {useAgentMonitoringTrackPageView} from 'sentry/views/insights/pages/agents/hooks/useAgentMonitoringTrackPageView';
+import {useShowAgentOnboarding} from 'sentry/views/insights/pages/agents/hooks/useShowAgentOnboarding';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {Onboarding} from 'sentry/views/insights/pages/agents/onboarding';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const DISABLE_AGGREGATES: never[] = [];
-
-function useShowOnboarding() {
-  const {projects} = useProjects();
-  const pageFilters = usePageFilters();
-  const selectedProjects = getSelectedProjectList(
-    pageFilters.selection.projects,
-    projects
-  );
-
-  return !selectedProjects.some(p => p.hasInsightsAgentMonitoring);
-}
 
 interface AIGenerationsPageProps {
   datePageFilterProps: DatePageFilterProps;
@@ -68,8 +55,10 @@ interface AIGenerationsPageProps {
 function AIGenerationsPage({datePageFilterProps}: AIGenerationsPageProps) {
   const organization = useOrganization();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const showOnboarding = useShowOnboarding();
+  const showOnboarding = useShowAgentOnboarding();
   const [caseInsensitive, setCaseInsensitive] = useCaseInsensitivity();
+
+  useAgentMonitoringTrackPageView();
 
   const [searchQuery, setSearchQuery] = useQueryState(
     'query',
@@ -266,38 +255,21 @@ function PageWithProviders() {
 export default PageWithProviders;
 
 // TODO: This needs streamlining over the explore pages
-const SidebarCollapseButton = withChonk(
-  styled(Button)<{sidebarOpen: boolean}>`
-    ${p =>
-      p.sidebarOpen &&
-      css`
-        display: none;
+const SidebarCollapseButton = styled(Button)<{sidebarOpen: boolean}>`
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    display: inline-flex;
+  }
+
+  ${p =>
+    p.sidebarOpen &&
+    css`
+      display: none;
+      margin-left: -13px;
+
+      &::after {
         border-left-color: ${p.theme.tokens.background.primary};
         border-top-left-radius: 0px;
         border-bottom-left-radius: 0px;
-        margin-left: -13px;
-      `}
-
-    @media (min-width: ${p => p.theme.breakpoints.md}) {
-      display: block;
-    }
-  `,
-  styled(Button)<{sidebarOpen: boolean}>`
-    @media (min-width: ${p => p.theme.breakpoints.md}) {
-      display: inline-flex;
-    }
-
-    ${p =>
-      p.sidebarOpen &&
-      css`
-        display: none;
-        margin-left: -13px;
-
-        &::after {
-          border-left-color: ${p.theme.tokens.background.primary};
-          border-top-left-radius: 0px;
-          border-bottom-left-radius: 0px;
-        }
-      `}
-  `
-);
+      }
+    `}
+`;

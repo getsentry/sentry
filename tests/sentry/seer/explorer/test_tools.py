@@ -9,6 +9,7 @@ from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.api import client
 from sentry.constants import ObjectStatus
+from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.repository import Repository
@@ -19,6 +20,7 @@ from sentry.seer.explorer.tools import (
     execute_table_query,
     execute_timeseries_query,
     execute_trace_table_query,
+    get_baseline_tag_distribution,
     get_issue_and_event_details_v2,
     get_issue_and_event_response,
     get_log_attributes_for_trace,
@@ -42,7 +44,7 @@ from sentry.testutils.cases import (
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.samples import load_data
-from tests.sentry.issues.test_utils import OccurrenceTestMixin
+from tests.sentry.issues.test_utils import OccurrenceTestMixin, SearchIssueTestMixin
 
 
 def _get_utc_iso_without_timezone(dt: datetime) -> str:
@@ -1023,7 +1025,7 @@ class TestGetIssueAndEventDetailsV2(
         self,
         mock_get_tags,
         expected_event_idx: int,
-        should_include_issue: bool = True,
+        include_issue: bool = True,
         **kwargs,
     ):
         mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
@@ -1036,7 +1038,7 @@ class TestGetIssueAndEventDetailsV2(
                 "description": "SELECT * FROM users WHERE id = ?",
                 "trace_id": event0_trace_id,
             },
-            start_ts=before_now(minutes=10),
+            start_ts=before_now(days=5, minutes=10),
             duration=100,
         )
         span1 = self.create_span(
@@ -1044,14 +1046,14 @@ class TestGetIssueAndEventDetailsV2(
                 "description": "SELECT * FROM users WHERE id = ?",
                 "trace_id": event1_trace_id,
             },
-            start_ts=before_now(minutes=6),
+            start_ts=before_now(days=3, hours=23),
             duration=100,
         )
         self.store_spans([span0, span1], is_eap=True)
 
         # Create events with shared stacktrace (should have same group)
         events: list[Event] = []
-        timestamps = [before_now(minutes=9), before_now(minutes=3), before_now(minutes=1)]
+        timestamps = [before_now(days=5), before_now(days=4), before_now(hours=3)]
         for i in range(3):
             data = load_data("python", timestamp=timestamps[i])
             data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
@@ -1080,6 +1082,7 @@ class TestGetIssueAndEventDetailsV2(
             result = get_issue_and_event_details_v2(
                 organization_id=self.organization.id,
                 issue_id=issue_id_param,
+                include_issue=include_issue,
                 **kwargs,
             )
 
@@ -1088,7 +1091,7 @@ class TestGetIssueAndEventDetailsV2(
             assert result["project_slug"] == self.project.slug
 
             # Validate issues fields
-            if should_include_issue:
+            if include_issue:
                 assert result["tags_overview"] == mock_get_tags.return_value
                 _validate_event_timeseries(result["event_timeseries"], expected_total=3)
                 assert isinstance(result["issue"], dict)
@@ -1111,9 +1114,10 @@ class TestGetIssueAndEventDetailsV2(
     def test_get_ie_details_from_issue_id_basic(
         self,
     ):
-        # event1 should be returned since its span is more recent.
+        # event1 should be returned since it's more recent.
         self._test_get_ie_details_from_issue_id(
             expected_event_idx=1,
+            include_issue=True,
         )
 
     def test_get_ie_details_from_issue_id_exclude_issue(
@@ -1121,7 +1125,6 @@ class TestGetIssueAndEventDetailsV2(
     ):
         self._test_get_ie_details_from_issue_id(
             expected_event_idx=1,
-            should_include_issue=False,
             include_issue=False,
         )
 
@@ -1131,8 +1134,18 @@ class TestGetIssueAndEventDetailsV2(
         # event0 should be returned since the time range excludes event1.
         self._test_get_ie_details_from_issue_id(
             expected_event_idx=0,
-            start=before_now(minutes=15).isoformat(),
-            end=before_now(minutes=5).isoformat(),
+            start=before_now(days=7).isoformat(),
+            end=before_now(days=4, hours=3).isoformat(),
+        )
+
+    def test_get_ie_details_from_issue_id_time_range_fallback(
+        self,
+    ):
+        # event2 should be returned since the time range excludes 0 and 1.
+        self._test_get_ie_details_from_issue_id(
+            expected_event_idx=2,
+            start=before_now(days=1).isoformat(),
+            end=before_now(days=0).isoformat(),
         )
 
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
@@ -2387,3 +2400,187 @@ class TestMetricsTraceQuery(APITransactionTestCase, SnubaTestCase, TraceMetricsT
         ids = [item["id"] for item in result["data"]]
         assert self.get_id_str(self.metrics[0]) in ids
         assert self.get_id_str(self.metrics[2]) in ids
+
+
+class TestGetBaselineTagDistribution(APITransactionTestCase, SnubaTestCase, SearchIssueTestMixin):
+    """Tests for get_baseline_tag_distribution RPC handler."""
+
+    def _insert_event(
+        self, ts: datetime, group_id: int, tags: dict[str, Any], project_id: int | None = None
+    ) -> None:
+        """Insert an event with tags into Snuba for testing."""
+        import time
+
+        self.snuba_insert(
+            (
+                2,
+                "insert",
+                {
+                    "event_id": uuid.uuid4().hex,
+                    "primary_hash": "a" * 32,
+                    "group_id": group_id,
+                    "project_id": project_id or self.project.id,
+                    "message": "test message",
+                    "platform": "python",
+                    "datetime": ts.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                    "data": {
+                        "received": time.mktime(ts.timetuple()),
+                        "tags": list(tags.items()),
+                    },
+                },
+                {},
+            )
+        )
+
+    def test_returns_empty_for_empty_tag_keys(self) -> None:
+        result = get_baseline_tag_distribution(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            group_id=1,
+            tag_keys=[],
+        )
+        assert result is not None
+        assert result["baseline_tag_distribution"] == []
+
+    def test_returns_baseline_excluding_target_group(self) -> None:
+        """Test that baseline excludes events from the target group_id."""
+        now = datetime.now(UTC)
+        before = now - timedelta(hours=1)
+        after = now + timedelta(hours=1)
+
+        target_group_id = 12345
+        other_group_id = 67890
+
+        # Events in target group (should be EXCLUDED from baseline)
+        self._insert_event(now, target_group_id, {"browser": "Chrome", "os": "Windows"})
+        self._insert_event(now, target_group_id, {"browser": "Chrome", "os": "Mac"})
+
+        # Events in other groups (should be INCLUDED in baseline)
+        self._insert_event(now, other_group_id, {"browser": "Firefox", "os": "Linux"})
+        self._insert_event(now, other_group_id, {"browser": "Firefox", "os": "Linux"})
+        self._insert_event(now, other_group_id, {"browser": "Chrome", "os": "Windows"})
+
+        result = get_baseline_tag_distribution(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            group_id=target_group_id,
+            tag_keys=["browser", "os"],
+            start=_get_utc_iso_without_timezone(before),
+            end=_get_utc_iso_without_timezone(after),
+        )
+
+        assert result is not None
+        distribution = result["baseline_tag_distribution"]
+
+        # Build a dict for easier assertions
+        dist_dict: dict[tuple[str, str], int] = {}
+        for item in distribution:
+            key = (item["tag_key"], item["tag_value"])
+            dist_dict[key] = item["count"]
+
+        # Only events from other_group_id should be counted
+        # Firefox appears 2 times in other group
+        assert dist_dict.get(("browser", "Firefox")) == 2
+        # Chrome appears 1 time in other group (2 times in target group, excluded)
+        assert dist_dict.get(("browser", "Chrome")) == 1
+        # Linux appears 2 times in other group
+        assert dist_dict.get(("os", "Linux")) == 2
+        # Windows appears 1 time in other group (1 time in target group, excluded)
+        assert dist_dict.get(("os", "Windows")) == 1
+
+    def test_filters_by_tag_keys(self) -> None:
+        """Test that only requested tag keys are returned."""
+        now = datetime.now(UTC)
+        before = now - timedelta(hours=1)
+        after = now + timedelta(hours=1)
+
+        # Insert events with multiple tags
+        self._insert_event(now, 1, {"browser": "Chrome", "os": "Windows", "device": "Desktop"})
+        self._insert_event(now, 1, {"browser": "Firefox", "os": "Mac", "device": "Mobile"})
+
+        # Only request browser tag
+        result = get_baseline_tag_distribution(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            group_id=99999,  # Non-existent group, so all events are baseline
+            tag_keys=["browser"],
+            start=_get_utc_iso_without_timezone(before),
+            end=_get_utc_iso_without_timezone(after),
+        )
+
+        assert result is not None
+        distribution = result["baseline_tag_distribution"]
+
+        # Only browser tags should be returned
+        tag_keys = {item["tag_key"] for item in distribution}
+        assert tag_keys == {"browser"}
+        assert len(distribution) == 2  # Chrome and Firefox
+
+    def test_combines_events_and_search_issues(self) -> None:
+        """Test that baseline includes both error events and issue platform occurrences.
+
+        Note: The store_search_issue test helper creates entries in BOTH the events dataset
+        (via store_event) AND the search_issues dataset (via save_issue_occurrence). This is
+        a test artifact - in production, performance issues only exist in search_issues.
+        As a result, tags from store_search_issue appear twice in the combined count.
+        """
+        now = datetime.now(UTC)
+        before = now - timedelta(hours=1)
+        after = now + timedelta(hours=1)
+
+        target_group_id = 12345
+
+        # Insert error events (goes to "events" dataset only)
+        self._insert_event(now, 67890, {"browser": "Chrome", "os": "Windows"})
+        self._insert_event(now, 67890, {"browser": "Firefox", "os": "Linux"})
+
+        # Insert search issues / performance issues
+        # Note: store_search_issue inserts to BOTH events AND search_issues datasets
+        fingerprint = f"{ProfileFileIOGroupType.type_id}-test-group"
+        self.store_search_issue(
+            project_id=self.project.id,
+            user_id=1,
+            fingerprints=[fingerprint],
+            environment=None,
+            insert_time=now,
+            tags=[("browser", "Safari"), ("os", "Mac")],
+        )
+        self.store_search_issue(
+            project_id=self.project.id,
+            user_id=2,
+            fingerprints=[fingerprint],
+            environment=None,
+            insert_time=now,
+            tags=[("browser", "Safari"), ("os", "Mac")],
+        )
+
+        result = get_baseline_tag_distribution(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            group_id=target_group_id,
+            tag_keys=["browser", "os"],
+            start=_get_utc_iso_without_timezone(before),
+            end=_get_utc_iso_without_timezone(after),
+        )
+
+        assert result is not None
+        distribution = result["baseline_tag_distribution"]
+
+        # Build a dict for easier assertions
+        dist_dict: dict[tuple[str, str], int] = {}
+        for item in distribution:
+            key = (item["tag_key"], item["tag_value"])
+            dist_dict[key] = item["count"]
+
+        # Error events (from _insert_event): Chrome=1, Firefox=1, Windows=1, Linux=1
+        # These only go to the events dataset
+        assert dist_dict.get(("browser", "Chrome")) == 1
+        assert dist_dict.get(("browser", "Firefox")) == 1
+        assert dist_dict.get(("os", "Windows")) == 1
+        assert dist_dict.get(("os", "Linux")) == 1
+
+        # Search issues (from store_search_issue): Safari and Mac tags
+        # Due to test helper behavior, these appear in both datasets (2 occurrences x 2 datasets = 4)
+        # This verifies that we ARE querying both datasets and combining results
+        assert dist_dict.get(("browser", "Safari")) == 4
+        assert dist_dict.get(("os", "Mac")) == 4

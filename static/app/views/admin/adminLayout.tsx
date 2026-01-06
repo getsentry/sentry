@@ -1,8 +1,8 @@
+import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
 import {BreadcrumbProvider} from 'sentry/views/settings/components/settingsBreadcrumb/context';
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
@@ -40,23 +40,19 @@ export function AdminNavigation() {
   );
 }
 
-type Props = {
-  children: React.ReactNode;
-} & RouteComponentProps;
-
-function AdminLayout({children, ...props}: Props) {
+export default function AdminLayout() {
   return (
     <SentryDocumentTitle noSuffix title={t('Sentry Admin')}>
       <Page>
         <BreadcrumbProvider>
-          <SettingsLayout {...props}>{children}</SettingsLayout>
+          <SettingsLayout>
+            <Outlet />
+          </SettingsLayout>
         </BreadcrumbProvider>
       </Page>
     </SentryDocumentTitle>
   );
 }
-
-export default AdminLayout;
 
 const Page = styled('div')`
   display: flex;

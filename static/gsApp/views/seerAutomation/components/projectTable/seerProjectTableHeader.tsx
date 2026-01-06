@@ -1,11 +1,13 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert/alert';
 import {Checkbox} from '@sentry/scraps/checkbox/checkbox';
 import {Flex} from '@sentry/scraps/layout/flex';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import type {useUpdateBulkAutofixAutomationSettings} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -19,6 +21,9 @@ interface Props {
   onSortClick: (key: Sort) => void;
   projects: Project[];
   sort: Sort;
+  updateBulkAutofixAutomationSettings: ReturnType<
+    typeof useUpdateBulkAutofixAutomationSettings
+  >['mutate'];
 }
 
 const COLUMNS = [
@@ -29,30 +34,40 @@ const COLUMNS = [
   {title: t('Repos'), key: 'repos'},
 ];
 
-export default function ProjectTableHeader({projects, onSortClick, sort}: Props) {
+function getMutationCallbacks(count: number) {
+  return {
+    onError: () =>
+      addErrorMessage(
+        tn(
+          'Failed to update settings for %s project',
+          'Failed to update settings for %s projects',
+          count
+        )
+      ),
+    onSuccess: () =>
+      addSuccessMessage(
+        tn('Settings updated for %s project', 'Settings updated for %s projects', count)
+      ),
+  };
+}
+
+export default function ProjectTableHeader({
+  projects,
+  onSortClick,
+  sort,
+  updateBulkAutofixAutomationSettings,
+}: Props) {
   const canWrite = useCanWriteSettings();
   const listItemCheckboxState = useListItemCheckboxContext();
-  const {
-    countSelected,
-    isAllSelected,
-    isAnySelected,
-    queryKey,
-    selectAll,
-    selectedIds: _selectedIds,
-  } = listItemCheckboxState;
+  const {countSelected, isAllSelected, isAnySelected, queryKey, selectAll, selectedIds} =
+    listItemCheckboxState;
   const queryOptions = parseQueryKey(queryKey).options;
   const queryString = queryOptions?.query?.query;
 
-  const handleBulkAutoFix = (_value: 'on' | 'off') => {
-    // const autofixAutomationTuning = value ? 'medium' : 'off';
-    // Set project.autofixAutomationTuning for all _selectedIds
-    // See: useUpdateProjectAutomation()
-  };
-  const handleBulkPRCreate = (_value: 'on' | 'off') => {
-    // const automatedRunStoppingPoint = value ? 'open_pr' : 'code_changes';
-    // Set preferences.automated_run_stopping_point for all _selectedIds
-    // See: useUpdateProjectSeerPreferences()
-  };
+  const projectIds = useMemo(
+    () => (selectedIds === 'all' ? projects.map(project => project.id) : selectedIds),
+    [projects, selectedIds]
+  );
 
   return (
     <Fragment>
@@ -101,14 +116,22 @@ export default function ProjectTableHeader({projects, onSortClick, sort}: Props)
               size="xs"
               items={[
                 {
-                  key: 'on',
+                  key: 'medium',
                   label: t('On'),
-                  onAction: () => handleBulkAutoFix('on'),
+                  onAction: () =>
+                    updateBulkAutofixAutomationSettings(
+                      {projectIds, autofixAutomationTuning: 'medium'},
+                      getMutationCallbacks(projectIds.length)
+                    ),
                 },
                 {
                   key: 'off',
                   label: t('Off'),
-                  onAction: () => handleBulkAutoFix('off'),
+                  onAction: () =>
+                    updateBulkAutofixAutomationSettings(
+                      {projectIds, autofixAutomationTuning: 'off'},
+                      getMutationCallbacks(projectIds.length)
+                    ),
                 },
               ]}
               triggerLabel={t('Auto Fix')}
@@ -118,14 +141,22 @@ export default function ProjectTableHeader({projects, onSortClick, sort}: Props)
               size="xs"
               items={[
                 {
-                  key: 'on',
+                  key: 'open_pr',
                   label: t('On'),
-                  onAction: () => handleBulkPRCreate('on'),
+                  onAction: () =>
+                    updateBulkAutofixAutomationSettings(
+                      {projectIds, automatedRunStoppingPoint: 'open_pr'},
+                      getMutationCallbacks(projectIds.length)
+                    ),
                 },
                 {
-                  key: 'off',
+                  key: 'code_changes',
                   label: t('Off'),
-                  onAction: () => handleBulkPRCreate('off'),
+                  onAction: () =>
+                    updateBulkAutofixAutomationSettings(
+                      {projectIds, automatedRunStoppingPoint: 'code_changes'},
+                      getMutationCallbacks(projectIds.length)
+                    ),
                 },
               ]}
               triggerLabel={t('PR Creation')}
@@ -135,7 +166,7 @@ export default function ProjectTableHeader({projects, onSortClick, sort}: Props)
       ) : null}
 
       {isAllSelected === 'indeterminate' ? (
-        <FullGridAlert type="warning" system>
+        <FullGridAlert variant="warning" system>
           <Flex justify="center" wrap="wrap" gap="md">
             {tn('Selected %s project.', 'Selected %s projects.', countSelected)}
             <a onClick={selectAll}>
@@ -150,7 +181,7 @@ export default function ProjectTableHeader({projects, onSortClick, sort}: Props)
       ) : null}
 
       {isAllSelected === true ? (
-        <FullGridAlert type="warning" system>
+        <FullGridAlert variant="warning" system>
           <Flex justify="center" wrap="wrap">
             <span>
               {queryString

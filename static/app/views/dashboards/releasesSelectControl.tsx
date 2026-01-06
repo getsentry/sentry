@@ -66,7 +66,6 @@ function ReleasesSelectControl({
       clearable
       searchable
       id={id}
-      size="sm"
       disabled={isDisabled}
       loading={loading}
       menuTitle={<MenuTitleWrapper>{t('Filter Releases')}</MenuTitleWrapper>}
@@ -111,7 +110,7 @@ function ReleasesSelectControl({
           <ButtonLabelWrapper>
             {triggerLabel}{' '}
             {activeReleases.length > 1 && (
-              <StyledBadge type="default">{`+${activeReleases.length - 1}`}</StyledBadge>
+              <StyledBadge variant="muted">{`+${activeReleases.length - 1}`}</StyledBadge>
             )}
           </ButtonLabelWrapper>
         ),

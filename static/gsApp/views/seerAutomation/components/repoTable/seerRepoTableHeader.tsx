@@ -9,10 +9,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
-import {
-  DEFAULT_CODE_REVIEW_TRIGGERS,
-  type RepositoryWithSettings,
-} from 'sentry/types/integrations';
+import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import {parseQueryKey} from 'sentry/utils/queryClient';
@@ -51,8 +48,6 @@ export default function SeerRepoTableHeader({
       selectedIds === 'all' ? repositories.map(repo => repo.id) : selectedIds;
     mutateRepositorySettings(
       {
-        // TODO: we should not be overriding the existing code review triggers for the repositories
-        codeReviewTriggers: DEFAULT_CODE_REVIEW_TRIGGERS,
         enabledCodeReview,
         repositoryIds,
       },
@@ -143,7 +138,7 @@ export default function SeerRepoTableHeader({
       ) : null}
 
       {isAllSelected === 'indeterminate' ? (
-        <FullGridAlert type="warning" system>
+        <FullGridAlert variant="warning" system>
           <Flex justify="center" wrap="wrap" gap="md">
             {tn('Selected %s repository.', 'Selected %s repositories.', countSelected)}
             <a onClick={selectAll}>
@@ -158,7 +153,7 @@ export default function SeerRepoTableHeader({
       ) : null}
 
       {isAllSelected === true ? (
-        <FullGridAlert type="warning" system>
+        <FullGridAlert variant="warning" system>
           <Flex justify="center" wrap="wrap">
             <span>
               {queryString

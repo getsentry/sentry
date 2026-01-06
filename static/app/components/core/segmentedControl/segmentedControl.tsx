@@ -1,5 +1,4 @@
 import {useMemo, useRef} from 'react';
-import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaRadioProps} from '@react-aria/radio';
 import {useRadio, useRadioGroup} from '@react-aria/radio';
@@ -13,9 +12,7 @@ import {LayoutGroup} from 'framer-motion';
 
 import type {TooltipProps} from 'sentry/components/core/tooltip';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import {space} from 'sentry/styles/space';
 import type {FormSize} from 'sentry/utils/theme';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 
 import {
   ChonkStyledGroupWrap,
@@ -149,17 +146,7 @@ function Segment<Value extends string>({
 
   const {isDisabled} = props;
 
-  const label = (
-    <VisibleLabel
-      size={size}
-      isSelected={isSelected}
-      isDisabled={isDisabled}
-      priority={priority}
-      role="presentation"
-    >
-      {props.children}
-    </VisibleLabel>
-  );
+  const label = <VisibleLabel>{props.children}</VisibleLabel>;
 
   const content = (
     <SegmentWrap
@@ -200,68 +187,9 @@ function Segment<Value extends string>({
   return content;
 }
 
-const GroupWrap = withChonk(
-  styled('div')<{listSize: number; priority: Priority; size: FormSize}>`
-    position: relative;
-    display: inline-grid;
-    grid-auto-flow: column;
-    background: ${p =>
-      p.priority === 'primary'
-        ? p.theme.tokens.background.primary
-        : p.theme.backgroundTertiary};
-    border: solid 1px ${p => p.theme.border};
-    border-radius: ${p => p.theme.radius.md};
-    min-width: 0;
+const GroupWrap = ChonkStyledGroupWrap;
 
-    font-size: ${p => p.theme.form[p.size].fontSize};
-    height: ${p => p.theme.form[p.size].height};
-    line-height: ${p => p.theme.form[p.size].lineHeight};
-    min-height: ${p => p.theme.form[p.size].minHeight};
-  `,
-  ChonkStyledGroupWrap
-);
-
-const segmentedWrapPadding = {
-  md: '10px 16px 10px 16px',
-  sm: '8px 12px 8px 12px',
-  xs: '6px 8px 6px 8px',
-} as const;
-
-const SegmentWrap = withChonk(
-  styled('label')<{
-    isSelected: boolean;
-    priority: Priority;
-    size: FormSize;
-    isDisabled?: boolean;
-  }>`
-    position: relative;
-    display: flex;
-    align-items: center;
-    margin: 0;
-    border-radius: calc(${p => p.theme.radius.md} - 1px);
-    cursor: ${p => (p.isDisabled ? 'default' : 'pointer')};
-    min-height: 0;
-    min-width: 0;
-
-    padding: ${p => segmentedWrapPadding[p.size]};
-    font-weight: ${p => p.theme.font.weight.regular};
-
-    ${p =>
-      !p.isDisabled &&
-      css`
-        &:hover {
-          background-color: inherit;
-
-          [role='separator'] {
-            opacity: 0;
-          }
-        }
-      `}
-
-    ${p => p.isSelected && `z-index: 1;`}
-  `,
-  ChonkStyledSegmentWrap
-);
+const SegmentWrap = ChonkStyledSegmentWrap;
 
 const SegmentInput = styled('input')`
   appearance: none;
@@ -286,82 +214,6 @@ const SegmentInput = styled('input')`
   }
 `;
 
-const LabelWrap = withChonk(
-  styled('span')<{
-    isSelected: boolean;
-    priority: Priority;
-    size: FormSize;
-  }>`
-    display: grid;
-    grid-auto-flow: column;
-    align-items: center;
-    gap: ${p => (p.size === 'xs' ? space(0.5) : space(0.75))};
-    z-index: 1;
-  `,
-  ChonkStyledLabelWrap
-);
+const LabelWrap = ChonkStyledLabelWrap;
 
-function getTextColor({
-  isDisabled,
-  isSelected,
-  priority,
-  theme,
-}: {
-  isSelected: boolean;
-  priority: Priority;
-  theme: Theme;
-  isDisabled?: boolean;
-}) {
-  if (isDisabled) {
-    return priority === 'primary'
-      ? isSelected
-        ? css`
-            color: ${theme.white};
-          `
-        : css`
-            color: ${theme.subText};
-          `
-      : css`
-          color: ${theme.subText};
-        `;
-  }
-
-  if (isSelected) {
-    return priority === 'primary'
-      ? css`
-          color: ${theme.white};
-        `
-      : css`
-          color: ${theme.tokens.content.primary};
-        `;
-  }
-
-  return css`
-    color: ${theme.tokens.content.primary};
-  `;
-}
-
-const VisibleLabel = withChonk(
-  styled('span')<{
-    isSelected: boolean;
-    priority: Priority;
-    size: FormSize;
-    isDisabled?: boolean;
-  }>`
-    ${p => p.theme.overflowEllipsis}
-
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    transition: color ${p => p.theme.motion.exit.moderate};
-
-    user-select: none;
-    font-weight: ${p => (p.isSelected ? 600 : 400)};
-    letter-spacing: ${p => (p.isSelected ? '-0.015em' : 'inherit')};
-    text-align: center;
-    line-height: ${p => p.theme.font.lineHeight.comfortable};
-    ${getTextColor}
-  `,
-  ChonkStyledVisibleLabel
-);
+const VisibleLabel = ChonkStyledVisibleLabel;

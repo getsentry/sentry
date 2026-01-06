@@ -7,8 +7,10 @@ import type {FieldObject} from 'sentry/components/forms/types';
 import {IconLock} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import type {Organization} from 'sentry/types/organization';
+import showNewSeer from 'sentry/utils/seer/showNewSeer';
 
-export const makePreventAiField = (): FieldObject => {
+export const makePreventAiField = (organization: Organization): FieldObject => {
   const isSelfHosted = ConfigStore.get('isSelfHosted');
 
   const isDisabled = isSelfHosted;
@@ -27,6 +29,7 @@ export const makePreventAiField = (): FieldObject => {
         {isDisabled && (
           <Tooltip title={disabledReason} position="top">
             <Tag
+              variant="muted"
               role="status"
               icon={<IconLock locked />}
               data-test-id="prevent-ai-disabled-tag"
@@ -43,6 +46,10 @@ export const makePreventAiField = (): FieldObject => {
       ),
     }),
     visible: ({model}) => {
+      if (showNewSeer(organization)) {
+        return false;
+      }
+
       // Show field when AI features are enabled (hideAiFeatures is false)
       const hideAiFeatures = model.getValue('hideAiFeatures');
       return hideAiFeatures;

@@ -76,7 +76,6 @@ describe('ProductSelect', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
       />,
       {organization}
@@ -107,7 +106,6 @@ describe('ProductSelect', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
       />,
       {organization}
@@ -123,7 +121,6 @@ describe('ProductSelect', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
       />,
       {organization}
@@ -146,7 +143,6 @@ describe('ProductSelect', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
       />,
       {organization}
@@ -166,7 +162,6 @@ describe('ProductSelect', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
       />,
       {organization}
@@ -174,8 +169,6 @@ describe('ProductSelect', () => {
 
     const legacySeerCheckbox = await screen.findByTestId('product-option-legacySeer');
     expect(legacySeerCheckbox).toBeChecked();
-    const seerCheckbox = screen.getByTestId('product-option-seer');
-    expect(seerCheckbox).not.toBeChecked();
   });
 
   it('does not render with product selected based on current subscription if plan is trial', async () => {
@@ -188,7 +181,6 @@ describe('ProductSelect', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
       />,
       {organization}

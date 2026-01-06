@@ -1,3 +1,5 @@
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import TeamKeyTransactionComponent from 'sentry/components/performance/teamKeyTransaction';
@@ -54,21 +56,22 @@ function TeamKeyTransactionButton({
               : null
           }
         >
-          <Button
+          <SelectTrigger.Button
             {...triggerProps}
             disabled={disabled}
+            showChevron={false}
             size="sm"
             icon={
               <IconStar
                 isSolid={!!keyedTeamsCount}
-                color={keyedTeamsCount ? 'yellow300' : 'subText'}
+                variant={keyedTeamsCount ? 'warning' : 'muted'}
               />
             }
           >
             {keyedTeamsCount
               ? tn('Starred for Team', 'Starred for Teams', keyedTeamsCount)
               : t('Star for Team')}
-          </Button>
+          </SelectTrigger.Button>
         </Tooltip>
       )}
       {...props}
