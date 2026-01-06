@@ -1,6 +1,5 @@
 from typing import Any
 
-from sentry.models.activity import Activity
 from sentry.tasks.post_process import fetch_buffered_group_stats
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
@@ -26,9 +25,6 @@ class IssueOccurrencesConditionHandler(DataConditionHandler[WorkflowEventData]):
         try:
             value = int(comparison["value"])
         except (TypeError, ValueError, KeyError):
-            return False
-
-        if isinstance(event_data.event, Activity):
             return False
 
         # This value is slightly delayed due to us batching writes to times_seen. We attempt to work
