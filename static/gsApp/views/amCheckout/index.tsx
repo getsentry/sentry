@@ -1,5 +1,4 @@
 import {Component, Fragment} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {loadStripe} from '@stripe/stripe-js';
@@ -29,7 +28,6 @@ import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import {activateZendesk, hasZendesk} from 'sentry/utils/zendesk';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import withSubscription from 'getsentry/components/withSubscription';
 import ZendeskLink from 'getsentry/components/zendeskLink';
@@ -39,7 +37,7 @@ import {
   PAYG_BUSINESS_DEFAULT,
   PAYG_TEAM_DEFAULT,
 } from 'getsentry/constants';
-import {CheckoutType, OnDemandBudgetMode, PlanName, PlanTier} from 'getsentry/types';
+import {OnDemandBudgetMode, PlanName, PlanTier} from 'getsentry/types';
 import type {
   BillingConfig,
   CheckoutAddOns,
@@ -55,31 +53,18 @@ import {
   hasActiveVCFeature,
   hasPartnerMigrationFeature,
   hasPerformance,
-  isAmPlan,
   isBizPlanFamily,
   isNewPayingCustomer,
   isTrialPlan,
 } from 'getsentry/utils/billing';
 import {getCompletedOrActivePromotion} from 'getsentry/utils/promotions';
-import {showSubscriptionDiscount} from 'getsentry/utils/promotionUtils';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import withPromotions from 'getsentry/utils/withPromotions';
 import Cart from 'getsentry/views/amCheckout/components/cart';
-import CheckoutOverview from 'getsentry/views/amCheckout/components/checkoutOverview';
-import CheckoutOverviewV2 from 'getsentry/views/amCheckout/components/checkoutOverviewV2';
 import CheckoutSuccess from 'getsentry/views/amCheckout/components/checkoutSuccess';
-import AddBillingDetails from 'getsentry/views/amCheckout/steps/addBillingDetails';
 import AddBillingInformation from 'getsentry/views/amCheckout/steps/addBillingInfo';
-import AddDataVolume from 'getsentry/views/amCheckout/steps/addDataVolume';
-import AddPaymentMethod from 'getsentry/views/amCheckout/steps/addPaymentMethod';
 import BuildYourPlan from 'getsentry/views/amCheckout/steps/buildYourPlan';
 import ChooseYourBillingCycle from 'getsentry/views/amCheckout/steps/chooseYourBillingCycle';
-import ContractSelect from 'getsentry/views/amCheckout/steps/contractSelect';
-import OnDemandBudgetsStep from 'getsentry/views/amCheckout/steps/onDemandBudgets';
-import OnDemandSpend from 'getsentry/views/amCheckout/steps/onDemandSpend';
-import PlanSelect from 'getsentry/views/amCheckout/steps/planSelect';
-import ReviewAndConfirm from 'getsentry/views/amCheckout/steps/reviewAndConfirm';
-import SetPayAsYouGo from 'getsentry/views/amCheckout/steps/setPayAsYouGo';
 import SetSpendLimit from 'getsentry/views/amCheckout/steps/setSpendLimit';
 import type {CheckoutFormData} from 'getsentry/views/amCheckout/types';
 import {getBucket} from 'getsentry/views/amCheckout/utils';
@@ -96,18 +81,14 @@ type Props = {
   isLoading: boolean;
   location: Location;
   navigate: ReactRouter3Navigate;
-  onToggleLegacy: (tier: string) => void;
   organization: Organization;
   queryClient: QueryClient;
   subscription: Subscription;
-  isNewCheckout?: boolean;
   promotionData?: PromotionData;
 };
 
 export type State = {
   billingConfig: BillingConfig | null;
-  completedSteps: Set<number>;
-  currentStep: number;
   error: Error | boolean;
   formData: CheckoutFormData | null;
   formDataForPreview: CheckoutFormData | null;
@@ -121,46 +102,9 @@ export type State = {
 class AMCheckout extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    // TODO(am3): for now, only new customers and migrating partner customers can use the AM3 checkout flow
-    if (
-      props.checkoutTier === PlanTier.AM3 &&
-      !props.subscription.plan.startsWith('am3') &&
-      !hasPartnerMigrationFeature(props.organization)
-    ) {
-      props.onToggleLegacy(props.subscription.planTier);
-    }
-
-    let step = 1;
-    if (props.location?.hash) {
-      const stepMatch = /^#step(\d)$/.exec(props.location.hash);
-      if (stepMatch) {
-        step = parseInt(stepMatch[1]!, 10);
-        if (step < 1 || step > 6) {
-          step = 1;
-        }
-      }
-    } else if (
-      // skip 'Choose Your Plan' if customer is already on Business plan and they have all additional products enabled
-      isBizPlanFamily(props.subscription.planDetails) &&
-      props.checkoutTier === props.subscription.planTier
-    ) {
-      // skip to the next step if all available add-ons are already enabled
-      const selectedAll = Object.values(props.subscription.addOns ?? {}).every(
-        addOn =>
-          // add-on is enabled or not launched yet
-          addOn.enabled || !addOn.isAvailable
-      );
-
-      if (selectedAll) {
-        step = 2;
-      }
-    }
-    this.initialStep = step;
     this.state = {
       loading: true,
       error: false,
-      currentStep: step,
-      completedSteps: new Set(),
       formData: null,
       formDataForPreview: null,
       billingConfig: null,
@@ -205,8 +149,6 @@ class AMCheckout extends Component<Props, State> {
       this.handleRedirect();
     }
   }
-
-  readonly initialStep: number;
 
   get referrer(): string | undefined {
     const {location} = this.props;
@@ -289,71 +231,18 @@ class AMCheckout extends Component<Props, State> {
   }
 
   get checkoutSteps() {
-    const {organization, subscription, checkoutTier, isNewCheckout} = this.props;
-    const OnDemandStep = hasOnDemandBudgetsFeature(organization, subscription)
-      ? OnDemandBudgetsStep
-      : OnDemandSpend;
+    const {organization, subscription} = this.props;
 
-    if (isNewCheckout) {
-      // Do not include Payment Method and Billing Details sections for subscriptions billed through partners
-      if (subscription.isSelfServePartner) {
-        if (hasActiveVCFeature(organization)) {
-          // Don't allow VC customers to choose Annual plans
-          return [BuildYourPlan, SetSpendLimit];
-        }
-
-        return [BuildYourPlan, SetSpendLimit, ChooseYourBillingCycle];
-      }
-      return [
-        BuildYourPlan,
-        SetSpendLimit,
-        ChooseYourBillingCycle,
-        AddBillingInformation,
-      ];
-    }
-
-    const preAM3Tiers = [PlanTier.AM1, PlanTier.AM2];
-    const notAMTier = !isAmPlan(checkoutTier);
-
-    if (preAM3Tiers.includes(checkoutTier) || notAMTier) {
-      // Display for AM1 and AM2 tiers, and non-AM tiers  (e.g. L1)
-      return [
-        PlanSelect,
-        AddDataVolume,
-        OnDemandStep,
-        ContractSelect,
-        AddPaymentMethod,
-        AddBillingDetails,
-        ReviewAndConfirm,
-      ].filter(step => !isNewCheckout || step !== ReviewAndConfirm);
-    }
     // Do not include Payment Method and Billing Details sections for subscriptions billed through partners
     if (subscription.isSelfServePartner) {
       if (hasActiveVCFeature(organization)) {
         // Don't allow VC customers to choose Annual plans
-        return [PlanSelect, SetPayAsYouGo, AddDataVolume, ReviewAndConfirm].filter(
-          step => !isNewCheckout || step !== ReviewAndConfirm
-        );
+        return [BuildYourPlan, SetSpendLimit];
       }
-      return [
-        PlanSelect,
-        SetPayAsYouGo,
-        AddDataVolume,
-        ContractSelect,
-        ReviewAndConfirm,
-      ].filter(step => !isNewCheckout || step !== ReviewAndConfirm);
-    }
 
-    // Display for AM3 tiers and above
-    return [
-      PlanSelect,
-      SetPayAsYouGo,
-      AddDataVolume,
-      ContractSelect,
-      AddPaymentMethod,
-      AddBillingDetails,
-      ReviewAndConfirm,
-    ].filter(step => !isNewCheckout || step !== ReviewAndConfirm);
+      return [BuildYourPlan, SetSpendLimit, ChooseYourBillingCycle];
+    }
+    return [BuildYourPlan, SetSpendLimit, ChooseYourBillingCycle, AddBillingInformation];
   }
 
   get activePlan() {
@@ -381,8 +270,7 @@ class AMCheckout extends Component<Props, State> {
     const {subscription} = this.props;
 
     const hasUpsell =
-      (this.referrer?.startsWith('upgrade') || this.referrer?.startsWith('upsell')) &&
-      this.initialStep === 1;
+      this.referrer?.startsWith('upgrade') || this.referrer?.startsWith('upsell');
 
     return hasUpsell || subscription.isFree || subscription.isTrial;
   }
@@ -612,7 +500,6 @@ class AMCheckout extends Component<Props, State> {
   };
 
   handleUpdate = (updatedData: any) => {
-    const {organization, subscription, checkoutTier, isNewCheckout} = this.props;
     const {formData, formDataForPreview} = this.state;
 
     const data = {...formData, ...updatedData};
@@ -628,28 +515,6 @@ class AMCheckout extends Component<Props, State> {
       formDataForPreview: validPreviewData,
     });
 
-    const analyticsParams = {
-      organization,
-      subscription,
-      plan: plan.id,
-    };
-
-    if (!isNewCheckout) {
-      if (this.state.currentStep === 1) {
-        trackGetsentryAnalytics('checkout.change_plan', analyticsParams);
-      } else if (
-        (checkoutTier === PlanTier.AM3 && this.state.currentStep === 2) ||
-        (checkoutTier !== PlanTier.AM3 && this.state.currentStep === 3)
-      ) {
-        trackGetsentryAnalytics('checkout.ondemand_changed', {
-          ...analyticsParams,
-          cents: validData.onDemandMaxSpend || 0,
-        });
-      } else if (this.state.currentStep === 4) {
-        trackGetsentryAnalytics('checkout.change_contract', analyticsParams);
-      }
-    }
-
     if (!isEqual(validData.reserved, data.reserved)) {
       Sentry.withScope(scope => {
         scope.setExtras({validData, updatedData, previous: formData});
@@ -659,86 +524,31 @@ class AMCheckout extends Component<Props, State> {
     }
   };
 
-  /**
-   * Complete step and all previous steps
-   */
-  handleCompleteStep = (stepNumber: number) => {
-    const {organization, subscription, isNewCheckout} = this.props;
-    const previousSteps = Array.from({length: stepNumber}, (_, idx) => idx + 1);
-
-    if (!isNewCheckout) {
-      trackGetsentryAnalytics('checkout.click_continue', {
-        organization,
-        subscription,
-        step_number: stepNumber,
-        plan: this.activePlan.id,
-        checkoutType: CheckoutType.STANDARD,
-      });
-    }
-
-    this.setState(state => ({
-      currentStep: state.currentStep + 1,
-      completedSteps: new Set([...state.completedSteps, ...previousSteps]),
-    }));
-  };
-
-  handleEdit = (stepNumber: number) => {
-    this.setState({
-      currentStep: stepNumber,
-    });
-  };
-
   renderSteps() {
-    const {
-      organization,
-      onToggleLegacy,
-      subscription,
-      checkoutTier,
-      promotionData,
-      isNewCheckout,
-    } = this.props;
-    const {currentStep, completedSteps, formData, billingConfig} = this.state;
-
-    // TODO(isabella): promotion logic should be pushed to subcomponents
-    // clean this up after promos are live on new checkout
-    const promoClaimed = getCompletedOrActivePromotion(promotionData);
+    const {organization, subscription, checkoutTier} = this.props;
+    const {formData, billingConfig} = this.state;
 
     if (!formData || !billingConfig) {
       return null;
     }
-
-    const promotion = promoClaimed?.promotion;
 
     const stepProps = {
       formData,
       billingConfig,
       activePlan: this.activePlan,
       onUpdate: this.handleUpdate,
-      onCompleteStep: this.handleCompleteStep,
-      onEdit: this.handleEdit,
-      onToggleLegacy,
       organization,
       subscription,
       checkoutTier,
-      promotion,
     };
 
     return this.checkoutSteps.map((CheckoutStep, idx) => {
-      const stepNumber = idx + 1;
-      const isActive = currentStep === stepNumber;
-      const isCompleted = !isActive && completedSteps.has(stepNumber);
-      const prevStepCompleted = completedSteps.has(stepNumber - 1);
-
       return (
         <CheckoutStep
           {...stepProps}
           key={idx}
-          stepNumber={stepNumber}
-          isActive={isActive}
-          isCompleted={isCompleted}
-          prevStepCompleted={prevStepCompleted}
           referrer={this.referrer}
-          isNewCheckout={isNewCheckout}
+          stepNumber={idx + 1}
         />
       );
     });
@@ -773,14 +583,7 @@ class AMCheckout extends Component<Props, State> {
   }
 
   render() {
-    const {
-      subscription,
-      organization,
-      isLoading,
-      promotionData,
-      checkoutTier,
-      isNewCheckout,
-    } = this.props;
+    const {subscription, organization, isLoading, promotionData} = this.props;
     const {
       loading,
       error,
@@ -805,7 +608,7 @@ class AMCheckout extends Component<Props, State> {
       return null;
     }
 
-    if (isSubmitted && isNewCheckout) {
+    if (isSubmitted) {
       const purchasedPlanItem = invoice?.items.find(item => item.type === 'subscription');
       const basePlan = purchasedPlanItem
         ? this.getPlan(purchasedPlanItem.data.plan)
@@ -838,10 +641,6 @@ class AMCheckout extends Component<Props, State> {
     const promo = promotionClaimed?.promotion;
 
     const discountInfo = promo?.discountInfo;
-    const subscriptionDiscountInfo = showSubscriptionDiscount({
-      activePlan: this.activePlan,
-      discountInfo,
-    });
 
     const overviewProps = {
       formData,
@@ -865,38 +664,22 @@ class AMCheckout extends Component<Props, State> {
 
     const renderCheckoutContent = () => (
       <Fragment>
-        <CheckoutBody isNewCheckout={!!isNewCheckout}>
-          {!isNewCheckout && (
-            <SettingsPageHeader
-              title="Change Subscription"
-              colorSubtitle={subscriptionDiscountInfo}
-              data-test-id="change-subscription"
-            />
-          )}
+        <CheckoutBody>
           {this.renderPartnerAlert()}
-          <CheckoutStepsContainer
-            data-test-id="checkout-steps"
-            isNewCheckout={!!isNewCheckout}
-          >
+          <CheckoutStepsContainer data-test-id="checkout-steps">
             {this.renderSteps()}
           </CheckoutStepsContainer>
         </CheckoutBody>
-        <SidePanel isNewCheckout={!!isNewCheckout}>
-          <OverviewContainer isNewCheckout={!!isNewCheckout}>
-            {isNewCheckout ? (
-              <Cart
-                {...overviewProps}
-                referrer={this.referrer}
-                formDataForPreview={formDataForPreview}
-                onSuccess={params => {
-                  this.setState(prev => ({...prev, ...params}));
-                }}
-              />
-            ) : checkoutTier === PlanTier.AM3 ? (
-              <CheckoutOverviewV2 {...overviewProps} />
-            ) : (
-              <CheckoutOverview {...overviewProps} />
-            )}
+        <SidePanel>
+          <OverviewContainer>
+            <Cart
+              {...overviewProps}
+              referrer={this.referrer}
+              formDataForPreview={formDataForPreview}
+              onSuccess={params => {
+                this.setState(prev => ({...prev, ...params}));
+              }}
+            />
 
             <Stack padding="xl" gap="xl">
               <Flex justify="between" gap="xl" align="center">
@@ -918,12 +701,6 @@ class AMCheckout extends Component<Props, State> {
                   })}
                 </Text>
               </Flex>
-              {/* temporarily hiding this until we have a better way to display it in new checkout */}
-              {!isNewCheckout && (
-                <Text size="md" align="center" variant="muted">
-                  {discountInfo?.disclaimerText}
-                </Text>
-              )}
               {subscription.canCancel && (
                 <LinkButton
                   to={`/settings/${organization.slug}/billing/cancel/`}
@@ -952,7 +729,7 @@ class AMCheckout extends Component<Props, State> {
     return (
       <Flex
         width="100%"
-        background={isNewCheckout ? 'primary' : 'secondary'}
+        background="primary"
         justify="center"
         align="center"
         direction="column"
@@ -977,54 +754,39 @@ class AMCheckout extends Component<Props, State> {
             <Alert variant="info">{promotionDisclaimerText}</Alert>
           </Alert.Container>
         )}
-        {isNewCheckout && (
-          <CheckoutHeader>
-            <Flex width="100%" align="center" maxWidth="82rem" gap="lg" padding="lg 2xl">
-              <LogoSentry height="20px" />
-              <LinkButton
-                to={`/settings/${organization.slug}/billing/`}
-                icon={<IconChevron direction="left" />}
-                size="xs"
-                borderless
-                onClick={() => {
-                  trackGetsentryAnalytics('checkout.exit', {
-                    subscription,
-                    organization,
-                  });
-                }}
-              >
-                {t('Manage Subscription')}
-              </LinkButton>
+        <CheckoutHeader>
+          <Flex width="100%" align="center" maxWidth="82rem" gap="lg" padding="lg 2xl">
+            <LogoSentry height="20px" />
+            <LinkButton
+              to={`/settings/${organization.slug}/billing/`}
+              icon={<IconChevron direction="left" />}
+              size="xs"
+              borderless
+              onClick={() => {
+                trackGetsentryAnalytics('checkout.exit', {
+                  subscription,
+                  organization,
+                });
+              }}
+            >
+              {t('Manage Subscription')}
+            </LinkButton>
 
-              <OrgSlug>{organization.slug.toUpperCase()}</OrgSlug>
-            </Flex>
-          </CheckoutHeader>
-        )}
-        {isNewCheckout ? (
-          <Flex
-            direction={{xs: 'column', md: 'row'}}
-            gap="md 3xl"
-            justify="between"
-            width="100%"
-            maxWidth="82rem"
-            align="start"
-            paddingTop="3xl"
-          >
-            {renderCheckoutContent()}
+            <OrgSlug>{organization.slug.toUpperCase()}</OrgSlug>
           </Flex>
-        ) : (
-          <Grid
-            gap="2xl"
-            width="100%"
-            maxWidth="1440px"
-            columns={{
-              sm: 'auto',
-              lg: '3fr 2fr',
-            }}
-          >
-            {renderCheckoutContent()}
-          </Grid>
-        )}
+        </CheckoutHeader>
+
+        <Flex
+          direction={{xs: 'column', md: 'row'}}
+          gap="md 3xl"
+          justify="between"
+          width="100%"
+          maxWidth="82rem"
+          align="start"
+          paddingTop="3xl"
+        >
+          {renderCheckoutContent()}
+        </Flex>
       </Flex>
     );
   }
@@ -1053,58 +815,37 @@ const OrgSlug = styled('div')`
   text-align: right;
 `;
 
-const CheckoutBody = styled('div')<{isNewCheckout: boolean}>`
-  ${p =>
-    p.isNewCheckout
-      ? css`
-          padding: 0 ${p.theme.space['2xl']} ${p.theme.space['3xl']}
-            ${p.theme.space['2xl']};
-          width: 100%;
-          display: flex;
-          flex-direction: column;
-          align-items: flex-start;
-          @media (min-width: ${p.theme.breakpoints.md}) {
-            max-width: 47.5rem;
-            padding-top: ${p.theme.space.md};
-          }
-        `
-      : css`
-          flex-basis: 0;
-          flex-grow: 999;
-          min-inline-size: 60%;
-        `}
+const CheckoutBody = styled('div')`
+  padding: 0 ${p => p.theme.space['2xl']} ${p => p.theme.space['3xl']}
+    ${p => p.theme.space['2xl']};
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    max-width: 47.5rem;
+    padding-top: ${p => p.theme.space.md};
+  }
 `;
 
-const SidePanel = styled('aside')<{isNewCheckout: boolean}>`
-  ${p =>
-    p.isNewCheckout
-      ? css`
-          width: 100%;
-          border-top: 1px solid ${p.theme.border};
-          display: flex;
-          flex-direction: column;
-          padding: 0 ${p.theme.space['2xl']};
-          background-color: ${p.theme.backgroundSecondary};
+const SidePanel = styled('aside')`
+  width: 100%;
+  border-top: 1px solid ${p => p.theme.border};
+  display: flex;
+  flex-direction: column;
+  padding: 0 ${p => p.theme.space['2xl']};
+  background-color: ${p => p.theme.backgroundSecondary};
 
-          @media (min-width: ${p.theme.breakpoints.md}) {
-            position: sticky;
-            right: 0;
-            top: 6.25rem;
-            max-width: 26rem;
-            border-top: none;
-            padding-left: ${p.theme.space['3xl']};
-            background-color: ${p.theme.tokens.background.primary};
-            padding-bottom: ${p.theme.space['3xl']};
-          }
-        `
-      : css`
-          height: max-content;
-          position: sticky;
-          top: 30px;
-          align-self: start;
-          flex-grow: 1;
-          flex-basis: 25rem;
-        `}
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    position: sticky;
+    right: 0;
+    top: 6.25rem;
+    max-width: 26rem;
+    border-top: none;
+    padding-left: ${p => p.theme.space['3xl']};
+    background-color: ${p => p.theme.tokens.background.primary};
+    padding-bottom: ${p => p.theme.space['3xl']};
+  }
 `;
 
 /**
@@ -1112,42 +853,29 @@ const SidePanel = styled('aside')<{isNewCheckout: boolean}>`
  * Bring overview to bottom at smaller screen sizes in new checkout
  * Cancel subscription button is always visible
  */
-const OverviewContainer = styled('div')<{isNewCheckout: boolean}>`
-  ${p =>
-    p.isNewCheckout
-      ? css`
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          position: relative;
-          gap: ${p.theme.space.xl};
-          padding: ${p.theme.space['2xl']} 0;
+const OverviewContainer = styled('div')`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  gap: ${p => p.theme.space.xl};
+  padding: ${p => p.theme.space['2xl']} 0;
 
-          @media (min-width: ${p.theme.breakpoints.md}) {
-            padding: 0;
-          }
-        `
-      : css`
-          @media (max-width: ${p.theme.breakpoints.lg}) {
-            display: none;
-          }
-        `}
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    padding: 0;
+  }
 `;
 
-const CheckoutStepsContainer = styled('div')<{isNewCheckout: boolean}>`
-  ${p =>
-    p.isNewCheckout &&
-    css`
-      display: flex;
-      flex-direction: column;
-      gap: ${p.theme.space['3xl']};
+const CheckoutStepsContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space['3xl']};
 
-      & > * + * {
-        border-top: 1px solid ${p.theme.border};
-        padding-top: ${p.theme.space['3xl']};
-        margin-top: ${p.theme.space['3xl']};
-      }
-    `}
+  & > * + * {
+    border-top: 1px solid ${p => p.theme.border};
+    padding-top: ${p => p.theme.space['3xl']};
+    margin-top: ${p => p.theme.space['3xl']};
+  }
 `;
 
 export default withPromotions(withApi(withOrganization(withSubscription(AMCheckout))));

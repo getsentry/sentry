@@ -3,21 +3,17 @@ import {Alert} from 'sentry/components/core/alert';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 
 import {EMPTY_DASHBOARD, getDashboardTemplates} from './data';
 import DashboardDetail from './detail';
 import {DashboardState} from './types';
 import {cloneDashboard} from './utils';
 
-type Props = RouteComponentProps<{templateId?: string; widgetId?: string}> & {
-  children: React.ReactNode;
-};
-
-function CreateDashboard(props: Props) {
+export default function CreateDashboard() {
   const organization = useOrganization();
-  const {templateId} = props.params;
+  const {templateId} = useParams<{templateId: string}>();
 
   function renderDisabled() {
     return (
@@ -47,7 +43,6 @@ function CreateDashboard(props: Props) {
     >
       <ErrorBoundary>
         <DashboardDetail
-          {...props}
           initialState={initialState}
           dashboard={dashboard}
           dashboards={[]}
@@ -56,5 +51,3 @@ function CreateDashboard(props: Props) {
     </Feature>
   );
 }
-
-export default CreateDashboard;

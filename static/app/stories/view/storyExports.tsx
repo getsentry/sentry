@@ -48,7 +48,7 @@ function StoryLayout() {
       {isMDXStory(story) ? <MDXStoryTitle story={story} /> : null}
       <StoryGrid>
         <StoryContainer>
-          <Flex flexGrow={1}>
+          <Flex flexGrow={1} minWidth="0px">
             <StoryTabPanels />
           </Flex>
           <ErrorBoundary>
@@ -160,7 +160,7 @@ function StoryTabPanels() {
   }
 
   return (
-    <TabPanels>
+    <StyledTabPanels>
       <TabPanels.Item key="usage">
         <StoryModuleExports exports={story.exports.documentation?.exports} />
         <StoryUsage />
@@ -171,7 +171,7 @@ function StoryTabPanels() {
       <TabPanels.Item key="resources">
         <StoryResources />
       </TabPanels.Item>
-    </TabPanels>
+    </StyledTabPanels>
   );
 }
 const EXPECTED_EXPORTS = new Set<keyof StoryExportValues>([
@@ -262,9 +262,14 @@ function StoryModuleExports(props: {
   return <Storybook.ModuleExports exports={props.exports} />;
 }
 
+const StyledTabPanels = styled(TabPanels)`
+  min-width: 0;
+`;
+
 const StoryContainer = styled('div')`
   max-width: 580px;
   width: 100%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space['3xl']};

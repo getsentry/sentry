@@ -13,12 +13,10 @@ export interface OverlayArrowProps extends React.ComponentPropsWithRef<'div'> {
   strokeWidth?: number;
 }
 
-export const OverlayArrow = ChonkOverlayArrow;
-
 const sizeRatio = 0.5;
 const heightRatio = 0.3;
 
-function ChonkOverlayArrow({
+export function OverlayArrow({
   placement,
   ref,
   size = 16,
@@ -32,7 +30,7 @@ function ChonkOverlayArrow({
   const topOffset = placement?.startsWith('top') ? 3 : 1;
 
   return (
-    <ChonkWrap dimensions={size} ref={ref} placement={placement} {...props}>
+    <OverlayArrowWrap dimensions={size} ref={ref} placement={placement} {...props}>
       <svg
         viewBox={`0 0 ${size} ${size * sizeRatio}`}
         fill="none"
@@ -48,7 +46,7 @@ function ChonkOverlayArrow({
               ${size / 2 - 2},${size * heightRatio + topOffset}`}
             fill={
               border
-                ? ((theme[border as ColorOrAlias] as string) ?? border)
+                ? (theme[border as ColorOrAlias] ?? border)
                 : theme.tokens.border.primary
             }
           />
@@ -57,7 +55,7 @@ function ChonkOverlayArrow({
           points={`0,0 ${size},0 ${size / 2},${size * heightRatio + topOffset}`}
           fill={
             border
-              ? ((theme[border as ColorOrAlias] as string) ?? border)
+              ? (theme[border as ColorOrAlias] ?? border)
               : theme.tokens.border.primary
           }
         />
@@ -65,16 +63,16 @@ function ChonkOverlayArrow({
           points={`${offset},0 ${size - offset}, 0 ${size / 2},${size * heightRatio}`}
           fill={
             background
-              ? ((theme[background as ColorOrAlias] as string) ?? background)
+              ? (theme[background as ColorOrAlias] ?? background)
               : theme.tokens.background.primary
           }
         />
       </svg>
-    </ChonkWrap>
+    </OverlayArrowWrap>
   );
 }
 
-const ChonkWrap = styled('div')<{
+const OverlayArrowWrap = styled('div')<{
   dimensions: number;
   placement?: PopperProps<any>['placement'];
 }>`

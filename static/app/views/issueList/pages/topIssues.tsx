@@ -11,6 +11,7 @@ import {Checkbox} from 'sentry/components/core/checkbox';
 import {InlineCode} from 'sentry/components/core/code/inlineCode';
 import {Disclosure} from 'sentry/components/core/disclosure/disclosure';
 import {Link} from 'sentry/components/core/link';
+import {TextArea} from 'sentry/components/core/textarea';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
 import {NativeContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/nativeContent';
@@ -23,8 +24,17 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import Placeholder from 'sentry/components/placeholder';
 import Redirect from 'sentry/components/redirect';
 import TimeSince from 'sentry/components/timeSince';
-import {IconCalendar, IconClock, IconFire, IconLink, IconUser} from 'sentry/icons';
+import {
+  IconCalendar,
+  IconClock,
+  IconClose,
+  IconFire,
+  IconLink,
+  IconUpload,
+  IconUser,
+} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -924,16 +934,56 @@ function TopIssues() {
   const {selection} = usePageFilters();
   const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [showDevTools, setShowDevTools] = useState(false);
+  const [showJsonInput, setShowJsonInput] = useState(false);
+  const [jsonInputValue, setJsonInputValue] = useState('');
+  const [customClusterData, setCustomClusterData] = useState<ClusterSummary[] | null>(
+    null
+  );
+  const [jsonError, setJsonError] = useState<string | null>(null);
+  const [disableFilters, setDisableFilters] = useState(false);
 
   const {data: topIssuesResponse, isPending} = useApiQuery<TopIssuesResponse>(
     [`/organizations/${organization.slug}/top-issues/`],
     {
       staleTime: 60000,
+      enabled: customClusterData === null, // Only fetch if no custom data
     }
   );
 
+  const handleParseJson = () => {
+    try {
+      const parsed = JSON.parse(jsonInputValue);
+      const clusters = Array.isArray(parsed) ? parsed : parsed?.data;
+      if (!Array.isArray(clusters)) {
+        setJsonError(t('JSON must be an array or have a "data" property with an array'));
+        return;
+      }
+      setCustomClusterData(clusters as ClusterSummary[]);
+      setJsonError(null);
+      setShowJsonInput(false);
+      setCurrentIndex(0);
+    } catch (e) {
+      setJsonError(t('Invalid JSON: %s', e instanceof Error ? e.message : String(e)));
+    }
+  };
+
+  const handleClearCustomData = () => {
+    setCustomClusterData(null);
+    setJsonInputValue('');
+    setJsonError(null);
+    setDisableFilters(false);
+    setCurrentIndex(0);
+  };
+
+  const isUsingCustomData = customClusterData !== null;
+
   const filteredClusters = useMemo(() => {
-    const clusterData = topIssuesResponse?.data ?? [];
+    const clusterData = customClusterData ?? topIssuesResponse?.data ?? [];
+
+    if (isUsingCustomData && disableFilters) {
+      return clusterData;
+    }
 
     let filtered = clusterData.filter(cluster => {
       if (!cluster.error_type || !cluster.impact || !cluster.location) {
@@ -961,7 +1011,10 @@ function TopIssues() {
 
     return filtered.sort((a, b) => (b.fixability_score ?? 0) - (a.fixability_score ?? 0));
   }, [
+    customClusterData,
     topIssuesResponse?.data,
+    isUsingCustomData,
+    disableFilters,
     selection.projects,
     filterByAssignedToMe,
     user.id,
@@ -989,7 +1042,25 @@ function TopIssues() {
       <PageWrapper>
         <Grid padding="2xl 3xl xl">
           <Flex justify="between" align="center">
-            <Heading as="h1">{t('Top Issues')}</Heading>
+            <Flex align="center" gap="md">
+              <ClickableHeading as="h1" onClick={() => setShowDevTools(prev => !prev)}>
+                {t('Top Issues')}
+              </ClickableHeading>
+              {isUsingCustomData && (
+                <CustomDataBadge>
+                  <Text size="xs" bold>
+                    {t('Using Custom Data')}
+                  </Text>
+                  <Button
+                    size="zero"
+                    borderless
+                    icon={<IconClose size="xs" />}
+                    aria-label={t('Clear custom data')}
+                    onClick={handleClearCustomData}
+                  />
+                </CustomDataBadge>
+              )}
+            </Flex>
             <Link to={`/organizations/${organization.slug}/issues/dynamic-groups/`}>
               <Button size="sm">{t('View Grid Layout')}</Button>
             </Link>
@@ -1004,6 +1075,15 @@ function TopIssues() {
           >
             <Flex gap="sm" align="center">
               <ProjectPageFilter />
+              {showDevTools && (
+                <Button
+                  size="sm"
+                  icon={<IconUpload size="xs" />}
+                  onClick={() => setShowJsonInput(!showJsonInput)}
+                >
+                  {showJsonInput ? t('Hide JSON Input') : t('Paste JSON')}
+                </Button>
+              )}
               <CheckboxLabel>
                 <Checkbox
                   checked={filterByAssignedToMe}
@@ -1022,6 +1102,7 @@ function TopIssues() {
               <Flex align="center" gap="sm">
                 <Text size="sm" variant="muted" style={{padding: `0 ${theme.space.md}`}}>
                   {currentIndex + 1} {t('of')} {totalClusters} {t('top issues')}
+                  {isUsingCustomData && disableFilters && ` ${t('(filters disabled)')}`}
                 </Text>
                 <Button size="sm" onClick={handlePrevious} disabled={currentIndex <= 0}>
                   {t('Previous')}
@@ -1036,6 +1117,56 @@ function TopIssues() {
               </Flex>
             )}
           </Flex>
+
+          {showJsonInput && (
+            <JsonInputContainer>
+              <Text size="sm" variant="muted" style={{marginBottom: space(1)}}>
+                {t(
+                  'Paste cluster JSON data below. Accepts either a raw array of clusters or an object with a "data" property.'
+                )}
+              </Text>
+              <TextArea
+                value={jsonInputValue}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                  setJsonInputValue(e.target.value);
+                  setJsonError(null);
+                }}
+                placeholder={t('Paste JSON here...')}
+                rows={8}
+                monospace
+              />
+              {jsonError && (
+                <Text size="sm" style={{color: 'var(--red400)', marginTop: space(1)}}>
+                  {jsonError}
+                </Text>
+              )}
+              <Flex gap="sm" align="center" style={{marginTop: space(1.5)}}>
+                <Checkbox
+                  checked={disableFilters}
+                  onChange={e => setDisableFilters(e.target.checked)}
+                  aria-label={t('Disable filters and sorting')}
+                  size="sm"
+                />
+                <Text size="sm" variant="muted">
+                  {t('Disable filters and sorting')}
+                </Text>
+              </Flex>
+              <Flex gap="sm" style={{marginTop: space(1)}}>
+                <Button size="sm" priority="primary" onClick={handleParseJson}>
+                  {t('Parse and Load')}
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setShowJsonInput(false);
+                    setJsonError(null);
+                  }}
+                >
+                  {t('Cancel')}
+                </Button>
+              </Flex>
+            </JsonInputContainer>
+          )}
         </Grid>
 
         <ContentArea>
@@ -1061,11 +1192,35 @@ const PageWrapper = styled('div')`
   background: ${p => p.theme.backgroundSecondary};
 `;
 
+const ClickableHeading = styled(Heading)`
+  cursor: pointer;
+  user-select: none;
+`;
+
 const CheckboxLabel = styled('label')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.md};
   cursor: pointer;
+`;
+
+const JsonInputContainer = styled('div')`
+  margin-top: ${space(2)};
+  padding: ${space(2)};
+  background: ${p => p.theme.backgroundSecondary};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.radius.md};
+`;
+
+const CustomDataBadge = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  padding: ${space(0.5)} ${space(1)};
+  background: ${p => p.theme.colors.yellow100};
+  border: 1px solid ${p => p.theme.colors.yellow400};
+  border-radius: ${p => p.theme.radius.md};
+  color: ${p => p.theme.colors.yellow500};
 `;
 
 const ContentArea = styled('div')`

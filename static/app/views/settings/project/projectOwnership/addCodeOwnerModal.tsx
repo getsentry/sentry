@@ -261,7 +261,7 @@ function SourceFile({codeownersFile}: {codeownersFile: CodeownersFile}) {
   return (
     <Panel>
       <SourceFileBody>
-        <IconCheckmark size="md" color="green200" />
+        <IconCheckmark size="md" variant="success" />
         {codeownersFile.filepath}
         <LinkButton size="sm" href={codeownersFile.html_url} external>
           {t('Preview File')}
@@ -275,7 +275,7 @@ function NoSourceFile() {
   return (
     <Panel>
       <NoSourceFileBody>
-        <IconNot size="md" color="red200" />
+        <IconNot size="md" variant="danger" />
         {t('No codeowner file found.')}
       </NoSourceFileBody>
     </Panel>

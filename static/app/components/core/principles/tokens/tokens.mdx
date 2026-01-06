@@ -1,0 +1,690 @@
+---
+title: Tokens
+description: Tokens are the smallest unit of a Design System. They represent discrete design decisions in a platform-agnostic way.
+resources:
+  figma: https://www.figma.com/design/97XKAiOW0Rg8Rk1hb02R4E/%F0%9F%90%A6-Primitives?node-id=446-34701&p=f&t=secYuPMqzV9RoH8F-0
+  js: https://github.com/getsentry/design-engineering/tree/main/packages/scraps/src/tokens
+  reference:
+    DTCG Glossary: https://www.designtokens.org/glossary/
+    Design Tokens Format Module: https://www.designtokens.org/tr/third-editors-draft/format/
+    Design Tokens explained: https://atlassian.design/tokens/design-tokens
+---
+
+import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
+
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+
+import {Text} from 'sentry/components/core/text';
+import * as Storybook from 'sentry/stories';
+// eslint-disable-next-line @sentry/scraps/no-token-import -- temporary until theme.borderWidth is exposed
+import {size} from 'sentry/utils/theme/scraps/tokens/size';
+
+> [!WARNING]
+>
+> These tokens are exposed here for **reference and documentation**, not as a primary integration surface.
+
+**Designers**, please use the [**Primitives** library](https://www.figma.com/design/97XKAiOW0Rg8Rk1hb02R4E/%F0%9F%90%A6-Primitives) in Figma as the source of truth.
+
+**Developers**, consume tokens by composing **component primitives** (e.g. [`<Container />`](/stories/layout/container/), [`<Text />`](/stories/typography/text/)) with the correct props. Let the components do the wiring.
+
+One **exception** is low-level `core` components maintained by the **Design Engineering team**, which may access tokens directly when abstraction isn’t practical.
+
+# Color
+
+Scraps uses **semantic color tokens** to describe _intent_, not pigment. They encode meaning like hierarchy, emphasis, and state so your UI survives theme changes, accessibility tweaks, and future rebrands without a mass refactor.
+
+Raw color values (`red400`, `blue500`, etc.) hard-code appearance. Semantic tokens (`background.surface.overlay`) let the system decide _what color is correct_ for that role.
+
+The result is more consistent UI, fewer bugs, and significantly fewer “wait, was this supposed to use 400 or 500?” questions.
+
+```jsx del="colors.red400" ins="tokens.background.danger.vibrant"
+const Component = styled('span')`
+  /* ❌ Do not use use raw color values */
+  background-color: ${p => p.theme.colors.red400}
+  /* ✅ Prefer use of semantic tokens */
+  background-color: ${p => p.theme.tokens.background.danger.vibrant}
+`;
+```
+
+## Categories
+
+Colors have been organized into separate scales for specific use cases.
+
+| Category      | Description                                                                                            |
+| ------------- | ------------------------------------------------------------------------------------------------------ |
+| `background`  | Painting an element's background.                                                                      |
+| `content`     | Painting text and icons which need to stand out the most.                                              |
+| `graphics`    | Painting icons and other graphical elements which don't need to stand out as much as `content` tokens. |
+| `border`      | Painting borders of containers or visual diagrams.                                                     |
+| `shadow`      | Painting shadows of containers.                                                                        |
+| `interactive` | Painting interactive elements and all their states.                                                    |
+| `syntax`      | Painting `<code/>` elements that depend on PrismJS.                                                    |
+| `focus`       | Painting `:focus` or validation states.                                                                |
+| `dataviz`     | Painting chart data.                                                                                   |
+
+## Variants
+
+For consistency, token scales and `variant` properties have been standardized with the following terminology.
+
+> [!TIP]
+>
+> `sentry/utils/theme` exposes standardized, public types for `SurfaceVariant`, `SemanticVariant`, `ContentVariant`, `GraphicsVariant`, and `BorderVariant`.
+
+| Keyword     | Description                                                   |
+| ----------- | ------------------------------------------------------------- |
+| `neutral`   | Neutral is the subtle, grayscale variant                      |
+| `accent`    | The call-to-action colour for interactive elements.           |
+| `info`      | Semantically charged, informing users of important facts.     |
+| `promotion` | Semantically charged, encouraging users to invest in Sentry.  |
+| `warning`   | Semantically charged, alerting users of a potential issue.    |
+| `danger`    | Semantically charged, alerting users of a issue.              |
+| `success`   | Semantically charged, informing users of a desired end-state. |
+
+## Background
+
+Background tokens paint an element's background.
+
+<BackgroundColors />
+
+## Content
+
+Content tokens paint text and icons.
+
+<ContentColors />
+
+## Border
+
+Border tokens paint borders of containers.
+
+<BorderColors />
+
+## Graphics
+
+Graphics tokens paint icons and other graphical elements.
+
+<GraphicsColors />
+
+## Shadow
+
+Shadow tokens paint shadows of containers.
+
+<ShadowColors />
+
+## Focus
+
+Focus tokens paint focus rings and validation states.
+
+<FocusColors />
+
+## Dataviz
+
+Dataviz tokens paint chart data. The categorical scale provides colors for series data, while the semantic scale provides meaningful colors for outcomes.
+
+### Categorical
+
+<DatavizCategoricalColors />
+
+### Semantic
+
+<DatavizSemanticColors />
+
+# Size
+
+Size based tokens are based on a `4px` grid.
+
+## Space
+
+Space values are used for layout components such as [`<Container/>`](/stories/layout/container), [`<Flex/>`](/stories/layout/flex), [`<Grid/>`](/stories/layout/grid), as well as CSS properties like `gap` and `padding`.
+
+<Space />
+
+## Radius
+
+Radius values define the rounded corners of [`<Container />`](/stories/layout/container) and [`<Flex />`](/stories/layout/flex) components using the CSS property `border-radius`.
+
+<Radius />
+
+## Border Width
+
+Border Width values define the thickness of borders using the CSS properties `border-width` and `outline-width`.
+
+<BorderWidth />
+
+## Shadow Offset
+
+Shadow Offset values define the distance of shadows and borders for raised interactive elements.
+
+<ShadowOffset />
+
+# Typography
+
+Typography tokens are used with the [`<Text />`](/stories/typography/text) and [`<Heading />`](/stories/typography/heading) components to define Sentry's information hierarchy.
+
+## Font Size
+
+<FontSize />
+
+## Font Weight
+
+<FontWeight />
+
+## Font Family
+
+<FontFamily />
+
+## Line Height
+
+<LineHeight />
+
+export function Space() {
+  const theme = useTheme();
+  return (
+    <Storybook.TokenReference
+      scale="space"
+      tokens={theme.space}
+      renderToken={({value}) => (
+        <Flex
+          align="center"
+          justify="center"
+          as="div"
+          width={value}
+          height="16px"
+          borderLeft="accent"
+          borderRight="accent"
+          style={{boxSizing: 'border-box'}}
+        >
+          <Container
+            as="div"
+            width="100%"
+            height="1px"
+            borderTop="accent"
+            style={{boxSizing: 'border-box'}}
+          />
+        </Flex>
+      )}
+    />
+  );
+}
+
+export function Radius() {
+  const theme = useTheme();
+  return (
+    <Storybook.TokenReference
+      scale="radius"
+      tokens={theme.radius}
+      renderToken={({token}) => (
+        <Container
+          as="div"
+          style={{
+            boxSizing: 'border-box',
+            width: '48px',
+            height: '48px',
+            background: theme.tokens.background.transparent.accent.muted,
+          }}
+          border="accent"
+          radius={token}
+        />
+      )}
+    />
+  );
+}
+
+export function FontSize() {
+  const theme = useTheme();
+  return (
+    <Storybook.TokenReference
+      scale="font.size"
+      tokens={theme.font.size}
+      renderToken={({token}) => (
+        <Text size={token} variant="accent">
+          Aa
+        </Text>
+      )}
+    />
+  );
+}
+
+export function FontWeight() {
+  const theme = useTheme();
+  const tokens = {
+    'sans.regular': theme.font.weight.sans.regular,
+    'sans.medium': theme.font.weight.sans.medium,
+    'mono.regular': theme.font.weight.mono.regular,
+    'mono.medium': theme.font.weight.mono.medium,
+  };
+  return (
+    <Storybook.TokenReference
+      scale="font.weight"
+      tokens={tokens}
+      renderToken={({token, value}) => (
+        <Text
+          size="lg"
+          style={{fontWeight: value}}
+          monospace={token.startsWith('mono')}
+          variant="accent"
+        >
+          {value}
+        </Text>
+      )}
+    />
+  );
+}
+
+export function FontFamily() {
+  const theme = useTheme();
+  return (
+    <Storybook.TokenReference
+      scale="font.family"
+      tokens={theme.font.family}
+      renderToken={({token}) =>
+        token === 'sans' ? (
+          <Text wrap="nowrap" size="lg" variant="accent">
+            Rubik
+          </Text>
+        ) : (
+          <Text wrap="nowrap" size="lg" monospace variant="accent">
+            Roboto Mono
+          </Text>
+        )
+      }
+    />
+  );
+}
+
+export function LineHeight() {
+  const theme = useTheme();
+  return (
+    <Storybook.TokenReference
+      scale="font.lineHeight"
+      tokens={theme.font.lineHeight}
+      renderToken={({value, token}) => (
+        <Flex
+          align="center"
+          justify="center"
+          as="div"
+          height={typeof value === 'number' ? `${value * 16}px` : value}
+          borderTop="accent"
+          borderBottom="accent"
+          style={{boxSizing: 'border-box'}}
+        >
+          <Text size="md" density={token} variant="accent">
+            Aa
+          </Text>
+        </Flex>
+      )}
+    />
+  );
+}
+
+export function sortByValue(tokens) {
+  return Object.fromEntries(
+    Object.entries(tokens).sort(([, a], [, b]) => parseFloat(a) - parseFloat(b))
+  );
+}
+
+export function BorderWidth() {
+  const theme = useTheme();
+  return (
+    <Storybook.TokenReference
+      scale="border"
+      tokens={sortByValue(size.border)}
+      renderToken={({value}) => (
+        <Container
+          as="div"
+          style={{
+            boxSizing: 'border-box',
+            width: '48px',
+            height: value,
+            background: theme.tokens.border.accent.vibrant,
+          }}
+        />
+      )}
+    />
+  );
+}
+
+export function ShadowOffset() {
+  const theme = useTheme();
+  return (
+    <Storybook.TokenReference
+      scale="shadow"
+      tokens={sortByValue(size.shadow)}
+      renderToken={({value}) => (
+        <Container
+          as="div"
+          style={{
+            boxSizing: 'border-box',
+            width: '32px',
+            height: '32px',
+            background: theme.tokens.background.primary,
+            boxShadow: `0 ${value} 0 0 ${theme.tokens.border.accent.vibrant}`,
+          }}
+          border="accent"
+          radius="xs"
+        />
+      )}
+    />
+  );
+}
+
+export function flattenTokens(obj, prefix = '') {
+  return Object.entries(obj).reduce((result, entry) => {
+    const key = entry[0];
+    const value = entry[1];
+    const path = prefix ? `${prefix}.${key}` : key;
+    if (typeof value === 'string') {
+      result[path] = value;
+    } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      Object.assign(result, flattenTokens(value, path));
+    }
+    return result;
+  }, {});
+}
+
+export function BackgroundColors() {
+  const theme = useTheme();
+  const bg = theme.tokens.background;
+  const groups = [
+    {
+      label: 'surface',
+      tokens: {
+        primary: bg.primary,
+        secondary: bg.secondary,
+        tertiary: bg.tertiary,
+        overlay: bg.overlay,
+      },
+    },
+    {
+      label: 'semantic',
+      tokens: {
+        'accent.vibrant': bg.accent.vibrant,
+        'promotion.vibrant': bg.promotion.vibrant,
+        'danger.vibrant': bg.danger.vibrant,
+        'warning.vibrant': bg.warning.vibrant,
+        'success.vibrant': bg.success.vibrant,
+      },
+    },
+    {
+      label: 'transparent',
+      tokens: flattenTokens(bg.transparent),
+    },
+  ];
+  return (
+    <Storybook.ColorReference
+      scale="background"
+      groups={groups}
+      fill
+      renderToken={({value}) => (
+        <Container
+          as="div"
+          style={{
+            boxSizing: 'border-box',
+            width: '100%',
+            height: '48px',
+            background: value,
+          }}
+          border="muted"
+          radius="sm"
+        />
+      )}
+    />
+  );
+}
+
+export function ContentColors() {
+  const theme = useTheme();
+  const ct = theme.tokens.content;
+  const groups = [
+    {
+      label: 'text',
+      tokens: {
+        primary: ct.primary,
+        secondary: ct.secondary,
+        headings: ct.headings,
+        disabled: ct.disabled,
+      },
+    },
+    {
+      label: 'semantic',
+      tokens: {
+        accent: ct.accent,
+        promotion: ct.promotion,
+        danger: ct.danger,
+        warning: ct.warning,
+        success: ct.success,
+      },
+    },
+    {
+      label: 'onVibrant',
+      tokens: {
+        'onVibrant.light': ct.onVibrant.light,
+        'onVibrant.dark': ct.onVibrant.dark,
+      },
+    },
+  ];
+  return (
+    <Storybook.ColorReference
+      scale="content"
+      groups={groups}
+      renderToken={({value}) => (
+        <Text size="xl" style={{color: value}}>
+          Aa
+        </Text>
+      )}
+    />
+  );
+}
+
+export function BorderColors() {
+  const theme = useTheme();
+  const bd = theme.tokens.border;
+  const groups = [
+    {
+      label: 'base',
+      tokens: {
+        primary: bd.primary,
+        secondary: bd.secondary,
+      },
+    },
+    {label: 'neutral', tokens: flattenTokens(bd.neutral)},
+    {label: 'accent', tokens: flattenTokens(bd.accent)},
+    {label: 'promotion', tokens: flattenTokens(bd.promotion)},
+    {label: 'danger', tokens: flattenTokens(bd.danger)},
+    {label: 'warning', tokens: flattenTokens(bd.warning)},
+    {label: 'success', tokens: flattenTokens(bd.success)},
+    {label: 'onVibrant', tokens: flattenTokens(bd.onVibrant)},
+  ];
+  return (
+    <Storybook.ColorReference
+      scale="border"
+      list
+      groups={groups}
+      renderToken={({value}) => (
+        <Container
+          as="div"
+          background="primary"
+          style={{
+            boxSizing: 'border-box',
+            width: '24px',
+            height: '24px',
+            borderRadius: '4px',
+            marginLeft: '-8px',
+            border: `2px solid ${value}`,
+          }}
+          radius="sm"
+        />
+      )}
+     />
+
+);
+}
+
+export function GraphicsColors() {
+  const theme = useTheme();
+  const gx = theme.tokens.graphics;
+  const groups = [
+    {label: 'neutral', tokens: flattenTokens(gx.neutral)},
+    {label: 'accent', tokens: flattenTokens(gx.accent)},
+    {label: 'promotion', tokens: flattenTokens(gx.promotion)},
+    {label: 'danger', tokens: flattenTokens(gx.danger)},
+    {label: 'warning', tokens: flattenTokens(gx.warning)},
+    {label: 'success', tokens: flattenTokens(gx.success)},
+  ];
+  return (
+    <Storybook.ColorReference
+      scale="graphics"
+      list
+      groups={groups}
+      renderToken={({value}) => (
+        <Container
+          as="div"
+          style={{
+            boxSizing: 'border-box',
+            width: '24px',
+            height: '24px',
+            background: value,
+            borderRadius: '50%',
+          }}
+        />
+      )}
+    />
+  );
+}
+
+export function ShadowColors() {
+  const theme = useTheme();
+  const sh = theme.tokens.shadow;
+  const groups = [
+    {
+      label: 'elevation',
+      tokens: {
+        elevationLow: sh.elevationLow,
+        elevationMedium: sh.elevationMedium,
+      },
+    },
+  ];
+  return (
+    <Storybook.ColorReference
+      scale="shadow"
+      groups={groups}
+      renderToken={({value}) => (
+        <Container
+          as="div"
+          style={{
+            boxSizing: 'border-box',
+            width: '40px',
+            height: '40px',
+            background: theme.tokens.background.primary,
+            boxShadow: `0 4px 8px ${value}`,
+          }}
+          border="muted"
+          radius="sm"
+        />
+      )}
+    />
+  );
+}
+
+export function FocusColors() {
+  const theme = useTheme();
+  const fc = theme.tokens.focus;
+  const groups = [
+    {
+      label: 'states',
+      tokens: {
+        default: fc.default,
+        invalid: fc.invalid,
+      },
+    },
+    {
+      label: 'onVibrant',
+      tokens: {
+        'onVibrant.light': fc.onVibrant.light,
+        'onVibrant.dark': fc.onVibrant.dark,
+      },
+    },
+  ];
+  return (
+    <Storybook.ColorReference
+      scale="focus"
+      groups={groups}
+      renderToken={({value}) => (
+        <Container
+          as="div"
+          style={{
+            boxSizing: 'border-box',
+            width: '40px',
+            height: '40px',
+            background: theme.tokens.background.primary,
+            outline: `2px solid ${value}`,
+            outlineOffset: '2px',
+          }}
+          radius="sm"
+        />
+      )}
+    />
+  );
+}
+
+export function DatavizCategoricalColors() {
+  const theme = useTheme();
+  const categorical = theme.tokens.dataviz.categorical;
+  const fullPalette = categorical[categorical.length - 1] ?? [];
+  const tokens = Object.fromEntries(fullPalette.map((value, i) => [String(i), value]));
+  const groups = [{tokens}];
+  return (
+    <Storybook.ColorReference
+      scale="dataviz.categorical"
+      groups={groups}
+      renderToken={({value}) => (
+        <Container
+          as="div"
+          style={{
+            boxSizing: 'border-box',
+            width: '24px',
+            height: '24px',
+            background: value,
+            borderRadius: '50%',
+          }}
+        />
+      )}
+    />
+  );
+}
+
+export function DatavizSemanticColors() {
+  const theme = useTheme();
+  const semantic = theme.tokens.dataviz.semantic;
+  const groups = [
+    {
+      tokens: {
+        neutral: semantic.neutral,
+        accent: semantic.accent,
+        good: semantic.good,
+        meh: semantic.meh,
+        bad: semantic.bad,
+        release: semantic.release,
+        other: semantic.other,
+      },
+    },
+  ];
+  return (
+    <Storybook.ColorReference
+      scale="dataviz.semantic"
+      groups={groups}
+      renderToken={({value}) => (
+        <Container
+          as="div"
+          style={{
+            boxSizing: 'border-box',
+            width: '24px',
+            height: '24px',
+            background: value,
+            borderRadius: '50%',
+          }}
+        />
+      )}
+    />
+  );
+}
