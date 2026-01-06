@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.testutils.cases import TestCase
@@ -88,3 +90,26 @@ class ProjectCodeOwnersTestCase(TestCase):
                 },
             ],
         }
+
+    @patch("sentry.tasks.codeowners.invalidate_project_issue_owners_cache")
+    def test_post_save_triggers_async_cache_invalidation(self, mock_invalidate_task) -> None:
+        self.create_codeowners(
+            self.project,
+            self.code_mapping,
+            raw=self.data["raw"],
+        )
+
+        mock_invalidate_task.delay.assert_called_once_with(self.project.id)
+
+    @patch("sentry.tasks.codeowners.invalidate_project_issue_owners_cache")
+    def test_post_delete_triggers_async_cache_invalidation(self, mock_invalidate_task) -> None:
+        code_owners = self.create_codeowners(
+            self.project,
+            self.code_mapping,
+            raw=self.data["raw"],
+        )
+        mock_invalidate_task.reset_mock()
+
+        code_owners.delete()
+
+        mock_invalidate_task.delay.assert_called_once_with(self.project.id)

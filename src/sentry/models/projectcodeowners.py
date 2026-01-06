@@ -150,19 +150,20 @@ def modify_date_updated(instance, **kwargs):
 
 
 def process_resource_change(instance, change, **kwargs):
-    from sentry.models.groupowner import GroupOwner
-    from sentry.models.projectownership import ProjectOwnership
+    from django.db import router, transaction
+
+    from sentry.tasks.codeowners import invalidate_project_issue_owners_cache
 
     cache.set(
         ProjectCodeOwners.get_cache_key(instance.project_id),
         None,
         READ_CACHE_DURATION,
     )
-    ownership = ProjectOwnership.get_ownership_cached(instance.project_id)
-    if not ownership:
-        ownership = ProjectOwnership(project_id=instance.project_id)
 
-    GroupOwner.invalidate_debounce_issue_owners_evaluation_cache(instance.project_id)
+    transaction.on_commit(
+        lambda: invalidate_project_issue_owners_cache.delay(instance.project_id),
+        using=router.db_for_write(ProjectCodeOwners),
+    )
 
 
 pre_save.connect(
