@@ -39,6 +39,7 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
     def test_get_event_from_groups_in_digest(self) -> None:
         project = self.create_project(fire_project_created=True)
         rule = project.rule_set.all()[0]
+        rule.data["actions"][0]["legacy_rule_id"] = rule.id
 
         events = [
             self.store_event(
@@ -97,8 +98,7 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
 
     def test_event_to_record_with_legacy_rule_id(self) -> None:
         project = self.create_project(fire_project_created=True)
-        shadow_rule = self.create_project_rule(project)
-        rule = self.create_project_rule(project, action_data=[{"legacy_rule_id": shadow_rule.id}])
+        rule = self.create_project_rule(project, action_data=[{"legacy_rule_id": "123"}])
 
         event = self.store_event(
             data={"fingerprint": ["group1"], "timestamp": before_now(minutes=2).isoformat()},
@@ -109,7 +109,7 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
         assert len(records) == 1
         record = records[0]
         assert record.value.identifier_key == IdentifierKey.RULE
-        assert record.value.rules == [shadow_rule.id]
+        assert record.value.rules[0] == rule.id
 
 
 def assert_rule_ids(digest: Digest, expected_rule_ids: list[int]) -> None:
@@ -287,7 +287,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         }
 
         assert_get_personalized_digests(self.project, digest, expected_result)
-        assert_rule_ids(digest, [self.shadow_rule.id])
+        assert_rule_ids(digest, [self.rule_with_legacy_rule_id.id])
 
     def test_direct_email(self) -> None:
         """When the action type is not Issue Owners, then the target actor gets a digest."""
@@ -326,7 +326,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         assert_get_personalized_digests(
             self.project, digest, expected_result, ActionTargetType.MEMBER, self.user1.id
         )
-        assert_rule_ids(digest, [self.shadow_rule.id])
+        assert_rule_ids(digest, [self.rule_with_legacy_rule_id.id])
 
     def test_team_without_members(self) -> None:
         team = self.create_team()
@@ -397,7 +397,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         assert not {
             actor for actors in participants_by_provider_by_event.values() for actor in actors
         }  # no users in this team no digests should be processed
-        assert_rule_ids(digest, [self.shadow_rule.id])
+        assert_rule_ids(digest, [rule.id])
 
     def test_only_everyone(self) -> None:
         events = self.create_events_from_filenames(
