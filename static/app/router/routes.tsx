@@ -584,7 +584,8 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'seer/',
       name: t('Seer'),
-      component: make(() => import('sentry/views/settings/projectSeer/index')),
+      // eslint-disable-next-line boundaries/element-types -- TODO: move to getsentry routes
+      component: make(() => import('getsentry/views/seerAutomation/projectDetails')),
     },
     {
       path: 'user-feedback/',
