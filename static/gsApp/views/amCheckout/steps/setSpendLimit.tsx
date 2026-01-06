@@ -47,15 +47,12 @@ function SetSpendLimit({
   );
 
   return (
-    <Flex direction="column" gap="2xl">
+    <Flex direction="column" gap="2xl" id={`step${stepNumber}`}>
       <SpendLimitSettings
         organization={organization}
         subscription={subscription}
         header={
-          <StepHeader
-            title={t('Set your %s limit', displayBudgetName(activePlan))}
-            stepNumber={stepNumber}
-          />
+          <StepHeader title={t('Set your %s limit', displayBudgetName(activePlan))} />
         }
         activePlan={activePlan}
         onDemandBudgets={

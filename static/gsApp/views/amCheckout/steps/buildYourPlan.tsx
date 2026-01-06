@@ -156,8 +156,8 @@ function BuildYourPlan({
   checkoutTier,
 }: StepProps) {
   return (
-    <Stack gap="xl" direction="column">
-      <StepHeader stepNumber={stepNumber} title={t('Select a plan')} />
+    <Stack gap="xl" direction="column" id={`step${stepNumber}`}>
+      <StepHeader title={t('Select a plan')} />
       <PlanSubstep
         activePlan={activePlan}
         billingConfig={billingConfig}
