@@ -141,8 +141,8 @@ function ToggleConsolePlatformsModal({
             field={{
               name: 'newConsoleSdkInviteQuota',
               type: 'number',
-              label: 'Invite Quota Limit',
-              help: `Set the maximum number of GitHub repository invites allowed for this organization. Currently ${userIdentities?.length ?? 0} of ${consoleSdkInviteQuota} invites used.`,
+              label: 'GitHub Repo Invite Limit',
+              help: `Set the maximum number of GitHub users that can be invited to our console SDK repositories. Currently ${userIdentities?.length ?? 0} of ${consoleSdkInviteQuota} invites used.`,
               min: 0,
             }}
             flexibleControlStateSize
