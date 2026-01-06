@@ -42,8 +42,9 @@ function ToggleConsolePlatformsModal({
   const {data: userIdentities, isPending: isInvitesFetchPending} = useConsoleSdkInvites(
     organization.slug
   );
-  const {mutate: revokeConsoleInvite} = useRevokeConsoleSdkInvite();
-  const {isPending, mutate: updateConsolePlatforms} = useMutation({
+  const {mutate: revokeConsoleInvite, isPending: isRevokePending} =
+    useRevokeConsoleSdkInvite();
+  const {isPending: isUpdatePending, mutate: updateConsolePlatforms} = useMutation({
     mutationFn: (data: Record<string, boolean | number>) => {
       const {newConsoleSdkInviteQuota, ...platforms} = data;
       return fetchMutation({
@@ -85,7 +86,7 @@ function ToggleConsolePlatformsModal({
         newConsoleSdkInviteQuota: consoleSdkInviteQuota,
       }}
       submitLabel="Save"
-      submitDisabled={isPending}
+      submitDisabled={isUpdatePending}
     >
       <Header closeButton>
         <Flex align="center" gap="xl">
@@ -153,6 +154,7 @@ function ToggleConsolePlatformsModal({
           <SimpleTable.Header>
             <SimpleTable.HeaderCell>Email</SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell>Platforms</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell />
           </SimpleTable.Header>
           {isInvitesFetchPending && (
             <SimpleTable.Empty>
@@ -171,21 +173,24 @@ function ToggleConsolePlatformsModal({
                 <Link to={`/_admin/users/${user_id}`}>{email}</Link>
               </SimpleTable.RowCell>
               <SimpleTable.RowCell>{platforms.join(', ')}</SimpleTable.RowCell>
-              <RevokeButton
-                priority="danger"
-                onClick={() =>
-                  revokeConsoleInvite({
-                    userId: user_id,
-                    email,
-                    orgSlug: organization.slug,
-                    onSuccess: () => {
-                      onSuccess();
-                    },
-                  })
-                }
-              >
-                Revoke invites
-              </RevokeButton>
+              <SimpleTable.RowCell>
+                <RevokeButton
+                  priority="danger"
+                  busy={isRevokePending}
+                  onClick={() =>
+                    revokeConsoleInvite({
+                      userId: user_id,
+                      email,
+                      orgSlug: organization.slug,
+                      onSuccess: () => {
+                        onSuccess();
+                      },
+                    })
+                  }
+                >
+                  Revoke invites
+                </RevokeButton>
+              </SimpleTable.RowCell>
             </SimpleTable.Row>
           ))}
         </SimpleTableWithColumns>
