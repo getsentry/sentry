@@ -963,11 +963,6 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             name=f"{name_prefix}-group-current-release",
         ),
         re_path(
-            r"^(?P<issue_id>[^/]+)/first-last-release/$",
-            GroupFirstLastReleaseEndpoint.as_view(),
-            name=f"{name_prefix}-group-first-last-release",
-        ),
-        re_path(
             r"^(?P<issue_id>[^/]+)/autofix/$",
             GroupAutofixEndpoint.as_view(),
             name=f"{name_prefix}-group-autofix",
@@ -1366,6 +1361,12 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?:issues|groups)/",
         include(create_group_urls("sentry-api-0-organization-group")),
+    ),
+    # first-last-release is only available via org-scoped URL (legacy URL deprecated for cellularization)
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?:issues|groups)/(?P<issue_id>[^/]+)/first-last-release/$",
+        GroupFirstLastReleaseEndpoint.as_view(),
+        name="sentry-api-0-organization-group-first-last-release",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/shared/(?:issues|groups)/(?P<share_id>[^/]+)/$",
