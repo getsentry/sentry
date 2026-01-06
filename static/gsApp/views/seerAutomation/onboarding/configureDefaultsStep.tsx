@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import defaultsImg from 'sentry-images/spot/seer-config-error.svg';
 
 import {Button} from '@sentry/scraps/button';
-import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Flex} from 'sentry/components/core/layout/flex';
@@ -130,11 +129,9 @@ export function ConfigureDefaultsStep() {
               <Flex direction="column" flex="1" gap="xs">
                 <FieldLabel>{t('Enable Root Cause Analysis')}</FieldLabel>
                 <FieldDescription>
-                  <Text>
-                    {t(
-                      'For all NEW projects, Seer will automatically analyze highly actionable issues, create a root cause analysis, and propose a solution. '
-                    )}
-                  </Text>
+                  {t(
+                    'For all NEW projects, Seer will automatically analyze highly actionable issues, create a root cause analysis, and propose a solution. '
+                  )}
                 </FieldDescription>
               </Flex>
               <Switch
