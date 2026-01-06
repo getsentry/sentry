@@ -12,6 +12,7 @@ import Section from 'sentry/components/workflowEngine/ui/section';
 import {IconAdd, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {AutomationBuilderDrawerForm} from 'sentry/views/automations/components/automationBuilderDrawerForm';
 import {ConnectAutomationsDrawer} from 'sentry/views/detectors/components/connectAutomationsDrawer';
 import {ConnectedAutomationsList} from 'sentry/views/detectors/components/connectedAutomationList';
 import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
@@ -54,6 +55,25 @@ export function AutomateSection() {
     );
   };
 
+  const openCreateDrawer = () => {
+    if (isDrawerOpen) {
+      closeDrawer();
+    }
+
+    openDrawer(
+      () => (
+        <AutomationBuilderDrawerForm
+          closeDrawer={closeDrawer}
+          onSuccess={automationId => {
+            setWorkflowIds([...workflowIds, automationId]);
+            closeDrawer();
+          }}
+        />
+      ),
+      {ariaLabel: t('Create New Alert')}
+    );
+  };
+
   if (workflowIds.length > 0) {
     return (
       <Container>
@@ -67,8 +87,7 @@ export function AutomateSection() {
           />
         </Section>
         <ButtonWrapper justify="between">
-          {/* TODO: Implement create automation flow */}
-          <Button size="sm" icon={<IconAdd />} disabled>
+          <Button size="sm" icon={<IconAdd />} onClick={openCreateDrawer}>
             {t('Create New Alert')}
           </Button>
           <Button size="sm" icon={<IconEdit />} onClick={toggleDrawer}>
@@ -99,7 +118,7 @@ export function AutomateSection() {
               >
                 {t('Connect Existing Alerts')}
               </Button>
-              <Button size="sm" icon={<IconAdd />} onClick={toggleDrawer}>
+              <Button size="sm" icon={<IconAdd />} onClick={openCreateDrawer}>
                 {t('Create New Alert')}
               </Button>
               <Text variant="muted" align="center">
