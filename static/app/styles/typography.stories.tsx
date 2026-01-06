@@ -12,9 +12,8 @@ import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import Panel from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import {IconCheckmark, IconCircleFill, IconClose} from 'sentry/icons';
+import {IconCheckmark, IconClose} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import type {ColorOrAlias} from 'sentry/utils/theme';
 
 const FixedWidth = styled('div')`
   max-width: 800px;
@@ -286,12 +285,6 @@ export default function TypographyStories() {
       </ExamplePanel>
       <ul>
         <li>
-          Use <ColorSwatch color="blue300" /> as the text color
-        </li>
-        <li>
-          Add a solid underline in <ColorSwatch color="blue100" />
-        </li>
-        <li>
           Don't include any preceding articles (a, the, this, our) in the linked text, for
           example:
           <ul>
@@ -319,9 +312,6 @@ export default function TypographyStories() {
             <li>
               Use a pointer cursor - <code>cursor: pointer</code>
             </li>
-            <li>
-              Change the underline color to <ColorSwatch color="blue200" />
-            </li>
           </ul>
         </li>
       </ul>
@@ -342,19 +332,12 @@ export default function TypographyStories() {
         </Flex>
       </ExamplePanel>
       <ul>
-        <li>
-          Use <ColorSwatch color="gray500" />, <ColorSwatch color="gray400" />, or{' '}
-          <ColorSwatch color="gray300" />, depending on the context
-        </li>
         <li>Don't add any underline</li>
         <li>
           On hover:
           <ul>
             <li>
               Use a pointer cursor - <code>cursor: pointer</code>
-            </li>
-            <li>
-              Add a solid underline in <ColorSwatch color="gray200" />
             </li>
           </ul>
         </li>
@@ -570,32 +553,6 @@ const SideBySideList = styled('ul')`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: ${space(2)};
-`;
-
-const ColorSwatch = styled(
-  ({
-    color,
-    className,
-    style,
-  }: {
-    color: ColorOrAlias;
-    className?: string;
-    style?: CSSProperties;
-  }) => (
-    <span className={className} style={style}>
-      <IconCircleFill color={color} />
-      {color}
-    </span>
-  )
-)`
-  display: inline-flex;
-  gap: ${space(0.5)};
-  align-items: center;
-
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.radius.md};
-  padding: ${space(0.25)} ${space(0.5)};
-  vertical-align: sub;
 `;
 
 const ExampleImg = styled('img')`
