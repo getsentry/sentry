@@ -7,7 +7,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features, options
+from sentry import analytics, features
 from sentry.analytics.events.agent_monitoring_events import AgentMonitoringQuery
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -78,7 +78,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
-    enforce_rate_limit = options.get("visibility.events-timeseries.rate-limit")
+    enforce_rate_limit = True
 
     rate_limits = RateLimitConfig(
         limit_overrides={
