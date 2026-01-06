@@ -83,24 +83,20 @@ export default function ProjectDetail() {
   }, [hasTransactions, hasSessions]);
 
   const {setPageInfo, pageAlert} = usePageAlert();
-  const {orgId, projectId} = params
+  const {orgId, projectId: projectSlug} = params;
   const msg = useMemo(
     () =>
       tctCode(
         'Project Details will be removed soon. Find this project’s settings under [settingsLink:Settings]. Similar charts are available on the [sessionHealth:Session Health] and [backendOverview:Backend Overview] dashboards.',
         {
-          settingsLink: (
-            <Link to={`/settings/${params.orgId}/projects/${projectId}/`} />
-          ),
+          settingsLink: <Link to={`/settings/${orgId}/projects/${projectSlug}/`} />,
           sessionHealth: (
             <Link to={`/organizations/${orgId}/insights/frontend/sessions/`} />
           ),
-          backendOverview: (
-            <Link to={`/organizations/${orgId}/insights/backend/`} />
-          ),
+          backendOverview: <Link to={`/organizations/${orgId}/insights/backend/`} />,
         }
       ),
-    [orgId, projectId]
+    [orgId, projectSlug]
   );
   useEffect(() => {
     if (pageAlert?.message !== msg) {
