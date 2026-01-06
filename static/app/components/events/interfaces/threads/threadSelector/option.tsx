@@ -41,10 +41,10 @@ function Option({thread, crashedInfo, details, hasThreadStates}: Props) {
                 disabled={!crashedInfo}
                 position="top"
               >
-                <IconFire color="errorText" />
+                <IconFire variant="danger" />
               </Tooltip>
             ) : (
-              <IconFire color="errorText" />
+              <IconFire variant="danger" />
             )}
           </InnerCell>
         )}

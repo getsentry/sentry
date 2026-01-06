@@ -90,7 +90,7 @@ function DashboardCard({
           icon={
             <IconStar
               isSolid={favorited}
-              color={favorited ? 'yellow300' : 'gray500'}
+              color={favorited ? 'yellow300' : 'subText'}
               size="sm"
               aria-label={favorited ? t('Unstar') : t('Star')}
             />

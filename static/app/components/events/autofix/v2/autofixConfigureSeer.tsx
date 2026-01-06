@@ -76,7 +76,7 @@ export function AutofixConfigureSeer({event, group, project}: AutofixConfigureSe
               <Placeholder height="1rem" />
             ) : isError ? (
               <Stack gap="sm" direction="row">
-                <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+                <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
                 <Text>{t('Error loading what happened')}</Text>
               </Stack>
             ) : (
@@ -95,7 +95,7 @@ export function AutofixConfigureSeer({event, group, project}: AutofixConfigureSe
               <Placeholder height="1rem" />
             ) : isError ? (
               <Stack gap="sm" direction="row">
-                <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+                <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
                 <Text>{t('Error loading initial guess')}</Text>
               </Stack>
             ) : (

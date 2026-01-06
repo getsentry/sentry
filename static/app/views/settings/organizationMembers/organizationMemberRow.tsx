@@ -170,7 +170,11 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
             </Fragment>
           ) : (
             <AuthStatus>
-              {has2fa ? <IconCheckmark color="success" /> : <IconFlag color="error" />}
+              {has2fa ? (
+                <IconCheckmark variant="success" />
+              ) : (
+                <IconFlag variant="danger" />
+              )}
               {has2fa ? t('2FA Enabled') : t('2FA Not Enabled')}
             </AuthStatus>
           )}

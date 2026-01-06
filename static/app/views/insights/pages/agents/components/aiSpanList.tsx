@@ -223,7 +223,7 @@ const TraceListItem = memo(function TraceListItem({
               radius="full"
               style={{bottom: -6, right: -6, padding: 1, background: 'inherit'}}
             >
-              <IconFire display="block" size="xs" color="red300" />
+              <IconFire display="block" size="xs" variant="danger" />
             </Container>
           </Tooltip>
         )}

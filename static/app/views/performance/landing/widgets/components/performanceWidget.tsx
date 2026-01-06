@@ -179,7 +179,7 @@ function DefaultErrorComponent(props: {height: number}) {
       data-test-id="widget-state-is-errored"
       minHeight={`${props.height}px`}
     >
-      <IconWarning color="gray300" size="lg" />
+      <IconWarning variant="muted" size="lg" />
     </ErrorPanelWithMinHeight>
   );
 }

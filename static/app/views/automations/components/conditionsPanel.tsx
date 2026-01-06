@@ -148,7 +148,7 @@ function ActionDetails({action, handler}: ActionDetailsProps) {
     <Fragment>
       {action.status === 'disabled' && (
         <IconPadding>
-          <IconWarning color="danger" />
+          <IconWarning variant="danger" />
         </IconPadding>
       )}
       {!Component || !handler ? (

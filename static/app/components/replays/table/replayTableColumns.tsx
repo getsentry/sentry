@@ -144,7 +144,7 @@ export const ReplayBrowserColumn: ReplayTableColumn = {
         <DropdownContainer>
           <Tooltip title={t('N/A')}>
             <Flex justify="center" width="20px">
-              <IconNot size="xs" color="gray300" />
+              <IconNot size="xs" variant="muted" />
             </Flex>
           </Tooltip>
         </DropdownContainer>
@@ -252,7 +252,7 @@ export const ReplayCountErrorsColumn: ReplayTableColumn = {
         <TabularNumber>
           {replay.count_errors ? (
             <Flex gap="xs">
-              <IconFire color="red300" />
+              <IconFire variant="danger" />
               {replay.count_errors}
             </Flex>
           ) : (
@@ -293,7 +293,7 @@ export const ReplayCountRageClicksColumn: ReplayTableColumn = {
         <TabularNumber>
           {replay.count_rage_clicks ? (
             <Flex gap="xs">
-              <IconCursorArrow size="sm" color="red300" />
+              <IconCursorArrow size="sm" variant="danger" />
               {replay.count_rage_clicks}
             </Flex>
           ) : (

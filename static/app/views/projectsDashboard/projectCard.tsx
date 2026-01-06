@@ -128,7 +128,7 @@ function ProjectCard({project: simpleProject, hasProjectAccess}: ProjectCardProp
             <SettingsButton
               borderless
               size="zero"
-              icon={<IconSettings color="subText" />}
+              icon={<IconSettings variant="muted" />}
               title={t('Settings')}
               aria-label={t('Settings')}
               to={`/settings/${organization.slug}/projects/${slug}/`}

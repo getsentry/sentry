@@ -307,7 +307,7 @@ function ReleaseAdoption({
 
             {errored ? (
               <ErrorPanel height="280px">
-                <IconWarning color="gray300" size="lg" />
+                <IconWarning variant="muted" size="lg" />
               </ErrorPanel>
             ) : (
               <TransitionChart loading={loading} reloading={reloading} height="280px">

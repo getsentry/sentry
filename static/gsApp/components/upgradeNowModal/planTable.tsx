@@ -159,7 +159,7 @@ function TableItem({
       <PlanLabel isTotal={isTotal}>{children}</PlanLabel>
       <PlanValue isTotal={isTotal}>
         {prev}
-        <IconArrow color="gray300" size="xs" direction="right" />
+        <IconArrow variant="muted" size="xs" direction="right" />
         <strong>{next}</strong>
       </PlanValue>
     </Fragment>

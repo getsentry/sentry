@@ -621,7 +621,7 @@ const PositiveLabel = styled(
 const NegativeLabel = styled(
   ({className, style}: {className?: string; style?: CSSProperties}) => (
     <div className={className} style={style}>
-      <IconClose color="red400" />
+      <IconClose variant="danger" />
       DON'T
     </div>
   )

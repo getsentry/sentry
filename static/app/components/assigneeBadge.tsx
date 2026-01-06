@@ -61,7 +61,7 @@ export function AssigneeBadge({
         {showLabel && (
           <StyledText>{`${actor.type === 'team' ? '#' : ''}${actor.name}`}</StyledText>
         )}
-        <IconChevron color="subText" direction={chevronDirection} size="xs" />
+        <IconChevron variant="muted" direction={chevronDirection} size="xs" />
       </Fragment>
     );
   };
@@ -70,7 +70,7 @@ export function AssigneeBadge({
     <Fragment>
       <StyledLoadingIndicator mini relative size={AVATAR_SIZE} />
       {showLabel && 'Loading...'}
-      <IconChevron color="subText" direction={chevronDirection} size="xs" />
+      <IconChevron variant="muted" direction={chevronDirection} size="xs" />
     </Fragment>
   );
 
@@ -83,7 +83,7 @@ export function AssigneeBadge({
         height={`${AVATAR_SIZE}px`}
       />
       {showLabel && <Fragment>Unassigned</Fragment>}
-      <IconChevron color="subText" direction={chevronDirection} size="xs" />
+      <IconChevron variant="muted" direction={chevronDirection} size="xs" />
     </Fragment>
   );
 

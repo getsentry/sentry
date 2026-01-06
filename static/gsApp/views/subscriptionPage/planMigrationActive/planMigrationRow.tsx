@@ -140,7 +140,7 @@ function PlanMigrationRow(props: Props) {
       <Title>{currentTitle}</Title>
       <td data-test-id={`current-${dataTestIdSuffix}`}>{currentValue}</td>
       <td>
-        <IconArrow size="xs" direction="right" color="gray300" />
+        <IconArrow size="xs" direction="right" variant="muted" />
       </td>
       {hasDiscount ? (
         <DiscountCell data-test-id={`new-${dataTestIdSuffix}`}>

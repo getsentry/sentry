@@ -86,7 +86,7 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
           </Layout.Title>
           {replayRecord.started_at ? (
             <TimeContainer>
-              <IconCalendar color="gray300" size="xs" />
+              <IconCalendar variant="muted" size="xs" />
               <TimeSince
                 date={replayRecord.started_at}
                 isTooltipHoverable

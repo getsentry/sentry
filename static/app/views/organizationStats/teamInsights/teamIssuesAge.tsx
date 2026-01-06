@@ -138,7 +138,7 @@ function TeamIssuesAge({organization, teamSlug}: TeamIssuesAgeProps) {
           <RightAligned key="events">{t('Events')}</RightAligned>,
           <RightAligned key="users">{t('Users')}</RightAligned>,
           <RightAligned key="age">
-            {t('Age')} <IconArrow direction="down" size="xs" color="gray300" />
+            {t('Age')} <IconArrow direction="down" size="xs" variant="muted" />
           </RightAligned>,
         ]}
         isLoading={isLoading}

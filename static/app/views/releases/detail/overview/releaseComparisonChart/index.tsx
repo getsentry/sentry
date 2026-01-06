@@ -995,7 +995,7 @@ export default function ReleaseComparisonChart({
     return (
       <Panel>
         <ErrorPanel>
-          <IconWarning color="gray300" size="lg" />
+          <IconWarning variant="muted" size="lg" />
         </ErrorPanel>
       </Panel>
     );

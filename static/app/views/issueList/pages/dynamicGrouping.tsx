@@ -525,7 +525,7 @@ function ClusterCard({
         <StatsRow>
           <ClusterStats>
             <StatItem>
-              <IconFire size="xs" color="gray300" />
+              <IconFire size="xs" variant="muted" />
               {clusterStats.isPending ? (
                 <Text size="xs" variant="muted">
                   –
@@ -540,7 +540,7 @@ function ClusterCard({
               )}
             </StatItem>
             <StatItem>
-              <IconUser size="xs" color="gray300" />
+              <IconUser size="xs" variant="muted" />
               {clusterStats.isPending ? (
                 <Text size="xs" variant="muted">
                   –
@@ -560,7 +560,7 @@ function ClusterCard({
               <TimeStats>
                 {clusterStats.lastSeen && (
                   <StatItem>
-                    <IconClock size="xs" color="gray300" />
+                    <IconClock size="xs" variant="muted" />
                     <TimeSince
                       tooltipPrefix={t('Last Seen')}
                       date={clusterStats.lastSeen}
@@ -571,7 +571,7 @@ function ClusterCard({
                 )}
                 {clusterStats.firstSeen && (
                   <StatItem>
-                    <IconCalendar size="xs" color="gray300" />
+                    <IconCalendar size="xs" variant="muted" />
                     <TimeSince
                       tooltipPrefix={t('First Seen')}
                       date={clusterStats.firstSeen}

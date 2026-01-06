@@ -198,7 +198,7 @@ function AssigneeAvatar({
         </TooltipWrapper>
       }
     >
-      <StyledIconUser data-test-id="unassigned" size="md" color="gray400" />
+      <StyledIconUser data-test-id="unassigned" size="md" variant="primary" />
     </Tooltip>
   );
 }

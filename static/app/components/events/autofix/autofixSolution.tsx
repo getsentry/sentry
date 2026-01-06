@@ -519,7 +519,7 @@ function AutofixSolutionDisplay({
           <HeaderWrapper>
             <HeaderText>
               <Flex justify="center" align="center" ref={iconFixRef}>
-                <IconFix size="sm" color="green400" />
+                <IconFix size="sm" variant="success" />
               </Flex>
               {t('Custom Solution')}
             </HeaderText>
@@ -547,7 +547,7 @@ function AutofixSolutionDisplay({
       <HeaderWrapper>
         <HeaderText>
           <Flex justify="center" align="center" ref={iconFixRef}>
-            <IconFix size="md" color="green400" />
+            <IconFix size="md" variant="success" />
           </Flex>
           {t('Solution')}
           <Button

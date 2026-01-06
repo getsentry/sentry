@@ -449,7 +449,7 @@ export default class GridEditable<
     return (
       <GridRow>
         <GridBodyCellStatus>
-          <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+          <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
         </GridBodyCellStatus>
       </GridRow>
     );

@@ -170,14 +170,14 @@ class TriggerFormContainer extends Component<TriggerFormContainerProps> {
 
   getIndicator(type: AlertRuleTriggerType) {
     if (type === AlertRuleTriggerType.CRITICAL) {
-      return <StyledIconDiamond color="errorText" size="sm" />;
+      return <StyledIconDiamond variant="danger" size="sm" />;
     }
 
     if (type === AlertRuleTriggerType.WARNING) {
-      return <StyledIconDiamond color="warningText" size="sm" />;
+      return <StyledIconDiamond variant="warning" size="sm" />;
     }
 
-    return <StyledIconDiamond color="successText" size="sm" />;
+    return <StyledIconDiamond variant="success" size="sm" />;
   }
 
   render() {

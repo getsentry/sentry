@@ -891,10 +891,10 @@ function CheckListItem({children, title, status}: PropsWithChildren<CheckListIte
       <CheckMarkContainer>
         {
           {
-            none: <IconCircle size="md" color="gray200" />,
-            checked: <IconCheckmark size="md" color="green300" />,
+            none: <IconCircle size="md" variant="muted" />,
+            checked: <IconCheckmark size="md" variant="success" />,
             alert: <IconWarning size="md" color="yellow300" />,
-            question: <IconQuestion size="md" color="gray300" />,
+            question: <IconQuestion size="md" variant="muted" />,
           }[status]
         }
         <Line className="source-map-debugger-modal-checklist-line" />
@@ -1931,7 +1931,7 @@ function DistCodeSnippet() {
 function VerifyAgainNote() {
   return (
     <CompletionNoteContainer>
-      <IconRefresh size="lg" color="gray300" />
+      <IconRefresh size="lg" variant="muted" />
       <p>
         {t(
           'Once you changed your configuration, redeploy your app and capture a new event to verify your changes!'
@@ -1945,7 +1945,7 @@ function ChecklistDoneNote() {
   const isSelfHosted = ConfigStore.get('isSelfHosted');
   return (
     <CompletionNoteContainer>
-      <IconCheckmark size="md" color="green200" />
+      <IconCheckmark size="md" variant="success" />
       <p>
         {t(
           'You completed all of the steps above. Capture a new event to verify your setup!'

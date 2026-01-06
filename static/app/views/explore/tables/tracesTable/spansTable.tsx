@@ -89,7 +89,7 @@ export function SpanTable({trace}: {trace: TraceResult}) {
           {isError && ( // TODO: need an error state
             <StyledPanelItem span={5} overflow>
               <EmptyStreamWrapper>
-                <IconWarning color="gray300" size="lg" />
+                <IconWarning variant="muted" size="lg" />
               </EmptyStreamWrapper>
             </StyledPanelItem>
           )}

@@ -72,7 +72,7 @@ export function StarredSegmentCell({segmentName, isStarred, projectSlug}: Props)
         size="zero"
         icon={
           <IconStar
-            color={isStarred ? 'yellow300' : 'gray200'}
+            color={isStarred ? 'yellow300' : 'subText'}
             isSolid={isStarred}
             data-test-id="starred-transaction-column"
           />

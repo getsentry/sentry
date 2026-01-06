@@ -19,7 +19,7 @@ type Props = {
 function TimesTag({lastSeen, firstSeen}: Props) {
   return (
     <Wrapper>
-      <StyledIconClock size="xs" color="gray300" />
+      <StyledIconClock size="xs" variant="muted" />
       {lastSeen && (
         <TimeSince
           tooltipPrefix={t('Last Seen')}

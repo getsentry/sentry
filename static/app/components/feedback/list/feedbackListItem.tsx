@@ -137,25 +137,25 @@ export default function FeedbackListItem({
 
             {hasComments && (
               <Tooltip title={t('Has Activity')} containerDisplayMode="flex">
-                <IconChat color="subText" size="xs" />
+                <IconChat variant="muted" size="xs" />
               </Tooltip>
             )}
 
             {hasLinkedError && (
               <Tooltip title={t('Linked Error')} containerDisplayMode="flex">
-                <IconFatal color="dangerText" size="xs" />
+                <IconFatal variant="danger" size="xs" />
               </Tooltip>
             )}
 
             {hasReplayId && (
               <Tooltip title={t('Linked Replay')} containerDisplayMode="flex">
-                <IconPlay size="xs" color="subText" />
+                <IconPlay size="xs" variant="muted" />
               </Tooltip>
             )}
 
             {hasAttachments && (
               <Tooltip title={t('Has Screenshot')} containerDisplayMode="flex">
-                <IconImage size="xs" color="subText" />
+                <IconImage size="xs" variant="muted" />
               </Tooltip>
             )}
 

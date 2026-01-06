@@ -522,7 +522,7 @@ function AutofixRootCauseDisplay({
           <HeaderWrapper>
             <HeaderText>
               <Flex justify="center" align="center" ref={iconFocusRef}>
-                <IconFocus size="md" color="pink400" />
+                <IconFocus size="md" variant="promotion" />
               </Flex>
               {t('Custom Root Cause')}
             </HeaderText>
@@ -554,7 +554,7 @@ function AutofixRootCauseDisplay({
       <HeaderWrapper>
         <HeaderText>
           <Flex justify="center" align="center" ref={iconFocusRef}>
-            <IconFocus size="md" color="pink400" />
+            <IconFocus size="md" variant="promotion" />
           </Flex>
           {t('Root Cause')}
           <Button

@@ -92,7 +92,7 @@ function ProjectRow({onClick, project}: {onClick: () => void; project: Project})
           <ProjectAvatar project={project} title={project.slug} />
           <ProjectName>{project.slug}</ProjectName>
         </Flex>
-        <IconChevron direction="right" size="sm" color="gray300" />
+        <IconChevron direction="right" size="sm" variant="muted" />
       </Flex>
     </ClickablePanelItem>
   );

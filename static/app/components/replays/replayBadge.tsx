@@ -42,7 +42,7 @@ export default function ReplayBadge({replay}: Props) {
     return (
       <Grid columns="24px 1fr" gap="md" align="center" justify="center">
         <Flex align="center" justify="center">
-          <IconDelete color="gray500" size="md" />
+          <IconDelete variant="primary" size="md" />
         </Flex>
 
         <Flex direction="column" gap="xs" justify="center">
@@ -104,7 +104,7 @@ export default function ReplayBadge({replay}: Props) {
             {events.getShortEventId(replay.id)}
           </Text>
           <Flex gap="xs" align="center">
-            <IconCalendar color="gray300" size="xs" />
+            <IconCalendar variant="muted" size="xs" />
             <Text size="sm" variant="muted">
               {timestampType === 'absolute' ? (
                 <DateTime year timeZone date={replay.started_at} />

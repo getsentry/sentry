@@ -527,7 +527,7 @@ function LogRowDetails({
     return (
       <DetailsWrapper ref={ref}>
         <EmptyStreamWrapper>
-          <IconWarning color="gray300" size="lg" />
+          <IconWarning variant="muted" size="lg" />
         </EmptyStreamWrapper>
       </DetailsWrapper>
     );

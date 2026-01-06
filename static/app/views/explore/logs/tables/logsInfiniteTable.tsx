@@ -693,7 +693,7 @@ function EmptyRenderer({
 function ErrorRenderer() {
   return (
     <TableStatus>
-      <IconWarning color="gray300" size="lg" />
+      <IconWarning variant="muted" size="lg" />
     </TableStatus>
   );
 }

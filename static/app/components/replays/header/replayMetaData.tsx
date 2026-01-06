@@ -71,7 +71,7 @@ export default function ReplayMetaData({
             {replayRecord?.count_rage_clicks ? (
               <Link to={breadcrumbTab}>
                 <ClickCount>
-                  <IconCursorArrow size="sm" color="red300" />
+                  <IconCursorArrow size="sm" variant="danger" />
                   {replayRecord.count_rage_clicks}
                 </ClickCount>
               </Link>

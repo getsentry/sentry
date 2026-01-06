@@ -494,7 +494,7 @@ export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChar
         <ChartBody>
           <Flex justify="center" align="center">
             <ErrorPanel height={`${CHART_HEIGHT - 45}px`}>
-              <IconWarning color="gray300" size="lg" />
+              <IconWarning variant="muted" size="lg" />
               <div>{t('Error loading chart data')}</div>
             </ErrorPanel>
           </Flex>

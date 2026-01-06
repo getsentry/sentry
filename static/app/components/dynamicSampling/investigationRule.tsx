@@ -250,7 +250,7 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
             }
           )}
         >
-          <StyledIconQuestion size="sm" color="subText" />
+          <StyledIconQuestion size="sm" variant="muted" />
         </Tooltip>
       </InvestigationInProgressNotification>
     );
