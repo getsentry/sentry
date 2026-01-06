@@ -9,8 +9,6 @@ from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import CodeReviewSettings, RepositorySettings
 
-from .billing import passes_code_review_billing_check
-
 DenialReason = str | None
 
 
@@ -91,6 +89,8 @@ class CodeReviewPreflightService:
             return "repo_code_review_disabled"
 
     def _check_billing(self) -> DenialReason:
+        # TODO: Once we're ready to actually gate billing (when it's time for GA), uncomment this
+        """
         if self.integration_id is None or self.pr_author_external_id is None:
             return "billing_missing_contributor_info"
 
@@ -101,6 +101,7 @@ class CodeReviewPreflightService:
         )
         if not billing_ok:
             return "billing_quota_exceeded"
+        """
 
         return None
 

@@ -220,4 +220,8 @@ def get_pr_author_id(event: Mapping[str, Any]) -> str | None:
     if (user_id := event.get("user", {}).get("id")) is not None:
         return str(user_id)
 
+    # Check sender.id (for check_run events). Sender is the user who triggered the event
+    if (user_id := event.get("sender", {}).get("id")) is not None:
+        return str(user_id)
+
     return None
