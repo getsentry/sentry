@@ -12,7 +12,10 @@ import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {openCodecovModal} from 'getsentry/actionCreators/modal';
+import {
+  openCodecovModal,
+  openOnDemandBudgetEditModal,
+} from 'getsentry/actionCreators/modal';
 import withSubscription from 'getsentry/components/withSubscription';
 import type {
   CustomerUsage,
@@ -24,7 +27,6 @@ import type {
 import {hasAccessToSubscriptionOverview} from 'getsentry/utils/billing';
 import withPromotions from 'getsentry/utils/withPromotions';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
-import {openOnDemandBudgetEditModal} from 'getsentry/views/spendLimits/editModal';
 import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 import UsageOverview from 'getsentry/views/subscriptionPage/usageOverview';
 

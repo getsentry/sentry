@@ -8,6 +8,7 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import withApi from 'sentry/utils/withApi';
 
+import {openOnDemandBudgetEditModal} from 'getsentry/actionCreators/modal';
 import {sendAddEventsRequest, sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
 import StartTrialButton from 'getsentry/components/startTrialButton';
 import type {Subscription} from 'getsentry/types';
@@ -17,7 +18,6 @@ import {
   type UsageAction,
 } from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
-import {openOnDemandBudgetEditModal} from 'getsentry/views/spendLimits/editModal';
 
 /**
  * Event types for quota CTAs and notifications.
