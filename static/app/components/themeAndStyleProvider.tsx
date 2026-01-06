@@ -63,7 +63,7 @@ export function ThemeAndStyleProvider({children}: Props) {
   const theme = config.theme === 'dark' ? darkTheme : lightTheme;
 
   const didPrintBanner = useRef(false);
-  if (!didPrintBanner.current && NODE_ENV !== 'development') {
+  if (!didPrintBanner.current && NODE_ENV !== 'development' && NODE_ENV !== 'test') {
     didPrintBanner.current = true;
     printConsoleBanner(theme.tokens.content.accent, theme.font.family.mono);
   }
