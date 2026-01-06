@@ -1,11 +1,11 @@
 from django.db import router, transaction
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 
 from sentry import audit_log
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.grouping.fingerprinting import FingerprintingConfig
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
-from sentry.shared_integrations.exceptions import ApiForbiddenError
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.models.detector import Detector
@@ -57,7 +57,7 @@ class ErrorDetectorValidator(BaseDetectorTypeValidator):
         return value
 
     def create(self, validated_data):
-        raise ApiForbiddenError("Creating error detectors is not supported")
+        raise PermissionDenied("Creating error detectors is not supported")
 
     def update(self, instance, validated_data):
         with transaction.atomic(router.db_for_write(Detector)):

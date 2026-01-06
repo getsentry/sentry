@@ -1,8 +1,7 @@
 import pytest
-from rest_framework.exceptions import ErrorDetail
+from rest_framework.exceptions import ErrorDetail, PermissionDenied
 
 from sentry.models.environment import Environment
-from sentry.shared_integrations.exceptions import ApiForbiddenError
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators.error_detector import ErrorDetectorValidator
 from sentry.workflow_engine.models.detector import Detector
@@ -34,7 +33,7 @@ class TestErrorDetectorValidator(TestCase):
     def test_create(self) -> None:
         validator = ErrorDetectorValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid()
-        with pytest.raises(ApiForbiddenError):
+        with pytest.raises(PermissionDenied):
             validator.save()
 
     def test_invalid_detector_type(self) -> None:
