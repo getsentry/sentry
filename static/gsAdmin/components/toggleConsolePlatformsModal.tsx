@@ -153,6 +153,9 @@ function ToggleConsolePlatformsModal({
             <SimpleTable.HeaderCell>Email</SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell>Platforms</SimpleTable.HeaderCell>
           </SimpleTable.Header>
+          {(userIdentities === undefined || userIdentities.length === 0) && (
+            <SimpleTable.Empty>No invites found</SimpleTable.Empty>
+          )}
           {(userIdentities ?? []).map(({email, platforms, user_id}) => (
             <SimpleTable.Row key={user_id}>
               <SimpleTable.RowCell>
