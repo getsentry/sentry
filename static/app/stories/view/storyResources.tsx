@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import {Badge} from 'sentry/components/core/badge';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconGithub} from 'sentry/icons';
+import * as Stories from 'sentry/stories';
 import {
   isMDXStory,
   type StoryResources as Resources,
@@ -20,7 +21,7 @@ export function StoryResources() {
   const resources: Resources = story.exports.frontmatter?.resources ?? {};
 
   return (
-    <table style={{marginTop: theme.space['3xl']}}>
+    <Stories.Table style={{marginTop: theme.space['3xl']}}>
       <thead>
         <tr>
           <th>Type</th>
@@ -44,7 +45,7 @@ export function StoryResources() {
           }
         })}
       </tbody>
-    </table>
+    </Stories.Table>
   );
 }
 

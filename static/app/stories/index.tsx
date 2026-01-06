@@ -10,3 +10,4 @@ export {SizingWindow, Grid} from './layout';
 export {story} from './storybook';
 export {ThemeSwitcher, ThemeToggle} from './theme';
 export {TokenReference} from './tokenReference';
+export {StoryTable as Table} from './table';
