@@ -249,80 +249,6 @@ const StoryMainContainer = styled('main')`
   h5,
   h6 {
     scroll-margin-top: 80px;
-    margin: 0;
-  }
-
-  p,
-  pre {
-    margin: 0;
-  }
-
-  code:not([class]):not(pre > code) {
-    background: ${p => p.theme.tokens.background.secondary};
-    color: ${p => p.theme.tokens.content.primary};
-  }
-
-  table:not([class]) {
-    margin: 1px;
-    padding: 0;
-    width: calc(100% - 2px);
-    table-layout: auto;
-    border: 0;
-    border-collapse: collapse;
-    border-radius: ${p => p.theme.radius.md};
-    box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.primary};
-    margin-bottom: ${p => p.theme.space['3xl']};
-
-    & thead {
-      height: 36px;
-      border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
-      background: ${p => p.theme.tokens.background.tertiary};
-      border-bottom: 4px solid ${p => p.theme.tokens.border.primary};
-    }
-
-    & th {
-      padding-inline: ${p => p.theme.space.xl};
-      padding-block: ${p => p.theme.space.sm};
-
-      &:first-of-type {
-        border-radius: ${p => p.theme.radius.md} 0 0 0;
-      }
-      &:last-of-type {
-        border-radius: 0 ${p => p.theme.radius.md} 0 0;
-      }
-    }
-
-    tr:last-child td:first-of-type {
-      border-radius: 0 0 0 ${p => p.theme.radius.md};
-    }
-    tr:last-child td:last-of-type {
-      border-radius: 0 0 ${p => p.theme.radius.md} 0;
-    }
-
-    tbody {
-      background: ${p => p.theme.tokens.background.primary};
-      border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
-    }
-
-    tr {
-      border-bottom: 1px solid ${p => p.theme.tokens.border.muted};
-      vertical-align: baseline;
-
-      &:last-child {
-        border-bottom: 0;
-      }
-    }
-
-    td:first-child {
-      white-space: nowrap;
-      word-break: break-all;
-      hyphens: none;
-    }
-
-    td {
-      padding-inline: ${p => p.theme.space.xl};
-      padding-block: ${p => p.theme.space.lg};
-    }
   }
 
   div + .expressive-code .frame {
@@ -333,9 +259,9 @@ const StoryMainContainer = styled('main')`
   }
 
   .expressive-code .frame {
-    margin-bottom: ${p => p.theme.space['3xl']};
+    margin: 0;
     box-shadow: none;
-    border: 1px solid #000000;
+    border: none;
     pre {
       background: hsla(254, 18%, 15%, 1);
       border: 0;
