@@ -75,7 +75,7 @@ class WorkflowData:
             "organization_id": self.workflow.organization_id,
             "environment_id": self.workflow.environment_id,
             "enabled": self.workflow.enabled,
-            "config": self.workflow.config,
+            # "config": self.workflow.config,  # TODO - this is breaking deduplication for some reason?
             "trigger_conditions": trigger_conditions,
             "action_groups": action_groups,
         }
@@ -91,6 +91,7 @@ def deduplicate_workflows(app: StateApps, schema_editor: BaseDatabaseSchemaEdito
     DataConditionGroupAction = app.get_model("workflow_engine", "DataConditionGroupAction")
     DetectorWorkflow = app.get_model("workflow_engine", "DetectorWorkflow")
     Workflow = app.get_model("workflow_engine", "Workflow")
+    WorkflowActionGroupStatus = app.get_model("workflow_engine", "WorkflowActionGroupStatus")
     WorkflowDataConditionGroup = app.get_model("workflow_engine", "WorkflowDataConditionGroup")
 
     # Filters out ~65% of orgs by only selecting orgs with more than 1 workflow
@@ -161,6 +162,11 @@ def deduplicate_workflows(app: StateApps, schema_editor: BaseDatabaseSchemaEdito
 
             # Update AlertRuleWorkflow entries to point to the canonical workflow
             AlertRuleWorkflow.objects.filter(workflow_id__in=workflow_ids).update(
+                workflow_id=workflow_id
+            )
+
+            # Update WorkflowActionGroupStatus records to point to canonical workflow
+            WorkflowActionGroupStatus.objects.filter(workflow_id__in=workflow_ids).update(
                 workflow_id=workflow_id
             )
 

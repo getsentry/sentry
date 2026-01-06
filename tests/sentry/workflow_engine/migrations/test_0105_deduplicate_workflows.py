@@ -13,6 +13,7 @@ from sentry.workflow_engine.models import (
     DataCondition,
     DetectorWorkflow,
     Workflow,
+    WorkflowActionGroupStatus,
 )
 from sentry.workflow_engine.models.data_condition import Condition
 
@@ -62,200 +63,95 @@ DEFAULT_WORKFLOW_CONFIGS: list[MockWorkflowConfig] = [
     {
         "enabled": False,
     },
-    {
-        "config": {
-            "frequency": 1440,
+]
+
+MULTIPLE_TRIGGERS: list[DataCondition] = [
+    DataCondition(
+        type=Condition.ASSIGNED_TO,
+        comparison={
+            "target_type": "Team",
+            "target_identifier": "user@sentry.io",
         },
-    },
+        condition_result=True,
+    ),
+    DataCondition(
+        type=Condition.ISSUE_RESOLUTION_CHANGE,
+        condition_result=True,
+        comparison=1,  # GroupStatus.RESOLVED
+    ),
+]
+
+MULTIPLE_FILTERS: list[DataCondition] = [
+    DataCondition(
+        type=Condition.EVENT_ATTRIBUTE,
+        comparison={
+            "attribute": "user.email",
+            "match": MatchType.EQUAL,
+            "value": "user@sentry.io",
+        },
+        condition_result=True,
+    ),
+    DataCondition(
+        type=Condition.TAGGED_EVENT,
+        condition_result=True,
+        comparison={
+            "key": "foo",
+            "match": MatchType.EQUAL,
+            "value": "bar",
+        },
+    ),
+]
+
+MULTIPLE_ACTIONS: list[Action] = [
+    Action(
+        type=Action.Type.EMAIL,
+        config={
+            "target_identifier": "user@sentry.io",
+            "target_type": 4,
+            "target_display": None,
+        },
+        data={
+            "fallthrough_type": "NoOne",
+        },
+    ),
+    Action(
+        type=Action.Type.DISCORD,
+        config={
+            "target_identifier": "#discord-channel",
+            "target_display": "Example Discord",
+            "target_type": 0,
+        },
+        data={"tags": "foo"},
+    ),
 ]
 
 
 # This is list is used to generate the different cases for a workflow to be a duplicate of itself
 # Then it's used to reference those mocks, and ensure each case is deduplicated as expected.
 DUPLICATE_WORKFLOW_CONFIGS: list[MockWorkflowConfig] = [
-    {
-        # mock everything
-    },
-    {
-        # workflow only has triggers
-        "mock_action_filters": False,
-        "mock_actions": False,
-    },
-    {
-        # workflow has triggers + filters, no actions
-        "mock_actions": False,
-    },
-    {
-        # workflow only has filters
-        "mock_triggers": False,
-        "mock_actions": False,
-    },
-    {
-        # workflow only has actions
-        "mock_triggers": False,
-        "mock_action_filters": False,
-    },
+    # Include all the default workflows
     {
         # multiple triggers
-        "triggers": [
-            DataCondition(
-                type=Condition.ASSIGNED_TO,
-                comparison={
-                    "target_type": "Team",
-                    "target_identifier": "user@sentry.io",
-                },
-                condition_result=True,
-            ),
-            DataCondition(
-                type=Condition.ISSUE_RESOLUTION_CHANGE,
-                condition_result=True,
-                comparison=1,  # GroupStatus.RESOLVED
-            ),
-        ],
+        "triggers": MULTIPLE_TRIGGERS,
     },
     {
         # multiple action filters
-        "action_filters": [
-            DataCondition(
-                type=Condition.EVENT_ATTRIBUTE,
-                comparison={
-                    "attribute": "user.email",
-                    "match": MatchType.EQUAL,
-                    "value": "user@sentry.io",
-                },
-                condition_result=True,
-            ),
-            DataCondition(
-                type=Condition.TAGGED_EVENT,
-                condition_result=True,
-                comparison={
-                    "key": "foo",
-                    "match": MatchType.EQUAL,
-                    "value": "bar",
-                },
-            ),
-        ],
+        "action_filters": MULTIPLE_FILTERS,
     },
     {
         # multiple actions
-        "actions": [
-            Action(
-                type=Action.Type.EMAIL,
-                config={
-                    "target_identifier": "user@sentry.io",
-                    "target_type": 2,
-                },
-                data={
-                    "fallthrough_type": "NoOne",
-                },
-            ),
-            Action(
-                type=Action.Type.DISCORD,
-                config={
-                    "target_identifier": "#discord-channel",
-                    "target_display": "Example Discord",
-                    "target_type": 0,
-                },
-                data={"tags": "foo"},
-            ),
-        ],
+        "actions": MULTIPLE_ACTIONS,
     },
     {
         # triggers + action filters
-        "triggers": [
-            DataCondition(
-                type=Condition.ASSIGNED_TO,
-                comparison={
-                    "target_type": "Team",
-                    "target_identifier": "user@sentry.io",
-                },
-                condition_result=True,
-            ),
-            DataCondition(
-                type=Condition.ISSUE_RESOLUTION_CHANGE,
-                condition_result=True,
-                comparison=1,  # GroupStatus.RESOLVED
-            ),
-        ],
-        "action_filters": [
-            DataCondition(
-                type=Condition.EVENT_ATTRIBUTE,
-                comparison={
-                    "attribute": "user.email",
-                    "match": MatchType.EQUAL,
-                    "value": "user@sentry.io",
-                },
-                condition_result=True,
-            ),
-            DataCondition(
-                type=Condition.TAGGED_EVENT,
-                comparison={
-                    "key": "foo",
-                    "match": MatchType.EQUAL,
-                    "value": "bar",
-                },
-                condition_result=True,
-            ),
-        ],
+        "triggers": MULTIPLE_TRIGGERS,
+        "action_filters": MULTIPLE_FILTERS,
     },
     {
         # many of all
-        "triggers": [
-            DataCondition(
-                type=Condition.ASSIGNED_TO,
-                comparison={
-                    "target_type": "Team",
-                    "target_identifier": "user@sentry.io",
-                },
-                condition_result=True,
-            ),
-            DataCondition(
-                type=Condition.ISSUE_RESOLUTION_CHANGE,
-                condition_result=True,
-                comparison=1,  # GroupStatus.RESOLVED
-            ),
-        ],
-        "action_filters": [
-            DataCondition(
-                type=Condition.EVENT_ATTRIBUTE,
-                comparison={
-                    "attribute": "user.email",
-                    "match": MatchType.EQUAL,
-                    "value": "user@sentry.io",
-                },
-                condition_result=True,
-            ),
-            DataCondition(
-                type=Condition.TAGGED_EVENT,
-                comparison={
-                    "key": "foo",
-                    "match": MatchType.EQUAL,
-                    "value": "bar",
-                },
-                condition_result=True,
-            ),
-        ],
-        "actions": [
-            Action(
-                type=Action.Type.EMAIL,
-                config={
-                    "target_identifier": "user@sentry.io",
-                    "target_type": 2,
-                },
-                data={
-                    "fallthrough_type": "NoOne",
-                },
-            ),
-            Action(
-                type=Action.Type.DISCORD,
-                config={
-                    "target_identifier": "#discord-channel",
-                    "target_display": "Example Discord",
-                    "target_type": 0,
-                },
-                data={"tags": "foo"},
-            ),
-        ],
+        "triggers": MULTIPLE_TRIGGERS,
+        "action_filters": MULTIPLE_FILTERS,
+        "actions": MULTIPLE_ACTIONS,
     },
     {
         # All workflows are duplicated in this org
@@ -263,14 +159,7 @@ DUPLICATE_WORKFLOW_CONFIGS: list[MockWorkflowConfig] = [
         "mock_action_filters": False,
         "mock_actions": False,
     },
-    {
-        "enabled": False,
-    },
-    {
-        "config": {
-            "frequency": 1440,
-        }
-    },
+    *DEFAULT_WORKFLOW_CONFIGS,
 ]
 
 
@@ -284,18 +173,24 @@ class TestDeduplicateWorkflows(TestMigrations):
     migrate_to = "0105_deduplicate_workflows"
     app = "workflow_engine"
 
-    def mock_workflow(self, org: Organization, **kwargs: Unpack[MockWorkflowConfig]) -> Workflow:
+    def mock_workflow(
+        self,
+        org: Organization,
+        **kwargs: Unpack[MockWorkflowConfig],
+    ) -> Workflow:
         config: MockWorkflowConfig = {
             "triggers": None,
             "action_filters": None,
             "actions": None,
-            "config": None,
+            "config": {"frequency": 1440},
             "enabled": True,
             "mock_triggers": True,
             "mock_action_filters": True,
             "mock_actions": True,
             **kwargs,
         }
+
+        # TODO - can this be a transaction?
 
         # create workflow
         workflow = self.create_workflow(
@@ -304,11 +199,11 @@ class TestDeduplicateWorkflows(TestMigrations):
             config=config["config"],
         )
 
-        # connect the workflow new a new detector
+        # connect the workflow to shared detector
         detector = self.create_detector()
         self.create_detector_workflow(detector=detector, workflow=workflow)
 
-        # create a mock connection to legacy table
+        # create a mock connection to legacy table using shared alert rule
         alert_rule = self.create_alert_rule(organization=org)
         self.create_alert_rule_workflow(alert_rule_id=alert_rule.id, workflow=workflow)
 
@@ -349,11 +244,21 @@ class TestDeduplicateWorkflows(TestMigrations):
                     action=action,
                     condition_group=action_filter_group,
                 )
+                WorkflowActionGroupStatus.objects.create(
+                    workflow=workflow,
+                    action=action,
+                    group=self.group,
+                )
         elif config["mock_actions"]:
             action = self.create_action()
             self.create_data_condition_group_action(
                 action=action,
                 condition_group=action_filter_group,
+            )
+            WorkflowActionGroupStatus.objects.create(
+                workflow=workflow,
+                action=action,
+                group=self.group,
             )
 
         workflow.save()
@@ -386,9 +291,8 @@ class TestDeduplicateWorkflows(TestMigrations):
         )
         assert org.workflow_count == expected_count
 
-        workflow_ids = org.workflow_set.values_list("id", flat=True)
-
         # Ensures that we have updated all the connections for workflows that have been deduplicated
+        workflow_ids = org.workflow_set.values_list("id", flat=True)
         count_connections = DetectorWorkflow.objects.filter(workflow_id__in=workflow_ids).count()
         assert count_connections > expected_count
 
@@ -398,50 +302,19 @@ class TestDeduplicateWorkflows(TestMigrations):
         # The legacy connections should match the new connections
         assert count_connections == count_legacy
 
-    def test_deduplication__all_mocks(self) -> None:
-        index = 0  # mock everything
-        self.validate_org_workflows_deduped(index)
+        # Ensure the connection to the action / group are correct
+        """
+        count_action_group_status = WorkflowActionGroupStatus.objects.filter(
+            workflow_id__in=workflow_ids
+        ).count()
+        """
 
-    def test_deduplication__no_triggers(self) -> None:
-        index = 1  # workflow only has triggers
-        self.validate_org_workflows_deduped(index)
+        # assert count_action_group_status == expected_count - 1
 
-    def test_deduplication__no_action_filters(self) -> None:
-        index = 2  # workflow has triggers + filters, no actions
-        self.validate_org_workflows_deduped(index)
-
-    def test_deduplication__only_action_filters(self) -> None:
-        index = 3  # workflow only has filters
-        self.validate_org_workflows_deduped(index)
-
-    def test_deduplication__only_actions(self) -> None:
-        index = 4  # workflow only has actions
-        self.validate_org_workflows_deduped(index)
-
-    def test_deduplication__many_triggers(self) -> None:
-        index = 5  # multiple triggers
-        self.validate_org_workflows_deduped(index)
-
-    def test_deduplication__many_action_filters(self) -> None:
-        index = 6  # multiple action filters
-        self.validate_org_workflows_deduped(index)
-
-    def test_deduplication__many_actions(self) -> None:
-        index = 7  # multiple actions
-        self.validate_org_workflows_deduped(index)
-
-    def test_deduplication__many_triggers_and_filters(self) -> None:
-        index = 8  # multiple triggers + action filters
-        self.validate_org_workflows_deduped(index)
-
-    def test_deduplication__many_all(self) -> None:
-        index = 9  # multiple of all
-        self.validate_org_workflows_deduped(index)
-
-    def test_deduplication__empty(self) -> None:
-        index = 10  # All workflows are duplicated in this org
-        self.validate_org_workflows_deduped(index)
-
-    def test_deduplication__disabled(self) -> None:
-        index = 11  # Disabled workflow
-        self.validate_org_workflows_deduped(index)
+    def test_deduplication(self) -> None:
+        for i, config in enumerate(DUPLICATE_WORKFLOW_CONFIGS):
+            try:
+                self.validate_org_workflows_deduped(i)
+            except AssertionError as e:
+                e.args = (f"Configuration {i} failed. {str(e)}",)
+                raise
