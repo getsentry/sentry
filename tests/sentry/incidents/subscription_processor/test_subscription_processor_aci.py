@@ -80,7 +80,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
     @patch("sentry.incidents.subscription_processor.metrics")
     def test_invalid_aggregation_value(self, mock_metrics: MagicMock) -> None:
-        self.send_update("nan")
+        self.send_update("not a number")
         assert self.get_detector_state(self.detector) == DetectorPriorityLevel.OK
         mock_metrics.incr.assert_has_calls(
             [
