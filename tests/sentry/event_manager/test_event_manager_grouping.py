@@ -94,9 +94,6 @@ class EventManagerGroupingTest(TestCase):
         with pytest.raises(HashDiscarded):
             save_new_event({"message": "Dogs are great!"}, self.project)
 
-    @pytest.mark.xfail(
-        reason="bug will be fixed in https://github.com/getsentry/sentry/pull/105709", strict=True
-    )
     def test_obeys_delete_and_discard_regardless_of_other_hashes(self) -> None:
         project = self.project
 
