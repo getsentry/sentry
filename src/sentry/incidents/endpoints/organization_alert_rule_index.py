@@ -222,9 +222,9 @@ class OrganizationOnDemandRuleStatsEndpoint(OrganizationEndpoint):
             raise ParseError(detail="Invalid project_id")
         try:
             project_id_int = int(project_id)
-            if project_id_int <= 0:
-                raise ValueError()
         except ValueError:
+            raise ParseError(detail="Invalid project_id")
+        if project_id_int <= 0:
             raise ParseError(detail="Invalid project_id")
 
         projects = self.get_projects(request, organization, project_ids={project_id_int})
