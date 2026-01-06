@@ -74,14 +74,15 @@ def bulk_delete_artifacts(
         if sm["analysis_file_id"]:
             all_file_ids.append(sm["analysis_file_id"])
 
-    files_deleted = 0
-    if all_file_ids:
-        try:
-            files_deleted, _ = File.objects.filter(id__in=all_file_ids).delete()
-        except Exception:
-            logger.exception("preprod.cleanup.files_delete_failed")
+    with transaction.atomic(using=router.db_for_write(PreprodArtifact)):
+        files_deleted = 0
+        if all_file_ids:
+            try:
+                files_deleted, _ = File.objects.filter(id__in=all_file_ids).delete()
+            except Exception:
+                logger.exception("preprod.cleanup.files_delete_failed")
 
-    _, deleted_by_model = PreprodArtifact.objects.filter(id__in=preprod_artifact_ids).delete()
+        _, deleted_by_model = PreprodArtifact.objects.filter(id__in=preprod_artifact_ids).delete()
 
     result = ArtifactDeletionResult(
         size_metrics_deleted=deleted_by_model.get("preprod.PreprodArtifactSizeMetrics", 0),
@@ -109,22 +110,21 @@ def delete_artifacts_and_eap_data(
             files_deleted=0,
         )
 
-    with transaction.atomic(using=router.db_for_write(PreprodArtifact)):
-        result = bulk_delete_artifacts(preprod_artifacts)
+    result = bulk_delete_artifacts(preprod_artifacts)
 
-        artifacts_by_project: defaultdict[tuple[int, int], list[int]] = defaultdict(list)
-        for artifact in preprod_artifacts:
-            key = (artifact.project.organization_id, artifact.project.id)
-            artifacts_by_project[key].append(artifact.id)
+    artifacts_by_project: defaultdict[tuple[int, int], list[int]] = defaultdict(list)
+    for artifact in preprod_artifacts:
+        key = (artifact.project.organization_id, artifact.project.id)
+        artifacts_by_project[key].append(artifact.id)
 
-        for (organization_id, project_id), artifact_ids_batch in artifacts_by_project.items():
-            _delete_preprod_data_from_eap(
-                organization_id=organization_id,
-                project_id=project_id,
-                preprod_artifact_ids=artifact_ids_batch,
-            )
+    for (organization_id, project_id), artifact_ids_batch in artifacts_by_project.items():
+        _delete_preprod_data_from_eap(
+            organization_id=organization_id,
+            project_id=project_id,
+            preprod_artifact_ids=artifact_ids_batch,
+        )
 
-        return result
+    return result
 
 
 def _delete_preprod_data_from_eap(
