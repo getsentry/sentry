@@ -3,6 +3,7 @@ import {Flex} from '@sentry/scraps/layout';
 import Feature from 'sentry/components/acl/feature';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconSettings} from 'sentry/icons';
@@ -13,6 +14,7 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {usePreprodBuildsAnalytics} from 'sentry/views/preprod/hooks/usePreprodBuildsAnalytics';
 import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
 
 export default function BuildList() {
@@ -54,6 +56,17 @@ export default function BuildList() {
 
   const builds = buildsData?.builds || [];
   const pageLinks = getResponseHeader?.('Link') || null;
+
+  usePreprodBuildsAnalytics({
+    builds,
+    cursor,
+    display: PreprodBuildsDisplay.SIZE,
+    enabled: !!projectId,
+    error: !!error,
+    isLoading,
+    pageSource: 'preprod_builds_list',
+    projectCount: 1,
+  });
 
   return (
     <SentryDocumentTitle title="Build list">
