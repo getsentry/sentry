@@ -63,7 +63,7 @@ export default function RepoDetailsForm({organization, repoWithSettings}: Props)
                 name: 'codeReviewTriggers',
                 label: t('Code Review Triggers'),
                 help: tct(
-                  'Reviews can always run on demand by calling [code:@sentry review], whenever a PR is opened, or after each commit is pushed to a PR.',
+                  'Reviews can run whenever a PR is opened, or after each commit is pushed to a PR. Reviews can always be triggered on demand by calling [code:@sentry review].',
                   {code: <code />}
                 ),
                 type: 'choice',
