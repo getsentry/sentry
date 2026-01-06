@@ -329,8 +329,7 @@ const TRANSACTIONS_TABLE: Widget = {
         'Users',
         'Time Spent',
       ],
-      conditions:
-        '( ( !span.op:pageload !span.op:navigation !span.op:ui.render !span.op:interaction !span.op:ui.action.swipe !span.op:ui.action.scroll !span.op:ui.action.click !span.op:ui.action !span.op:ui.load !span.op:app.lifecycle !span.op:ui.interaction !span.op:ui.interaction.click !span.op:ui.interaction.hover !span.op:ui.interaction.drag !span.op:ui.interaction.press !span.op:ui.webvital.cls !span.op:ui.webvital.lcp !span.op:ui.webvital.fcp ) OR ( span.op:http.server ) ) is_transaction:true',
+      conditions: TABLE_QUERY.formatString(),
       orderby: '-sum(span.duration)',
       linkedDashboards: [],
     },
