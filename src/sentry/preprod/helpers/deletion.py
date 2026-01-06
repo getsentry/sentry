@@ -77,10 +77,7 @@ def bulk_delete_artifacts(
     with transaction.atomic(using=router.db_for_write(PreprodArtifact)):
         files_deleted = 0
         if all_file_ids:
-            try:
-                files_deleted, _ = File.objects.filter(id__in=all_file_ids).delete()
-            except Exception:
-                logger.exception("preprod.cleanup.files_delete_failed")
+            files_deleted, _ = File.objects.filter(id__in=all_file_ids).delete()
 
         _, deleted_by_model = PreprodArtifact.objects.filter(id__in=preprod_artifact_ids).delete()
 

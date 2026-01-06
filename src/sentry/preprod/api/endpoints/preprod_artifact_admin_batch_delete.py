@@ -99,16 +99,15 @@ class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
                 }
             )
 
-        except Exception as e:
+        except Exception:
             logger.exception(
                 "preprod_artifact.admin_batch_delete.artifacts_delete_failed",
                 extra={
                     "artifact_ids": preprod_artifact_ids,
                     "user_id": request.user.id,
-                    "error": str(e),
                 },
             )
             return Response(
-                {"success": False, "error": "Internal error deleting artifacts."},
+                {"success": False, "detail": "Internal error deleting artifacts."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )

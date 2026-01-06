@@ -81,7 +81,7 @@ class ProjectPreprodArtifactDeleteEndpoint(PreprodArtifactEndpoint):
             return Response(
                 {
                     "success": False,
-                    "error": "Internal error deleting artifact.",
+                    "detail": "Internal error deleting artifact.",
                 },
                 status=500,
             )
