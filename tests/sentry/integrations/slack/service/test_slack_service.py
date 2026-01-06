@@ -207,7 +207,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
         "sentry.integrations.slack.service.SlackService._send_notification_to_slack_channel"
     )
     @mock.patch(
-        "sentry.integrations.slack.service.SlackService._get_channel_id_from_parent_notification"
+        "sentry.integrations.slack.service.SlackService._get_channel_id_from_parent_notification_notification_action"
     )
     def test_calls_handle_parent_notification(
         self, mock_get_channel_id, mock_send_notification, mock_record
@@ -225,7 +225,6 @@ class TestNotifyAllThreadsForActivity(TestCase):
         assert end_1.args[0] == EventLifecycleOutcome.SUCCESS
         assert end_2.args[0] == EventLifecycleOutcome.SUCCESS
 
-    @with_feature("organizations:slack-threads-refactor-uptime")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch(
         "sentry.integrations.slack.service.SlackService._send_notification_to_slack_channel"
@@ -281,7 +280,6 @@ class TestNotifyAllThreadsForActivity(TestCase):
         mock_send_notification.assert_called_once()
         assert mock_get_channel_id.call_args.args[0].id == parent_notification_2_message.id
 
-    @with_feature("organizations:slack-threads-refactor-uptime")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch(
         "sentry.integrations.slack.service.SlackService._send_notification_to_slack_channel"
@@ -340,7 +338,6 @@ class TestNotifyAllThreadsForActivity(TestCase):
         mock_send_notification.assert_called_once()
         assert mock_get_channel_id.call_args.args[0].id == parent_notification_2_message.id
 
-    @with_feature("organizations:slack-threads-refactor-uptime")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch(
         "sentry.integrations.slack.service.SlackService._send_notification_to_slack_channel"
@@ -464,7 +461,6 @@ class TestNotifyAllThreadsForActivity(TestCase):
             mock_get_channel_id.call_args.args[0].__class__ == NotificationActionNotificationMessage
         )
 
-    @with_feature("organizations:slack-threads-refactor-uptime")
     @with_feature("organizations:workflow-engine-single-process-workflows")
     @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [7001]})
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
