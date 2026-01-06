@@ -226,11 +226,6 @@ class OrganizationOnDemandRuleStatsEndpoint(OrganizationEndpoint):
             )
 
         projects = self.get_projects(request, organization, project_ids={int(project_id)})
-        if not projects:
-            return Response(
-                {"detail": "Project not found"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
         project = projects[0]
         enabled_features = on_demand_metrics_feature_flags(organization)
         prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
