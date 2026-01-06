@@ -42,8 +42,11 @@ function ToggleConsolePlatformsModal({
   const {data: userIdentities, isPending: isInvitesFetchPending} = useConsoleSdkInvites(
     organization.slug
   );
-  const {mutate: revokeConsoleInvite, isPending: isRevokePending} =
-    useRevokeConsoleSdkInvite();
+  const {
+    mutate: revokeConsoleInvite,
+    isPending: isRevokePending,
+    variables: revokeVariables,
+  } = useRevokeConsoleSdkInvite();
   const {isPending: isUpdatePending, mutate: updateConsolePlatforms} = useMutation({
     mutationFn: (data: Record<string, boolean | number>) => {
       const {newConsoleSdkInviteQuota, ...platforms} = data;
@@ -176,7 +179,7 @@ function ToggleConsolePlatformsModal({
               <SimpleTable.RowCell>
                 <RevokeButton
                   priority="danger"
-                  busy={isRevokePending}
+                  busy={isRevokePending && revokeVariables?.userId === user_id}
                   onClick={() =>
                     revokeConsoleInvite({
                       userId: user_id,
