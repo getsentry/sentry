@@ -42,8 +42,8 @@ function GroupReleaseStats({
         ? environments[0]
         : undefined;
 
-  const firstRelease = group?.firstRelease;
-  const lastRelease = group?.lastRelease;
+  const firstRelease = group?.firstRelease ?? undefined;
+  const lastRelease = group?.lastRelease ?? undefined;
 
   const projectId = project.id;
   const projectSlug = project.slug;

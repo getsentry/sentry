@@ -16,7 +16,7 @@ export default function getFeedbackItemQueryKey({feedbackId, organization}: Prop
           `/organizations/${organization.slug}/issues/${feedbackId}/`,
           {
             query: {
-              collapse: ['release', 'tags'],
+              collapse: ['tags'],
             },
           },
         ]
