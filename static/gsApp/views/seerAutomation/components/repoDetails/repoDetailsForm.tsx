@@ -22,7 +22,8 @@ export default function RepoDetailsForm({organization, repoWithSettings}: Props)
     repoWithSettings?.settings?.codeReviewTriggers ??
     organization.defaultCodeReviewTriggers ??
     DEFAULT_CODE_REVIEW_TRIGGERS;
-  const modifiableTriggers = initialTriggers.filter(
+
+  const modifiableInitialTriggers = initialTriggers.filter(
     trigger => trigger !== 'on_command_phrase'
   );
 
@@ -38,7 +39,7 @@ export default function RepoDetailsForm({organization, repoWithSettings}: Props)
             repoWithSettings?.settings?.enabledCodeReview ??
             organization.autoEnableCodeReview ??
             true,
-          codeReviewTriggers: modifiableTriggers,
+          codeReviewTriggers: modifiableInitialTriggers,
           repositoryIds: [repoWithSettings.id],
         } satisfies RepositorySettings
       }
