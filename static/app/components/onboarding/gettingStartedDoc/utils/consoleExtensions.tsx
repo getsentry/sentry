@@ -94,6 +94,7 @@ function getEnabledPlayStationContent(params: DocsParams): ContentBlock[] {
       type: 'custom',
       content: (
         <RequestSdkAccessButton
+          gamingPlatform="playstation"
           organization={params.organization}
           projectId={params.project.id}
           origin={params.newOrg ? 'onboarding' : 'project-creation'}
@@ -145,6 +146,7 @@ function getEnabledNintendoSwitchContent(params: DocsParams): ContentBlock[] {
       type: 'custom',
       content: (
         <RequestSdkAccessButton
+          gamingPlatform="nintendo-switch"
           organization={params.organization}
           projectId={params.project.id}
           origin={params.newOrg ? 'onboarding' : 'project-creation'}
@@ -191,6 +193,7 @@ function getEnabledXboxContent(params: DocsParams): ContentBlock[] {
       type: 'custom',
       content: (
         <RequestSdkAccessButton
+          gamingPlatform="xbox"
           organization={params.organization}
           projectId={params.project.id}
           origin={params.newOrg ? 'onboarding' : 'project-creation'}

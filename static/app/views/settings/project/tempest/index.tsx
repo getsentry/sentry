@@ -112,6 +112,7 @@ export default function TempestSettings() {
           <ButtonBar gap="lg">
             <FeedbackButton />
             <RequestSdkAccessButton
+              gamingPlatform="playstation"
               organization={organization}
               projectId={project.id}
               origin="project-settings"
