@@ -18,14 +18,14 @@ from sentry.users.models.user import User
 
 
 class TestGetTriggerMetadata:
-    def test_extracts_comment_info(self) -> None:
+    def test_extracts_issue_comment_info(self) -> None:
         event_payload = {
             "comment": {
                 "id": 12345,
                 "user": {"login": "test-user"},
             }
         }
-        result = _get_trigger_metadata(event_payload)
+        result = _get_trigger_metadata(GithubWebhookType.ISSUE_COMMENT, event_payload)
         assert result["trigger_comment_id"] == 12345
         assert result["trigger_user"] == "test-user"
         assert result["trigger_comment_type"] == "issue_comment"
@@ -38,30 +38,38 @@ class TestGetTriggerMetadata:
                 "pull_request_review_id": 67890,
             }
         }
-        result = _get_trigger_metadata(event_payload)
+        result = _get_trigger_metadata(GithubWebhookType.PULL_REQUEST_REVIEW_COMMENT, event_payload)
         assert result["trigger_comment_type"] == "pull_request_review_comment"
+        assert result["trigger_comment_id"] == 12345
+        assert result["trigger_user"] == "test-user"
 
-    def test_falls_back_to_sender(self) -> None:
+    def test_pull_request_uses_sender(self) -> None:
         event_payload = {
             "sender": {"login": "sender-user"},
         }
-        result = _get_trigger_metadata(event_payload)
+        result = _get_trigger_metadata(GithubWebhookType.PULL_REQUEST, event_payload)
         assert result["trigger_user"] == "sender-user"
         assert result["trigger_comment_id"] is None
         assert result["trigger_comment_type"] is None
 
-    def test_falls_back_to_pull_request_user(self) -> None:
+    def test_pull_request_falls_back_to_pr_user(self) -> None:
         event_payload = {
             "pull_request": {"user": {"login": "pr-author"}},
         }
-        result = _get_trigger_metadata(event_payload)
+        result = _get_trigger_metadata(GithubWebhookType.PULL_REQUEST, event_payload)
         assert result["trigger_user"] == "pr-author"
+        assert result["trigger_comment_id"] is None
+        assert result["trigger_comment_type"] is None
 
-    def test_no_data_returns_none_values(self) -> None:
-        result = _get_trigger_metadata({})
+    def test_pull_request_no_data_returns_none_values(self) -> None:
+        result = _get_trigger_metadata(GithubWebhookType.PULL_REQUEST, {})
         assert result["trigger_comment_id"] is None
         assert result["trigger_comment_type"] is None
         assert result["trigger_user"] is None
+
+    def test_raises_for_unsupported_event_type(self) -> None:
+        with pytest.raises(ValueError, match="unsupported-event-type-for-trigger-metadata"):
+            _get_trigger_metadata(GithubWebhookType.CHECK_RUN, {})
 
 
 class GetTargetCommitShaTest(TestCase):
