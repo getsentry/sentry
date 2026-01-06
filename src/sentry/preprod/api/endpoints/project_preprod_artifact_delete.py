@@ -57,8 +57,8 @@ class ProjectPreprodArtifactDeleteEndpoint(PreprodArtifactEndpoint):
                     "artifact_id": int(head_artifact_id),
                     "user_id": request.user.id,
                     "files_deleted": result.files_deleted,
-                    "size_metrics_count": result.size_metrics_count,
-                    "installable_count": result.installable_count,
+                    "size_metrics_deleted": result.size_metrics_deleted,
+                    "installable_artifacts_deleted": result.installable_artifacts_deleted,
                 },
             )
 
@@ -67,9 +67,9 @@ class ProjectPreprodArtifactDeleteEndpoint(PreprodArtifactEndpoint):
                     "success": True,
                     "message": f"Artifact {head_artifact_id} deleted successfully.",
                     "artifact_id": str(head_artifact_id),
-                    "files_deleted_count": len(result.files_deleted),
-                    "size_metrics_deleted": result.size_metrics_count,
-                    "installable_artifacts_deleted": result.installable_count,
+                    "files_deleted_count": result.files_deleted,
+                    "size_metrics_deleted": result.size_metrics_deleted,
+                    "installable_artifacts_deleted": result.installable_artifacts_deleted,
                 }
             )
 

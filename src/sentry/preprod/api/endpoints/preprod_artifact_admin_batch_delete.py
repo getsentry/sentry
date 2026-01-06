@@ -93,7 +93,7 @@ class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
             return Response(
                 {
                     "success": True,
-                    "message": f"Successfully deleted {len(result.artifacts_deleted)} artifacts.",
+                    "message": f"Successfully deleted {result.artifacts_deleted} artifacts.",
                     "artifact_ids": artifact_ids,
                     "files_deleted": result.files_deleted,
                     "size_metrics_deleted": result.size_metrics_deleted,
