@@ -1,5 +1,4 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {InvoiceFixture} from 'getsentry-test/fixtures/invoice';
@@ -52,10 +51,8 @@ describe('Subscription > PaymentHistory', () => {
       method: 'GET',
       body: [InvoiceFixture({isClosed: true, isPaid: true})],
     });
-    render(
-      <PaymentHistory {...RouteComponentPropsFixture()} organization={organization} />,
-      {organization}
-    );
+
+    render(<PaymentHistory />, {organization});
 
     await screen.findByText('Receipts');
     expect(screen.getByTestId('payment-list')).toBeInTheDocument();
@@ -74,10 +71,7 @@ describe('Subscription > PaymentHistory', () => {
       body: [],
     });
 
-    render(
-      <PaymentHistory {...RouteComponentPropsFixture()} organization={organization} />,
-      {organization}
-    );
+    render(<PaymentHistory />, {organization});
 
     await screen.findByTestId('payment-list');
     expect(screen.getByText('No receipts found')).toBeInTheDocument();
@@ -99,10 +93,7 @@ describe('Subscription > PaymentHistory', () => {
       body: [],
     });
 
-    render(
-      <PaymentHistory {...RouteComponentPropsFixture()} organization={organization} />,
-      {organization}
-    );
+    render(<PaymentHistory />, {organization});
     expect(await screen.findByTestId('permission-denied')).toBeInTheDocument();
     expect(screen.queryByTestId('payment-list')).not.toBeInTheDocument();
   });
@@ -126,10 +117,7 @@ describe('Subscription > PaymentHistory', () => {
       body: [InvoiceFixture({isClosed: true, isPaid: false})],
     });
 
-    render(
-      <PaymentHistory {...RouteComponentPropsFixture()} organization={organization} />,
-      {organization}
-    );
+    render(<PaymentHistory />, {organization});
 
     expect(await screen.findByTestId('payment-list')).toBeInTheDocument();
     expect(screen.getByText('Closed')).toBeInTheDocument();
@@ -149,10 +137,7 @@ describe('Subscription > PaymentHistory', () => {
       body: [InvoiceFixture({isClosed: false, isPaid: false})],
     });
 
-    render(
-      <PaymentHistory {...RouteComponentPropsFixture()} organization={organization} />,
-      {organization}
-    );
+    render(<PaymentHistory />, {organization});
 
     expect(await screen.findByTestId('payment-list')).toBeInTheDocument();
     expect(screen.getByText('Awaiting payment')).toBeInTheDocument();
@@ -171,10 +156,7 @@ describe('Subscription > PaymentHistory', () => {
       method: 'GET',
       body: [InvoiceFixture({isClosed: true, isPaid: true})],
     });
-    render(
-      <PaymentHistory {...RouteComponentPropsFixture()} organization={organization} />,
-      {organization}
-    );
+    render(<PaymentHistory />, {organization});
 
     expect(await screen.findByTestId('payment-list')).toBeInTheDocument();
     expect(screen.getByText('Paid')).toBeInTheDocument();

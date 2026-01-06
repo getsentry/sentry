@@ -524,6 +524,28 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
             == {}
         )
 
+    @with_feature("projects:servicehooks")
+    @patch("sentry.sentry_apps.tasks.service_hooks.process_service_hook")
+    def test_service_hooks_integration(
+        self, mock_process_service_hook: MagicMock, mock_trigger: MagicMock
+    ) -> None:
+        hook = self.create_service_hook(
+            project=self.project,
+            organization=self.project.organization,
+            actor=self.user,
+            events=["event.alert"],
+        )
+
+        event = self.create_error_event()
+        self.post_process_error(event)
+
+        mock_process_service_hook.delay.assert_called_once_with(
+            servicehook_id=hook.id,
+            project_id=self.project.id,
+            group_id=event.group_id,
+            event_id=event.event_id,
+        )
+
 
 class TestWorkflowEngineIntegrationFromFeedbackPostProcess(BaseWorkflowIntegrationTest):
     @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [6001]})

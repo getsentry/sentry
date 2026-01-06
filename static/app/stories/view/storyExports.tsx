@@ -160,7 +160,7 @@ function StoryTabPanels() {
   }
 
   return (
-    <TabPanels>
+    <StyledTabPanels>
       <TabPanels.Item key="usage">
         <StoryModuleExports exports={story.exports.documentation?.exports} />
         <StoryUsage />
@@ -171,7 +171,7 @@ function StoryTabPanels() {
       <TabPanels.Item key="resources">
         <StoryResources />
       </TabPanels.Item>
-    </TabPanels>
+    </StyledTabPanels>
   );
 }
 const EXPECTED_EXPORTS = new Set<keyof StoryExportValues>([
@@ -261,6 +261,10 @@ function StoryModuleExports(props: {
   if (!props.exports) return null;
   return <Storybook.ModuleExports exports={props.exports} />;
 }
+
+const StyledTabPanels = styled(TabPanels)`
+  min-width: 0;
+`;
 
 const StoryContainer = styled('div')`
   max-width: 580px;

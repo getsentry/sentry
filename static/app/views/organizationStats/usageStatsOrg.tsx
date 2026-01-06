@@ -730,7 +730,7 @@ function SpansStored({organization, acceptedStored}: SpansStoredProps) {
           <StyledSettingsButton
             borderless
             size="zero"
-            icon={<IconSettings color="subText" />}
+            icon={<IconSettings variant="muted" />}
             title={t('Dynamic Sampling Settings')}
             aria-label={t('Dynamic Sampling Settings')}
             to={`/settings/${organization.slug}/dynamic-sampling/`}

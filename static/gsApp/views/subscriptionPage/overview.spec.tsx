@@ -1,4 +1,3 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {CustomerUsageFixture} from 'getsentry-test/fixtures/customerUsage';
@@ -16,7 +15,6 @@ import Overview from 'getsentry/views/subscriptionPage/overview';
 
 describe('Subscription > Overview', () => {
   const organization = OrganizationFixture({access: ['org:billing']});
-  const mockLocation = LocationFixture();
 
   beforeEach(() => {
     organization.features = [];
@@ -82,7 +80,7 @@ describe('Subscription > Overview', () => {
 
     it('renders pending changes', async () => {
       SubscriptionStore.set(organization.slug, subscription);
-      render(<Overview location={mockLocation} />, {organization});
+      render(<Overview />, {organization});
 
       expect(
         await screen.findByText(/The following changes will take effect on/)
@@ -101,7 +99,7 @@ describe('Subscription > Overview', () => {
         body: planMigrations,
       });
 
-      render(<Overview location={mockLocation} />, {organization});
+      render(<Overview />, {organization});
 
       expect(
         await screen.findByText(textWithMarkupMatcher("We're updating our Team Plan"))
@@ -128,7 +126,7 @@ describe('Subscription > Overview', () => {
         body: planMigrations,
       });
 
-      render(<Overview location={mockLocation} />, {organization});
+      render(<Overview />, {organization});
 
       expect(
         await screen.findByText(/The following changes will take effect on/)
@@ -148,7 +146,7 @@ describe('Subscription > Overview', () => {
 
     it('renders empty', async () => {
       SubscriptionStore.set(organization.slug, subscription);
-      render(<Overview location={mockLocation} />, {organization});
+      render(<Overview />, {organization});
 
       expect(await screen.findByText('Subscription')).toBeInTheDocument();
       expect(screen.queryByTestId('recurring-credits-panel')).not.toBeInTheDocument();
@@ -162,7 +160,7 @@ describe('Subscription > Overview', () => {
         body: [RecurringCreditFixture()],
       });
 
-      render(<Overview location={mockLocation} />, {organization});
+      render(<Overview />, {organization});
 
       expect(await screen.findByTestId('recurring-credits-panel')).toBeInTheDocument();
 
@@ -186,7 +184,7 @@ describe('Subscription > Overview', () => {
       body: [RecurringCreditFixture()],
     });
 
-    render(<Overview location={mockLocation} />, {organization: billingOrg});
+    render(<Overview />, {organization: billingOrg});
 
     expect(await screen.findByText(/Usage:/)).toBeInTheDocument(); // title of usage overview table
     expect(screen.queryByTestId('recurring-credits-panel')).not.toBeInTheDocument();
@@ -205,7 +203,7 @@ describe('Subscription > Overview', () => {
     });
     SubscriptionStore.set(billingOrg.slug, subscription);
 
-    render(<Overview location={mockLocation} />, {organization: billingOrg});
+    render(<Overview />, {organization: billingOrg});
 
     expect(await screen.findByTestId('permission-denied')).toBeInTheDocument();
     expect(screen.queryByText(/Usage:/)).not.toBeInTheDocument();
@@ -224,12 +222,15 @@ describe('Subscription > Overview', () => {
       organization,
     });
     SubscriptionStore.set(organization.slug, subscription);
-    const location = LocationFixture({
-      query: {open_codecov_modal: '1'},
-    });
 
-    render(<Overview location={location} />, {
+    render(<Overview />, {
       organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/settings/billing/overview/',
+          query: {open_codecov_modal: '1'},
+        },
+      },
     });
     renderGlobalModal();
 

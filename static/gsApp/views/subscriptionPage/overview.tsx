@@ -1,5 +1,4 @@
 import {Fragment, useEffect} from 'react';
-import type {Location} from 'history';
 
 import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
@@ -9,6 +8,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -38,7 +38,6 @@ import SubscriptionHeader from './subscriptionHeader';
 import UsageAlert from './usageAlert';
 
 type Props = {
-  location: Location;
   promotionData: PromotionData;
   subscription: Subscription;
 };
@@ -46,9 +45,10 @@ type Props = {
 /**
  * Subscription overview page.
  */
-function Overview({location, subscription, promotionData}: Props) {
+function Overview({subscription, promotionData}: Props) {
   const api = useApi();
   const organization = useOrganization();
+  const location = useLocation();
   const navigate = useNavigate();
 
   const hasBillingPerms = organization.access?.includes('org:billing');
