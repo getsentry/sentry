@@ -21,7 +21,7 @@ export default function ProjectDetailContainer() {
 
   return (
     <PageAlertProvider>
-      <ProjectDetail />;
+      <ProjectDetail />
     </PageAlertProvider>
   );
 }
