@@ -489,6 +489,26 @@ class InstallablePreprodArtifact(DefaultFieldsModel):
 
 
 @region_silo_model
+class SnapshotShards(DefaultFieldsModel):
+    """
+    Represents metadata about snapshot shards for a preprod artifact.
+    Used to coordinate multi-shard uploads and handle race conditions.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    # Unique identifier for this set of shards
+    shard_id = models.CharField(max_length=255, unique=True, db_index=True)
+
+    # Total number of shards expected
+    total_shards = BoundedPositiveIntegerField(default=0)
+
+    class Meta:
+        app_label = "preprod"
+        db_table = "sentry_snapshotshards"
+
+
+@region_silo_model
 class PreprodArtifactSizeComparison(DefaultFieldsModel):
     """
     Represents a size comparison between two preprod artifact size analyses.

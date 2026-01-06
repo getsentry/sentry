@@ -2531,6 +2531,10 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/preprod/install/installPage')),
     },
     {
+      path: 'snapshot/:snapshotId/',
+      component: make(() => import('sentry/views/preprod/snapshotViewer/snapshotViewer')),
+    },
+    {
       path: 'compare/',
       children: [
         {
