@@ -40,7 +40,6 @@ jobs:
 
     env:
       # XXX: `MATRIX_INSTANCE_TOTAL` must be hardcoded to the length of `strategy.matrix.instance`.
-      # If this increases, make sure to also increase `flags.backend.after_n_builds` in `codecov.yml`.
       MATRIX_INSTANCE_TOTAL: 11
 
     steps:
