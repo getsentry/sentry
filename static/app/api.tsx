@@ -291,6 +291,13 @@ export type RequestOptions = RequestCallbacks & {
    */
   query?: Record<string, any>;
   /**
+   * External AbortSignal to use for cancellation. When provided, this signal
+   * will be used instead of creating a new AbortController. This is useful for
+   * integrating with React Query or other libraries that provide their own
+   * cancellation signals.
+   */
+  signal?: AbortSignal;
+  /**
    * By default, requests will be aborted anytime api.clear() is called,
    * which is commonly used on unmounts. When skipAbort is true, the
    * request is opted out of this behavior. Useful for when you still
@@ -505,10 +512,15 @@ export class Client {
       )(resp, textStatus);
 
     // AbortController is optional, though most browser should support it.
+    // If an external signal is provided (e.g., from React Query), use it directly.
+    // Otherwise, create a new AbortController for internal abort handling.
     const aborter =
-      typeof AbortController !== 'undefined' && !options.skipAbort
+      typeof AbortController !== 'undefined' && !options.skipAbort && !options.signal
         ? new AbortController()
         : undefined;
+
+    // Use the external signal if provided, otherwise use the internal aborter's signal
+    const abortSignal = options.signal ?? aborter?.signal;
 
     // GET requests may not have a body
     const body = method === 'GET' ? undefined : data;
@@ -526,7 +538,7 @@ export class Client {
       body,
       headers: requestHeaders,
       credentials: this.credentials,
-      signal: aborter?.signal,
+      signal: abortSignal,
     });
 
     // XXX(epurkhiser): We migrated off of jquery, so for now we have a

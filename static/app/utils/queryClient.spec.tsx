@@ -153,5 +153,46 @@ describe('queryClient', () => {
 
       expect(await screen.findByText('something bad happened')).toBeInTheDocument();
     });
+
+    it('passes AbortSignal to API client for proper cancellation', async () => {
+      const mock = MockApiClient.addMockResponse({
+        url: '/some/test/path/',
+        body: {value: 5},
+      });
+
+      // Track if signal was passed to API client
+      const originalRequestPromise = MockApiClient.prototype.requestPromise;
+      const requestPromiseSpy = jest.spyOn(
+        MockApiClient.prototype,
+        'requestPromise'
+      );
+
+      function TestComponent({enabled}: {enabled: boolean}) {
+        const {data} = useApiQuery<ResponseData>(['/some/test/path/'], {
+          staleTime: 0,
+          enabled,
+        });
+
+        if (!data) {
+          return null;
+        }
+
+        return <div>{data.value}</div>;
+      }
+
+      const {rerender} = render(<TestComponent enabled />);
+
+      // Wait for the query to complete
+      expect(await screen.findByText('5')).toBeInTheDocument();
+
+      // Verify that the API client's requestPromise was called with a signal
+      expect(requestPromiseSpy).toHaveBeenCalled();
+      const callOptions = requestPromiseSpy.mock.calls[0]?.[1];
+      expect(callOptions).toHaveProperty('signal');
+      expect(callOptions?.signal).toBeInstanceOf(AbortSignal);
+
+      // Cleanup
+      requestPromiseSpy.mockRestore();
+    });
   });
 });

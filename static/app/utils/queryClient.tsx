@@ -210,6 +210,7 @@ export function fetchDataQuery<TResponseData = unknown>(
     data: opts?.data,
     query: opts?.query,
     headers: opts?.headers,
+    signal: context.signal,
   });
 }
 
