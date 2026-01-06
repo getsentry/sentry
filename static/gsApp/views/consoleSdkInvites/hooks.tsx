@@ -21,8 +21,8 @@ interface ConsoleSdkInviteUser {
 interface UseRevokeConsoleSdkInviteParams {
   email: string;
   orgSlug: string;
+  userId: string;
   onSuccess?: () => void;
-  userId?: string;
 }
 
 export function useConsoleSdkInvites(orgSlug: string) {
