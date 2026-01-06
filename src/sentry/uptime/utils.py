@@ -22,5 +22,15 @@ def build_fingerprint(detector: Detector) -> list[str]:
     return [build_detector_fingerprint_component(detector)]
 
 
+def build_backlog_key(subscription_id: str) -> str:
+    """Redis sorted set key for buffered out-of-order results."""
+    return f"uptime:backlog:{subscription_id}"
+
+
+def build_backlog_task_flag_key(subscription_id: str) -> str:
+    """Redis flag key tracking if retry task is scheduled."""
+    return f"uptime:backlog_task:{subscription_id}"
+
+
 def get_cluster() -> RedisCluster | StrictRedis:
     return redis.redis_clusters.get(settings.SENTRY_UPTIME_DETECTOR_CLUSTER)
