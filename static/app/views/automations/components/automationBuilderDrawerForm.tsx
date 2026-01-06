@@ -2,6 +2,7 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react-lite';
 
+import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import {Flex, Stack} from 'sentry/components/core/layout';
 import TextField from 'sentry/components/forms/fields/textField';
@@ -33,24 +34,22 @@ import {useSetAutomaticAutomationName} from 'sentry/views/automations/components
 import {useCreateAutomation} from 'sentry/views/automations/hooks';
 import {useAutomationBuilderErrors} from 'sentry/views/automations/hooks/useAutomationBuilderErrors';
 
-const initialData = {
+const DEFAULT_INITIAL_DATA = {
   name: '',
   environment: null,
   frequency: 1440,
-  enabled: true,
   projectIds: [],
   detectorIds: [],
 };
 
 interface AutomationBuilderDrawerProps {
   closeDrawer: () => void;
-  /**
-   * Detector IDs to connect this automation to
-   */
-  connectedDetectorIds?: string[];
-  /**
-   * Callback when automation is successfully created
-   */
+  initialData?: Partial<{
+    detectorIds: string[];
+    frequency: number;
+    name: string;
+    projectIds: string[];
+  }>;
   onSuccess?: (automationId: string) => void;
 }
 
@@ -99,9 +98,9 @@ function FormBody({closeDrawer, model}: {closeDrawer: () => void; model: FormMod
  * A miminal form for creating a new automation, meant to be rendered in a drawer.
  */
 export function AutomationBuilderDrawerForm({
-  connectedDetectorIds = [],
   onSuccess,
   closeDrawer,
+  initialData,
 }: AutomationBuilderDrawerProps) {
   const organization = useOrganization();
   const model = useMemo(() => new FormModel(), []);
@@ -123,6 +122,7 @@ export function AutomationBuilderDrawerForm({
 
       if (Object.keys(errors).length === 0) {
         try {
+          addLoadingMessage(t('Creating Alert...'));
           formModel.setFormSaving();
           const automation = await createAutomation(newAutomationData);
           onSubmitSuccess(formModel.getData());
@@ -133,6 +133,7 @@ export function AutomationBuilderDrawerForm({
             success: true,
           });
           onSuccess?.(automation.id);
+          addSuccessMessage(t('Alert created'));
         } catch (err) {
           onSubmitError(err);
           trackAnalytics('automation.created', {
@@ -157,7 +158,7 @@ export function AutomationBuilderDrawerForm({
   return (
     <Form
       hideFooter
-      initialData={{...initialData, detectorIds: connectedDetectorIds}}
+      initialData={{...DEFAULT_INITIAL_DATA, ...initialData}}
       onSubmit={handleSubmit}
       model={model}
     >

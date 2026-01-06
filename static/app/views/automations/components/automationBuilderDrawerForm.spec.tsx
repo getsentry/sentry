@@ -119,7 +119,7 @@ describe('AutomationBuilderDrawerForm', () => {
       <AutomationBuilderDrawerForm
         closeDrawer={closeDrawer}
         onSuccess={onSuccess}
-        connectedDetectorIds={['123']}
+        initialData={{detectorIds: ['123']}}
       />,
       {organization}
     );
