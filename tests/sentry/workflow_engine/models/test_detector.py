@@ -89,9 +89,7 @@ class DetectorTest(BaseWorkflowTest):
 
     def test_get_error_detector_for_project__success(self) -> None:
         """Test successful retrieval of error detector for project, created by default on project creation"""
-        error_detector = self.create_detector(
-            project=self.project, type=ErrorGroupType.slug, name="Error Detector"
-        )
+        error_detector = Detector.objects.get(project=self.project, type=ErrorGroupType.slug)
         result = Detector.get_error_detector_for_project(self.project.id)
 
         assert result == error_detector
@@ -99,10 +97,14 @@ class DetectorTest(BaseWorkflowTest):
         assert result.project_id == self.project.id
 
     def test_get_error_detector_for_project__not_found(self) -> None:
+        error_detector = Detector.objects.get(project=self.project, type=ErrorGroupType.slug)
+        error_detector.delete()
         with pytest.raises(Detector.DoesNotExist):
             Detector.get_error_detector_for_project(self.project.id)
 
     def test_get_error_detector_for_project__wrong_type(self) -> None:
+        error_detector = Detector.objects.get(project=self.project, type=ErrorGroupType.slug)
+        error_detector.delete()
         self.create_detector(
             project=self.project,
             type=MetricIssue.slug,  # Use a different registered type

@@ -6,7 +6,6 @@ import responses
 
 from sentry.integrations.opsgenie.client import OpsgenieClient
 from sentry.integrations.types import EventLifecycleOutcome
-from sentry.models.rule import Rule
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.testutils.asserts import (
     assert_count_of_metric,
@@ -56,65 +55,6 @@ class OpsgenieClientTest(APITestCase):
         assert client.integration == self.installation.model
         assert client.base_url == METADATA["base_url"] + "v2"
         assert client.integration_key == METADATA["api_key"]
-
-    @responses.activate
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_send_notification(self, mock_record: MagicMock) -> None:
-        resp_data = {
-            "result": "Request will be processed",
-            "took": 1,
-            "requestId": "hello-world",
-        }
-        responses.add(responses.POST, url="https://api.opsgenie.com/v2/alerts", json=resp_data)
-
-        event = self.store_event(
-            data={
-                "message": "Hello world",
-                "level": "warning",
-                "platform": "python",
-                "culprit": "foo.bar",
-            },
-            project_id=self.project.id,
-        )
-        group = event.group
-        assert group is not None
-
-        rule = Rule.objects.create(project=self.project, label="my rule")
-        client: OpsgenieClient = self.installation.get_keyring_client("team-123")
-        with self.options({"system.url-prefix": "http://example.com"}):
-            payload = client.build_issue_alert_payload(
-                data=event,
-                rules=[rule],
-                event=event,
-                group=group,
-                priority="P2",
-            )
-            client.send_notification(payload)
-
-        request = responses.calls[0].request
-        payload = orjson.loads(request.body)
-        group_id = str(group.id)
-        assert payload == {
-            "tags": ["level:warning"],
-            "entity": "foo.bar",
-            "alias": "sentry: %s" % group_id,
-            "priority": "P2",
-            "details": {
-                "Project Name": self.project.name,
-                "Triggering Rules": "my rule",
-                "Triggering Rule URLs": f"http://example.com/organizations/baz/alerts/rules/{self.project.slug}/{rule.id}/details/",
-                "Sentry Group": "Hello world",
-                "Sentry ID": group_id,
-                "Logger": "",
-                "Level": "warning",
-                "Project ID": "bar",
-                "Issue URL": f"http://example.com/organizations/baz/issues/{group_id}/?referrer=opsgenie",
-                "Release": event.release,
-            },
-            "message": "Hello world",
-            "source": "Sentry",
-        }
-        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -170,7 +110,7 @@ class OpsgenieClientTest(APITestCase):
             "details": {
                 "Project Name": self.project.name,
                 "Triggering Rules": rule.label,
-                "Triggering Rule URLs": f"http://example.com/organizations/baz/alerts/rules/{self.project.slug}/{123}/details/",
+                "Triggering Rule URLs": f"http://example.com/organizations/baz/alerts/rules/{self.project.slug}/{1}/details/",
                 "Sentry Group": "Hello world",
                 "Sentry ID": group_id,
                 "Logger": "",
@@ -278,7 +218,13 @@ class OpsgenieClientTest(APITestCase):
         group = event.group
         assert group is not None
 
-        rule = Rule.objects.create(project=self.project, label="my rule")
+        rule = self.create_project_rule(
+            action_data=[
+                {
+                    "legacy_rule_id": "123",
+                }
+            ]
+        )
         client: OpsgenieClient = self.installation.get_keyring_client("team-123")
 
         with self.options({"system.url-prefix": "http://example.com"}):

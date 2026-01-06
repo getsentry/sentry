@@ -150,31 +150,6 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
             self.call_post_process_group(self.group.id)
             mock_process_workflow.assert_called_once()
 
-    def test_workflow_engine__workflows__other_events(self) -> None:
-        """
-        Ensure that the workflow engine only supports MetricIssue events for now.
-        """
-        error_event = self.store_event(data={}, project_id=self.project.id)
-
-        occurrence_data = self.build_occurrence_data(
-            event_id=error_event.event_id,
-            project_id=self.project.id,
-            fingerprint=[f"detector-{self.detector.id}"],
-            evidence_data={},
-            type=ErrorGroupType.type_id,
-        )
-
-        self.occurrence, group_info = save_issue_occurrence(occurrence_data, error_event)
-        self.group = Group.objects.get(grouphash__hash=self.occurrence.fingerprint[0])
-
-        with mock.patch(
-            "sentry.workflow_engine.tasks.workflows.process_workflows_event.apply_async"
-        ) as mock_process_workflow:
-            self.call_post_process_group(error_event.group_id)
-
-            # We currently don't have a detector for this issue type, so it should not call workflow_engine.
-            mock_process_workflow.assert_not_called()
-
 
 @mock.patch("sentry.workflow_engine.processors.action.trigger_action.apply_async")
 class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationTest):
