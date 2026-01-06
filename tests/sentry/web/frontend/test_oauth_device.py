@@ -104,6 +104,7 @@ class OAuthDeviceVerificationTest(TestCase):
         # Verify device code was approved
         self.device_code.refresh_from_db()
         assert self.device_code.status == DeviceCodeStatus.APPROVED
+        assert self.device_code.user is not None
         assert self.device_code.user.id == self.user.id
 
         # Verify ApiAuthorization was created
