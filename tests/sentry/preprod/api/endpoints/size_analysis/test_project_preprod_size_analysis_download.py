@@ -30,7 +30,7 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpointTest(APITestCase):
         """When no size metrics exist, should return 404"""
         response = self.get_response(self.organization.slug, self.project.slug, self.artifact.id)
         assert response.status_code == 404
-        assert response.data["error"] == "Size analysis results not available for this artifact"
+        assert response.data["detail"] == "Size analysis results not available for this artifact"
 
     def test_pending_state_returns_200(self):
         """When size metrics exist but are in PENDING state, should return 200 with state info"""
@@ -86,7 +86,7 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpointTest(APITestCase):
 
         response = self.get_response(self.organization.slug, self.project.slug, self.artifact.id)
         assert response.status_code == 500
-        assert response.data["error"] == "Size analysis completed but results are unavailable"
+        assert response.data["detail"] == "Size analysis completed but results are unavailable"
 
     def test_completed_with_missing_file_returns_404(self):
         """When size metrics is COMPLETED but the File object was deleted, should return 404"""
@@ -101,7 +101,7 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpointTest(APITestCase):
 
         response = self.get_response(self.organization.slug, self.project.slug, self.artifact.id)
         assert response.status_code == 404
-        assert response.data["error"] == "Analysis file not found"
+        assert response.data["detail"] == "Analysis file not found"
 
     def test_completed_with_file_returns_200(self):
         """When size metrics is COMPLETED with a file, should return 200 with file content"""

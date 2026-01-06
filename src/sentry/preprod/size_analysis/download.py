@@ -136,4 +136,4 @@ def get_size_analysis_response(
 
 
 def get_size_analysis_error_response(error: SizeAnalysisError) -> Response:
-    return Response({"error": error.message}, status=error.status_code)
+    return Response({"detail": error.message}, status=error.status_code)
