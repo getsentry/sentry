@@ -298,10 +298,13 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         )
 
         with pytest.raises(ValueError):
+            notification_uuid = str(uuid.uuid4())
+
             invocation = ActionInvocation(
                 event_data=self.event_data,
                 action=self.action,
                 detector=self.detector,
+                notification_uuid=notification_uuid,
             )
             self.handler.invoke_legacy_registry(invocation)
 
@@ -423,10 +426,12 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
 
     @mock.patch.object(TestHandler, "send_alert")
     def test_invoke_legacy_registry(self, mock_send_alert: mock.MagicMock) -> None:
+        notification_uuid = str(uuid.uuid4())
         invocation = ActionInvocation(
             event_data=self.event_data,
             action=self.action,
             detector=self.detector,
+            notification_uuid=notification_uuid,
         )
         self.handler.invoke_legacy_registry(invocation)
 
@@ -505,10 +510,12 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             group=self.group,
         )
 
+        notification_uuid = str(uuid.uuid4())
         invocation = ActionInvocation(
             event_data=event_data_with_activity,
             action=self.action,
             detector=self.detector,
+            notification_uuid=notification_uuid,
         )
         self.handler.invoke_legacy_registry(invocation)
 
@@ -577,10 +584,12 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             group=self.group,
         )
 
+        notification_uuid = str(uuid.uuid4())
         invocation = ActionInvocation(
             event_data=event_data_with_activity,
             action=self.action,
             detector=self.detector,
+            notification_uuid=notification_uuid,
         )
         self.handler.invoke_legacy_registry(invocation)
 
@@ -644,10 +653,13 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         )
 
         with pytest.raises(ValueError, match="Activity data is required for alert context"):
+            notification_uuid = str(uuid.uuid4())
+
             invocation = ActionInvocation(
                 event_data=event_data_with_activity,
                 action=self.action,
                 detector=self.detector,
+                notification_uuid=notification_uuid,
             )
             self.handler.invoke_legacy_registry(invocation)
 
@@ -670,9 +682,12 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         with pytest.raises(
             TypeError
         ):  # MetricIssueEvidenceData will raise TypeError for missing args
+            notification_uuid = str(uuid.uuid4())
+
             invocation = ActionInvocation(
                 event_data=event_data_with_activity,
                 action=self.action,
                 detector=self.detector,
+                notification_uuid=notification_uuid,
             )
             self.handler.invoke_legacy_registry(invocation)

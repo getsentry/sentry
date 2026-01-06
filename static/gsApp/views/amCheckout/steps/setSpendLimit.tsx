@@ -9,11 +9,11 @@ import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import StepHeader from 'getsentry/views/amCheckout/components/stepHeader';
 import ReserveAdditionalVolume from 'getsentry/views/amCheckout/steps/reserveAdditionalVolume';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
+import SpendLimitSettings from 'getsentry/views/spendLimits/spendLimitSettings';
 import {
   getTotalBudget,
   parseOnDemandBudgetsFromSubscription,
-} from 'getsentry/views/onDemandBudgets/utils';
-import SpendLimitSettings from 'getsentry/views/spendLimits/spendLimitSettings';
+} from 'getsentry/views/spendLimits/utils';
 
 function SetSpendLimit({
   activePlan,
