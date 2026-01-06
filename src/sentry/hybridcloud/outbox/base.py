@@ -233,7 +233,6 @@ class ControlOutboxProducingModel(Model):
 
     @contextlib.contextmanager
     def _maybe_prepare_outboxes(self, *, outbox_before_super: bool) -> Generator[None]:
-        from sentry import options
         from sentry.hybridcloud.models.outbox import outbox_context
 
         with outbox_context(
@@ -249,8 +248,7 @@ class ControlOutboxProducingModel(Model):
             if outbox_before_super:
                 yield
 
-        has_async_flush = options.get("api-token-async-flush")
-        if not self.default_flush and self.enqueue_after_flush and has_async_flush:
+        if not self.default_flush and self.enqueue_after_flush:
             transaction.on_commit(
                 lambda: self._schedule_async_replication(saved_outboxes),
                 using=router.db_for_write(type(self)),
