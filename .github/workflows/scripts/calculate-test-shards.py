@@ -38,19 +38,18 @@ def collect_test_count():
         match = re.search(r"(\d+) tests? collected", result.stdout + result.stderr)
         if match:
             count = int(match.group(1))
-            print(f"✓ Collected {count} tests", file=sys.stderr)
+            print(f"Collected {count} tests", file=sys.stderr)
             return count
 
         # If no match, check if pytest failed
         if result.returncode != 0:
             print(
-                f"✗ Pytest collection failed (exit {result.returncode})",
+                f"Pytest collection failed (exit {result.returncode})",
                 file=sys.stderr,
             )
             print(result.stderr, file=sys.stderr)
             return None
 
-        # Edge case: no tests found
         print("No tests collected", file=sys.stderr)
         return 0
 
@@ -91,6 +90,7 @@ def calculate_shards(test_count):
 def main():
     test_count = collect_test_count()
     shard_count = calculate_shards(test_count)
+    # Generate a JSON array of shard indices [0, 1, 2, ..., shard_count-1]
     shard_indices = json.dumps(list(range(shard_count)))
 
     github_output = os.getenv("GITHUB_OUTPUT")

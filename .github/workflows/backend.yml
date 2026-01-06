@@ -92,8 +92,8 @@ jobs:
         with:
           mode: backend-ci
 
-      - name: Calculate optimal shard count
-        id: calculate
+      - name: Calculate test shards
+        id: calculate-shards
         run: |
           python3 .github/workflows/scripts/calculate-test-shards.py
 
