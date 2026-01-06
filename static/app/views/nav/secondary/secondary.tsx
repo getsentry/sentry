@@ -379,7 +379,7 @@ interface ItemProps extends LinkProps {
   layout: NavLayout;
 }
 
-export const Item = styled(Link)<ItemProps>`
+const Item = styled(Link)<ItemProps>`
   display: flex;
   gap: ${space(0.75)};
   justify-content: center;
