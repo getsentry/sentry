@@ -34,6 +34,7 @@ import typescript from 'typescript-eslint';
 
 // eslint-disable-next-line boundaries/element-types
 import * as sentryScrapsPlugin from './static/eslint/eslintPluginScraps/index.mjs';
+// eslint-disable-next-line boundaries/element-types
 import * as sentryPlugin from './static/eslint/eslintPluginSentry/index.mjs';
 
 invariant(react.configs.flat, 'For typescript');
