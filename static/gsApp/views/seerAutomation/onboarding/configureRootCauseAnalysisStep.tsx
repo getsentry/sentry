@@ -237,9 +237,11 @@ export function ConfigureRootCauseAnalysisStep() {
             <PanelDescription>
               <Text bold>{t('Root Cause Analysis')}</Text>
               <p>
-                {t(
-                  'For all projects added below, Seer will automatically analyze highly actionable issues, and create a root cause analysis and proposed solution without a user needing to prompt it. '
-                )}
+                <Text variant="muted">
+                  {t(
+                    'For all projects added below, Seer will automatically analyze highly actionable issues, and create a root cause analysis and proposed solution without a user needing to prompt it. '
+                  )}
+                </Text>
               </p>
             </PanelDescription>
 
