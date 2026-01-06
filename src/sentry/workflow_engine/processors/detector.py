@@ -308,12 +308,12 @@ def _get_detector_for_event(event: GroupEvent) -> Detector:
     issue_occurrence = event.occurrence
 
     try:
-        if issue_occurrence is None or event.group.issue_type == ErrorGroupType:
-            detector = Detector.get_error_detector_for_project(event.group.project_id)
-        else:
+        if issue_occurrence is not None:
             detector = Detector.objects.get(
                 id=issue_occurrence.evidence_data.get("detector_id", None)
             )
+        else:
+            detector = Detector.get_error_detector_for_project(event.group.project_id)
     except Detector.DoesNotExist:
         metrics.incr("workflow_engine.detectors.error")
         detector_id = (
