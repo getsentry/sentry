@@ -86,15 +86,13 @@ class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
             )
         )
 
-        artifact_ids = [str(artifact.id) for artifact in artifacts_to_delete]
-
         try:
             result = delete_artifact_and_related_objects(artifacts_to_delete)
             return Response(
                 {
                     "success": True,
                     "message": f"Successfully deleted {result.artifacts_deleted} artifacts.",
-                    "artifact_ids": artifact_ids,
+                    "artifact_ids": [str(artifact.id) for artifact in artifacts_to_delete],
                     "files_deleted": result.files_deleted,
                     "size_metrics_deleted": result.size_metrics_deleted,
                     "installable_artifacts_deleted": result.installable_artifacts_deleted,
@@ -105,7 +103,7 @@ class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
             logger.exception(
                 "preprod_artifact.admin_batch_delete.artifacts_delete_failed",
                 extra={
-                    "artifact_ids": artifact_ids,
+                    "artifact_ids": preprod_artifact_ids,
                     "user_id": request.user.id,
                     "error": str(e),
                 },
