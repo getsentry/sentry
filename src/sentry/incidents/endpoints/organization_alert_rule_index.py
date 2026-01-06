@@ -224,8 +224,14 @@ class OrganizationOnDemandRuleStatsEndpoint(OrganizationEndpoint):
                 {"detail": "Missing required parameter 'project_id'"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        project_id_int = int(project_id)
+        if project_id_int < 0:
+            return Response(
+                {"detail": "Invalid project_id"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        projects = self.get_projects(request, organization, project_ids={int(project_id)})
+        projects = self.get_projects(request, organization, project_ids={project_id_int})
         project = projects[0]
         enabled_features = on_demand_metrics_feature_flags(organization)
         prefilling = "organizations:on-demand-metrics-prefill" in enabled_features

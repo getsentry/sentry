@@ -94,3 +94,11 @@ class OrganizationOnDemandRuleStatsEndpointTest(BaseAlertRuleSerializerTest, API
             self.get_error_response(
                 self.organization.slug, project_id=other_project.id, status_code=403
             )
+
+    def test_negative_project_id_rejected(self) -> None:
+        """Regression test: project_id=-1 (ALL_ACCESS_PROJECT_ID) should be rejected."""
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug, project_id=-1, status_code=400
+            )
+            assert response.data["detail"] == "Invalid project_id"
