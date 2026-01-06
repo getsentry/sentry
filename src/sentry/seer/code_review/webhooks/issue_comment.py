@@ -15,9 +15,10 @@ from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.utils import metrics
 
-from ..permissions import has_code_review_enabled
+from ..utils import _get_target_commit_sha
 
 logger = logging.getLogger(__name__)
 
@@ -99,15 +100,14 @@ def handle_issue_comment_event(
     comment_id = comment.get("id")
     comment_body = comment.get("body")
 
-    if not has_code_review_enabled(organization):
-        return
-
     if not is_pr_review_command(comment_body or ""):
         return
 
     if not options.get("github.webhook.issue-comment"):
         if comment_id:
             _add_eyes_reaction_to_comment(integration, organization, repo, str(comment_id))
+
+        target_commit_sha = _get_target_commit_sha(github_event, event, repo, integration)
 
         from .task import schedule_task
 
@@ -116,4 +116,6 @@ def handle_issue_comment_event(
             event=event,
             organization=organization,
             repo=repo,
+            target_commit_sha=target_commit_sha,
+            trigger=CodeReviewTrigger.ON_COMMAND_PHRASE,
         )

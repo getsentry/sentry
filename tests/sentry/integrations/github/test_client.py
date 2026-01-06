@@ -463,6 +463,37 @@ class GitHubApiClientTest(TestCase):
         sha = self.github_client.get_merge_commit_sha_from_commit(repo=self.repo, sha=commit_sha)
         assert sha is None
 
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_pull_request(self, get_jwt) -> None:
+        pull_number = 42
+        pr_data = {
+            "number": pull_number,
+            "title": "Test PR",
+            "state": "open",
+            "head": {
+                "sha": "abc123def456",
+                "ref": "feature-branch",
+            },
+            "base": {
+                "sha": "789xyz",
+                "ref": "main",
+            },
+            "user": {"login": "testuser"},
+        }
+        responses.add(
+            responses.GET,
+            f"https://api.github.com/repos/{self.repo.name}/pulls/{pull_number}",
+            json=pr_data,
+        )
+
+        result = self.github_client.get_pull_request(repo=self.repo.name, pull_number=pull_number)
+        assert result["number"] == pull_number
+        assert result["title"] == "Test PR"
+        assert result["state"] == "open"
+        assert result["head"]["sha"] == "abc123def456"
+        assert result["base"]["ref"] == "main"
+
 
 @control_silo_test
 class GithubProxyClientTest(TestCase):

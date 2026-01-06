@@ -15,18 +15,14 @@ import {
   getReplayExpiresAtMs,
   LIVE_TOOLTIP_MESSAGE,
   LiveIndicator,
+  useLiveRefresh,
 } from 'sentry/components/replays/replayLiveIndicator';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
-import usePollReplayRecord from 'sentry/utils/replays/hooks/usePollReplayRecord';
-import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useReplaySummaryContext} from 'sentry/views/replays/detail/ai/replaySummaryContext';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 interface Props {
@@ -36,11 +32,7 @@ interface Props {
 export default function ReplayDetailsUserBadge({readerResult}: Props) {
   const organization = useOrganization();
   const replayRecord = readerResult.replayRecord;
-
-  const {slug: orgSlug} = organization;
-  const replayId = readerResult.replayId;
-
-  const queryClient = useQueryClient();
+  const {shouldShowRefreshButton, doRefresh} = useLiveRefresh({replay: replayRecord});
 
   // Generate search query based on available user data
   const getUserSearchQuery = () => {
@@ -61,43 +53,9 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
 
   const searchQuery = getUserSearchQuery();
   const userDisplayName = replayRecord?.user.display_name || t('Anonymous User');
-  const projectSlug = useReplayProjectSlug({replayRecord});
-
-  const {startSummaryRequest} = useReplaySummaryContext();
-
-  const handleRefresh = async () => {
-    trackAnalytics('replay.details-refresh-clicked', {organization});
-    if (organization.features.includes('replay-refresh-background')) {
-      await queryClient.refetchQueries({
-        queryKey: [`/organizations/${orgSlug}/replays/${replayId}/`],
-        exact: true,
-        type: 'all',
-      });
-      await queryClient.invalidateQueries({
-        queryKey: [
-          `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/`,
-        ],
-        type: 'all',
-      });
-      startSummaryRequest();
-    } else {
-      window.location.reload();
-    }
-  };
 
   const isReplayExpired =
     Date.now() > getReplayExpiresAtMs(replayRecord?.started_at ?? null);
-
-  const polledReplayRecord = usePollReplayRecord({
-    enabled: !isReplayExpired,
-    replayId,
-    orgSlug,
-  });
-
-  const polledCountSegments = polledReplayRecord?.count_segments ?? 0;
-  const prevSegments = replayRecord?.count_segments ?? 0;
-
-  const showRefreshButton = polledCountSegments > prevSegments;
 
   const showLiveIndicator =
     !isReplayExpired && replayRecord && getLiveDurationMs(replayRecord.finished_at) > 0;
@@ -152,8 +110,8 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
                 title={t('Replay is outdated. Refresh for latest activity.')}
                 data-test-id="refresh-button"
                 size="xs"
-                onClick={handleRefresh}
-                style={{visibility: showRefreshButton ? 'visible' : 'hidden'}}
+                onClick={doRefresh}
+                style={{visibility: shouldShowRefreshButton ? 'visible' : 'hidden'}}
               >
                 <IconRefresh />
               </Button>

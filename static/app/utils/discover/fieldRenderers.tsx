@@ -118,6 +118,7 @@ export type RenderFunctionBaggage = {
   disableLazyLoad?: boolean;
   eventView?: EventView;
   projectSlug?: string;
+  projects?: Project[];
   /**
    * The trace item meta data for the trace item, which includes information needed to render annotated tooltip (eg. scrubbing reasons)
    */
@@ -1410,16 +1411,7 @@ function wrapFieldRendererInDashboardLink(
   dashboardFilters: DashboardFilters | undefined = undefined
 ): FieldFormatterRenderFunctionPartial {
   return function (data, baggage) {
-    const {organization, location} = baggage;
-    const value = data[field];
-    const dashboardUrl = getDashboardUrl(
-      field,
-      value,
-      organization,
-      location,
-      widget,
-      dashboardFilters
-    );
+    const dashboardUrl = getDashboardUrl(data, field, baggage, widget, dashboardFilters);
     if (dashboardUrl) {
       return <Link to={dashboardUrl}>{renderer(data, baggage)}</Link>;
     }
@@ -1428,13 +1420,13 @@ function wrapFieldRendererInDashboardLink(
 }
 
 function getDashboardUrl(
+  data: EventData,
   field: string,
-  value: any,
-  organization: Organization,
-  location: Location,
+  baggage: RenderFunctionBaggage,
   widget: Widget | undefined = undefined,
   dashboardFilters: DashboardFilters | undefined = undefined
 ) {
+  const {organization, location, projects} = baggage;
   if (widget?.widgetType && dashboardFilters) {
     // Table widget only has one query
     const dashboardLink = widget.queries[0]?.linkedDashboards?.find(
@@ -1451,7 +1443,9 @@ function getDashboardUrl(
 
       // Format the value as a proper filter condition string
       const mutableSearch = new MutableSearch('');
-      const formattedValue = mutableSearch.addFilterValueList(field, [value]).toString();
+      const formattedValue = mutableSearch
+        .addFilterValueList(field, [data[field]])
+        .toString();
 
       newTemporaryFilters.push({
         dataset: widget.widgetType,
@@ -1470,14 +1464,22 @@ function getDashboardUrl(
         'end',
       ]);
 
+      if ('project' in data) {
+        const projectId = projects?.find(project => project.slug === data.project)?.id;
+        if (projectId) {
+          filterParams.project = projectId;
+        }
+      }
+
       const url = `/organizations/${organization.slug}/dashboard/${dashboardLink.dashboardId}/?${qs.stringify(
         {
-          ...filterParams,
           [DashboardFilterKeys.GLOBAL_FILTER]: newTemporaryFilters.map(filter =>
             JSON.stringify(filter)
           ),
+          ...filterParams,
         }
       )}`;
+
       return url;
     }
   }

@@ -58,6 +58,7 @@ import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {useTrackAnalyticsOnSpanMigrationError} from 'sentry/views/dashboards/hooks/useTrackAnalyticsOnSpanMigrationError';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
@@ -522,7 +523,7 @@ function TableComponent({
   const location = useLocation();
   const navigate = useNavigate();
   const theme = useTheme();
-
+  const {projects} = useProjects();
   if (loading || !tableResults?.[0]) {
     // Align height to other charts.
     return <LoadingPlaceholder />;
@@ -606,6 +607,7 @@ function TableComponent({
             return {
               location,
               organization,
+              projects,
               theme,
               unit,
               eventView,
