@@ -7,7 +7,7 @@ import {Button} from 'sentry/components/core/button';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {loadPrismLanguage} from 'sentry/utils/prism';
+import {getPrismLanguage, loadPrismLanguage} from 'sentry/utils/prism';
 // eslint-disable-next-line no-restricted-imports
 import {darkTheme} from 'sentry/utils/theme/theme';
 
@@ -110,7 +110,8 @@ export function CodeBlock({
       return;
     }
 
-    if (!language) {
+    // Skip if no language or if language is not a valid Prism language (e.g. "text")
+    if (!language || !getPrismLanguage(language)) {
       return;
     }
 
