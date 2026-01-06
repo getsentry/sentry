@@ -112,7 +112,7 @@ export function NewViewEmptyState() {
               skipWrapper
               isHoverable
             >
-              <IconWarning color="subText" />
+              <IconWarning variant="muted" />
             </Tooltip>
           </CardHeading>
           <p>{t('Your personal saved searches.')}</p>

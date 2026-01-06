@@ -9,7 +9,8 @@ import {t, tct} from 'sentry/locale';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {getLabels} from 'sentry/views/preprod/utils/labelUtils';
 
-import type {PreprodBuildsDisplay} from './preprodBuildsDisplay';
+import {PreprodBuildsDisplay} from './preprodBuildsDisplay';
+import {PreprodBuildsDistributionTable} from './preprodBuildsDistributionTable';
 import {PreprodBuildsSizeTable} from './preprodBuildsSizeTable';
 
 interface PreprodBuildsTableProps {
@@ -26,6 +27,7 @@ interface PreprodBuildsTableProps {
 
 export function PreprodBuildsTable({
   builds,
+  display = PreprodBuildsDisplay.SIZE,
   isLoading,
   error,
   pageLinks,
@@ -34,6 +36,11 @@ export function PreprodBuildsTable({
   hasSearchQuery,
   showProjectColumn = false,
 }: PreprodBuildsTableProps) {
+  const isDistributionDisplay = display === PreprodBuildsDisplay.DISTRIBUTION;
+  const emptyStateDocUrl = isDistributionDisplay
+    ? 'https://docs.sentry.io/product/build-distribution/'
+    : 'https://docs.sentry.io/product/size-analysis/';
+
   const hasMultiplePlatforms = useMemo(() => {
     const platforms = new Set(builds.map(b => b.app_info?.platform).filter(Boolean));
     return platforms.size > 1;
@@ -43,7 +50,6 @@ export function PreprodBuildsTable({
     () => getLabels(builds[0]?.app_info?.platform ?? undefined, hasMultiplePlatforms),
     [builds, hasMultiplePlatforms]
   );
-
   let tableContent: React.ReactNode | undefined;
   if (isLoading) {
     tableContent = (
@@ -61,9 +67,7 @@ export function PreprodBuildsTable({
             ? t('No mobile builds found for your search')
             : tct('No mobile builds found, see our [link:documentation] for more info.', {
                 link: (
-                  <ExternalLink href="https://docs.sentry.io/product/size-analysis/">
-                    {t('Learn more')}
-                  </ExternalLink>
+                  <ExternalLink href={emptyStateDocUrl}>{t('Learn more')}</ExternalLink>
                 ),
               })}
         </Text>
@@ -73,14 +77,24 @@ export function PreprodBuildsTable({
 
   return (
     <Fragment>
-      <PreprodBuildsSizeTable
-        builds={builds}
-        content={tableContent}
-        labels={labels}
-        onRowClick={onRowClick}
-        organizationSlug={organizationSlug}
-        showProjectColumn={showProjectColumn}
-      />
+      {isDistributionDisplay ? (
+        <PreprodBuildsDistributionTable
+          builds={builds}
+          content={tableContent}
+          onRowClick={onRowClick}
+          organizationSlug={organizationSlug}
+          showProjectColumn={showProjectColumn}
+        />
+      ) : (
+        <PreprodBuildsSizeTable
+          builds={builds}
+          content={tableContent}
+          labels={labels}
+          onRowClick={onRowClick}
+          organizationSlug={organizationSlug}
+          showProjectColumn={showProjectColumn}
+        />
+      )}
       {pageLinks && <Pagination pageLinks={pageLinks} />}
     </Fragment>
   );

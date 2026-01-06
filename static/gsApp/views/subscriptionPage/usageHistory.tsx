@@ -16,7 +16,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconChevron, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -47,7 +46,7 @@ import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/componen
 
 import {StripedTable} from './styles';
 
-interface Props extends RouteComponentProps<unknown, unknown> {
+interface Props {
   subscription: Subscription;
 }
 

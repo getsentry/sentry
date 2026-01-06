@@ -19,23 +19,18 @@ import {
   IconWarning,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import type {InvoiceBase} from 'getsentry/types';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
-
-type Props = {
-  organization: Organization;
-} & RouteComponentProps<unknown, unknown>;
 
 enum ReceiptStatus {
   PAID = 'paid',
@@ -47,7 +42,8 @@ enum ReceiptStatus {
 /**
  * Invoice/Payment list view.
  */
-function PaymentHistory({organization}: Props) {
+function PaymentHistory() {
+  const organization = useOrganization();
   const location = useLocation();
 
   const {
@@ -211,4 +207,4 @@ function ReceiptGrid({
   );
 }
 
-export default withOrganization(PaymentHistory);
+export default PaymentHistory;
