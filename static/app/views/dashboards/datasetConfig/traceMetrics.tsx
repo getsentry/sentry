@@ -238,10 +238,10 @@ export const TraceMetricsConfig: DatasetConfig<
     const hasGroupings = new Set(widgetQuery.columns).size > 0;
 
     return data.timeSeries.map(timeSeries => {
-      // The function should always be defined when dealing with a successful
-      // time series response
       const func = parseFunction(timeSeries.yAxis);
       if (func) {
+        // We need to explicitly set the value unit for rate functions because
+        // the response does not include these units at the moment
         timeSeries.yAxis = `${func.name}(${func.arguments[1] ?? '…'})`;
         if (func.name === 'per_second') {
           timeSeries.meta.valueUnit = RateUnit.PER_SECOND;
@@ -255,7 +255,10 @@ export const TraceMetricsConfig: DatasetConfig<
           value: value.value ?? 0,
         })),
 
-        meta: timeSeries.meta,
+        meta: {
+          valueType: timeSeries.meta.valueType,
+          valueUnit: timeSeries.meta.valueUnit,
+        },
 
         // The series name needs to distinctively refer to the yAxis it belongs to
         // when multiple yAxes and groupings are present, otherwise the response

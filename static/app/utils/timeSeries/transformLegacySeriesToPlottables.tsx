@@ -30,16 +30,31 @@ export function transformLegacySeriesToPlottables(
     .map(series => {
       const unaliasedSeriesName =
         series.seriesName?.split(' : ').at(-1)?.trim() ?? series.seriesName;
-      const fieldType =
-        timeseriesResultsTypes?.[unaliasedSeriesName] ??
-        aggregateOutputType(unaliasedSeriesName);
-      const {valueType, valueUnit} = mapAggregationTypeToValueTypeAndUnit(
-        fieldType,
-        unaliasedSeriesName
-      );
+
+      // Prefer series.meta if available (set from new timeseries endpoint)
+      // Otherwise fall back to inferring from timeseriesResultsTypes or aggregateOutputType
+      let valueType: AggregationOutputType;
+      let valueUnit: string | null;
+
+      if (series.meta?.valueType && series.meta.valueUnit !== undefined) {
+        valueType = series.meta.valueType as AggregationOutputType;
+        valueUnit = series.meta.valueUnit;
+      } else {
+        // Fallback to old behavior for legacy data sources
+        const fieldType =
+          timeseriesResultsTypes?.[unaliasedSeriesName] ??
+          aggregateOutputType(unaliasedSeriesName);
+        const mapped = mapAggregationTypeToValueTypeAndUnit(
+          fieldType,
+          unaliasedSeriesName
+        );
+        valueType = mapped.valueType as AggregationOutputType;
+        valueUnit = mapped.valueUnit;
+      }
+
       const timeSeries = convertEventsStatsToTimeSeriesData(
         series.seriesName,
-        createEventsStatsFromSeries(series, valueType as AggregationOutputType, valueUnit)
+        createEventsStatsFromSeries(series, valueType, valueUnit)
       );
       return createPlottableFromTimeSeries(timeSeries[1], widget);
     })

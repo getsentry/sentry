@@ -33,7 +33,10 @@ export type Series = {
   lineStyle?: AxisPointerComponentOption['lineStyle'];
   // https://echarts.apache.org/en/option.html#series-line.z
   markLine?: LineSeriesOption['markLine'];
-  meta?: TimeSeriesMeta;
+  meta?: {
+    valueType: TimeSeriesMeta['valueType'];
+    valueUnit: TimeSeriesMeta['valueUnit'];
+  };
   stack?: string;
   // https://echarts.apache.org/en/option.html#series-line.stack
   symbol?: LineSeriesOption['symbol'];
