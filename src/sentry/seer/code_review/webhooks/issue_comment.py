@@ -18,7 +18,6 @@ from sentry.models.repository import Repository
 from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.utils import metrics
 
-from ..permissions import has_code_review_enabled
 from ..utils import _get_target_commit_sha
 
 logger = logging.getLogger(__name__)
@@ -100,9 +99,6 @@ def handle_issue_comment_event(
     comment = event.get("comment", {})
     comment_id = comment.get("id")
     comment_body = comment.get("body")
-
-    if not has_code_review_enabled(organization):
-        return
 
     if not is_pr_review_command(comment_body or ""):
         return

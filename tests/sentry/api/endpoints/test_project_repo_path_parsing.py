@@ -180,6 +180,13 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
         assert resp.status_code == 400, resp.content
         assert resp.data == {"sourceUrl": ["Enter a valid URL."]}
 
+    def test_malformed_source_url_empty_source_path(self) -> None:
+        source_url = "https://github.com/getsentry/sentry/tree/master/src/sentry/api/endpoints/project_stacktrace_link.py"
+        stack_path = "sentry/api/endpoints/project_stacktrace_link.py"
+        resp = self.make_post(source_url, stack_path)
+        assert resp.status_code == 400, resp.content
+        assert resp.data == {"detail": "Could not determine code mapping from provided paths"}
+
     def test_wrong_file(self) -> None:
         source_url = "https://github.com/getsentry/sentry/blob/master/src/sentry/api/endpoints/project_releases.py"
         stack_path = "sentry/api/endpoints/project_stacktrace_link.py"

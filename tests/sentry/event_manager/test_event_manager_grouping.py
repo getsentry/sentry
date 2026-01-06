@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Generator
 from contextlib import contextmanager
+from itertools import permutations
 from time import time
 from typing import Any
 from unittest import mock
@@ -14,16 +15,22 @@ from sentry import audit_log
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG, SENTRY_GROUPING_CONFIG_TRANSITION_DURATION
 from sentry.event_manager import _get_updated_group_title
 from sentry.eventtypes.base import DefaultEvent
+from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.grouping.ingest.caching import (
     get_grouphash_existence_cache_key,
     get_grouphash_object_cache_key,
 )
 from sentry.grouping.ingest.config import update_or_set_grouping_config_if_needed
-from sentry.grouping.ingest.hashing import _get_cache_expiry, get_or_create_grouphashes
+from sentry.grouping.ingest.hashing import (
+    _get_cache_expiry,
+    find_grouphash_with_group,
+    get_or_create_grouphashes,
+)
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
+from sentry.models.grouptombstone import GroupTombstone
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.services.eventstore.models import Event
@@ -70,6 +77,43 @@ class EventManagerGroupingTest(TestCase):
         )
 
         assert event.group_id != event2.group_id
+
+    def test_obeys_delete_and_discard_simple(self) -> None:
+        event1 = save_new_event({"message": "Dogs are great!"}, self.project)
+        group = event1.group
+        assert group
+
+        # This mimics what happens when a delete-and-discard request is sent to the group update
+        # endpoint
+        tombstone = GroupTombstone.objects.create(
+            previous_group_id=group.id,
+            project_id=self.project.id,
+        )
+        GroupHash.objects.filter(group=group).update(group=None, group_tombstone_id=tombstone.id)
+
+        with pytest.raises(HashDiscarded):
+            save_new_event({"message": "Dogs are great!"}, self.project)
+
+    @pytest.mark.xfail(
+        reason="bug will be fixed in https://github.com/getsentry/sentry/pull/105709", strict=True
+    )
+    def test_obeys_delete_and_discard_regardless_of_other_hashes(self) -> None:
+        project = self.project
+
+        grouphash_with_group = GroupHash(group_id=3, project_id=project.id)
+        grouphash_without_group = GroupHash(group_id=None, project_id=project.id)
+        delete_and_discarded_grouphash = GroupHash(
+            group_id=None, project_id=project.id, group_tombstone_id=5
+        )
+
+        # Hashes are passed to `find_grouphash_with_group` in priority order. Try all the different
+        # possible orderings to prove that even if a delete-and-discarded hash is lower priority
+        # than the others, we'll still find it and obey it.
+        for ordered_grouphashes in permutations(
+            [grouphash_with_group, grouphash_without_group, delete_and_discarded_grouphash]
+        ):
+            with pytest.raises(HashDiscarded):
+                find_grouphash_with_group(ordered_grouphashes)
 
     def test_puts_events_with_only_partial_message_match_in_different_groups(self) -> None:
         # We had a regression which caused the default hash to just be 'event.message' instead of
