@@ -425,7 +425,7 @@ class SentryAppCreator:
             slug = f"{slug}-{default_uuid()[:UUID_CHARS_IN_SLUG]}"
 
         # validate globally unique slug
-        queryset = SentryApp.with_deleted.filter(slug=slug)
+        queryset = SentryApp.objects.filter(slug=slug)
 
         if queryset.exists():
             # In reality, the slug is taken but it's determined by the name field

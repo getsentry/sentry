@@ -24,13 +24,11 @@ class SentryAppStatsEndpoint(SentryAppBaseEndpoint, StatsMixin):
 
         query_args = self._parse_args(request)
 
-        installations = SentryAppInstallation.with_deleted.filter(
+        installations = SentryAppInstallation.objects.filter(
             sentry_app_id=sentry_app.id, date_added__range=(query_args["start"], query_args["end"])
         ).values_list("date_added", "date_deleted", "organization_id")
-        install_count = SentryAppInstallation.with_deleted.filter(
-            sentry_app_id=sentry_app.id
-        ).count()
-        uninstall_count = SentryAppInstallation.with_deleted.filter(
+        install_count = SentryAppInstallation.objects.filter(sentry_app_id=sentry_app.id).count()
+        uninstall_count = SentryAppInstallation.objects.filter(
             sentry_app_id=sentry_app.id, date_deleted__isnull=False
         ).count()
 
