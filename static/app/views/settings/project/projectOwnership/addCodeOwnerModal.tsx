@@ -343,7 +343,7 @@ const NoSourceFileBody = styled(PanelBody)`
 const SourceFileBody = styled(PanelBody)`
   display: grid;
   padding: 12px;
-  grid-template-columns: 30px 1fr 100px;
+  grid-template-columns: 30px 1fr auto;
   align-items: center;
 `;
 
