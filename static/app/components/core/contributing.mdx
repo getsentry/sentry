@@ -108,13 +108,15 @@ All `.mdx` files should include frontmatter with metadata about the component. T
 title: My Button
 description: MyButton is a clickable element that triggers an action.
 source: 'sentry/components/myButton'
-# Optionally include links to Figma, source code, and accessibility resources:
+# Optionally include links to Figma, source code, accessibility resources, and further resources:
 resources:
   figma: https://www.figma.com/design/...
   js: https://github.com/getsentry/sentry/...
   a11y:
     WCAG 1.4.3: https://www.w3.org/TR/WCAG22/#contrast-minimum
     WAI-ARIA Button Practices: https://www.w3.org/WAI/ARIA/apg/patterns/button/
+  reference:
+    DTCG Glossary: https://www.designtokens.org/glossary/
 ---
 ```
 
@@ -128,7 +130,7 @@ resources:
 - `layout`: Use `document` for principle/pattern pages
 - `source`: Path to the component source code
 - `status`: Use `in-progress` for incomplete documentation
-- `resources`: Links to related resources (Figma designs, source code, accessibility references)
+- `resources`: Links to related resources (valid keys are `figma`, `js`, `a11y`, and `reference`)
 
 ### Auto-Generated API Documentation
 
