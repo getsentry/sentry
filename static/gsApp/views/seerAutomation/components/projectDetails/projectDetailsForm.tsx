@@ -17,25 +17,14 @@ interface Props {
 }
 
 export default function ProjectDetailsForm({canWrite, project, preference}: Props) {
-  const {mutate: updateProject} = useUpdateProject(project);
-  const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
+  const {mutateAsync: updateProject} = useUpdateProject(project);
+  const {mutateAsync: updateProjectSeerPreferences} =
+    useUpdateProjectSeerPreferences(project);
 
   const formModel = useSeerSettingsFormModel({
-    updateProject: useCallback(
-      data =>
-        new Promise<void>((resolve, reject) =>
-          updateProject(data, {onSuccess: () => resolve(), onError: reject})
-        ),
-      [updateProject]
-    ),
+    updateProject,
     updateProjectSeerPreferences: useCallback(
-      data =>
-        new Promise<void>((resolve, reject) =>
-          updateProjectSeerPreferences(
-            {...preference, ...data},
-            {onSuccess: () => resolve(), onError: reject}
-          )
-        ),
+      data => updateProjectSeerPreferences({...preference, ...data}),
       [preference, updateProjectSeerPreferences]
     ),
   });

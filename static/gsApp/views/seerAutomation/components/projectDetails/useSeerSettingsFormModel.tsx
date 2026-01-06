@@ -1,4 +1,4 @@
-import {useEffect, useRef} from 'react';
+import {useEffect, useState} from 'react';
 
 import type {APIRequestMethod} from 'sentry/api';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
@@ -6,24 +6,26 @@ import FormModel, {type FormOptions} from 'sentry/components/forms/model';
 import type {Project} from 'sentry/types/project';
 
 interface Props {
-  updateProject: (data: Partial<Project>) => Promise<void>;
-  updateProjectSeerPreferences: (data: Partial<ProjectSeerPreferences>) => Promise<void>;
+  updateProject: (data: Partial<Project>) => Promise<unknown>;
+  updateProjectSeerPreferences: (
+    data: Partial<ProjectSeerPreferences>
+  ) => Promise<unknown>;
 }
 
 export default function useSeerSettingsFormModel({
   updateProject,
   updateProjectSeerPreferences,
 }: Props) {
-  const formModel = useRef<SeerSettingsFormModel>(
-    new SeerSettingsFormModel({}, {updateProject, updateProjectSeerPreferences})
+  const [formModel] = useState(
+    () => new SeerSettingsFormModel({}, {updateProject, updateProjectSeerPreferences})
   );
 
   useEffect(() => {
-    formModel.current.updateProject = updateProject;
-    formModel.current.updateProjectSeerPreferences = updateProjectSeerPreferences;
-  }, [updateProject, updateProjectSeerPreferences]);
+    formModel.updateProject = updateProject;
+    formModel.updateProjectSeerPreferences = updateProjectSeerPreferences;
+  }, [formModel, updateProject, updateProjectSeerPreferences]);
 
-  return formModel.current;
+  return formModel;
 }
 
 class SeerSettingsFormModel extends FormModel {
