@@ -1,10 +1,15 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import GroupStore from 'sentry/stores/groupStore';
+import MemberListStore from 'sentry/stores/memberListStore';
+import TeamStore from 'sentry/stores/teamStore';
 import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
 
 import GroupList from './groupList';
@@ -37,6 +42,8 @@ describe('GroupList', () => {
 
   afterEach(() => {
     GroupStore.reset();
+    TeamStore.reset();
+    MemberListStore.reset();
   });
 
   it('renders the group list', async () => {
@@ -179,5 +186,52 @@ describe('GroupList', () => {
     });
 
     expect(router.location.query.page).toBe('1');
+  });
+
+  it('updates the assignee when changed', async () => {
+    const user = UserFixture({id: '2', name: 'Jane Doe', email: 'jane@example.com'});
+    const team = TeamFixture({id: '1', slug: 'cool-team'});
+    const project = ProjectFixture({teams: [team]});
+    const groupWithProject = GroupFixture({project, assignedTo: null});
+
+    TeamStore.loadInitialData([team]);
+    MemberListStore.loadInitialData([user]);
+
+    MockApiClient.addMockResponse({url: membersUrl, body: [MemberFixture({user})]});
+    MockApiClient.addMockResponse({
+      url: issuesUrl,
+      method: 'GET',
+      body: [groupWithProject],
+    });
+
+    const assignMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${groupWithProject.id}/`,
+      method: 'PUT',
+      body: {...groupWithProject, assignedTo: {...user, type: 'user'}},
+    });
+
+    render(<GroupList numPlaceholderRows={1} queryParams={defaultQueryParams} />, {
+      organization,
+      initialRouterConfig,
+    });
+
+    expect(await screen.findByText('RequestError')).toBeInTheDocument();
+
+    // Open the assignee dropdown and select a user
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Modify issue assignee'})
+    );
+    await userEvent.click(await screen.findByRole('option', {name: /Jane Doe/}));
+
+    // Should make the API call and display the new assignee
+    await waitFor(() => {
+      expect(assignMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/issues/${groupWithProject.id}/`,
+        expect.objectContaining({
+          data: {assignedTo: 'user:2', assignedBy: 'assignee_selector'},
+        })
+      );
+    });
+    expect(await screen.findByTestId('assigned-avatar')).toBeInTheDocument();
   });
 });

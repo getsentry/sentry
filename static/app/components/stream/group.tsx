@@ -84,6 +84,7 @@ type Props = {
   group?: Group;
   hasGuideAnchor?: boolean;
   memberList?: User[];
+  onAssigneeChange?: (newAssignee: AssignableEntity | null) => void;
   onPriorityChange?: (newPriority: PriorityLevel) => void;
   query?: string;
   queryFilterDescription?: string;
@@ -286,6 +287,7 @@ function StreamGroup({
   useTintRow = true,
   showLastTriggered = false,
   onPriorityChange,
+  onAssigneeChange,
 }: Props) {
   const organization = useOrganization();
   const navigate = useNavigate();
@@ -349,6 +351,7 @@ function StreamGroup({
           assigned_type: newAssignee.type,
         });
       }
+      onAssigneeChange?.(newAssignee);
     },
     onError: () => {
       addErrorMessage('Failed to update assignee');

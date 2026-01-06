@@ -2,6 +2,7 @@ import {Fragment, useCallback, useEffect, useEffectEvent, useMemo, useState} fro
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
+import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingError from 'sentry/components/loadingError';
 import Pagination from 'sentry/components/pagination';
@@ -15,8 +16,13 @@ import StreamGroup, {
 } from 'sentry/components/stream/group';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types/group';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import type {Group, PriorityLevel} from 'sentry/types/group';
+import {
+  setApiQueryData,
+  useApiQuery,
+  useQueryClient,
+  type ApiQueryKey,
+} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -179,6 +185,11 @@ function GroupList({
     [parsedQuery]
   );
 
+  const queryClient = useQueryClient();
+  const queryKey: ApiQueryKey = [
+    endpointPath ?? `/organizations/${organization.slug}/issues/`,
+    {query: computedQueryParams},
+  ];
   const {
     data: groupsData,
     dataUpdatedAt,
@@ -188,16 +199,47 @@ function GroupList({
     error: queryError,
     getResponseHeader,
     refetch,
-  } = useApiQuery<Group[]>(
-    [
-      endpointPath ?? `/organizations/${organization.slug}/issues/`,
-      {query: computedQueryParams},
-    ],
-    {
-      staleTime: 0,
-      enabled: !hasLogicBoolean,
-    }
-  );
+  } = useApiQuery<Group[]>(queryKey, {
+    staleTime: 0,
+    enabled: !hasLogicBoolean,
+  });
+
+  const updateQueryCacheAssigneeChange = (
+    groupId: string,
+    newAssignee: AssignableEntity | null
+  ) => {
+    setApiQueryData<Group[]>(queryClient, queryKey, oldData => {
+      return oldData?.map(group => {
+        if (group.id === groupId) {
+          return {
+            ...group,
+            assignedTo: newAssignee
+              ? {
+                  id: newAssignee.id,
+                  name: newAssignee.assignee.name,
+                  type: newAssignee.type,
+                }
+              : null,
+          };
+        }
+        return group;
+      });
+    });
+  };
+
+  const updateQueryCachePriorityChange = (
+    groupId: string,
+    newPriority: PriorityLevel
+  ) => {
+    setApiQueryData<Group[]>(queryClient, queryKey, oldData => {
+      return oldData?.map(group => {
+        if (group.id === groupId) {
+          return {...group, priority: newPriority};
+        }
+        return group;
+      });
+    });
+  };
 
   const pageLinks = getResponseHeader?.('Link') ?? null;
   const groups = groupsData ?? [];
@@ -307,6 +349,12 @@ function GroupList({
                     queryFilterDescription={queryFilterDescription}
                     source={source}
                     query={query}
+                    onAssigneeChange={newAssignee =>
+                      updateQueryCacheAssigneeChange(group.id, newAssignee)
+                    }
+                    onPriorityChange={newPriority =>
+                      updateQueryCachePriorityChange(group.id, newPriority)
+                    }
                   />
                 );
               })}
