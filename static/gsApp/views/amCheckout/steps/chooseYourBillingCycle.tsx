@@ -29,11 +29,8 @@ function ChooseYourBillingCycle({
 
   let previousPlanPrice = 0;
   return (
-    <Flex direction="column" gap="xl">
-      <StepHeader
-        stepNumber={stepNumber}
-        title={t('Pay monthly or yearly, your choice')}
-      />
+    <Flex direction="column" gap="xl" id={`step${stepNumber}`}>
+      <StepHeader title={t('Pay monthly or yearly, your choice')} />
       <Grid columns={{xs: '1fr', md: `repeat(${intervalOptions.length}, 1fr)`}} gap="xl">
         {intervalOptions.map(plan => {
           const isSelected = plan.id === formData.plan;

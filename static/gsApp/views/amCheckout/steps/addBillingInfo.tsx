@@ -29,12 +29,11 @@ function AddBillingInformation({
   const showEditBillingInfo = hasBillingInfo(billingDetails, subscription, false);
 
   return (
-    <Flex direction="column" gap="xl">
+    <Flex direction="column" gap="xl" id={`step${stepNumber}`}>
       {billingDetailsError && (
         <Alert variant="danger">{billingDetailsError.message}</Alert>
       )}
       <StepHeader
-        stepNumber={stepNumber}
         title={
           showEditBillingInfo
             ? t('Edit billing information')
