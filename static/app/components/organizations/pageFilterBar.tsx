@@ -76,8 +76,6 @@ except in mobile */
     width: max-content;
   `}
 
-  /* Code related to Chonk styles */
-
   display: flex;
   position: relative;
 

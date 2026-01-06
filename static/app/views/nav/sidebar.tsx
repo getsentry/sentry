@@ -123,7 +123,7 @@ const SidebarHeader = styled('header')<{isSuperuser: boolean}>`
   margin-bottom: ${space(0.5)};
 `;
 
-const ChonkSuperuserBadgeContainer = styled('div')`
+const SuperuserBadge = styled('div')`
   position: absolute;
   top: -${p => p.theme.space.lg};
   z-index: ${p => p.theme.zIndex.initial};
@@ -131,5 +131,3 @@ const ChonkSuperuserBadgeContainer = styled('div')`
   width: ${PRIMARY_SIDEBAR_WIDTH}px;
   background: ${p => p.theme.colors.chonk.red400};
 `;
-
-const SuperuserBadge = ChonkSuperuserBadgeContainer;
