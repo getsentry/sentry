@@ -10,7 +10,6 @@ import FormModel from 'sentry/components/forms/model';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import AutomationBuilder from 'sentry/views/automations/components/automationBuilder';
@@ -63,26 +62,22 @@ function FormBody({closeDrawer, model}: {closeDrawer: () => void; model: FormMod
     <DrawerBody>
       <Stack direction="column" gap="xl">
         <Flex direction="column" gap="lg">
-          <Section>
+          <Stack gap="md">
             <AutomationBuilder />
-          </Section>
-          <Section>
-            <ActionIntervalSelectField
-              label={t('Action Interval')}
-              help={t('Perform the actions above this often for an issue.')}
-            />
-          </Section>
-        </Flex>
-        <Section>
-          <EmbeddedTextField
-            required
-            name="name"
-            label={t('Alert Name')}
-            placeholder={t('Notify via Email')}
-            onKeyDown={() => setHasSetAutomationName(true)}
-            inline={false}
+          </Stack>
+          <ActionIntervalSelectField
+            label={t('Action Interval')}
+            help={t('Perform the actions above this often for an issue.')}
           />
-        </Section>
+        </Flex>
+        <EmbeddedTextField
+          required
+          name="name"
+          label={t('Alert Name')}
+          placeholder={t('Notify via Email')}
+          onKeyDown={() => setHasSetAutomationName(true)}
+          inline={false}
+        />
         <Flex justify="end" gap="md">
           <Button type="button" onClick={closeDrawer}>
             {t('Cancel')}
@@ -190,12 +185,6 @@ export function AutomationBuilderDrawerForm({
     </Form>
   );
 }
-
-const Section = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
 
 const EmbeddedTextField = styled(TextField)`
   padding: 0;
