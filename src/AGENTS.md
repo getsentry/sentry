@@ -626,7 +626,6 @@ print(silo_mode_delegation.get_current_mode())
 - `.github/`: CI/CD workflows
 - `devservices/config.yml`: Local service configuration
 - `.pre-commit-config.yaml`: Pre-commit hooks configuration
-- `codecov.yml`: Code coverage configuration
 
 ## File Location Map
 
