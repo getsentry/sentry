@@ -1,0 +1,349 @@
+---
+title: Input
+description: A basic text input component for forms and user input, with support for various sizes, states, and autosizing functionality.
+source: 'sentry/components/core/input'
+resources:
+  figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=384-2119&t=DdXZ7WIgTdURJlRv-4
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/input/input.tsx
+  a11y:
+    WCAG 2.1.1: https://www.w3.org/TR/WCAG22/#keyboard
+    WCAG 2.4.7: https://www.w3.org/TR/WCAG22/#focus-visible
+    WCAG 3.3.1: https://www.w3.org/TR/WCAG22/#error-identification
+    WCAG 3.3.2: https://www.w3.org/TR/WCAG22/#labels-or-instructions
+    WAI-ARIA Text Input: https://www.w3.org/WAI/ARIA/apg/patterns/textbox/
+---
+
+import {Fragment, useState} from 'react';
+import styled from '@emotion/styled';
+
+import {Input} from 'sentry/components/core/input';
+import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
+import * as Storybook from 'sentry/stories';
+import {space} from 'sentry/styles/space';
+
+import documentation from '!!type-loader!@sentry/scraps/input';
+
+export {documentation};
+
+`<Input>` is a fundamental form component for capturing text input from users. It provides a consistent, accessible interface for text entry with support for various sizes, states, and behaviors.
+
+Use `<Input>` when you need a simple text input field. For inputs with leading or trailing elements (like icons or buttons), use `<InputGroup>` or `<InputControl>` instead.
+
+```jsx
+<Input placeholder="Enter your name" defaultValue="" />
+```
+
+## Sizes
+
+The `<Input>` component comes in three sizes: `md` (default), `sm`, and `xs`. Choose the size that matches your layout and content hierarchy.
+
+export function SizesDemo() {
+  return (
+    <Grid>
+      <Label>
+        size="md" (default)
+        <Input size="md" defaultValue="" />
+      </Label>
+      <Label>
+        size="sm"
+        <Input size="sm" defaultValue="value" />
+      </Label>
+      <Label>
+        size="xs"
+        <Input size="xs" defaultValue="" placeholder="placeholder" />
+      </Label>
+    </Grid>
+  );
+}
+
+<Storybook.Demo>
+  <SizesDemo />
+</Storybook.Demo>
+
+```jsx
+<Input size="md" defaultValue="" />
+<Input size="sm" defaultValue="value" />
+<Input size="xs" defaultValue="" placeholder="placeholder" />
+```
+
+## States
+
+Inputs support three non-editable states: `disabled`, `readOnly`, and `aria-disabled`. These states prevent user input but communicate different meanings:
+
+- **disabled**: Input is completely non-interactive and not submitted with forms. Styled with reduced opacity.
+- **readOnly**: Input is non-editable but focusable, selectable, and submitted with forms. Styled like a disabled field.
+- **aria-disabled**: Styled like a disabled field but remains fully interactive (focusable, selectable, can trigger events). Useful when you need to prevent input but maintain interactivity for other purposes.
+
+export function StatesDemo() {
+  const [disabledValue, setDisabledValue] = useState('this is disabled');
+  const [ariaDisabledValue, setAriaDisabledValue] = useState('this is aria-disabled');
+  const [readonlyValue, setReadonlyValue] = useState('this is readonly');
+  return (
+    <Grid>
+      <Label>
+        disabled
+        <Input
+          disabled
+          value={disabledValue}
+          onChange={e => setDisabledValue(e.target.value)}
+        />
+      </Label>
+      <Label>
+        aria-disabled
+        <Input
+          aria-disabled
+          value={ariaDisabledValue}
+          onChange={e => setAriaDisabledValue(e.target.value)}
+        />
+      </Label>
+      <Label>
+        readOnly
+        <Input
+          readOnly
+          value={readonlyValue}
+          onChange={e => setReadonlyValue(e.target.value)}
+        />
+      </Label>
+    </Grid>
+  );
+}
+
+<Storybook.Demo>
+  <StatesDemo />
+</Storybook.Demo>
+
+```jsx
+// Disabled: non-interactive, not submitted
+<Input disabled value={value} onChange={setValue} />
+
+// Aria-disabled: styled as disabled but remains interactive
+<Input aria-disabled value={value} onChange={setValue} />
+
+// Read-only: non-editable but focusable and submitted
+<Input readOnly value={value} onChange={setValue} />
+```
+
+> [!NOTE]
+> Use `readOnly` when you want to display a value that should be submitted with the form but not edited. Use `disabled` when the input is temporarily unavailable. Use `aria-disabled` when you need the disabled appearance but want to maintain event handlers or focus behavior.
+
+## Autosizing
+
+The `<Input>` component can automatically resize its width to fit its content using the `useAutosizeInput` hook. This creates a dynamic input that expands as the user types, which is useful for inline editing or space-constrained interfaces.
+
+The hook provides a ref callback that should be passed to the input component. The input will expand horizontally while maintaining its height.
+
+export function AutosizeDemo() {
+  const [value, setValue] = useState('this is autosized');
+  const [proxyValue, setProxyValue] = useState('this is autosized');
+  const controlledAutosizeRef = useAutosizeInput({value});
+  const uncontrolledAutosizeRef = useAutosizeInput({value: proxyValue});
+  const externalControlledAutosizeRef = useAutosizeInput({value: proxyValue});
+  const placeholderAutosizeRef = useAutosizeInput();
+  return (
+    <Grid>
+      <Label>
+        Controlled input autosize
+        <Input
+          ref={controlledAutosizeRef}
+          value={value}
+          onChange={e => setValue(e.target.value)}
+        />
+      </Label>
+      <Label>
+        Uncontrolled input autosize
+        <Input ref={uncontrolledAutosizeRef} defaultValue="" />
+      </Label>
+      <Label>
+        Controlled via different input
+        <Input value={proxyValue} onChange={e => setProxyValue(e.target.value)} />
+        <Input ref={externalControlledAutosizeRef} readOnly value={proxyValue} />
+      </Label>
+      <Label>
+        Autosize according to placeholder
+        <Input ref={placeholderAutosizeRef} defaultValue="" placeholder="placeholder" />
+      </Label>
+    </Grid>
+  );
+}
+
+<Storybook.Demo>
+  <AutosizeDemo />
+</Storybook.Demo>
+
+```jsx
+// Controlled input with autosize
+const [value, setValue] = useState('initial value');
+const autosizeRef = useAutosizeInput({value});
+
+<Input ref={autosizeRef} value={value} onChange={e => setValue(e.target.value)} />;
+
+// Uncontrolled input with autosize
+const autosizeRef = useAutosizeInput();
+<Input ref={autosizeRef} defaultValue="" />;
+
+// Autosize based on placeholder when empty
+const autosizeRef = useAutosizeInput();
+<Input ref={autosizeRef} defaultValue="" placeholder="Type here" />;
+```
+
+### useAutosizeInput Hook
+
+The `useAutosizeInput` hook accepts an optional options object:
+
+- **value**: The current value of the input (required for controlled inputs). The hook uses this to resize when the value changes programmatically.
+- **enabled**: Set to `false` to temporarily disable autosizing (default: `true`).
+
+The hook returns a ref callback that should be passed to the `<Input>` component's `ref` prop.
+
+> [!NOTE]
+> For controlled inputs, you must pass the `value` to the hook options so it can detect value changes and resize accordingly. Uncontrolled inputs will resize automatically on user input.
+
+## Monospace Font
+
+Set the `monospace` prop to render the input with a monospace font family. This is useful for code, identifiers, or technical values.
+
+<Storybook.Demo>
+  <Input defaultValue="Regular font" />
+  <Input monospace defaultValue="Monospace font" />
+</Storybook.Demo>
+
+```jsx
+<Input defaultValue="Regular font" />
+<Input monospace defaultValue="Monospace font" />
+```
+
+## Native Size Attribute
+
+The `<Input>` component uses the `size` prop for styling (controlling height and padding). To use the native HTML `size` attribute (which controls the number of characters the input should fit), use the `nativeSize` prop instead.
+
+```jsx
+// Custom styling size (height/padding)
+<Input size="sm" />
+
+// Native size attribute (character width)
+<Input nativeSize={20} />
+
+// Both can be used together
+<Input size="sm" nativeSize={10} />
+```
+
+## Usage Patterns
+
+### Form Fields
+
+Always pair inputs with labels for accessibility:
+
+```jsx
+<label>
+  Email Address
+  <Input type="email" name="email" required />
+</label>
+```
+
+### Controlled Inputs
+
+For controlled inputs, manage the value in React state:
+
+```jsx
+const [email, setEmail] = useState('');
+
+<Input
+  type="email"
+  value={email}
+  onChange={e => setEmail(e.target.value)}
+  placeholder="you@example.com"
+/>;
+```
+
+### Validation and Errors
+
+Indicate validation state using ARIA attributes and visual cues:
+
+```jsx
+<Input
+  type="email"
+  value={email}
+  onChange={e => setEmail(e.target.value)}
+  aria-invalid={!isValid}
+  aria-describedby="email-error"
+/>;
+{
+  !isValid && <div id="email-error">Please enter a valid email address</div>;
+}
+```
+
+## Accessibility
+
+The `<Input>` component is built on the native `<input>` element and automatically meets several WCAG 2.2 AA standards:
+
+- [2.1.1 Keyboard](https://www.w3.org/TR/WCAG22/#keyboard): Fully keyboard accessible
+- [2.4.7 Focus Visible](https://www.w3.org/TR/WCAG22/#focus-visible): Clear focus indicators
+
+### Developer Responsibilities
+
+To ensure your input implementations are fully accessible, follow these guidelines:
+
+**Labels** ([WCAG 3.3.2](https://www.w3.org/TR/WCAG22/#labels-or-instructions))
+
+- Every input must have an associated label. Use a `<label>` element with `htmlFor`, wrap the input in a `<label>`, or provide `aria-label` or `aria-labelledby`.
+- Labels should be clear and descriptive.
+
+```jsx
+// Good: Visible label
+<label htmlFor="email">Email Address</label>
+<Input id="email" type="email" />
+
+// Good: Wrapping label
+<label>
+  Email Address
+  <Input type="email" />
+</label>
+
+// Good: aria-label for icon-only or context-clear inputs
+<Input type="search" aria-label="Search issues" />
+```
+
+**Error Identification** ([WCAG 3.3.1](https://www.w3.org/TR/WCAG22/#error-identification))
+
+- When validation fails, clearly identify the error to the user
+- Use `aria-invalid="true"` to programmatically indicate invalid inputs
+- Use `aria-describedby` to associate error messages with inputs
+
+```jsx
+<Input
+  id="email"
+  type="email"
+  value={email}
+  aria-invalid={hasError}
+  aria-describedby={hasError ? 'email-error' : undefined}
+/>;
+{
+  hasError && (
+    <span id="email-error" role="alert">
+      Please enter a valid email address
+    </span>
+  );
+}
+```
+
+**Required Fields**
+
+- Use the `required` attribute for required fields
+- Indicate required fields visually (e.g., with an asterisk in the label)
+
+**Placeholder Text**
+
+- Don't rely solely on placeholder text for instructions or labels
+- Placeholders disappear when typing begins and may have contrast issues
+- Use placeholders for examples, not essential information
+
+For more information, see the [WAI-ARIA Text Input practices](https://www.w3.org/WAI/ARIA/apg/patterns/textbox/).
+
+const Grid = styled('div')`  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: ${space(2)};`;
+
+const Label = styled('label')`  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};`;

@@ -1,0 +1,314 @@
+---
+title: Switch
+description: A toggle switch component for binary on/off states, commonly used for settings and feature toggles.
+source: 'sentry/components/core/switch'
+resources:
+  figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=384-2119&t=DdXZ7WIgTdURJlRv-4
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/switch/index.tsx
+  a11y:
+    WCAG 2.1.1: https://www.w3.org/TR/WCAG22/#keyboard
+    WCAG 2.4.7: https://www.w3.org/TR/WCAG22/#focus-visible
+    WAI-ARIA Switch: https://www.w3.org/WAI/ARIA/apg/patterns/switch/
+---
+
+import {useState} from 'react';
+import styled from '@emotion/styled';
+
+import {Switch} from 'sentry/components/core/switch';
+import * as Storybook from 'sentry/stories';
+import {space} from 'sentry/styles/space';
+
+import documentation from '!!type-loader!@sentry/scraps/switch';
+
+export {documentation};
+
+`<Switch>` is a toggle control for binary on/off states. It's a styled checkbox that provides immediate visual feedback when toggled, commonly used for settings, feature flags, and preferences.
+
+Use `<Switch>` for binary choices that take effect immediately. For choices requiring submission or confirmation, use `<Checkbox>` instead.
+
+```jsx
+const [enabled, setEnabled] = useState(false);
+
+<Switch checked={enabled} onChange={() => setEnabled(!enabled)} />;
+```
+
+## Sizes
+
+`<Switch>` comes in two sizes: `lg` (large) and `sm` (small, default).
+
+export function SizesDemo() {
+  const [lg, setLg] = useState(true);
+  const [sm, setSm] = useState(true);
+  return (
+    <Storybook.SideBySide>
+      <Label>
+        Large switch (on)
+        <Switch size="lg" checked={lg} onChange={() => setLg(!lg)} />
+      </Label>
+      <Label>
+        Small switch (on)
+        <Switch size="sm" checked={sm} onChange={() => setSm(!sm)} />
+      </Label>
+    </Storybook.SideBySide>
+  );
+}
+
+<Storybook.Demo>
+  <SizesDemo />
+</Storybook.Demo>
+
+```jsx
+<Switch size="lg" checked={checked} onChange={handleChange} />
+<Switch size="sm" checked={checked} onChange={handleChange} />
+```
+
+## States
+
+`<Switch>` supports checked, unchecked, and disabled states.
+
+export function StatesDemo() {
+  const [checked, setChecked] = useState(true);
+  const [unchecked, setUnchecked] = useState(false);
+  return (
+    <Storybook.SideBySide>
+      <Label>
+        On
+        <Switch checked={checked} onChange={() => setChecked(!checked)} />
+      </Label>
+      <Label>
+        Off
+        <Switch checked={unchecked} onChange={() => setUnchecked(!unchecked)} />
+      </Label>
+      <Label>
+        Disabled (off)
+        <Switch checked={false} disabled onChange={() => {}} />
+      </Label>
+      <Label>
+        Disabled (on)
+        <Switch checked disabled onChange={() => {}} />
+      </Label>
+    </Storybook.SideBySide>
+  );
+}
+
+<Storybook.Demo>
+  <StatesDemo />
+</Storybook.Demo>
+
+```jsx
+<Switch checked={true} onChange={handleChange} />
+<Switch checked={false} onChange={handleChange} />
+<Switch checked={false} disabled onChange={() => {}} />
+<Switch checked={true} disabled onChange={() => {}} />
+```
+
+## With Labels
+
+`<Switch>` doesn't include a built-in label. Always provide an accompanying label using an HTML `<label>` element for accessibility.
+
+export function LabelDemo() {
+  const [notifications, setNotifications] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
+  return (
+    <>
+      <Label>
+        Enable notifications
+        <Switch
+          checked={notifications}
+          onChange={() => setNotifications(!notifications)}
+        />
+      </Label>
+      <Label>
+        Dark mode
+        <Switch checked={darkMode} onChange={() => setDarkMode(!darkMode)} />
+      </Label>
+    </>
+  );
+}
+
+<Storybook.Demo>
+  <LabelDemo />
+</Storybook.Demo>
+
+```jsx
+<label>
+  Enable notifications
+  <Switch checked={notifications} onChange={handleToggle} />
+</label>
+```
+
+> [!IMPORTANT]
+> Wrapping the switch in a `<label>` makes the entire label clickable, improving usability and accessibility.
+
+## Controlled vs Uncontrolled
+
+Like checkboxes, switches should typically be controlled components:
+
+```jsx
+// Controlled (recommended)
+const [enabled, setEnabled] = useState(false);
+<Switch checked={enabled} onChange={() => setEnabled(!enabled)} />
+
+// Uncontrolled (rarely needed)
+<Switch defaultChecked={false} onChange={handleChange} />
+```
+
+## Usage Patterns
+
+### Settings Toggles
+
+Use for binary settings that take effect immediately:
+
+```jsx
+<label>
+  Email notifications
+  <Switch
+    checked={settings.emailNotifications}
+    onChange={() => updateSetting('emailNotifications', !settings.emailNotifications)}
+  />
+</label>
+```
+
+### Feature Flags
+
+Toggle features on or off:
+
+```jsx
+<label>
+  Enable experimental features
+  <Switch checked={experimentalMode} onChange={toggleExperimentalMode} />
+</label>
+```
+
+### Grouped Switches
+
+Group related switches in a list:
+
+```jsx
+<div>
+  <h3>Notification Preferences</h3>
+  <label>
+    Email notifications
+    <Switch checked={email} onChange={toggleEmail} />
+  </label>
+  <label>
+    SMS notifications
+    <Switch checked={sms} onChange={toggleSms} />
+  </label>
+  <label>
+    Push notifications
+    <Switch checked={push} onChange={togglePush} />
+  </label>
+</div>
+```
+
+## Switch vs Checkbox
+
+Choose the right component for your use case:
+
+### Use Switch when:
+
+- The action takes effect **immediately**
+- The change is a binary on/off state
+- You're toggling a setting or feature
+- The UI feels like flipping a physical switch
+
+### Use Checkbox when:
+
+- The selection is part of a **form that requires submission**
+- Multiple selections are possible
+- The action isn't immediate
+- You're selecting items from a list
+
+**Example:**
+
+```jsx
+// Switch: Immediate effect
+<label>
+  Enable dark mode
+  <Switch checked={darkMode} onChange={toggleDarkMode} />
+</label>
+
+// Checkbox: Form submission
+<form onSubmit={handleSubmit}>
+  <label>
+    <Checkbox name="terms" />
+    I agree to the terms
+  </label>
+  <button type="submit">Submit</button>
+</form>
+```
+
+## Accessibility
+
+`<Switch>` follows the [WAI-ARIA Switch pattern](https://www.w3.org/WAI/ARIA/apg/patterns/switch/) and meets WCAG 2.2 AA standards:
+
+- [2.1.1 Keyboard](https://www.w3.org/TR/WCAG22/#keyboard): Keyboard accessible (Space to toggle)
+- [2.4.7 Focus Visible](https://www.w3.org/TR/WCAG22/#focus-visible): Clear focus indicators
+
+The component automatically includes:
+
+- `role="switch"`
+- `aria-checked` state
+- Keyboard interaction (Space to toggle)
+- Focus management
+
+### Developer Responsibilities
+
+**Labels**
+
+- Every switch must have an associated label
+- Use a `<label>` element wrapping both the text and switch
+- Or use `aria-label`/`aria-labelledby` if visual label isn't present
+
+```jsx
+// Good: Wrapping label
+<label>
+  Enable feature
+  <Switch checked={enabled} onChange={handleToggle} />
+</label>
+
+// Good: aria-label when context is clear
+<Switch
+  checked={enabled}
+  onChange={handleToggle}
+  aria-label="Enable notifications"
+/>
+```
+
+**State Communication**
+
+- The switch's state should be clear from the label or context
+- Consider adding "on"/"off" text near the switch for clarity
+- Avoid relying solely on color to convey state
+
+```jsx
+<label>
+  Notifications: {enabled ? 'On' : 'Off'}
+  <Switch checked={enabled} onChange={handleToggle} />
+</label>
+```
+
+**Immediate Feedback**
+
+- Changes should take effect immediately
+- Provide loading states if the change requires an API call
+- Show error states if the toggle action fails
+
+```jsx
+<label>
+  {isLoading ? 'Updating...' : 'Enable feature'}
+  <Switch checked={enabled} disabled={isLoading} onChange={handleToggle} />
+</label>
+```
+
+**Keyboard Interaction**
+
+- **Space**: Toggle the switch
+- **Tab**: Move focus to/from the switch
+
+For more information, see the [WAI-ARIA Switch practices](https://www.w3.org/WAI/ARIA/apg/patterns/switch/).
+
+const Label = styled('label')`  display: flex;
+  align-items: center;
+  gap: ${space(1)};`;

@@ -1,0 +1,393 @@
+---
+title: Tabs
+description: A compound component for organizing content into tabbed interfaces with keyboard navigation and accessibility built-in.
+source: 'sentry/components/core/tabs'
+resources:
+  figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=384-2119&t=DdXZ7WIgTdURJlRv-4
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/tabs/tabs.tsx
+  a11y:
+    WCAG 2.1.1: https://www.w3.org/TR/WCAG22/#keyboard
+    WCAG 2.4.7: https://www.w3.org/TR/WCAG22/#focus-visible
+    WAI-ARIA Tabs: https://www.w3.org/WAI/ARIA/apg/patterns/tabs/
+---
+
+import {useState} from 'react';
+
+import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs/tabs';
+import * as Storybook from 'sentry/stories';
+
+import documentation from '!!type-loader!@sentry/scraps/tabs';
+
+export {documentation};
+
+`<Tabs>` is a compound component for creating tabbed interfaces. Built on React Aria, it provides full keyboard navigation, accessibility features, and automatic overflow handling out of the box.
+
+Use `<Tabs>` to organize related content into separate views that users can switch between without leaving the page.
+
+```jsx
+<Tabs>
+  <TabList>
+    <TabList.Item key="tab1">Tab 1</TabList.Item>
+    <TabList.Item key="tab2">Tab 2</TabList.Item>
+  </TabList>
+  <TabPanels>
+    <TabPanels.Item key="tab1">Content for Tab 1</TabPanels.Item>
+    <TabPanels.Item key="tab2">Content for Tab 2</TabPanels.Item>
+  </TabPanels>
+</Tabs>
+```
+
+## Compound Components
+
+`<Tabs>` uses a compound component pattern with four main parts:
+
+- **`<Tabs>`**: Root component that manages state and provides context
+- **`<TabList>`**: Container for tab buttons
+- **`<TabList.Item>`**: Individual tab button
+- **`<TabPanels>`**: Container for tab content panels
+- **`<TabPanels.Item>`**: Individual content panel
+
+> [!NOTE]
+> All tab content is rendered upfront, including React hooks. The tabs system manages visibility, not mounting/unmounting. This ensures state is preserved when switching tabs.
+
+## Basic Usage
+
+The simplest tabs implementation with automatic state management:
+
+export function BasicDemo() {
+  const TABS = [
+    {key: 'one', label: 'Label 1', content: 'This is the first panel.'},
+    {key: 'two', label: 'Label 2', content: 'This is the second panel.'},
+    {key: 'three', label: 'Label 3', content: 'This is the third panel.'},
+  ];
+  return (
+    <Tabs>
+      <TabList>
+        {TABS.map(tab => (
+          <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+        ))}
+      </TabList>
+      <TabPanels>
+        {TABS.map(tab => (
+          <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
+        ))}
+      </TabPanels>
+    </Tabs>
+  );
+}
+
+<Storybook.Demo>
+  <BasicDemo />
+</Storybook.Demo>
+
+```jsx
+<Tabs>
+  <TabList>
+    <TabList.Item key="one">Label 1</TabList.Item>
+    <TabList.Item key="two">Label 2</TabList.Item>
+    <TabList.Item key="three">Label 3</TabList.Item>
+  </TabList>
+  <TabPanels>
+    <TabPanels.Item key="one">Content 1</TabPanels.Item>
+    <TabPanels.Item key="two">Content 2</TabPanels.Item>
+    <TabPanels.Item key="three">Content 3</TabPanels.Item>
+  </TabPanels>
+</Tabs>
+```
+
+## Default Selection
+
+Set `defaultValue` to specify which tab is selected initially (uncontrolled):
+
+<Storybook.Demo>
+  <Tabs defaultValue="two">
+    <TabList>
+      <TabList.Item key="one">Tab 1</TabList.Item>
+      <TabList.Item key="two">Tab 2 (default)</TabList.Item>
+      <TabList.Item key="three">Tab 3</TabList.Item>
+    </TabList>
+    <TabPanels>
+      <TabPanels.Item key="one">Content 1</TabPanels.Item>
+      <TabPanels.Item key="two">Content 2 (initially visible)</TabPanels.Item>
+      <TabPanels.Item key="three">Content 3</TabPanels.Item>
+    </TabPanels>
+  </Tabs>
+</Storybook.Demo>
+
+```jsx
+<Tabs defaultValue="two">
+  <TabList>
+    <TabList.Item key="two">Tab 2</TabList.Item>
+    {/* other tabs */}
+  </TabList>
+  {/* panels */}
+</Tabs>
+```
+
+## Controlled Tabs
+
+For controlled tabs, use `value` and `onChange` to manage the active tab externally:
+
+export function ControlledDemo() {
+  const [selected, setSelected] = useState('two');
+  return (
+    <>
+      <p>Selected: {selected}</p>
+      <Tabs value={selected} onChange={setSelected}>
+        <TabList>
+          <TabList.Item key="one">Tab 1</TabList.Item>
+          <TabList.Item key="two">Tab 2</TabList.Item>
+          <TabList.Item key="three">Tab 3</TabList.Item>
+        </TabList>
+        <TabPanels>
+          <TabPanels.Item key="one">Content 1</TabPanels.Item>
+          <TabPanels.Item key="two">Content 2</TabPanels.Item>
+          <TabPanels.Item key="three">Content 3</TabPanels.Item>
+        </TabPanels>
+      </Tabs>
+    </>
+  );
+}
+
+<Storybook.Demo>
+  <ControlledDemo />
+</Storybook.Demo>
+
+```jsx
+const [selected, setSelected] = useState('one');
+
+<Tabs value={selected} onChange={setSelected}>
+  {/* tabs and panels */}
+</Tabs>;
+```
+
+## Disabled Tabs
+
+Disable all tabs with the `disabled` prop on `<Tabs>`, or disable individual tabs with `disabled` on `<TabList.Item>`:
+
+<Storybook.Demo>
+  <Storybook.SideBySide>
+    <div>
+      <p>All tabs disabled</p>
+      <Tabs disabled>
+        <TabList>
+          <TabList.Item key="one">Tab 1</TabList.Item>
+          <TabList.Item key="two">Tab 2</TabList.Item>
+        </TabList>
+        <TabPanels>
+          <TabPanels.Item key="one">Content 1</TabPanels.Item>
+          <TabPanels.Item key="two">Content 2</TabPanels.Item>
+        </TabPanels>
+      </Tabs>
+    </div>
+    <div>
+      <p>One tab disabled</p>
+      <Tabs>
+        <TabList>
+          <TabList.Item key="one">Tab 1</TabList.Item>
+          <TabList.Item key="two" disabled>
+            Tab 2 (disabled)
+          </TabList.Item>
+          <TabList.Item key="three">Tab 3</TabList.Item>
+        </TabList>
+        <TabPanels>
+          <TabPanels.Item key="one">Content 1</TabPanels.Item>
+          <TabPanels.Item key="two">Content 2</TabPanels.Item>
+          <TabPanels.Item key="three">Content 3</TabPanels.Item>
+        </TabPanels>
+      </Tabs>
+    </div>
+  </Storybook.SideBySide>
+</Storybook.Demo>
+
+```jsx
+// Disable all tabs
+<Tabs disabled>
+  {/* tabs and panels */}
+</Tabs>
+
+// Disable individual tab
+<TabList.Item key="two" disabled>
+  Disabled Tab
+</TabList.Item>
+```
+
+## Variants
+
+Tabs come in two visual variants: `flat` (default) and `floating`. The variant is set on the `<TabList>`:
+
+<Storybook.Demo>
+  <Tabs>
+    <TabList variant="floating">
+      <TabList.Item key="one">Tab 1</TabList.Item>
+      <TabList.Item key="two">Tab 2</TabList.Item>
+      <TabList.Item key="three">Tab 3</TabList.Item>
+    </TabList>
+    <TabPanels>
+      <TabPanels.Item key="one">Floating variant content 1</TabPanels.Item>
+      <TabPanels.Item key="two">Floating variant content 2</TabPanels.Item>
+      <TabPanels.Item key="three">Floating variant content 3</TabPanels.Item>
+    </TabPanels>
+  </Tabs>
+</Storybook.Demo>
+
+```jsx
+<TabList variant="flat">{/* default */}</TabList>
+<TabList variant="floating">{/* alternative style */}</TabList>
+```
+
+## Orientation
+
+Tabs support both horizontal and vertical orientation:
+
+<Storybook.Demo>
+  <Storybook.SideBySide>
+    <Tabs orientation="horizontal">
+      <TabList>
+        <TabList.Item key="one">Tab 1</TabList.Item>
+        <TabList.Item key="two">Tab 2</TabList.Item>
+      </TabList>
+      <TabPanels>
+        <TabPanels.Item key="one">Horizontal content 1</TabPanels.Item>
+        <TabPanels.Item key="two">Horizontal content 2</TabPanels.Item>
+      </TabPanels>
+    </Tabs>
+    <Tabs orientation="vertical">
+      <TabList>
+        <TabList.Item key="one">Tab 1</TabList.Item>
+        <TabList.Item key="two">Tab 2</TabList.Item>
+      </TabList>
+      <TabPanels>
+        <TabPanels.Item key="one">Vertical content 1</TabPanels.Item>
+        <TabPanels.Item key="two">Vertical content 2</TabPanels.Item>
+      </TabPanels>
+    </Tabs>
+  </Storybook.SideBySide>
+</Storybook.Demo>
+
+```jsx
+<Tabs orientation="horizontal">{/* default */}</Tabs>
+<Tabs orientation="vertical">{/* side-by-side layout */}</Tabs>
+```
+
+## Overflow Handling
+
+When there are too many tabs to fit, they automatically overflow into a dropdown menu. This behavior is built-in and requires no configuration.
+
+```jsx
+<Tabs>
+  <TabList>
+    {/* Many tabs - extras will automatically go into overflow menu */}
+    {Array.from({length: 20}, (_, i) => (
+      <TabList.Item key={i}>Tab {i + 1}</TabList.Item>
+    ))}
+  </TabList>
+  {/* panels */}
+</Tabs>
+```
+
+To disable overflow (forcing horizontal scroll instead), use `disableOverflow`:
+
+```jsx
+<Tabs disableOverflow>{/* tabs will scroll horizontally instead of overflowing */}</Tabs>
+```
+
+## Keyboard Navigation
+
+`<Tabs>` provides full keyboard support automatically:
+
+- **Arrow Left/Right** (horizontal) or **Arrow Up/Down** (vertical): Navigate between tabs
+- **Home**: Jump to first tab
+- **End**: Jump to last tab
+- **Tab**: Move focus out of tab list
+- **Enter/Space**: Activate focused tab
+
+## Usage Patterns
+
+### Content Organization
+
+Use tabs to organize related content into distinct views:
+
+```jsx
+<Tabs>
+  <TabList>
+    <TabList.Item key="overview">Overview</TabList.Item>
+    <TabList.Item key="activity">Activity</TabList.Item>
+    <TabList.Item key="settings">Settings</TabList.Item>
+  </TabList>
+  <TabPanels>
+    <TabPanels.Item key="overview">
+      <OverviewContent />
+    </TabPanels.Item>
+    <TabPanels.Item key="activity">
+      <ActivityFeed />
+    </TabPanels.Item>
+    <TabPanels.Item key="settings">
+      <SettingsForm />
+    </TabPanels.Item>
+  </TabPanels>
+</Tabs>
+```
+
+### URL Synchronization
+
+Sync tabs with URL parameters for shareable links:
+
+```jsx
+const [tab, setTab] = useState(queryParams.tab || 'overview');
+
+useEffect(() => {
+  // Update URL when tab changes
+  router.push({pathname, query: {...query, tab}});
+}, [tab]);
+
+<Tabs value={tab} onChange={setTab}>
+  {/* tabs */}
+</Tabs>;
+```
+
+## Accessibility
+
+`<Tabs>` is built with React Aria and automatically meets WCAG 2.2 AA standards:
+
+- [2.1.1 Keyboard](https://www.w3.org/TR/WCAG22/#keyboard): Full keyboard navigation
+- [2.4.7 Focus Visible](https://www.w3.org/TR/WCAG22/#focus-visible): Clear focus indicators
+- Follows the [WAI-ARIA Tabs pattern](https://www.w3.org/WAI/ARIA/apg/patterns/tabs/)
+
+The component automatically includes:
+
+- `role="tablist"`, `role="tab"`, and `role="tabpanel"`
+- `aria-selected` state management
+- `aria-controls` linking tabs to panels
+- `aria-labelledby` linking panels to tabs
+- Proper focus management
+
+### Developer Responsibilities
+
+**Meaningful Tab Labels**
+
+- Tab labels should be concise and descriptive
+- Avoid generic labels like "Tab 1" in production
+
+```jsx
+// Good: Descriptive labels
+<TabList.Item key="overview">Overview</TabList.Item>
+<TabList.Item key="activity">Activity Feed</TabList.Item>
+
+// Bad: Generic labels
+<TabList.Item key="tab1">Tab 1</TabList.Item>
+```
+
+**Content Organization**
+
+- Keep related content together in tabs
+- Don't use tabs for sequential workflows (use a wizard/stepper instead)
+- Limit to 5-7 tabs maximum for usability
+
+**State Preservation**
+
+- Remember that all panel content is rendered upfront
+- Tab switches don't remount components—state is preserved
+- This is good for preserving form data, scroll positions, etc.
+
+For more information, see the [WAI-ARIA Tabs practices](https://www.w3.org/WAI/ARIA/apg/patterns/tabs/).

@@ -1,0 +1,609 @@
+---
+title: Select
+description: A dropdown select component for choosing one or multiple options from a list, with support for searching, clearing, and custom option rendering.
+source: 'sentry/components/core/select'
+resources:
+  figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=384-2119&t=DdXZ7WIgTdURJlRv-4
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/select/index.tsx
+  a11y:
+    WCAG 2.1.1: https://www.w3.org/TR/WCAG22/#keyboard
+    WCAG 2.4.7: https://www.w3.org/TR/WCAG22/#focus-visible
+    WCAG 3.3.2: https://www.w3.org/TR/WCAG22/#labels-or-instructions
+    WAI-ARIA Combobox: https://www.w3.org/WAI/ARIA/apg/patterns/combobox/
+    WAI-ARIA Listbox: https://www.w3.org/WAI/ARIA/apg/patterns/listbox/
+---
+
+import {Select} from 'sentry/components/core/select';
+import {IconGraphBar} from 'sentry/icons/iconGraphBar';
+import * as Storybook from 'sentry/stories';
+
+import documentation from '!!type-loader!@sentry/scraps/select';
+
+export {documentation};
+
+`<Select>` is a dropdown component for choosing one or multiple items from a list of options. It supports searching, clearing selections, custom option rendering with icons, and both single and multi-select modes.
+
+Use `<Select>` for form fields where users need to choose from a predefined set of options. For more complex selection scenarios with sections or custom triggers, consider `<CompactSelect>` instead.
+
+```jsx
+<Select
+  placeholder="Choose an option"
+  options={[
+    {value: 'option1', label: 'Option 1'},
+    {value: 'option2', label: 'Option 2'},
+    {value: 'option3', label: 'Option 3'},
+  ]}
+/>
+```
+
+## Sizes
+
+`<Select>` comes in three sizes: `md` (default), `sm`, and `xs`. Choose the size that matches your layout and content hierarchy.
+
+<Storybook.Demo>
+  <Storybook.Grid>
+    <Select
+      size="md"
+      placeholder="medium"
+      options={[
+        {value: 'item1', label: 'Item 1'},
+        {value: 'item2', label: 'Item 2'},
+      ]}
+    />
+    <Select
+      size="sm"
+      placeholder="small"
+      defaultValue={{value: 'item1', label: 'Item 1'}}
+      options={[
+        {value: 'item1', label: 'Item 1'},
+        {value: 'item2', label: 'Item 2'},
+      ]}
+    />
+    <Select
+      size="xs"
+      placeholder="x-small"
+      options={[
+        {value: 'item1', label: 'Item 1'},
+        {value: 'item2', label: 'Item 2'},
+      ]}
+    />
+  </Storybook.Grid>
+</Storybook.Demo>
+
+```jsx
+<Select size="md" placeholder="medium" options={options} />
+<Select size="sm" placeholder="small" options={options} />
+<Select size="xs" placeholder="x-small" options={options} />
+```
+
+## Disabled State
+
+Use the `isDisabled` prop to disable the select, preventing user interaction.
+
+<Storybook.Demo>
+  <Storybook.Grid>
+    <Select
+      isDisabled
+      size="md"
+      placeholder="medium"
+      options={[
+        {value: 'item1', label: 'Item 1'},
+        {value: 'item2', label: 'Item 2'},
+      ]}
+    />
+    <Select
+      isDisabled
+      size="sm"
+      placeholder="small"
+      defaultValue={{value: 'item1', label: 'Item 1'}}
+      options={[
+        {value: 'item1', label: 'Item 1'},
+        {value: 'item2', label: 'Item 2'},
+      ]}
+    />
+    <Select
+      isDisabled
+      size="xs"
+      placeholder="x-small"
+      options={[
+        {value: 'item1', label: 'Item 1'},
+        {value: 'item2', label: 'Item 2'},
+      ]}
+    />
+  </Storybook.Grid>
+</Storybook.Demo>
+
+```jsx
+<Select isDisabled placeholder="Disabled select" options={options} />
+```
+
+## In-Field Label
+
+Use the `inFieldLabel` prop to add a persistent label inside the select field. This is useful for compact layouts where external labels aren't feasible.
+
+<Storybook.Demo>
+  <Storybook.Grid>
+    <Select
+      inFieldLabel="Environment"
+      size="md"
+      placeholder="medium"
+      options={[
+        {value: 'item1', label: 'Item 1'},
+        {value: 'item2', label: 'Item 2'},
+      ]}
+    />
+    <Select
+      size="sm"
+      placeholder="small"
+      inFieldLabel="Environment"
+      defaultValue={{value: 'item1', label: 'Item 1'}}
+      options={[
+        {value: 'item1', label: 'Item 1'},
+        {value: 'item2', label: 'Item 2'},
+      ]}
+    />
+    <Select
+      size="xs"
+      placeholder="x-small"
+      inFieldLabel="Environment"
+      options={[
+        {value: 'item1', label: 'Item 1'},
+        {value: 'item2', label: 'Item 2'},
+      ]}
+    />
+  </Storybook.Grid>
+</Storybook.Demo>
+
+```jsx
+<Select inFieldLabel="Environment" placeholder="Choose environment" options={options} />
+```
+
+> [!NOTE]
+> While in-field labels save space, they can reduce clarity. Prefer external labels when possible, especially for form fields requiring [WCAG 3.3.2](https://www.w3.org/TR/WCAG22/#labels-or-instructions) compliance.
+
+## Clearable
+
+Set `isClearable` to allow users to clear their selection by clicking an "×" button.
+
+<Storybook.Demo>
+  <Storybook.Grid>
+    <Select
+      isClearable
+      defaultValue={{value: 'item1', label: 'Item 1'}}
+      size="md"
+      placeholder="medium"
+      options={[
+        {value: 'item1', label: 'Item 1'},
+        {value: 'item2', label: 'Item 2'},
+      ]}
+    />
+    <Select
+      isClearable
+      size="sm"
+      placeholder="small"
+      defaultValue={{value: 'item1', label: 'Item 1'}}
+      options={[
+        {value: 'item1', label: 'Item 1'},
+        {value: 'item2', label: 'Item 2'},
+      ]}
+    />
+    <Select
+      isClearable
+      defaultValue={{value: 'item1', label: 'Item 1'}}
+      size="xs"
+      placeholder="x-small"
+      options={[
+        {value: 'item1', label: 'Item 1'},
+        {value: 'item2', label: 'Item 2'},
+      ]}
+    />
+  </Storybook.Grid>
+</Storybook.Demo>
+
+```jsx
+<Select isClearable defaultValue={{value: 'item1', label: 'Item 1'}} options={options} />
+```
+
+## Searchable
+
+Enable `isSearchable` to allow users to filter options by typing. This is essential for selects with many options.
+
+<Storybook.Demo>
+  <Storybook.Grid>
+    <Select
+      isSearchable
+      size="md"
+      placeholder="medium"
+      options={[
+        {value: 'item1', label: 'Item 1'},
+        {value: 'item2', label: 'Item 2'},
+      ]}
+    />
+    <Select
+      isSearchable
+      size="sm"
+      placeholder="small"
+      defaultValue={{value: 'item1', label: 'Item 1'}}
+      options={[
+        {value: 'item1', label: 'Item 1'},
+        {value: 'item2', label: 'Item 2'},
+      ]}
+    />
+    <Select
+      isSearchable
+      size="xs"
+      placeholder="x-small"
+      options={[
+        {value: 'item1', label: 'Item 1'},
+        {value: 'item2', label: 'Item 2'},
+      ]}
+    />
+  </Storybook.Grid>
+</Storybook.Demo>
+
+```jsx
+<Select isSearchable placeholder="Search for an option" options={manyOptions} />
+```
+
+> [!TIP]
+> Enable search for any select with more than 7-10 options to improve usability and accessibility.
+
+## Leading Items
+
+Options can include `leadingItems` (typically icons) to provide visual context for each choice.
+
+<Storybook.Demo>
+  <Storybook.Grid>
+    <Select
+      isSearchable
+      size="md"
+      placeholder="medium"
+      defaultValue={{
+        value: 'item1',
+        label: 'Item 1',
+        leadingItems: <IconGraphBar />,
+      }}
+      options={[
+        {value: 'item1', label: 'Item 1', leadingItems: <IconGraphBar />},
+        {value: 'item2', label: 'Item 2', leadingItems: <IconGraphBar />},
+      ]}
+    />
+    <Select
+      isSearchable
+      size="sm"
+      placeholder="small"
+      defaultValue={{
+        value: 'item1',
+        label: 'Item 1',
+        leadingItems: <IconGraphBar />,
+      }}
+      options={[
+        {value: 'item1', label: 'Item 1', leadingItems: <IconGraphBar />},
+        {value: 'item2', label: 'Item 2', leadingItems: <IconGraphBar />},
+      ]}
+    />
+    <Select
+      isSearchable
+      size="xs"
+      placeholder="x-small"
+      defaultValue={{
+        value: 'item1',
+        label: 'Item 1',
+        leadingItems: <IconGraphBar />,
+      }}
+      options={[
+        {value: 'item1', label: 'Item 1', leadingItems: <IconGraphBar />},
+        {value: 'item2', label: 'Item 2', leadingItems: <IconGraphBar />},
+      ]}
+    />
+  </Storybook.Grid>
+</Storybook.Demo>
+
+```jsx
+<Select
+  options={[
+    {value: 'chart', label: 'Chart View', leadingItems: <IconGraphBar />},
+    {value: 'table', label: 'Table View', leadingItems: <IconTable />},
+  ]}
+/>
+```
+
+## Multiple Selection
+
+Set `multiple` to enable multi-select mode, allowing users to select multiple options. The selected items are displayed as badges in the input.
+
+<Storybook.Demo>
+  <Storybook.Grid>
+    <Select
+      size="md"
+      multiple
+      placeholder="medium"
+      options={[
+        {value: 'item1', label: 'Item 1'},
+        {value: 'item2', label: 'Item 2'},
+        {value: 'item3', label: 'Item 3'},
+      ]}
+    />
+    <Select
+      size="sm"
+      multiple
+      placeholder="small"
+      defaultValue={[
+        {value: 'item1', label: 'Item 1'},
+        {value: 'item3', label: 'Item 3'},
+      ]}
+      options={[
+        {value: 'item1', label: 'Item 1'},
+        {value: 'item2', label: 'Item 2'},
+        {value: 'item3', label: 'Item 3'},
+      ]}
+    />
+    <Select
+      size="xs"
+      multiple
+      placeholder="x-small"
+      options={[
+        {value: 'item1', label: 'Item 1'},
+        {value: 'item2', label: 'Item 2'},
+        {value: 'item3', label: 'Item 3'},
+      ]}
+    />
+  </Storybook.Grid>
+</Storybook.Demo>
+
+```jsx
+<Select
+  multiple
+  placeholder="Select multiple items"
+  options={[
+    {value: 'item1', label: 'Item 1'},
+    {value: 'item2', label: 'Item 2'},
+    {value: 'item3', label: 'Item 3'},
+  ]}
+/>
+```
+
+### Multiple Selection with Clear
+
+Combine `multiple` and `isClearable` to allow clearing all selections at once.
+
+<Storybook.Demo>
+  <Storybook.Grid>
+    <Select
+      multiple
+      isClearable
+      defaultValue={[
+        {value: 'item1', label: 'Item 1'},
+        {value: 'item3', label: 'Item 3'},
+      ]}
+      size="md"
+      placeholder="medium"
+      options={[
+        {value: 'item1', label: 'Item 1'},
+        {value: 'item2', label: 'Item 2'},
+        {value: 'item3', label: 'Item 3'},
+      ]}
+    />
+    <Select
+      isClearable
+      multiple
+      size="sm"
+      placeholder="small"
+      defaultValue={[
+        {value: 'item1', label: 'Item 1'},
+        {value: 'item3', label: 'Item 3'},
+      ]}
+      options={[
+        {value: 'item1', label: 'Item 1'},
+        {value: 'item2', label: 'Item 2'},
+        {value: 'item3', label: 'Item 3'},
+      ]}
+    />
+    <Select
+      isClearable
+      multiple
+      defaultValue={[
+        {value: 'item1', label: 'Item 1'},
+        {value: 'item3', label: 'Item 3'},
+      ]}
+      size="xs"
+      placeholder="x-small"
+      options={[
+        {value: 'item1', label: 'Item 1'},
+        {value: 'item2', label: 'Item 2'},
+        {value: 'item3', label: 'Item 3'},
+      ]}
+    />
+  </Storybook.Grid>
+</Storybook.Demo>
+
+```jsx
+<Select
+  multiple
+  isClearable
+  defaultValue={[
+    {value: 'item1', label: 'Item 1'},
+    {value: 'item3', label: 'Item 3'},
+  ]}
+  options={options}
+/>
+```
+
+### Multiple Selection with Search
+
+Combine `multiple` and `isSearchable` for efficient selection from large lists.
+
+<Storybook.Demo>
+  <Storybook.Grid>
+    <Select
+      isSearchable
+      multiple
+      size="md"
+      placeholder="medium"
+      options={[
+        {value: 'item1', label: 'Item 1'},
+        {value: 'item2', label: 'Item 2'},
+        {value: 'item3', label: 'Item 3'},
+      ]}
+    />
+    <Select
+      isSearchable
+      multiple
+      size="sm"
+      placeholder="small"
+      defaultValue={[
+        {value: 'item1', label: 'Item 1'},
+        {value: 'item3', label: 'Item 3'},
+      ]}
+      options={[
+        {value: 'item1', label: 'Item 1'},
+        {value: 'item2', label: 'Item 2'},
+        {value: 'item3', label: 'Item 3'},
+      ]}
+    />
+    <Select
+      isSearchable
+      multiple
+      size="xs"
+      placeholder="x-small"
+      options={[
+        {value: 'item1', label: 'Item 1'},
+        {value: 'item2', label: 'Item 2'},
+        {value: 'item3', label: 'Item 3'},
+      ]}
+    />
+  </Storybook.Grid>
+</Storybook.Demo>
+
+```jsx
+<Select
+  multiple
+  isSearchable
+  placeholder="Search and select multiple"
+  options={manyOptions}
+/>
+```
+
+## Usage Patterns
+
+### Form Fields
+
+Pair selects with labels for accessible forms:
+
+```jsx
+<label htmlFor="environment">
+  Environment
+  <Select
+    id="environment"
+    placeholder="Choose an environment"
+    options={[
+      {value: 'prod', label: 'Production'},
+      {value: 'staging', label: 'Staging'},
+      {value: 'dev', label: 'Development'},
+    ]}
+  />
+</label>
+```
+
+### Controlled Selects
+
+For controlled selects, manage the value in React state:
+
+```jsx
+const [value, setValue] = useState(null);
+
+<Select value={value} onChange={setValue} options={options} />;
+```
+
+### Multi-Select for Tags
+
+Use multi-select for tag or category selection:
+
+```jsx
+<label>
+  Tags
+  <Select
+    multiple
+    isSearchable
+    isClearable
+    placeholder="Add tags"
+    value={selectedTags}
+    onChange={setSelectedTags}
+    options={allTags}
+  />
+</label>
+```
+
+## Accessibility
+
+`<Select>` is built with accessibility in mind and meets WCAG 2.2 AA standards:
+
+- [2.1.1 Keyboard](https://www.w3.org/TR/WCAG22/#keyboard): Full keyboard navigation with arrow keys, Enter, Escape
+- [2.4.7 Focus Visible](https://www.w3.org/TR/WCAG22/#focus-visible): Clear focus indicators
+
+The component follows the [WAI-ARIA Combobox](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/) and [Listbox](https://www.w3.org/WAI/ARIA/apg/patterns/listbox/) patterns, including:
+
+- `role="combobox"` on the input
+- `aria-expanded` state management
+- `aria-controls` linking to the options list
+- `aria-activedescendant` for keyboard navigation
+- Screen reader announcements for selection changes
+
+### Developer Responsibilities
+
+**Labels** ([WCAG 3.3.2](https://www.w3.org/TR/WCAG22/#labels-or-instructions))
+
+- Every select must have an associated label
+- Use a `<label>` element with `htmlFor`, wrap the select in a `<label>`, or provide `aria-label`
+- In-field labels (`inFieldLabel`) supplement but don't replace proper labeling
+
+```jsx
+// Good: Visible label with htmlFor
+<label htmlFor="project">Project</label>
+<Select id="project" options={projects} />
+
+// Good: Wrapping label
+<label>
+  Project
+  <Select options={projects} />
+</label>
+
+// Good: aria-label when context is clear
+<Select aria-label="Filter by project" options={projects} />
+```
+
+**Keyboard Navigation**
+
+- **Arrow Up/Down**: Navigate options
+- **Enter/Space**: Select option or open dropdown
+- **Escape**: Close dropdown
+- **Type to search**: When `isSearchable` is enabled
+
+**Required Fields**
+
+- Use the `required` prop for required fields
+- Indicate visually in the label (e.g., with an asterisk)
+- Provide clear validation feedback
+
+**Error Handling**
+
+- Use `aria-invalid` and `aria-describedby` for validation errors
+- Provide clear, specific error messages
+
+```jsx
+<Select
+  id="project"
+  options={projects}
+  aria-invalid={hasError}
+  aria-describedby={hasError ? 'project-error' : undefined}
+/>;
+{
+  hasError && (
+    <span id="project-error" role="alert">
+      Please select a project
+    </span>
+  );
+}
+```
+
+For more information, see the [WAI-ARIA Combobox practices](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/).

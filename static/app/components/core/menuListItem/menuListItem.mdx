@@ -1,0 +1,265 @@
+---
+title: MenuListItem
+description: A building block component for creating menu items and list options with support for states, icons, and details.
+source: 'sentry/components/core/menuListItem'
+resources:
+  figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=384-2119&t=DdXZ7WIgTdURJlRv-4
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/menuListItem/index.tsx
+  a11y:
+    WCAG 2.1.1: https://www.w3.org/TR/WCAG22/#keyboard
+    WCAG 2.4.7: https://www.w3.org/TR/WCAG22/#focus-visible
+    WAI-ARIA Menu: https://www.w3.org/WAI/ARIA/apg/patterns/menu/
+---
+
+import styled from '@emotion/styled';
+
+import {MenuListItem} from 'sentry/components/core/menuListItem';
+import * as Storybook from 'sentry/stories';
+import {space} from 'sentry/styles/space';
+
+import documentation from '!!type-loader!@sentry/scraps/menuListItem';
+
+export {documentation};
+
+`<MenuListItem>` is a versatile building block for creating menu items, dropdown options, and selectable list items. It provides consistent styling, interaction states, and support for icons, labels, and supplementary details.
+
+Use `<MenuListItem>` when building custom menus, dropdown options, or selectable lists. For standard dropdowns, prefer higher-level components like `<CompactSelect>` which use `<MenuListItem>` internally.
+
+```jsx
+<MenuListItem label="Menu Item" leadingItems={state => (state.isSelected ? '✓' : null)} />
+```
+
+## Sizes
+
+`<MenuListItem>` comes in three sizes: `md` (default), `sm`, and `xs`.
+
+<Storybook.Demo>
+  <Storybook.Grid>
+    <Container>
+      <MenuListItem size="md" label="Medium item" />
+      <MenuListItem size="md" label="Another item" />
+    </Container>
+    <Container>
+      <MenuListItem size="sm" label="Small item" />
+      <MenuListItem size="sm" label="Another item" />
+    </Container>
+    <Container>
+      <MenuListItem size="xs" label="Extra small item" />
+      <MenuListItem size="xs" label="Another item" />
+    </Container>
+  </Storybook.Grid>
+</Storybook.Demo>
+
+```jsx
+<MenuListItem size="md" label="Medium" />
+<MenuListItem size="sm" label="Small" />
+<MenuListItem size="xs" label="Extra Small" />
+```
+
+## States
+
+`<MenuListItem>` supports several visual states:
+
+- **isFocused**: Highlights the item when keyboard focused
+- **isSelected**: Indicates the item is currently selected
+- **disabled**: Prevents interaction
+
+export function StatesDemo() {
+  const leadingItems = state => (state.isSelected ? '✅' : '⬜');
+  return (
+    <Storybook.Grid>
+      <div>
+        Focused:
+        <Container>
+          <MenuListItem label="hello" leadingItems={leadingItems} />
+          <MenuListItem label="sentry" leadingItems={leadingItems} isFocused />
+          <MenuListItem label="world" leadingItems={leadingItems} />
+        </Container>
+      </div>
+      <div>
+        Selected:
+        <Container>
+          <MenuListItem label="hello" leadingItems={leadingItems} />
+          <MenuListItem
+            label="sentry"
+            leadingItems={leadingItems}
+            isSelected
+            priority="primary"
+          />
+          <MenuListItem label="world" leadingItems={leadingItems} />
+        </Container>
+      </div>
+      <div>
+        Disabled:
+        <Container>
+          <MenuListItem label="hello" leadingItems={leadingItems} />
+          <MenuListItem label="sentry" leadingItems={leadingItems} disabled />
+          <MenuListItem label="world" leadingItems={leadingItems} />
+        </Container>
+      </div>
+    </Storybook.Grid>
+  );
+}
+
+<Storybook.Demo>
+  <StatesDemo />
+</Storybook.Demo>
+
+```jsx
+<MenuListItem label="Item" isFocused />
+<MenuListItem label="Item" isSelected priority="primary" />
+<MenuListItem label="Item" disabled />
+```
+
+## Leading Items
+
+Use `leadingItems` to add icons, checkmarks, or other elements before the label. The prop accepts a function that receives the item's state:
+
+```jsx
+<MenuListItem
+  label="Selected Item"
+  leadingItems={state => (state.isSelected ? <IconCheckmark /> : null)}
+  isSelected
+/>
+
+<MenuListItem
+  label="Item with Icon"
+  leadingItems={() => <IconDocument />}
+/>
+```
+
+## Trailing Items
+
+Add supplementary elements after the label using the `trailingItems` prop:
+
+export function TrailingDemo() {
+  const leadingItems = state => (state.isSelected ? '✅' : '⬜');
+  return (
+    <Container>
+      <MenuListItem
+        label="Item with badge"
+        leadingItems={leadingItems}
+        trailingItems="🚀"
+      />
+      <MenuListItem label="Another item" leadingItems={leadingItems} trailingItems="⭐" />
+    </Container>
+  );
+}
+
+<Storybook.Demo>
+  <TrailingDemo />
+</Storybook.Demo>
+
+```jsx
+<MenuListItem label="Item" trailingItems={<Badge>New</Badge>} />
+<MenuListItem label="Item" trailingItems="Ctrl+K" />
+```
+
+## Details
+
+Add supplementary text below the label using the `details` prop:
+
+export function DetailsDemo() {
+  const leadingItems = state => (state.isSelected ? '✅' : '⬜');
+  return (
+    <Container>
+      <MenuListItem
+        label="Option with details"
+        details="This is additional information about the option"
+        leadingItems={leadingItems}
+      />
+      <MenuListItem
+        label="Another option"
+        details="More helpful context here"
+        leadingItems={leadingItems}
+      />
+    </Container>
+  );
+}
+
+<Storybook.Demo>
+  <DetailsDemo />
+</Storybook.Demo>
+
+```jsx
+<MenuListItem
+  label="Advanced Settings"
+  details="Configure advanced options and features"
+/>
+```
+
+## Usage Patterns
+
+### Custom Dropdown Menus
+
+```jsx
+const CustomMenu = () => {
+  const [selected, setSelected] = useState('option1');
+
+  return (
+    <div role="menu">
+      {options.map(option => (
+        <MenuListItem
+          key={option.value}
+          label={option.label}
+          isSelected={selected === option.value}
+          priority={selected === option.value ? 'primary' : 'default'}
+          leadingItems={state => (state.isSelected ? <IconCheck /> : null)}
+          onClick={() => setSelected(option.value)}
+        />
+      ))}
+    </div>
+  );
+};
+```
+
+### Selectable Lists
+
+```jsx
+{
+  items.map((item, index) => (
+    <MenuListItem
+      key={item.id}
+      label={item.name}
+      details={item.description}
+      isFocused={focusedIndex === index}
+      isSelected={selectedIds.includes(item.id)}
+      leadingItems={() => <ItemIcon type={item.type} />}
+      onClick={() => handleSelect(item.id)}
+    />
+  ));
+}
+```
+
+## Accessibility
+
+`<MenuListItem>` is designed as a building block and adapts to different accessibility patterns:
+
+- [2.1.1 Keyboard](https://www.w3.org/TR/WCAG22/#keyboard): Keyboard accessible when used in proper context
+- [2.4.7 Focus Visible](https://www.w3.org/TR/WCAG22/#focus-visible): Visual feedback for focused state
+
+### Developer Responsibilities
+
+**Semantic Context**
+
+- Wrap items in appropriate containers (`role="menu"`, `role="listbox"`, `role="list"`)
+- Add proper role to items based on context (`role="menuitem"`, `role="option"`)
+- Ensure keyboard navigation is implemented
+
+**Labels**
+
+- The `label` prop provides the primary text
+- Additional context can be provided via `details`
+- Use `aria-label` if the label doesn't fully describe the action
+
+**Keyboard Navigation**
+
+- Implement arrow key navigation for menu/list contexts
+- Support Enter/Space for selection
+- Manage focus states appropriately
+
+For more information, see the [WAI-ARIA Menu practices](https://www.w3.org/WAI/ARIA/apg/patterns/menu/).
+
+const Container = styled('div')`  margin-top: ${space(0.5)};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.radius.md};`;

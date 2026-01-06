@@ -1,0 +1,217 @@
+---
+title: InteractionStateLayer
+description: A low-level primitive component that adds visual hover, focus, and active states to interactive elements using opacity overlays.
+source: 'sentry/components/core/interactionStateLayer'
+resources:
+  figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=384-2119&t=DdXZ7WIgTdURJlRv-4
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/interactionStateLayer/index.tsx
+  a11y:
+    WCAG 1.4.3: https://www.w3.org/TR/WCAG22/#contrast-minimum
+    WCAG 2.4.7: https://www.w3.org/TR/WCAG22/#focus-visible
+---
+
+import styled from '@emotion/styled';
+
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import * as Storybook from 'sentry/stories';
+import {space} from 'sentry/styles/space';
+
+import documentation from '!!type-loader!@sentry/scraps/interactionStateLayer';
+
+export {documentation};
+
+`<InteractionStateLayer>` is a low-level primitive that adds visual feedback for hover, focus, and active states to interactive elements. It uses opacity-based overlays that respect contrast requirements, making it suitable for various background colors.
+
+Use `<InteractionStateLayer>` when building custom interactive components that need standard hover/focus/active visual feedback. Most Sentry UI components (Button, Checkbox, etc.) already include this layer internally.
+
+```jsx
+<div style={{position: 'relative'}} tabIndex={0}>
+  <InteractionStateLayer />
+  {/* Your content */}
+</div>
+```
+
+## Basic Usage
+
+Add `<InteractionStateLayer>` as a child of your interactive element. The parent must have `position: relative` and be focusable/clickable.
+
+export function BasicDemo() {
+  return (
+    <Storybook.SideBySide>
+      <StyledPanel tabIndex={0}>
+        <InteractionStateLayer />
+        <PanelContent />
+      </StyledPanel>
+      <StyledPanel tabIndex={0}>
+        <PanelContent />
+      </StyledPanel>
+    </Storybook.SideBySide>
+  );
+}
+
+const PanelContent = () => (
+
+<>
+  <h4>With InteractionStateLayer</h4>
+  <p>Hover or focus this panel to see the effect</p>
+</>
+);
+
+<Storybook.Demo>
+  <BasicDemo />
+</Storybook.Demo>
+
+```jsx
+<div style={{position: 'relative'}} tabIndex={0}>
+  <InteractionStateLayer />
+  <YourContent />
+</div>
+```
+
+> [!NOTE]
+> The left panel includes `<InteractionStateLayer>` and shows visual feedback on hover/focus. The right panel doesn't and appears static.
+
+## How It Works
+
+`<InteractionStateLayer>` renders an absolutely positioned overlay that responds to CSS pseudo-selectors:
+
+- **`:hover`**: Shows a subtle overlay on mouse hover
+- **`:focus-visible`**: Shows overlay when focused via keyboard
+- **`:active`**: Shows a more prominent overlay when clicked/pressed
+
+The overlay uses opacity transitions for smooth visual feedback that works with any background color.
+
+## Manual State Control
+
+By default, the layer responds to CSS hover/focus states automatically. For custom control, use the `isHovered` and `isPressed` props:
+
+```jsx
+<div style={{position: 'relative'}}>
+  <InteractionStateLayer isHovered={isHovering} isPressed={isPressed} />
+  {/* content */}
+</div>
+```
+
+This is useful when:
+
+- The interactive state is managed programmatically
+- You need to simulate hover/press states
+- The standard CSS selectors don't work for your use case
+
+## Requirements
+
+For `<InteractionStateLayer>` to work correctly:
+
+1. **Parent positioning**: The parent must have `position: relative`, `position: absolute`, or `position: fixed`
+2. **Interactive element**: The parent should be focusable or clickable (e.g., `<button>`, `<a>`, or element with `tabIndex`)
+3. **Render order**: Place `<InteractionStateLayer>` as the first child for proper z-index layering
+
+```jsx
+// Good: Proper setup
+<button style={{position: 'relative'}}>
+  <InteractionStateLayer />
+  <span>Click me</span>
+</button>
+
+// Bad: Missing position
+<div>
+  <InteractionStateLayer /> {/* Won't work - parent needs position: relative */}
+  <span>Content</span>
+</div>
+```
+
+## Usage Patterns
+
+### Custom Interactive Cards
+
+```jsx
+<div
+  style={{position: 'relative', cursor: 'pointer'}}
+  onClick={handleClick}
+  onKeyPress={handleKeyPress}
+  tabIndex={0}
+  role="button"
+>
+  <InteractionStateLayer />
+  <h3>Card Title</h3>
+  <p>Card content goes here</p>
+</div>
+```
+
+### Custom Buttons
+
+```jsx
+const CustomButton = styled('button')`
+  position: relative;
+  padding: ${space(1)} ${space(2)};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.radius.md};
+`;
+
+<CustomButton>
+  <InteractionStateLayer />
+  Custom Button
+</CustomButton>;
+```
+
+### Clickable List Items
+
+```jsx
+<div role="list">
+  {items.map(item => (
+    <div
+      key={item.id}
+      style={{position: 'relative'}}
+      onClick={() => selectItem(item.id)}
+      tabIndex={0}
+      role="listitem"
+    >
+      <InteractionStateLayer />
+      <ItemContent item={item} />
+    </div>
+  ))}
+</div>
+```
+
+## When NOT to Use
+
+Don't use `<InteractionStateLayer>` when:
+
+- Using existing Sentry components (Button, etc.)—they already include it
+- The element isn't interactive
+- You need custom hover effects beyond the standard overlay
+- The parent doesn't support relative positioning
+
+## Accessibility
+
+`<InteractionStateLayer>` enhances visual accessibility by providing clear interaction feedback:
+
+- [1.4.3 Contrast Minimum](https://www.w3.org/TR/WCAG22/#contrast-minimum): Opacity-based overlays maintain contrast ratios
+- [2.4.7 Focus Visible](https://www.w3.org/TR/WCAG22/#focus-visible): Clear visual feedback for keyboard focus
+
+### Developer Responsibilities
+
+**Focus Management**
+
+- Ensure the parent element is focusable (via `tabIndex` or native semantics)
+- Use `:focus-visible` styles in addition to the layer
+- Provide clear focus indicators
+
+**Interactive Semantics**
+
+- Add appropriate `role` attributes (e.g., `role="button"`)
+- Include keyboard event handlers (`onKeyPress`, `onKeyDown`)
+- Ensure the element is actually interactive
+
+**Visual Feedback**
+
+- Don't rely solely on the interaction layer for state communication
+- Combine with other visual cues (borders, shadows, colors)
+- Test with different background colors to ensure visibility
+
+const StyledPanel = styled('div')`  position: relative;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.radius.md};
+  padding: ${space(1)};
+  max-width: 300px;
+  cursor: pointer;`;
