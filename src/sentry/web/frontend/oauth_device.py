@@ -195,6 +195,9 @@ class OAuthDeviceView(AuthLoginView):
                         matched_sets.add(scope_set)
                         pending_scopes.remove(scope)
 
+            if pending_scopes:
+                raise NotImplementedError(f"{pending_scopes} scopes did not have descriptions")
+
         # Get organization options if needed
         if application.requires_org_level_access:
             organization_options = user_service.get_organizations(
