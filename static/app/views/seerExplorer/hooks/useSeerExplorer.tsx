@@ -9,11 +9,17 @@ import {
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import useAsciiSnapshot from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
-import {makeSeerExplorerQueryKey} from 'sentry/views/seerExplorer/utils';
+import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
+import {
+  makeSeerExplorerQueryKey,
+  RUN_ID_QUERY_PARAM,
+} from 'sentry/views/seerExplorer/utils';
 
 export type PendingUserInput = {
   data: Record<string, any>;
@@ -109,6 +115,26 @@ export const useSeerExplorer = () => {
     'seer-explorer-run-id',
     null
   );
+
+  // Support deep links that carry a run id; set it once and clean the URL.
+  const {openExplorerPanel} = useExplorerPanel();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const paramValue = location.query?.[RUN_ID_QUERY_PARAM];
+    if (typeof paramValue !== 'string') {
+      return;
+    }
+    const parsedRunId = Number(paramValue);
+    if (!Number.isNaN(parsedRunId)) {
+      openExplorerPanel();
+      setRunId(parsedRunId);
+      const {[RUN_ID_QUERY_PARAM]: _removed, ...restQuery} = location.query ?? {};
+      navigate({...location, query: restQuery}, {replace: true});
+    }
+  }, [location, navigate, openExplorerPanel, setRunId]);
+
   const [waitingForResponse, setWaitingForResponse] = useState<boolean>(false);
   const [deletedFromIndex, setDeletedFromIndex] = useState<number | null>(null);
   const [interruptRequested, setInterruptRequested] = useState<boolean>(false);
@@ -513,7 +539,6 @@ export const useSeerExplorer = () => {
     isPending,
     sendMessage,
     runId,
-    setRunId,
     /** Switches to a different run and fetches its latest state. */
     switchToRun,
     /** Resets the run id, blocks, and other state. The new session isn't actually created until the user sends a message. */
