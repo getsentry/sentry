@@ -124,8 +124,9 @@ export function PrivateGamingSdkAccessModal({
     },
     onError: errorResponse => {
       const errorMessage = tct('[error] - [detail]', {
-        error: errorResponse.responseJSON?.error as string,
-        detail: errorResponse.responseJSON?.detail as string,
+        error: (errorResponse.responseJSON?.error as string) || 'Error occurred',
+        detail:
+          (errorResponse.responseJSON?.detail as string) || 'Unknown Error occurred',
       });
       addErrorMessage(errorMessage);
       setRequestError(errorMessage);
