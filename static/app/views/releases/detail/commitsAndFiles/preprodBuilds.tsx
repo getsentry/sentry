@@ -22,6 +22,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import PreprodBuildsSearchBar from 'sentry/views/preprod/components/preprodBuildsSearchBar';
+import {usePreprodBuildsAnalytics} from 'sentry/views/preprod/hooks/usePreprodBuildsAnalytics';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
 import {ReleaseContext} from 'sentry/views/releases/detail';
@@ -131,6 +132,18 @@ export default function PreprodBuilds() {
 
   const hasSearchQuery = !!urlSearchQuery?.trim();
   const showOnboarding = builds.length === 0 && !hasSearchQuery && !isLoadingBuilds;
+
+  usePreprodBuildsAnalytics({
+    builds,
+    cursor,
+    display: activeDisplay,
+    enabled: !!projectSlug && !!params.release,
+    error: !!buildsError,
+    isLoading: isLoadingBuilds,
+    pageSource: 'releases_details_preprod_builds',
+    projectCount: 1,
+    searchQuery: urlSearchQuery,
+  });
 
   const handleBuildRowClick = useCallback(
     (build: BuildDetailsApiResponse) => {

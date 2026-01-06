@@ -327,7 +327,7 @@ function ArchiveActions({
             aria-label={t('Archive options')}
             size={size}
             icon={
-              <IconChevron color="subText" direction={isOpen ? 'up' : 'down'} size="xs" />
+              <IconChevron variant="muted" direction={isOpen ? 'up' : 'down'} size="xs" />
             }
             disabled={disabled}
           />

@@ -70,7 +70,7 @@ function SearchBar({
     <FormWrap onSubmit={onSubmit} className={className}>
       <InputGroup>
         <InputGroup.LeadingItems disablePointerEvents>
-          <IconSearch color="subText" size={size === 'xs' ? 'xs' : 'sm'} />
+          <IconSearch variant="muted" size={size === 'xs' ? 'xs' : 'sm'} />
         </InputGroup.LeadingItems>
         <StyledInput
           {...inputProps}
