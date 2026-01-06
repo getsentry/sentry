@@ -226,14 +226,12 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
             raise IntegrationFormError({"repo": "Repository is required"})
 
         # Check the repository belongs to the integration
-        try:
-            Repository.objects.get(
-                name=repo,
-                integration_id=self.model.id,
-                organization_id=self.organization_id,
-                status=ObjectStatus.ACTIVE,
-            )
-        except Repository.DoesNotExist:
+        if not Repository.objects.filter(
+            name=repo,
+            integration_id=self.model.id,
+            organization_id=self.organization_id,
+            status=ObjectStatus.ACTIVE,
+        ).exists():
             raise IntegrationFormError(
                 {"repo": f"Given repository, {repo} does not belong to this installation"}
             )
@@ -331,14 +329,12 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         if not repo:
             raise IntegrationFormError({"repo": "Repository is required"})
 
-        try:
-            Repository.objects.get(
-                name=repo,
-                integration_id=self.model.id,
-                organization_id=self.organization_id,
-                status=ObjectStatus.ACTIVE,
-            )
-        except Repository.DoesNotExist:
+        if not Repository.objects.filter(
+            name=repo,
+            integration_id=self.model.id,
+            organization_id=self.organization_id,
+            status=ObjectStatus.ACTIVE,
+        ).exists():
             raise IntegrationFormError(
                 {"repo": f"Given repository, {repo} does not belong to this installation"}
             )
