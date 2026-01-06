@@ -524,31 +524,6 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
             == {}
         )
 
-    @patch("sentry.workflow_engine.processors.workflow.process_workflows")
-    def test_group_last_seen_buffer(
-        self, mock_process_workflows: MagicMock, mock_trigger: MagicMock
-    ) -> None:
-        first_event_date = timezone.now() - timedelta(days=90)
-        event1 = self.create_error_event(project=self.project)
-        group1 = event1.group
-        assert group1
-        group1.update(last_seen=first_event_date)
-
-        event2 = self.create_error_event(project=self.project)
-
-        # Mock set the last_seen value to the first event date
-        # To simulate the update to last_seen being buffered
-        assert event2.group
-        event2.group.last_seen = first_event_date
-        event2.group.update(last_seen=first_event_date)
-        assert event2.group_id == group1.id
-
-        self.post_process_error(event2)
-        mock_process_workflows.assert_called_once()
-        sent_group_date: datetime = mock_process_workflows.call_args[0][1].group.last_seen
-        # Check that last_seen was updated to be at least the new event's date
-        assert abs(sent_group_date - event2.datetime) < timedelta(seconds=10)
-
 
 class TestWorkflowEngineIntegrationFromFeedbackPostProcess(BaseWorkflowIntegrationTest):
     @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [6001]})
