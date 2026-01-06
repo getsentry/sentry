@@ -173,9 +173,9 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
               size="zero"
               priority="link"
               onClick={doRefresh}
-              icon={<IconRefresh size="xs" variant="warning" />}
+              icon={<IconRefresh size="xs" variant="accent" />}
             >
-              <Text size="sm" variant="warning">
+              <Text size="md" variant="accent">
                 {t('Update')}
               </Text>
             </Button>
