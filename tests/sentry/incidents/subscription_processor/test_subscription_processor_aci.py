@@ -12,9 +12,6 @@ from urllib3.response import HTTPResponse
 from sentry.constants import ObjectStatus
 from sentry.incidents.subscription_processor import SubscriptionProcessor
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
-from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.models import QuerySubscription
-from sentry.incidents.subscription_processor import SubscriptionProcessor
 from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionSeasonality,
     AnomalyDetectionSensitivity,
@@ -24,8 +21,8 @@ from sentry.seer.anomaly_detection.types import (
 )
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import resolve_tag_key
-from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import SnubaQuery
+from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.cases import BaseMetricsTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.features import with_feature
@@ -536,6 +533,7 @@ class ProcessUpdateUpsampledCountTest(ProcessUpdateBaseClass):
         self.send_upsampled_update(upsampled_count=5.0, time_delta=timedelta(minutes=1))
         assert self.get_detector_state(self.upsampled_detector) == DetectorPriorityLevel.OK
 
+
 class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetricsTestCase):
     @pytest.fixture(autouse=True)
     def _setup_metrics_patcher(self):
@@ -677,6 +675,7 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
         snuba_query.update(time_window=15 * 60)
         snuba_query.save()
 
+        update_value = 1 - 10 / 100
         # send critical update
         seer_return_value: DetectAnomaliesResponse = {
             "success": True,
@@ -687,13 +686,12 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
                         "anomaly_type": AnomalyType.HIGH_CONFIDENCE.value,
                     },
                     "timestamp": 1,
-                    "value": 10,
+                    "value": update_value,
                 }
             ],
         }
 
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
-        update_value = (1 - 0 / 100) + 0.05
         self.send_crash_rate_detector_update(
             value=update_value,
             time_delta=timedelta(minutes=-2),
