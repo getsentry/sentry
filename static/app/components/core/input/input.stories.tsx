@@ -2,6 +2,8 @@ import {Fragment, useState} from 'react';
 import documentation from '!!type-loader!sentry/components/core/input';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {Input} from 'sentry/components/core/input';
 import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
 import * as Storybook from 'sentry/stories';
@@ -17,18 +19,18 @@ export default Storybook.story('Input', (story, APIReference) => {
           The <Storybook.JSXNode name="Input" /> component comes in different sizes:
         </p>
         <Grid>
-          <Label>
+          <Stack as="label" gap="md">
             <Storybook.JSXProperty name="size" value="md" />
             <Input size="md" defaultValue="" />
-          </Label>
-          <Label>
+          </Stack>
+          <Stack as="label" gap="md">
             <Storybook.JSXProperty name="size" value="sm" />
             <Input size="sm" defaultValue="value" />
-          </Label>
-          <Label>
+          </Stack>
+          <Stack as="label" gap="md">
             <Storybook.JSXProperty name="size" value="xs" />
             <Input size="xs" defaultValue="" placeholder="placeholder" />
-          </Label>
+          </Stack>
         </Grid>
       </Fragment>
     );
@@ -47,15 +49,15 @@ export default Storybook.story('Input', (story, APIReference) => {
           interactive like a <code>readonly</code> field:
         </p>
         <Grid>
-          <Label>
+          <Stack as="label" gap="md">
             <Storybook.JSXProperty name="disabled" value="true" />
             <Input
               disabled
               value={disabledValue}
               onChange={e => setDisabledValue(e.target.value)}
             />
-          </Label>
-          <Label>
+          </Stack>
+          <Stack as="label" gap="md">
             <Storybook.JSXProperty name="aria-disabled" value="true" />
             <Input
               aria-disabled
@@ -64,15 +66,15 @@ export default Storybook.story('Input', (story, APIReference) => {
                 setValue(e.target.value);
               }}
             />
-          </Label>
-          <Label>
+          </Stack>
+          <Stack as="label" gap="md">
             <Storybook.JSXProperty name="readOnly" value="true" />
             <Input
               readOnly
               value={readonlyValue}
               onChange={e => setReadonlyValue(e.target.value)}
             />
-          </Label>
+          </Stack>
         </Grid>
       </Fragment>
     );
@@ -111,44 +113,38 @@ export default Storybook.story('Input', (story, APIReference) => {
           to the placeholder size!
         </p>
         <Grid>
-          <Label>
+          <Stack as="label" gap="md">
             <code>controlled input autosize:</code>{' '}
             <Input
               ref={controlledAutosizeRef}
               value={value}
               onChange={e => setValue(e.target.value)}
             />
-          </Label>
-          <Label>
+          </Stack>
+          <Stack as="label" gap="md">
             <code>uncontrolled input autosize:</code>{' '}
             <Input ref={uncontrolledAutosizeRef} defaultValue="" />
-          </Label>
+          </Stack>
 
-          <Label>
+          <Stack as="label" gap="md">
             <code>controlled via different input:</code>{' '}
             <Input value={proxyValue} onChange={e => setProxyValue(e.target.value)} />
             <Input ref={externalControlledAutosizeRef} readOnly value={proxyValue} />
-          </Label>
+          </Stack>
 
-          <Label>
+          <Stack as="label" gap="md">
             <code>autosize according to placeholder:</code>{' '}
             <Input
               ref={placeholderAutosizeRef}
               defaultValue=""
               placeholder="placeholder"
             />
-          </Label>
+          </Stack>
         </Grid>
       </Fragment>
     );
   });
 });
-
-const Label = styled('label')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
 
 const Grid = styled('div')`
   display: grid;

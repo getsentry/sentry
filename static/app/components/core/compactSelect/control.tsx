@@ -17,6 +17,7 @@ import {mergeProps} from '@react-aria/utils';
 import type {OverlayTriggerState} from '@react-stately/overlays';
 
 import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
+import {Stack} from '@sentry/scraps/layout';
 
 import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
@@ -551,7 +552,7 @@ export function Control({
                 {typeof menuBody === 'function'
                   ? menuBody({closeOverlay: overlayState.close})
                   : menuBody}
-                {!hideOptions && <OptionsWrap>{children}</OptionsWrap>}
+                {!hideOptions && <Stack minHeight="0">{children}</Stack>}
                 {menuFooter && (
                   <MenuFooter>
                     {typeof menuFooter === 'function'
@@ -685,12 +686,6 @@ const StyledPositionWrapper = styled(PositionWrapper, {
   min-width: 100%;
   display: ${p => (p.visible ? 'block' : 'none')};
   z-index: ${p => p?.zIndex};
-`;
-
-const OptionsWrap = styled('div')`
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
 `;
 
 const MenuFooter = styled('div')`
