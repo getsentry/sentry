@@ -23,7 +23,7 @@ from sentry.taskworker.retry import Retry
 from sentry.taskworker.state import current_task
 from sentry.utils import metrics
 
-from ..utils import SeerEndpoint, get_seer_endpoint_for_event, make_seer_request
+from ..utils import get_seer_endpoint_for_event, make_seer_request
 
 logger = logging.getLogger(__name__)
 
@@ -98,13 +98,11 @@ def process_github_webhook_event(
     status = "success"
     should_record_latency = True
     try:
+        path = get_seer_endpoint_for_event(github_event).value
         option_key = get_webhook_option_key(github_event)
-        if option_key and options.get(option_key):
-            make_seer_request(path=SeerEndpoint.OVERWATCH_REQUEST.value, payload=event_payload)
-        else:
-            make_seer_request(
-                path=get_seer_endpoint_for_event(github_event).value, payload=event_payload
-            )
+        if option_key and not options.get(option_key):
+            return
+        make_seer_request(path=path, payload=event_payload)
     except Exception as e:
         status = e.__class__.__name__
         # Retryable errors are automatically retried by taskworker.
