@@ -61,15 +61,10 @@ export function PrivateGamingSdkAccessModal({
   onSubmit,
   origin,
 }: PrivateGamingSdkAccessModalProps & ModalRenderProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [gamingPlatforms, setGamingPlatforms] = useState<GamingPlatform[]>(
     gamingPlatform ? [gamingPlatform] : []
   );
-  const [requestError, setRequestError] = useState<React.ReactElement | undefined>(
-    undefined
-  );
   const [submittedPlatforms, setSubmittedPlatforms] = useState<GamingPlatform[]>([]);
-  const [showSuccessView, setShowSuccessView] = useState(false);
   const location = useLocation();
   const currentPath = location.pathname + location.search;
   const queryClient = useQueryClient();
@@ -83,7 +78,7 @@ export function PrivateGamingSdkAccessModal({
     staleTime: Infinity,
   });
 
-  const {mutate} = useMutation<
+  const mutation = useMutation<
     ConsoleSdkInviteResponse,
     RequestError,
     ConsoleSdkInviteRequest
@@ -118,10 +113,8 @@ export function PrivateGamingSdkAccessModal({
           })
         );
         setSubmittedPlatforms(successfulPlatforms);
-        setShowSuccessView(true);
       }
 
-      setIsSubmitting(false);
       queryClient.invalidateQueries({
         queryKey: [`/organizations/${organization.slug}/console-sdk-invites/`],
       });
@@ -133,8 +126,6 @@ export function PrivateGamingSdkAccessModal({
           (errorResponse.responseJSON?.detail as string) || 'Unknown Error occurred',
       });
       addErrorMessage(errorMessage);
-      setRequestError(errorMessage);
-      setIsSubmitting(false);
     },
   });
 
@@ -142,6 +133,7 @@ export function PrivateGamingSdkAccessModal({
     userIdentity => userIdentity.provider.key === 'github'
   );
   const isFormValid = hasGithubIdentity && gamingPlatforms.length > 0;
+  const showSuccessView = mutation.isSuccess && submittedPlatforms.length > 0;
 
   useEffect(() => {
     trackAnalytics('gaming.private_sdk_access_modal_opened', {
@@ -157,9 +149,6 @@ export function PrivateGamingSdkAccessModal({
       return;
     }
 
-    setIsSubmitting(true);
-    setRequestError(undefined);
-
     trackAnalytics('gaming.private_sdk_access_modal_submitted', {
       platform: gamingPlatform,
       project_id: projectId,
@@ -169,7 +158,7 @@ export function PrivateGamingSdkAccessModal({
     });
 
     onSubmit?.();
-    mutate({platforms: gamingPlatforms});
+    mutation.mutate({platforms: gamingPlatforms});
   }
 
   return (
@@ -252,7 +241,16 @@ export function PrivateGamingSdkAccessModal({
             </Button>
           </Fragment>
         )}
-        {requestError && <Alert variant="danger">{requestError}</Alert>}
+        {mutation.error && (
+          <Alert variant="danger">
+            {tct('[error] - [detail]', {
+              error: (mutation.error.responseJSON?.error as string) || 'Error occurred',
+              detail:
+                (mutation.error.responseJSON?.detail as string) ||
+                'Unknown Error occurred',
+            })}
+          </Alert>
+        )}
       </Body>
       <Footer>
         <ButtonBar>
@@ -268,9 +266,9 @@ export function PrivateGamingSdkAccessModal({
                   priority="primary"
                   onClick={handleSubmit}
                   disabled={!isFormValid}
-                  busy={isSubmitting}
+                  busy={mutation.isPending}
                 >
-                  {isSubmitting ? t('Sending Invitation') : t('Send Invitation')}
+                  {mutation.isPending ? t('Sending Invitation') : t('Send Invitation')}
                 </Button>
               )}
             </Fragment>
