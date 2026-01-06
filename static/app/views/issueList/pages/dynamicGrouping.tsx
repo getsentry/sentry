@@ -476,274 +476,281 @@ function ClusterCard({
   }
 
   return (
-    <CardContainer>
-      <CardHeader>
-        {cluster.impact && (
-          <ClusterTitle>
-            {cluster.impact}
-            <Text
-              as="span"
-              size="md"
-              variant="muted"
-              style={{fontWeight: 'normal', marginLeft: space(1)}}
-            >
-              [CLUSTER-{cluster.cluster_id}]
-            </Text>
-          </ClusterTitle>
-        )}
-        {!clusterStats.isPending &&
-          (clusterStats.newIssuesCount > 0 ||
-            clusterStats.hasRegressedIssues ||
-            clusterStats.isEscalating) && (
-            <ClusterStatusTags>
-              {clusterStats.newIssuesCount > 0 && (
-                <StatusTag color="purple">
-                  <IconStar size="xs" />
-                  <Text size="xs">
-                    {tn(
-                      '%s new issue this week',
-                      '%s new issues this week',
-                      clusterStats.newIssuesCount
-                    )}
-                  </Text>
-                </StatusTag>
-              )}
-              {clusterStats.hasRegressedIssues && (
-                <StatusTag color="yellow">
-                  <IconRefresh size="xs" />
-                  <Text size="xs">{t('Has regressed issues')}</Text>
-                </StatusTag>
-              )}
-              {clusterStats.isEscalating && (
-                <StatusTag color="red">
-                  <IconArrow direction="up" size="xs" />
-                  <Text size="xs">{t('Escalating')}</Text>
-                </StatusTag>
-              )}
-            </ClusterStatusTags>
-          )}
-        <StatsRow>
-          <ClusterStats>
-            <StatItem>
-              <IconFire size="xs" variant="muted" />
-              {clusterStats.isPending ? (
-                <Text size="xs" variant="muted">
-                  –
-                </Text>
-              ) : (
-                <Text size="xs">
-                  <Text size="xs" bold as="span">
-                    {clusterStats.totalEvents.toLocaleString()}
-                  </Text>{' '}
-                  {tn('event', 'events', clusterStats.totalEvents)}
-                </Text>
-              )}
-            </StatItem>
-            <StatItem>
-              <IconUser size="xs" variant="muted" />
-              {clusterStats.isPending ? (
-                <Text size="xs" variant="muted">
-                  –
-                </Text>
-              ) : (
-                <Text size="xs">
-                  <Text size="xs" bold as="span">
-                    {clusterStats.totalUsers.toLocaleString()}
-                  </Text>{' '}
-                  {tn('user', 'users', clusterStats.totalUsers)}
-                </Text>
-              )}
-            </StatItem>
-          </ClusterStats>
-          {!clusterStats.isPending &&
-            (clusterStats.firstSeen || clusterStats.lastSeen) && (
-              <TimeStats>
-                {clusterStats.lastSeen && (
-                  <StatItem>
-                    <IconClock size="xs" variant="muted" />
-                    <TimeSince
-                      tooltipPrefix={t('Last Seen')}
-                      date={clusterStats.lastSeen}
-                      suffix={t('ago')}
-                      unitStyle="short"
-                    />
-                  </StatItem>
-                )}
-                {clusterStats.firstSeen && (
-                  <StatItem>
-                    <IconCalendar size="xs" variant="muted" />
-                    <TimeSince
-                      tooltipPrefix={t('First Seen')}
-                      date={clusterStats.firstSeen}
-                      suffix={t('old')}
-                      unitStyle="short"
-                    />
-                  </StatItem>
-                )}
-              </TimeStats>
-            )}
-        </StatsRow>
-      </CardHeader>
-
-      <TabSection>
-        <TabBar>
-          <Tab isActive={activeTab === 'summary'} onClick={() => setActiveTab('summary')}>
-            {t('Summary')}
-          </Tab>
-          <Tab
-            isActive={activeTab === 'root-cause'}
-            onClick={() => setActiveTab('root-cause')}
-          >
-            {t('Root Cause')}
-          </Tab>
-          <Tab isActive={activeTab === 'issues'} onClick={() => setActiveTab('issues')}>
-            {t('Preview Issues')}
-          </Tab>
-        </TabBar>
-        <TabContent>
-          {activeTab === 'summary' && (
-            <Flex direction="column" gap="md">
-              <StructuredInfo>
-                {cluster.error_type && (
-                  <InfoRow>
-                    <InfoLabel>{t('Error')}</InfoLabel>
-                    <InfoValue>{cluster.error_type}</InfoValue>
-                  </InfoRow>
-                )}
-                {cluster.location && (
-                  <InfoRow>
-                    <InfoLabel>{t('Location')}</InfoLabel>
-                    <InfoValue>{cluster.location}</InfoValue>
-                  </InfoRow>
-                )}
-              </StructuredInfo>
-              {allTags.length > 0 && (
-                <TagsContainer>
-                  {allTags.map(tag => (
-                    <TagPill key={tag}>{tag}</TagPill>
-                  ))}
-                </TagsContainer>
-              )}
-            </Flex>
-          )}
-          {activeTab === 'root-cause' &&
-            (cluster.summary ? (
-              <DescriptionText>{renderWithInlineCode(cluster.summary)}</DescriptionText>
-            ) : (
-              <Text size="sm" variant="muted">
-                {t('No root cause analysis available')}
+    <CardLink
+      to={`/organizations/${organization.slug}/issues/top-issues/?cluster=${cluster.cluster_id}`}
+    >
+      <CardContainer>
+        <CardHeader>
+          {cluster.impact && (
+            <ClusterTitle>
+              {cluster.impact}
+              <Text
+                as="span"
+                size="md"
+                variant="muted"
+                style={{fontWeight: 'normal', marginLeft: space(1)}}
+              >
+                [CLUSTER-{cluster.cluster_id}]
               </Text>
-            ))}
-          {activeTab === 'issues' && <ClusterIssues groupIds={cluster.group_ids} />}
-        </TabContent>
-      </TabSection>
-
-      <CardFooter>
-        {clusterProjects.length > 0 && (
-          <Tooltip
-            isHoverable
-            overlayStyle={{maxWidth: 300}}
-            title={
-              <Flex direction="column" gap="xs">
-                {clusterProjects.map(project => (
-                  <Flex key={project.id} align="center" gap="xs">
-                    <ProjectBadge
-                      project={project}
-                      avatarSize={12}
-                      hideName
-                      disableLink
-                    />
-                    <Text size="xs">{project.slug}</Text>
-                  </Flex>
-                ))}
-              </Flex>
-            }
-          >
-            <ProjectAvatars>
-              {clusterProjects.slice(0, 3).map(project => (
-                <ProjectBadge
-                  key={project.id}
-                  project={project}
-                  avatarSize={16}
-                  hideName
-                  disableLink
-                />
-              ))}
-              {clusterProjects.length > 3 && (
-                <MoreProjectsCount>+{clusterProjects.length - 3}</MoreProjectsCount>
+            </ClusterTitle>
+          )}
+          {!clusterStats.isPending &&
+            (clusterStats.newIssuesCount > 0 ||
+              clusterStats.hasRegressedIssues ||
+              clusterStats.isEscalating) && (
+              <ClusterStatusTags>
+                {clusterStats.newIssuesCount > 0 && (
+                  <StatusTag color="purple">
+                    <IconStar size="xs" />
+                    <Text size="xs">
+                      {tn(
+                        '%s new issue this week',
+                        '%s new issues this week',
+                        clusterStats.newIssuesCount
+                      )}
+                    </Text>
+                  </StatusTag>
+                )}
+                {clusterStats.hasRegressedIssues && (
+                  <StatusTag color="yellow">
+                    <IconRefresh size="xs" />
+                    <Text size="xs">{t('Has regressed issues')}</Text>
+                  </StatusTag>
+                )}
+                {clusterStats.isEscalating && (
+                  <StatusTag color="red">
+                    <IconArrow direction="up" size="xs" />
+                    <Text size="xs">{t('Escalating')}</Text>
+                  </StatusTag>
+                )}
+              </ClusterStatusTags>
+            )}
+          <StatsRow>
+            <ClusterStats>
+              <StatItem>
+                <IconFire size="xs" variant="muted" />
+                {clusterStats.isPending ? (
+                  <Text size="xs" variant="muted">
+                    –
+                  </Text>
+                ) : (
+                  <Text size="xs">
+                    <Text size="xs" bold as="span">
+                      {clusterStats.totalEvents.toLocaleString()}
+                    </Text>{' '}
+                    {tn('event', 'events', clusterStats.totalEvents)}
+                  </Text>
+                )}
+              </StatItem>
+              <StatItem>
+                <IconUser size="xs" variant="muted" />
+                {clusterStats.isPending ? (
+                  <Text size="xs" variant="muted">
+                    –
+                  </Text>
+                ) : (
+                  <Text size="xs">
+                    <Text size="xs" bold as="span">
+                      {clusterStats.totalUsers.toLocaleString()}
+                    </Text>{' '}
+                    {tn('user', 'users', clusterStats.totalUsers)}
+                  </Text>
+                )}
+              </StatItem>
+            </ClusterStats>
+            {!clusterStats.isPending &&
+              (clusterStats.firstSeen || clusterStats.lastSeen) && (
+                <TimeStats>
+                  {clusterStats.lastSeen && (
+                    <StatItem>
+                      <IconClock size="xs" variant="muted" />
+                      <TimeSince
+                        tooltipPrefix={t('Last Seen')}
+                        date={clusterStats.lastSeen}
+                        suffix={t('ago')}
+                        unitStyle="short"
+                      />
+                    </StatItem>
+                  )}
+                  {clusterStats.firstSeen && (
+                    <StatItem>
+                      <IconCalendar size="xs" variant="muted" />
+                      <TimeSince
+                        tooltipPrefix={t('First Seen')}
+                        date={clusterStats.firstSeen}
+                        suffix={t('old')}
+                        unitStyle="short"
+                      />
+                    </StatItem>
+                  )}
+                </TimeStats>
               )}
-            </ProjectAvatars>
-          </Tooltip>
-        )}
-        <FooterActions>
-          <ButtonBar merged gap="0">
-            <SeerButton
-              size="sm"
-              priority="primary"
-              icon={<IconSeer size="xs" />}
-              onClick={handleSendToSeer}
+          </StatsRow>
+        </CardHeader>
+
+        <TabSection>
+          <TabBar>
+            <Tab
+              isActive={activeTab === 'summary'}
+              onClick={() => setActiveTab('summary')}
             >
-              {t('Explore with Seer')}
-            </SeerButton>
+              {t('Summary')}
+            </Tab>
+            <Tab
+              isActive={activeTab === 'root-cause'}
+              onClick={() => setActiveTab('root-cause')}
+            >
+              {t('Root Cause')}
+            </Tab>
+            <Tab isActive={activeTab === 'issues'} onClick={() => setActiveTab('issues')}>
+              {t('Preview Issues')}
+            </Tab>
+          </TabBar>
+          <TabContent>
+            {activeTab === 'summary' && (
+              <Flex direction="column" gap="md">
+                <StructuredInfo>
+                  {cluster.error_type && (
+                    <InfoRow>
+                      <InfoLabel>{t('Error')}</InfoLabel>
+                      <InfoValue>{cluster.error_type}</InfoValue>
+                    </InfoRow>
+                  )}
+                  {cluster.location && (
+                    <InfoRow>
+                      <InfoLabel>{t('Location')}</InfoLabel>
+                      <InfoValue>{cluster.location}</InfoValue>
+                    </InfoRow>
+                  )}
+                </StructuredInfo>
+                {allTags.length > 0 && (
+                  <TagsContainer>
+                    {allTags.map(tag => (
+                      <TagPill key={tag}>{tag}</TagPill>
+                    ))}
+                  </TagsContainer>
+                )}
+              </Flex>
+            )}
+            {activeTab === 'root-cause' &&
+              (cluster.summary ? (
+                <DescriptionText>{renderWithInlineCode(cluster.summary)}</DescriptionText>
+              ) : (
+                <Text size="sm" variant="muted">
+                  {t('No root cause analysis available')}
+                </Text>
+              ))}
+            {activeTab === 'issues' && <ClusterIssues groupIds={cluster.group_ids} />}
+          </TabContent>
+        </TabSection>
+
+        <CardFooter>
+          {clusterProjects.length > 0 && (
+            <Tooltip
+              isHoverable
+              overlayStyle={{maxWidth: 300}}
+              title={
+                <Flex direction="column" gap="xs">
+                  {clusterProjects.map(project => (
+                    <Flex key={project.id} align="center" gap="xs">
+                      <ProjectBadge
+                        project={project}
+                        avatarSize={12}
+                        hideName
+                        disableLink
+                      />
+                      <Text size="xs">{project.slug}</Text>
+                    </Flex>
+                  ))}
+                </Flex>
+              }
+            >
+              <ProjectAvatars>
+                {clusterProjects.slice(0, 3).map(project => (
+                  <ProjectBadge
+                    key={project.id}
+                    project={project}
+                    avatarSize={16}
+                    hideName
+                    disableLink
+                  />
+                ))}
+                {clusterProjects.length > 3 && (
+                  <MoreProjectsCount>+{clusterProjects.length - 3}</MoreProjectsCount>
+                )}
+              </ProjectAvatars>
+            </Tooltip>
+          )}
+          <FooterActions>
+            <ButtonBar merged gap="0">
+              <SeerButton
+                size="sm"
+                priority="primary"
+                icon={<IconSeer size="xs" />}
+                onClick={handleSendToSeer}
+              >
+                {t('Explore with Seer')}
+              </SeerButton>
+              <DropdownMenu
+                items={[
+                  {
+                    key: 'copy-markdown',
+                    label: t('Copy as markdown for agents'),
+                    leadingItems: <IconCopy size="sm" />,
+                    onAction: handleCopyMarkdown,
+                  },
+                ]}
+                trigger={(triggerProps, isOpen) => (
+                  <SeerDropdownTrigger
+                    {...triggerProps}
+                    size="sm"
+                    priority="primary"
+                    icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
+                    aria-label={t('More options')}
+                  />
+                )}
+                position="bottom-end"
+              />
+            </ButtonBar>
+            <Link
+              to={`/organizations/${organization.slug}/issues/?query=issue.id:[${cluster.group_ids.join(',')}]`}
+            >
+              <Button size="sm">
+                {t('View All Issues') + ` (${cluster.group_ids.length})`}
+              </Button>
+            </Link>
             <DropdownMenu
               items={[
                 {
-                  key: 'copy-markdown',
-                  label: t('Copy as markdown for agents'),
-                  leadingItems: <IconCopy size="sm" />,
-                  onAction: handleCopyMarkdown,
+                  key: 'resolve',
+                  label: t('Resolve All'),
+                  onAction: handleResolve,
+                },
+                {
+                  key: 'archive',
+                  label: t('Archive All'),
+                  onAction: handleArchive,
+                },
+                {
+                  key: 'dismiss',
+                  label: t('Dismiss'),
+                  onAction: handleDismiss,
                 },
               ]}
-              trigger={(triggerProps, isOpen) => (
-                <SeerDropdownTrigger
+              trigger={triggerProps => (
+                <Button
                   {...triggerProps}
                   size="sm"
-                  priority="primary"
-                  icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
-                  aria-label={t('More options')}
+                  icon={<IconEllipsis size="sm" />}
+                  aria-label={t('More actions')}
                 />
               )}
               position="bottom-end"
             />
-          </ButtonBar>
-          <Link
-            to={`/organizations/${organization.slug}/issues/?query=issue.id:[${cluster.group_ids.join(',')}]`}
-          >
-            <Button size="sm">
-              {t('View All Issues') + ` (${cluster.group_ids.length})`}
-            </Button>
-          </Link>
-          <DropdownMenu
-            items={[
-              {
-                key: 'resolve',
-                label: t('Resolve All'),
-                onAction: handleResolve,
-              },
-              {
-                key: 'archive',
-                label: t('Archive All'),
-                onAction: handleArchive,
-              },
-              {
-                key: 'dismiss',
-                label: t('Dismiss'),
-                onAction: handleDismiss,
-              },
-            ]}
-            trigger={triggerProps => (
-              <Button
-                {...triggerProps}
-                size="sm"
-                icon={<IconEllipsis size="sm" />}
-                aria-label={t('More actions')}
-              />
-            )}
-            position="bottom-end"
-          />
-        </FooterActions>
-      </CardFooter>
-    </CardContainer>
+          </FooterActions>
+        </CardFooter>
+      </CardContainer>
+    </CardLink>
   );
 }
 
@@ -1234,6 +1241,13 @@ const CardsColumn = styled('div')`
   min-width: 0;
 `;
 
+const CardLink = styled(Link)`
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  cursor: pointer;
+`;
+
 const CardContainer = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.border};
@@ -1243,10 +1257,12 @@ const CardContainer = styled('div')`
   min-width: 0;
   overflow: hidden;
   transition:
+    background-color 0.2s ease,
     border-color 0.2s ease,
     box-shadow 0.2s ease;
 
   &:hover {
+    background: ${p => p.theme.tokens.background.secondary};
     border-color: ${p => p.theme.colors.blue200};
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   }
