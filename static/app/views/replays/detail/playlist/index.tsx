@@ -46,13 +46,11 @@ export default function Playlist() {
     <Flex height="100%" overflow="auto">
       <Grid gap="md" rows={rows} height="100%" width="100%">
         {query ? (
-          <Alert
-            variant="info"
-            showIcon
-            defaultExpanded
-            expand={<ProvidedFormattedQuery query={query} />}
-          >
-            <Text>{t('This playlist is filtered by:')} </Text>
+          <Alert variant="info" showIcon>
+            <Flex wrap="wrap" align="center">
+              <Text>{t('This playlist is filtered by')} </Text>
+              <ProvidedFormattedQuery query={query} />
+            </Flex>
           </Alert>
         ) : null}
         <ReplayTable
