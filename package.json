@@ -68,6 +68,7 @@
     "@sentry-internal/rrweb": "2.40.0",
     "@sentry-internal/rrweb-player": "2.40.0",
     "@sentry-internal/rrweb-snapshot": "2.40.0",
+    "@sentry/conventions": "^0.3.1",
     "@sentry/core": "10.27.0",
     "@sentry/node": "10.27.0",
     "@sentry/react": "10.27.0",
