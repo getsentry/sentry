@@ -185,13 +185,7 @@ export function SharedSpendLimitPriceTable({
 
   return (
     <Stack borderTop="primary">
-      <Flex
-        borderBottom="primary"
-        padding="md xl"
-        background="secondary"
-        justify="between"
-        align="center"
-      >
+      <Flex padding="md xl" background="secondary" justify="between" align="center">
         <Text bold>{t('Product')}</Text>
         <Text bold>{t('Price')}</Text>
       </Flex>

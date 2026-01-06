@@ -138,13 +138,13 @@ export async function openOnDemandBudgetEditModal(
     openModal(deps => <Modal {...deps} {...options} />, {
       modalCss: theme ? onDemandBudgetEditModalCss(theme) : undefined,
     });
+  } else {
+    addErrorMessage(
+      tct("You don't have permission to edit [budgetTerm] budgets.", {
+        budgetTerm: displayBudgetName(subscription.planDetails),
+      })
+    );
   }
-
-  addErrorMessage(
-    tct("You don't have permission to edit [budgetTerm] budgets.", {
-      budgetTerm: displayBudgetName(subscription.planDetails),
-    })
-  );
 }
 
 const onDemandBudgetEditModalCss = (theme: Theme) => css`
