@@ -6,7 +6,7 @@ import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {IconDelete, IconEdit} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -16,7 +16,13 @@ import {
   type DataForwarder,
 } from 'sentry/views/settings/organizationDataForwarding/util/types';
 
-export function DataForwarderRow({dataForwarder}: {dataForwarder: DataForwarder}) {
+export function DataForwarderRow({
+  dataForwarder,
+  disabled,
+}: {
+  dataForwarder: DataForwarder;
+  disabled: boolean;
+}) {
   const organization = useOrganization();
   return (
     <Container padding="xl" border="muted" radius="md" key={dataForwarder.id}>
@@ -44,6 +50,7 @@ export function DataForwarderRow({dataForwarder}: {dataForwarder: DataForwarder}
             onClick={() => {
               trackAnalytics('data_forwarding.edit_clicked', {organization});
             }}
+            disabled={disabled}
           >
             {t('Edit')}
           </LinkButton>
@@ -52,6 +59,8 @@ export function DataForwarderRow({dataForwarder}: {dataForwarder: DataForwarder}
               title={t('Delete Data Forwarder')}
               aria-label={t('Delete Data Forwarder')}
               icon={<IconDelete />}
+              // Deletions are always permitted, even if you lose the feature.
+              disabled={false}
             />
           </DataForwarderDeleteConfirm>
         </ButtonBar>
@@ -61,11 +70,12 @@ export function DataForwarderRow({dataForwarder}: {dataForwarder: DataForwarder}
 }
 
 function getDataForwarderProjectText(dataForwarder: DataForwarder) {
-  const action = dataForwarder.isEnabled ? t('Enabled') : t('Configured');
   const count = dataForwarder.enrolledProjects.length;
   const projectText =
     count > 0
-      ? t('%s for %s projects', action, count)
+      ? dataForwarder.isEnabled
+        ? tn('Enabled for %s project', 'Enabled for %s projects', count)
+        : tn('Configured for %s project', 'Configured for %s projects', count)
       : t('Not connected to any projects');
   return dataForwarder.enrollNewProjects
     ? projectText.concat(t(', will auto-enroll new projects'))

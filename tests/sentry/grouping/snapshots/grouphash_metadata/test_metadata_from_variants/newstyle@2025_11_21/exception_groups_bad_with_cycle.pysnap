@@ -3,7 +3,7 @@ source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_var
 ---
 hash_basis: message
 hashing_metadata: {
-  "message_parameterized": false,
+  "message_parameterized": true,
   "message_source": "exception"
 }
 ---
@@ -13,20 +13,31 @@ metrics with tags: {
     "is_hybrid_fingerprint": "False"
   },
   "grouping.grouphashmetadata.event_hashing_metadata.message": {
-    "message_parameterized": "False",
+    "message_parameterized": "True",
     "message_source": "exception"
   }
 }
 ---
 contributing variants:
   app*
-    hash: "0809098f9f613b63467605dd1739cc9b"
-    contributing component: exception
+    hash: "e2bf1e0628b7b1824a9b63dec7a079a3"
+    contributing component: chained_exception
     hint: None
     root_component:
       app*
-        exception*
-          type*
-            "System.AggregateException"
-          value*
-            "One or more errors occurred."
+        chained_exception*
+          exception*
+            type*
+              "System.Exception"
+            value*
+              "Some Inner Exception"
+          exception*
+            type*
+              "MyApp.Exception"
+            value* (stripped event-specific values)
+              "Test <int>"
+          exception*
+            type*
+              "System.AggregateException"
+            value*
+              "One or more errors occurred."
