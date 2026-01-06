@@ -27,7 +27,7 @@ export function SamplingModeSwitch({initialTargetRate}: Props) {
   };
 
   return (
-    <Flex as="label" align="center" gap="md">
+    <Flex as="label" align="center" gap="md" marginBottom="0">
       <Tooltip
         title={tct(
           'Manually specify the percentage of incoming traffic that should be stored for each project. [link:Read the docs]',
