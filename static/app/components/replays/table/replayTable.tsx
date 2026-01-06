@@ -173,7 +173,7 @@ function RowWithScrollIntoView({
   const rowRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (scrollIntoView) {
-      rowRef.current?.scrollIntoView();
+      rowRef.current?.scrollIntoView({block: 'center'});
     }
   }, [scrollIntoView]);
   return (
