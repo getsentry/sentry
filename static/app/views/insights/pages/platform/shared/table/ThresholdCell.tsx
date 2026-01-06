@@ -5,8 +5,8 @@ const getCellColor = (value?: number, thresholds?: Record<string, number>) => {
     return undefined;
   }
   return Object.entries(thresholds).find(([_, threshold]) => value >= threshold)?.[0] as
-    | 'errorText'
-    | 'warningText'
+    | 'danger'
+    | 'warning'
     | undefined;
 };
 
@@ -23,5 +23,18 @@ export function ThresholdCell({
 }) {
   const theme = useTheme();
   const color = getCellColor(value, thresholds);
-  return <div style={{color: color && theme[color]}}>{children}</div>;
+  return (
+    <div
+      style={{
+        color:
+          color === 'danger'
+            ? theme.tokens.content.danger
+            : color === 'warning'
+              ? theme.tokens.content.warning
+              : theme.success,
+      }}
+    >
+      {children}
+    </div>
+  );
 }
