@@ -1,3 +1,6 @@
+from collections.abc import Mapping
+from typing import Any
+
 from sentry.deletions.defaults.preprod_artifact import PreprodArtifactDeletionTask
 from sentry.models.files.file import File
 from sentry.preprod.models import (
@@ -9,11 +12,11 @@ from sentry.testutils.cases import TestCase
 
 
 class PreprodArtifactDeletionTaskTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
 
-    def _delete_artifacts(self, query):
+    def _delete_artifacts(self, query: Mapping[str, Any]) -> None:
         task = PreprodArtifactDeletionTask(
             manager=None,  # type: ignore[arg-type]
             model=PreprodArtifact,
@@ -22,7 +25,7 @@ class PreprodArtifactDeletionTaskTest(TestCase):
         has_more = task.chunk()
         assert has_more is False
 
-    def test_delete_instance_bulk_with_all_files(self):
+    def test_delete_instance_bulk_with_all_files(self) -> None:
         main_file = self.create_file(name="artifact.zip", type="application/zip")
         installable_file = self.create_file(name="app.ipa", type="application/octet-stream")
         app_icon_file = self.create_file(name="icon.png", type="image/png")
@@ -61,7 +64,7 @@ class PreprodArtifactDeletionTaskTest(TestCase):
         assert not PreprodArtifactSizeMetrics.objects.filter(id=size_metric.id).exists()
         assert not InstallablePreprodArtifact.objects.filter(id=installable.id).exists()
 
-    def test_delete_instance_bulk_multiple_artifacts(self):
+    def test_delete_instance_bulk_multiple_artifacts(self) -> None:
         artifacts = []
         files = []
 
@@ -89,7 +92,7 @@ class PreprodArtifactDeletionTaskTest(TestCase):
         for file_id in file_ids:
             assert not File.objects.filter(id=file_id).exists()
 
-    def test_delete_instance_bulk_minimal_artifact(self):
+    def test_delete_instance_bulk_minimal_artifact(self) -> None:
         artifact = self.create_preprod_artifact(
             project=self.project,
             app_name="minimal_app",
