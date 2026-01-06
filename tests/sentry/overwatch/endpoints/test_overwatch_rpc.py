@@ -878,7 +878,7 @@ class TestPreventPrReviewEligibilityEndpoint(APITestCase):
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
         ["test-secret"],
     )
-    @patch("sentry.overwatch.endpoints.overwatch_rpc.quotas.backend.check_seer_quota")
+    @patch("sentry.seer.code_review.billing.quotas.backend.check_seer_quota")
     def test_returns_false_when_quota_check_fails(self, mock_check_quota):
         mock_check_quota.return_value = False
 
@@ -927,7 +927,7 @@ class TestPreventPrReviewEligibilityEndpoint(APITestCase):
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
         ["test-secret"],
     )
-    @patch("sentry.overwatch.endpoints.overwatch_rpc.quotas.backend.check_seer_quota")
+    @patch("sentry.seer.code_review.billing.quotas.backend.check_seer_quota")
     def test_returns_true_when_code_review_enabled_and_quota_available(self, mock_check_quota):
         mock_check_quota.return_value = True
 
@@ -980,7 +980,7 @@ class TestPreventPrReviewEligibilityEndpoint(APITestCase):
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
         ["test-secret"],
     )
-    @patch("sentry.overwatch.endpoints.overwatch_rpc.quotas.backend.check_seer_quota")
+    @patch("sentry.seer.code_review.billing.quotas.backend.check_seer_quota")
     def test_returns_true_when_any_org_is_eligible(self, mock_check_quota):
         mock_check_quota.return_value = True
 

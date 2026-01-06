@@ -21,7 +21,6 @@ from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.organization import Organization
 from sentry.utils import metrics
 
-from ..permissions import has_code_review_enabled
 from ..utils import SeerEndpoint, make_seer_request
 
 logger = logging.getLogger(__name__)
@@ -30,7 +29,6 @@ logger = logging.getLogger(__name__)
 class ErrorStatus(enum.StrEnum):
     MISSING_ORGANIZATION = "missing_organization"
     MISSING_ACTION = "missing_action"
-    CODE_REVIEW_NOT_ENABLED = "code_review_not_enabled"
     INVALID_PAYLOAD = "invalid_payload"
 
 
@@ -113,13 +111,6 @@ def handle_check_run_event(
         return
 
     if action != GitHubCheckRunAction.REREQUESTED:
-        return
-
-    if not has_code_review_enabled(organization):
-        metrics.incr(
-            f"{Metrics.ERROR.value}",
-            tags={**tags, "error_status": ErrorStatus.CODE_REVIEW_NOT_ENABLED.value},
-        )
         return
 
     try:
