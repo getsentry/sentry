@@ -14,6 +14,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {Flex} from 'sentry/components/core/layout/flex';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import Form from 'sentry/components/forms/form';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -39,7 +40,7 @@ function ToggleConsolePlatformsModal({
 }: ToggleConsolePlatformsModalProps) {
   const {enabledConsolePlatforms = [], consoleSdkInviteQuota = 0} = organization;
 
-  const {data: userIdentities}: {data: ConsoleSdkInviteUser[] | undefined} =
+  const {data: userIdentities, isPending}: {data: ConsoleSdkInviteUser[] | undefined} =
     useConsoleSdkInvites(organization.slug);
   const {mutate: revokeConsoleInvite} = useRevokeConsoleSdkInvite();
   const queryClient = useQueryClient();
@@ -154,9 +155,17 @@ function ToggleConsolePlatformsModal({
             <SimpleTable.HeaderCell>Email</SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell>Platforms</SimpleTable.HeaderCell>
           </SimpleTable.Header>
-          {(userIdentities === undefined || userIdentities.length === 0) && (
-            <SimpleTable.Empty>No invites found</SimpleTable.Empty>
+          {isPending && (
+            <SimpleTable.Empty>
+              <LoadingIndicator />
+            </SimpleTable.Empty>
           )}
+
+          {!isPending &&
+            (userIdentities === undefined || userIdentities.length === 0) && (
+              <SimpleTable.Empty>No invites found</SimpleTable.Empty>
+            )}
+
           {(userIdentities ?? []).map(({email, platforms, user_id}) => (
             <SimpleTable.Row key={user_id}>
               <SimpleTable.RowCell>
