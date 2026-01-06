@@ -1,6 +1,7 @@
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
+import type {LocationDescriptor} from 'history';
 
 import {inlineCodeStyles} from '@sentry/scraps/code/inlineCode';
 
@@ -10,10 +11,12 @@ import {Text} from 'sentry/components/core/text';
 import {FlippedReturnIcon} from 'sentry/components/events/autofix/insights/autofixInsightCard';
 import {IconChevron, IconLink} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
 
 import type {Block, TodoItem} from './types';
 import {
@@ -147,10 +150,10 @@ function BlockComponent({
   const organization = useOrganization();
   const navigate = useNavigate();
   const {projects} = useProjects();
+
   const toolsUsed = getToolsStringFromBlock(block);
   const hasTools = toolsUsed.length > 0;
   const hasContent = hasValidContent(block.message.content);
-
   const processedContent = useMemo(
     () => postProcessLLMMarkdown(block.message.content),
     [block.message.content]
@@ -194,6 +197,21 @@ function BlockComponent({
     }
   }, [hasValidLinks, selectedLinkIndex, sortedToolLinks.length]);
 
+  const {referrerRef} = useExplorerPanel();
+  // Tool link navigation, with analytics and onNavigate hook.
+  const navigateToToolLink = useCallback(
+    (url: LocationDescriptor, toolKind: string) => {
+      trackAnalytics('seer.explorer.global_panel.tool_link_navigation', {
+        referrer: referrerRef.current,
+        organization,
+        tool_kind: toolKind,
+      });
+      navigate(url);
+      onNavigate?.();
+    },
+    [organization, navigate, onNavigate, referrerRef]
+  );
+
   // Register the key handler with the parent
   useEffect(() => {
     const handler = (key: 'Enter' | 'ArrowUp' | 'ArrowDown') => {
@@ -232,8 +250,7 @@ function BlockComponent({
         if (selectedLink) {
           const url = buildToolLinkUrl(selectedLink, organization.slug, projects);
           if (url) {
-            navigate(url);
-            onNavigate?.();
+            navigateToToolLink(url, selectedLink.kind);
           }
         }
         return true;
@@ -250,6 +267,7 @@ function BlockComponent({
     navigate,
     onNavigate,
     onRegisterEnterHandler,
+    navigateToToolLink,
   ]);
 
   const handleDeleteClick = (e: React.MouseEvent) => {
@@ -268,8 +286,7 @@ function BlockComponent({
     if (selectedLink) {
       const url = buildToolLinkUrl(selectedLink, organization.slug, projects);
       if (url) {
-        navigate(url);
-        onNavigate?.();
+        navigateToToolLink(url, selectedLink.kind);
       }
     }
   };

@@ -2,6 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import {createPortal} from 'react-dom';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -24,12 +25,12 @@ import TopBar from 'sentry/views/seerExplorer/topBar';
 import type {Block} from 'sentry/views/seerExplorer/types';
 import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
 import {
-  RUN_ID_PARAM_KEY,
+  RUN_ID_QUERY_PARAM,
   useCopySessionDataToClipboard,
 } from 'sentry/views/seerExplorer/utils';
 
 function ExplorerPanel() {
-  const {isOpen: isVisible} = useExplorerPanel();
+  const {isOpen: isVisible, referrerRef} = useExplorerPanel();
   const organization = useOrganization({allowNull: true});
   const {projects} = useProjects();
 
@@ -50,6 +51,18 @@ function ExplorerPanel() {
   const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
 
   const {panelSize, handleMaxSize, handleMedSize} = usePanelSizing();
+
+  // Panel opened analytic
+  useEffect(() => {
+    if (isVisible && !isMinimized) {
+      trackAnalytics('seer.explorer.global_panel.opened', {
+        referrer: referrerRef.current,
+        organization,
+      });
+    }
+  }, [isVisible, isMinimized, organization, referrerRef]);
+
+  // Session data and management
   const {
     runId,
     sessionData,
@@ -496,7 +509,7 @@ function ExplorerPanel() {
 
     try {
       const url = new URL(window.location.href);
-      url.searchParams.set(RUN_ID_PARAM_KEY, String(runId));
+      url.searchParams.set(RUN_ID_QUERY_PARAM, String(runId));
       await navigator.clipboard.writeText(url.toString());
       addSuccessMessage('Copied link to current chat');
     } catch {
@@ -581,7 +594,9 @@ function ExplorerPanel() {
                   deleteFromIndex(index);
                   focusInput();
                 }}
-                onNavigate={() => setIsMinimized(true)}
+                onNavigate={() => {
+                  setIsMinimized(true);
+                }}
                 onRegisterEnterHandler={handler => {
                   blockEnterHandlers.current.set(index, handler);
                 }}

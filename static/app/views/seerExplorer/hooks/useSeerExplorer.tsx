@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   setApiQueryData,
   useApiQuery,
@@ -18,7 +19,7 @@ import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
 import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
 import {
   makeSeerExplorerQueryKey,
-  RUN_ID_PARAM_KEY,
+  RUN_ID_QUERY_PARAM,
 } from 'sentry/views/seerExplorer/utils';
 
 export type PendingUserInput = {
@@ -117,12 +118,12 @@ export const useSeerExplorer = () => {
   );
 
   // Support deep links that carry a run id; set it once and clean the URL.
-  const {openExplorerPanel} = useExplorerPanel();
+  const {openExplorerPanel, referrerRef} = useExplorerPanel();
   const location = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const paramValue = location.query?.[RUN_ID_PARAM_KEY];
+    const paramValue = location.query?.[RUN_ID_QUERY_PARAM];
     if (typeof paramValue !== 'string') {
       return;
     }
@@ -130,7 +131,7 @@ export const useSeerExplorer = () => {
     if (!Number.isNaN(parsedRunId)) {
       openExplorerPanel();
       setRunId(parsedRunId);
-      const {[RUN_ID_PARAM_KEY]: _removed, ...restQuery} = location.query ?? {};
+      const {[RUN_ID_QUERY_PARAM]: _removed, ...restQuery} = location.query ?? {};
       navigate({...location, query: restQuery}, {replace: true});
     }
   }, [location, navigate, openExplorerPanel, setRunId]);
@@ -176,6 +177,20 @@ export const useSeerExplorer = () => {
       const screenshot = captureAsciiSnapshot?.();
 
       setWaitingForResponse(true);
+
+      trackAnalytics('seer.explorer.message_sent', {
+        referrer: referrerRef.current,
+        surface: 'global_panel',
+        organization,
+      });
+
+      if (effectiveRunId === null) {
+        trackAnalytics('seer.explorer.session_started', {
+          referrer: referrerRef.current,
+          surface: 'global_panel',
+          organization,
+        });
+      }
 
       // Calculate insert index first
       const effectiveMessageLength =
@@ -259,6 +274,8 @@ export const useSeerExplorer = () => {
       deletedFromIndex,
       captureAsciiSnapshot,
       setRunId,
+      referrerRef,
+      organization,
     ]
   );
 
