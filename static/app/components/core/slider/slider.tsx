@@ -26,7 +26,7 @@ interface UncontrolledProps extends BaseProps {
   value?: never;
 }
 
-export type SliderProps = ControlledProps | UncontrolledProps;
+type SliderProps = ControlledProps | UncontrolledProps;
 
 export function Slider({formatLabel = passthrough, ref, ...props}: SliderProps) {
   const step = toNumber(props.step ?? -1);
