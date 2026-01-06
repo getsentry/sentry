@@ -44,7 +44,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "0996_add_dashboard_field_link_model"),
+        ("sentry", "1014_add_pkce_to_apigrant"),
     ]
 
     operations = [

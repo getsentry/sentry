@@ -7,8 +7,8 @@ from sentry.testutils.silo import control_silo_test
 @control_silo_test
 @override_settings(SENTRY_SELF_HOSTED=True)
 class BackfillSelfHostedSentryAppEmailsTest(TestMigrations):
-    migrate_from = "0996_add_dashboard_field_link_model"
-    migrate_to = "0997_backfill_self_hosted_sentry_app_emails"
+    migrate_from = "1014_add_pkce_to_apigrant"
+    migrate_to = "1015_backfill_self_hosted_sentry_app_emails"
     connection = "control"
 
     def setup_before_migration(self, apps):
