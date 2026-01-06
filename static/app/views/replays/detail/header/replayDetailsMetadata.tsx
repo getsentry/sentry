@@ -1,3 +1,4 @@
+import {Flex} from 'sentry/components/core/layout';
 import Placeholder from 'sentry/components/placeholder';
 import ReplayMetaData from 'sentry/components/replays/header/replayMetaData';
 import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
@@ -14,7 +15,11 @@ export default function ReplayDetailsMetadata({readerResult}: Props) {
       renderArchived={() => null}
       renderError={() => null}
       renderThrottled={() => null}
-      renderLoading={() => <Placeholder height="47px" width="203px" />}
+      renderLoading={() => (
+        <Flex justify="end">
+          <Placeholder height="42px" width="276px" />
+        </Flex>
+      )}
       renderMissing={() => null}
       renderProcessingError={() => null}
     >
