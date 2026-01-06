@@ -4,27 +4,25 @@ import {Container, Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 
 import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
-import {OnDemandBudgetMode} from 'getsentry/types';
+import {OnDemandBudgetMode, type Plan} from 'getsentry/types';
 import {isBizPlanFamily} from 'getsentry/utils/billing';
 import CheckoutOption from 'getsentry/views/amCheckout/components/checkoutOption';
-import type {PlanSelectRowProps} from 'getsentry/views/amCheckout/components/planSelectRow';
-import type {CheckoutFormData} from 'getsentry/views/amCheckout/types';
+import type {CheckoutFormData, PlanContent} from 'getsentry/views/amCheckout/types';
 import {getShortInterval} from 'getsentry/views/amCheckout/utils';
 
-interface PlanSelectCardProps
-  extends Omit<
-    PlanSelectRowProps,
-    | 'isFeaturesCheckmarked'
-    | 'discountInfo'
-    | 'planWarning'
-    | 'priceHeader'
-    | 'shouldShowEventPrice'
-    | 'highlightedFeatures'
-  > {
+interface PlanSelectCardProps {
+  isSelected: boolean;
+  onUpdate: (data: Partial<CheckoutFormData>) => void;
+  plan: Plan;
+  planContent: PlanContent;
+  planName: string;
+  planValue: string;
+  price: string;
   /**
-   * Icon to use for the plan
+   * Flag to show default pay as you go values
    */
-  planIcon: React.ReactNode;
+  shouldShowDefaultPayAsYouGo: boolean;
+  badge?: React.ReactNode;
 }
 
 function PlanSelectCard({
