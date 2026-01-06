@@ -423,3 +423,18 @@ class ProjectStacktraceLinkGitlabTest(BaseStacktraceLinkTest):
         assert resp.status_code == 400, resp.content
 
         assert resp.data == {"sourceUrl": ["Could not find repo"]}
+
+    def test_strips_query_params_from_source_url(self) -> None:
+        source_url = "https://gitlab.com/getsentry/sentry/-/blob/master/src/sentry/api/endpoints/project_stacktrace_link.py?ref_type=heads"
+        stack_path = "sentry/api/endpoints/project_stacktrace_link.py"
+        resp = self.make_post(source_url, stack_path)
+        assert resp.status_code == 200, resp.content
+
+        assert resp.data == {
+            "integrationId": self.integration.id,
+            "repositoryId": self.repo.id,
+            "provider": "gitlab",
+            "stackRoot": "sentry/",
+            "sourceRoot": "src/sentry/",
+            "defaultBranch": "master",
+        }

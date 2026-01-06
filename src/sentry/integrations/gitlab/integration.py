@@ -49,6 +49,7 @@ from sentry.web.helpers import render_to_response
 from .client import GitLabApiClient, GitLabSetupApiClient
 from .issues import GitlabIssuesSpec
 from .repository import GitlabRepositoryProvider
+from .utils import parse_gitlab_blob_url
 
 logger = logging.getLogger("sentry.integrations.gitlab")
 
@@ -165,15 +166,15 @@ class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIn
         return f"{base_url}/{repo_name}/blob/{branch}/{filepath}"
 
     def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
-        url = url.replace(f"{repo.url}/-/blob/", "")
-        url = url.replace(f"{repo.url}/blob/", "")
-        branch, _, _ = url.partition("/")
+        if not repo.url:
+            return ""
+        branch, _ = parse_gitlab_blob_url(repo.url, url)
         return branch
 
     def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
-        url = url.replace(f"{repo.url}/-/blob/", "")
-        url = url.replace(f"{repo.url}/blob/", "")
-        _, _, source_path = url.partition("/")
+        if not repo.url:
+            return ""
+        _, source_path = parse_gitlab_blob_url(repo.url, url)
         return source_path
 
     # CommitContextIntegration methods
