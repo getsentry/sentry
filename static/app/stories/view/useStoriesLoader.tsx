@@ -10,6 +10,7 @@ export interface StoryResources {
   a11y?: Record<string, string>;
   figma?: string;
   js?: string;
+  reference?: Record<string, string>;
 }
 
 export interface MDXStoryDescriptor {
