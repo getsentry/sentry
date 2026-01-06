@@ -83,7 +83,7 @@ function ExplorerPanel() {
 
   const {copySessionToClipboard} = useCopySessionDataToClipboard({
     blocks: sessionData?.blocks || [],
-    orgSlug: organization?.slug ?? '',
+    organization,
     projects,
     enabled: copySessionEnabled,
   });
@@ -515,7 +515,9 @@ function ExplorerPanel() {
     } catch {
       addErrorMessage('Failed to copy link to current chat');
     }
-  }, [runId]);
+
+    trackAnalytics('seer.explorer.session_link_copied', {organization});
+  }, [runId, organization]);
 
   const panelContent = (
     <PanelContainers
@@ -596,6 +598,7 @@ function ExplorerPanel() {
                 }}
                 onNavigate={() => {
                   setIsMinimized(true);
+                  // child handles navigation
                 }}
                 onRegisterEnterHandler={handler => {
                   blockEnterHandlers.current.set(index, handler);

@@ -185,7 +185,7 @@ export const useSeerExplorer = () => {
       });
 
       if (effectiveRunId === null) {
-        trackAnalytics('seer.explorer.session_started', {
+        trackAnalytics('seer.explorer.session_created', {
           referrer: referrerRef.current,
           surface: 'global_panel',
           organization,
@@ -279,9 +279,13 @@ export const useSeerExplorer = () => {
     ]
   );
 
-  const deleteFromIndex = useCallback((index: number) => {
-    setDeletedFromIndex(index);
-  }, []);
+  const deleteFromIndex = useCallback(
+    (index: number) => {
+      setDeletedFromIndex(index);
+      trackAnalytics('seer.explorer.rethink_requested', {organization});
+    },
+    [organization]
+  );
 
   const interruptRun = useCallback(async () => {
     if (!orgSlug || !runId || interruptRequested) {

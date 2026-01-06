@@ -3,6 +3,8 @@ import type {LocationDescriptor} from 'history';
 import queryString from 'query-string';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {
   LOGS_GROUP_BY_KEY,
@@ -751,30 +753,34 @@ export function getValidToolLinks(
 
 export function useCopySessionDataToClipboard({
   blocks,
-  orgSlug,
+  organization,
   projects,
   enabled,
 }: {
   blocks: Block[];
   enabled: boolean;
-  orgSlug: string;
+  organization: Organization | null;
   projects?: Array<{id: string; slug: string}>;
 }) {
   const [isError, setIsError] = useState(false);
 
   const copySessionToClipboard = useCallback(async () => {
-    if (!enabled || !orgSlug || !blocks) {
+    if (!enabled || !organization || !blocks) {
       return;
     }
     setIsError(false);
     try {
-      await navigator.clipboard.writeText(formatSessionData(blocks, orgSlug, projects));
+      await navigator.clipboard.writeText(
+        formatSessionData(blocks, organization.slug, projects)
+      );
       addSuccessMessage('Copied conversation to clipboard');
     } catch (err) {
       setIsError(true);
       addErrorMessage('Failed to copy conversation to clipboard');
     }
-  }, [enabled, blocks, orgSlug, projects]);
+
+    trackAnalytics('seer.explorer.session_copied_to_clipboard', {organization});
+  }, [enabled, blocks, organization, projects]);
 
   return {copySessionToClipboard, isError};
 }

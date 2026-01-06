@@ -35,11 +35,13 @@ export type SeerAnalyticsEventsParameters = {
     referrer: string;
     surface: 'global_panel';
   };
-  'seer.explorer.session_rethink_request': Record<string, unknown>;
-  'seer.explorer.session_started': {
+  'seer.explorer.rethink_requested': Record<string, unknown>;
+  'seer.explorer.session_copied_to_clipboard': Record<string, unknown>;
+  'seer.explorer.session_created': {
     referrer: string;
     surface: 'global_panel';
   };
+  'seer.explorer.session_link_copied': Record<string, unknown>;
 };
 
 type SeerAnalyticsEventKey = keyof SeerAnalyticsEventsParameters;
@@ -53,6 +55,9 @@ export const seerAnalyticsEventsMap: Record<SeerAnalyticsEventKey, string | null
   'seer.explorer.global_panel.opened': 'Seer Explorer: Global Panel Opened',
   'seer.explorer.global_panel.tool_link_navigation': 'Seer Explorer: Tool Link Visited',
   'seer.explorer.message_sent': 'Seer Explorer: Message Sent',
-  'seer.explorer.session_started': 'Seer Explorer: Session Started',
-  'seer.explorer.session_rethink_request': 'Seer Explorer: Rethink Triggered',
+  'seer.explorer.session_created': 'Seer Explorer: Session Created',
+  'seer.explorer.rethink_requested': 'Seer Explorer: Rethink Requested',
+  'seer.explorer.session_copied_to_clipboard':
+    'Seer Explorer: Session Copied to Clipboard',
+  'seer.explorer.session_link_copied': 'Seer Explorer: Session Link Copied',
 };
