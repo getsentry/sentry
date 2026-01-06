@@ -155,7 +155,7 @@ function TeamReleases({
 
     return (
       <Text variant={trend >= 0 ? 'success' : 'danger'}>
-        {`${round(Math.abs(trend), 3)}\u0025`}
+        {`${round(Math.abs(trend), 3)}`}
         <PaddedIconArrow direction={trend >= 0 ? 'up' : 'down'} size="xs" />
       </Text>
     );
