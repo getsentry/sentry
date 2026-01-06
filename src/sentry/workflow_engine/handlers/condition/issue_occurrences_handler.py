@@ -33,7 +33,7 @@ class IssueOccurrencesConditionHandler(DataConditionHandler[WorkflowEventData]):
         fetch_buffered_group_stats(event_data.group)
         issue_occurrences = (
             group.times_seen_with_pending
-            if hasattr(group, "times_seen_pending")
+            if hasattr(group, "_times_seen_pending")
             else group.times_seen
         )
 
