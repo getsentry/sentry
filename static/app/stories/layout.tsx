@@ -40,6 +40,6 @@ export const SizingWindow = styled(NegativeSpaceContainer)<{display?: 'block' | 
   overflow: ${p => (p.display === 'block' ? 'auto' : 'hidden')};
 `;
 
-export function Section(props: StackProps<'section'>) {
+export function Section(props: Exclude<StackProps<'section'>, {as?: never}>) {
   return <Stack as="section" paddingTop="3xl" gap="xl" minWidth="0" {...props} />;
 }
