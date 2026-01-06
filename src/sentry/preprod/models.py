@@ -172,7 +172,6 @@ class PreprodArtifact(DefaultFieldsModel):
     app_name = models.CharField(max_length=255, null=True)
 
     # The identifier of the app, e.g. "com.myapp.MyApp"
-    # DEPRECATED, use PreprodArtifactMobileAppInfo instead
     app_id = models.CharField(max_length=255, null=True)
 
     # An identifier for the main binary
@@ -613,8 +612,6 @@ class PreprodArtifactMobileAppInfo(DefaultFieldsModel):
     app_icon_id = models.CharField(max_length=255, null=True)
     # The name of the app, e.g. "My App"
     app_name = models.CharField(max_length=255, null=True)
-    # The identifier of the app, e.g. "com.myapp.MyApp"
-    app_id = models.CharField(max_length=255, null=True)
 
     class Meta:
         app_label = "preprod"
