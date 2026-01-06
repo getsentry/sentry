@@ -25,7 +25,7 @@ function ConsoleSDKInvitesSettings() {
   const {data: invites, isPending} = useConsoleSdkInvites(organization.slug);
   const {mutate: revokeInvite} = useRevokeConsoleSdkInvite();
 
-  if (organization.enabledConsolePlatforms?.length === 0) {
+  if ((organization.enabledConsolePlatforms?.length ?? 0) === 0) {
     return (
       <Alert variant="warning">
         {t(
