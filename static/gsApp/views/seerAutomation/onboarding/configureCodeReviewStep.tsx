@@ -152,7 +152,7 @@ export function ConfigureCodeReviewStep() {
 
                 <Flex direction="column" gap="sm">
                   <Text bold>{t('AI Code Review')}</Text>
-                  <Text variant="muted">
+                  <Text variant="muted" density="comfortable">
                     {t(
                       `For all selected repositories below, Seer's AI Code Review will be run to review your PRs and flag potential bugs. `
                     )}

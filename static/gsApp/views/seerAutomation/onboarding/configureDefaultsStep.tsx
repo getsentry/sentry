@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import defaultsImg from 'sentry-images/spot/seer-config-error.svg';
 
 import {Button} from '@sentry/scraps/button';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Flex} from 'sentry/components/core/layout/flex';
@@ -93,19 +94,21 @@ export function ConfigureDefaultsStep() {
         <MaxWidthPanel>
           <PanelBody>
             <PanelDescription>
-              <p>
-                {tct(
-                  `Create default settings for all future projects and repositories. If you don’t turn this defaults on now, you can always manage them from the [link:Seer Settings Page].`,
-                  {
-                    link: <Link to={`/settings/${organization.slug}/seer/`} />,
-                  }
-                )}
-              </p>
-              <p>
-                {t(
-                  `This will not effect the configuration of the repos and projects on the previous two steps.`
-                )}
-              </p>
+              <Flex direction="column" gap="md">
+                <Text density="comfortable">
+                  {tct(
+                    `Create default settings for all future projects and repositories. If you don’t turn this defaults on now, you can always manage them from the [link:Seer Settings Page].`,
+                    {
+                      link: <Link to={`/settings/${organization.slug}/seer/`} />,
+                    }
+                  )}
+                </Text>
+                <Text density="comfortable">
+                  {t(
+                    `This will not effect the configuration of the repos and projects on the previous two steps.`
+                  )}
+                </Text>
+              </Flex>
             </PanelDescription>
 
             <Field>
