@@ -65,6 +65,20 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         hits = int(response["X-Hits"])
         assert hits == 3
 
+    def test_only_returns_workflows_from_organization(self) -> None:
+        other_org = self.create_organization()
+        self.create_workflow(organization_id=other_org.id, name="Other Org Workflow")
+
+        response = self.get_success_response(self.organization.slug)
+        assert len(response.data) == 3
+        workflow_names = {w["name"] for w in response.data}
+        assert "Other Org Workflow" not in workflow_names
+        assert workflow_names == {
+            self.workflow.name,
+            self.workflow_two.name,
+            self.workflow_three.name,
+        }
+
     def test_empty_result(self) -> None:
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "aaaaaaaaaaaaa"}
