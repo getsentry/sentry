@@ -234,6 +234,22 @@ export function SizeCompareMainContent() {
     );
   }
 
+  if (comparisonDataQuery.isError || !comparisonDataQuery.data) {
+    const errorMessage = comparisonDataQuery.error
+      ? parseApiError(comparisonDataQuery.error)
+      : 'Unknown API Error';
+    return (
+      <BuildError
+        title={t('Failed to load comparison details')}
+        message={
+          errorMessage === 'Unknown API Error'
+            ? t('Could not retrieve detailed comparison results')
+            : errorMessage
+        }
+      />
+    );
+  }
+
   return (
     <Flex direction="column" gap="2xl">
       <SizeCompareSelectedBuilds
