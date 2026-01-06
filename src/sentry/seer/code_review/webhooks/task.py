@@ -19,7 +19,7 @@ from sentry.taskworker.retry import Retry
 from sentry.taskworker.state import current_task
 from sentry.utils import metrics
 
-from ..metrics import CodeReviewFilteredReason, record_webhook_enqueued, record_webhook_filtered
+from ..metrics import WebhookFilteredReason, record_webhook_enqueued, record_webhook_filtered
 from ..utils import SeerEndpoint, make_seer_request
 from .check_run import process_check_run_task_event
 
@@ -67,7 +67,7 @@ def schedule_task(
 
     if transformed_event is None:
         record_webhook_filtered(
-            github_event, github_event_action, CodeReviewFilteredReason.TRANSFORM_FAILED
+            github_event, github_event_action, WebhookFilteredReason.TRANSFORM_FAILED
         )
         return
 

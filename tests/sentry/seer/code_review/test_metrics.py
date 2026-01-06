@@ -4,12 +4,13 @@ from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.seer.code_review.metrics import (
     METRICS_PREFIX,
     CodeReviewErrorType,
-    CodeReviewFilteredReason,
+    WebhookFilteredReason,
     record_webhook_enqueued,
     record_webhook_filtered,
     record_webhook_handler_error,
     record_webhook_received,
 )
+from sentry.seer.code_review.preflight import PreflightDenialReason
 
 
 class TestCodeReviewMetrics:
@@ -38,7 +39,7 @@ class TestCodeReviewMetrics:
         record_webhook_filtered(
             GithubWebhookType.CHECK_RUN,
             "completed",
-            CodeReviewFilteredReason.WRONG_ACTION,
+            WebhookFilteredReason.WRONG_ACTION,
         )
 
         mock_metrics.incr.assert_called_once_with(
@@ -51,11 +52,11 @@ class TestCodeReviewMetrics:
         )
 
     @patch("sentry.seer.code_review.metrics.metrics")
-    def test_record_webhook_filtered_not_enabled(self, mock_metrics: MagicMock) -> None:
+    def test_record_webhook_filtered_preflight_denied(self, mock_metrics: MagicMock) -> None:
         record_webhook_filtered(
             GithubWebhookType.ISSUE_COMMENT,
             "created",
-            CodeReviewFilteredReason.NOT_ENABLED,
+            PreflightDenialReason.ORG_NOT_ELIGIBLE_FOR_CODE_REVIEW,
         )
 
         mock_metrics.incr.assert_called_once_with(
@@ -63,7 +64,7 @@ class TestCodeReviewMetrics:
             tags={
                 "github_event": "issue_comment",
                 "github_event_action": "created",
-                "reason": "not_enabled",
+                "reason": "org_not_eligible_for_code_review",
             },
         )
 
@@ -85,7 +86,7 @@ class TestCodeReviewMetrics:
         )
 
         mock_metrics.incr.assert_called_once_with(
-            f"{METRICS_PREFIX}.handler.error",
+            f"{METRICS_PREFIX}.webhook.error",
             tags={
                 "github_event": "check_run",
                 "github_event_action": "rerequested",
@@ -104,7 +105,7 @@ class TestCodeReviewMetrics:
         )
 
         mock_metrics.incr.assert_called_once_with(
-            f"{METRICS_PREFIX}.handler.error",
+            f"{METRICS_PREFIX}.webhook.error",
             tags={
                 "github_event": "issue_comment",
                 "github_event_action": "created",

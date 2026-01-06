@@ -3,18 +3,22 @@ from enum import StrEnum
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.utils import metrics
 
+from .preflight import PreflightDenialReason
+
 # All code review webhook metrics use this prefix
 METRICS_PREFIX = "seer.code_review"
 
 
-class CodeReviewFilteredReason(StrEnum):
-    """Reasons why a webhook was filtered out and not sent to seer"""
+class WebhookFilteredReason(StrEnum):
+    """Webhook-specific reasons why a webhook was filtered out."""
 
-    NOT_ENABLED = "not_enabled"  # Feature not enabled for org
     NOT_REVIEW_COMMAND = "not_review_command"  # issue_comment not @sentry review
     WRONG_ACTION = "wrong_action"  # Not a supported action, e.g., check_run not rerequested
     INVALID_PAYLOAD = "invalid_payload"  # Validation failed
     TRANSFORM_FAILED = "transform_failed"  # Couldn't build Seer payload
+
+
+CodeReviewFilteredReason = WebhookFilteredReason | PreflightDenialReason
 
 
 class CodeReviewErrorType(StrEnum):
@@ -115,7 +119,7 @@ def record_webhook_handler_error(
         error_type: Specific error identifier from CodeReviewErrorType enum
     """
     metrics.incr(
-        f"{METRICS_PREFIX}.handler.error",
+        f"{METRICS_PREFIX}.webhook.error",
         tags={
             **_build_webhook_tags(github_event, github_event_action),
             "error_type": error_type.value,

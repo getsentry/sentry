@@ -22,7 +22,7 @@ from sentry.models.organization import Organization
 
 from ..metrics import (
     CodeReviewErrorType,
-    CodeReviewFilteredReason,
+    WebhookFilteredReason,
     record_webhook_enqueued,
     record_webhook_filtered,
     record_webhook_handler_error,
@@ -111,7 +111,7 @@ def handle_check_run_event(
     record_webhook_received(github_event, action)
 
     if action != GitHubCheckRunAction.REREQUESTED:
-        record_webhook_filtered(github_event, action, CodeReviewFilteredReason.WRONG_ACTION)
+        record_webhook_filtered(github_event, action, WebhookFilteredReason.WRONG_ACTION)
         return
 
     try:

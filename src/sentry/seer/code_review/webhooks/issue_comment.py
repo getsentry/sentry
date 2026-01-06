@@ -19,7 +19,7 @@ from sentry.models.repositorysettings import CodeReviewTrigger
 
 from ..metrics import (
     CodeReviewErrorType,
-    CodeReviewFilteredReason,
+    WebhookFilteredReason,
     record_webhook_enqueued,
     record_webhook_filtered,
     record_webhook_handler_error,
@@ -114,7 +114,7 @@ def handle_issue_comment_event(
 
     if github_event_action != GitHubIssueCommentAction.CREATED:
         record_webhook_filtered(
-            github_event, github_event_action, CodeReviewFilteredReason.WRONG_ACTION
+            github_event, github_event_action, WebhookFilteredReason.WRONG_ACTION
         )
         logger.info(Log.WRONG_ACTION.value, extra=extra)
         return
@@ -125,7 +125,7 @@ def handle_issue_comment_event(
 
     if not is_pr_review_command(comment_body or ""):
         record_webhook_filtered(
-            github_event, github_event_action, CodeReviewFilteredReason.NOT_REVIEW_COMMAND
+            github_event, github_event_action, WebhookFilteredReason.NOT_REVIEW_COMMAND
         )
         logger.info(Log.NOT_REVIEW_COMMAND.value, extra=extra)
         return
