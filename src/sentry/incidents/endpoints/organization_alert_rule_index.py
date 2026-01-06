@@ -225,13 +225,13 @@ class OrganizationOnDemandRuleStatsEndpoint(OrganizationEndpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        try:
-            project = Project.objects.get(id=int(project_id), organization_id=organization.id)
-        except Project.DoesNotExist:
+        projects = self.get_projects(request, organization, project_ids={int(project_id)})
+        if not projects:
             return Response(
                 {"detail": "Project not found"},
                 status=status.HTTP_404_NOT_FOUND,
             )
+        project = projects[0]
         enabled_features = on_demand_metrics_feature_flags(organization)
         prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
         prefilling_for_deprecation = (

@@ -91,8 +91,6 @@ class OrganizationOnDemandRuleStatsEndpointTest(BaseAlertRuleSerializerTest, API
         other_project = self.create_project(organization=other_org)
 
         with self.feature(self.features):
-            response = self.get_error_response(
-                self.organization.slug, project_id=other_project.id, status_code=404
+            self.get_error_response(
+                self.organization.slug, project_id=other_project.id, status_code=403
             )
-            # Should return 404 to prevent ID enumeration
-            assert response.data["detail"] == "Project not found"
