@@ -24,7 +24,7 @@ import TopBar from 'sentry/views/seerExplorer/topBar';
 import type {Block} from 'sentry/views/seerExplorer/types';
 import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
 import {
-  RUN_ID_PARAM_KEY,
+  RUN_ID_QUERY_PARAM,
   useCopySessionDataToClipboard,
 } from 'sentry/views/seerExplorer/utils';
 
@@ -496,7 +496,7 @@ function ExplorerPanel() {
 
     try {
       const url = new URL(window.location.href);
-      url.searchParams.set(RUN_ID_PARAM_KEY, String(runId));
+      url.searchParams.set(RUN_ID_QUERY_PARAM, String(runId));
       await navigator.clipboard.writeText(url.toString());
       addSuccessMessage('Copied link to current chat');
     } catch {

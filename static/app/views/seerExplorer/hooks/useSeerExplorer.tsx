@@ -18,7 +18,7 @@ import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
 import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
 import {
   makeSeerExplorerQueryKey,
-  RUN_ID_PARAM_KEY,
+  RUN_ID_QUERY_PARAM,
 } from 'sentry/views/seerExplorer/utils';
 
 export type PendingUserInput = {
@@ -122,7 +122,7 @@ export const useSeerExplorer = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const paramValue = location.query?.[RUN_ID_PARAM_KEY];
+    const paramValue = location.query?.[RUN_ID_QUERY_PARAM];
     if (typeof paramValue !== 'string') {
       return;
     }
@@ -130,7 +130,7 @@ export const useSeerExplorer = () => {
     if (!Number.isNaN(parsedRunId)) {
       openExplorerPanel();
       setRunId(parsedRunId);
-      const {[RUN_ID_PARAM_KEY]: _removed, ...restQuery} = location.query ?? {};
+      const {[RUN_ID_QUERY_PARAM]: _removed, ...restQuery} = location.query ?? {};
       navigate({...location, query: restQuery}, {replace: true});
     }
   }, [location, navigate, openExplorerPanel, setRunId]);
