@@ -201,3 +201,27 @@ def transform_webhook_to_codegen_request(
             },
         },
     }
+
+
+def get_pr_author_id(event: Mapping[str, Any]) -> str | None:
+    """
+    Extract the PR author's GitHub user ID from the webhook payload.
+    The user information can be found in different locations depending on the webhook type.
+    """
+    # Check issue.user.id (for issue comments on PRs)
+    if (user_id := event.get("issue", {}).get("user", {}).get("id")) is not None:
+        return str(user_id)
+
+    # Check pull_request.user.id (for pull request events)
+    if (user_id := event.get("pull_request", {}).get("user", {}).get("id")) is not None:
+        return str(user_id)
+
+    # Check user.id (fallback for direct user events)
+    if (user_id := event.get("user", {}).get("id")) is not None:
+        return str(user_id)
+
+    # Check sender.id (for check_run events). Sender is the user who triggered the event
+    if (user_id := event.get("sender", {}).get("id")) is not None:
+        return str(user_id)
+
+    return None

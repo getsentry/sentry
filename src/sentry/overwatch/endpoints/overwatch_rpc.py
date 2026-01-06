@@ -11,21 +11,20 @@ from rest_framework.exceptions import AuthenticationFailed, ParseError, Permissi
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, quotas
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.constants import DEFAULT_CODE_REVIEW_TRIGGERS, DataCategory, ObjectStatus
+from sentry.constants import DEFAULT_CODE_REVIEW_TRIGGERS, ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
-from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import RepositorySettings
 from sentry.prevent.models import PreventAIConfiguration
 from sentry.prevent.types.config import PREVENT_AI_CONFIG_DEFAULT, PREVENT_AI_CONFIG_DEFAULT_V1
+from sentry.seer.code_review.billing import passes_code_review_billing_check
 from sentry.silo.base import SiloMode
-from sentry.utils import metrics
 from sentry.utils.seer import can_use_prevent_ai_features
 
 logger = logging.getLogger(__name__)
@@ -309,32 +308,11 @@ def _is_eligible_for_code_review(
     if not code_review_enabled:
         return False
 
-    # Check if contributor exists, and if there's either a seat or quota available.
-    # NOTE: We explicitly check billing as the source of truth because if the contributor exists,
-    # then that means that they've opened a PR before, and either have a seat already OR it's their
-    # "Free action."
-    try:
-        contributor = OrganizationContributors.objects.get(
-            organization_id=organization.id,
-            integration_id=integration_id,
-            external_identifier=external_identifier,
-        )
-
-        if not quotas.backend.check_seer_quota(
-            org_id=organization.id,
-            data_category=DataCategory.SEER_USER,
-            seat_object=contributor,
-        ):
-            return False
-
-    except OrganizationContributors.DoesNotExist:
-        metrics.incr(
-            "overwatch.code_review.contributor_not_found",
-            tags={"organization_id": organization.id, "repository_id": repository_id},
-        )
-        return False
-
-    return True
+    return passes_code_review_billing_check(
+        organization_id=organization.id,
+        integration_id=integration_id,
+        external_identifier=external_identifier,
+    )
 
 
 @region_silo_endpoint

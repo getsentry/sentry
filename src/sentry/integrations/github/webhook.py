@@ -86,6 +86,7 @@ class WebhookProcessor(Protocol):
         event: Mapping[str, Any],
         organization: Organization,
         repo: Repository,
+        integration: RpcIntegration | None = None,
         **kwargs: Any,
     ) -> None: ...
 

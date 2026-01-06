@@ -17,6 +17,8 @@ from fixtures.github import (
 )
 from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.webhook_types import GithubWebhookType
+from sentry.integrations.models.integration import Integration
+from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.seer.code_review.utils import ClientError
 from sentry.seer.code_review.webhooks.check_run import GitHubCheckRunAction
 from sentry.seer.code_review.webhooks.issue_comment import (
@@ -36,13 +38,33 @@ from sentry.testutils.helpers.github import GitHubWebhookTestCase
 
 CODE_REVIEW_FEATURES = {"organizations:gen-ai-features", "organizations:code-review-beta"}
 
+DEFAULT_PR_AUTHOR_ID = "12345678"
+
 
 class GitHubWebhookHelper(GitHubWebhookTestCase):
     """Base class for GitHub webhook integration tests."""
 
+    github_integration: Integration | None = None
+
+    @pytest.fixture(autouse=True)
+    def mock_billing_quota(self) -> Generator[None]:
+        """Mock billing quota check to return True for all tests."""
+        with patch(
+            "sentry.seer.code_review.billing.quotas.backend.check_seer_quota", return_value=True
+        ):
+            yield
+
     def _enable_code_review(self) -> None:
         """Enable all required options for code review to work."""
         self.organization.update_option("sentry:enable_pr_review_test_generation", True)
+
+        # Setup billing data
+        self.github_integration = self.create_github_integration()
+        OrganizationContributors.objects.get_or_create(
+            organization_id=self.organization.id,
+            integration_id=self.github_integration.id,
+            external_identifier=DEFAULT_PR_AUTHOR_ID,
+        )
 
     @contextmanager
     def code_review_setup(
@@ -50,6 +72,15 @@ class GitHubWebhookHelper(GitHubWebhookTestCase):
     ) -> Generator[None]:
         """Helper to set up code review test context."""
         self.organization.update_option("sentry:enable_pr_review_test_generation", True)
+
+        # Setup billing data
+        self.github_integration = self.create_github_integration()
+        OrganizationContributors.objects.get_or_create(
+            organization_id=self.organization.id,
+            integration_id=self.github_integration.id,
+            external_identifier=DEFAULT_PR_AUTHOR_ID,
+        )
+
         with (
             self.feature(features),
             self.options({"github.webhook.issue-comment": False}),
@@ -65,7 +96,7 @@ class GitHubWebhookHelper(GitHubWebhookTestCase):
         )
         repo_id = int(self.event_dict["repository"]["id"])
 
-        integration = self.create_github_integration()
+        integration = self.github_integration or self.create_github_integration()
         self.create_repo(
             project=self.project,
             provider="integrations:github",
@@ -780,11 +811,19 @@ class IssueCommentEventWebhookTest(GitHubWebhookHelper):
             "issue": {
                 "number": 42,
                 "pull_request": {"url": "https://api.github.com/repos/owner/repo/pulls/42"},
+                "user": {
+                    "id": int(DEFAULT_PR_AUTHOR_ID),
+                    "login": "pr-author",
+                },
             },
             "repository": {
                 "id": 12345,
                 "full_name": "owner/repo",
                 "html_url": "https://github.com/owner/repo",
+            },
+            "sender": {
+                "id": 87654321,
+                "login": "commenter",
             },
         }
         return orjson.dumps(event)
@@ -811,15 +850,11 @@ class IssueCommentEventWebhookTest(GitHubWebhookHelper):
 
             self.mock_seer.assert_not_called()
 
-    @with_feature({"organizations:gen-ai-features"})
     def test_runs_when_code_review_beta_flag_disabled_but_pr_review_test_generation_enabled(
         self,
     ) -> None:
         """Test that processing runs with gen-ai-features flag alone when org option is enabled."""
-        with self.options(
-            {"organizations:code-review-beta": False, "github.webhook.issue-comment": False}
-        ):
-            self.organization.update_option("sentry:enable_pr_review_test_generation", True)
+        with self.code_review_setup(features={"organizations:gen-ai-features"}):
             event = self._build_issue_comment_event(f"Please {SENTRY_REVIEW_COMMAND} this PR")
 
             with self.tasks():
