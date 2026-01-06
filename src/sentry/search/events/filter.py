@@ -669,9 +669,19 @@ def convert_search_filter_to_snuba_query(
         # together. Otherwise just return the raw condition, so that it can be
         # used correctly in aggregates.
         if is_null_condition:
-            return [is_null_condition, condition]
-        else:
-            return condition
+            return [is_null_condition, *_flatten_conditions(condition)]
+        return condition
+
+
+def _flatten_conditions(cond: list[Any]) -> list[Any]:
+    """
+    Flatten nested legacy conditions into a flat list. A legacy condition is
+    [lhs, op_string, rhs]. Wildcard processing can create nested lists that
+    snuba_sdk.legacy.parse_condition cannot handle.
+    """
+    if len(cond) == 3 and isinstance(cond[1], str):
+        return [cond]
+    return [c for item in cond if isinstance(item, list) for c in _flatten_conditions(item)]
 
 
 def format_search_filter(term, params):
