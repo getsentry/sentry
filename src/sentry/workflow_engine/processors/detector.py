@@ -356,13 +356,16 @@ def _get_detector_for_group(group: Group) -> Detector:
         return Detector.objects.get(project_id=group.project_id, type=IssueStreamGroupType.slug)
 
 
-def get_specific_detector(event_data: WorkflowEventData) -> Detector:
+def get_preferred_detector(event_data: WorkflowEventData) -> Detector:
     """
     Attempts to fetch the specific detector based on the GroupEvent or Activity in event_data
     """
     try:
         if isinstance(event_data.event, GroupEvent):
-            return _get_detector_for_event(event_data.event)
+            event_detectors = get_detectors_for_event_data(event_data)
+            if event_detectors is None:
+                raise Detector.DoesNotExist("No detectors found for event")
+            return event_detectors.preferred_detector
         elif isinstance(event_data.event, Activity):
             return _get_detector_for_group(event_data.group)
         else:
