@@ -217,6 +217,7 @@ export function PrivateGamingSdkAccessModal({
                   CONSOLE_PLATFORM_METADATA[value as GamingPlatform]?.displayName ??
                   value,
               }))}
+              defaultValue={gamingPlatforms}
               onChange={setGamingPlatforms}
               multiple
               required
