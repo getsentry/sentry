@@ -119,7 +119,7 @@ export function DashboardsNavItems({initialDashboards}: DashboardsNavItemsProps)
                     <StyledInteractionStateLayer
                       isPressed={isDragging === dashboard.id}
                     />
-                    <IconGrabbable color="gray300" />
+                    <IconGrabbable variant="muted" />
                   </GrabHandleWrapper>
                   <ProjectIcon
                     projectPlatforms={dashboardProjectPlatforms}

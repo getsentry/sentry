@@ -53,7 +53,7 @@ export function renderPerformanceHovercard() {
       body={renderHovercardBody()}
     >
       <IconContainer>
-        <IconQuestion size="xs" color="subText" />
+        <IconQuestion size="xs" variant="muted" />
       </IconContainer>
     </StyledHovercard>
   );

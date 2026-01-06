@@ -576,7 +576,7 @@ class EventsChart extends Component<EventsChartProps> {
       if (errored) {
         return (
           <ErrorPanel>
-            <IconWarning color="gray300" size="lg" />
+            <IconWarning variant="muted" size="lg" />
           </ErrorPanel>
         );
       }

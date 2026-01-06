@@ -20,7 +20,7 @@ function GitRepoLink({repo}: {repo: {name: string; owner: string; ok?: boolean}}
       <ExternalLink href={`https://github.com/${repo.owner}/${repo.name}`}>
         {repo.owner}/{repo.name}
       </ExternalLink>
-      {repo.ok && <IconCheckmark color="success" size="sm" />}
+      {repo.ok && <IconCheckmark variant="success" size="sm" />}
     </RepoItem>
   );
 }
@@ -49,7 +49,7 @@ function Content({groupId, closeModal}: {closeModal: () => void; groupId: string
   if (canCreatePullRequests) {
     return (
       <DoneWrapper>
-        <DoneIcon color="success" size="2xl" />
+        <DoneIcon variant="success" size="2xl" />
         <p>{t("You've successfully configured write access!")}</p>
         <Button onClick={closeModal} priority="primary">
           {t("Let's go")}

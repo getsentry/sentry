@@ -199,7 +199,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
         )}
         {isError && (
           <StatusContainer>
-            <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+            <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
           </StatusContainer>
         )}
         {!isError && !isLoading && !hasFunctions && (
@@ -470,7 +470,7 @@ function FunctionChart<F extends BreakdownFunction>({
   if (stats?.isError) {
     return (
       <StatusContainer>
-        <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+        <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
       </StatusContainer>
     );
   }

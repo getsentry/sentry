@@ -43,7 +43,7 @@ export function ControlState({
         </ControlStateWrapper>
       ) : isSaved ? (
         <ControlStateWrapper>
-          <StyledIconCheckmark color="success" size="sm" />
+          <StyledIconCheckmark variant="success" size="sm" />
         </ControlStateWrapper>
       ) : null}
 
@@ -56,7 +56,7 @@ export function ControlState({
             forceVisible
             skipWrapper
           >
-            <StyledIconWarning color="error" size="sm" />
+            <StyledIconWarning variant="danger" size="sm" />
           </Tooltip>
         </ControlStateWrapper>
       ) : null}

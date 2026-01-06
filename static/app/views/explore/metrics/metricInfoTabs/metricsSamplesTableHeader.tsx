@@ -18,9 +18,9 @@ import {getMetricTableColumnType} from 'sentry/views/explore/metrics/utils';
 import {useQueryParamsSortBys} from 'sentry/views/explore/queryParams/context';
 
 const ICON_HEADERS = {
-  [VirtualTableSampleColumnKey.LOGS]: <IconTerminal color="gray400" />,
-  [VirtualTableSampleColumnKey.SPANS]: <IconSpan color="purple400" />,
-  [VirtualTableSampleColumnKey.ERRORS]: <IconFire color="red300" />,
+  [VirtualTableSampleColumnKey.LOGS]: <IconTerminal variant="primary" />,
+  [VirtualTableSampleColumnKey.SPANS]: <IconSpan variant="accent" />,
+  [VirtualTableSampleColumnKey.ERRORS]: <IconFire variant="danger" />,
 };
 
 interface MetricsSamplesTableHeaderProps {

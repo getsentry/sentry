@@ -199,7 +199,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
             </TableStatus>
           ) : result.isError ? (
             <TableStatus>
-              <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+              <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
             </TableStatus>
           ) : result.isFetched && result.data?.length ? (
             result.data?.map((row, i) => {

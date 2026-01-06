@@ -97,11 +97,11 @@ function IssueContext(props: BaseContextProps) {
                   size="xs"
                 />
               ) : issue.status === 'resolved' ? (
-                <IconCheckmark color="gray500" size="xs" />
+                <IconCheckmark variant="primary" size="xs" />
               ) : (
                 <IconNot
                   data-test-id="quick-context-unresolved-icon"
-                  color="gray500"
+                  variant="primary"
                   size="xs"
                 />
               )}

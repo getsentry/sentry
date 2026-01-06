@@ -102,7 +102,7 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
           {buildDetails.app_info.build_configuration && (
             <Tooltip title={t('Build configuration')}>
               <Flex gap="sm" align="center">
-                <IconMobile size="sm" color="gray300" />
+                <IconMobile size="sm" variant="muted" />
                 <Text monospace>{buildDetails.app_info.build_configuration}</Text>
               </Flex>
             </Tooltip>
@@ -110,7 +110,7 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
           {isSizeInfoCompleted(buildDetails.size_info) && (
             <Tooltip title={labels.installSizeDescription}>
               <Flex gap="sm" align="center">
-                <IconCode size="sm" color="gray300" />
+                <IconCode size="sm" variant="muted" />
                 <Text underline="dotted">
                   {formattedPrimaryMetricInstallSize(buildDetails.size_info)}
                 </Text>
@@ -120,7 +120,7 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
           {isSizeInfoCompleted(buildDetails.size_info) && (
             <Tooltip title={labels.downloadSizeDescription}>
               <Flex gap="sm" align="center">
-                <IconDownload size="sm" color="gray300" />
+                <IconDownload size="sm" variant="muted" />
                 <Text underline="dotted">
                   {formattedPrimaryMetricDownloadSize(buildDetails.size_info)}
                 </Text>

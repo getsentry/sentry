@@ -63,7 +63,7 @@ class UsageTable extends Component<Props> {
         </EmptyMessage>
       );
     }
-    return <IconWarning color="gray300" legacySize="48px" />;
+    return <IconWarning variant="muted" legacySize="48px" />;
   };
 
   loadProject(projectId: number) {

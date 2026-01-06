@@ -33,7 +33,7 @@ function IssueTitleChildren(props: IssueTitleChildrenProps) {
     <Fragment>
       {isBookmarked && (
         <IconWrapper>
-          <IconStar isSolid color="yellow400" />
+          <IconStar isSolid color="yellow300" />
         </IconWrapper>
       )}
       <ErrorBoundary customComponent={() => <EventTitleError />} mini>

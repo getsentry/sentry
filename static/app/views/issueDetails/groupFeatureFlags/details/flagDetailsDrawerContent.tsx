@@ -37,7 +37,7 @@ export function FlagDetailsDrawerContent({group}: Props) {
   const {baseUrl} = useGroupDetailsRoute();
   const location = useLocation();
 
-  const sortArrow = <IconArrow color="gray300" size="xs" direction="down" />;
+  const sortArrow = <IconArrow variant="muted" size="xs" direction="down" />;
 
   const {
     data: flagLog,

@@ -48,7 +48,7 @@ function HeaderCell<T extends BaseRecord>({
         </Tooltip>
       ) : null}
       <IconArrow
-        color="gray300"
+        variant="muted"
         size="xs"
         direction={sortConfig.by === field && !sortConfig.asc ? 'down' : 'up'}
         style={{visibility: sortConfig.by === field ? 'visible' : 'hidden'}}

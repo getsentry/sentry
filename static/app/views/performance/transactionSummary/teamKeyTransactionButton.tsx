@@ -64,7 +64,7 @@ function TeamKeyTransactionButton({
             icon={
               <IconStar
                 isSolid={!!keyedTeamsCount}
-                color={keyedTeamsCount ? 'yellow300' : 'subText'}
+                variant={keyedTeamsCount ? 'warning' : 'muted'}
               />
             }
           >

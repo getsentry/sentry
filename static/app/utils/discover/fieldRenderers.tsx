@@ -471,7 +471,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
               showChevron: false,
               icon: (
                 <Fragment>
-                  <IconDownload color="gray500" size="sm" />
+                  <IconDownload variant="primary" size="sm" />
                   <DownloadCount>{items.length}</DownloadCount>
                 </Fragment>
               ),
@@ -506,7 +506,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
                 : undefined
             }
           >
-            <IconDownload color="gray500" size="sm" />
+            <IconDownload variant="primary" size="sm" />
             <DownloadCount>{minidump ? 1 : 0}</DownloadCount>
           </Button>
         </RightAlignedContainer>

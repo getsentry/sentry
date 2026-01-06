@@ -130,7 +130,7 @@ function ResolutionBox(props: Props) {
   return (
     <BannerContainer priority="default">
       <BannerSummary>
-        <StyledIconCheckmark color="successText" />
+        <StyledIconCheckmark variant="success" />
         <span>{renderResolutionReason(props)}</span>
       </BannerSummary>
     </BannerContainer>

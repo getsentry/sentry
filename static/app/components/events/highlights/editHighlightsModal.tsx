@@ -468,7 +468,7 @@ function SectionFilterInput(props: InputProps) {
   return (
     <InputGroup>
       <InputGroup.LeadingItems disablePointerEvents>
-        <IconSearch color="subText" size="xs" />
+        <IconSearch variant="muted" size="xs" />
       </InputGroup.LeadingItems>
       <InputGroup.Input size="xs" autoComplete="off" {...props} />
     </InputGroup>

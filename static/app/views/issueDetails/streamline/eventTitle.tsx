@@ -152,7 +152,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
               onClick={handleCopyEventId}
               size="zero"
               borderless
-              icon={<IconCopy size="xs" color="subText" />}
+              icon={<IconCopy size="xs" variant="muted" />}
             />
           </EventIdWrapper>
           <StyledTimeSince
@@ -188,7 +188,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
                 )}
                 borderless
                 size="zero"
-                icon={<IconWarning color="red300" />}
+                icon={<IconWarning variant="danger" />}
                 onClick={() => {
                   document
                     .getElementById(SectionKey.PROCESSING_ERROR)

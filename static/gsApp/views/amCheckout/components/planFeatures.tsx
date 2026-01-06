@@ -473,12 +473,12 @@ function FeatureItem({
       <Container padding="0">
         {isIncluded ? (
           isOnlyOnBusiness ? (
-            <IconAdd size="sm" color="activeText" />
+            <IconAdd size="sm" variant="success" />
           ) : (
-            <IconCheckmark size="sm" color="success" />
+            <IconCheckmark size="sm" variant="success" />
           )
         ) : (
-          <IconClose size="sm" color="disabled" />
+          <IconClose size="sm" variant="muted" />
         )}
       </Container>
       {children}
@@ -538,7 +538,7 @@ function PlanFeatures({
         {currentTier !== DEFAULT_TIER && (
           <Flex gap="sm">
             <Container paddingTop="xs">
-              <IconLightning size="sm" color="active" />
+              <IconLightning size="sm" variant="accent" />
             </Container>
             <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40444678490651-How-can-I-update-to-an-account-with-Logs">
               {t('Want the latest features? Learn more here')}
@@ -569,7 +569,7 @@ function PlanFeatures({
               })}
             >
               <Flex gap="sm">
-                <IconWarning size="sm" color="disabled" />
+                <IconWarning size="sm" variant="muted" />
                 <Text size="sm" variant="muted">
                   {tct('Excess usage for [categories] costs more on [planName]', {
                     categories: listDisplayNames({

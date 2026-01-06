@@ -148,7 +148,7 @@ function MergedItem({fingerprint, totalFingerprint}: Props) {
             <Flex align="center" gap="xs">
               <LinkButton
                 to={issueLink}
-                icon={<IconLink color="linkColor" />}
+                icon={<IconLink variant="accent" />}
                 title={t('View latest event')}
                 aria-label={t('View latest event')}
                 borderless

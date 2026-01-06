@@ -54,7 +54,7 @@ function Content({
   if (errored) {
     return (
       <ErrorPanel>
-        <IconWarning color="gray500" size="lg" />
+        <IconWarning variant="primary" size="lg" />
       </ErrorPanel>
     );
   }

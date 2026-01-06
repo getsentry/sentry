@@ -42,7 +42,7 @@ export function AddIntegrationBanner({orgSlug, onDismiss}: AddIntegrationBannerP
         borderless
         priority="link"
         aria-label={t('Dismiss')}
-        icon={<IconClose color="subText" />}
+        icon={<IconClose variant="muted" />}
         size="xs"
         onClick={onDismiss}
       />

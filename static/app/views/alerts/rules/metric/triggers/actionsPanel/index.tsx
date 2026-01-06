@@ -496,7 +496,7 @@ class ActionsPanel extends PureComponent<Props> {
         <ActionSection>
           <Button
             disabled={disabled || loading}
-            icon={<IconAdd color="gray300" />}
+            icon={<IconAdd variant="muted" />}
             onClick={this.handleAddAction}
           >
             {t('Add Action')}

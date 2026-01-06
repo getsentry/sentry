@@ -208,7 +208,7 @@ function IntegrationExternalMappings(props: Props) {
               <span>{mapping.externalName}</span>
             </ExternalNameColumn>
             <div>
-              <IconArrow direction="right" size="sm" color="gray300" />
+              <IconArrow direction="right" size="sm" variant="muted" />
             </div>
             <ExternalForm>{renderMappingName(mapping)}</ExternalForm>
             <div>{renderMappingActions(mapping)}</div>

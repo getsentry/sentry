@@ -530,7 +530,7 @@ class _Table extends Component<Props, State> {
           const star = (
             <IconStar
               key="keyTransaction"
-              color="yellow300"
+              variant="warning"
               isSolid
               data-test-id="team-key-transaction-header"
             />

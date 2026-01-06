@@ -220,7 +220,7 @@ const ViewAllContainer = styled('div')`
     width: 1px;
     top: -${space(1)};
     height: ${space(1)};
-    background: ${p => p.theme.border};
+    background: ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 `;
 

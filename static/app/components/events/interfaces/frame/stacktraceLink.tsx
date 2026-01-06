@@ -366,7 +366,7 @@ function CodecovLink({
     return (
       <Flex align="center" gap="sm">
         <Text variant="danger">{t('Code Coverage not found')}</Text>
-        <IconWarning size={DEFAULT_ICON_SIZE} color="errorText" />
+        <IconWarning size={DEFAULT_ICON_SIZE} variant="danger" />
       </Flex>
     );
   }

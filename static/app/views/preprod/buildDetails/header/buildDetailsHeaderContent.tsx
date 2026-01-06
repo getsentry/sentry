@@ -204,7 +204,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
                   key: 'delete',
                   label: (
                     <Flex align="center" gap="sm">
-                      <IconDelete size="sm" color="danger" />
+                      <IconDelete size="sm" variant="danger" />
                       <Text variant="danger">{t('Delete Build')}</Text>
                     </Flex>
                   ),

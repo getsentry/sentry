@@ -259,7 +259,7 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                       <Button
                         size="sm"
                         borderless
-                        icon={<IconDelete size="sm" color="subText" />}
+                        icon={<IconDelete size="sm" variant="muted" />}
                         onClick={() => removeBranchOverride(index)}
                         aria-label={t('Remove override')}
                         title={t('Remove override')}

@@ -37,7 +37,7 @@ export function TitleCell({
         <NameText>{name}</NameText>
         {systemCreated && (
           <Tooltip title={systemCreated} skipWrapper>
-            <CreatedBySentryIcon size="xs" color="subText" />
+            <CreatedBySentryIcon size="xs" variant="muted" />
           </Tooltip>
         )}
         {warning && (
@@ -46,7 +46,7 @@ export function TitleCell({
             <Tooltip title={warning.message} skipWrapper>
               <Flex gap="sm" align="center">
                 {warning.color === 'danger' && <Text variant="danger">Invalid</Text>}
-                <IconWarning color={warning.color} />
+                <IconWarning variant={warning.color} />
               </Flex>
             </Tooltip>
           </Fragment>
