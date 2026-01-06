@@ -94,6 +94,7 @@ export function VisualizationWidget({
         ) {
           // if there's only one aggregate and more then one group by the series names are the name of the group, not the aggregate name
           // But we can just assume the units is for all the series
+          // TODO: This doesn't work with multiple group bys
           timeseriesResults?.forEach(series => {
             valueUnitResultTypes[series.seriesName] = firstUnit;
           });
