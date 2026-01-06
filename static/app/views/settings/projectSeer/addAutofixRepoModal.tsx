@@ -7,11 +7,11 @@ import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {Link} from 'sentry/components/core/link';
+import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconSearch} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Repository} from 'sentry/types/integrations';
 import useOrganization from 'sentry/utils/useOrganization';
 import {MAX_REPOS_LIMIT} from 'sentry/views/settings/projectSeer/constants';
 
@@ -23,29 +23,22 @@ type Props = ModalRenderProps & {
    */
   onSave: (repoIds: string[]) => void;
   /**
-   * All available repositories from the organization.
-   */
-  repositories: Repository[];
-  /**
    * Repositories currently selected for Autofix in the parent component.
    */
   selectedRepoIds: string[];
-  /**
-   * Loading state for fetching repositories.
-   */
-  isFetchingRepositories?: boolean;
 };
 
-export function AddAutofixRepoModalContent({
-  repositories,
+export function AddAutofixRepoModal({
   selectedRepoIds,
   onSave,
   Header,
   Body,
   Footer,
   closeModal,
-  isFetchingRepositories,
 }: Props) {
+  const {data: repositories, isFetching: isFetchingRepositories} =
+    useOrganizationRepositories();
+
   const organization = useOrganization();
   const [modalSearchQuery, setModalSearchQuery] = useState('');
   const [showMaxLimitAlert, setShowMaxLimitAlert] = useState(false);
