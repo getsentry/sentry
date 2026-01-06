@@ -603,6 +603,7 @@ def models_which_use_deletions_code_path() -> list[tuple[type[BaseModel], str, s
     from sentry.models.release import Release
     from sentry.models.rulefirehistory import RuleFireHistory
     from sentry.monitors.models import MonitorCheckIn
+    from sentry.preprod.models import PreprodArtifact
     from sentry.replays.models import ReplayRecordingSegment
 
     # Deletions that use the `deletions` code path (which handles their child relations)
@@ -613,6 +614,7 @@ def models_which_use_deletions_code_path() -> list[tuple[type[BaseModel], str, s
         (ArtifactBundle, "date_added", "date_added"),
         (MonitorCheckIn, "date_added", "date_added"),
         (GroupRuleStatus, "date_added", "date_added"),
+        (PreprodArtifact, "date_added", "date_added"),
         (PullRequest, "date_added", "date_added"),
         (RuleFireHistory, "date_added", "date_added"),
         (Release, "date_added", "date_added"),
