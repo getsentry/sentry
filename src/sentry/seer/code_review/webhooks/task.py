@@ -97,11 +97,12 @@ def process_github_webhook_event(
     """
     status = "success"
     should_record_latency = True
+    option_key = get_webhook_option_key(github_event)
+    # If True, we're only sending to Overwatch
+    if option_key and options.get(option_key):
+        return
     try:
         path = get_seer_endpoint_for_event(github_event).value
-        option_key = get_webhook_option_key(github_event)
-        if option_key and not options.get(option_key):
-            return
         make_seer_request(path=path, payload=event_payload)
     except Exception as e:
         status = e.__class__.__name__
