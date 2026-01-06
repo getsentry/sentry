@@ -72,7 +72,7 @@ import {
   getTotalBudget,
   hasOnDemandBudgetsFeature,
   parseOnDemandBudgetsFromSubscription,
-} from 'getsentry/views/onDemandBudgets/utils';
+} from 'getsentry/views/spendLimits/utils';
 
 type Props = {
   api: Client;
@@ -138,15 +138,18 @@ class AMCheckout extends Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    const {checkoutTier, subscription} = this.props;
-    if (checkoutTier === prevProps.checkoutTier) {
-      return;
+    const {checkoutTier, subscription, location} = this.props;
+    if (checkoutTier !== prevProps.checkoutTier) {
+      if (subscription.canSelfServe) {
+        this.fetchBillingConfig();
+      } else {
+        this.handleRedirect();
+      }
     }
 
-    if (subscription.canSelfServe) {
-      this.fetchBillingConfig();
-    } else {
-      this.handleRedirect();
+    // Scroll to step when hash changes
+    if (location.hash !== prevProps.location.hash) {
+      this.scrollToStep();
     }
   }
 
@@ -183,11 +186,17 @@ class AMCheckout extends Component<Props, State> {
       const billingConfig = {...config, planList};
       const formData = this.getInitialData(billingConfig);
 
-      this.setState({
-        billingConfig,
-        formData,
-        formDataForPreview: this.getFormDataForPreview(formData),
-      });
+      this.setState(
+        {
+          billingConfig,
+          formData,
+          formDataForPreview: this.getFormDataForPreview(formData),
+        },
+        () => {
+          // Scroll to step after state is updated and DOM is rendered
+          this.scrollToStep();
+        }
+      );
     } catch (error: any) {
       this.setState({error, loading: false});
       if (error.status !== 401 && error.status !== 403) {
@@ -524,6 +533,37 @@ class AMCheckout extends Component<Props, State> {
     }
   };
 
+  scrollToStep = () => {
+    const {location} = this.props;
+    const hash = location?.hash;
+
+    if (!hash) {
+      return;
+    }
+
+    // Parse step number from hash like #step1, #step2, etc.
+    const stepMatch = /^#step(\d+)$/.exec(hash);
+    if (!stepMatch) {
+      return;
+    }
+
+    const stepNumber = parseInt(stepMatch[1]!, 10);
+    if (stepNumber < 1 || stepNumber > this.checkoutSteps.length) {
+      return;
+    }
+
+    // Use requestAnimationFrame to ensure DOM is ready
+    requestAnimationFrame(() => {
+      const stepElement = document.getElementById(`step${stepNumber}`);
+      if (stepElement) {
+        // TODO(isabella): We should calculate some offset to add to account for the sticky header (which covers the title)
+        // and we will likely need to take screen size into account (steps 3 and 4 cannot have their headers at the top of the viewport unless it's a smaller screen)
+        const targetScrollY = stepElement.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({top: targetScrollY, behavior: 'smooth'});
+      }
+    });
+  };
+
   renderSteps() {
     const {organization, subscription, checkoutTier} = this.props;
     const {formData, billingConfig} = this.state;
@@ -543,12 +583,13 @@ class AMCheckout extends Component<Props, State> {
     };
 
     return this.checkoutSteps.map((CheckoutStep, idx) => {
+      const stepNumber = idx + 1;
       return (
         <CheckoutStep
           {...stepProps}
           key={idx}
           referrer={this.referrer}
-          stepNumber={idx + 1}
+          stepNumber={stepNumber}
         />
       );
     });

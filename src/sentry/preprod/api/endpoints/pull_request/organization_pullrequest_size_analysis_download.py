@@ -52,7 +52,7 @@ class OrganizationPullRequestSizeAnalysisDownloadEndpoint(OrganizationEndpoint):
         )
 
         if not features.has("organizations:pr-page", organization, actor=request.user):
-            return Response({"error": "Feature not enabled"}, status=403)
+            return Response({"detail": "Feature not enabled"}, status=403)
 
         try:
             artifact = PreprodArtifact.objects.get(
