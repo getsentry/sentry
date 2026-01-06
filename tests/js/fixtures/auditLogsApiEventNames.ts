@@ -19,7 +19,6 @@ export function AuditLogsApiEventNamesFixture(params: string[] = []): string[] {
     'project.set-public',
     'project.set-private',
     'project.request-transfer',
-    'project.accept-transfer',
     'org.create',
     'org.edit',
     'org.remove',
