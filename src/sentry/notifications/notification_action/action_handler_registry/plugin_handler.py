@@ -1,3 +1,5 @@
+from typing import override
+
 from sentry.notifications.notification_action.utils import execute_via_group_type_registry
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.registry import action_handler_registry
@@ -32,5 +34,6 @@ class PluginActionHandler(ActionHandler):
         return None
 
     @staticmethod
+    @override
     def execute(invocation: ActionInvocation) -> None:
         execute_via_group_type_registry(invocation)

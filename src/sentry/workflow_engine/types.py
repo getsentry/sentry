@@ -107,6 +107,7 @@ class ActionInvocation:
     event_data: WorkflowEventData
     action: Action
     detector: Detector
+    notification_uuid: str
 
 
 class WorkflowEvaluationSnapshot(TypedDict):

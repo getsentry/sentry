@@ -1,5 +1,4 @@
 import logging
-import uuid
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Collection, Sequence
 from dataclasses import asdict
@@ -316,9 +315,6 @@ class BaseIssueAlertHandler(ABC):
         2. activate_downstream_actions
         3. execute_futures (also in post_process process_rules)
         """
-        # Create a notification uuid
-        notification_uuid = str(uuid.uuid4())
-
         # Create a rule
         rule = cls.create_rule_instance_from_action(
             invocation.action, invocation.detector, invocation.event_data
@@ -338,7 +334,7 @@ class BaseIssueAlertHandler(ABC):
             },
         )
         # Get the futures
-        futures = cls.get_rule_futures(invocation.event_data, rule, notification_uuid)
+        futures = cls.get_rule_futures(invocation.event_data, rule, invocation.notification_uuid)
 
         # Execute the futures
         # If the rule id is -1, we are sending a test notification
@@ -494,8 +490,6 @@ class BaseMetricAlertHandler(ABC):
 
         trigger_status = cls.get_trigger_status(invocation.event_data.group)
 
-        notification_uuid = str(uuid.uuid4())
-
         logger.info(
             "notification_action.execute_via_metric_alert_handler",
             extra={
@@ -515,7 +509,7 @@ class BaseMetricAlertHandler(ABC):
             metric_issue_context=metric_issue_context,
             open_period_context=open_period_context,
             trigger_status=trigger_status,
-            notification_uuid=notification_uuid,
+            notification_uuid=invocation.notification_uuid,
             organization=invocation.detector.project.organization,
             project=invocation.detector.project,
         )

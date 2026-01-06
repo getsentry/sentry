@@ -265,10 +265,13 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         mock_futures = [mock.Mock()]
         mock_activate_downstream_actions.return_value = {"some_key": (mock_callback, mock_futures)}
 
+        notification_uuid = str(uuid.uuid4())
+
         invocation = ActionInvocation(
             event_data=self.event_data,
             action=self.action,
             detector=self.detector,
+            notification_uuid=notification_uuid,
         )
 
         self.handler.invoke_legacy_registry(invocation)

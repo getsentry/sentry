@@ -1037,6 +1037,58 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
             event_id=self.event1.event_id,
         ).exists()
 
+    @with_feature("organizations:workflow-engine-single-process-workflows")
+    @patch("sentry.workflow_engine.tasks.actions.trigger_action.apply_async")
+    @patch("sentry.workflow_engine.processors.workflow.process_data_condition_group")
+    @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
+    def test_fire_actions_notification_uuid_propagation(
+        self, mock_process: MagicMock, mock_trigger: MagicMock
+    ) -> None:
+        """Verify notification_uuid from WorkflowFireHistory is passed to triggered actions."""
+        mock_process.return_value = (
+            ProcessedDataConditionGroup(logic_result=TriggerResult.TRUE, condition_results=[]),
+            [],
+        )
+
+        self.groups_to_dcgs = {
+            self.group1.id: {self.workflow1_if_dcgs[0]},
+            self.group2.id: {self.workflow2_if_dcgs[0]},
+        }
+
+        fire_actions_for_groups(
+            self.project.organization,
+            self.groups_to_dcgs,
+            self.group_to_groupevent,
+        )
+
+        # Verify WorkflowFireHistory records were created
+        history1 = WorkflowFireHistory.objects.get(
+            workflow=self.workflow1,
+            group_id=self.group1.id,
+            event_id=self.event1.event_id,
+        )
+        history2 = WorkflowFireHistory.objects.get(
+            workflow=self.workflow2,
+            group_id=self.group2.id,
+            event_id=self.event2.event_id,
+        )
+
+        # Verify trigger_action was called for both workflows
+        assert mock_trigger.call_count == 2
+
+        # Extract notification_uuids from task calls
+        call_1_notification_uuid = mock_trigger.call_args_list[0].kwargs["kwargs"][
+            "notification_uuid"
+        ]
+        call_2_notification_uuid = mock_trigger.call_args_list[1].kwargs["kwargs"][
+            "notification_uuid"
+        ]
+
+        # Verify the notification_uuids match the WorkflowFireHistory records
+        fire_history_uuids = {str(history1.notification_uuid), str(history2.notification_uuid)}
+        task_uuids = {call_1_notification_uuid, call_2_notification_uuid}
+        assert fire_history_uuids == task_uuids
+
 
 class TestCleanupRedisBuffer(TestDelayedWorkflowBase):
     def test_cleanup_redis(self) -> None:
