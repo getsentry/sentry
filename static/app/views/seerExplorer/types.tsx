@@ -68,11 +68,6 @@ interface Message {
 
 export type PanelSize = 'max' | 'med';
 
-export interface ExplorerPanelProps {
-  isVisible?: boolean;
-  onClose?: () => void;
-}
-
 export interface ExplorerSession {
   created_at: string; // ISO date string
   last_triggered_at: string;

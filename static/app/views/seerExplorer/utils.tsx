@@ -869,3 +869,5 @@ function locationToUrl(location: LocationDescriptor): string | null {
 
   return `${base}${queryPart}${hashPart}`;
 }
+
+export const RUN_ID_QUERY_PARAM = 'explorerRunId';
