@@ -18,7 +18,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import {fetchMutation, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 
 import {
   useConsoleSdkInvites,
@@ -43,7 +43,6 @@ function ToggleConsolePlatformsModal({
     organization.slug
   );
   const {mutate: revokeConsoleInvite} = useRevokeConsoleSdkInvite();
-  const queryClient = useQueryClient();
   const {isPending, mutate: updateConsolePlatforms} = useMutation({
     mutationFn: (data: Record<string, boolean | number>) => {
       const {newConsoleSdkInviteQuota, ...platforms} = data;
@@ -174,7 +173,7 @@ function ToggleConsolePlatformsModal({
               <SimpleTable.RowCell>{platforms.join(', ')}</SimpleTable.RowCell>
               <RevokeButton
                 priority="danger"
-                onClick={() => {
+                onClick={() =>
                   revokeConsoleInvite({
                     userId: user_id,
                     email,
@@ -182,13 +181,8 @@ function ToggleConsolePlatformsModal({
                     onSuccess: () => {
                       onSuccess();
                     },
-                  });
-                  queryClient.invalidateQueries({
-                    queryKey: [
-                      `/organizations/${organization.slug}/console-sdk-invites/`,
-                    ],
-                  });
-                }}
+                  })
+                }
               >
                 Revoke invites
               </RevokeButton>
