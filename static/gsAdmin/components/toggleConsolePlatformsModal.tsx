@@ -173,6 +173,7 @@ function ToggleConsolePlatformsModal({
               </SimpleTable.RowCell>
               <SimpleTable.RowCell>{platforms.join(', ')}</SimpleTable.RowCell>
               <RevokeButton
+                priority="danger"
                 onClick={() => {
                   revokeConsoleInvite({
                     userId: user_id,
@@ -189,7 +190,7 @@ function ToggleConsolePlatformsModal({
                   });
                 }}
               >
-                Remove Invites
+                Revoke invites
               </RevokeButton>
             </SimpleTable.Row>
           ))}
