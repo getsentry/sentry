@@ -145,7 +145,7 @@ def update_subscription_in_snuba(
                 old_entity_subscription.build_query_builder(
                     query,
                     [subscription.project_id],
-                    None,
+                    subscription.snuba_query.environment,
                     {"organization_id": subscription.project.organization_id},
                 ),
             )
