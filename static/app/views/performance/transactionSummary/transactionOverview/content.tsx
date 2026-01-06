@@ -770,7 +770,7 @@ function MetricsWarningIcon() {
       <StyledIconWarning
         data-test-id="search-metrics-fallback-warning"
         size="sm"
-        color="warningText"
+        variant="warning"
       />
     </Tooltip>
   );
