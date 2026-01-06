@@ -170,15 +170,25 @@ type AlertColors = Record<
 >;
 
 const generateThemeUtils = (
+  tokens: Tokens,
   colors: ReturnType<typeof deprecatedColorMappings>,
   aliases: Aliases
 ) => ({
-  tooltipUnderline: (underlineColor: ColorOrAlias = 'gray300') => ({
+  tooltipUnderline: (
+    underlineColor: ColorOrAlias | 'warning' | 'danger' | 'success' = 'gray300'
+  ) => ({
     textDecoration: 'underline' as const,
     textDecorationThickness: '0.75px',
     textUnderlineOffset: '1.25px',
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    textDecorationColor: colors[underlineColor] ?? aliases[underlineColor],
+    textDecorationColor:
+      underlineColor === 'warning'
+        ? tokens.content.warning
+        : underlineColor === 'danger'
+          ? tokens.content.danger
+          : underlineColor === 'success'
+            ? tokens.content.success
+            : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+              (colors[underlineColor] ?? aliases[underlineColor]),
     textDecorationStyle: 'dotted' as const,
   }),
   overflowEllipsis: css`
@@ -1219,12 +1229,6 @@ const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
   dangerText: tokens.content.danger,
 
   /**
-   * A color that denotes a warning
-   */
-  warning: tokens.content.warning,
-  warningText: tokens.content.warning,
-
-  /**
    * A color that indicates something is disabled where user can not interact or use
    * it in the usual manner (implies that there is an "enabled" state)
    * NOTE: These are largely used for form elements, which I haven't mocked in ChonkUI
@@ -1425,7 +1429,11 @@ const lightThemeDefinition = {
   }),
 
   // @TODO: these colors need to be ported
-  ...generateThemeUtils(deprecatedColorMappings(lightColors), lightAliases),
+  ...generateThemeUtils(
+    baseLightTheme.tokens,
+    deprecatedColorMappings(lightColors),
+    lightAliases
+  ),
   alert: generateAlertTheme(lightColors, lightAliases),
   button: generateButtonTheme(lightColors, lightAliases, baseLightTheme.tokens),
   tag: generateTagTheme(lightColors),
@@ -1474,7 +1482,11 @@ export const darkTheme: SentryTheme = {
   }),
 
   // @TODO: these colors need to be ported
-  ...generateThemeUtils(deprecatedColorMappings(darkColors), darkAliases),
+  ...generateThemeUtils(
+    baseDarkTheme.tokens,
+    deprecatedColorMappings(darkColors),
+    darkAliases
+  ),
   alert: generateAlertTheme(darkColors, darkAliases),
   button: generateButtonTheme(darkColors, darkAliases, baseDarkTheme.tokens),
   tag: generateTagTheme(darkColors),

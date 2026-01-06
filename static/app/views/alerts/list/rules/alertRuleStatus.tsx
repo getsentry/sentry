@@ -2,9 +2,9 @@ import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
 import {IconArrow, IconMute, IconNot} from 'sentry/icons';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {ColorOrAlias} from 'sentry/utils/theme';
 import {hasActiveIncident} from 'sentry/views/alerts/list/rules/utils';
 import {getThresholdUnits} from 'sentry/views/alerts/rules/metric/constants';
 import {
@@ -63,7 +63,7 @@ export default function AlertRuleStatus({rule}: Props) {
       ? criticalTrigger
       : (warningTrigger ?? criticalTrigger);
 
-  let iconColor: ColorOrAlias = 'success';
+  let iconVariant: SVGIconProps['variant'] = 'success';
   let iconDirection: 'up' | 'down' | undefined;
   let thresholdTypeText =
     activeIncident && rule.thresholdType === AlertRuleThresholdType.ABOVE
@@ -74,7 +74,7 @@ export default function AlertRuleStatus({rule}: Props) {
   const statusLabel = activeIncident ? t('Critical') : t('Resolved');
 
   if (activeIncident) {
-    iconColor =
+    iconVariant =
       trigger?.label === AlertRuleTriggerType.CRITICAL
         ? 'danger'
         : trigger?.label === AlertRuleTriggerType.WARNING
@@ -91,7 +91,7 @@ export default function AlertRuleStatus({rule}: Props) {
   return (
     <Flex align="center">
       {rule.detectionType !== AlertRuleComparisonType.DYNAMIC && (
-        <IconArrow variant={iconColor} direction={iconDirection} />
+        <IconArrow variant={iconVariant} direction={iconDirection} />
       )}
       {rule.detectionType === AlertRuleComparisonType.DYNAMIC ? (
         <TriggerText>{statusLabel}</TriggerText>

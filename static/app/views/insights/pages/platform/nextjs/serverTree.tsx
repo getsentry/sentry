@@ -70,7 +70,7 @@ const HOVERCARD_BODY_CLASS_NAME = 'ssrTreeHovercard';
 
 const getP95Threshold = (avg: number) => {
   return {
-    error: avg * 3,
+    danger: avg * 3,
     warning: avg * 2,
   };
 };

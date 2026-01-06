@@ -137,7 +137,7 @@ interface UseHoverOverlayProps {
   /**
    * Color of the dotted underline, if available. See also: showUnderline.
    */
-  underlineColor?: ColorOrAlias;
+  underlineColor?: ColorOrAlias | 'warning' | 'danger' | 'success';
 }
 
 export function isOverflown(el: Element): boolean {

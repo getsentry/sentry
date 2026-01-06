@@ -47,7 +47,7 @@ function StripeWrapper({
             colorText: theme.tokens.content.primary,
             colorDanger: theme.danger,
             colorSuccess: theme.success,
-            colorWarning: theme.warning,
+            colorWarning: theme.tokens.content.warning,
             iconColor: theme.tokens.content.primary,
           },
           rules: {

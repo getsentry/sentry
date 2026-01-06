@@ -81,7 +81,7 @@ interface Props extends React.TimeHTMLAttributes<HTMLTimeElement> {
   /**
    * Change the color of the underline
    */
-  tooltipUnderlineColor?: ColorOrAlias;
+  tooltipUnderlineColor?: ColorOrAlias | 'warning' | 'danger' | 'success';
   /**
    * How much text should be used for the suffix:
    *
