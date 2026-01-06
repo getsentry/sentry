@@ -42,7 +42,6 @@ const settingsRoutes = (): SentryRouteObject => ({
           path: 'overview/',
           name: 'Overview',
           component: make(() => import('../views/subscriptionPage/overview')),
-          deprecatedRouteProps: true,
         },
         {
           path: 'usage/',
