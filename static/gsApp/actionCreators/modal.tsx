@@ -1,19 +1,20 @@
 import type {ComponentType} from 'react';
+import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {promptsUpdate} from 'sentry/actionCreators/prompts';
 import {Client} from 'sentry/api';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
 import type {PromotionModalBodyProps} from 'getsentry/components/promotionModal';
 import type {Reservations} from 'getsentry/components/upgradeNowModal/types';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {
-  BillingDetails,
   Invoice,
   Plan,
   PreviewData,
@@ -21,6 +22,7 @@ import type {
   PromotionClaimed,
   Subscription,
 } from 'getsentry/types';
+import {displayBudgetName, hasBillingAccess, supportsPayg} from 'getsentry/utils/billing';
 import type {AM2UpdateSurfaces} from 'getsentry/utils/trackGetsentryAnalytics';
 
 type UpsellModalOptions = {
@@ -118,29 +120,39 @@ export async function openPartnerPlanEndingModal(options: PartnerPlanModalProps)
   openModal(deps => <Modal {...deps} {...options} />, {modalCss, onClose});
 }
 
-type EditCreditCardOptions = {
-  onSuccess: (data: Subscription) => void;
+interface OpenOnDemandBudgetEditModalProps {
   organization: Organization;
   subscription: Subscription;
-  location?: Location;
-};
-
-export async function openEditCreditCard(options: EditCreditCardOptions) {
-  const {default: Modal} = await import('getsentry/components/creditCardEdit/modal');
-
-  openModal(deps => <Modal {...deps} {...options} />);
+  theme?: Theme;
 }
 
-type EditBillingDetailsOptions = {
-  organization: Organization;
-  refetch: () => void;
-  initialData?: BillingDetails;
-};
+export async function openOnDemandBudgetEditModal(
+  options: OpenOnDemandBudgetEditModalProps
+) {
+  const {default: Modal} = await import('getsentry/views/spendLimits/editModal');
+  const {theme, organization, subscription} = options;
+  const hasBillingPerms = hasBillingAccess(organization);
+  const canUsePayg = supportsPayg(subscription);
 
-export async function openEditBillingDetails(options: EditBillingDetailsOptions) {
-  const {default: Modal} = await import('getsentry/components/billingDetails/modal');
-  openModal(deps => <Modal {...deps} {...options} />);
+  if (hasBillingPerms && canUsePayg) {
+    openModal(deps => <Modal {...deps} {...options} />, {
+      closeEvents: 'escape-key',
+      modalCss: theme ? onDemandBudgetEditModalCss(theme) : undefined,
+    });
+  } else {
+    addErrorMessage(
+      tct("You don't have permission to edit [budgetTerm] budgets.", {
+        budgetTerm: displayBudgetName(subscription.planDetails),
+      })
+    );
+  }
 }
+
+const onDemandBudgetEditModalCss = (theme: Theme) => css`
+  @media (min-width: ${theme.breakpoints.md}) {
+    width: 1000px;
+  }
+`;
 
 type OpenInvoicePaymentOptions = {
   invoice: Invoice;

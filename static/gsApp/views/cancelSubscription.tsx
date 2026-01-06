@@ -325,11 +325,7 @@ function CancelSubscriptionWrapper({subscription}: CancelSubscriptionWrapperProp
 
   const title = t('Cancel Subscription');
   return (
-    <SubscriptionPageContainer
-      background="secondary"
-      organization={organization}
-      dataTestId="cancel-subscription"
-    >
+    <SubscriptionPageContainer background="secondary" dataTestId="cancel-subscription">
       <SentryDocumentTitle title={title} />
       <SettingsPageHeader title={title} />
       <CancelSubscriptionForm />

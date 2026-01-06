@@ -1,6 +1,9 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
@@ -9,6 +12,7 @@ import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import withApi from 'sentry/utils/withApi';
 
@@ -19,9 +23,9 @@ import type {
   Plan,
   Subscription,
 } from 'getsentry/types';
-import {displayBudgetName, hasNewBillingUI} from 'getsentry/utils/billing';
+import {displayBudgetName} from 'getsentry/utils/billing';
+import EmbeddedSpendLimitSettings from 'getsentry/views/spendLimits/embeddedSettings';
 
-import OnDemandBudgetEdit from './onDemandBudgetEdit';
 import {
   convertOnDemandBudget,
   exceedsInvoicedBudgetLimit,
@@ -59,7 +63,7 @@ type State = {
   onDemandBudget: OnDemandBudgets;
   updateError: undefined | Error | string | Record<string, string[]>;
 };
-class OnDemandBudgetEditModal extends Component<Props, State> {
+class SpendLimitsEditModal extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
@@ -186,43 +190,43 @@ class OnDemandBudgetEditModal extends Component<Props, State> {
   };
 
   render() {
-    const {Header, Footer, subscription, organization} = this.props;
-    const isNewBillingUI = hasNewBillingUI(organization);
-    const onDemandBudgets = subscription.onDemandBudgets!;
+    const {Footer, subscription, organization} = this.props;
+
+    const addOnDataCategories = Object.values(
+      subscription.planDetails.addOnCategories
+    ).flatMap(addOn => addOn.dataCategories);
+    const currentReserved = Object.fromEntries(
+      Object.entries(subscription.categories)
+        .filter(([category]) => !addOnDataCategories.includes(category as DataCategory))
+        .map(([category, categoryInfo]) => [category, categoryInfo.reserved ?? 0])
+    );
 
     return (
       <Fragment>
-        {!isNewBillingUI && (
-          <Header closeButton>
-            <h4>
-              {tct('[action] [budgetType]', {
-                action: onDemandBudgets.enabled ? t('Edit') : t('Set Up'),
-                budgetType: displayBudgetName(subscription.planDetails, {
-                  title: true,
-                  withBudget: true,
-                  pluralOndemand: true,
-                }),
-              })}
-            </h4>
-          </Header>
-        )}
         <OffsetBody>
           {this.renderError(this.state.updateError)}
-          <OnDemandBudgetEdit
-            onDemandEnabled={onDemandBudgets.enabled}
-            onDemandSupported
-            currentBudgetMode={onDemandBudgets.budgetMode}
-            onDemandBudget={this.state.onDemandBudget}
-            setBudgetMode={this.setBudgetMode}
-            setOnDemandBudget={onDemandBudget => {
-              this.setState({
-                onDemandBudget,
-              });
-            }}
-            activePlan={subscription.planDetails}
-            organization={organization}
-            subscription={subscription}
-          />
+          <Container padding="2xl">
+            <EmbeddedSpendLimitSettings
+              organization={organization}
+              subscription={subscription}
+              header={
+                <Heading as="h2" size="xl">
+                  {tct('Set your [budgetTerm] limit', {
+                    budgetTerm: displayBudgetName(subscription.planDetails),
+                  })}
+                </Heading>
+              }
+              activePlan={subscription.planDetails}
+              initialOnDemandBudgets={parseOnDemandBudgetsFromSubscription(subscription)}
+              currentReserved={currentReserved}
+              addOns={subscription.addOns ?? {}}
+              onUpdate={({onDemandBudgets}) => {
+                this.setState({
+                  onDemandBudget: onDemandBudgets,
+                });
+              }}
+            />
+          </Container>
         </OffsetBody>
         <Footer>
           <ButtonBar>
@@ -251,4 +255,4 @@ const OffsetBody = styled('div')`
   }
 `;
 
-export default withApi(OnDemandBudgetEditModal);
+export default withApi(SpendLimitsEditModal);

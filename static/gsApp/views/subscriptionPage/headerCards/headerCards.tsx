@@ -6,7 +6,6 @@ import {useNavContext} from 'sentry/views/nav/context';
 import type {Subscription} from 'getsentry/types';
 import {
   hasBillingAccess,
-  hasNewBillingUI,
   isDeveloperPlan,
   isTrialPlan,
   supportsPayg,
@@ -16,9 +15,6 @@ import LinksCard from 'getsentry/views/subscriptionPage/headerCards/linksCard';
 import NextBillCard from 'getsentry/views/subscriptionPage/headerCards/nextBillCard';
 import PaygCard from 'getsentry/views/subscriptionPage/headerCards/paygCard';
 import SeerAutomationAlert from 'getsentry/views/subscriptionPage/seerAutomationAlert';
-
-import {SubscriptionCard} from './subscriptionCard';
-import {UsageCard} from './usageCard';
 
 interface HeaderCardsProps {
   organization: Organization;
@@ -76,38 +72,24 @@ function getCards(organization: Organization, subscription: Subscription) {
 }
 
 function HeaderCards({organization, subscription}: HeaderCardsProps) {
-  const isNewBillingUI = hasNewBillingUI(organization);
   const cards = getCards(organization, subscription);
   const {isCollapsed: navIsCollapsed} = useNavContext();
 
   return (
     <ErrorBoundary mini>
       <SeerAutomationAlert organization={organization} />
-      {isNewBillingUI ? (
-        <Grid
-          columns={{
-            xs: '1fr',
-            sm: `repeat(min(${cards.length}, 2), minmax(0, 1fr))`,
-            md: navIsCollapsed ? `repeat(${cards.length}, minmax(0, 1fr))` : undefined,
-            lg: `repeat(${cards.length}, minmax(0, 1fr))`,
-          }}
-          gap="xl"
-          data-test-id="subscription-header-cards"
-        >
-          {cards}
-        </Grid>
-      ) : (
-        <Grid
-          background="primary"
-          border="primary"
-          radius="md"
-          columns={{lg: 'auto minmax(0, 600px)'}}
-          gap={{lg: 'xl'}}
-        >
-          <SubscriptionCard organization={organization} subscription={subscription} />
-          <UsageCard organization={organization} subscription={subscription} />
-        </Grid>
-      )}
+      <Grid
+        columns={{
+          xs: '1fr',
+          sm: `repeat(min(${cards.length}, 2), minmax(0, 1fr))`,
+          md: navIsCollapsed ? `repeat(${cards.length}, minmax(0, 1fr))` : undefined,
+          lg: `repeat(${cards.length}, minmax(0, 1fr))`,
+        }}
+        gap="xl"
+        data-test-id="subscription-header-cards"
+      >
+        {cards}
+      </Grid>
     </ErrorBoundary>
   );
 }

@@ -26,7 +26,7 @@ describe('UsageCharts', () => {
   const stats = [BillingStatFixture()];
 
   beforeEach(() => {
-    organization.features.push('subscriptions-v3');
+    organization.features = [];
   });
 
   function renderComponent(props: Omit<BreakdownPanelProps, 'organization'>) {

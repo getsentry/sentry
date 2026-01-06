@@ -15,7 +15,7 @@ import {
   getTotalBudget,
   parseOnDemandBudgetsFromSubscription,
   trackOnDemandBudgetAnalytics,
-} from 'getsentry/views/onDemandBudgets/utils';
+} from 'getsentry/views/spendLimits/utils';
 
 describe('parseOnDemandBudgetsFromSubscription', () => {
   it('returns per-category budget for non-AM plans - with on-demand budget', () => {

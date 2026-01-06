@@ -23,7 +23,7 @@ describe('UsageOverview', () => {
 
   beforeEach(() => {
     jest.restoreAllMocks();
-    organization.features = ['subscriptions-v3', 'seer-billing'];
+    organization.features = ['seer-billing'];
     organization.access = ['org:billing'];
     SubscriptionStore.set(organization.slug, subscription);
     MockApiClient.addMockResponse({

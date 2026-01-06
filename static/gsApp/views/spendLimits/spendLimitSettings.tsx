@@ -43,7 +43,7 @@ import {
   displayPriceWithCents,
   getBucket,
 } from 'getsentry/views/amCheckout/utils';
-import {convertOnDemandBudget} from 'getsentry/views/onDemandBudgets/utils';
+import {convertOnDemandBudget} from 'getsentry/views/spendLimits/utils';
 
 const LARGE_INPUT_WIDTH = '300px';
 
@@ -185,13 +185,7 @@ export function SharedSpendLimitPriceTable({
 
   return (
     <Stack borderTop="primary">
-      <Flex
-        borderBottom="primary"
-        padding="md xl"
-        background="secondary"
-        justify="between"
-        align="center"
-      >
+      <Flex padding="md xl" background="secondary" justify="between" align="center">
         <Text bold>{t('Product')}</Text>
         <Text bold>{t('Price')}</Text>
       </Flex>
