@@ -20,6 +20,7 @@ import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
 import {
   makeSeerExplorerQueryKey,
   RUN_ID_QUERY_PARAM,
+  usePageReferrer,
 } from 'sentry/views/seerExplorer/utils';
 
 export type PendingUserInput = {
@@ -118,7 +119,8 @@ export const useSeerExplorer = () => {
   );
 
   // Support deep links that carry a run id; set it once and clean the URL.
-  const {openExplorerPanel, referrerRef} = useExplorerPanel();
+  const {openExplorerPanel} = useExplorerPanel();
+  const {getPageReferrer} = usePageReferrer();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -179,14 +181,14 @@ export const useSeerExplorer = () => {
       setWaitingForResponse(true);
 
       trackAnalytics('seer.explorer.message_sent', {
-        referrer: referrerRef.current,
+        referrer: getPageReferrer(),
         surface: 'global_panel',
         organization,
       });
 
       if (effectiveRunId === null) {
         trackAnalytics('seer.explorer.session_created', {
-          referrer: referrerRef.current,
+          referrer: getPageReferrer(),
           surface: 'global_panel',
           organization,
         });
@@ -274,7 +276,7 @@ export const useSeerExplorer = () => {
       deletedFromIndex,
       captureAsciiSnapshot,
       setRunId,
-      referrerRef,
+      getPageReferrer,
       organization,
     ]
   );

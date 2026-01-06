@@ -1,11 +1,13 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import type {LocationDescriptor} from 'history';
 import queryString from 'query-string';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import {
   LOGS_GROUP_BY_KEY,
   LOGS_QUERY_KEY,
@@ -749,6 +751,26 @@ export function getValidToolLinks(
     sortedToolLinks: mappedLinks.map(item => item.link),
     toolCallToLinkIndexMap: toolCallToLinkMap,
   };
+}
+
+/**
+ * Returns a callback to get the route string (normalized path) of the current page for analytics, e.g. /issues/:groupId/.
+ * This callback is stable to avoid triggering analytics and re-renders when the location changes.
+ */
+export function usePageReferrer(): {getPageReferrer: () => string} {
+  // Track the normalized path of the current page (e.g. /issues/:groupId/) for analytics.
+  const routes = useRoutes();
+  const routeString = getRouteStringFromRoutes(routes);
+  const routeStringRef = useRef(routeString);
+
+  useEffect(() => {
+    routeStringRef.current = routeString;
+  }, [routeString]);
+
+  // Must remain stable.
+  const getPageReferrer = useCallback(() => routeStringRef.current, []);
+
+  return {getPageReferrer};
 }
 
 export function useCopySessionDataToClipboard({

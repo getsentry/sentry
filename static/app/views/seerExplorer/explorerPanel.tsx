@@ -27,10 +27,12 @@ import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
 import {
   RUN_ID_QUERY_PARAM,
   useCopySessionDataToClipboard,
+  usePageReferrer,
 } from 'sentry/views/seerExplorer/utils';
 
 function ExplorerPanel() {
-  const {isOpen: isVisible, referrerRef} = useExplorerPanel();
+  const {isOpen: isVisible} = useExplorerPanel();
+  const {getPageReferrer} = usePageReferrer();
   const organization = useOrganization({allowNull: true});
   const {projects} = useProjects();
 
@@ -56,11 +58,11 @@ function ExplorerPanel() {
   useEffect(() => {
     if (isVisible && !isMinimized) {
       trackAnalytics('seer.explorer.global_panel.opened', {
-        referrer: referrerRef.current,
+        referrer: getPageReferrer(),
         organization,
       });
     }
-  }, [isVisible, isMinimized, organization, referrerRef]);
+  }, [isVisible, isMinimized, organization, getPageReferrer]);
 
   // Session data and management
   const {

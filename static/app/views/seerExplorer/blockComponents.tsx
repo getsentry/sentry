@@ -16,7 +16,6 @@ import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
 
 import type {Block, TodoItem} from './types';
 import {
@@ -24,6 +23,7 @@ import {
   getToolsStringFromBlock,
   getValidToolLinks,
   postProcessLLMMarkdown,
+  usePageReferrer,
 } from './utils';
 
 interface BlockProps {
@@ -197,19 +197,19 @@ function BlockComponent({
     }
   }, [hasValidLinks, selectedLinkIndex, sortedToolLinks.length]);
 
-  const {referrerRef} = useExplorerPanel();
+  const {getPageReferrer} = usePageReferrer();
   // Tool link navigation, with analytics and onNavigate hook.
   const navigateToToolLink = useCallback(
     (url: LocationDescriptor, toolKind: string) => {
       trackAnalytics('seer.explorer.global_panel.tool_link_navigation', {
-        referrer: referrerRef.current,
+        referrer: getPageReferrer(),
         organization,
         tool_kind: toolKind,
       });
       navigate(url);
       onNavigate?.();
     },
-    [organization, navigate, onNavigate, referrerRef]
+    [organization, navigate, onNavigate, getPageReferrer]
   );
 
   // Register the key handler with the parent
