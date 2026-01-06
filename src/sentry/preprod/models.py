@@ -130,6 +130,10 @@ class PreprodArtifact(DefaultFieldsModel):
         default=ArtifactState.UPLOADING, choices=ArtifactState.as_choices()
     )
 
+    mobile_app_info = FlexibleForeignKey(
+        "preprod.PreprodArtifactMobileAppInfo", null=True, on_delete=models.SET_NULL
+    )
+
     # Nullable because we only know the type after the artifact has been processed
     artifact_type = BoundedPositiveIntegerField(choices=ArtifactType.as_choices(), null=True)
 
@@ -137,8 +141,10 @@ class PreprodArtifact(DefaultFieldsModel):
     error_message = models.TextField(null=True)
 
     # E.g. 1.2.300
+    # DEPRECATED, use PreprodArtifactMobileAppInfo instead
     build_version = models.CharField(max_length=255, null=True)
     # E.g. 9999
+    # DEPRECATED, use PreprodArtifactMobileAppInfo instead
     build_number = BoundedBigIntegerField(null=True)
 
     # Version of tooling used to upload/build the artifact, extracted from metadata files
@@ -162,15 +168,18 @@ class PreprodArtifact(DefaultFieldsModel):
     installable_app_file_id = BoundedBigIntegerField(db_index=True, null=True)
 
     # The name of the app, e.g. "My App"
+    # DEPRECATED, use PreprodArtifactMobileAppInfo instead
     app_name = models.CharField(max_length=255, null=True)
 
     # The identifier of the app, e.g. "com.myapp.MyApp"
+    # DEPRECATED, use PreprodArtifactMobileAppInfo instead
     app_id = models.CharField(max_length=255, null=True)
 
     # An identifier for the main binary
     main_binary_identifier = models.CharField(max_length=255, db_index=True, null=True)
 
     # The objectstore id of the app icon
+    # DEPRECATED, use PreprodArtifactMobileAppInfo instead
     app_icon_id = models.CharField(max_length=255, null=True)
 
     def get_sibling_artifacts_for_commit(self) -> list[PreprodArtifact]:
@@ -584,3 +593,29 @@ class PreprodArtifactSizeComparison(DefaultFieldsModel):
         app_label = "preprod"
         db_table = "sentry_preprodartifactsizecomparison"
         unique_together = ("organization_id", "head_size_analysis", "base_size_analysis")
+
+
+@region_silo_model
+class PreprodArtifactMobileAppInfo(DefaultFieldsModel):
+    """
+    Information about a mobile app, e.g. iOS or Android.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    preprod_artifact = FlexibleForeignKey("preprod.PreprodArtifact")
+
+    # E.g. 1.2.300
+    build_version = models.CharField(max_length=255, null=True)
+    # E.g. 9999
+    build_number = BoundedBigIntegerField(null=True)
+    # The objectstore id of the app icon
+    app_icon_id = models.CharField(max_length=255, null=True)
+    # The name of the app, e.g. "My App"
+    app_name = models.CharField(max_length=255, null=True)
+    # The identifier of the app, e.g. "com.myapp.MyApp"
+    app_id = models.CharField(max_length=255, null=True)
+
+    class Meta:
+        app_label = "preprod"
+        db_table = "sentry_preprodartifactmobileappinfo"
