@@ -82,10 +82,6 @@ describe('GroupSidebar', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
-      method: 'GET',
-    });
-    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
       body: AutofixSetupFixture({
         setupAcknowledgement: {

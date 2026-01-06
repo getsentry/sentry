@@ -37,7 +37,6 @@ describe('StreamlinedSidebar', () => {
   });
   const event = EventFixture({group});
 
-  let mockFirstLastRelease: jest.Mock;
   let mockExternalIssues: jest.Mock;
 
   beforeEach(() => {
@@ -67,10 +66,6 @@ describe('StreamlinedSidebar', () => {
       body: {steps: []},
     });
 
-    mockFirstLastRelease = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
-      method: 'GET',
-    });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/1/external-issues/`,
       body: [],
@@ -110,7 +105,6 @@ describe('StreamlinedSidebar', () => {
 
     expect(await screen.findByText('First seen')).toBeInTheDocument();
     expect(screen.getByText('Last seen')).toBeInTheDocument();
-    expect(mockFirstLastRelease).toHaveBeenCalled();
 
     expect(await screen.findByText('Issue Tracking')).toBeInTheDocument();
     expect(

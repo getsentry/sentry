@@ -9,16 +9,10 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {useFetchAllEnvsGroupData} from 'sentry/views/issueDetails/groupSidebar';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
-
-interface GroupRelease {
-  firstRelease: Release;
-  lastRelease: Release;
-}
 
 export default function FirstLastSeenSection({group}: {group: Group}) {
   const organization = useOrganization();
@@ -28,20 +22,6 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
   const environments = useEnvironmentsFromUrl();
 
   const {data: allEnvsGroupData} = useFetchAllEnvsGroupData(organization, group);
-  const {data: groupReleaseData} = useApiQuery<GroupRelease>(
-    [
-      `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
-      {
-        query: {
-          ...(environments.length > 0 ? {environment: environments} : {}),
-        },
-      },
-    ],
-    {
-      staleTime: 30000,
-      gcTime: 30000,
-    }
-  );
   const {data: openPeriods} = useOpenPeriods(
     {groupId: group.id},
     {enabled: issueTypeConfig.useOpenPeriodChecks}
@@ -77,7 +57,7 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
           />
         </Flex>
         {lastSeen && (
-          <ReleaseText project={group.project} release={groupReleaseData?.lastRelease} />
+          <ReleaseText project={group.project} release={group.lastRelease ?? undefined} />
         )}
       </div>
       <div>
@@ -93,7 +73,10 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
           />
         </Flex>
         {group.firstSeen && (
-          <ReleaseText project={group.project} release={groupReleaseData?.firstRelease} />
+          <ReleaseText
+            project={group.project}
+            release={group.firstRelease ?? undefined}
+          />
         )}
       </div>
     </Flex>

@@ -120,10 +120,6 @@ describe('groupDetails', () => {
       body: [project],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/first-last-release/`,
-      method: 'GET',
-    });
-    MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/events/`,
       statusCode: 200,
       body: {

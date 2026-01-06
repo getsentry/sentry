@@ -57,9 +57,6 @@ describe('GroupDetailsLayout', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
-    });
-    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/external-issues/`,
       body: [],
     });

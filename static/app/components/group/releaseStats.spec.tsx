@@ -12,13 +12,6 @@ describe('GroupReleaseStats', () => {
   const project = ProjectFixture();
   const group = GroupFixture();
 
-  beforeEach(() => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
-      body: {id: group.id, firstRelease: undefined, lastRelease: undefined},
-    });
-  });
-
   const createWrapper = (
     props: Partial<React.ComponentProps<typeof GroupReleaseStats>>
   ) =>
