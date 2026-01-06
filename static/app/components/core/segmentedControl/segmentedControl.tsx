@@ -11,7 +11,7 @@ import type {Node} from '@react-types/shared';
 import type {CollectionChildren} from '@react-types/shared/src/collections';
 import {LayoutGroup} from 'framer-motion';
 
-import {DO_NOT_USE_getChonkButtonStyles} from 'sentry/components/core/button/styles';
+import {DO_NOT_USE_getButtonStyles} from 'sentry/components/core/button/styles';
 import type {TooltipProps} from 'sentry/components/core/tooltip';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {space} from 'sentry/styles/space';
@@ -269,7 +269,7 @@ const SegmentWrap = styled('label')<{
   font-weight: ${p => p.theme.font.weight.sans.regular};
 
   ${p => ({
-    ...DO_NOT_USE_getChonkButtonStyles({
+    ...DO_NOT_USE_getButtonStyles({
       ...p,
       disabled: p.isDisabled,
       priority: p.isSelected && p.priority === 'primary' ? 'primary' : 'default',
