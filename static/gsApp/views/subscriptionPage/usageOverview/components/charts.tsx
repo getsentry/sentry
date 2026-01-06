@@ -21,8 +21,17 @@ import {
   selectedTransform,
 } from 'getsentry/views/subscriptionPage/reservedUsageChart';
 import type {BreakdownPanelProps} from 'getsentry/views/subscriptionPage/usageOverview/types';
-import {EMPTY_STAT_TOTAL} from 'getsentry/views/subscriptionPage/usageTotals';
 import UsageTotalsTable from 'getsentry/views/subscriptionPage/usageTotalsTable';
+
+const EMPTY_STAT_TOTAL = {
+  accepted: 0,
+  dropped: 0,
+  droppedOther: 0,
+  droppedOverQuota: 0,
+  droppedSpikeProtection: 0,
+  filtered: 0,
+  projected: 0,
+};
 
 function UsageCharts({
   selectedProduct,

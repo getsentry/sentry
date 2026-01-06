@@ -47,36 +47,15 @@ describe('Subscription > PaymentHistory', () => {
     SubscriptionStore.set(organization.slug, subscription);
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/members/`,
-      method: 'GET',
-      body: [],
-    });
-    const basicInvoice = InvoiceFixture(
-      {
-        dateCreated: '2021-09-20T22:33:38.042Z',
-        items: [
-          {
-            type: 'subscription',
-            description: 'Subscription to Business',
-            amount: 8900,
-            periodEnd: '2021-10-21',
-            periodStart: '2021-09-21',
-            data: {},
-          },
-        ],
-      },
-      organization
-    );
-    MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/invoices/`,
       method: 'GET',
-      body: [basicInvoice],
+      body: [InvoiceFixture({isClosed: true, isPaid: true})],
     });
 
     render(<PaymentHistory />, {organization});
 
-    expect(await screen.findByTestId('payment-list')).toBeInTheDocument();
-    expect(screen.getByText('Sep 20, 2021')).toBeInTheDocument();
+    await screen.findByText('Receipts');
+    expect(screen.getByTestId('payment-list')).toBeInTheDocument();
   });
 
   it('renders no receipts found', async () => {
@@ -181,25 +160,5 @@ describe('Subscription > PaymentHistory', () => {
 
     expect(await screen.findByTestId('payment-list')).toBeInTheDocument();
     expect(screen.getByText('Paid')).toBeInTheDocument();
-  });
-
-  it('renders for new billing UI', async () => {
-    const organization = OrganizationFixture({
-      slug: 'dogz-rule',
-      access: ['org:billing'],
-      features: ['subscriptions-v3'],
-    });
-    const subscription = SubscriptionFixture({organization});
-    SubscriptionStore.set(organization.slug, subscription);
-
-    MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/invoices/`,
-      method: 'GET',
-      body: [InvoiceFixture({isClosed: true, isPaid: true})],
-    });
-    render(<PaymentHistory />, {organization});
-
-    await screen.findByText('Receipts');
-    expect(screen.getByTestId('payment-list')).toBeInTheDocument();
   });
 });

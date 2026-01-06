@@ -48,7 +48,7 @@ function InvoiceDetails({params}: Props) {
 
   if (isBillingDetailsError || isInvoiceError) {
     return (
-      <SubscriptionPageContainer background="secondary" organization={organization}>
+      <SubscriptionPageContainer background="secondary">
         <LoadingError
           onRetry={() => {
             billingDetailsRefetch();
@@ -60,7 +60,7 @@ function InvoiceDetails({params}: Props) {
   }
 
   return (
-    <SubscriptionPageContainer background="secondary" organization={organization}>
+    <SubscriptionPageContainer background="secondary">
       <SettingsPageHeader title={t('Receipt Details')}>
         {t('Receipt Details')}
       </SettingsPageHeader>

@@ -32,7 +32,7 @@ import {
   isOnDemandBudgetsEqual,
   parseOnDemandBudgets,
   parseOnDemandBudgetsFromSubscription,
-} from 'getsentry/views/onDemandBudgets/utils';
+} from 'getsentry/views/spendLimits/utils';
 
 type Props = {
   organization: Organization;
