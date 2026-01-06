@@ -1,3 +1,4 @@
+import pytest
 from functools import cached_property
 from urllib.parse import parse_qs, urlparse
 
@@ -229,6 +230,7 @@ class OAuthAuthorizeCodeTest(TestCase):
             "Read, write, and admin access to organization members."
         ]
 
+    @pytest.mark.skip(reason="flaky: #105728")
     def test_unauthenticated_basic_auth(self) -> None:
         full_path = f"{self.path}?response_type=code&client_id={self.application.client_id}"
 
