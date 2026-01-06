@@ -499,6 +499,15 @@ class OAuthTokenView(View):
                         reason="device code in invalid state",
                     )
 
+                # Re-check expiration inside lock (could have expired during lock wait)
+                if device_code.is_expired():
+                    device_code.delete()
+                    return self.error(
+                        request=request,
+                        name="expired_token",
+                        reason="device code expired",
+                    )
+
                 # User approved - issue tokens
                 if device_code.user is None:
                     # This shouldn't happen, but handle it gracefully
