@@ -299,9 +299,14 @@ function WidgetCardChart(props: WidgetCardChartProps) {
       : seriesName;
     const aggregateName = decodedSeriesName?.split(':').pop()?.trim();
     if (aggregateName) {
+      const unit = series.find(
+        s =>
+          WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(s.seriesName) ===
+          aggregateName
+      )?.meta?.valueUnit;
       return timeseriesResultsTypes
-        ? tooltipFormatter(value, timeseriesResultsTypes[aggregateName])
-        : tooltipFormatter(value, aggregateOutputType(aggregateName));
+        ? tooltipFormatter(value, timeseriesResultsTypes[aggregateName], unit)
+        : tooltipFormatter(value, aggregateOutputType(aggregateName), unit);
     }
     return tooltipFormatter(value, 'number');
   };

@@ -8,6 +8,7 @@ import type {
 import type EChartsReact from 'echarts-for-react';
 
 import type {Confidence} from 'sentry/types/organization';
+import type {TimeSeriesMeta} from 'sentry/views/dashboards/widgets/common/types';
 
 export type SeriesDataUnit = {
   // number because we sometimes use timestamps
@@ -32,6 +33,7 @@ export type Series = {
   lineStyle?: AxisPointerComponentOption['lineStyle'];
   // https://echarts.apache.org/en/option.html#series-line.z
   markLine?: LineSeriesOption['markLine'];
+  meta?: TimeSeriesMeta;
   stack?: string;
   // https://echarts.apache.org/en/option.html#series-line.stack
   symbol?: LineSeriesOption['symbol'];

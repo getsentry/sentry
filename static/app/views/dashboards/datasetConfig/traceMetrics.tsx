@@ -10,7 +10,12 @@ import toArray from 'sentry/utils/array/toArray';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {parseFunction, type QueryFieldValue} from 'sentry/utils/discover/fields';
+import {
+  parseFunction,
+  RateUnit,
+  type AggregationOutputType,
+  type QueryFieldValue,
+} from 'sentry/utils/discover/fields';
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -238,12 +243,19 @@ export const TraceMetricsConfig: DatasetConfig<
       const func = parseFunction(timeSeries.yAxis);
       if (func) {
         timeSeries.yAxis = `${func.name}(${func.arguments[1] ?? '…'})`;
+        if (func.name === 'per_second') {
+          timeSeries.meta.valueUnit = RateUnit.PER_SECOND;
+        } else if (func.name === 'per_minute') {
+          timeSeries.meta.valueUnit = RateUnit.PER_MINUTE;
+        }
       }
       return {
         data: timeSeries.values.map(value => ({
           name: value.timestamp,
           value: value.value ?? 0,
         })),
+
+        meta: timeSeries.meta,
 
         // The series name needs to distinctively refer to the yAxis it belongs to
         // when multiple yAxes and groupings are present, otherwise the response
@@ -258,6 +270,16 @@ export const TraceMetricsConfig: DatasetConfig<
   },
   getCustomFieldRenderer: (field, meta, _organization) => {
     return getFieldRenderer(field, meta, false);
+  },
+  getSeriesResultType(data, _widgetQuery) {
+    return data.timeSeries.reduce(
+      (acc, timeSeries) => {
+        const label = formatTimeSeriesLabel(timeSeries);
+        acc[label] = timeSeries.meta.valueType as AggregationOutputType;
+        return acc;
+      },
+      {} as Record<string, AggregationOutputType>
+    );
   },
 };
 
