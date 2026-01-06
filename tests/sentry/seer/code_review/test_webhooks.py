@@ -8,8 +8,6 @@ from urllib3.exceptions import HTTPError
 
 from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.webhook_types import GithubWebhookType
-from sentry.integrations.models.integration import Integration
-from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.seer.code_review.utils import ClientError
 from sentry.seer.code_review.webhooks.issue_comment import (
     _add_eyes_reaction_to_comment,
