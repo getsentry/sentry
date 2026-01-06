@@ -1,6 +1,6 @@
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {
   DEFAULT_CODE_REVIEW_TRIGGERS,
   type RepositoryWithSettings,
@@ -18,6 +18,14 @@ interface Props {
 export default function RepoDetailsForm({organization, repoWithSettings}: Props) {
   const canWrite = useCanWriteSettings();
 
+  const initialTriggers =
+    repoWithSettings?.settings?.codeReviewTriggers ??
+    organization.defaultCodeReviewTriggers ??
+    DEFAULT_CODE_REVIEW_TRIGGERS;
+  const modifiableTriggers = initialTriggers.filter(
+    trigger => trigger !== 'on_command_phrase'
+  );
+
   return (
     <Form
       allowUndo
@@ -30,10 +38,7 @@ export default function RepoDetailsForm({organization, repoWithSettings}: Props)
             repoWithSettings?.settings?.enabledCodeReview ??
             organization.autoEnableCodeReview ??
             true,
-          codeReviewTriggers:
-            repoWithSettings?.settings?.codeReviewTriggers ??
-            organization.defaultCodeReviewTriggers ??
-            DEFAULT_CODE_REVIEW_TRIGGERS,
+          codeReviewTriggers: modifiableTriggers,
           repositoryIds: [repoWithSettings.id],
         } satisfies RepositorySettings
       }
@@ -57,13 +62,13 @@ export default function RepoDetailsForm({organization, repoWithSettings}: Props)
               {
                 name: 'codeReviewTriggers',
                 label: t('Code Review Triggers'),
-                help: t(
-                  'Reviews can run on demand, whenever a PR is opened, or after each commit is pushed to a PR.'
+                help: tct(
+                  'Reviews can always run on demand by calling [code:@sentry review], whenever a PR is opened, or after each commit is pushed to a PR.',
+                  {code: <code />}
                 ),
                 type: 'choice',
                 multiple: true,
                 choices: [
-                  ['on_command_phrase', t('On Command Phrase')],
                   ['on_ready_for_review', t('On Ready for Review')],
                   ['on_new_commit', t('On New Commit')],
                 ],
