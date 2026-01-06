@@ -150,7 +150,7 @@ export function ConfigureCodeReviewStep() {
                 <Text>{t(`You've successfully connected to GitHub!`)}</Text>
                 <Separator orientation="horizontal" border="muted" />
 
-                <Flex direction="column" gap="md">
+                <Flex direction="column" gap="sm">
                   <Text bold>{t('AI Code Review')}</Text>
                   <Text variant="muted">
                     {t(
