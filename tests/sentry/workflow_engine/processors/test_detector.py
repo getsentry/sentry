@@ -30,8 +30,8 @@ from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.processors.detector import (
     associate_new_group_with_detector,
     ensure_association_with_detector,
-    get_detector_by_event,
-    get_detectors_for_event,
+    get_detectors_for_event_data,
+    get_specific_detector,
     process_detectors,
 )
 from sentry.workflow_engine.types import (
@@ -871,7 +871,7 @@ class TestGetDetectorsForEvent(TestCase):
             user_id=self.user.id,
         )
         event_data = WorkflowEventData(event=activity, group=self.group)
-        result = get_detectors_for_event(event_data, detector=self.detector)
+        result = get_detectors_for_event_data(event_data, detector=self.detector)
         assert result is not None
         assert result.preferred_detector == self.detector
         assert result.detectors == {self.issue_stream_detector, self.detector}
@@ -879,7 +879,7 @@ class TestGetDetectorsForEvent(TestCase):
     @override_options({"workflow_engine.exclude_issue_stream_detector": False})
     def test_error_event(self) -> None:
         event_data = WorkflowEventData(event=self.group_event, group=self.group)
-        result = get_detectors_for_event(event_data)
+        result = get_detectors_for_event_data(event_data)
         assert result is not None
         assert result.preferred_detector == self.error_detector
         assert result.detectors == {self.issue_stream_detector, self.error_detector}
@@ -889,7 +889,7 @@ class TestGetDetectorsForEvent(TestCase):
         self.group_event.occurrence = self.occurrence
 
         event_data = WorkflowEventData(event=self.group_event, group=self.group)
-        result = get_detectors_for_event(event_data)
+        result = get_detectors_for_event_data(event_data)
         assert result is not None
         assert result.preferred_detector == self.detector
         assert result.detectors == {self.issue_stream_detector, self.detector}
@@ -914,7 +914,7 @@ class TestGetDetectorsForEvent(TestCase):
         self.group_event.occurrence = occurrence
 
         event_data = WorkflowEventData(event=self.group_event, group=self.group)
-        result = get_detectors_for_event(event_data)
+        result = get_detectors_for_event_data(event_data)
         assert result is not None
         assert result.preferred_detector == self.issue_stream_detector
         assert result.detectors == {self.issue_stream_detector}
@@ -923,14 +923,14 @@ class TestGetDetectorsForEvent(TestCase):
         self.issue_stream_detector.delete()
         self.error_detector.delete()
         event_data = WorkflowEventData(event=self.group_event, group=self.group)
-        result = get_detectors_for_event(event_data)
+        result = get_detectors_for_event_data(event_data)
         assert result is None
 
     def test_exclude_issue_stream_detector(self) -> None:
         event_data = WorkflowEventData(event=self.group_event, group=self.group)
 
         # Default behavior: issue stream detector is included
-        result = get_detectors_for_event(event_data)
+        result = get_detectors_for_event_data(event_data)
 
         assert result is not None
         assert result.issue_stream_detector == self.issue_stream_detector
@@ -939,7 +939,7 @@ class TestGetDetectorsForEvent(TestCase):
 
         # With flag enabled: issue stream detector is excluded
         with override_options({"workflow_engine.exclude_issue_stream_detector": True}):
-            result_excluded = get_detectors_for_event(event_data)
+            result_excluded = get_detectors_for_event_data(event_data)
 
             assert result_excluded is not None
             assert result_excluded.issue_stream_detector is None
@@ -947,7 +947,7 @@ class TestGetDetectorsForEvent(TestCase):
             assert result_excluded.preferred_detector == self.error_detector
 
 
-class TestGetDetectorByEvent(TestCase):
+class TestGetSpecificDetector(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(project=self.project, type=MetricIssue.type_id)
@@ -976,7 +976,7 @@ class TestGetDetectorByEvent(TestCase):
 
         event_data = WorkflowEventData(event=group_event, group=self.group)
 
-        result = get_detector_by_event(event_data)
+        result = get_specific_detector(event_data)
 
         assert result == self.detector
 
@@ -987,22 +987,24 @@ class TestGetDetectorByEvent(TestCase):
 
         event_data = WorkflowEventData(event=group_event, group=self.group)
 
-        result = get_detector_by_event(event_data)
+        result = get_specific_detector(event_data)
 
         assert result == self.error_detector
 
-    def test_activity_not_supported(self) -> None:
+    def test_activity(self) -> None:
         activity = Activity.objects.create(
             project=self.project,
             group=self.group,
             type=ActivityType.SET_RESOLVED.value,
             user_id=self.user.id,
         )
+        DetectorGroup.objects.create(detector=self.detector, group=self.group)
 
         event_data = WorkflowEventData(event=activity, group=self.group)
 
-        with pytest.raises(TypeError):
-            get_detector_by_event(event_data)
+        result = get_specific_detector(event_data)
+
+        assert result == self.detector
 
     def test_no_detector_id(self) -> None:
         occurrence = IssueOccurrence(
@@ -1027,7 +1029,7 @@ class TestGetDetectorByEvent(TestCase):
         event_data = WorkflowEventData(event=group_event, group=self.group)
 
         with pytest.raises(Detector.DoesNotExist):
-            get_detector_by_event(event_data)
+            get_specific_detector(event_data)
 
     def test_errors_on_no_detector(self) -> None:
         occurrence = IssueOccurrence(
@@ -1053,7 +1055,7 @@ class TestGetDetectorByEvent(TestCase):
         event_data = WorkflowEventData(event=group_event, group=self.group)
 
         with pytest.raises(Detector.DoesNotExist):
-            get_detector_by_event(event_data)
+            get_specific_detector(event_data)
 
 
 class TestAssociateNewGroupWithDetector(TestCase):
