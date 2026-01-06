@@ -20,6 +20,7 @@ from sentry.issues.ownership.grammar import Rule as GrammarRule
 from sentry.issues.ownership.grammar import dump_schema
 from sentry.models.environment import Environment
 from sentry.models.projectownership import ProjectOwnership
+from sentry.models.rule import Rule
 from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
