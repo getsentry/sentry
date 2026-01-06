@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 
 import connectGithubImg from 'sentry-images/spot/seer-config-connect-1.svg';
 
+import {Text} from '@sentry/scraps/text';
+
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
@@ -20,11 +22,11 @@ export function ConnectGithubStep() {
       <StepContentWithBackground>
         <MaxWidthPanel>
           <PanelBody withPadding>
-            <p>
+            <Text density="comfortable">
               {t(
                 'In order to get the most out of Sentry and to use Seer, we will need to access your code repositories in GitHub. (We do not currently support Gitlab, Bitbucket, or others) '
               )}
-            </p>
+            </Text>
             <ActionSection>
               <GithubButton
                 onAddIntegration={handleAddIntegration}
