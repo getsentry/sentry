@@ -218,11 +218,13 @@ class OrganizationOnDemandRuleStatsEndpoint(OrganizationEndpoint):
         the maximum allowed limit of on-demand alert rules that can be created.
         """
         project_id = request.GET.get("project_id")
+        if project_id is None:
+            raise ParseError(detail="Invalid project_id")
         try:
             project_id_int = int(project_id)
             if project_id_int <= 0:
                 raise ValueError()
-        except (ValueError, TypeError):
+        except ValueError:
             raise ParseError(detail="Invalid project_id")
 
         projects = self.get_projects(request, organization, project_ids={project_id_int})
