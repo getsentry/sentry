@@ -136,6 +136,7 @@ export async function openOnDemandBudgetEditModal(
 
   if (hasBillingPerms && canUsePayg) {
     openModal(deps => <Modal {...deps} {...options} />, {
+      closeEvents: 'escape-key',
       modalCss: theme ? onDemandBudgetEditModalCss(theme) : undefined,
     });
   } else {
