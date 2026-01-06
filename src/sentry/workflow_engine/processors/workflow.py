@@ -547,7 +547,7 @@ def process_workflows(
         )
 
     should_trigger_actions = should_fire_workflow_actions(organization, event_data.group.type)
-    create_workflow_fire_histories(
+    fire_histories = create_workflow_fire_histories(
         actions,
         event_data,
         should_trigger_actions,
@@ -555,6 +555,13 @@ def process_workflows(
         start_timestamp=event_start_time,
     )
 
-    fire_actions(actions, event_data)
+    # Create mapping: workflow_id -> notification_uuid for propagation
+    workflow_uuid_map: dict[int, str] = {}
+    if fire_histories:
+        workflow_uuid_map = {
+            history.workflow_id: str(history.notification_uuid) for history in fire_histories
+        }
+
+    fire_actions(actions, event_data, workflow_uuid_map=workflow_uuid_map)
 
     return WorkflowEvaluation(tainted=False, data=workflow_evaluation_data)

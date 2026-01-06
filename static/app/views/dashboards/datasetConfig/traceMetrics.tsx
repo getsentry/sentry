@@ -10,7 +10,11 @@ import toArray from 'sentry/utils/array/toArray';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {parseFunction, type QueryFieldValue} from 'sentry/utils/discover/fields';
+import {
+  parseFunction,
+  RateUnit,
+  type QueryFieldValue,
+} from 'sentry/utils/discover/fields';
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -164,13 +168,13 @@ function useTraceMetricsSearchBarDataProvider(
 
 export function formatTraceMetricsFunction(
   valueToParse: string,
-  defaultValue: string | ReactNode = ''
+  defaultValue?: string | ReactNode
 ) {
   const parsedFunction = parseFunction(valueToParse);
   if (parsedFunction) {
     return `${parsedFunction.name}(${parsedFunction.arguments[1] ?? '…'})`;
   }
-  return defaultValue;
+  return defaultValue ?? valueToParse;
 }
 
 export const TraceMetricsConfig: DatasetConfig<
@@ -227,9 +231,30 @@ export const TraceMetricsConfig: DatasetConfig<
     );
   },
   getSeriesRequest,
-  transformTable: transformEventsResponseToTable,
-  transformSeries: (data, _widgetQuery) =>
-    data.timeSeries.map(timeSeries => {
+  transformTable: (data, widgetQuery) => {
+    const transformedData = transformEventsResponseToTable(data, widgetQuery);
+
+    // Inject the rate units for per_second and per_minute functions explicitly
+    // because the response does not include these units
+    if (transformedData.meta?.units) {
+      Object.keys(transformedData.meta.units).forEach(key => {
+        const parsedFunction = parseFunction(key);
+        if (parsedFunction?.name === 'per_second') {
+          transformedData.meta!.units![key] = RateUnit.PER_SECOND;
+        } else if (parsedFunction?.name === 'per_minute') {
+          transformedData.meta!.units![key] = RateUnit.PER_MINUTE;
+        }
+      });
+    }
+    return transformedData;
+  },
+  transformSeries: (data, widgetQuery) => {
+    const multiYAxis = new Set(widgetQuery.aggregates ?? []).size > 1;
+    const hasGroupings = new Set(widgetQuery.columns).size > 0;
+
+    return data.timeSeries.map(timeSeries => {
+      // The function should always be defined when dealing with a successful
+      // time series response
       const func = parseFunction(timeSeries.yAxis);
       if (func) {
         timeSeries.yAxis = `${func.name}(${func.arguments[1] ?? '…'})`;
@@ -239,11 +264,31 @@ export const TraceMetricsConfig: DatasetConfig<
           name: value.timestamp,
           value: value.value ?? 0,
         })),
-        seriesName: formatTimeSeriesLabel(timeSeries),
+
+        // The series name needs to distinctively refer to the yAxis it belongs to
+        // when multiple yAxes and groupings are present, otherwise the response
+        // returns each series with its grouping but they overlap each other in the
+        // legend
+        seriesName:
+          multiYAxis && hasGroupings && func
+            ? `${formatTimeSeriesLabel(timeSeries)} : ${func.name}(…)`
+            : formatTimeSeriesLabel(timeSeries),
       };
-    }),
+    });
+  },
   getCustomFieldRenderer: (field, meta, _organization) => {
     return getFieldRenderer(field, meta, false);
+  },
+  getFieldHeaderMap: widgetQuery => {
+    return (
+      widgetQuery?.aggregates.reduce(
+        (acc, aggregate) => {
+          acc[aggregate] = formatTraceMetricsFunction(aggregate) as string;
+          return acc;
+        },
+        {} as Record<string, string>
+      ) ?? {}
+    );
   },
 };
 

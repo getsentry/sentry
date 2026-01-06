@@ -47,14 +47,12 @@ function AddBillingInformation({
           <BillingDetailsPanel
             organization={organization}
             subscription={subscription}
-            isNewBillingUI
             analyticsEvent="checkout.updated_billing_details"
             shouldExpandInitially
           />
           <CreditCardPanel
             organization={organization}
             subscription={subscription}
-            isNewBillingUI
             location={location}
             ftcLocation={FTCConsentLocation.CHECKOUT}
             budgetTerm={activePlan.budgetTerm}

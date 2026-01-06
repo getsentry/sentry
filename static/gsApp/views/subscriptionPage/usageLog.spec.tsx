@@ -7,7 +7,7 @@ import {UsageLogFixture} from 'getsentry-test/fixtures/usageLog';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {PlanTier} from 'getsentry/types';
-import {UsageLog} from 'getsentry/views/subscriptionPage/usageLog';
+import UsageLog from 'getsentry/views/subscriptionPage/usageLog';
 
 describe('Subscription Usage Log', () => {
   const organization = OrganizationFixture({
@@ -78,29 +78,7 @@ describe('Subscription Usage Log', () => {
       body: {rows: [UsageLogFixture()], eventNames},
     });
 
-    render(<UsageLog location={mockLocation} subscription={sub} />, {organization});
-
-    await screen.findByText(/Select Action/i);
-    expect(
-      screen.queryByRole('heading', {name: /Activity Logs/i})
-    ).not.toBeInTheDocument();
-    expect(screen.getByText(/cancelled plan/i)).toBeInTheDocument();
-    expect(screen.getByText(/Sentry Staff/i)).toBeInTheDocument();
-    expect(screen.getByText(/Jun/i)).toBeInTheDocument();
-    await userEvent.click(screen.getByText(/Select Action/i));
-    expect(screen.getByText(/Trial Extended/i)).toBeInTheDocument();
-  });
-
-  it('renders usage log in new billing UI', async () => {
-    organization.features = ['subscriptions-v3'];
-
-    MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/subscription/usage-logs/`,
-      method: 'GET',
-      body: {rows: [UsageLogFixture()], eventNames},
-    });
-
-    render(<UsageLog location={mockLocation} subscription={sub} />, {organization});
+    render(<UsageLog location={mockLocation} />, {organization});
 
     await screen.findByText(/Select Action/i);
     expect(screen.getByRole('heading', {name: /Activity Logs/i})).toBeInTheDocument();
@@ -118,13 +96,13 @@ describe('Subscription Usage Log', () => {
       body: {rows: [], eventNames},
     });
 
-    render(<UsageLog location={mockLocation} subscription={sub} />, {organization});
+    render(<UsageLog location={mockLocation} />, {organization});
 
     await screen.findByText(/Select Action/i);
     expect(screen.getByText(/No entries available/i)).toBeInTheDocument();
   });
 
-  it('keeps hypens in on-demand and PAYG', async () => {
+  it('keeps hyphens in on-demand and PAYG', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/usage-logs/`,
       method: 'GET',
@@ -137,7 +115,7 @@ describe('Subscription Usage Log', () => {
       },
     });
 
-    render(<UsageLog location={mockLocation} subscription={sub} />, {organization});
+    render(<UsageLog location={mockLocation} />, {organization});
 
     await screen.findByText(/Select Action/i);
     expect(screen.getByText('On-demand Edit')).toBeInTheDocument();
