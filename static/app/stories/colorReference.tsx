@@ -111,7 +111,7 @@ function ColorToken({
       }
     >
       <Button onClick={handleCopy} style={fill ? {width: '100%'} : undefined}>
-        <Flex direction={list ? 'row' : 'column'} gap="sm" align="start">
+        <Flex direction={list ? 'row' : 'column'} gap="sm" align="center">
           <Flex
             minWidth={fill ? undefined : '48px'}
             width={fill ? '100%' : undefined}
