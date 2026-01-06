@@ -83,8 +83,11 @@ class TestErrorDetectorValidator(TestCase):
         ]
 
     def test_update_existing_with_valid_data(self) -> None:
+        user = self.create_user()
+        self.create_member(organization=self.project.organization, user=user)
+        data = {**self.valid_data, "owner": user.id, "enabled": False}
         validator = ErrorDetectorValidator(
-            data=self.valid_data, context=self.context, instance=self.existing_error_detector
+            data=data, context=self.context, instance=self.existing_error_detector
         )
         assert validator.is_valid()
         with self.tasks():
@@ -93,6 +96,8 @@ class TestErrorDetectorValidator(TestCase):
         assert detector.type == "error"
         assert detector.project_id == self.project.id
         assert detector.workflow_condition_group is None
+        assert detector.owner.identifier == f"user:{user.id}"
+        assert detector.enabled is False
 
     def test_update_with_name_change(self) -> None:
         data = {**self.valid_data, "name": "Updated Detector"}

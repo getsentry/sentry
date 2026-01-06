@@ -2,11 +2,9 @@ from django.db import router, transaction
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 
-from sentry import audit_log
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.grouping.fingerprinting import FingerprintingConfig
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
-from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.models.detector import Detector
 
@@ -63,6 +61,8 @@ class ErrorDetectorValidator(BaseDetectorTypeValidator):
         with transaction.atomic(router.db_for_write(Detector)):
             # ignores name update
 
+            super().update(instance, validated_data)
+
             project = instance.project
             # update configs, which are project options. continue using them
             for config in validated_data:
@@ -71,11 +71,4 @@ class ErrorDetectorValidator(BaseDetectorTypeValidator):
                         Detector.error_detector_project_options[config], validated_data[config]
                     )
 
-            create_audit_entry(
-                request=self.context["request"],
-                organization=self.context["organization"],
-                target_object=instance.id,
-                event=audit_log.get_event_id("DETECTOR_EDIT"),
-                data=instance.get_audit_log_data(),
-            )
         return instance
