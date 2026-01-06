@@ -248,8 +248,15 @@ function CopyRootCauseButton({
   );
 }
 
+function getPluginIdForProvider(provider: string): string {
+  if (provider === 'github_copilot') {
+    return 'github';
+  }
+  return provider;
+}
+
 function SolutionActionButton({
-  cursorIntegrations,
+  codingAgentIntegrations,
   preferredAction,
   primaryButtonPriority,
   isSelectingRootCause,
@@ -259,7 +266,7 @@ function SolutionActionButton({
   handleLaunchCodingAgent,
   findSolutionTitle,
 }: {
-  cursorIntegrations: CodingAgentIntegration[];
+  codingAgentIntegrations: CodingAgentIntegration[];
   findSolutionTitle: string;
   handleLaunchCodingAgent: (integrationId: string, integrationName: string) => void;
   isLaunchingAgent: boolean;
@@ -269,8 +276,8 @@ function SolutionActionButton({
   primaryButtonPriority: React.ComponentProps<typeof Button>['priority'];
   submitFindSolution: () => void;
 }) {
-  const preferredIntegration = preferredAction.startsWith('cursor:')
-    ? cursorIntegrations.find(i => i.id === preferredAction.replace('cursor:', ''))
+  const preferredIntegration = preferredAction.startsWith('agent:')
+    ? codingAgentIntegrations.find(i => i.id === preferredAction.replace('agent:', ''))
     : null;
 
   const effectivePreference =
@@ -280,13 +287,12 @@ function SolutionActionButton({
 
   const isSeerPreferred = effectivePreference === 'seer_solution';
 
-  // Check if there are duplicate names among integrations (need to show ID to distinguish)
   const hasDuplicateNames =
-    cursorIntegrations.length > 1 &&
-    new Set(cursorIntegrations.map(i => i.name)).size < cursorIntegrations.length;
+    codingAgentIntegrations.length > 1 &&
+    new Set(codingAgentIntegrations.map(i => i.name)).size <
+      codingAgentIntegrations.length;
 
-  // If no integrations, show simple Seer button
-  if (cursorIntegrations.length === 0) {
+  if (codingAgentIntegrations.length === 0) {
     return (
       <Button
         size="sm"
@@ -311,14 +317,16 @@ function SolutionActionButton({
             disabled: isSelectingRootCause,
           },
         ]),
-    // Show all integrations except the currently preferred one
-    ...cursorIntegrations
-      .filter(integration => `cursor:${integration.id}` !== effectivePreference)
+    ...codingAgentIntegrations
+      .filter(integration => `agent:${integration.id}` !== effectivePreference)
       .map(integration => ({
-        key: `cursor:${integration.id}`,
+        key: `agent:${integration.id}`,
         label: (
           <Flex gap="md" align="center">
-            <PluginIcon pluginId="cursor" size={20} />
+            <PluginIcon
+              pluginId={getPluginIdForProvider(integration.provider)}
+              size={20}
+            />
             <div>{t('Send to %s', integration.name)}</div>
             {hasDuplicateNames && (
               <SmallIntegrationIdText>({integration.id})</SmallIntegrationIdText>
@@ -347,7 +355,12 @@ function SolutionActionButton({
         onClick: () =>
           handleLaunchCodingAgent(preferredIntegration!.id, preferredIntegration!.name),
         busy: isLaunchingAgent,
-        icon: <PluginIcon pluginId="cursor" size={16} />,
+        icon: (
+          <PluginIcon
+            pluginId={getPluginIdForProvider(preferredIntegration!.provider)}
+            size={16}
+          />
+        ),
         children: primaryButtonLabel,
       };
 
@@ -414,7 +427,7 @@ function AutofixRootCauseDisplay({
     runId
   );
 
-  // Stores 'seer_solution' or an integration ID (e.g., 'cursor:123')
+  // Stores 'seer_solution' or an integration ID (e.g., 'agent:123')
   const [preferredAction, setPreferredAction] = useLocalStorageState<string>(
     'autofix:rootCauseActionPreference',
     'seer_solution'
@@ -422,7 +435,6 @@ function AutofixRootCauseDisplay({
 
   const handleSelectDescription = () => {
     if (descriptionRef.current) {
-      // Simulate a click on the description to trigger the text selection
       const clickEvent = new MouseEvent('click', {
         bubbles: true,
         cancelable: true,
@@ -438,7 +450,6 @@ function AutofixRootCauseDisplay({
       return;
     }
 
-    // Save user preference
     setPreferredAction('seer_solution');
 
     const instruction = solutionText.trim();
@@ -463,19 +474,14 @@ function AutofixRootCauseDisplay({
     });
   };
 
-  const cursorIntegrations = codingAgentIntegrations.filter(
-    integration => integration.provider === 'cursor'
-  );
-
   const handleLaunchCodingAgent = (integrationId: string, integrationName: string) => {
-    const targetIntegration = cursorIntegrations.find(i => i.id === integrationId);
+    const targetIntegration = codingAgentIntegrations.find(i => i.id === integrationId);
 
     if (!targetIntegration) {
       return;
     }
 
-    // Save user preference with specific integration ID
-    setPreferredAction(`cursor:${integrationId}`);
+    setPreferredAction(`agent:${integrationId}`);
 
     addLoadingMessage(t('Launching %s...', integrationName), {
       duration: 60000,
@@ -619,7 +625,7 @@ function AutofixRootCauseDisplay({
         <ButtonBar>
           <CopyRootCauseButton cause={cause} event={event} />
           <SolutionActionButton
-            cursorIntegrations={cursorIntegrations}
+            codingAgentIntegrations={codingAgentIntegrations}
             preferredAction={preferredAction}
             primaryButtonPriority={primaryButtonPriority}
             isSelectingRootCause={isSelectingRootCause}

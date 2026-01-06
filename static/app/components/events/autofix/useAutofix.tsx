@@ -352,6 +352,15 @@ function getErrorMessage(error: RequestError, agentName: string): string {
   return t('Failed to launch %s', agentName);
 }
 
+function needsGitHubAuth(error: RequestError): boolean {
+  const detail = error.responseJSON?.detail;
+  return (
+    typeof detail === 'string' &&
+    detail.toLowerCase().includes('github') &&
+    detail.toLowerCase().includes('authorization')
+  );
+}
+
 export function useLaunchCodingAgent(groupId: string, runId: string) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
@@ -398,6 +407,15 @@ export function useLaunchCodingAgent(groupId: string, runId: string) {
       });
     },
     onError: (error, params) => {
+      if (needsGitHubAuth(error)) {
+        addErrorMessage(
+          t('Please connect your GitHub account. Redirecting to authorization...')
+        );
+        setTimeout(() => {
+          window.open('/remote/github-copilot/oauth/', '_blank');
+        }, 1000);
+        return;
+      }
       const message = getErrorMessage(error, params.agentName);
       addErrorMessage(message);
     },

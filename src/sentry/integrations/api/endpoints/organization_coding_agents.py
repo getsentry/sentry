@@ -101,6 +101,7 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
             run_id=run_id,
             trigger_source=trigger_source,
             instruction=instruction,
+            user_id=request.user.id,
         )
 
         successes = results["successes"]

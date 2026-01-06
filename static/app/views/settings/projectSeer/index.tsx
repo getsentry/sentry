@@ -8,6 +8,7 @@ import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Link} from 'sentry/components/core/link';
 import {CursorIntegrationCta} from 'sentry/components/events/autofix/cursorIntegrationCta';
+import {GithubCopilotIntegrationCta} from 'sentry/components/events/autofix/githubCopilotIntegrationCta';
 import {
   makeProjectSeerPreferencesQueryKey,
   useProjectSeerPreferences,
@@ -654,6 +655,7 @@ function ProjectSeer({
       />
       <ProjectSeerGeneralForm project={project} />
       <CursorIntegrationCta project={project} />
+      <GithubCopilotIntegrationCta />
       <AutofixRepositories project={project} />
       <Center>
         <LinkButton

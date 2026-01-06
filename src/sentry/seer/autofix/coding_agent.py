@@ -14,6 +14,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.coding_agent.integration import CodingAgentIntegration
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.coding_agent.utils import get_coding_agent_providers
+from sentry.integrations.github_copilot.integration import GithubCopilotAgentIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.net.http import connection_from_url
@@ -195,9 +196,21 @@ def _launch_agents_for_repos(
     organization,
     trigger_source: AutofixTriggerSource,
     instruction: str | None = None,
+    user_id: int | None = None,
+    user_access_token: str | None = None,
 ) -> dict[str, list]:
     """
     Launch coding agents for all repositories in the solution.
+
+    Args:
+        installation: The coding agent integration installation
+        autofix_state: The autofix state
+        run_id: The autofix run ID
+        organization: The organization
+        trigger_source: The trigger source (ROOT_CAUSE or SOLUTION)
+        instruction: Optional custom instruction to append to the prompt
+        user_id: The user ID (required for per-user token integrations like GitHub Copilot)
+        user_access_token: The user's access token (for GitHub Copilot)
 
     Returns:
         Dictionary with 'successes' and 'failures' lists
@@ -291,7 +304,16 @@ def _launch_agents_for_repos(
         )
 
         try:
-            coding_agent_state = installation.launch(launch_request)
+            if isinstance(installation, GithubCopilotAgentIntegration):
+                if not user_access_token:
+                    raise PermissionDenied(
+                        "GitHub Copilot requires user authorization. Please connect your GitHub account."
+                    )
+                coding_agent_state = installation.launch_with_user_token(
+                    launch_request, user_access_token
+                )
+            else:
+                coding_agent_state = installation.launch(launch_request)
         except (HTTPError, ApiError) as e:
             logger.exception(
                 "coding_agent.repo_launch_error",
@@ -339,6 +361,7 @@ def launch_coding_agents_for_run(
     run_id: int,
     trigger_source: AutofixTriggerSource = AutofixTriggerSource.SOLUTION,
     instruction: str | None = None,
+    user_id: int | None = None,
 ) -> dict[str, list]:
     """
     Launch coding agents for an autofix run.
@@ -349,6 +372,7 @@ def launch_coding_agents_for_run(
         run_id: The autofix run ID
         trigger_source: The trigger source (ROOT_CAUSE or SOLUTION)
         instruction: Optional custom instruction to append to the prompt
+        user_id: The user ID (required for per-user token integrations like GitHub Copilot)
 
     Returns:
         Dictionary with 'successes' and 'failures' lists
@@ -382,8 +406,25 @@ def launch_coding_agents_for_run(
         },
     )
 
+    user_access_token: str | None = None
+    if isinstance(installation, GithubCopilotAgentIntegration) and user_id is not None:
+        from sentry.integrations.services.github_copilot_identity import (
+            github_copilot_identity_service,
+        )
+
+        user_access_token = github_copilot_identity_service.get_access_token_for_user(
+            user_id=user_id
+        )
+
     results = _launch_agents_for_repos(
-        installation, autofix_state, run_id, organization, trigger_source, instruction
+        installation,
+        autofix_state,
+        run_id,
+        organization,
+        trigger_source,
+        instruction,
+        user_id=user_id,
+        user_access_token=user_access_token,
     )
 
     if not results["successes"] and not results["failures"]:
