@@ -308,6 +308,18 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       // Overwrite the local var to work around state being stale in tests.
       transformedTableResults = [...transformedTableResults, transformedData];
 
+      const meta = transformedTableResults?.[0]?.meta;
+      const widgetUnits = widget?.queries?.[i]?.units;
+      if (widgetUnits && meta) {
+        widgetUnits.forEach((unit, index) => {
+          const field = widget.queries?.[i]?.fields?.[index];
+          if (unit && field) {
+            meta.units![field] = unit.valueUnit ?? '';
+            meta.fields![field] = unit.valueType;
+          }
+        });
+      }
+
       // There is some inconsistency with the capitalization of "link" in response headers
       responsePageLinks =
         (resp?.getResponseHeader('Link') || resp?.getResponseHeader('link')) ?? undefined;

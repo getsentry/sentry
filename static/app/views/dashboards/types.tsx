@@ -5,6 +5,10 @@ import type {Tag} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {SavedQueryDatasets, type DatasetSource} from 'sentry/utils/discover/types';
 import type {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import type {
+  AttributeValueType,
+  AttributeValueUnit,
+} from 'sentry/views/dashboards/widgets/common/types';
 
 import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholds';
 
@@ -82,6 +86,11 @@ export type LinkedDashboard = {
   staticDashboardId?: PrebuiltDashboardId;
 };
 
+export type Unit = {
+  valueType: AttributeValueType;
+  valueUnit: AttributeValueUnit;
+};
+
 /**
  * A widget query is one or more aggregates and a single filter string (conditions.)
  * Widgets can have multiple widget queries, and they all combine into a unified timeseries view (for example)
@@ -109,6 +118,8 @@ export type WidgetQuery = {
   // TODO: currently not stored in the backend, only used
   // by prebuilt dashboards in the frontend.
   slideOutId?: SlideoutId;
+  // Used to define the units of the fields in the widget queries, currently not saved
+  units?: Array<Unit | null>;
 };
 
 type WidgetChangedReason = {

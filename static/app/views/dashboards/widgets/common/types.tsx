@@ -2,7 +2,7 @@ import type {Confidence} from 'sentry/types/organization';
 import type {DataUnit} from 'sentry/utils/discover/fields';
 import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholds';
 
-type AttributeValueType =
+export type AttributeValueType =
   | 'number'
   | 'integer'
   | 'date'
@@ -16,7 +16,7 @@ type AttributeValueType =
   | 'score'
   | 'currency';
 
-type AttributeValueUnit = DataUnit | null;
+export type AttributeValueUnit = DataUnit | null;
 
 type TimeSeriesValueType = AttributeValueType;
 export type TimeSeriesValueUnit = AttributeValueUnit;

@@ -7,7 +7,11 @@ import {
 } from 'sentry/utils/discover/fields';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
-import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import type {
+  AttributeValueType,
+  AttributeValueUnit,
+  TimeSeries,
+} from 'sentry/views/dashboards/widgets/common/types';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
@@ -19,7 +23,9 @@ import {convertEventsStatsToTimeSeriesData} from 'sentry/views/insights/common/q
  */
 export function transformLegacySeriesToPlottables(
   timeseriesResults: Series[] | undefined,
-  timeseriesResultsTypes: Record<string, AggregationOutputType> | undefined,
+  valueUnitResultTypes:
+    | Record<string, {valueType: AttributeValueType; valueUnit: AttributeValueUnit}>
+    | undefined,
   widget: Widget
 ): Plottable[] {
   if (!timeseriesResults || timeseriesResults.length === 0) {
@@ -30,13 +36,14 @@ export function transformLegacySeriesToPlottables(
     .map(series => {
       const unaliasedSeriesName =
         series.seriesName?.split(' : ').at(-1)?.trim() ?? series.seriesName;
-      const fieldType =
-        timeseriesResultsTypes?.[unaliasedSeriesName] ??
-        aggregateOutputType(unaliasedSeriesName);
-      const {valueType, valueUnit} = mapAggregationTypeToValueTypeAndUnit(
-        fieldType,
-        unaliasedSeriesName
-      );
+
+      const {valueType, valueUnit} =
+        valueUnitResultTypes?.[unaliasedSeriesName] ??
+        mapAggregationTypeToValueTypeAndUnit(
+          aggregateOutputType(unaliasedSeriesName),
+          unaliasedSeriesName
+        );
+
       const timeSeries = convertEventsStatsToTimeSeriesData(
         series.seriesName,
         createEventsStatsFromSeries(series, valueType as AggregationOutputType, valueUnit)
@@ -91,7 +98,7 @@ function createPlottableFromTimeSeries(
   }
 }
 
-function mapAggregationTypeToValueTypeAndUnit(
+export function mapAggregationTypeToValueTypeAndUnit(
   aggregationType: AggregationOutputType,
   fieldName: string
 ): {
