@@ -12,6 +12,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.auth.services.auth import AuthenticatedToken
+from sentry.silo.util import PROXY_APIGATEWAY_HEADER
 from sentry.types.ratelimit import RateLimitMeta, SnubaRateLimitMeta
 from sentry.utils import metrics
 
@@ -129,6 +130,7 @@ def _create_api_access_log(
             rate_limited=getattr(request, "will_be_rate_limited", False),
             rate_limit_category=getattr(request, "rate_limit_category", None),
             request_duration_seconds=access_log_metadata.get_request_duration(),
+            gateway_proxy=request.headers.get(PROXY_APIGATEWAY_HEADER, None),
             **_get_rate_limit_stats_dict(request),
         )
         auth = get_authorization_header(request).split()
