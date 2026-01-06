@@ -95,7 +95,7 @@ jobs:
       - name: Calculate test shards
         id: calculate-shards
         run: |
-          python3 .github/workflows/scripts/calculate-test-shards.py
+          python3 .github/workflows/scripts/calculate-backend-test-shards.py
 
   backend-test:
     if: needs.files-changed.outputs.backend == 'true'

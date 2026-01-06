@@ -96,6 +96,7 @@ def main():
     github_output = os.getenv("GITHUB_OUTPUT")
     if github_output:
         with open(github_output, "a") as f:
+            f.write("\n")
             f.write(f"shard-count={shard_count}\n")
             f.write(f"shard-indices={shard_indices}\n")
 
