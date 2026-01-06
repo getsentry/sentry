@@ -79,6 +79,16 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             )
 
     @patch("sentry.incidents.subscription_processor.metrics")
+    def test_invalid_aggregation_value(self, mock_metrics: MagicMock) -> None:
+        self.send_update("nan")
+        assert self.get_detector_state(self.detector) == DetectorPriorityLevel.OK
+        mock_metrics.incr.assert_has_calls(
+            [
+                call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
+            ]
+        )
+
+    @patch("sentry.incidents.subscription_processor.metrics")
     def test_has_downgraded_on_demand(self, mock_metrics: MagicMock) -> None:
         snuba_query = self.get_snuba_query(self.detector)
         snuba_query.update(time_window=15 * 60, dataset=Dataset.PerformanceMetrics.value)
