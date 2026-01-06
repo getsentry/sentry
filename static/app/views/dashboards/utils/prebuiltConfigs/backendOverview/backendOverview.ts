@@ -2,7 +2,7 @@ import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/http/settings';
+import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/backendOverview/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
 import {OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
@@ -37,7 +37,6 @@ const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
       displayType: DisplayType.LINE,
       thresholds: null,
       interval: '1h',
-      dashboardId: '209284',
       queries: [
         {
           name: 'Requests',
@@ -88,7 +87,6 @@ const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
       title: 'Recommended Issues',
       displayType: DisplayType.TABLE,
       interval: '1h',
-      dashboardId: '209284',
       tableWidths: [-1, -1],
       queries: [
         {
