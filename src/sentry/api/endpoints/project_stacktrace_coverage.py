@@ -65,6 +65,14 @@ class ProjectStacktraceCoverageEndpoint(ProjectEndpoint):
             # Use the provider key to split up stacktrace-link metrics by integration type
             scope.set_tag("integration_provider", provider)  # e.g. github
 
+            # Codecov requires repository names in owner/repo format
+            repo_name = result["current_config"]["repository"].name
+            if "/" not in repo_name:
+                return Response(
+                    {"detail": "Repository name must be in owner/repo format for Codecov"},
+                    status=400,
+                )
+
             with sentry_sdk.start_span(op="fetch_codecov_data"):
                 with metrics.timer("issues.stacktrace.fetch_codecov_data"):
                     codecov_data = fetch_codecov_data(
