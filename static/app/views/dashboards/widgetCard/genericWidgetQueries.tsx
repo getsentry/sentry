@@ -10,7 +10,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
@@ -46,6 +46,7 @@ export type OnDataFetchedProps = {
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
+  timeseriesResultsUnits?: Record<string, DataUnit>;
   totalIssuesCount?: string;
 };
 
@@ -60,6 +61,7 @@ export type GenericWidgetQueriesChildrenProps = {
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
+  timeseriesResultsUnits?: Record<string, DataUnit>;
   totalCount?: string;
 };
 
@@ -111,6 +113,7 @@ type State<SeriesResponse> = {
   tableResults?: GenericWidgetQueriesChildrenProps['tableResults'];
   timeseriesResults?: GenericWidgetQueriesChildrenProps['timeseriesResults'];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
+  timeseriesResultsUnits?: Record<string, DataUnit>;
 };
 
 class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
@@ -384,20 +387,32 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
 
     // Get series result type
     // Only used by custom measurements in errorsAndTransactions at the moment
-    const timeseriesResultsTypes = config.getSeriesResultType?.(
-      responses[0]![0],
-      widget.queries[0]!
+    const timeseriesResultsTypes = responses.reduce(
+      (acc, response) => {
+        acc = {...acc, ...config.getSeriesResultType?.(response[0], widget.queries[0]!)};
+        return acc;
+      },
+      {} as Record<string, AggregationOutputType>
+    );
+    const timeseriesResultsUnits = responses.reduce(
+      (acc, response) => {
+        acc = {...acc, ...config.getSeriesResultUnit?.(response[0], widget.queries[0]!)};
+        return acc;
+      },
+      {} as Record<string, DataUnit>
     );
 
     if (this._isMounted && this.state.queryFetchID === queryFetchID) {
       onDataFetched?.({
         timeseriesResults: transformedTimeseriesResults,
         timeseriesResultsTypes,
+        timeseriesResultsUnits,
       });
       this.setState({
         timeseriesResults: transformedTimeseriesResults,
         rawResults: rawResultsClone,
         timeseriesResultsTypes,
+        timeseriesResultsUnits,
       });
     }
   }
@@ -461,6 +476,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       errorMessage,
       pageLinks,
       timeseriesResultsTypes,
+      timeseriesResultsUnits,
     } = this.state;
 
     return children({
@@ -470,6 +486,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       errorMessage,
       pageLinks,
       timeseriesResultsTypes,
+      timeseriesResultsUnits,
     });
   }
 }
