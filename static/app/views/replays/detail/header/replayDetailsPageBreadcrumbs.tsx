@@ -1,6 +1,8 @@
 import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Text} from '@sentry/scraps/text';
+
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -8,7 +10,8 @@ import {Flex} from 'sentry/components/core/layout';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {IconChevron, IconCopy} from 'sentry/icons';
+import {useLiveRefresh} from 'sentry/components/replays/replayLiveIndicator';
+import {IconChevron, IconCopy, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -36,6 +39,9 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
   const {currentTime} = useReplayContext();
 
   const {replays, currentReplayIndex} = useReplayPlaylist();
+  const {shouldShowRefreshButton, doRefresh} = useLiveRefresh({
+    replay: replayRecord ?? undefined,
+  });
 
   // We use a ref to store the initial location so that we can use it to navigate to the previous and next replays
   // without dirtying the URL with the URL params from the tabs navigation.
@@ -145,20 +151,35 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
             >
               {getShortEventId(replayRecord?.id)}
             </div>
-            <Button
-              title={t('Copy link to replay at current timestamp')}
-              aria-label={t('Copy link to replay at current timestamp')}
-              onClick={() =>
-                copy(replayUrlWithTimestamp, {
-                  successMessage: t('Copied replay link to clipboard'),
-                })
-              }
-              size="zero"
-              borderless
-              style={isHovered ? {} : {visibility: 'hidden'}}
-              icon={<IconCopy size="xs" variant="muted" />}
-            />
+            {isHovered && (
+              <Button
+                title={t('Copy link to replay at current timestamp')}
+                aria-label={t('Copy link to replay at current timestamp')}
+                onClick={() =>
+                  copy(replayUrlWithTimestamp, {
+                    successMessage: t('Copied replay link to clipboard'),
+                  })
+                }
+                size="zero"
+                borderless
+                icon={<IconCopy size="xs" variant="muted" />}
+              />
+            )}
           </Flex>
+          {shouldShowRefreshButton ? (
+            <Button
+              title={t('Replay is outdated. Refresh for latest activity.')}
+              data-test-id="refresh-button"
+              size="zero"
+              priority="link"
+              onClick={doRefresh}
+              icon={<IconRefresh size="xs" variant="warning" />}
+            >
+              <Text size="sm" variant="warning">
+                {t('Update')}
+              </Text>
+            </Button>
+          ) : null}
         </Flex>
       </Flex>
     ) : (

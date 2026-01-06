@@ -3,20 +3,14 @@ import invariant from 'invariant';
 import {Flex} from '@sentry/scraps/layout';
 
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
 import {Grid} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
 import {DateTime} from 'sentry/components/dateTime';
 import Placeholder from 'sentry/components/placeholder';
 import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
-import {
-  LiveBadge,
-  useLiveBadge,
-  useLiveRefresh,
-} from 'sentry/components/replays/replayLiveIndicator';
+import {LiveBadge, useLiveBadge} from 'sentry/components/replays/replayLiveIndicator';
 import TimeSince from 'sentry/components/timeSince';
-import {IconRefresh, IconTimer} from 'sentry/icons';
 import {IconCalendar} from 'sentry/icons/iconCalendar';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
@@ -62,7 +56,6 @@ function ReplayBadge({replay}: {replay: ReplayRecord}) {
   const organization = useOrganization();
   const [prefs] = useReplayPrefs();
   const timestampType = prefs.timestampType;
-  const {shouldShowRefreshButton, doRefresh} = useLiveRefresh({replay});
 
   const {isLive} = useLiveBadge({
     startedAt: replay.started_at,
@@ -133,22 +126,6 @@ function ReplayBadge({replay}: {replay: ReplayRecord}) {
           ) : (
             <div>{replaysIndexLinkText}</div>
           )}
-
-          {isLive ? <LiveBadge /> : null}
-          {shouldShowRefreshButton ? (
-            <Button
-              title={t('Replay is outdated. Refresh for latest activity.')}
-              data-test-id="refresh-button"
-              size="zero"
-              priority="link"
-              onClick={doRefresh}
-              icon={<IconRefresh size="xs" variant="warning" />}
-            >
-              <Text size="sm" variant="warning">
-                {t('Refresh')}
-              </Text>
-            </Button>
-          ) : null}
         </Flex>
 
         <Flex gap="sm">
@@ -163,12 +140,7 @@ function ReplayBadge({replay}: {replay: ReplayRecord}) {
               )}
             </Text>
           </Flex>
-          <Flex gap="xs" align="center">
-            <IconTimer variant="muted" size="xs" />
-            <Text size="sm" variant="muted">
-              {replay.duration.humanize()}
-            </Text>
-          </Flex>
+          {isLive ? <LiveBadge /> : null}
         </Flex>
       </Flex>
     </Flex>

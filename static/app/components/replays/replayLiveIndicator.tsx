@@ -76,7 +76,7 @@ export function LiveBadge() {
         <LiveIndicator />
       </Tooltip>
       <Text size="xs" bold variant="success" data-test-id="live-badge">
-        {t('LIVE')}
+        {t('Live')}
       </Text>
     </Flex>
   );
