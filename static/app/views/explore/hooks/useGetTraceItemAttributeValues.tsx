@@ -2,13 +2,13 @@ import {useCallback} from 'react';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
-import type {Tag} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {FieldKind} from 'sentry/utils/fields';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import type {GetTagValues} from 'sentry/views/dashboards/datasetConfig/base';
 import type {
   TraceItemDataset,
   UseTraceItemAttributeBaseProps,
@@ -86,8 +86,8 @@ export function useGetTraceItemAttributeValues({
   const {selection} = usePageFilters();
 
   // Create a function that can be used as getTagValues
-  const getTraceItemAttributeValues = useCallback(
-    async (tag: Tag, queryString: string): Promise<string[]> => {
+  const getTraceItemAttributeValues = useCallback<GetTagValues>(
+    async (tag, queryString) => {
       if (tag.kind === FieldKind.FUNCTION || type === 'number') {
         // We can't really auto suggest values for aggregate functions or numbers
         return Promise.resolve([]);

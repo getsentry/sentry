@@ -19,7 +19,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconChevron, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -52,7 +51,7 @@ import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/componen
 import {StripedTable} from './styles';
 import SubscriptionHeader from './subscriptionHeader';
 
-interface Props extends RouteComponentProps<unknown, unknown> {
+interface Props {
   subscription: Subscription;
 }
 
@@ -294,7 +293,7 @@ function UsageHistoryRow({history}: RowProps) {
                 {moment(history.periodStart).format('ll')} -{' '}
                 {moment(history.periodEnd).format('ll')}
               </Text>
-              {history.isCurrent && <Badge type="default">{t('Current')}</Badge>}
+              {history.isCurrent && <Badge variant="muted">{t('Current')}</Badge>}
             </Flex>
             <Text bold>{tct('[planName] Plan', {planName: history.planName})}</Text>
           </Flex>

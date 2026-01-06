@@ -11,7 +11,11 @@ import useMedia from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {AddOnCategory, OnDemandBudgetMode} from 'getsentry/types';
-import {checkIsAddOn, getActiveProductTrial} from 'getsentry/utils/billing';
+import {
+  checkIsAddOn,
+  checkIsAddOnChildCategory,
+  getActiveProductTrial,
+} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import UsageOverviewActions from 'getsentry/views/subscriptionPage/usageOverview/components/actions';
 import ProductBreakdownPanel from 'getsentry/views/subscriptionPage/usageOverview/components/panel';
@@ -43,7 +47,13 @@ function UsageOverview({subscription, organization, usageData}: UsageOverviewPro
       const isAddOn = checkIsAddOn(productFromQuery);
       if (selectedProduct !== productFromQuery) {
         const isSelectable = isAddOn
-          ? (subscription.addOns?.[productFromQuery as AddOnCategory]?.enabled ?? false)
+          ? (subscription.addOns?.[productFromQuery as AddOnCategory]?.enabled ??
+              false) &&
+            subscription.addOns?.[
+              productFromQuery as AddOnCategory
+            ]?.dataCategories.every(category =>
+              checkIsAddOnChildCategory(subscription, category, true)
+            )
           : (subscription.categories[productFromQuery as DataCategory]?.reserved ?? 0) >
               0 ||
             !!getActiveProductTrial(
@@ -84,10 +94,7 @@ function UsageOverview({subscription, organization, usageData}: UsageOverviewPro
     location.pathname,
     location.query,
     navigate,
-    subscription.addOns,
-    subscription.categories,
-    subscription.onDemandBudgets,
-    subscription.productTrials,
+    subscription,
   ]);
 
   return (
@@ -99,7 +106,7 @@ function UsageOverview({subscription, organization, usageData}: UsageOverviewPro
       <Container radius="md" border="primary" background="primary" width="100%">
         <Flex
           justify="between"
-          align={{xs: 'start', sm: 'center'}}
+          align="center"
           padding="lg xl"
           gap="xl"
           height={USAGE_OVERVIEW_PANEL_HEADER_HEIGHT}

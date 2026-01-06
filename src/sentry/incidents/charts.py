@@ -149,7 +149,7 @@ def fetch_metric_issue_open_periods(
             open_period_identifier = alert_rule_detector.alert_rule_id
 
         if features.has(
-            "organizations:new-metric-issue-charts",
+            "organizations:workflow-engine-ui",
             organization,
         ):
             resp = client.get(
@@ -219,7 +219,7 @@ def build_metric_alert_chart(
     query_type = SnubaQuery.Type(snuba_query.type)
     is_crash_free_alert = query_type == SnubaQuery.Type.CRASH_RATE
     using_new_charts = features.has(
-        "organizations:new-metric-issue-charts",
+        "organizations:workflow-engine-ui",
         organization,
     )
     if is_crash_free_alert:
@@ -250,7 +250,7 @@ def build_metric_alert_chart(
             "end": timezone.now().strftime(TIME_FORMAT),
         }
     if features.has(
-        "organizations:new-metric-issue-charts",
+        "organizations:workflow-engine-ui",
         organization,
     ):
         # TODO(mifu67): create detailed serializer for open period, pass here.

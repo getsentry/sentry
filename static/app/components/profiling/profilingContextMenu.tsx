@@ -16,9 +16,9 @@ const Menu = styled(({ref, ...props}: MenuProps) => {
   position: absolute;
   font-size: ${p => p.theme.fontSize.md};
   z-index: ${p => p.theme.zIndex.dropdown};
-  background: ${p => p.theme.backgroundElevated};
+  background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   width: auto;
   min-width: 164px;
@@ -34,12 +34,12 @@ const MenuContentContainer = styled('div')`
   align-items: center;
   font-weight: ${p => p.theme.fontWeight.normal};
   padding: 0 ${space(1)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   box-sizing: border-box;
   background: ${p => (p.tabIndex === 0 ? p.theme.hover : undefined)};
 
   &:focus {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
     background: ${p => p.theme.hover};
     outline: none;
   }
@@ -113,14 +113,14 @@ const MenuButton = styled('button')`
   flex: 1;
   align-items: center;
   padding: ${space(0.5)} ${space(1)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   box-sizing: border-box;
   background: ${p => (p.tabIndex === 0 ? p.theme.hover : 'transparent')} !important;
   pointer-events: ${p => (p.disabled ? 'none' : undefined)};
   opacity: ${p => (p.disabled ? 0.7 : undefined)};
 
   &:focus {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
     background: ${p => p.theme.hover};
     outline: none;
   }
@@ -196,7 +196,7 @@ const MenuItem = styled(({ref, ...props}: MenuItemProps) => {
   );
 })`
   cursor: pointer;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   background: transparent;
   padding: 0 ${space(0.5)};
 

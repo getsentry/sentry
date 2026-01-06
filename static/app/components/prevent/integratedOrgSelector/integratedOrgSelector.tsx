@@ -1,6 +1,8 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import Access from 'sentry/components/acl/access';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
@@ -8,7 +10,6 @@ import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex, Grid} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
-import DropdownButton from 'sentry/components/dropdownButton';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {integratedOrgIdToName} from 'sentry/components/prevent/utils';
@@ -155,10 +156,9 @@ export function IntegratedOrgSelector() {
       value={integratedOrgId ?? ''}
       onChange={handleChange}
       closeOnSelect
-      trigger={(triggerProps, isOpen) => {
+      trigger={triggerProps => {
         return (
-          <DropdownButton
-            isOpen={isOpen}
+          <SelectTrigger.Button
             icon={<IconBuilding />}
             data-test-id="page-filter-integrated-org-selector"
             {...triggerProps}
@@ -166,7 +166,7 @@ export function IntegratedOrgSelector() {
             <TriggerLabelWrap>
               <TriggerLabel>{integratedOrgName ?? DEFAULT_ORG_LABEL}</TriggerLabel>
             </TriggerLabelWrap>
-          </DropdownButton>
+          </SelectTrigger.Button>
         );
       }}
       menuWidth="280px"

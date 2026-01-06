@@ -108,7 +108,7 @@ function ProjectBaseSessionsChart({
                       if (errored) {
                         return (
                           <ErrorPanel>
-                            <IconWarning color="gray300" size="lg" />
+                            <IconWarning variant="muted" size="lg" />
                           </ErrorPanel>
                         );
                       }
@@ -271,7 +271,7 @@ class Chart extends Component<ChartProps, ChartState> {
       itemGap: 12,
       align: 'left' as const,
       textStyle: {
-        color: theme.textColor,
+        color: theme.tokens.content.primary,
         verticalAlign: 'top',
         fontSize: 11,
         fontFamily: theme.text.family,

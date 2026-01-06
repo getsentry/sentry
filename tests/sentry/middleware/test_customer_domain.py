@@ -170,13 +170,13 @@ class CustomerDomainMiddlewareTest(TestCase):
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             response = self.client.get(
-                "/settings/billing/checkout/",
+                "/settings/billing/overview/",
                 data={"querystring": "value"},
                 follow=True,
             )
         assert response.status_code == 200
         assert response.redirect_chain == [
-            ("http://albertos-apples.testserver/settings/billing/checkout/?querystring=value", 302)
+            ("http://albertos-apples.testserver/settings/billing/overview/?querystring=value", 302)
         ]
 
 

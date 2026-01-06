@@ -22,6 +22,7 @@ interface AnomalyThresholdDataResponse {
 
 interface UseMetricDetectorAnomalyThresholdsProps {
   detectorId: string;
+  detectionType?: string;
   endTimestamp?: number;
   series?: Series[];
   startTimestamp?: number;
@@ -38,6 +39,7 @@ interface UseMetricDetectorAnomalyThresholdsResult {
  */
 export function useMetricDetectorAnomalyThresholds({
   detectorId,
+  detectionType,
   startTimestamp,
   endTimestamp,
   series = [],
@@ -48,6 +50,7 @@ export function useMetricDetectorAnomalyThresholds({
   const hasAnomalyDataFlag = organization.features.includes(
     'anomaly-detection-threshold-data'
   );
+  const isAnomalyDetection = detectionType === 'dynamic';
 
   const {
     data: anomalyData,
@@ -66,7 +69,9 @@ export function useMetricDetectorAnomalyThresholds({
     {
       staleTime: 0,
       enabled:
-        hasAnomalyDataFlag && Boolean(detectorId && startTimestamp && endTimestamp),
+        hasAnomalyDataFlag &&
+        isAnomalyDetection &&
+        Boolean(detectorId && startTimestamp && endTimestamp),
     }
   );
 
@@ -86,7 +91,6 @@ export function useMetricDetectorAnomalyThresholds({
 
     const upperBoundData: Array<[number, number]> = [];
     const lowerBoundData: Array<[number, number]> = [];
-    const seerValueData: Array<[number, number]> = [];
 
     metricData.forEach(metricPoint => {
       const timestamp =
@@ -98,12 +102,10 @@ export function useMetricDetectorAnomalyThresholds({
       if (anomalyPoint) {
         upperBoundData.push([timestamp, Math.round(anomalyPoint.yhat_upper)]);
         lowerBoundData.push([timestamp, Math.round(anomalyPoint.yhat_lower)]);
-        seerValueData.push([timestamp, Math.round(anomalyPoint.value)]);
       }
     });
 
-    const lineColor = theme.red300;
-    const seerValueColor = theme.yellow300;
+    const lineColor = theme.colors.red400;
 
     return [
       LineSeries({
@@ -149,22 +151,6 @@ export function useMetricDetectorAnomalyThresholds({
         symbol: 'none',
         connectNulls: true,
         step: false,
-      }),
-      LineSeries({
-        name: 'Seer Historical Value',
-        data: seerValueData,
-        lineStyle: {
-          color: seerValueColor,
-          type: 'solid',
-          width: 2,
-        },
-        itemStyle: {color: seerValueColor},
-        animation: false,
-        animationThreshold: 1,
-        animationDuration: 0,
-        symbol: 'circle',
-        symbolSize: 4,
-        connectNulls: true,
       }),
     ];
   }, [anomalyData, series, theme]);

@@ -258,7 +258,7 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
         <SourceGroup>
           {dataset === AllowedDataScrubbingDatasets.DEFAULT ? (
             <Fragment>
-              <ToggleWrapper>
+              <Flex justify="end">
                 {displayEventId ? (
                   <Toggle priority="link" onClick={this.handleToggleEventId}>
                     {t('Hide event ID field')}
@@ -270,7 +270,7 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
                     <IconChevron direction="down" size="xs" />
                   </Toggle>
                 )}
-              </ToggleWrapper>
+              </Flex>
               <SourceGroup isExpanded={displayEventId}>
                 {displayEventId && (
                   <EventIdField onUpdateEventId={onUpdateEventId} eventId={eventId} />
@@ -284,7 +284,7 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
                   suggestions={sourceSuggestions}
                 />
                 {containsRootDeepWildcard && (
-                  <Alert type="warning" style={{marginTop: space(1)}}>
+                  <Alert variant="warning" style={{marginTop: space(1)}}>
                     {t(
                       `Deep wildcards ('**') apply to all datasets unless negated (eg. ** || !$logs.**)`
                     )}
@@ -423,7 +423,7 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
             </FieldGroup>
           )}
         </FieldContainer>
-        <ToggleWrapper>
+        <Flex justify="end">
           {displayEventId ? (
             <Toggle priority="link" onClick={this.handleToggleEventId}>
               {t('Hide event ID field')}
@@ -435,7 +435,7 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
               <IconChevron direction="down" size="xs" />
             </Toggle>
           )}
-        </ToggleWrapper>
+        </Flex>
         <SourceGroup isExpanded={displayEventId}>
           {displayEventId && (
             <EventIdField onUpdateEventId={onUpdateEventId} eventId={eventId} />
@@ -472,7 +472,7 @@ const SourceGroup = styled('div')<{isExpanded?: boolean}>`
   ${p =>
     p.isExpanded &&
     css`
-      border-radius: ${p.theme.borderRadius};
+      border-radius: ${p.theme.radius.md};
       border: 1px solid ${p.theme.border};
       box-shadow: ${p.theme.dropShadowMedium};
       margin: ${space(2)} 0 ${space(3)} 0;
@@ -492,17 +492,12 @@ const DatasetRadioField = styled(RadioField)`
   }
 `;
 
-const ToggleWrapper = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-`;
-
 const Toggle = styled(Button)`
   font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.subText};
   &:hover,
   &:focus {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
   > *:first-child {
     display: grid;

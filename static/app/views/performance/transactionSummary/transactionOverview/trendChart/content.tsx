@@ -60,7 +60,7 @@ function Content({
   if (errored) {
     return (
       <ErrorPanel>
-        <IconWarning color="gray500" size="lg" />
+        <IconWarning variant="primary" size="lg" />
       </ErrorPanel>
     );
   }
@@ -70,7 +70,7 @@ function Content({
         .map(values => {
           return {
             ...values,
-            color: theme.purple300,
+            color: theme.colors.blue400,
             lineStyle: {
               opacity: 0.75,
               width: 1,
@@ -110,7 +110,7 @@ function Content({
       min: 0,
       minInterval: durationUnit,
       axisLabel: {
-        color: theme.chartLabel,
+        color: theme.tokens.content.muted,
         formatter: (value: number) =>
           axisLabelFormatter(value, 'duration', undefined, durationUnit),
       },
@@ -123,7 +123,7 @@ function Content({
     ? smoothedResults.map(values => {
         return {
           ...values,
-          color: theme.purple300,
+          color: theme.colors.blue400,
           lineStyle: {
             opacity: 1,
           },

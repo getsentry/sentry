@@ -39,7 +39,7 @@ import {TestSearchBar} from 'sentry/views/prevent/tests/testSearchBar/testSearch
 export function EmptySelectorsMessage() {
   return (
     <MessageContainer>
-      <StyledIconSearch color="subText" size="xl" />
+      <StyledIconSearch variant="muted" size="xl" />
       <Title>{t('It looks like there is nothing to show right now.')}</Title>
       <Subtitle>
         {t('Please select a repository and branch to view Test Analytics data.')}
@@ -201,7 +201,7 @@ const MessageContainer = styled('div')`
   align-items: center;
   text-align: center;
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space['3xl']};
 `;
 

@@ -91,7 +91,7 @@ function FavoriteButton({
       borderless
       icon={
         <IconStar
-          color={favorited ? 'yellow300' : 'gray500'}
+          color={favorited ? 'yellow300' : 'subText'}
           isSolid={favorited}
           aria-label={favorited ? t('Unstar') : t('Star')}
           size="sm"
@@ -362,7 +362,7 @@ function DashboardTable({
           if (isHeader) {
             return [
               <IconStar
-                color="yellow300"
+                variant="warning"
                 isSolid
                 aria-label={t('Star Column')}
                 key="favorite-header"
@@ -392,12 +392,12 @@ const DateSelected = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   display: grid;
   grid-column-gap: ${space(1)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   ${p => p.theme.overflowEllipsis};
 `;
 
 const DateStatus = styled('span')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   padding-left: ${space(1)};
 `;
 

@@ -127,7 +127,7 @@ export default function FirstEventFooter({
         }}
       >
         {project?.firstEvent ? (
-          <IconCheckmark color="green400" />
+          <IconCheckmark variant="success" />
         ) : (
           <WaitingIndicator
             variants={indicatorAnimation}
@@ -160,7 +160,7 @@ const AnimatedText = styled(motion.div, {
   shouldForwardProp: prop => prop !== 'errorReceived',
 })<{errorReceived: boolean}>`
   margin-left: ${space(1)};
-  color: ${p => (p.errorReceived ? p.theme.successText : p.theme.pink400)};
+  color: ${p => (p.errorReceived ? p.theme.successText : p.theme.colors.pink500)};
 `;
 
 const indicatorAnimation: Variants = {
@@ -171,7 +171,7 @@ const indicatorAnimation: Variants = {
 
 const WaitingIndicator = styled(motion.div)`
   ${pulsingIndicatorStyles};
-  background-color: ${p => p.theme.pink300};
+  background-color: ${p => p.theme.colors.pink400};
 `;
 
 const StatusWrapper = styled(motion.div)`

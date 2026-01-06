@@ -187,7 +187,7 @@ const Wrapper = styled('div')`
   margin-left: auto;
   margin-right: auto;
   padding: ${space(4)};
-  background-color: ${p => p.theme.surface400};
+  background-color: ${p => p.theme.colors.surface500};
   z-index: 100;
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.05);
   border-radius: 10px;
@@ -197,17 +197,17 @@ const Wrapper = styled('div')`
   mark {
     border-radius: 8px;
     padding: ${space(0.25)} ${space(0.5)} ${space(0.25)} ${space(0.5)};
-    background: ${p => p.theme.gray100};
+    background: ${p => p.theme.colors.gray100};
     margin-right: ${space(1)};
   }
   h2 {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.colors.gray800};
   }
   p {
     margin-bottom: ${space(1)};
   }
   .encrypt-help {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.colors.gray800};
   }
 `;
 
@@ -236,10 +236,10 @@ const UploadWell = styled('div')<{draggedOver: boolean}>`
   border-radius: 3px;
   border: 1px ${props => (props.draggedOver ? 'solid' : 'dashed')} ${p => p.theme.border};
   background: ${props =>
-    props.draggedOver ? p => p.theme.purple100 : p => p.theme.surface400};
+    props.draggedOver ? p => p.theme.colors.blue100 : p => p.theme.colors.surface500};
 
   .upload-icon {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.colors.gray800};
   }
 `;
 

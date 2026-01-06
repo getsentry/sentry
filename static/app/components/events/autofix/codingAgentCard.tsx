@@ -33,12 +33,12 @@ interface CodingAgentCardProps {
 }
 
 function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
-  const getTagType = (status: CodingAgentStatus): TagProps['type'] => {
+  const getTagVariant = (status: CodingAgentStatus): TagProps['variant'] => {
     switch (status) {
       case CodingAgentStatus.COMPLETED:
         return 'success';
       case CodingAgentStatus.FAILED:
-        return 'error';
+        return 'danger';
       case CodingAgentStatus.PENDING:
       case CodingAgentStatus.RUNNING:
       default:
@@ -91,7 +91,7 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                     {shouldShowSpinner(codingAgentState.status) ? (
                       <StyledLoadingIndicator size={16} />
                     ) : (
-                      <IconCode size="md" color="purple400" />
+                      <IconCode size="md" variant="accent" />
                     )}
                     {getProviderName(codingAgentState.provider)}
                   </HeaderText>
@@ -101,7 +101,7 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                   <CardHeader>
                     <AgentTitle>{codingAgentState.name}</AgentTitle>
                     <div>
-                      <Tag type={getTagType(codingAgentState.status)}>
+                      <Tag variant={getTagVariant(codingAgentState.status)}>
                         {getStatusText(codingAgentState.status)}
                       </Tag>
                     </div>
@@ -228,12 +228,12 @@ const ContentWrapper = styled(motion.div)`
 
 const StyledCard = styled('div')`
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   box-shadow: ${p => p.theme.dropShadowMedium};
   padding-left: ${p => p.theme.space.xl};
   padding-right: ${p => p.theme.space.xl};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const HeaderWrapper = styled('div')`
@@ -267,7 +267,7 @@ const CardHeader = styled('div')`
 const AgentTitle = styled('h4')`
   margin: 0 0 ${p => p.theme.space.xs} 0;
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const CardContent = styled('div')`
@@ -291,7 +291,7 @@ const Label = styled('span')`
 `;
 
 const Value = styled('span')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.sm};
 `;
@@ -315,7 +315,9 @@ const ResultItem = styled('div')`
 
 const ResultDescription = styled('div')<{status: CodingAgentStatus}>`
   color: ${p =>
-    p.status === CodingAgentStatus.FAILED ? p.theme.errorText : p.theme.textColor};
+    p.status === CodingAgentStatus.FAILED
+      ? p.theme.errorText
+      : p.theme.tokens.content.primary};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`

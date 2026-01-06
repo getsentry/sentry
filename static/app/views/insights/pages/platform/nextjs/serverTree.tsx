@@ -265,7 +265,7 @@ function TreeNodeRenderer({
       <Fragment>
         <div>
           <PathWrapper style={{paddingLeft: indent * 18}}>
-            <IconCode color="subText" size="xs" />
+            <IconCode variant="muted" size="xs" />
             <TextOverflow>
               {exploreLink ? <Link to={exploreLink}>{item.name}</Link> : item.name}
             </TextOverflow>
@@ -296,9 +296,9 @@ function TreeNodeRenderer({
             direction={isCollapsed ? 'right' : 'down'}
           />
           {item.type === 'file' ? (
-            <IconFile color="subText" size="xs" />
+            <IconFile variant="muted" size="xs" />
           ) : (
-            <IconProject color="subText" size="xs" />
+            <IconProject variant="muted" size="xs" />
           )}
           <ClassNames>
             {({css: className}) => (
@@ -409,7 +409,7 @@ const TreeGrid = styled('div')`
   & > * {
     text-align: right;
     padding: ${space(0.75)} ${space(1.5)};
-    background-color: ${p => p.theme.background};
+    background-color: ${p => p.theme.tokens.background.primary};
     line-height: 1.1;
   }
 

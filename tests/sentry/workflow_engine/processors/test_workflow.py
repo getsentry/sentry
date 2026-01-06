@@ -12,6 +12,7 @@ from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
 from sentry.utils import json
@@ -119,6 +120,90 @@ class TestProcessWorkflows(BaseWorkflowTest):
             has_escalated=False,
         )
         mock_fire_actions.assert_called_once()
+
+    @with_feature("projects:servicehooks")
+    @patch("sentry.sentry_apps.tasks.service_hooks.process_service_hook")
+    def test_process_workflows_event__service_hooks_event_alert(
+        self, mock_process_service_hook: MagicMock
+    ) -> None:
+        hook = self.create_service_hook(
+            project=self.project,
+            organization=self.project.organization,
+            actor=self.user,
+            events=["event.alert"],
+        )
+        project2 = self.create_project(organization=self.organization)
+        self.create_service_hook(
+            project=project2,
+            organization=self.project.organization,
+            actor=self.user,
+            events=["event.alert"],
+        )
+
+        self.create_workflow_action(workflow=self.error_workflow)
+
+        process_workflows_event(
+            project_id=self.project.id,
+            event_id=self.event.event_id,
+            group_id=self.group.id,
+            occurrence_id=self.group_event.occurrence_id,
+            group_state={
+                "id": 1,
+                "is_new": False,
+                "is_regression": True,
+                "is_new_group_environment": False,
+            },
+            has_reappeared=False,
+            has_escalated=False,
+        )
+
+        mock_process_service_hook.delay.assert_called_once_with(
+            servicehook_id=hook.id,
+            project_id=self.project.id,
+            group_id=self.group.id,
+            event_id=self.event.event_id,
+        )
+
+    @with_feature("projects:servicehooks")
+    @patch("sentry.sentry_apps.tasks.service_hooks.process_service_hook")
+    def test_process_workflows_event__service_hooks_event_created(
+        self, mock_process_service_hook: MagicMock
+    ) -> None:
+        hook = self.create_service_hook(
+            project=self.project,
+            organization=self.project.organization,
+            actor=self.user,
+            events=["event.created"],
+        )
+        self.create_service_hook(
+            project=self.project,
+            organization=self.project.organization,
+            actor=self.user,
+            events=["event.alert"],
+        )
+
+        process_workflows_event(
+            project_id=self.project.id,
+            event_id=self.event.event_id,
+            group_id=self.group.id,
+            occurrence_id=self.group_event.occurrence_id,
+            group_state={
+                "id": 1,
+                "is_new": False,
+                "is_regression": True,
+                "is_new_group_environment": False,
+            },
+            has_reappeared=False,
+            has_escalated=False,
+        )
+
+        # no actions to fire, only event.created service hook fired
+        mock_process_service_hook.delay.assert_called_once_with(
+            servicehook_id=hook.id,
+            project_id=self.project.id,
+            group_id=self.group.id,
+            event_id=self.event.event_id,
+        )
 
     @patch("sentry.workflow_engine.processors.action.filter_recently_fired_workflow_actions")
     def test_populate_workflow_env_for_filters(self, mock_filter: MagicMock) -> None:
@@ -324,7 +409,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
             tags={"detector_type": self.error_detector.type},
         )
 
-    @with_feature("organizations:workflow-engine-trigger-actions")
+    @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
     @patch("sentry.workflow_engine.processors.action.trigger_action.apply_async")
     def test_workflow_fire_history_with_action_deduping(
         self, mock_trigger_action: MagicMock
@@ -357,6 +442,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         assert WorkflowFireHistory.objects.count() == 3
         assert mock_trigger_action.call_count == 3
 
+    @override_options({"workflow_engine.exclude_issue_stream_detector": False})
     def test_uses_issue_stream_workflows(self) -> None:
         issue_occurrence = self.build_occurrence()
         self.group_event.occurrence = issue_occurrence
@@ -377,6 +463,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         assert result.data.triggered_actions is not None
         assert len(result.data.triggered_actions) == 0
 
+    @override_options({"workflow_engine.exclude_issue_stream_detector": False})
     def test_multiple_detectors(self) -> None:
         issue_stream_workflow, issue_stream_detector, _, _ = self.create_detector_and_workflow(
             name_prefix="issue_stream",
@@ -418,7 +505,7 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
     @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
     @patch("sentry.workflow_engine.processors.workflow.logger")
     def test_logs_triggered_workflows(self, mock_logger: MagicMock) -> None:
-        WorkflowEventContext.set(
+        ctx_token = WorkflowEventContext.set(
             WorkflowEventContextData(
                 detector=self.detector,
             )
@@ -434,6 +521,8 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
                 "group_type": self.event_data.group.type,
             },
         )
+
+        WorkflowEventContext.reset(ctx_token)
 
     def test_workflow_trigger__no_conditions(self) -> None:
         assert self.workflow.when_condition_group

@@ -8,16 +8,29 @@
  * - Theme type exports
  */
 import type {CSSProperties} from 'react';
-import {css, useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
-import color from 'color';
+import {css} from '@emotion/react';
 import {spring, type Transition} from 'framer-motion';
 
-type SimpleMotionName = 'smooth' | 'snap' | 'enter' | 'exit';
+import {withLegacyTokens, type LegacyTokens} from 'sentry/utils/theme/compat';
+// eslint-disable-next-line no-restricted-imports
+import {darkTheme as baseDarkTheme} from 'sentry/utils/theme/scraps/theme/dark';
+// eslint-disable-next-line no-restricted-imports
+import {lightTheme as baseLightTheme} from 'sentry/utils/theme/scraps/theme/light';
+import {color} from 'sentry/utils/theme/scraps/tokens/color';
+import {typography} from 'sentry/utils/theme/scraps/tokens/typography';
 
-type PhysicsMotionName = 'spring';
+import type {
+  AlertVariant,
+  ButtonVariant,
+  FormSize,
+  LevelVariant,
+  MotionDuration,
+  MotionEasing,
+  TagVariant,
+} from './types';
 
-type MotionDuration = 'fast' | 'moderate' | 'slow';
+type Tokens = typeof baseLightTheme.tokens | typeof baseDarkTheme.tokens;
+type TokensWithLegacy = Tokens & LegacyTokens;
 
 type MotionDefinition = Record<MotionDuration, string>;
 
@@ -27,7 +40,10 @@ const motionDurations: Record<MotionDuration, number> = {
   slow: 240,
 };
 
-const motionCurves: Record<SimpleMotionName, [number, number, number, number]> = {
+const motionCurves: Record<
+  Exclude<MotionEasing, keyof typeof motionTransitions>,
+  [number, number, number, number]
+> = {
   smooth: [0.72, 0, 0.16, 1],
   snap: [0.8, -0.4, 0.5, 1],
   enter: [0.24, 1, 0.32, 1],
@@ -62,7 +78,7 @@ const motionCurveWithDuration = (
   return [motion, framerMotion];
 };
 
-const motionTransitions: Record<PhysicsMotionName, Record<MotionDuration, Transition>> = {
+const motionTransitions: Record<'spring', Record<MotionDuration, Transition>> = {
   spring: {
     fast: {
       type: 'spring',
@@ -140,9 +156,8 @@ function generateMotion() {
   };
 }
 
-type Alert = 'muted' | 'info' | 'warning' | 'success' | 'error';
 type AlertColors = Record<
-  Alert,
+  AlertVariant,
   {
     background: string;
     backgroundLight: string;
@@ -196,11 +211,15 @@ const generateThemePrismVariables = (
     ...prismColors,
   });
 
-const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColors => ({
+const generateButtonTheme = (
+  colors: Colors,
+  alias: Aliases,
+  tokens: Tokens
+): ButtonColors => ({
   default: {
     // all alias-based, already derived from new theme
-    color: alias.textColor,
-    colorActive: alias.textColor,
+    color: tokens.content.primary,
+    colorActive: tokens.content.primary,
     background: alias.background,
     backgroundActive: alias.hover,
     border: alias.border,
@@ -254,8 +273,8 @@ const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColors => ({
     focusShadow: 'transparent',
   },
   transparent: {
-    color: alias.textColor,
-    colorActive: alias.textColor,
+    color: tokens.content.primary,
+    colorActive: tokens.content.primary,
     background: 'transparent',
     backgroundActive: 'transparent',
     border: 'transparent',
@@ -295,7 +314,7 @@ const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
     borderHover: colors.yellow400,
     color: colors.yellow500,
   },
-  error: {
+  danger: {
     background: colors.red400,
     backgroundLight: colors.red100,
     border: colors.red200,
@@ -305,21 +324,23 @@ const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
   },
 });
 
-const generateLevelTheme = (colors: Colors): LevelColors => ({
-  sample: colors.blue400,
-  info: colors.blue400,
-  warning: colors.yellow400,
-  // Hardcoded legacy color (orange400). We no longer use orange anywhere
-  // else in the app (except for the chart palette). This needs to be harcoded
-  // here because existing users may still associate orange with the "error" level.
-  error: '#FF7738',
-  fatal: colors.red400,
-  default: colors.gray400,
-  unknown: colors.gray200,
+const generateLevelTheme = (tokens: Tokens, mode: 'light' | 'dark'): LevelColors => ({
+  sample: tokens.dataviz.semantic.accent,
+  info: tokens.dataviz.semantic.accent,
+  // BAD: accessing named colors is forbidden
+  // but necessary to differente from orange
+  warning: color.categorical[mode].yellow,
+  // BAD: hardcoded legacy color! We no longer use orange in the main UI,
+  // but do have it in the chart palette. This needs to be harcoded
+  // because existing users still associate orange with the "error" level.
+  error: color.categorical[mode].orange,
+  fatal: tokens.dataviz.semantic.bad,
+  default: tokens.dataviz.semantic.neutral,
+  unknown: tokens.dataviz.semantic.other,
 });
 
 const generateTagTheme = (colors: Colors): TagColors => ({
-  default: {
+  muted: {
     background: colors.surface500,
     border: colors.gray200,
     color: colors.gray500,
@@ -329,12 +350,6 @@ const generateTagTheme = (colors: Colors): TagColors => ({
     background: colors.pink100,
     border: colors.pink100,
     color: colors.pink500,
-  },
-
-  highlight: {
-    background: colors.blue100,
-    border: colors.blue100,
-    color: colors.blue500,
   },
 
   warning: {
@@ -349,7 +364,7 @@ const generateTagTheme = (colors: Colors): TagColors => ({
     color: colors.green500,
   },
 
-  error: {
+  danger: {
     background: colors.red100,
     border: colors.red100,
     color: colors.red500,
@@ -360,18 +375,6 @@ const generateTagTheme = (colors: Colors): TagColors => ({
     border: colors.blue100,
     color: colors.blue500,
   },
-
-  white: {
-    background: colors.white,
-    border: colors.white,
-    color: colors.black,
-  },
-
-  black: {
-    background: colors.black,
-    border: colors.black,
-    color: colors.white,
-  },
 });
 
 /**
@@ -380,20 +383,8 @@ const generateTagTheme = (colors: Colors): TagColors => ({
 
 type Colors = typeof lightColors;
 
-type Tag =
-  | 'default'
-  | 'promotion'
-  | 'highlight'
-  | 'warning'
-  | 'success'
-  | 'error'
-  | 'info'
-  // @TODO(jonasbadalic): What are white and black tags?
-  | 'white'
-  | 'black';
-
 type TagColors = Record<
-  Tag,
+  TagVariant,
   {
     background: string;
     border: string;
@@ -401,14 +392,10 @@ type TagColors = Record<
   }
 >;
 
-// @TODO: is this loose coupling enough?
-type Level = 'sample' | 'info' | 'warning' | 'error' | 'fatal' | 'default' | 'unknown';
-type LevelColors = Record<Level, string>;
+type LevelColors = Record<LevelVariant, string>;
 
-// @TODO(jonasbadalic): Disabled is not a button variant, it's a state
-type Button = 'default' | 'primary' | 'danger' | 'link' | 'disabled' | 'transparent';
 type ButtonColors = Record<
-  Button,
+  ButtonVariant,
   {
     background: string;
     backgroundActive: string;
@@ -422,124 +409,83 @@ type ButtonColors = Record<
   }
 >;
 
-type Breakpoint = '2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
-type Breakpoints = Record<Breakpoint, string>;
-
-const breakpoints = {
-  '2xs': '0px',
-  xs: '500px',
-  sm: '800px',
-  md: '992px',
-  lg: '1200px',
-  xl: '1440px',
-  '2xl': '2560px',
-} as const satisfies Breakpoints;
-
-type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
-
-// @TODO: this needs to directly reference the icon direction
-type IconDirection = 'up' | 'right' | 'down' | 'left';
-const iconDirectionToAngle: Record<IconDirection, number> = {
-  up: 0,
-  right: 90,
-  down: 180,
-  left: 270,
+const legacyTypography = {
+  fontSize: typography.font.size,
+  fontWeight: {
+    normal: typography.font.weight.sans.regular,
+    bold: typography.font.weight.sans.medium,
+  },
+  text: {
+    family: typography.font.family.sans,
+    familyMono: typography.font.family.mono,
+    lineHeightHeading: typography.font.lineHeight.default,
+    lineHeightBody: typography.font.lineHeight.comfortable,
+  },
 } as const;
-
-/**
- * Unless you are implementing a new component in the `sentry/components/core`
- * directory, use `ComponentProps['size']` instead.
- * @internal
- */
-export type FormSize = 'xs' | 'sm' | 'md';
-
-export type Space = keyof typeof space;
 
 type FormTheme = {
   form: Record<
     FormSize,
     {
+      borderRadius: string;
       fontSize: string;
       height: string;
       lineHeight: string;
       minHeight: string;
-    }
-  >;
-  formPadding: Record<
-    FormSize,
-    {
       paddingBottom: number;
       paddingLeft: number;
       paddingRight: number;
       paddingTop: number;
     }
   >;
-  formRadius: Record<
-    FormSize,
-    {
-      borderRadius: string;
-    }
-  >;
-  formSpacing: Record<FormSize, string>;
 };
-
-const iconSizes: Record<Size, string> = {
-  xs: '12px',
-  sm: '14px',
-  md: '18px',
-  lg: '24px',
-  xl: '32px',
-  '2xl': '72px',
-} as const;
-
-const space = {
-  '0': '0px',
+const formTheme: FormTheme = {
   /**
-   * Equivalent to deprecated `space(0.25)`
+   * Common styles for form inputs & buttons, separated by size.
+   * Should be used to ensure consistent sizing among form elements.
    */
-  '2xs': '2px',
-  /**
-   * Equivalent to deprecated `space(0.5)`
-   */
-  xs: '4px',
-  /**
-   * Equivalent to deprecated `space(0.75)`
-   */
-  sm: '6px',
-  /**
-   * Equivalent to deprecated `space(1)`
-   */
-  md: '8px',
-  /**
-   * Equivalent to deprecated `space(1.5)`
-   */
-  lg: '12px',
-  /**
-   * Equivalent to deprecated `space(2)`
-   */
-  xl: '16px',
-  /**
-   * Equivalent to deprecated `space(3)` (was `20px`)
-   */
-  '2xl': '24px',
-  /**
-   * Equivalent to deprecated `space(4)` (was `30px`)
-   */
-  '3xl': '32px',
-} as const;
+  form: {
+    md: {
+      height: '36px',
+      minHeight: '36px',
+      fontSize: '0.875rem',
+      lineHeight: '1rem',
+      paddingLeft: 16,
+      paddingRight: 16,
+      paddingTop: 12,
+      paddingBottom: 12,
+      borderRadius: baseLightTheme.radius.lg,
+    },
+    sm: {
+      height: '32px',
+      minHeight: '32px',
+      fontSize: '0.875rem',
+      lineHeight: '1rem',
+      paddingLeft: 12,
+      paddingRight: 12,
+      paddingTop: 8,
+      paddingBottom: 8,
+      borderRadius: baseLightTheme.radius.md,
+    },
+    xs: {
+      height: '28px',
+      minHeight: '28px',
+      fontSize: '0.75rem',
+      lineHeight: '1rem',
+      paddingLeft: 8,
+      paddingRight: 8,
+      paddingTop: 6,
+      paddingBottom: 6,
+      borderRadius: baseLightTheme.radius.sm,
+    },
+  },
+};
 
 /**
  * Values shared between light and dark theme
  */
 const commonTheme = {
-  breakpoints,
-
-  space,
   motion: generateMotion(),
-
-  // Icons
-  iconSizes,
-  iconDirections: iconDirectionToAngle,
 
   // Try to keep these ordered plz
   zIndex: {
@@ -609,388 +555,380 @@ const commonTheme = {
     },
   },
 
-  borderRadius: '6px',
-  fontSize: {
-    xs: '11px',
-    sm: '12px',
-    md: '14px',
-    lg: '16px',
-    xl: '18px',
-    '2xl': '20px',
-  } satisfies Record<'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl', string>,
-
-  fontWeight: {
-    normal: 400 as const,
-    bold: 600 as const,
-  },
-
-  text: {
-    family: "'Rubik', 'Avenir Next', sans-serif",
-    familyMono: "'Roboto Mono', Monaco, Consolas, 'Courier New', monospace",
-    lineHeightHeading: 1.2,
-    lineHeightBody: 1.4,
-  },
+  ...legacyTypography,
+  ...typography,
+  ...formTheme,
 };
 
 export type Color = keyof ReturnType<typeof deprecatedColorMappings>;
-export type IconSize = keyof typeof iconSizes;
 type Aliases = typeof lightAliases;
+/**
+ * Do not use this type. Use direct colors access via theme.colors or encapsulate
+ * colors into human readable variants that signify the color's purpose.
+ * @deprecated
+ */
 export type ColorOrAlias = keyof Aliases | Color;
-export interface SentryTheme extends Omit<typeof lightThemeDefinition, 'chart'> {
+export interface SentryTheme
+  extends Omit<typeof lightThemeDefinition, 'chart' | 'tokens'> {
   chart: {
     colors: typeof CHART_PALETTE_LIGHT | typeof CHART_PALETTE_DARK;
     getColorPalette: ReturnType<typeof makeChartColorPalette>;
     neutral: string;
   };
+  tokens: TokensWithLegacy;
 }
 
+const ccl = color.categorical.light;
+
 const CHART_PALETTE_LIGHT = [
-  ['#7553FF'],
-  ['#7553FF', '#3A1873'],
-  ['#7553FF', '#3A1873', '#F0369A'],
-  ['#7553FF', '#3A1873', '#F0369A', '#FF9838'],
-  ['#7553FF', '#3A1873', '#F0369A', '#FF9838', '#FFD00E'],
-  ['#7553FF', '#3A1873', '#F0369A', '#FF9838', '#FFD00E', '#67C800'],
-  ['#7553FF', '#5533B2', '#3A1873', '#F0369A', '#FF9838', '#FFD00E', '#67C800'],
+  [ccl.blurple],
+  [ccl.blurple, ccl.indigo],
+  [ccl.blurple, ccl.indigo, ccl.pink],
+  [ccl.blurple, ccl.indigo, ccl.pink, ccl.orange],
+  [ccl.blurple, ccl.indigo, ccl.pink, ccl.orange, ccl.yellow],
+  [ccl.blurple, ccl.indigo, ccl.pink, ccl.orange, ccl.yellow, ccl.green],
+  [ccl.blurple, ccl.purple, ccl.indigo, ccl.pink, ccl.orange, ccl.yellow, ccl.green],
   [
-    '#7553FF',
-    '#5533B2',
-    '#3A1873',
-    '#7C2282',
-    '#F0369A',
-    '#FF9838',
-    '#FFD00E',
-    '#67C800',
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.pink,
+    ccl.orange,
+    ccl.yellow,
+    ccl.green,
   ],
   [
-    '#7553FF',
-    '#5533B2',
-    '#3A1873',
-    '#7C2282',
-    '#B82D90',
-    '#F0369A',
-    '#FF9838',
-    '#FFD00E',
-    '#67C800',
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
+    ccl.orange,
+    ccl.yellow,
+    ccl.green,
   ],
   [
-    '#7553FF',
-    '#5533B2',
-    '#3A1873',
-    '#7C2282',
-    '#B82D90',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#67C800',
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
+    ccl.salmon,
+    ccl.orange,
+    ccl.yellow,
+    ccl.green,
   ],
   [
-    '#7553FF',
-    '#5533B2',
-    '#3A1873',
-    '#7C2282',
-    '#B82D90',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#BACE05',
-    '#67C800',
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
+    ccl.salmon,
+    ccl.orange,
+    ccl.yellow,
+    ccl.lime,
+    ccl.green,
   ],
   [
-    '#7553FF',
-    '#5533B2',
-    '#3A1873',
-    '#7C2282',
-    '#B82D90',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#BACE05',
-    '#67C800',
-    '#7553FF',
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
+    ccl.salmon,
+    ccl.orange,
+    ccl.yellow,
+    ccl.lime,
+    ccl.green,
+    ccl.blurple,
   ],
   [
-    '#7553FF',
-    '#5533B2',
-    '#3A1873',
-    '#7C2282',
-    '#B82D90',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#BACE05',
-    '#67C800',
-    '#7553FF',
-    '#5533B2',
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
+    ccl.salmon,
+    ccl.orange,
+    ccl.yellow,
+    ccl.lime,
+    ccl.green,
+    ccl.blurple,
+    ccl.purple,
   ],
   [
-    '#7553FF',
-    '#5533B2',
-    '#3A1873',
-    '#7C2282',
-    '#B82D90',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#BACE05',
-    '#67C800',
-    '#7553FF',
-    '#5533B2',
-    '#3A1873',
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
+    ccl.salmon,
+    ccl.orange,
+    ccl.yellow,
+    ccl.lime,
+    ccl.green,
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
   ],
   [
-    '#7553FF',
-    '#5533B2',
-    '#3A1873',
-    '#7C2282',
-    '#B82D90',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#BACE05',
-    '#67C800',
-    '#7553FF',
-    '#5533B2',
-    '#3A1873',
-    '#7C2282',
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
+    ccl.salmon,
+    ccl.orange,
+    ccl.yellow,
+    ccl.lime,
+    ccl.green,
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
   ],
   [
-    '#7553FF',
-    '#5533B2',
-    '#3A1873',
-    '#7C2282',
-    '#B82D90',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#BACE05',
-    '#67C800',
-    '#7553FF',
-    '#5533B2',
-    '#3A1873',
-    '#7C2282',
-    '#B82D90',
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
+    ccl.salmon,
+    ccl.orange,
+    ccl.yellow,
+    ccl.lime,
+    ccl.green,
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
   ],
   [
-    '#7553FF',
-    '#5533B2',
-    '#3A1873',
-    '#7C2282',
-    '#B82D90',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#BACE05',
-    '#67C800',
-    '#7553FF',
-    '#5533B2',
-    '#3A1873',
-    '#7C2282',
-    '#B82D90',
-    '#F0369A',
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
+    ccl.salmon,
+    ccl.orange,
+    ccl.yellow,
+    ccl.lime,
+    ccl.green,
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
   ],
   [
-    '#7553FF',
-    '#5533B2',
-    '#3A1873',
-    '#7C2282',
-    '#B82D90',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#BACE05',
-    '#67C800',
-    '#7553FF',
-    '#5533B2',
-    '#3A1873',
-    '#7C2282',
-    '#B82D90',
-    '#F0369A',
-    '#FA6769',
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
+    ccl.salmon,
+    ccl.orange,
+    ccl.yellow,
+    ccl.lime,
+    ccl.green,
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
+    ccl.salmon,
   ],
 ] as const;
 
+const ccd = color.categorical.dark;
+
 const CHART_PALETTE_DARK = [
-  ['#7553FF'],
-  ['#7553FF', '#5D3EB2'],
-  ['#7553FF', '#5D3EB2', '#F0369A'],
-  ['#7553FF', '#5D3EB2', '#F0369A', '#FF9838'],
-  ['#7553FF', '#5D3EB2', '#F0369A', '#FF9838', '#FFD00E'],
-  ['#7553FF', '#5D3EB2', '#F0369A', '#FF9838', '#FFD00E', '#67C800'],
-  ['#7553FF', '#5D3EB2', '#50219C', '#F0369A', '#FF9838', '#FFD00E', '#67C800'],
+  [ccd.blurple],
+  [ccd.blurple, ccd.purple],
+  [ccd.blurple, ccd.purple, ccd.pink],
+  [ccd.blurple, ccd.purple, ccd.pink, ccd.orange],
+  [ccd.blurple, ccd.purple, ccd.pink, ccd.orange, ccd.yellow],
+  [ccd.blurple, ccd.purple, ccd.pink, ccd.orange, ccd.yellow, ccd.green],
+  [ccd.blurple, ccd.purple, ccd.indigo, ccd.pink, ccd.orange, ccd.yellow, ccd.green],
   [
-    '#7553FF',
-    '#5D3EB2',
-    '#50219C',
-    '#7C2282',
-    '#F0369A',
-    '#FF9838',
-    '#FFD00E',
-    '#67C800',
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.pink,
+    ccd.orange,
+    ccd.yellow,
+    ccd.green,
   ],
   [
-    '#7553FF',
-    '#5D3EB2',
-    '#50219C',
-    '#7C2282',
-    '#B0009C',
-    '#F0369A',
-    '#FF9838',
-    '#FFD00E',
-    '#67C800',
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
+    ccd.orange,
+    ccd.yellow,
+    ccd.green,
   ],
   [
-    '#7553FF',
-    '#5D3EB2',
-    '#50219C',
-    '#7C2282',
-    '#B0009C',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#67C800',
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
+    ccd.salmon,
+    ccd.orange,
+    ccd.yellow,
+    ccd.green,
   ],
   [
-    '#7553FF',
-    '#5D3EB2',
-    '#50219C',
-    '#7C2282',
-    '#B0009C',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#BACE05',
-    '#67C800',
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
+    ccd.salmon,
+    ccd.orange,
+    ccd.yellow,
+    ccd.lime,
+    ccd.green,
   ],
   [
-    '#7553FF',
-    '#5D3EB2',
-    '#50219C',
-    '#7C2282',
-    '#B0009C',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#BACE05',
-    '#67C800',
-    '#7553FF',
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
+    ccd.salmon,
+    ccd.orange,
+    ccd.yellow,
+    ccd.lime,
+    ccd.green,
+    ccd.blurple,
   ],
   [
-    '#7553FF',
-    '#5D3EB2',
-    '#50219C',
-    '#7C2282',
-    '#B0009C',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#BACE05',
-    '#67C800',
-    '#7553FF',
-    '#5D3EB2',
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
+    ccd.salmon,
+    ccd.orange,
+    ccd.yellow,
+    ccd.lime,
+    ccd.green,
+    ccd.blurple,
+    ccd.purple,
   ],
   [
-    '#7553FF',
-    '#5D3EB2',
-    '#50219C',
-    '#7C2282',
-    '#B0009C',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#BACE05',
-    '#67C800',
-    '#7553FF',
-    '#5D3EB2',
-    '#50219C',
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
+    ccd.salmon,
+    ccd.orange,
+    ccd.yellow,
+    ccd.lime,
+    ccd.green,
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
   ],
   [
-    '#7553FF',
-    '#5D3EB2',
-    '#50219C',
-    '#7C2282',
-    '#B0009C',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#BACE05',
-    '#67C800',
-    '#7553FF',
-    '#5D3EB2',
-    '#50219C',
-    '#7C2282',
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
+    ccd.salmon,
+    ccd.orange,
+    ccd.yellow,
+    ccd.lime,
+    ccd.green,
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
   ],
   [
-    '#7553FF',
-    '#5D3EB2',
-    '#50219C',
-    '#7C2282',
-    '#B0009C',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#BACE05',
-    '#67C800',
-    '#7553FF',
-    '#5D3EB2',
-    '#50219C',
-    '#7C2282',
-    '#B0009C',
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
+    ccd.salmon,
+    ccd.orange,
+    ccd.yellow,
+    ccd.lime,
+    ccd.green,
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
   ],
   [
-    '#7553FF',
-    '#5D3EB2',
-    '#50219C',
-    '#7C2282',
-    '#B0009C',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#BACE05',
-    '#67C800',
-    '#7553FF',
-    '#5D3EB2',
-    '#50219C',
-    '#7C2282',
-    '#B0009C',
-    '#F0369A',
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
+    ccd.salmon,
+    ccd.orange,
+    ccd.yellow,
+    ccd.lime,
+    ccd.green,
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
   ],
   [
-    '#7553FF',
-    '#5D3EB2',
-    '#50219C',
-    '#7C2282',
-    '#B0009C',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#BACE05',
-    '#67C800',
-    '#7553FF',
-    '#5D3EB2',
-    '#50219C',
-    '#7C2282',
-    '#B0009C',
-    '#F0369A',
-    '#FA6769',
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
+    ccd.salmon,
+    ccd.orange,
+    ccd.yellow,
+    ccd.lime,
+    ccd.green,
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
+    ccd.salmon,
   ],
 ] as const;
 
@@ -1025,292 +963,141 @@ function makeChartColorPalette<T extends ChartColorPalette>(
   };
 }
 
-const formTheme: FormTheme = {
-  /**
-   * Common styles for form inputs & buttons, separated by size.
-   * Should be used to ensure consistent sizing among form elements.
-   */
-  form: {
-    md: {
-      height: '36px',
-      minHeight: '36px',
-      fontSize: '0.875rem',
-      lineHeight: '1rem',
-    },
-    sm: {
-      height: '32px',
-      minHeight: '32px',
-      fontSize: '0.875rem',
-      lineHeight: '1rem',
-    },
-    xs: {
-      height: '28px',
-      minHeight: '28px',
-      fontSize: '0.75rem',
-      lineHeight: '1rem',
-    },
-  },
-
-  /**
-   * Padding for form inputs
-   * @TODO(jonasbadalic) This should exist on form component
-   */
-  formPadding: {
-    md: {
-      paddingLeft: 16,
-      paddingRight: 16,
-      paddingTop: 12,
-      paddingBottom: 12,
-    },
-    sm: {
-      paddingLeft: 12,
-      paddingRight: 12,
-      paddingTop: 8,
-      paddingBottom: 8,
-    },
-    xs: {
-      paddingLeft: 8,
-      paddingRight: 8,
-      paddingTop: 6,
-      paddingBottom: 6,
-    },
-  },
-  formRadius: {
-    md: {
-      borderRadius: '8px',
-    },
-    sm: {
-      borderRadius: '6px',
-    },
-    xs: {
-      borderRadius: '5px',
-    },
-  },
-  formSpacing: {
-    md: '8px',
-    sm: '6px',
-    xs: '4px',
-  },
-};
-
-// @TODO(jonasbadalic): eventually, we should port component usage to these values
-function generateChonkTokens(colorScheme: typeof lightColors) {
-  return {
-    content: {
-      primary: colorScheme.gray800,
-      muted: colorScheme.gray500,
-      accent: colorScheme.blue500,
-      promotion: colorScheme.pink500,
-      danger: colorScheme.red500,
-      warning: colorScheme.yellow500,
-      success: colorScheme.green500,
-    },
-    graphics: {
-      muted: colorScheme.gray400,
-      accent: colorScheme.blue400,
-      promotion: colorScheme.pink400,
-      danger: colorScheme.red400,
-      warning: colorScheme.yellow400,
-      success: colorScheme.green400,
-    },
-    background: {
-      primary: colorScheme.surface500,
-      secondary: colorScheme.surface400,
-      tertiary: colorScheme.surface300,
-    },
-    border: {
-      primary: colorScheme.surface100,
-      muted: colorScheme.surface200,
-      accent: colorScheme.blue400,
-      promotion: colorScheme.pink400,
-      danger: colorScheme.red400,
-      warning: colorScheme.yellow400,
-      success: colorScheme.green400,
-    },
-    component: {
-      link: {
-        muted: {
-          default: colorScheme.gray500,
-          hover: colorScheme.gray600,
-          active: colorScheme.gray700,
-        },
-        accent: {
-          default: colorScheme.blue500,
-          hover: colorScheme.blue600,
-          active: colorScheme.blue700,
-        },
-        promotion: {
-          default: colorScheme.pink500,
-          hover: colorScheme.pink600,
-          active: colorScheme.pink700,
-        },
-        danger: {
-          default: colorScheme.red500,
-          hover: colorScheme.red600,
-          active: colorScheme.red700,
-        },
-        warning: {
-          default: colorScheme.yellow500,
-          hover: colorScheme.yellow600,
-          active: colorScheme.yellow700,
-        },
-        success: {
-          default: colorScheme.green500,
-          hover: colorScheme.green600,
-          active: colorScheme.green700,
-        },
-      },
-    },
-  };
-}
-
-const radius = {
-  '0': '0px',
-  '2xs': '2px',
-  xs: '3px',
-  sm: '4px',
-  md: '6px',
-  lg: '8px',
-  xl: '12px',
-  '2xl': '16px',
-  full: 'calc(infinity*1px)',
-} as const;
-
 const lightColors = {
-  black: '#181423',
-  white: '#FFFFFF',
+  black: color.black,
+  white: color.white,
 
-  surface500: '#FFFFFF', // background.primary
-  surface400: '#F7F6FB', // background.secondary
-  surface300: '#F1EEF9', // background.tertiary
-  surface200: '#EAE7F6', // border.muted
-  surface100: '#DFDBEF', // border.primary
+  surface500: color.white, // background.primary
+  surface400: color.neutral.light.opaque100, // background.secondary
+  surface300: color.neutral.light.opaque200, // background.tertiary
+  surface200: color.neutral.light.opaque300, // border.muted
+  surface100: color.neutral.light.opaque400, // border.primary
 
-  gray800: '#181423', // content.primary
-  gray700: '#3B434E', // ⚠ link.muted.active only
-  gray600: '#48515B', // ⚠ link.muted.hover only
-  gray500: '#57606B', // content.secondary, link.muted.default
-  gray400: '#707C89', // graphics.muted
-  gray300: 'rgba(112, 124, 137, 0.12)',
-  gray200: 'rgba(112, 124, 137, 0.09)',
-  gray100: 'rgba(112, 124, 137, 0.05)',
+  gray800: color.neutral.light.opaque1400, // content.primary
+  gray700: color.neutral.light.opaque1300, // ⚠ link.muted.active only
+  gray600: color.neutral.light.opaque1200, // ⚠ link.muted.hover only
+  gray500: color.neutral.light.opaque1100, // content.secondary, link.muted.default
+  gray400: color.neutral.light.opaque1000, // graphics.muted
+  gray300: color.neutral.light.transparent400,
+  gray200: color.neutral.light.transparent300,
+  gray100: color.neutral.light.transparent200,
 
-  blue700: '#4E09BC', // ⚠ link.accent.active only
-  blue600: '#5D0CDC', // ⚠ link.accent.hover only
-  blue500: '#6C02FF', // content.accent, link.accent.default
-  blue400: '#8466FF', // graphics.muted, border.accent
-  blue300: 'rgba(132, 102, 255, 0.13)',
-  blue200: 'rgba(132, 102, 255, 0.09)',
-  blue100: 'rgba(132, 102, 255, 0.05)',
+  blue700: color.blue.light.opaque1300, // ⚠ link.accent.active only
+  blue600: color.blue.light.opaque1200, // ⚠ link.accent.hover only
+  blue500: color.blue.light.opaque1100, // content.accent, link.accent.default
+  blue400: color.blue.light.opaque1000, // graphics.muted, border.accent
+  blue300: color.blue.light.transparent400,
+  blue200: color.blue.light.transparent300,
+  blue100: color.blue.light.transparent200,
 
-  pink700: '#A11B6C', // ⚠ link.promotion.active only
-  pink600: '#B60979', // ⚠ link.promotion.hover only
-  pink500: '#D5008D', // content.promotion, link.promotion.default
-  pink400: '#FF4EB3', // graphics.promotion, border.promotion
-  pink300: 'rgba(255, 78, 179, 0.17)',
-  pink200: 'rgba(255, 78, 179, 0.12)',
-  pink100: 'rgba(255, 78, 179, 0.06)',
+  pink700: color.pink.light.opaque1300, // ⚠ link.promotion.active only
+  pink600: color.pink.light.opaque1200, // ⚠ link.promotion.hover only
+  pink500: color.pink.light.opaque1100, // content.promotion, link.promotion.default
+  pink400: color.pink.light.opaque1000, // graphics.promotion, border.promotion
+  pink300: color.pink.light.transparent400,
+  pink200: color.pink.light.transparent300,
+  pink100: color.pink.light.transparent200,
 
-  red700: '#9C0819', // ⚠ link.danger.active only
-  red600: '#B1001B', // ⚠ link.danger.hover only
-  red500: '#CB0020', // ⚠ content.danger, link.danger.default
-  red400: '#FF002B', // graphics.danger, border.danger
-  red300: 'rgba(255, 0, 43, 0.10)',
-  red200: 'rgba(255, 0, 43, 0.08)',
-  red100: 'rgba(255, 0, 43, 0.04)',
+  red700: color.red.light.opaque1300, // ⚠ link.danger.active only
+  red600: color.red.light.opaque1200, // ⚠ link.danger.hover only
+  red500: color.red.light.opaque1100, // ⚠ content.danger, link.danger.default
+  red400: color.red.light.opaque1000, // graphics.danger, border.danger
+  red300: color.red.light.transparent400,
+  red200: color.red.light.transparent300,
+  red100: color.red.light.transparent200,
 
-  yellow700: '#AD4A0D', // ⚠ link.warning.active only
-  yellow600: '#C55200', // ⚠ link.warning.hover only
-  yellow500: '#E66000', // content.warning, link.warning.default
-  yellow400: '#F3B01B', // graphics.warning, border.warning
-  yellow300: 'rgba(243, 176, 27, 0.24)',
-  yellow200: 'rgba(243, 176, 27, 0.17)',
-  yellow100: 'rgba(243, 176, 27, 0.07)',
+  yellow700: color.yellow.light.opaque1300, // ⚠ link.warning.active only
+  yellow600: color.yellow.light.opaque1200, // ⚠ link.warning.hover only
+  yellow500: color.yellow.light.opaque1100, // content.warning, link.warning.default
+  yellow400: color.yellow.light.opaque800, // graphics.warning, border.warning
+  yellow300: color.yellow.light.transparent400,
+  yellow200: color.yellow.light.transparent300,
+  yellow100: color.yellow.light.transparent200,
 
-  green700: '#01651F', // ⚠ link.success.active only
-  green600: '#017526', // ⚠ link.success.hover only
-  green500: '#06892F', // content.success, link.success.default
-  green400: '#06AC3D', // graphics.success, border.success
-  green300: 'rgba(6, 172, 61, 0.10)',
-  green200: 'rgba(6, 172, 61, 0.07)',
-  green100: 'rgba(6, 172, 61, 0.04)',
+  green700: color.green.light.opaque1300, // ⚠ link.success.active only
+  green600: color.green.light.opaque1200, // ⚠ link.success.hover only
+  green500: color.green.light.opaque1100, // content.success, link.success.default
+  green400: color.green.light.opaque1000, // graphics.success, border.success
+  green300: color.green.light.transparent400,
+  green200: color.green.light.transparent300,
+  green100: color.green.light.transparent200,
 
   // Currently used for avatars, badges, booleans, buttons, checkboxes, radio buttons
   chonk: {
-    blue400: '#7553FF',
-    pink400: '#FF70BC',
-    red400: '#E50045',
-    yellow400: '#FFD00E',
-    green400: '#00F261',
+    blue400: color.blue.light.opaque1000,
+    pink400: color.pink.light.opaque800,
+    red400: color.red.light.opaque1000,
+    yellow400: color.yellow.light.opaque600,
+    green400: color.green.light.opaque800,
   },
 };
 
 const darkColors: Colors = {
-  black: '#181423',
-  white: '#FFFFFF',
+  black: color.black,
+  white: color.white,
 
-  surface500: '#272433', // background.primary
-  surface400: '#231E2F', // background.secondary
-  surface300: '#191621', // background.teritary
-  surface200: '#0D071A', // border.muted
-  surface100: '#000000', // border.primary
+  surface500: color.neutral.dark.opaque500, // background.primary
+  surface400: color.neutral.dark.opaque400, // background.secondary
+  surface300: color.neutral.dark.opaque300, // background.teritary
+  surface200: color.neutral.dark.opaque200, // border.muted
+  surface100: color.neutral.dark.opaque100, // border.primary
 
-  gray800: '#F6F5FA', // content.primary
-  gray700: '#C6C0D6', // ⚠ link.muted.active only
-  gray600: '#B3ADC3', // ⚠ link.muted.hover only
-  gray500: '#A39EB3', // content.secondary, link.muted.default
-  gray400: '#6F6F78', // // graphics.muted
-  gray300: 'rgba(110, 110, 119, 0.38)',
-  gray200: 'rgba(110, 110, 119, 0.28)',
-  gray100: 'rgba(110, 110, 119, 0.20)',
+  gray800: color.neutral.dark.opaque1500, // content.primary
+  gray700: color.neutral.dark.opaque1400, // ⚠ link.muted.active only
+  gray600: color.neutral.dark.opaque1300, // ⚠ link.muted.hover only
+  gray500: color.neutral.dark.opaque1200, // content.secondary, link.muted.default
+  gray400: color.neutral.dark.opaque1100, // // graphics.muted
+  gray300: color.neutral.dark.transparent400,
+  gray200: color.neutral.dark.transparent300,
+  gray100: color.neutral.dark.transparent200,
 
-  blue700: '#BBB6FC', // ⚠ link.accent.active only
-  blue600: '#A89EFC', // ⚠ link.accent.hover only
-  blue500: '#9B8DFF', // content.accent, link.accent.default
-  blue400: '#8970FF', // // graphics.accent, border.accent
-  blue300: 'rgba(137, 112, 255, 0.26)',
-  blue200: 'rgba(137, 112, 255, 0.20)',
-  blue100: 'rgba(137, 112, 255, 0.14)',
+  blue700: color.blue.dark.opaque1400, // ⚠ link.accent.active only
+  blue600: color.blue.dark.opaque1300, // ⚠ link.accent.hover only
+  blue500: color.blue.dark.opaque1200, // content.accent, link.accent.default
+  blue400: color.blue.dark.opaque1100, // // graphics.accent, border.accent
+  blue300: color.blue.dark.transparent600,
+  blue200: color.blue.dark.transparent500,
+  blue100: color.blue.dark.transparent400,
 
-  pink700: '#FFC4DF', // ⚠ link.promotion.active only
-  pink600: '#FFA3CF', // ⚠ link.promotion.hover only
-  pink500: '#FF8BC6', // content.promotion, link.promotion.default
-  pink400: '#FF5CB6', // // graphics.promotion, border.promotion
-  pink300: 'rgba(255, 92, 182, 0.20)',
-  pink200: 'rgba(255, 92, 182, 0.15)',
-  pink100: 'rgba(255, 92, 182, 0.11)',
+  pink700: color.pink.dark.opaque1400, // ⚠ link.promotion.active only
+  pink600: color.pink.dark.opaque1300, // ⚠ link.promotion.hover only
+  pink500: color.pink.dark.opaque1200, // content.promotion, link.promotion.default
+  pink400: color.pink.dark.opaque1100, // // graphics.promotion, border.promotion
+  pink300: color.pink.dark.transparent400,
+  pink200: color.pink.dark.transparent300,
+  pink100: color.pink.dark.transparent200,
 
-  red700: '#FFB0A8', // ⚠ link.danger.active only
-  red600: '#FF8A82', // ⚠ link.danger.hover only
-  red500: '#FF6B65', // content.danger, link.danger.default
-  red400: '#FF333C', // // graphics.danger, border.danger
-  red300: 'rgba(255, 51, 60, 0.26)',
-  red200: 'rgba(255, 51, 60, 0.20)',
-  red100: 'rgba(255, 51, 60, 0.16)',
+  red700: color.red.dark.opaque1400, // ⚠ link.danger.active only
+  red600: color.red.dark.opaque1300, // ⚠ link.danger.hover only
+  red500: color.red.dark.opaque1200, // content.danger, link.danger.default
+  red400: color.red.dark.opaque1100, // // graphics.danger, border.danger
+  red300: color.red.dark.transparent400,
+  red200: color.red.dark.transparent300,
+  red100: color.red.dark.transparent200,
 
-  yellow700: '#FCEBB7', // ⚠ link.warning.active only
-  yellow600: '#F8DC86', // ⚠ link.warning.hover only
-  yellow500: '#FDCF20', // content.warning, link.warning.default
-  yellow400: '#F7B31C', // graphics.warning, border.warning
-  yellow300: 'rgba(247, 179, 28, 0.17)',
-  yellow200: 'rgba(247, 179, 28, 0.13)',
-  yellow100: 'rgba(247, 179, 28, 0.09)',
+  yellow700: color.yellow.dark.opaque1500, // ⚠ link.warning.active only
+  yellow600: color.yellow.dark.opaque1400, // ⚠ link.warning.hover only
+  yellow500: color.yellow.dark.opaque1300, // content.warning, link.warning.default
+  yellow400: color.yellow.dark.opaque1200, // graphics.warning, border.warning
+  yellow300: color.yellow.dark.transparent400,
+  yellow200: color.yellow.dark.transparent300,
+  yellow100: color.yellow.dark.transparent200,
 
-  green700: '#4AE969', // ⚠ link.success.active only
-  green600: '#32D859', // ⚠ link.success.hover only
-  green500: '#0CC848', // content.success, link.success.default
-  green400: '#09B340', // graphics.success, border.success
-  green300: 'rgba(9, 179, 64, 0.33)',
-  green200: 'rgba(9, 179, 64, 0.26)',
-  green100: 'rgba(9, 179, 64, 0.20)',
+  green700: color.green.dark.opaque1500, // ⚠ link.success.active only
+  green600: color.green.dark.opaque1400, // ⚠ link.success.hover only
+  green500: color.green.dark.opaque1300, // content.success, link.success.default
+  green400: color.green.dark.opaque1200, // graphics.success, border.success
+  green300: color.green.dark.transparent400,
+  green200: color.green.dark.transparent300,
+  green100: color.green.dark.transparent200,
 
   // Currently used for avatars, badges, booleans, buttons, checkboxes, radio buttons
   chonk: {
-    blue400: '#7553FF',
-    pink400: '#FF70BC',
-    red400: '#E50045',
-    yellow400: '#FFD00E',
-    green400: '#00F261',
+    blue400: color.blue.dark.opaque900,
+    pink400: color.pink.dark.opaque1000,
+    red400: color.red.dark.opaque900,
+    yellow400: color.yellow.dark.opaque1200,
+    green400: color.green.dark.opaque1100,
   },
 };
 
@@ -1375,39 +1162,16 @@ const darkShadows = {
   dropShadowHeavyTop: '0 -4px 24px rgba(10, 8, 12, 0.36)',
 };
 
-const generateAliases = (
-  tokens: ReturnType<typeof generateChonkTokens>,
-  colors: typeof lightColors
-) => ({
-  /**
-   * Heading text color
-   */
-  headingColor: tokens.content.primary,
-
-  /**
-   * Primary text color
-   */
-  textColor: tokens.content.primary,
-
+const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
   /**
    * Text that should not have as much emphasis
    */
-  subText: tokens.content.muted,
-
-  /**
-   * Background for the main content area of a page?
-   */
-  bodyBackground: tokens.background.secondary,
+  subText: tokens.content.secondary,
 
   /**
    * Primary background color
    */
   background: tokens.background.primary,
-
-  /**
-   * Elevated background color
-   */
-  backgroundElevated: tokens.background.primary,
 
   /**
    * Secondary background color used as a slight contrast against primary background
@@ -1428,44 +1192,37 @@ const generateAliases = (
    * Primary border color
    */
   border: tokens.border.primary,
-  translucentBorder: tokens.border.primary,
+  translucentBorder: tokens.border.transparent.neutral.muted,
 
   /**
    * Inner borders, e.g. borders inside of a grid
    */
-  innerBorder: tokens.border.muted,
-  translucentInnerBorder: tokens.border.muted,
+  innerBorder: tokens.border.secondary,
+  translucentInnerBorder: tokens.border.transparent.neutral.muted,
 
   /**
    * A color that denotes a "success", or something good
    */
   success: tokens.content.success,
   successText: tokens.content.success,
-  // @TODO(jonasbadalic): should this reference a chonk color?
-  successFocus: tokens.border.success, // Not being used
 
   /**
    * A color that denotes an error, or something that is wrong
    */
   error: tokens.content.danger,
   errorText: tokens.content.danger,
-  errorFocus: tokens.border.danger,
 
   /**
    * A color that denotes danger, for dangerous actions like deletion
    */
   danger: tokens.content.danger,
   dangerText: tokens.content.danger,
-  // @TODO(jonasbadalic): should this reference a chonk color?
-  dangerFocus: tokens.border.danger, // Not being used
 
   /**
    * A color that denotes a warning
    */
   warning: tokens.content.warning,
   warningText: tokens.content.warning,
-  // @TODO(jonasbadalic): should this reference a chonk color?
-  warningFocus: tokens.border.warning, // Not being used
 
   /**
    * A color that indicates something is disabled where user can not interact or use
@@ -1486,55 +1243,23 @@ const generateAliases = (
    * Indicates that something is "active" or "selected"
    * NOTE: These are largely used for form elements, which I haven't mocked in ChonkUI
    */
-  active: tokens.component.link.accent.active,
-  activeHover: tokens.component.link.accent.hover,
-  activeText: tokens.component.link.accent.default,
+  active: tokens.interactive.link.accent.active,
+  activeHover: tokens.interactive.link.accent.hover,
+  activeText: tokens.interactive.link.accent.rest,
 
   /**
    * Indicates that something has "focus", which is different than "active" state as it is more temporal
    * and should be a bit subtler than active
    */
-  focus: tokens.border.accent,
-  focusBorder: tokens.border.accent,
+  focus: tokens.border.accent.vibrant,
+  focusBorder: tokens.border.accent.vibrant,
 
   /**
    * Link color indicates that something is clickable
    */
-  linkColor: tokens.component.link.accent.default,
-  linkHoverColor: tokens.component.link.accent.hover,
-  linkUnderline: tokens.component.link.accent.default,
-  linkFocus: tokens.border.accent,
-
-  /**
-   * Form placeholder text color
-   */
-  formPlaceholder: colors.gray300,
-
-  /**
-   *
-   */
-  rowBackground: tokens.background.primary,
-
-  /**
-   * Color of lines that flow across the background of the chart to indicate axes levels
-   * (This should only be used for yAxis)
-   */
-  chartLineColor: colors.gray300,
-
-  /**
-   * Color for chart label text
-   */
-  chartLabel: tokens.content.muted,
-
-  /**
-   * Color for the 'others' series in topEvent charts
-   */
-  chartOther: tokens.content.muted,
-
-  /**
-   * Hover color of the drag handle used in the content slider diff view.
-   */
-  diffSliderDragHandleHover: colors.blue500,
+  linkColor: tokens.interactive.link.accent.rest,
+  linkHoverColor: tokens.interactive.link.accent.hover,
+  linkUnderline: tokens.interactive.link.accent.rest,
 
   /**
    * Default Progressbar color
@@ -1545,45 +1270,10 @@ const generateAliases = (
    * Default Progressbar color
    */
   progressBackground: colors.gray100,
-
-  // @todo(jonasbadalic) should these reference chonk colors?
-  searchTokenBackground: {
-    valid: colors.blue100,
-    validActive: color(colors.blue100).opaquer(1.0).string(),
-    invalid: colors.red100,
-    invalidActive: color(colors.red100).opaquer(0.8).string(),
-    warning: colors.yellow100,
-    warningActive: color(colors.yellow100).opaquer(0.8).string(),
-  },
-
-  /**
-   * Search filter "token" border
-   * NOTE: Not being used anymore in the new Search UI
-   */
-  searchTokenBorder: {
-    valid: colors.blue200,
-    validActive: color(colors.blue200).opaquer(1).string(),
-    invalid: colors.red200,
-    invalidActive: color(colors.red200).opaquer(1).string(),
-    warning: colors.yellow200,
-    warningActive: color(colors.yellow200).opaquer(1).string(),
-  },
 });
 
-const fontSize = {
-  xs: '11px' as const,
-  sm: '12px' as const,
-  md: '14px' as const,
-  lg: '16px' as const,
-  xl: '20px' as const,
-  '2xl': '24px' as const,
-} satisfies Record<'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl', string>;
-
-const lightTokens = generateChonkTokens(lightColors);
-const darkTokens = generateChonkTokens(darkColors);
-
-const lightAliases = generateAliases(lightTokens, lightColors);
-const darkAliases = generateAliases(generateChonkTokens(darkColors), darkColors);
+const lightAliases = generateAliases(baseLightTheme.tokens, lightColors);
+const darkAliases = generateAliases(baseDarkTheme.tokens, darkColors);
 
 const deprecatedColorMappings = (colors: Colors) => ({
   /** @deprecated */
@@ -1593,45 +1283,6 @@ const deprecatedColorMappings = (colors: Colors) => ({
   /** @deprecated */
   get white() {
     return colors.white;
-  },
-
-  /** @deprecated */
-  get lightModeBlack() {
-    return colors.black;
-  },
-  /** @deprecated */
-  get lightModeWhite() {
-    return colors.white;
-  },
-
-  /** @deprecated */
-  get surface100() {
-    return colors.surface200;
-  },
-  /** @deprecated */
-  get surface200() {
-    return colors.surface300;
-  },
-  /** @deprecated */
-  get surface300() {
-    return colors.surface400;
-  },
-  /** @deprecated */
-  get surface400() {
-    return colors.surface500;
-  },
-  /** @deprecated */
-  get surface500() {
-    return colors.surface500;
-  },
-
-  /** @deprecated */
-  get translucentSurface100() {
-    return colors.surface100;
-  },
-  /** @deprecated */
-  get translucentSurface200() {
-    return colors.surface200;
   },
 
   /** @deprecated */
@@ -1652,15 +1303,6 @@ const deprecatedColorMappings = (colors: Colors) => ({
   },
   /** @deprecated */
   get gray100() {
-    return colors.gray100;
-  },
-
-  /** @deprecated */
-  get translucentGray200() {
-    return colors.gray200;
-  },
-  /** @deprecated */
-  get translucentGray100() {
     return colors.gray100;
   },
 
@@ -1768,18 +1410,15 @@ const deprecatedColorMappings = (colors: Colors) => ({
 });
 
 const lightThemeDefinition = {
-  isChonk: true,
   type: 'light' as 'light' | 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
-  fontSize,
-  ...formTheme,
   ...deprecatedColorMappings(lightColors),
+  ...baseLightTheme,
   ...lightAliases,
   ...lightShadows,
-
-  tokens: lightTokens,
-  radius,
+  // @TODO: remove backwards-compatability shim
+  tokens: withLegacyTokens(baseLightTheme.tokens),
   focusRing: (baseShadow = `0 0 0 0 ${lightAliases.background}`) => ({
     outline: 'none',
     boxShadow: `${baseShadow}, 0 0 0 2px ${lightAliases.focusBorder}`,
@@ -1788,12 +1427,12 @@ const lightThemeDefinition = {
   // @TODO: these colors need to be ported
   ...generateThemeUtils(deprecatedColorMappings(lightColors), lightAliases),
   alert: generateAlertTheme(lightColors, lightAliases),
-  button: generateButtonTheme(lightColors, lightAliases),
+  button: generateButtonTheme(lightColors, lightAliases, baseLightTheme.tokens),
   tag: generateTagTheme(lightColors),
-  level: generateLevelTheme(lightColors),
+  level: generateLevelTheme(baseLightTheme.tokens, 'light'),
 
   chart: {
-    neutral: color(lightColors.gray400).lighten(0.8).toString(),
+    neutral: baseLightTheme.tokens.dataviz.semantic.neutral,
     colors: CHART_PALETTE_LIGHT,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT),
   },
@@ -1804,19 +1443,10 @@ const lightThemeDefinition = {
   ),
   prismDarkVariables: generateThemePrismVariables(
     prismDark,
-    darkAliases.backgroundElevated
+    baseDarkTheme.tokens.background.primary
   ),
 
   colors: lightColors,
-
-  sidebar: {
-    background: lightAliases.background,
-    scrollbarThumbColor: '#A0A0A0',
-    scrollbarColorTrack: 'rgba(45,26,50,92.42)', // end of the gradient which is used for background
-    gradient: lightAliases.background,
-    border: lightAliases.border,
-    superuser: '#880808',
-  },
 };
 
 /**
@@ -1828,18 +1458,16 @@ export const lightTheme: SentryTheme = lightThemeDefinition;
  * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
  */
 export const darkTheme: SentryTheme = {
-  isChonk: true,
   type: 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
-  fontSize,
-  ...formTheme,
+
   ...deprecatedColorMappings(darkColors),
+  ...baseDarkTheme,
   ...darkAliases,
   ...darkShadows,
-  tokens: darkTokens,
-
-  radius,
+  // @TODO: remove backwards-compatability shim
+  tokens: withLegacyTokens(baseDarkTheme.tokens),
   focusRing: (baseShadow = `0 0 0 0 ${darkAliases.background}`) => ({
     outline: 'none',
     boxShadow: `${baseShadow}, 0 0 0 2px ${darkAliases.focusBorder}`,
@@ -1848,12 +1476,12 @@ export const darkTheme: SentryTheme = {
   // @TODO: these colors need to be ported
   ...generateThemeUtils(deprecatedColorMappings(darkColors), darkAliases),
   alert: generateAlertTheme(darkColors, darkAliases),
-  button: generateButtonTheme(darkColors, darkAliases),
+  button: generateButtonTheme(darkColors, darkAliases, baseDarkTheme.tokens),
   tag: generateTagTheme(darkColors),
-  level: generateLevelTheme(darkColors),
+  level: generateLevelTheme(baseDarkTheme.tokens, 'dark'),
 
   chart: {
-    neutral: color(darkColors.gray400).darken(0.35).toString(),
+    neutral: baseDarkTheme.tokens.dataviz.semantic.neutral,
     colors: CHART_PALETTE_DARK,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
   },
@@ -1861,19 +1489,10 @@ export const darkTheme: SentryTheme = {
   prismVariables: generateThemePrismVariables(prismDark, darkAliases.backgroundSecondary),
   prismDarkVariables: generateThemePrismVariables(
     prismDark,
-    darkAliases.backgroundElevated
+    baseDarkTheme.tokens.background.primary
   ),
 
   colors: darkColors,
-
-  sidebar: {
-    background: darkAliases.background,
-    scrollbarThumbColor: '#A0A0A0',
-    scrollbarColorTrack: 'rgba(45,26,50,92.42)', // end of the gradient which is used for background
-    gradient: darkAliases.background,
-    border: darkAliases.border,
-    superuser: '#880808',
-  },
 };
 
 declare module '@emotion/react' {
@@ -1890,8 +1509,3 @@ export type StrictCSSObject = {
   [key: `> ${string}:last-child`]: StrictCSSObject; // Allow some nested selectors
   [key: `> ${string}:first-child`]: StrictCSSObject; // Allow some nested selectors
 }>;
-
-// tkdodo: kept for backwards compatibility, to be deleted
-
-export const chonkStyled = styled;
-export const useChonkTheme = useTheme;

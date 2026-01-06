@@ -122,8 +122,8 @@ const Wrapper = styled('div')`
 `;
 
 const Table = styled('table')`
-  background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
+  background: ${p => p.theme.tokens.background.primary};
+  border-radius: ${p => p.theme.radius.md};
   border-collapse: separate;
   border: 1px ${p => 'solid ' + p.theme.border};
   box-shadow: ${p => p.theme.dropShadowMedium};
@@ -136,7 +136,7 @@ const HeaderCell = styled('th')`
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: 600;
   text-transform: uppercase;
-  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+  border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
   background: ${p => p.theme.backgroundSecondary};
   padding: ${space(1)} ${space(2)};
 `;

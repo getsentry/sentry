@@ -86,6 +86,24 @@ export type Repository = {
   url: string;
 };
 
+type CodeReviewTrigger = 'on_command_phrase' | 'on_new_commit' | 'on_ready_for_review';
+
+/**
+ * Available only when calling API with `expand=settings` query parameter
+ */
+export interface RepositoryWithSettings extends Repository {
+  settings: null | {
+    codeReviewTriggers: CodeReviewTrigger[];
+    enabledCodeReview: boolean;
+  };
+}
+
+export const DEFAULT_CODE_REVIEW_TRIGGERS: CodeReviewTrigger[] = [
+  'on_command_phrase',
+  'on_ready_for_review',
+  'on_new_commit',
+];
+
 /**
  * Integration Repositories from OrganizationIntegrationReposEndpoint
  */
@@ -347,7 +365,14 @@ export type DocIntegration = {
 };
 
 type IntegrationAspects = {
-  alerts?: Array<AlertProps & {text: string; icon?: string | React.ReactNode}>;
+  // This was previously passed to us
+  alerts?: Array<
+    unknown & {
+      text: string;
+      icon?: string | React.ReactNode;
+      variant?: AlertProps['variant'];
+    }
+  >;
   configure_integration?: {
     title: string;
   };

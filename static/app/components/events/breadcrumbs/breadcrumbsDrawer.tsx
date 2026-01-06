@@ -2,12 +2,14 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
 
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import BreadcrumbsTimeline from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
+import {CopyBreadcrumbsDropdown} from 'sentry/components/events/breadcrumbs/copyBreadcrumbs';
 import {
   BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
   BREADCRUMB_TIME_DISPLAY_OPTIONS,
@@ -120,6 +122,9 @@ export function BreadcrumbsDrawer({
       </InputGroup>
       <CompactSelect
         size="xs"
+        multiple
+        clearable
+        menuTitle={t('Filter by')}
         value={filters}
         onChange={options => {
           const newFilters = options.map(({value}) => value);
@@ -129,30 +134,30 @@ export function BreadcrumbsDrawer({
             organization,
           });
         }}
-        multiple
         options={filterOptions}
         maxMenuHeight={400}
         trigger={props => (
-          <Button
-            size="xs"
+          <SelectTrigger.Button
             borderless
+            showChevron={false}
             icon={<IconFilter />}
             aria-label={t('Filter All Breadcrumbs')}
+            title={t('Filter')}
             {...props}
             {...getFocusProps(BreadcrumbControlOptions.FILTER)}
           >
             {filters.length > 0 ? filters.length : null}
-          </Button>
+          </SelectTrigger.Button>
         )}
       />
       <CompactSelect
         size="xs"
         trigger={props => (
-          <Button
-            size="xs"
+          <SelectTrigger.IconButton
             borderless
             icon={<IconSort />}
             aria-label={t('Sort All Breadcrumbs')}
+            title={t('Sort')}
             {...props}
             {...getFocusProps(BreadcrumbControlOptions.SORT)}
           />
@@ -171,8 +176,7 @@ export function BreadcrumbsDrawer({
       <CompactSelect
         size="xs"
         trigger={props => (
-          <Button
-            size="xs"
+          <SelectTrigger.IconButton
             borderless
             icon={
               timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE ? (
@@ -182,6 +186,7 @@ export function BreadcrumbsDrawer({
               )
             }
             aria-label={t('Change Time Format for All Breadcrumbs')}
+            title={t('Time Format')}
             {...props}
           />
         )}
@@ -196,6 +201,7 @@ export function BreadcrumbsDrawer({
         value={timeDisplay}
         options={Object.values(BREADCRUMB_TIME_DISPLAY_OPTIONS)}
       />
+      <CopyBreadcrumbsDropdown breadcrumbs={displayCrumbs} borderless />
     </ButtonBar>
   );
 

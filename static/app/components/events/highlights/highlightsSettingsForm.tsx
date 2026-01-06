@@ -8,11 +8,11 @@ import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import {
   makeDetailedProjectQueryKey,
   useDetailedProject,
-} from 'sentry/utils/useDetailedProject';
+} from 'sentry/utils/project/useDetailedProject';
+import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 

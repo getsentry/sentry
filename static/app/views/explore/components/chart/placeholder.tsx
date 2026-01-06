@@ -11,7 +11,7 @@ const _Placeholder = styled('div')<{width: number}>`
   display: inline-block;
   width: ${p => p.width}px;
   height: ${p => p.theme.fontSize.md};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   background-color: ${p => p.theme.backgroundTertiary};
 `;
 

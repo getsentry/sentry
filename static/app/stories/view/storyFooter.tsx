@@ -4,6 +4,8 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {IconArrow} from 'sentry/icons';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {useStoryBookFilesByCategory} from './storySidebar';
 import type {StoryTreeNode} from './storyTree';
@@ -14,11 +16,19 @@ export function StoryFooter() {
   const {story} = useStory();
   const stories = useStoryBookFilesByCategory();
   const pagination = findPreviousAndNextStory(story, stories);
+  const organization = useOrganization();
 
   return (
     <Flex align="center" justify="between" gap="xl">
       {pagination?.prev && (
-        <Card to={pagination.prev.location} icon={<IconArrow direction="left" />}>
+        <Card
+          to={{
+            pathname: normalizeUrl(
+              `/organizations/${organization.slug}/stories/${pagination.prev.category}/${pagination.prev.slug}/`
+            ),
+          }}
+          icon={<IconArrow direction="left" />}
+        >
           <Text variant="muted" as="div">
             Previous
           </Text>
@@ -30,7 +40,11 @@ export function StoryFooter() {
       {pagination?.next && (
         <Card
           data-flip
-          to={pagination.next.location}
+          to={{
+            pathname: normalizeUrl(
+              `/organizations/${organization.slug}/stories/${pagination.next.category}/${pagination.next.slug}/`
+            ),
+          }}
           icon={<IconArrow direction="right" />}
         >
           <Text variant="muted" as="div" align="right">
@@ -53,16 +67,34 @@ function findPreviousAndNextStory(
   prev?: StoryTreeNode;
 } | null {
   const stories = Object.values(categories).flat();
-  const currentIndex = stories.findIndex(s => s.filesystemPath === story.filename);
+  const queue: StoryTreeNode[] = [];
 
-  if (currentIndex === -1) {
-    return null;
+  function processNode(node: StoryTreeNode) {
+    for (const key in node.children) {
+      processNode(node.children[key]!);
+    }
+    if (!Object.keys(node.children).length) {
+      queue.push(node);
+    }
   }
 
-  return {
-    prev: stories[currentIndex - 1] ?? undefined,
-    next: stories[currentIndex + 1] ?? undefined,
-  };
+  for (const node of stories) {
+    processNode(node);
+  }
+
+  for (let i = 0; i < queue.length; i++) {
+    const node = queue[i];
+    if (!node) break;
+
+    if (node.filesystemPath === story.filename) {
+      return {
+        prev: queue[i - 1],
+        next: queue[i + 1],
+      };
+    }
+  }
+
+  return null;
 }
 
 const Card = styled(LinkButton)`

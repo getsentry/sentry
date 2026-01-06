@@ -129,7 +129,7 @@ export default function StreamlinedGroupHeader({
                   'Error counts on this page have been upsampled based on your sampling rate.'
                 )}
               >
-                <StyledTag>{t('Errors Upsampled')}</StyledTag>
+                <StyledTag variant="muted">{t('Errors Upsampled')}</StyledTag>
               </Tooltip>
             )}
           </Flex>
@@ -297,7 +297,7 @@ export default function StreamlinedGroupHeader({
 }
 
 const Header = styled('header')`
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   padding: ${p => p.theme.space.md} ${p => p.theme.space['2xl']};
 `;
 
@@ -352,10 +352,10 @@ const ActionBar = styled('div')<{isComplete: boolean}>`
   gap: ${space(1)};
   flex-wrap: wrap;
   padding: ${space(1)} 24px;
-  border-bottom: 1px solid ${p => p.theme.translucentBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   position: relative;
   transition: background 0.3s ease-in-out;
-  background: ${p => (p.isComplete ? 'transparent' : p.theme.background)};
+  background: ${p => (p.isComplete ? 'transparent' : p.theme.tokens.background.primary)};
   &:before {
     z-index: -1;
     position: absolute;
@@ -363,7 +363,7 @@ const ActionBar = styled('div')<{isComplete: boolean}>`
     content: '';
     background: linear-gradient(
       to right,
-      ${p => p.theme.background},
+      ${p => p.theme.tokens.background.primary},
       ${p => Color(p.theme.success).lighten(0.5).alpha(0.15).string()}
     );
   }
@@ -375,7 +375,7 @@ const ActionBar = styled('div')<{isComplete: boolean}>`
     left: 24px;
     bottom: unset;
     height: 1px;
-    background: ${p => p.theme.translucentBorder};
+    background: ${p => p.theme.tokens.border.primary};
   }
 `;
 

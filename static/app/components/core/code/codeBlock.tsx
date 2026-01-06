@@ -7,7 +7,7 @@ import {Button} from 'sentry/components/core/button';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {loadPrismLanguage} from 'sentry/utils/prism';
+import {getPrismLanguage, loadPrismLanguage} from 'sentry/utils/prism';
 // eslint-disable-next-line no-restricted-imports
 import {darkTheme} from 'sentry/utils/theme/theme';
 
@@ -110,7 +110,8 @@ export function CodeBlock({
       return;
     }
 
-    if (!language) {
+    // Skip if no language or if language is not a valid Prism language (e.g. "text")
+    if (!language || !getPrismLanguage(language)) {
       return;
     }
 
@@ -221,7 +222,7 @@ const Wrapper = styled('div')<{isRounded: boolean}>`
   position: relative;
   height: 100%;
   background: var(--prism-block-background);
-  border-radius: ${p => (p.isRounded ? p.theme.borderRadius : '0px')};
+  border-radius: ${p => (p.isRounded ? p.theme.radius.md : '0px')};
 
   pre {
     margin: 0;
@@ -237,10 +238,10 @@ const Header = styled('div')<{isFloating: boolean}>`
   display: flex;
   align-items: center;
 
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
   color: var(--prism-base);
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.mono.medium};
   z-index: 2;
 
   ${p =>
@@ -283,7 +284,7 @@ const Tab = styled('button')<{isSelected: boolean}>`
   color: var(--prism-comment);
   ${p =>
     p.isSelected
-      ? `border-bottom: 3px solid ${p.theme.purple300};
+      ? `border-bottom: 3px solid ${p.theme.colors.blue400};
       padding-bottom: 5px;
       color: var(--prism-base);`
       : ''}

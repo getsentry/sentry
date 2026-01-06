@@ -123,13 +123,13 @@ const TagPanel = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.radius.md};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${space(1)};
 `;
 
 const TagHeader = styled('h5')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.bold};
   margin: 0;
@@ -166,8 +166,8 @@ const TagBarPlaceholder = styled('div')`
   height: ${space(1)};
   width: 100%;
   border-radius: 3px;
-  box-shadow: inset 0 0 0 1px ${p => p.theme.translucentBorder};
-  background: ${p => Color(p.theme.gray300).alpha(0.1).toString()};
+  box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.transparent.neutral.muted};
+  background: ${p => Color(p.theme.colors.gray400).alpha(0.1).toString()};
   overflow: hidden;
 `;
 
@@ -182,7 +182,7 @@ const TagBarContainer = styled('div')`
     inset: 0;
     content: '';
     background: ${p =>
-      `linear-gradient(to right, ${Color(p.theme.gray300).alpha(0.5).toString()} 0px, ${Color(p.theme.gray300).alpha(0.7).toString()} ${progressBarWidth})`};
+      `linear-gradient(to right, ${Color(p.theme.colors.gray400).alpha(0.5).toString()} 0px, ${Color(p.theme.colors.gray400).alpha(0.7).toString()} ${progressBarWidth})`};
     width: 100%;
   }
 `;

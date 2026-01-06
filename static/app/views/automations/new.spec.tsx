@@ -49,6 +49,13 @@ describe('AutomationNewSettings', () => {
       ],
     });
 
+    // Mock the tags for an organization
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/tags/`,
+      method: 'GET',
+      body: [],
+    });
+
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/data-conditions/`,
       method: 'GET',
@@ -119,7 +126,8 @@ describe('AutomationNewSettings', () => {
       screen.getByRole('textbox', {name: 'Add filter'}),
       /tagged event/i
     );
-    await userEvent.type(screen.getByRole('textbox', {name: 'Tag'}), 'env');
+    const tagInput = await screen.findByRole('textbox', {name: 'Tag'});
+    await userEvent.type(tagInput, 'env{enter}');
     await userEvent.type(screen.getByRole('textbox', {name: 'Value'}), 'prod');
 
     // Add an action to the block (Slack), also updates the automatic naming
@@ -171,7 +179,7 @@ describe('AutomationNewSettings', () => {
                     type: 'slack',
                     config: {
                       targetType: 'specific',
-                      targetIdentifier: '',
+                      targetIdentifier: null,
                       targetDisplay: '#alerts',
                     },
                     integrationId: '1',
@@ -183,6 +191,7 @@ describe('AutomationNewSettings', () => {
                     config: {
                       targetType: 'user',
                       targetIdentifier: '1',
+                      targetDisplay: null,
                     },
                     data: {},
                     status: 'active',

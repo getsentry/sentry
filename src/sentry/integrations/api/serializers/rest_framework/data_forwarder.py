@@ -61,14 +61,14 @@ class DataForwarderSerializer(Serializer):
     config = serializers.DictField(
         child=serializers.CharField(allow_blank=True),
         default=dict,
-        help_text="The configuration for the data forwarder.",
+        help_text=f"The configuration for the data forwarder, specific to the provider type. \nFor a '{DataForwarderProviderSlug.SQS.value}' provider, the required keys are {', '.join(SQS_REQUIRED_KEYS)}. If using a FIFO queue, you must also provide a message_group_id, though s3_bucket is optional. \nFor a '{DataForwarderProviderSlug.SEGMENT.value}' provider, the required keys are {', '.join(SEGMENT_REQUIRED_KEYS)}. \nFor a '{DataForwarderProviderSlug.SPLUNK.value}' provider, the required keys are {', '.join(SPLUNK_REQUIRED_KEYS)}.",
     )
     project_ids = serializers.ListField(
         child=serializers.IntegerField(),
         allow_empty=True,
         required=False,
         default=list,
-        help_text="The IDs of the projects to attach the data forwarder to.",
+        help_text="The IDs of the projects connected to the data forwarder. Missing project IDs will be unenrolled if previously enrolled.",
     )
 
     def validate_config(self, config) -> SQSConfig | SegmentConfig | SplunkConfig:

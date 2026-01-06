@@ -62,7 +62,7 @@ const SeerLink = styled(Link)`
   gap: ${space(0.5)};
   align-items: center;
   grid-auto-flow: column;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   position: relative;
 `;
 

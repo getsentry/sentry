@@ -172,7 +172,7 @@ class MiniGraph extends Component<Props> {
           if (errored) {
             return (
               <StyledGraphContainer>
-                <IconWarning color="gray300" size="md" />
+                <IconWarning variant="muted" size="md" />
                 <StyledErrorMessage>{errorMessage}</StyledErrorMessage>
               </StyledGraphContainer>
             );
@@ -209,7 +209,7 @@ class MiniGraph extends Component<Props> {
             : undefined;
 
           if (chartColors?.length && hasOther) {
-            chartColors.push(theme.chartOther);
+            chartColors.push(theme.tokens.content.muted);
           }
 
           const chartOptions = {
@@ -228,7 +228,7 @@ class MiniGraph extends Component<Props> {
                 show: false,
               },
               axisLabel: {
-                color: theme.chartLabel,
+                color: theme.tokens.content.muted,
                 fontFamily: theme.text.family,
                 fontSize: 12,
                 formatter: (value: number) =>

@@ -249,6 +249,8 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
             query={item?.query}
             groupBys={item?.groupBys}
             statsPeriod={item?.statsPeriod}
+            start={item?.start}
+            end={item?.end}
             visualizations={item?.visualizations}
           />
         </Item>
@@ -509,14 +511,14 @@ const Wrapper = styled(Input.withComponent('div'))<{isDropdownOpen: boolean}>`
   font-size: ${p => p.theme.fontSize.md};
   cursor: text;
 
-  border-bottom-left-radius: ${p => (p.isDropdownOpen ? '0' : p.theme.borderRadius)};
-  border-bottom-right-radius: ${p => (p.isDropdownOpen ? '0' : p.theme.borderRadius)};
+  border-bottom-left-radius: ${p => (p.isDropdownOpen ? '0' : p.theme.radius.md)};
+  border-bottom-right-radius: ${p => (p.isDropdownOpen ? '0' : p.theme.radius.md)};
 `;
 
 const PositionedSearchIconContainer = styled('div')`
   position: absolute;
   left: ${p => p.theme.space.lg};
-  top: ${p => (p.theme.isChonk ? p.theme.space.sm : p.theme.space.md)};
+  top: ${p => p.theme.space.sm};
 `;
 
 const SearchIcon = styled(IconSearch)`
@@ -577,7 +579,7 @@ const SeerFooter = styled('div')`
   justify-content: flex-end;
   padding: ${p => p.theme.space.md};
   border-top: 1px solid ${p => p.theme.border};
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 const SeerContent = styled('div')`

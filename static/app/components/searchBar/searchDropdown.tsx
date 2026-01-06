@@ -298,20 +298,20 @@ type KindTagProps = {
 
 function KindTag({kind, deprecated}: KindTagProps) {
   if (deprecated) {
-    return <Tag type="error">deprecated</Tag>;
+    return <Tag variant="danger">deprecated</Tag>;
   }
 
   switch (kind) {
     case FieldKind.FUNCTION:
     case FieldKind.NUMERIC_METRICS:
-      return <Tag type="success">f(x)</Tag>;
+      return <Tag variant="success">f(x)</Tag>;
     case FieldKind.MEASUREMENT:
     case FieldKind.BREAKDOWN:
-      return <Tag type="highlight">field</Tag>;
+      return <Tag variant="info">field</Tag>;
     case FieldKind.TAG:
-      return <Tag type="warning">{kind}</Tag>;
+      return <Tag variant="warning">{kind}</Tag>;
     default:
-      return <Tag>{kind}</Tag>;
+      return <Tag variant="muted">{kind}</Tag>;
   }
 }
 
@@ -585,7 +585,7 @@ const SearchItemTitleWrapper = styled('div')<{hasSingleField?: boolean}>`
   flex-shrink: ${p => (p.hasSingleField ? '1' : '0')};
   max-width: ${p => (p.hasSingleField ? '100%' : 'min(280px, 50%)')};
 
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.md};
   margin: 0;
@@ -598,7 +598,7 @@ const RestOfWordsContainer = styled('span')<{
   hasSplit?: boolean;
   isFirstWordHidden?: boolean;
 }>`
-  color: ${p => (p.hasSplit ? p.theme.blue400 : p.theme.textColor)};
+  color: ${p => (p.hasSplit ? p.theme.colors.blue500 : p.theme.tokens.content.primary)};
   margin-left: ${p => (p.isFirstWordHidden ? space(1) : '0px')};
 `;
 

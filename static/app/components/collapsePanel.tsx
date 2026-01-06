@@ -79,11 +79,11 @@ function ShowMoreButton({
       disableBorder={disableBorder}
     >
       <ShowMoreText>
-        <StyledIconList color="gray300" />
+        <StyledIconList variant="muted" />
         {tct('Show [count] [buttonTitle]', {count: items - collapseCount, buttonTitle})}
       </ShowMoreText>
 
-      <IconChevron color="gray300" direction="down" />
+      <IconChevron variant="muted" direction="down" />
     </ShowMore>
   );
 }
@@ -105,8 +105,8 @@ const ShowMore = styled('div')<{disableBorder: boolean}>`
       border-left: 1px solid ${p.theme.border};
       border-right: 1px solid ${p.theme.border};
       border-bottom: 1px solid ${p.theme.border};
-      border-bottom-left-radius: ${p.theme.borderRadius};
-      border-bottom-right-radius: ${p.theme.borderRadius};
+      border-bottom-left-radius: ${p.theme.radius.md};
+      border-bottom-right-radius: ${p.theme.radius.md};
       margin-bottom: ${space(2)};
     `}
 `;

@@ -154,7 +154,7 @@ function TeamStatsControls({
               fontSize: theme.fontSize.md,
               ':before': {
                 ...provided[':before'],
-                color: theme.textColor,
+                color: theme.tokens.content.primary,
                 marginRight: space(1.5),
                 marginLeft: space(0.5),
               },

@@ -81,7 +81,7 @@ export const ExploreBodySearch = styled(Layout.Body)`
 `;
 
 export const ExploreBodyContent = styled('div')`
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   flex-grow: 1;
 
   display: flex;

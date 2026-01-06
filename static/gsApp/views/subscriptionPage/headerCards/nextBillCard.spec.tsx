@@ -38,6 +38,7 @@ describe('NextBillCard', () => {
     expect(screen.queryByText(/Pay-as-you-go/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Tax/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Credits/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/active contributors/)).not.toBeInTheDocument();
   });
 
   it('renders for bill', async () => {
@@ -96,6 +97,15 @@ describe('NextBillCard', () => {
           period_end: '',
           description: 'GST/HST',
         },
+
+        {
+          amount: 40_00,
+          type: 'activated_seer_users',
+          data: {},
+          period_start: '',
+          period_end: '',
+          description: '1 active contributor',
+        },
       ],
     });
     MockApiClient.addMockResponse({
@@ -119,6 +129,8 @@ describe('NextBillCard', () => {
     expect(screen.getByText('$20.00')).toBeInTheDocument();
     expect(screen.getByText('Credits')).toBeInTheDocument();
     expect(screen.getByText('-$10.00')).toBeInTheDocument();
+    expect(screen.getByText('1 active contributor')).toBeInTheDocument();
+    expect(screen.getByText('$40.00')).toBeInTheDocument();
   });
 
   it('renders alert for error', async () => {

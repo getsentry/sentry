@@ -125,3 +125,40 @@ PREVENT_AI_CONFIG_DEFAULT = {
     },
     "organization": {},
 }
+
+PREVENT_AI_CONFIG_DEFAULT_V1 = {
+    "schema_version": "v1",
+    "default_org_config": {
+        "org_defaults": {
+            "bug_prediction": {
+                "enabled": True,
+                "sensitivity": "medium",
+                "triggers": {
+                    "on_command_phrase": True,
+                    "on_ready_for_review": True,
+                    # v1 default enables on_new_commit
+                    "on_new_commit": True,
+                },
+            },
+            "test_generation": {
+                "enabled": True,
+                "triggers": {
+                    "on_command_phrase": True,
+                    "on_ready_for_review": False,
+                    "on_new_commit": False,
+                },
+            },
+            "vanilla": {
+                "enabled": True,
+                "sensitivity": "medium",
+                "triggers": {
+                    "on_command_phrase": True,
+                    "on_ready_for_review": False,
+                    "on_new_commit": False,
+                },
+            },
+        },
+        "repo_overrides": {},
+    },
+    "organization": {},
+}

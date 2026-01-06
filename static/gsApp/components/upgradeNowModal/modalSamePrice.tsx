@@ -143,7 +143,7 @@ const Header = styled('h1')`
 
 const CTAPanel = styled('div')`
   background: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   display: flex;
   justify-content: space-between;
   padding: ${space(2)};

@@ -26,6 +26,7 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/utils';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
 
 function WidgetBuilderSortBySelector() {
   const {state, dispatch} = useWidgetBuilderContext();
@@ -37,9 +38,17 @@ function WidgetBuilderSortBySelector() {
   const datasetConfig = getDatasetConfig(state.dataset);
 
   let tags: TagCollection = useTags();
-  const {tags: numericSpanTags} = useTraceItemTags('number');
-  const {tags: stringSpanTags} = useTraceItemTags('string');
-  if (state.dataset === WidgetType.SPANS) {
+  let hiddenKeys: string[] = [];
+  if (state.dataset === WidgetType.TRACEMETRICS) {
+    hiddenKeys = HiddenTraceMetricGroupByFields;
+  }
+  const {tags: numericSpanTags} = useTraceItemTags('number', hiddenKeys);
+  const {tags: stringSpanTags} = useTraceItemTags('string', hiddenKeys);
+  if (
+    state.dataset === WidgetType.SPANS ||
+    state.dataset === WidgetType.LOGS ||
+    state.dataset === WidgetType.TRACEMETRICS
+  ) {
     tags = {...numericSpanTags, ...stringSpanTags};
   }
 

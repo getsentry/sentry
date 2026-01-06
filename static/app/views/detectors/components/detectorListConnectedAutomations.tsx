@@ -98,7 +98,7 @@ export function DetectorListConnectedAutomations({
 }
 
 const ConnectedAutomations = styled('div')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   display: flex;
   flex-direction: row;
   gap: ${space(0.5)};
@@ -119,21 +119,21 @@ const HovercardRow = styled(Link)`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   padding: ${space(1)} ${space(2)};
 
   min-height: 64px;
 
   &:first-child {
-    border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+    border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
   }
 
   &:last-child {
-    border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+    border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   }
 
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 
   &:hover strong {

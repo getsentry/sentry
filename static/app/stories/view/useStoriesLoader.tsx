@@ -10,6 +10,7 @@ export interface StoryResources {
   a11y?: Record<string, string>;
   figma?: string;
   js?: string;
+  reference?: Record<string, string>;
 }
 
 export interface MDXStoryDescriptor {
@@ -51,6 +52,10 @@ export function useStoryBookFiles() {
 }
 
 async function importStory(filename: string): Promise<StoryDescriptor> {
+  if (!filename) {
+    throw new Error(`Filename is required, got ${filename}`);
+  }
+
   if (filename.endsWith('.mdx')) {
     const story = await mdxContext(filename.replace(/^app\//, './'));
     return {

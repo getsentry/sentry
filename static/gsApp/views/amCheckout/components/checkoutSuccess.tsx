@@ -13,6 +13,7 @@ import {Heading, Text} from 'sentry/components/core/text';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {GIGABYTE} from 'getsentry/constants';
 import type {
@@ -501,6 +502,7 @@ function CheckoutSuccess({
   nextQueryParams,
   previewData,
 }: CheckoutSuccessProps) {
+  const organization = useOrganization();
   const viewSubscriptionQueryParams =
     nextQueryParams.length > 0 ? `?${nextQueryParams.join('&')}` : '';
 
@@ -599,7 +601,7 @@ function CheckoutSuccess({
             </LinkButton>
             <LinkButton
               aria-label={t('Edit plan')}
-              to="/settings/billing/checkout/?referrer=checkout_success"
+              href={`/checkout/${organization.slug}/?referrer=checkout_success`}
             >
               {t('Edit plan')}
             </LinkButton>
@@ -614,6 +616,7 @@ function CheckoutSuccess({
                   ['feedback.owner']: 'billing',
                 },
               }}
+              size="md"
             />
           </Flex>
         </Flex>
@@ -659,7 +662,7 @@ const StyledGrid = styled(Grid)`
 const ReceiptSlot = styled('div')`
   width: 445px;
   height: 7px;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   background: ${p => p.theme.gray200};
   box-shadow: 0px 2px 4px 0px
     ${p => Color(p.theme.black).lighten(0.08).alpha(0.15).toString()} inset;

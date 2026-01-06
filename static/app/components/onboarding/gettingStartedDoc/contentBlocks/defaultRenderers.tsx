@@ -28,7 +28,7 @@ const baseBlockStyles = css`
 
 const coloredCodeStyles = (theme: Theme) => css`
   code:not([class*='language-']) {
-    color: ${theme.pink400};
+    color: ${theme.colors.pink500};
   }
 `;
 
@@ -43,7 +43,7 @@ function AlertBlock({
   return (
     <div css={[baseBlockStyles, coloredCodeStyles]}>
       <Alert
-        type={alertType}
+        variant={alertType}
         showIcon={showIcon}
         system={system}
         trailingItems={trailingItems}

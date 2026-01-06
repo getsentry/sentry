@@ -24,12 +24,12 @@ const Header = styled('div')`
   top: 0;
   z-index: 100;
   padding: ${space(2)};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
 `;
 
 const StyledLogoSentry = styled(LogoSentry)`
   width: 130px;
   height: 30px;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;

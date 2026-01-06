@@ -174,7 +174,7 @@ const OptionRow = styled('div')<{isSelected: boolean}>`
   align-items: center;
   gap: ${p => p.theme.space.md};
   padding: ${p => p.theme.space.sm} ${p => p.theme.space.sm};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   cursor: pointer;
   transition: background-color 0.15s ease;
 

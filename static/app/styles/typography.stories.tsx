@@ -96,11 +96,11 @@ const TYPE_SCALE: TypeScaleItem[] = [
 const InlineLinkExampleStyles = `styled('a')\`
   color: \${p => p.theme.blue300};
   text-decoration: underline;
-  text-decoration-color: ${(p: any) => p.theme.blue100};
+  text-decoration-color: ${(p: any) => p.theme.colors.blue100};
   cursor: pointer;
 
   &:hover {
-    text-decoration-color: ${(p: any) => p.theme.blue200};
+    text-decoration-color: ${(p: any) => p.theme.colors.blue200};
   }
 \`;
 `;
@@ -536,12 +536,12 @@ const Block = styled('div')`
 `;
 
 const FixedExternalLink = styled(ExternalLink)`
-  color: ${p => p.theme.blue300};
-  text-decoration: underline ${p => p.theme.blue100};
+  color: ${p => p.theme.colors.blue400};
+  text-decoration: underline ${p => p.theme.colors.blue100};
 
   :hover {
-    color: ${p => p.theme.blue300};
-    text-decoration: underline ${p => p.theme.blue200};
+    color: ${p => p.theme.colors.blue400};
+    text-decoration: underline ${p => p.theme.colors.blue200};
   }
 `;
 
@@ -550,7 +550,7 @@ const FooterLink = styled(Link)`
 
   :hover {
     color: ${p => p.theme.subText};
-    text-decoration: underline ${p => p.theme.gray200};
+    text-decoration: underline ${p => p.theme.colors.gray200};
   }
 `;
 
@@ -593,14 +593,14 @@ const ColorSwatch = styled(
   align-items: center;
 
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${space(0.25)} ${space(0.5)};
   vertical-align: sub;
 `;
 
 const ExampleImg = styled('img')`
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const PositiveLabel = styled(
@@ -611,7 +611,7 @@ const PositiveLabel = styled(
     </div>
   )
 )`
-  color: ${p => p.theme.green400};
+  color: ${p => p.theme.colors.green500};
   align-items: center;
   display: flex;
   font-weight: ${p => p.theme.fontWeight.bold};
@@ -621,12 +621,12 @@ const PositiveLabel = styled(
 const NegativeLabel = styled(
   ({className, style}: {className?: string; style?: CSSProperties}) => (
     <div className={className} style={style}>
-      <IconClose color="red400" />
+      <IconClose variant="danger" />
       DON'T
     </div>
   )
 )`
-  color: ${p => p.theme.red400};
+  color: ${p => p.theme.colors.red500};
   align-items: center;
   display: flex;
   font-weight: ${p => p.theme.fontWeight.bold};

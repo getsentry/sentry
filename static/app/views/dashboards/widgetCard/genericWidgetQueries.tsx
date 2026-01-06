@@ -81,6 +81,7 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     nextProps: GenericWidgetQueriesProps<SeriesResponse, TableResponse>
   ) => boolean;
   dashboardFilters?: DashboardFilters;
+  disabled?: boolean;
   forceOnDemand?: boolean;
   limit?: number;
   loading?: boolean;
@@ -186,6 +187,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
           !isEqual(new Set(widgetQueries), new Set(prevWidgetQueries)) ||
           !isEqual(this.props.dashboardFilters, prevProps.dashboardFilters) ||
           !isEqual(this.props.forceOnDemand, prevProps.forceOnDemand) ||
+          !isEqual(this.props.disabled, prevProps.disabled) ||
           !isSelectionEqual(selection, prevProps.selection) ||
           cursor !== prevProps.cursor
     ) {
@@ -256,7 +258,11 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       onDemandControlContext,
       mepSetting,
       samplingMode,
+      disabled,
     } = this.props;
+    if (disabled) {
+      return;
+    }
     const widget = this.widgetForRequest(cloneDeep(originalWidget));
     const responses = await Promise.all(
       widget.queries.map(query => {
@@ -331,7 +337,12 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       mepSetting,
       onDemandControlContext,
       samplingMode,
+      disabled,
     } = this.props;
+    if (disabled) {
+      return;
+    }
+
     const widget = this.widgetForRequest(cloneDeep(originalWidget));
 
     const responses = await Promise.all(

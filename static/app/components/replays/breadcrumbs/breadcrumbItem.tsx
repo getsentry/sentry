@@ -155,9 +155,9 @@ const StyledTimelineItem = styled(Timeline.Item)`
   padding: ${space(0.5)} ${space(0.75)};
   margin: 0;
   &:hover {
-    background: ${p => p.theme.translucentSurface200};
+    background: ${p => p.theme.colors.surface200};
     .timeline-icon-wrapper {
-      background: ${p => p.theme.translucentSurface200};
+      background: ${p => p.theme.colors.surface200};
     }
   }
   cursor: pointer;
@@ -178,7 +178,7 @@ const StyledTimelineItem = styled(Timeline.Item)`
 `;
 
 const ReplayTimestamp = styled('div')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.sm};
   align-self: flex-start;
 `;

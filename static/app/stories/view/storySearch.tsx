@@ -15,8 +15,10 @@ import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {StoryTreeNode} from 'sentry/stories/view/storyTree';
 import {fzf} from 'sentry/utils/profiling/fzf/fzf';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {useStoryBookFilesByCategory} from './storySidebar';
 
@@ -39,6 +41,8 @@ export function StorySearch() {
     typography: typographyTree,
     layout: layoutTree,
     shared: sharedTree,
+    principles: principlesTree,
+    patterns: patternsTree,
   } = useStoryBookFilesByCategory();
   const foundations = useMemo(
     () => foundationsTree.flatMap(tree => tree.flat()),
@@ -50,8 +54,17 @@ export function StorySearch() {
     () => typographyTree.flatMap(tree => tree.flat()),
     [typographyTree]
   );
+  const principles = useMemo(
+    () => principlesTree.flatMap(tree => tree.flat()),
+    [principlesTree]
+  );
   const layout = useMemo(() => layoutTree.flatMap(tree => tree.flat()), [layoutTree]);
   const shared = useMemo(() => sharedTree.flatMap(tree => tree.flat()), [sharedTree]);
+  const patterns = useMemo(
+    () => patternsTree.flatMap(tree => tree.flat()),
+    [patternsTree]
+  );
+
   useHotkeys([{match: '/', callback: () => inputRef.current?.focus()}]);
 
   const sectionedItems = useMemo(() => {
@@ -62,6 +75,21 @@ export function StorySearch() {
         key: 'foundations',
         label: 'Foundations',
         options: foundations,
+      });
+    }
+    if (principles.length > 0) {
+      sections.push({
+        key: 'principles',
+        label: 'Principles',
+        options: principles,
+      });
+    }
+
+    if (patterns.length > 0) {
+      sections.push({
+        key: 'patterns',
+        label: 'Patterns',
+        options: patterns,
       });
     }
 
@@ -106,7 +134,7 @@ export function StorySearch() {
     }
 
     return sections;
-  }, [foundations, core, product, layout, typography, shared]);
+  }, [foundations, core, product, layout, typography, shared, patterns, principles]);
 
   return (
     <SearchComboBox
@@ -154,7 +182,7 @@ function SearchInput(
       </InputGroup.LeadingItems>
       <InputGroup.Input ref={props.ref} nativeSize={nativeSize} {...nativeProps} />
       <InputGroup.TrailingItems>
-        <Badge type="internal">/</Badge>
+        <Badge variant="internal">/</Badge>
       </InputGroup.TrailingItems>
     </InputGroup>
   );
@@ -182,6 +210,8 @@ function SearchComboBox(props: SearchComboBoxProps) {
   const listBoxRef = useRef<HTMLUListElement | null>(null);
   const popoverRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
+
+  const organization = useOrganization();
   const handleSelectionChange = (key: Key | null) => {
     if (!key) {
       return;
@@ -190,8 +220,11 @@ function SearchComboBox(props: SearchComboBoxProps) {
     if (!node) {
       return;
     }
-    const {state, ...to} = node.location;
-    navigate(to, {replace: true, state});
+    navigate({
+      pathname: normalizeUrl(
+        `/organizations/${organization.slug}/stories/${node.category}/${node.slug}/`
+      ),
+    });
   };
 
   const state = useComboBoxState({
@@ -227,7 +260,6 @@ function SearchComboBox(props: SearchComboBoxProps) {
           <ListBox
             listState={state}
             hasSearch={!!state.inputValue}
-            hiddenOptions={new Set([])}
             overlayIsOpen={state.isOpen}
             size="sm"
             {...listBoxProps}
@@ -263,12 +295,12 @@ const StyledOverlay = styled(Overlay)`
 
   /* Make section headers darker in this component */
   p[id][aria-hidden='true'] {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 
 const SectionTitle = styled('span')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-weight: 600;
   text-transform: uppercase;
 `;

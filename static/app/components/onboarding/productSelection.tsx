@@ -16,7 +16,6 @@ import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useOnboardingQueryParams} from 'sentry/views/onboarding/components/useOnboardingQueryParams';
 
 interface DisabledProduct {
@@ -124,12 +123,6 @@ export const platformProductAvailability = {
     ProductSolution.METRICS,
   ],
   'javascript-react': [
-    ProductSolution.PERFORMANCE_MONITORING,
-    ProductSolution.SESSION_REPLAY,
-    ProductSolution.LOGS,
-    ProductSolution.METRICS,
-  ],
-  'javascript-react-router': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
     ProductSolution.LOGS,
@@ -651,24 +644,7 @@ export function ProductSelection({
   );
 }
 
-const ProductButton = withChonk(
-  styled(Button)`
-    :hover,
-    :focus-visible {
-      border: 1px solid ${p => p.theme.purple300};
-      background: ${p => p.theme.purple100};
-      color: ${p => p.theme.purple300};
-    }
-
-    [aria-disabled='true'] {
-      input {
-        background: ${p => p.theme.purple100};
-        color: ${p => p.theme.purple300};
-      }
-    }
-  `,
-  Button
-);
+const ProductButton = Button;
 
 const ProductButtonInner = styled('div')`
   display: grid;

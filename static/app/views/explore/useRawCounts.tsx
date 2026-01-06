@@ -77,9 +77,9 @@ export function useRawCounts({dataset}: UseRawCountsOptions): RawCounts {
     }
   );
 
-  const normalScanCount = normalScanResult.data?.data?.[0]?.[count] || null;
+  const normalScanCount = normalScanResult.data?.data?.[0]?.[count] ?? null;
   const highestAccuracyScanCount =
-    highestAccuracyScanResult.data?.data?.[0]?.[count] || null;
+    highestAccuracyScanResult.data?.data?.[0]?.[count] ?? null;
 
   return {
     normal: {

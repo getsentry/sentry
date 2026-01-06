@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import moment from 'moment-timezone';
 
-import {Tag} from 'sentry/components/core/badge/tag';
+import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
@@ -19,13 +19,12 @@ import {
   IconWarning,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import withSubscription from 'getsentry/components/withSubscription';
@@ -38,9 +37,8 @@ import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/componen
 import SubscriptionHeader from './subscriptionHeader';
 
 type Props = {
-  organization: Organization;
   subscription: Subscription;
-} & RouteComponentProps<unknown, unknown>;
+};
 
 enum ReceiptStatus {
   PAID = 'paid',
@@ -52,7 +50,8 @@ enum ReceiptStatus {
 /**
  * Invoice/Payment list view.
  */
-function PaymentHistory({organization, subscription}: Props) {
+function PaymentHistory({subscription}: Props) {
+  const organization = useOrganization();
   const isNewBillingUI = hasNewBillingUI(organization);
   const location = useLocation();
 
@@ -158,7 +157,7 @@ function ReceiptGrid({
           ? ReceiptStatus.CLOSED
           : ReceiptStatus.AWAITING_PAYMENT;
     let icon = <IconWarning />;
-    let tagType = 'warning';
+    let tagType: TagProps['variant'] = 'warning';
 
     switch (status) {
       case ReceiptStatus.PAID:
@@ -167,7 +166,7 @@ function ReceiptGrid({
         break;
       case ReceiptStatus.CLOSED:
         icon = <IconClose />;
-        tagType = 'error';
+        tagType = 'danger';
         break;
       case ReceiptStatus.REFUNDED:
         icon = <IconTimer />;
@@ -180,7 +179,7 @@ function ReceiptGrid({
     }
 
     return (
-      <Tag icon={icon} type={tagType as any}>
+      <Tag icon={icon} variant={tagType}>
         {capitalize(status.replace('_', ' '))}
       </Tag>
     );
@@ -256,4 +255,4 @@ function ReceiptGrid({
   );
 }
 
-export default withOrganization(withSubscription(PaymentHistory));
+export default withSubscription(PaymentHistory);

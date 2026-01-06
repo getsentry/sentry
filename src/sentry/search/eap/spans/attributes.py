@@ -25,7 +25,12 @@ from sentry.search.events.constants import (
 from sentry.search.events.types import SnubaParams
 from sentry.search.utils import DEVICE_CLASS
 from sentry.utils import json
-from sentry.utils.validators import is_empty_string, is_event_id_or_list, is_span_id
+from sentry.utils.validators import (
+    is_empty_string,
+    is_event_id_or_list,
+    is_span_id,
+    is_span_id_or_list,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +45,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="id",
             internal_name="sentry.item_id",
             search_type="string",
-            validator=is_span_id,
+            validator=is_span_id_or_list,
         ),
         ResolvedAttribute(
             public_alias="parent_span",
@@ -644,6 +649,16 @@ SPANS_STATS_EXCLUDED_ATTRIBUTES: set[str] = {
     "sentry.profile_id",
     "sentry.event_id",
     "sentry.group",
+}
+
+SPANS_STATS_EXCLUDED_ATTRIBUTES_PUBLIC_ALIAS: set[str] = {
+    "id",
+    "trace",
+    "transaction.span_id",
+    "parent_span",
+    "profile.id",
+    "transaction.event_id",
+    "span.group",
 }
 
 

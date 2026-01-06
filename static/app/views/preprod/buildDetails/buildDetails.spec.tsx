@@ -106,6 +106,7 @@ describe('BuildDetails', () => {
               download_size_bytes: 512000,
             },
           ],
+          base_size_metrics: [],
         },
         {
           vcs_info: PreprodVcsInfoFullFixture(),
@@ -128,7 +129,7 @@ describe('BuildDetails', () => {
     await waitFor(() => expect(appSizeMock).toHaveBeenCalledTimes(1));
 
     expect(await screen.findByText('v1.0.0 (123)')).toBeInTheDocument();
-    expect(await screen.findByText('Git details')).toBeInTheDocument();
+    expect(await screen.findByText('Build Metadata')).toBeInTheDocument();
   });
 
   it('shows "Your app is still being analyzed..." text when size analysis is processing', async () => {
@@ -181,6 +182,7 @@ describe('BuildDetails', () => {
               download_size_bytes: 512000,
             },
           ],
+          base_size_metrics: [],
         });
       },
     });
@@ -233,6 +235,7 @@ describe('BuildDetails', () => {
             download_size_bytes: 512000,
           },
         ],
+        base_size_metrics: [],
       }),
     });
 

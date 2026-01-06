@@ -1,7 +1,13 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  type RouterConfig,
+} from 'sentry-test/reactTestingLibrary';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import * as pageFilters from 'sentry/actionCreators/pageFilters';
@@ -12,10 +18,49 @@ import ProjectDetail from './projectDetail';
 jest.mock('sentry/actionCreators/organization');
 
 describe('ProjectDetail', () => {
-  const {organization, router, projects} = initializeOrg();
+  const {organization, projects} = initializeOrg();
   const project = projects[0]!;
 
+  const initialRouterConfig: RouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/projects/${project.slug}/`,
+    },
+    route: '/organizations/:orgId/projects/:projectId/',
+  };
+
+  function setupMockResponses() {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sent-first-event/`,
+      body: {sentFirstEvent: true},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/stats/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [ProjectFixture()],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/?limit=5&project=${project.id}&query=error.unhandled%3Atrue%20is%3Aunresolved&sort=freq&statsPeriod=14d`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues-count/?project=${project.id}&query=is%3Aunresolved%20is%3Afor_review&query=&query=is%3Aresolved&query=error.unhandled%3Atrue%20is%3Aunresolved&query=regressed_in_release%3Alatest&statsPeriod=14d`,
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/releases/`,
+      body: [],
+    });
+  }
+
   beforeEach(() => {
+    MockApiClient.clearMockResponses();
     ProjectsStore.init();
   });
 
@@ -24,22 +69,12 @@ describe('ProjectDetail', () => {
   });
 
   it('Render an error if project not found', async () => {
-    ProjectsStore.loadInitialData([{...project, slug: 'slug'}]);
+    ProjectsStore.loadInitialData([{...project, slug: 'different-slug'}]);
 
-    render(
-      <ProjectDetail
-        organization={organization}
-        params={{projectId: project.id, orgId: organization.slug}}
-        router={router}
-        location={router.location}
-        routes={router.routes}
-        routeParams={router.params}
-        route={{}}
-      />,
-      {
-        deprecatedRouterMocks: true,
-      }
-    );
+    render(<ProjectDetail />, {
+      organization,
+      initialRouterConfig,
+    });
 
     expect(await screen.findByText(/project could not be found/)).toBeInTheDocument();
 
@@ -54,20 +89,10 @@ describe('ProjectDetail', () => {
   it('Render warning if user is not a member of the project', async () => {
     ProjectsStore.loadInitialData([{...project, hasAccess: false}]);
 
-    render(
-      <ProjectDetail
-        organization={organization}
-        params={{projectId: project.id, orgId: organization.slug}}
-        router={router}
-        location={router.location}
-        routes={router.routes}
-        routeParams={router.params}
-        route={{}}
-      />,
-      {
-        deprecatedRouterMocks: true,
-      }
-    );
+    render(<ProjectDetail />, {
+      organization,
+      initialRouterConfig,
+    });
 
     expect(
       await screen.findByText(/ask an admin to add your team to this project/i)
@@ -76,63 +101,42 @@ describe('ProjectDetail', () => {
 
   it('Render project details', async () => {
     ProjectsStore.loadInitialData([project]);
+    setupMockResponses();
 
-    MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/`,
-      method: 'GET',
-      body: ProjectFixture(),
+    render(<ProjectDetail />, {
+      organization,
+      initialRouterConfig,
     });
 
-    render(
-      <ProjectDetail
-        organization={organization}
-        params={{projectId: project.id, orgId: organization.slug}}
-        router={router}
-        location={router.location}
-        routes={router.routes}
-        routeParams={router.params}
-        route={{}}
-      />,
-      {
-        deprecatedRouterMocks: true,
-      }
-    );
-
     expect(await screen.findByText(/project details/i)).toBeInTheDocument();
+    expect(screen.getByText(project.slug)).toBeInTheDocument();
   });
 
   it('Sync project with slug', async () => {
     ProjectsStore.loadInitialData([project]);
+    setupMockResponses();
     jest.spyOn(pageFilters, 'updateProjects');
 
-    MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/`,
-      method: 'GET',
-      body: ProjectFixture(),
-    });
-
-    render(
-      <ProjectDetail
-        organization={organization}
-        params={{projectId: project.id, orgId: organization.slug}}
-        router={router}
-        location={{
-          ...router.location,
+    render(<ProjectDetail />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/projects/${project.slug}/`,
           query: {project: 'different-slug'},
-        }}
-        routes={router.routes}
-        routeParams={router.params}
-        route={{}}
-      />,
-      {
-        deprecatedRouterMocks: true,
-      }
-    );
+        },
+        route: '/organizations/:orgId/projects/:projectId/',
+      },
+    });
 
     await waitFor(() => {
       expect(pageFilters.updateProjects).toHaveBeenCalledWith(
         [Number(project.id)],
-        router
+        expect.objectContaining({
+          location: expect.objectContaining({
+            pathname: `/organizations/${organization.slug}/projects/${project.slug}/`,
+            query: {project: 'different-slug'},
+          }),
+        })
       );
     });
   });

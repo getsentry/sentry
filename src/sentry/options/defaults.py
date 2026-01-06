@@ -382,7 +382,15 @@ register("fileblob.upload.use_lock", default=True, flags=FLAG_AUTOMATOR_MODIFIAB
 # Whether to use redis to cache `FileBlob.id` lookups
 register("fileblob.upload.use_blobid_cache", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# New `objectstore` service configuration
+# New `objectstore` service configuration. Additional supported options and
+# their defaults:
+#  - propagate_traces: bool = False,
+#  - retries: int | None = None,
+#  - timeout_ms: float | None = None,
+#  - connection_kwargs: Mapping[str, Any] | None = None,
+#
+# For an always up-to-date list, see:
+# https://getsentry.github.io/objectstore/python/objectstore_client.html#objectstore_client.Client
 register(
     "objectstore.config",
     default={"base_url": "http://127.0.0.1:8888"},
@@ -662,6 +670,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Coding Workflows
+register(
+    "coding_workflows.code_review.github.check_run.rerun.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Codecov Integration
 register("codecov.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("codecov.base-url", default="https://api.codecov.io")
@@ -673,6 +689,12 @@ register("codecov.forward-webhooks.regions", default=[], flags=FLAG_AUTOMATOR_MO
 register("overwatch.enabled-regions", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 # enable verbose debug logging for overwatch webhook forwarding
 register("overwatch.forward-webhooks.verbose", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Control forwarding of specific GitHub webhook types to overwatch (True) or seer (False)
+register("github.webhook.issue-comment", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("github.webhook.pr", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("github.webhook.pr-review-comment", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("github.webhook.pr-review", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # GitHub Integration
 register("github-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1997,6 +2019,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "performance.traces.pagination.query-limit",
+    type=Int,
+    default=10_000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "performance.traces.pagination.max-timeout",
     type=Float,
     default=0.0,
@@ -2762,6 +2790,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "profiling.killswitch.ingest-profiles",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # max number of profiles to use for computing
 # the aggregated flamegraph.
 register(
@@ -3076,32 +3111,35 @@ register(
 
 # Notification Options - Start
 # Options for migrating to the notification platform
-# Data Export Success notifications
+# Notifications for internal testing
 register(
-    "notifications.platform-rate.data-export-success",
-    type=Float,
-    default=0.0,
+    "notifications.platform-rollout.internal-testing",
+    type=Dict,
+    default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Data Export Failure notifications
+
+# Notifications for Sentry organizations
 register(
-    "notifications.platform-rate.data-export-failure",
-    type=Float,
-    default=0.0,
+    "notifications.platform-rollout.is-sentry",
+    type=Dict,
+    default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Custom Rule Samples Fulfilled notifications
+
+# Notifications for early adopter organizations
 register(
-    "notifications.platform-rate.custom-rule-samples-fulfilled",
-    type=Float,
-    default=0.0,
+    "notifications.platform-rollout.early-adopter",
+    type=Dict,
+    default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Unable to Delete Repository notifications
+
+# Notifications for general access organizations
 register(
-    "notifications.platform-rate.unable-to-delete-repository",
-    type=Float,
-    default=0.0,
+    "notifications.platform-rollout.general-access",
+    type=Dict,
+    default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Notification Options - End
@@ -3281,6 +3319,13 @@ register(
 )
 
 register(
+    "workflow_engine.exclude_issue_stream_detector",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "grouping.grouphash_metadata.ingestion_writes_enabled",
     type=Bool,
     default=True,
@@ -3315,12 +3360,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "workflow_engine.use_cohort_selection",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "workflow_engine.schedule.min_cohort_scheduling_age_seconds",
     type=Int,
@@ -3431,6 +3470,13 @@ register(
     type=Bool,
     default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Secret Scanning. Email allowlist for notifications.
+register(
+    "secret-scanning.github.notifications.email-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Rate limiting for the occurrence consumer
@@ -3760,4 +3806,29 @@ register(
     type=Float,
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enabled Prebuilt Dashboard IDs
+register(
+    "dashboards.prebuilt-dashboard-ids",
+    default=[],
+    type=Sequence,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Option to enable truncation of group IDs in Snuba query
+# when search filters are selective.
+register(
+    "snuba.search.truncate-group-ids-for-selective-filters-enabled",
+    type=Bool,
+    default=True,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Organization slug allowlist to enable Autopilot for specific organizations.
+register(
+    "autopilot.organization-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )

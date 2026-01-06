@@ -64,7 +64,7 @@ const ModalImage = styled('img')`
   margin: ${space(1.5)} 0 0 ${space(1.5)};
   background-size: cover;
   background-position: center;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
 `;
 
@@ -74,7 +74,7 @@ const TourContainer = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     margin: -${space(4)};
   }
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   background: ${p => p.theme.tokens.background.primary};
   overflow: hidden;
 `;

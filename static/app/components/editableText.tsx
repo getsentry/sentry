@@ -241,8 +241,8 @@ const InnerLabel = styled(TextOverflow)`
 
 const InputWrapper = styled('div')<{isEmpty: boolean}>`
   display: inline-block;
-  background: ${p => p.theme.surface200};
-  border-radius: ${p => p.theme.borderRadius};
+  background: ${p => p.theme.colors.surface300};
+  border-radius: ${p => p.theme.radius.md};
   margin: -${space(0.5)} -${space(1)};
   padding: ${space(0.5)} ${space(1)};
   max-width: calc(100% + ${space(2)});

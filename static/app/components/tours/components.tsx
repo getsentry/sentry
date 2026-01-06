@@ -454,7 +454,7 @@ const TourBody = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   padding: ${space(1.5)} ${space(2)};
   color: ${p => p.theme.tokens.content.primary};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   width: 360px;
   a {
     color: ${p => p.theme.tokens.content.primary};
@@ -526,7 +526,7 @@ const TourTriggerWrapper = styled('div')<{margin?: CSSProperties['margin']}>`
       position: absolute;
       z-index: ${p => p.theme.zIndex.tour.element + 1};
       inset: 0;
-      border-radius: ${p => p.theme.borderRadius};
+      border-radius: ${p => p.theme.radius.md};
       box-shadow: inset 0 0 0 3px ${p => p.theme.tokens.border.accent};
       ${p => defined(p.margin) && `margin: ${p.margin};`}
     }
