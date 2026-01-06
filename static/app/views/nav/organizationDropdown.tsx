@@ -3,7 +3,7 @@ import orderBy from 'lodash/orderBy';
 import partition from 'lodash/partition';
 
 import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
-import {Button} from 'sentry/components/core/button';
+import {type ButtonProps} from 'sentry/components/core/button';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import OrganizationBadge from 'sentry/components/idBadge/organizationBadge';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -20,9 +20,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
-import {useNavContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+
+import {useNavContext} from './context';
 
 interface OrganizationDropdownProps {
   /**
@@ -45,7 +46,6 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   );
 
   const {projects} = useProjects();
-  const {layout} = useNavContext();
 
   const [, setReferrer] = useSessionStorage<string | null>(CUSTOM_REFERRER_KEY, null);
 
@@ -53,7 +53,6 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
     <DropdownMenu
       trigger={triggerProps => (
         <OrganizationDropdownTrigger
-          layout={layout}
           size="xs"
           aria-label={t('Toggle organization menu')}
           {...triggerProps}
@@ -61,12 +60,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
             triggerProps.onClick?.(e);
             props.onClick?.();
           }}
-        >
-          <OrganizationAvatar
-            organization={organization}
-            size={layout === NavLayout.MOBILE ? 24 : 36}
-          />
-        </OrganizationDropdownTrigger>
+        />
       )}
       position="right-start"
       minMenuWidth={200}
@@ -188,11 +182,62 @@ function makeCreateOrganizationMenuItem(): MenuItemProps {
   };
 }
 
-const OrganizationDropdownTrigger = styled(Button)<{layout: NavLayout}>`
+function OrganizationDropdownTrigger(props: Omit<ButtonProps, 'title'>) {
+  const {layout} = useNavContext();
+  const organization = useOrganization();
+
+  return (
+    <OrganizationDropdownButton layout={layout} {...props}>
+      <StretchedOrganizationAvatar organization={organization} />
+    </OrganizationDropdownButton>
+  );
+}
+
+const OrganizationDropdownButton = styled('button')<ButtonProps & {layout: NavLayout}>`
   height: ${p => (p.layout === NavLayout.MOBILE ? 32 : 48)}px;
   width: ${p => (p.layout === NavLayout.MOBILE ? 32 : 48)}px;
   min-height: ${p => (p.layout === NavLayout.MOBILE ? 32 : 48)}px;
+  background: ${p => p.theme.tokens.background.accent.vibrant};
+  position: relative;
   padding: 0;
+  border: none;
+  border: 0px solid transparent;
+  border-radius: 8px;
+
+  > * {
+    transition: transform 0.1s ease-in-out;
+    transform: translateY(-2px);
+
+    &:hover {
+      transform: translateY(-3px);
+    }
+  }
+`;
+
+const StretchedOrganizationAvatar = styled(OrganizationAvatar)`
+  position: absolute;
+  height: calc(100%);
+  width: calc(100%);
+  top: 0;
+  left: 0;
+  border: 1px solid ${p => p.theme.tokens.background.accent.vibrant};
+  border-radius: 8px;
+  border-bottom-right-radius: 8px;
+  border-bottom-left-radius: 8px;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    display: block;
+    position: absolute;
+    inset: 0;
+    border: 1px solid ${p => p.theme.tokens.background.accent.vibrant};
+    border-radius: 8px;
+  }
+
+  * {
+    border-radius: 0 !important;
+  }
 `;
 
 const SectionTitleWrapper = styled('div')`
