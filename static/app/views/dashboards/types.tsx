@@ -86,7 +86,7 @@ export type LinkedDashboard = {
   staticDashboardId?: PrebuiltDashboardId;
 };
 
-export type Unit = {
+type Unit = {
   valueType: AttributeValueType;
   valueUnit: AttributeValueUnit;
 };
