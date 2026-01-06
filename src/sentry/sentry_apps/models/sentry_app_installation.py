@@ -13,12 +13,7 @@ from sentry.api.exceptions import BadRequest
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import SentryAppInstallationStatus
-from sentry.db.models import (
-    BoundedPositiveIntegerField,
-    FlexibleForeignKey,
-    Model,
-    control_silo_model,
-)
+from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, control_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.models.paranoia import ParanoidManager, ParanoidModel
@@ -140,7 +135,7 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
                 for update_outbox in self.outboxes_for_update():
                     update_outbox.save()  # mimics ControlOutboxProducingModel
 
-                return super(Model, self).delete(*args, **kwargs)
+                return models.Model.delete(self, *args, **kwargs)
 
             return super().delete(*args, **kwargs)
 
