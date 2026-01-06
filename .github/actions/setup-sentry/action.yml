@@ -70,16 +70,6 @@ runs:
         # javascript + sentry projects.
         echo "SENTRY_RELEASE=ci@$GITHUB_SHA" >> $GITHUB_ENV
 
-        # this handles pytest test sharding
-        if [ "$MATRIX_INSTANCE" ]; then
-          if ! [ "${MATRIX_INSTANCE_TOTAL:-}" ]; then
-            echo "MATRIX_INSTANCE_TOTAL is required."
-            exit 1
-          fi
-          echo "TEST_GROUP=$MATRIX_INSTANCE" >> $GITHUB_ENV
-          echo "TOTAL_TEST_GROUPS=$MATRIX_INSTANCE_TOTAL" >> $GITHUB_ENV
-        fi
-
     - name: Clear Python cache
       shell: bash --noprofile --norc -eo pipefail -ux {0}
       env:
