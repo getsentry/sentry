@@ -1,3 +1,4 @@
+from functools import cached_property
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -48,7 +49,7 @@ from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 class IssueAlertMigratorTest(TestCase):
     def setUp(self) -> None:
-        conditions = [
+        self.rule_conditions = [
             {"id": ReappearedEventCondition.id},
             {"id": RegressionEventCondition.id},
             {
@@ -68,15 +69,14 @@ class IssueAlertMigratorTest(TestCase):
                 "channel_id": "C01234567890",
             },
         ]
-        self.issue_alert = self.create_project_rule(
-            name="test",
-            condition_data=conditions,
-            action_match="any",
-            filter_match="any",
-            action_data=self.action_data,
-        )
-        self.issue_alert.data["frequency"] = 5
-        self.issue_alert.save()
+        self.issue_alert_data = {
+            "conditions": self.rule_conditions,
+            "actions": self.action_data,
+            "action_match": "any",
+            "filter_match": "any",
+            "frequency": 5,
+            "group_type": IssueStreamGroupType.slug,
+        }
 
         self.filters = [
             {
@@ -120,12 +120,26 @@ class IssueAlertMigratorTest(TestCase):
             },
         ]
 
+    @cached_property
+    def issue_alert(self):
+        # create_project_rule runs the IssueAlertMigrator
+        return self.create_project_rule(
+            name="test",
+            condition_data=self.rule_conditions,
+            action_match="any",
+            filter_match="any",
+            action_data=self.action_data,
+            frequency=5,
+        )
+
     def assert_nothing_migrated(self, issue_alert):
         assert not AlertRuleWorkflow.objects.filter(rule_id=issue_alert.id).exists()
         assert not AlertRuleDetector.objects.filter(rule_id=issue_alert.id).exists()
 
         assert Workflow.objects.all().count() == 0
-        assert Detector.objects.all().count() == 0
+        assert (
+            Detector.objects.all().count() == 2
+        )  # default Error Monitor and Issue Stream Detectors
         assert DataConditionGroup.objects.all().count() == 0
         assert DataCondition.objects.all().count() == 0
         assert Action.objects.all().count() == 0
@@ -207,8 +221,6 @@ class IssueAlertMigratorTest(TestCase):
         ).exists()
 
     def test_run(self) -> None:
-        IssueAlertMigrator(self.issue_alert, self.user.id).run()
-
         self.assert_issue_alert_migrated(self.issue_alert)
 
         dcg_actions = DataConditionGroupAction.objects.all()[0]
@@ -216,72 +228,106 @@ class IssueAlertMigratorTest(TestCase):
         assert action.type == Action.Type.SLACK
 
     def test_run__issue_stream_detector(self) -> None:
-        self.issue_alert.data["group_type"] = IssueStreamGroupType.slug
-        self.issue_alert.save()
-
-        workflow = IssueAlertMigrator(self.issue_alert, self.user.id).run()
-        self.assert_issue_stream_detector_migrated(self.issue_alert.project_id, workflow)
+        self.issue_alert_data["group_type"] = IssueStreamGroupType.slug
+        issue_alert = Rule.objects.create(
+            label="Test Alert",
+            project=self.project,
+            data=self.issue_alert_data,
+        )
+        workflow = IssueAlertMigrator(issue_alert, self.user.id).run()
+        self.assert_issue_stream_detector_migrated(issue_alert.project_id, workflow)
 
     def test_run__missing_matches(self) -> None:
-        data = self.issue_alert.data
-        del data["action_match"]
-        del data["filter_match"]
-        self.issue_alert.update(data=data)
-        IssueAlertMigrator(self.issue_alert, self.user.id).run()
-
-        self.assert_issue_alert_migrated(self.issue_alert, logic_type=DataConditionGroup.Type.ALL)
+        del self.issue_alert_data["action_match"]
+        del self.issue_alert_data["filter_match"]
+        issue_alert = Rule.objects.create(
+            label="Test Alert",
+            project=self.project,
+            data=self.issue_alert_data,
+        )
+        IssueAlertMigrator(issue_alert, self.user.id).run()
+        self.assert_issue_alert_migrated(issue_alert, logic_type=DataConditionGroup.Type.ALL)
 
         dcg_actions = DataConditionGroupAction.objects.all()[0]
         action = dcg_actions.action
         assert action.type == Action.Type.SLACK
 
     def test_run__none_matches(self) -> None:
-        data = self.issue_alert.data
-        data["action_match"] = None
-        data["filter_match"] = None
-        self.issue_alert.update(data=data)
-        IssueAlertMigrator(self.issue_alert, self.user.id).run()
+        self.issue_alert_data["action_match"] = None
+        self.issue_alert_data["filter_match"] = None
+        issue_alert = Rule.objects.create(
+            label="Test Alert",
+            project=self.project,
+            data=self.issue_alert_data,
+        )
 
-        self.assert_issue_alert_migrated(self.issue_alert, logic_type=DataConditionGroup.Type.ALL)
+        IssueAlertMigrator(issue_alert, self.user.id).run()
+        self.assert_issue_alert_migrated(issue_alert, logic_type=DataConditionGroup.Type.ALL)
 
         dcg_actions = DataConditionGroupAction.objects.all()[0]
         action = dcg_actions.action
         assert action.type == Action.Type.SLACK
 
     def test_run__disabled_rule(self) -> None:
-        self.issue_alert.update(status=ObjectStatus.DISABLED)
-        IssueAlertMigrator(self.issue_alert, self.user.id).run()
-
-        self.assert_issue_alert_migrated(self.issue_alert, is_enabled=False)
+        issue_alert = Rule.objects.create(
+            label="Test Alert",
+            project=self.project,
+            data=self.issue_alert_data,
+            status=ObjectStatus.DISABLED,
+        )
+        IssueAlertMigrator(issue_alert, self.user.id).run()
+        self.assert_issue_alert_migrated(issue_alert, is_enabled=False)
 
         dcg_actions = DataConditionGroupAction.objects.all()[0]
         action = dcg_actions.action
         assert action.type == Action.Type.SLACK
 
     def test_run__snoozed_rule(self) -> None:
-        RuleSnooze.objects.create(rule=self.issue_alert)
-        IssueAlertMigrator(self.issue_alert, self.user.id).run()
+        # create_project_rule runs the IssueAlertMigrator
+        issue_alert = self.create_project_rule(
+            name="test",
+            condition_data=self.rule_conditions,
+            action_match="any",
+            filter_match="any",
+            action_data=self.action_data,
+            frequency=5,
+        )
+        RuleSnooze.objects.create(rule=issue_alert)
 
-        self.assert_issue_alert_migrated(self.issue_alert, is_enabled=False)
+        self.assert_issue_alert_migrated(issue_alert, is_enabled=False)
 
         dcg_actions = DataConditionGroupAction.objects.all()[0]
         action = dcg_actions.action
         assert action.type == Action.Type.SLACK
 
     def test_run__snoozed_rule_for_user(self) -> None:
-        RuleSnooze.objects.create(rule=self.issue_alert, user_id=self.user.id)
-        IssueAlertMigrator(self.issue_alert, self.user.id).run()
+        # create_project_rule runs the IssueAlertMigrator
+        issue_alert = self.create_project_rule(
+            name="test",
+            condition_data=self.rule_conditions,
+            action_match="any",
+            filter_match="any",
+            action_data=self.action_data,
+            frequency=5,
+        )
+        RuleSnooze.objects.create(rule=issue_alert, user_id=self.user.id)
 
-        self.assert_issue_alert_migrated(self.issue_alert, is_enabled=True)
+        self.assert_issue_alert_migrated(issue_alert, is_enabled=True)
 
         dcg_actions = DataConditionGroupAction.objects.all()[0]
         action = dcg_actions.action
         assert action.type == Action.Type.SLACK
 
     def test_run__skip_actions(self) -> None:
-        IssueAlertMigrator(self.issue_alert, self.user.id, should_create_actions=False).run()
+        del self.issue_alert_data["actions"]
+        issue_alert = Rule.objects.create(
+            label="Test Alert",
+            project=self.project,
+            data=self.issue_alert_data,
+        )
+        IssueAlertMigrator(issue_alert, self.user.id, should_create_actions=False).run()
 
-        self.assert_issue_alert_migrated(self.issue_alert)
+        self.assert_issue_alert_migrated(issue_alert)
 
         assert DataConditionGroupAction.objects.all().count() == 0
         assert Action.objects.all().count() == 0
@@ -296,12 +342,16 @@ class IssueAlertMigratorTest(TestCase):
             },
             {"id": RegressionEventCondition.id},
         ]
-        self.issue_alert.data["conditions"] = invalid_conditions
-        self.issue_alert.save()
+        self.issue_alert_data["conditions"] = invalid_conditions
+        issue_alert = Rule.objects.create(
+            label="Test Alert",
+            project=self.project,
+            data=self.issue_alert_data,
+        )
 
-        IssueAlertMigrator(self.issue_alert, self.user.id, should_create_actions=False).run()
+        IssueAlertMigrator(issue_alert, self.user.id, should_create_actions=False).run()
 
-        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule_id=self.issue_alert.id)
+        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule_id=issue_alert.id)
 
         workflow = Workflow.objects.get(id=issue_alert_workflow.workflow.id)
 
@@ -324,21 +374,28 @@ class IssueAlertMigratorTest(TestCase):
                 "comparisonType": "asdf",
             },
         ]
-        self.issue_alert.data["conditions"] = conditions
-        self.issue_alert.save()
+        self.issue_alert_data["conditions"] = conditions
+        issue_alert = Rule.objects.create(
+            label="Test Alert",
+            project=self.project,
+            data=self.issue_alert_data,
+        )
 
         with pytest.raises(Exception):
-            IssueAlertMigrator(self.issue_alert, self.user.id, should_create_actions=False).run()
+            IssueAlertMigrator(issue_alert, self.user.id, should_create_actions=False).run()
 
         assert Workflow.objects.all().count() == 0
 
     def test_run__no_triggers(self) -> None:
-        self.issue_alert.data["conditions"] = []
-        self.issue_alert.save()
+        self.issue_alert_data["conditions"] = []
+        issue_alert = Rule.objects.create(
+            label="Test Alert",
+            project=self.project,
+            data=self.issue_alert_data,
+        )
+        IssueAlertMigrator(issue_alert, self.user.id, should_create_actions=False).run()
 
-        IssueAlertMigrator(self.issue_alert, self.user.id, should_create_actions=False).run()
-
-        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule_id=self.issue_alert.id)
+        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule_id=issue_alert.id)
         workflow = Workflow.objects.get(id=issue_alert_workflow.workflow.id)
 
         assert workflow.when_condition_group
@@ -347,8 +404,6 @@ class IssueAlertMigratorTest(TestCase):
         )
 
     def test_run__no_double_migrate(self) -> None:
-        IssueAlertMigrator(self.issue_alert, self.user.id).run()
-
         # there should be only 1
         issue_alert_workflow = AlertRuleWorkflow.objects.get(rule_id=self.issue_alert.id)
         issue_alert_detector = AlertRuleDetector.objects.get(rule_id=self.issue_alert.id)
@@ -360,10 +415,7 @@ class IssueAlertMigratorTest(TestCase):
         other_project_detector = self.create_detector(
             project=self.project, type=IssueStreamGroupType.slug
         )
-        IssueAlertMigrator(self.issue_alert, self.user.id).run()
-
         # does not create a new error detector
-
         error_detector = Detector.objects.get(project_id=self.project.id, type=ErrorGroupType.slug)
         assert error_detector.id == project_detector.id
 
@@ -373,22 +425,25 @@ class IssueAlertMigratorTest(TestCase):
         assert other_project_detector.id == issue_stream_detector.id
 
     def test_run__detector_lookup_exists(self) -> None:
+        issue_alert = Rule.objects.create(
+            label="Test Alert",
+            project=self.project,
+            data=self.issue_alert_data,
+        )
         AlertRuleDetector.objects.create(
             detector=self.create_detector(project=self.project),
-            rule_id=self.issue_alert.id,
+            rule_id=issue_alert.id,
         )
-        IssueAlertMigrator(self.issue_alert, self.user.id).run()
-        AlertRuleWorkflow.objects.get(rule_id=self.issue_alert.id).workflow
+        IssueAlertMigrator(issue_alert, self.user.id).run()
+        AlertRuleWorkflow.objects.get(rule_id=issue_alert.id).workflow
 
     def test_run__with_conditions(self) -> None:
-        issue_alert = self.create_project_rule(
+        self.create_project_rule(
             condition_data=self.conditions,
             action_match="all",
             filter_match="any",
             action_data=self.action_data,
         )
-
-        IssueAlertMigrator(issue_alert, self.user.id).run()
         assert DataCondition.objects.all().count() == 1
         dc = DataCondition.objects.get(type=Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT)
         assert dc.comparison == {
@@ -403,14 +458,12 @@ class IssueAlertMigratorTest(TestCase):
             {"id": EveryEventCondition.id},
             {"id": RegressionEventCondition.id},
         ]
-        issue_alert = self.create_project_rule(
+        self.create_project_rule(
             condition_data=conditions,
             action_match="any",
             filter_match="any",
             action_data=self.action_data,
         )
-
-        IssueAlertMigrator(issue_alert, self.user.id).run()
         assert DataCondition.objects.all().count() == 1
         dc = DataCondition.objects.get(type=Condition.REGRESSION_EVENT)
         assert dc.condition_group.logic_type == DataConditionGroup.Type.ANY_SHORT_CIRCUIT
@@ -420,25 +473,28 @@ class IssueAlertMigratorTest(TestCase):
             {"id": EveryEventCondition.id},
             {"id": RegressionEventCondition.id},
         ]
-        issue_alert = self.create_project_rule(
+        self.create_project_rule(
             condition_data=conditions,
             action_match="all",
             filter_match="any",
             action_data=self.action_data,
         )
-
-        IssueAlertMigrator(issue_alert, self.user.id).run()
         assert DataCondition.objects.all().count() == 1
         dc = DataCondition.objects.get(type=Condition.REGRESSION_EVENT)
         assert dc.condition_group.logic_type == DataConditionGroup.Type.ALL
 
     def test_run__cron_rule(self) -> None:
         # cron rule should not be connected to the error detector
-        self.issue_alert.source = RuleSource.CRON_MONITOR
-        self.issue_alert.save()
+        self.issue_alert_data["group_type"] = IssueStreamGroupType.slug
+        issue_alert = Rule.objects.create(
+            label="Test Alert",
+            project=self.project,
+            data=self.issue_alert_data,
+            source=RuleSource.CRON_MONITOR,
+        )
+        workflow = IssueAlertMigrator(issue_alert, self.user.id).run()
 
-        workflow = IssueAlertMigrator(self.issue_alert, self.user.id).run()
-        assert AlertRuleWorkflow.objects.filter(rule_id=self.issue_alert.id).exists()
+        assert AlertRuleWorkflow.objects.filter(rule_id=issue_alert.id).exists()
         assert not DetectorWorkflow.objects.filter(workflow=workflow).exists()
 
     def test_run__cron_rule_with_monitor(self) -> None:
@@ -455,8 +511,8 @@ class IssueAlertMigratorTest(TestCase):
         ensure_cron_detector(monitor)
 
         # Update rule to be cron monitor source with monitor.slug filter
-        self.issue_alert.source = RuleSource.CRON_MONITOR
-        self.issue_alert.data["conditions"].append(
+        self.issue_alert_data["group_type"] = IssueStreamGroupType.slug
+        self.issue_alert_data["conditions"].append(
             {
                 "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
                 "key": "monitor.slug",
@@ -464,12 +520,16 @@ class IssueAlertMigratorTest(TestCase):
                 "value": "test-monitor",
             }
         )
-        self.issue_alert.save()
-
-        workflow = IssueAlertMigrator(self.issue_alert, self.user.id).run()
+        issue_alert = Rule.objects.create(
+            label="Test Alert",
+            project=self.project,
+            data=self.issue_alert_data,
+            source=RuleSource.CRON_MONITOR,
+        )
+        workflow = IssueAlertMigrator(issue_alert, self.user.id).run()
 
         # Verify workflow created
-        assert AlertRuleWorkflow.objects.filter(rule_id=self.issue_alert.id).exists()
+        assert AlertRuleWorkflow.objects.filter(rule_id=issue_alert.id).exists()
 
         # Verify detector is linked to workflow
         detector = get_detector_for_monitor(monitor)
@@ -477,18 +537,28 @@ class IssueAlertMigratorTest(TestCase):
         assert DetectorWorkflow.objects.filter(detector=detector, workflow=workflow).exists()
 
     def test_dry_run(self) -> None:
-        IssueAlertMigrator(self.issue_alert, self.user.id, is_dry_run=True).run()
+        issue_alert = Rule.objects.create(
+            label="Test Alert",
+            project=self.project,
+            data=self.issue_alert_data,
+        )
+        IssueAlertMigrator(issue_alert, self.user.id, is_dry_run=True).run()
 
-        self.assert_nothing_migrated(self.issue_alert)
+        self.assert_nothing_migrated(issue_alert)
 
     def test_dry_run__already_exists(self) -> None:
-        IssueAlertMigrator(self.issue_alert, self.user.id).run()
+        issue_alert = Rule.objects.create(
+            label="Test Alert",
+            project=self.project,
+            data=self.issue_alert_data,
+        )
+        IssueAlertMigrator(issue_alert, self.user.id).run()
 
         with pytest.raises(Exception):
-            IssueAlertMigrator(self.issue_alert, self.user.id, is_dry_run=True).run()
+            IssueAlertMigrator(issue_alert, self.user.id, is_dry_run=True).run()
 
-        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule_id=self.issue_alert.id)
-        issue_alert_detector = AlertRuleDetector.objects.get(rule_id=self.issue_alert.id)
+        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule_id=issue_alert.id)
+        issue_alert_detector = AlertRuleDetector.objects.get(rule_id=issue_alert.id)
         Workflow.objects.get(id=issue_alert_workflow.workflow.id)
         Detector.objects.get(id=issue_alert_detector.detector.id)
 
@@ -498,29 +568,45 @@ class IssueAlertMigratorTest(TestCase):
     def test_dry_run__data_condition_validation_fails(self, mock_enforce: MagicMock) -> None:
         mock_enforce.side_effect = ValidationError("oopsie")
 
-        with pytest.raises(ValidationError):
-            IssueAlertMigrator(self.issue_alert, self.user.id, is_dry_run=True).run()
+        issue_alert = Rule.objects.create(
+            label="Test Alert",
+            project=self.project,
+            data=self.issue_alert_data,
+        )
 
-        self.assert_nothing_migrated(self.issue_alert)
+        with pytest.raises(ValidationError):
+            IssueAlertMigrator(issue_alert, self.user.id, is_dry_run=True).run()
+
+        self.assert_nothing_migrated(issue_alert)
 
     def test_dry_run__dcg_validation_fails(self) -> None:
-        self.issue_alert.data["action_match"] = "asdf"
+        self.issue_alert_data["action_match"] = "asdf"
+        issue_alert = Rule.objects.create(
+            label="Test Alert",
+            project=self.project,
+            data=self.issue_alert_data,
+        )
 
         with pytest.raises(ValueError):
-            IssueAlertMigrator(self.issue_alert, self.user.id, is_dry_run=True).run()
+            IssueAlertMigrator(issue_alert, self.user.id, is_dry_run=True).run()
 
-        self.assert_nothing_migrated(self.issue_alert)
+        self.assert_nothing_migrated(issue_alert)
 
     def test_dry_run__workflow_validation_fails(self) -> None:
-        self.issue_alert.data["frequency"] = -1
+        self.issue_alert_data["frequency"] = -1
+        issue_alert = Rule.objects.create(
+            label="Test Alert",
+            project=self.project,
+            data=self.issue_alert_data,
+        )
 
         with pytest.raises(ValidationError):
-            IssueAlertMigrator(self.issue_alert, self.user.id, is_dry_run=True).run()
+            IssueAlertMigrator(issue_alert, self.user.id, is_dry_run=True).run()
 
-        self.assert_nothing_migrated(self.issue_alert)
+        self.assert_nothing_migrated(issue_alert)
 
     def test_dry_run__action_validation_fails(self) -> None:
-        self.issue_alert.data["actions"] = [
+        self.issue_alert_data["actions"] = [
             {
                 "channel": "#my-channel",
                 "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
@@ -528,11 +614,16 @@ class IssueAlertMigratorTest(TestCase):
                 "channel_id": "C01234567890",
             },
         ]
+        issue_alert = Rule.objects.create(
+            label="Test Alert",
+            project=self.project,
+            data=self.issue_alert_data,
+        )
 
         with pytest.raises(ValueError):
-            IssueAlertMigrator(self.issue_alert, self.user.id, is_dry_run=True).run()
+            IssueAlertMigrator(issue_alert, self.user.id, is_dry_run=True).run()
 
-        self.assert_nothing_migrated(self.issue_alert)
+        self.assert_nothing_migrated(issue_alert)
 
 
 class TestEnsureDefaultDetectors(TestCase):
