@@ -13,10 +13,8 @@ import {useAITrace} from 'sentry/views/insights/pages/agents/hooks/useAITrace';
 import {useNodeDetailsLink} from 'sentry/views/insights/pages/agents/hooks/useNodeDetailsLink';
 import {useUrlTraceDrawer} from 'sentry/views/insights/pages/agents/hooks/useUrlTraceDrawer';
 import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/getDefaultSelectedNode';
-import {getNodeId} from 'sentry/views/insights/pages/agents/utils/getNodeId';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {useTraceDrawerQueryState} from 'sentry/views/insights/pages/agents/utils/urlParams';
-import {TraceTreeNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
@@ -45,7 +43,7 @@ const TraceViewDrawer = memo(function TraceViewDrawer({
 
   const handleSelectNode = useCallback(
     (node: AITraceSpanNode) => {
-      const id = getNodeId(node);
+      const id = node.id;
       setTraceDrawerQueryState({
         spanId: id,
       });
@@ -57,7 +55,7 @@ const TraceViewDrawer = memo(function TraceViewDrawer({
   );
 
   const selectedNode =
-    (selectedNodeKey && nodes.find(node => getNodeId(node) === selectedNodeKey)) ||
+    (selectedNodeKey && nodes.find(node => node.id === selectedNodeKey)) ||
     getDefaultSelectedNode(nodes);
 
   const nodeDetailsLink = useNodeDetailsLink({
@@ -188,21 +186,21 @@ function AITraceView({
         <SpansHeader>{t('AI Spans')}</SpansHeader>
         <AISpanList
           nodes={nodes}
-          selectedNodeKey={getNodeId(selectedNode!)}
+          selectedNodeKey={selectedNode?.id ?? null}
           onSelectNode={onSelectNode}
         />
       </LeftPanel>
       <RightPanel>
-        <TraceTreeNodeDetails
-          node={selectedNode}
-          manager={null}
-          onParentClick={() => {}}
-          onTabScrollToNode={() => {}}
-          organization={organization}
-          replay={null}
-          traceId={traceSlug}
-          hideNodeActions
-        />
+        {selectedNode?.renderDetails({
+          node: selectedNode,
+          manager: null,
+          onParentClick: () => {},
+          onTabScrollToNode: () => {},
+          organization,
+          replay: null,
+          traceId: traceSlug,
+          hideNodeActions: true,
+        })}
       </RightPanel>
     </SplitContainer>
   );
@@ -237,7 +235,7 @@ const RightPanel = styled('div')`
   min-width: ${RIGHT_PANEL_WIDTH}px;
   flex: 1;
   min-height: 0;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   overflow-y: auto;
   overflow-x: hidden;
 `;

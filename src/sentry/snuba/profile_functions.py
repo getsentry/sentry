@@ -72,6 +72,7 @@ class ProfileFunctions(rpc_dataset_common.RPCBase):
         config: SearchResolverConfig,
         sampling_mode: SAMPLING_MODES | None,
         comparison_delta: timedelta | None = None,
+        additional_queries: AdditionalQueries | None = None,
     ) -> SnubaTSResult:
         cls.validate_granularity(params)
         search_resolver = cls.get_resolver(params, config)
@@ -83,6 +84,7 @@ class ProfileFunctions(rpc_dataset_common.RPCBase):
             groupby=[],
             referrer=referrer,
             sampling_mode=sampling_mode,
+            additional_queries=additional_queries,
         )
 
         """Run the query"""

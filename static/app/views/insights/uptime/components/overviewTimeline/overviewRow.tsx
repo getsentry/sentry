@@ -118,7 +118,7 @@ export function OverviewRow({summary, uptimeDetector, timeWindowConfig, single}:
             </Fragment>
           )}
         </DetailsLine>
-        <div>{!uptimeDetector.enabled && <Tag>{t('Disabled')}</Tag>}</div>
+        <div>{!uptimeDetector.enabled && <Tag variant="muted">{t('Disabled')}</Tag>}</div>
       </Details>
     </DetailsLink>
   );
@@ -179,7 +179,7 @@ function DetailsLine(props: {children: React.ReactNode}) {
 }
 
 const InnerDetailsLink = styled(Link)`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 
   &:focus-visible {
     outline: none;
@@ -216,8 +216,8 @@ const TimelineRow = styled('li')<TimelineRowProps>`
   --disabled-opacity: ${p => (p.isDisabled ? '0.6' : 'unset')};
 
   &:last-child {
-    border-bottom-left-radius: ${p => p.theme.borderRadius};
-    border-bottom-right-radius: ${p => p.theme.borderRadius};
+    border-bottom-left-radius: ${p => p.theme.radius.md};
+    border-bottom-right-radius: ${p => p.theme.radius.md};
   }
 `;
 

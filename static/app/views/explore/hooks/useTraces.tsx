@@ -107,7 +107,7 @@ export function useTraces({
       per_page: limit,
       cursor,
       breakdownSlices: BREAKDOWN_SLICES,
-      caseInsensitive,
+      caseInsensitive: caseInsensitive ? '1' : undefined,
       ...(Array.isArray(logQuery) && logQuery.length > 0 ? {logQuery} : {}),
       ...(Array.isArray(metricQuery) && metricQuery.length > 0 ? {metricQuery} : {}),
       ...(Array.isArray(spanQuery) && spanQuery.length > 0 ? {spanQuery} : {}),

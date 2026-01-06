@@ -114,7 +114,7 @@ export function IncompatibleAlertQuery(props: IncompatibleAlertQueryProps) {
   return (
     <Alert.Container>
       <StyledAlert
-        type="info"
+        variant="info"
         trailingItems={
           <Button
             icon={<IconClose size="sm" />}
@@ -155,7 +155,7 @@ export function IncompatibleAlertQuery(props: IncompatibleAlertQueryProps) {
 }
 
 const StyledAlert = styled(Alert)`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const StyledUnorderedList = styled('ul')`

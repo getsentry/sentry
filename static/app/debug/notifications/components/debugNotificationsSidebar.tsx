@@ -84,14 +84,14 @@ const NotificationLinkButton = styled(LinkButton, {
     top: 50%;
     transform: translateY(-50%);
     background: ${p => p.theme.tokens.graphics.success};
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
     opacity: ${p => (p.active ? 1 : 0)};
   }
   &:hover {
     color: ${p =>
       p.active ? p.theme.tokens.content.success : p.theme.tokens.content.primary};
     &:before {
-      background: ${p => (p.active ? p.theme.green100 : p.theme.gray100)};
+      background: ${p => (p.active ? p.theme.colors.green100 : p.theme.colors.gray100)};
       opacity: 1;
     }
   }
@@ -99,7 +99,7 @@ const NotificationLinkButton = styled(LinkButton, {
     color: ${p =>
       p.active ? p.theme.tokens.content.success : p.theme.tokens.content.primary};
     &:before {
-      background: ${p => (p.active ? p.theme.green200 : p.theme.gray200)};
+      background: ${p => (p.active ? p.theme.colors.green200 : p.theme.colors.gray200)};
       opacity: 1;
     }
   }

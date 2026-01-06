@@ -13,6 +13,7 @@ import {InlineCode} from 'sentry/components/core/code/inlineCode';
 import {Disclosure} from 'sentry/components/core/disclosure';
 import {Link} from 'sentry/components/core/link';
 import {TextArea} from 'sentry/components/core/textarea';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
@@ -35,7 +36,6 @@ import {
   IconCopy,
   IconEllipsis,
   IconFire,
-  IconFix,
   IconRefresh,
   IconSeer,
   IconStar,
@@ -52,6 +52,7 @@ import {getMessage, getTitle} from 'sentry/utils/events';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
@@ -70,12 +71,9 @@ interface AssignedEntity {
 interface ClusterSummary {
   assignedTo: AssignedEntity[];
   cluster_avg_similarity: number | null;
-  // unused
   cluster_id: number;
   cluster_min_similarity: number | null;
-  // unused
   cluster_size: number | null;
-  // unused
   description: string;
   fixability_score: number | null;
   group_ids: number[];
@@ -92,9 +90,6 @@ interface ClusterSummary {
   service_tags?: string[];
 }
 
-/**
- * Formats cluster information for copying to clipboard in a readable format.
- */
 function formatClusterInfoForClipboard(cluster: ClusterSummary): string {
   const lines: string[] = [];
 
@@ -113,18 +108,11 @@ function formatClusterInfoForClipboard(cluster: ClusterSummary): string {
   return lines.join('\n');
 }
 
-/**
- * Formats a prompt for Seer Explorer about the cluster.
- */
 function formatClusterPromptForSeer(cluster: ClusterSummary): string {
   const message = formatClusterInfoForClipboard(cluster);
   return `I'd like to investigate this cluster of issues:\n\n${message}\n\nPlease help me understand the root cause and potential fixes for these related issues.`;
 }
 
-/**
- * Parses a string and renders backtick-wrapped text as inline code elements.
- * Example: "Error in `Contains` filter" becomes ["Error in ", <InlineCode>Contains</InlineCode>, " filter"]
- */
 function renderWithInlineCode(text: string): React.ReactNode {
   const parts = text.split(/(`[^`]+`)/g);
   if (parts.length === 1) {
@@ -351,11 +339,17 @@ function ClusterIssues({groupIds}: {groupIds: number[]}) {
 
 interface ClusterCardProps {
   cluster: ClusterSummary;
+  onDismiss: (clusterId: number) => void;
   filterByEscalating?: boolean;
   filterByRegressed?: boolean;
 }
 
-function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCardProps) {
+function ClusterCard({
+  cluster,
+  filterByRegressed,
+  filterByEscalating,
+  onDismiss,
+}: ClusterCardProps) {
   const api = useApi();
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -449,7 +443,16 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
     });
   }, [api, cluster.group_ids, organization.slug, selection]);
 
-  const handleDismiss = () => {};
+  const handleDismiss = useCallback(() => {
+    openConfirmModal({
+      header: t('Dismiss Cluster'),
+      message: t('This will hide this cluster from your personal view.'),
+      confirmText: t('Dismiss'),
+      onConfirm: () => {
+        onDismiss(cluster.cluster_id);
+      },
+    });
+  }, [onDismiss, cluster.cluster_id]);
 
   const allTags = useMemo(() => {
     return [
@@ -475,73 +478,19 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
   return (
     <CardContainer>
       <CardHeader>
-        {cluster.impact && <ClusterTitle>{cluster.impact}</ClusterTitle>}
-        <ClusterStats>
-          {cluster.fixability_score !== null &&
-            cluster.fixability_score !== undefined && (
-              <StatItem>
-                <IconFix size="xs" color="gray300" />
-                <Text size="xs">
-                  <Text size="xs" bold as="span">
-                    {Math.round(cluster.fixability_score * 100)}%
-                  </Text>{' '}
-                  {t('relevance')}
-                </Text>
-              </StatItem>
-            )}
-          <StatItem>
-            <IconFire size="xs" color="gray300" />
-            {clusterStats.isPending ? (
-              <Text size="xs" variant="muted">
-                –
-              </Text>
-            ) : (
-              <Text size="xs">
-                <Text size="xs" bold as="span">
-                  {clusterStats.totalEvents.toLocaleString()}
-                </Text>{' '}
-                {tn('event', 'events', clusterStats.totalEvents)}
-              </Text>
-            )}
-          </StatItem>
-          <StatItem>
-            <IconUser size="xs" color="gray300" />
-            {clusterStats.isPending ? (
-              <Text size="xs" variant="muted">
-                –
-              </Text>
-            ) : (
-              <Text size="xs">
-                <Text size="xs" bold as="span">
-                  {clusterStats.totalUsers.toLocaleString()}
-                </Text>{' '}
-                {tn('user', 'users', clusterStats.totalUsers)}
-              </Text>
-            )}
-          </StatItem>
-          {!clusterStats.isPending && clusterStats.lastSeen && (
-            <StatItem>
-              <IconClock size="xs" color="gray300" />
-              <TimeSince
-                tooltipPrefix={t('Last Seen')}
-                date={clusterStats.lastSeen}
-                suffix={t('ago')}
-                unitStyle="short"
-              />
-            </StatItem>
-          )}
-          {!clusterStats.isPending && clusterStats.firstSeen && (
-            <StatItem>
-              <IconCalendar size="xs" color="gray300" />
-              <TimeSince
-                tooltipPrefix={t('First Seen')}
-                date={clusterStats.firstSeen}
-                suffix={t('old')}
-                unitStyle="short"
-              />
-            </StatItem>
-          )}
-        </ClusterStats>
+        {cluster.impact && (
+          <ClusterTitle>
+            {cluster.impact}
+            <Text
+              as="span"
+              size="md"
+              variant="muted"
+              style={{fontWeight: 'normal', marginLeft: space(1)}}
+            >
+              [CLUSTER-{cluster.cluster_id}]
+            </Text>
+          </ClusterTitle>
+        )}
         {!clusterStats.isPending &&
           (clusterStats.newIssuesCount > 0 ||
             clusterStats.hasRegressedIssues ||
@@ -550,7 +499,7 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
               {clusterStats.newIssuesCount > 0 && (
                 <StatusTag color="purple">
                   <IconStar size="xs" />
-                  <Text size="xs" bold>
+                  <Text size="xs">
                     {tn(
                       '%s new issue this week',
                       '%s new issues this week',
@@ -562,21 +511,78 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
               {clusterStats.hasRegressedIssues && (
                 <StatusTag color="yellow">
                   <IconRefresh size="xs" />
-                  <Text size="xs" bold>
-                    {t('Has regressed issues')}
-                  </Text>
+                  <Text size="xs">{t('Has regressed issues')}</Text>
                 </StatusTag>
               )}
               {clusterStats.isEscalating && (
                 <StatusTag color="red">
                   <IconArrow direction="up" size="xs" />
-                  <Text size="xs" bold>
-                    {t('Escalating')}
-                  </Text>
+                  <Text size="xs">{t('Escalating')}</Text>
                 </StatusTag>
               )}
             </ClusterStatusTags>
           )}
+        <StatsRow>
+          <ClusterStats>
+            <StatItem>
+              <IconFire size="xs" variant="muted" />
+              {clusterStats.isPending ? (
+                <Text size="xs" variant="muted">
+                  –
+                </Text>
+              ) : (
+                <Text size="xs">
+                  <Text size="xs" bold as="span">
+                    {clusterStats.totalEvents.toLocaleString()}
+                  </Text>{' '}
+                  {tn('event', 'events', clusterStats.totalEvents)}
+                </Text>
+              )}
+            </StatItem>
+            <StatItem>
+              <IconUser size="xs" variant="muted" />
+              {clusterStats.isPending ? (
+                <Text size="xs" variant="muted">
+                  –
+                </Text>
+              ) : (
+                <Text size="xs">
+                  <Text size="xs" bold as="span">
+                    {clusterStats.totalUsers.toLocaleString()}
+                  </Text>{' '}
+                  {tn('user', 'users', clusterStats.totalUsers)}
+                </Text>
+              )}
+            </StatItem>
+          </ClusterStats>
+          {!clusterStats.isPending &&
+            (clusterStats.firstSeen || clusterStats.lastSeen) && (
+              <TimeStats>
+                {clusterStats.lastSeen && (
+                  <StatItem>
+                    <IconClock size="xs" variant="muted" />
+                    <TimeSince
+                      tooltipPrefix={t('Last Seen')}
+                      date={clusterStats.lastSeen}
+                      suffix={t('ago')}
+                      unitStyle="short"
+                    />
+                  </StatItem>
+                )}
+                {clusterStats.firstSeen && (
+                  <StatItem>
+                    <IconCalendar size="xs" variant="muted" />
+                    <TimeSince
+                      tooltipPrefix={t('First Seen')}
+                      date={clusterStats.firstSeen}
+                      suffix={t('old')}
+                      unitStyle="short"
+                    />
+                  </StatItem>
+                )}
+              </TimeStats>
+            )}
+        </StatsRow>
       </CardHeader>
 
       <TabSection>
@@ -634,20 +640,40 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
 
       <CardFooter>
         {clusterProjects.length > 0 && (
-          <ProjectAvatars>
-            {clusterProjects.slice(0, 3).map(project => (
-              <ProjectBadge
-                key={project.id}
-                project={project}
-                avatarSize={16}
-                hideName
-                disableLink
-              />
-            ))}
-            {clusterProjects.length > 3 && (
-              <MoreProjectsCount>+{clusterProjects.length - 3}</MoreProjectsCount>
-            )}
-          </ProjectAvatars>
+          <Tooltip
+            isHoverable
+            overlayStyle={{maxWidth: 300}}
+            title={
+              <Flex direction="column" gap="xs">
+                {clusterProjects.map(project => (
+                  <Flex key={project.id} align="center" gap="xs">
+                    <ProjectBadge
+                      project={project}
+                      avatarSize={12}
+                      hideName
+                      disableLink
+                    />
+                    <Text size="xs">{project.slug}</Text>
+                  </Flex>
+                ))}
+              </Flex>
+            }
+          >
+            <ProjectAvatars>
+              {clusterProjects.slice(0, 3).map(project => (
+                <ProjectBadge
+                  key={project.id}
+                  project={project}
+                  avatarSize={16}
+                  hideName
+                  disableLink
+                />
+              ))}
+              {clusterProjects.length > 3 && (
+                <MoreProjectsCount>+{clusterProjects.length - 3}</MoreProjectsCount>
+              )}
+            </ProjectAvatars>
+          </Tooltip>
         )}
         <FooterActions>
           <ButtonBar merged gap="0">
@@ -739,6 +765,14 @@ function DynamicGrouping() {
   const [visibleClusterCount, setVisibleClusterCount] = useState(CLUSTERS_PER_PAGE);
   const [filterByRegressed, setFilterByRegressed] = useState(false);
   const [filterByEscalating, setFilterByEscalating] = useState(false);
+  const [dismissedClusterIds, setDismissedClusterIds] = useLocalStorageState<number[]>(
+    `top-issues-dismissed-clusters:${organization.slug}`,
+    []
+  );
+
+  const handleDismissCluster = (clusterId: number) => {
+    setDismissedClusterIds(prev => [...prev, clusterId]);
+  };
 
   // Fetch cluster data from API
   const {data: topIssuesResponse, isPending} = useApiQuery<TopIssuesResponse>(
@@ -811,15 +845,17 @@ function DynamicGrouping() {
     const clusterData = customClusterData ?? topIssuesResponse?.data ?? [];
 
     if (isUsingCustomData && disableFilters) {
-      return clusterData.filter(
-        cluster => cluster.error_type && cluster.impact && cluster.location
-      );
+      return clusterData;
     }
 
     // Apply project filter and require structured fields
     const baseFiltered = clusterData.filter(cluster => {
       // Only show clusters with the required structured fields
       if (!cluster.error_type || !cluster.impact || !cluster.location) {
+        return false;
+      }
+
+      if (dismissedClusterIds.includes(cluster.cluster_id)) {
         return false;
       }
 
@@ -872,6 +908,7 @@ function DynamicGrouping() {
     userTeams,
     isTeamFilterActive,
     selectedTeamIds,
+    dismissedClusterIds,
   ]);
 
   const hasMoreClusters = filteredAndSortedClusters.length > visibleClusterCount;
@@ -896,24 +933,34 @@ function DynamicGrouping() {
     <PageFiltersContainer>
       <PageWrapper>
         <HeaderSection>
-          <Flex align="center" gap="md" style={{marginBottom: space(2)}}>
-            <ClickableHeading as="h1" onClick={() => setShowDevTools(prev => !prev)}>
-              {t('Top Issues')}
-            </ClickableHeading>
-            {isUsingCustomData && (
-              <CustomDataBadge>
-                <Text size="xs" bold>
-                  {t('Using Custom Data')}
-                </Text>
-                <Button
-                  size="zero"
-                  borderless
-                  icon={<IconClose size="xs" />}
-                  aria-label={t('Clear custom data')}
-                  onClick={handleClearCustomData}
-                />
-              </CustomDataBadge>
-            )}
+          <Flex
+            align="center"
+            gap="md"
+            justify="between"
+            style={{marginBottom: space(2)}}
+          >
+            <Flex align="center" gap="md">
+              <ClickableHeading as="h1" onClick={() => setShowDevTools(prev => !prev)}>
+                {t('Top Issues (Experimental)')}
+              </ClickableHeading>
+              {isUsingCustomData && (
+                <CustomDataBadge>
+                  <Text size="xs" bold>
+                    {t('Using Custom Data')}
+                  </Text>
+                  <Button
+                    size="zero"
+                    borderless
+                    icon={<IconClose size="xs" />}
+                    aria-label={t('Clear custom data')}
+                    onClick={handleClearCustomData}
+                  />
+                </CustomDataBadge>
+              )}
+            </Flex>
+            <Link to={`/organizations/${organization.slug}/issues/top-issues/`}>
+              <Button size="sm">{t('View Single Card Layout')}</Button>
+            </Link>
           </Flex>
 
           <Flex gap="sm" align="center" style={{marginBottom: space(2)}}>
@@ -1118,6 +1165,7 @@ function DynamicGrouping() {
                       cluster={cluster}
                       filterByRegressed={filterByRegressed}
                       filterByEscalating={filterByEscalating}
+                      onDismiss={handleDismissCluster}
                     />
                   ))}
               </CardsColumn>
@@ -1130,6 +1178,7 @@ function DynamicGrouping() {
                       cluster={cluster}
                       filterByRegressed={filterByRegressed}
                       filterByEscalating={filterByEscalating}
+                      onDismiss={handleDismissCluster}
                     />
                   ))}
               </CardsColumn>
@@ -1185,11 +1234,10 @@ const CardsColumn = styled('div')`
   min-width: 0;
 `;
 
-// Card with subtle hover effect
 const CardContainer = styled('div')`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -1199,12 +1247,11 @@ const CardContainer = styled('div')`
     box-shadow 0.2s ease;
 
   &:hover {
-    border-color: ${p => p.theme.purple200};
+    border-color: ${p => p.theme.colors.blue200};
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   }
 `;
 
-// Zone 1: Title area - clean and prominent
 const CardHeader = styled('div')`
   padding: ${space(3)} ${space(3)} ${space(2)};
   display: flex;
@@ -1216,15 +1263,29 @@ const ClusterTitle = styled('h3')`
   margin: 0;
   font-size: ${p => p.theme.fontSize.xl};
   font-weight: 600;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   line-height: 1.3;
   word-break: break-word;
 `;
 
-// Stats row within header
+const StatsRow = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: ${space(2)};
+`;
+
 const ClusterStats = styled('div')`
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
+  gap: ${space(2)};
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+`;
+
+const TimeStats = styled('div')`
+  display: flex;
   align-items: center;
   gap: ${space(2)};
   font-size: ${p => p.theme.fontSize.sm};
@@ -1249,38 +1310,36 @@ const MoreProjectsCount = styled('span')`
   margin-left: ${space(0.25)};
 `;
 
-// Status tags row for new/regressed/escalating indicators
 const ClusterStatusTags = styled('div')`
   display: flex;
   flex-wrap: wrap;
   gap: ${space(1)};
-  margin-top: ${space(1)};
 `;
 
 const StatusTag = styled('div')<{color: 'purple' | 'yellow' | 'red'}>`
   display: inline-flex;
   align-items: center;
   gap: ${space(0.5)};
-  padding: ${space(0.5)} ${space(1)};
-  border-radius: ${p => p.theme.borderRadius};
+  padding: ${space(0.25)} ${space(0.75)};
+  border-radius: ${p => p.theme.radius.md};
   font-size: ${p => p.theme.fontSize.xs};
 
   ${p => {
     switch (p.color) {
       case 'purple':
         return `
-          background: ${p.theme.purple100};
-          color: ${p.theme.purple400};
+          background: ${p.theme.colors.blue100};
+          color: ${p.theme.colors.blue400};
         `;
       case 'yellow':
         return `
-          background: ${p.theme.yellow100};
-          color: ${p.theme.yellow400};
+          background: ${p.theme.colors.yellow100};
+          color: ${p.theme.colors.yellow400};
         `;
       case 'red':
         return `
-          background: ${p.theme.red100};
-          color: ${p.theme.red400};
+          background: ${p.theme.colors.red100};
+          color: ${p.theme.colors.red400};
         `;
       default:
         return '';
@@ -1288,7 +1347,6 @@ const StatusTag = styled('div')<{color: 'purple' | 'yellow' | 'red'}>`
   }}
 `;
 
-// Tab section for Summary / Preview Issues
 const TabSection = styled('div')``;
 
 const TabBar = styled('div')`
@@ -1304,7 +1362,7 @@ const Tab = styled('button')<{isActive: boolean}>`
   padding: ${space(1)} ${space(1.5)};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: 500;
-  color: ${p => (p.isActive ? p.theme.textColor : p.theme.subText)};
+  color: ${p => (p.isActive ? p.theme.tokens.content.primary : p.theme.subText)};
   cursor: pointer;
   position: relative;
   margin-bottom: -1px;
@@ -1319,12 +1377,12 @@ const Tab = styled('button')<{isActive: boolean}>`
       right: 0;
       bottom: 0;
       height: 2px;
-      background: ${p.theme.purple300};
+      background: ${p.theme.colors.blue400};
     }
   `}
 
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 
@@ -1332,7 +1390,6 @@ const TabContent = styled('div')`
   padding: ${space(2)} ${space(3)};
 `;
 
-// Zone 4: Footer with actions
 const CardFooter = styled('div')`
   padding: ${space(2)} ${space(3)};
   border-top: 1px solid ${p => p.theme.innerBorder};
@@ -1348,7 +1405,6 @@ const FooterActions = styled('div')`
   gap: ${space(1)};
 `;
 
-// Split button for Send to Seer action
 const SeerButton = styled(Button)`
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
@@ -1360,28 +1416,26 @@ const SeerDropdownTrigger = styled(Button)`
   border-left: 1px solid rgba(255, 255, 255, 0.15);
 `;
 
-// Issue preview link with hover effect - consistent with issue feed cards
 const IssuePreviewLink = styled(Link)`
   display: block;
   padding: ${space(1.5)} ${space(2)};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   transition:
     border-color 0.15s ease,
     background 0.15s ease;
 
   &:hover {
-    border-color: ${p => p.theme.purple300};
-    background: ${p => p.theme.backgroundElevated};
+    border-color: ${p => p.theme.colors.blue400};
+    background: ${p => p.theme.tokens.background.primary};
   }
 `;
 
-// Issue title with ellipsis and nested em styling for EventOrGroupTitle
 const IssueTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   font-weight: 600;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   line-height: 1.4;
   ${p => p.theme.overflowEllipsis};
 
@@ -1393,7 +1447,6 @@ const IssueTitle = styled('div')`
   }
 `;
 
-// EventMessage override for compact display
 const IssueMessage = styled(EventMessage)`
   margin: 0;
   font-size: ${p => p.theme.fontSize.sm};
@@ -1401,7 +1454,6 @@ const IssueMessage = styled(EventMessage)`
   opacity: 0.9;
 `;
 
-// Meta separator line
 const MetaSeparator = styled('div')`
   height: 10px;
   width: 1px;
@@ -1434,7 +1486,7 @@ const TagPill = styled('span')`
   color: ${p => p.theme.subText};
   background: ${p => p.theme.backgroundSecondary};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const InfoRow = styled('div')`
@@ -1452,7 +1504,7 @@ const InfoLabel = styled('span')`
 `;
 
 const InfoValue = styled('span')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   word-break: break-word;
 `;
 
@@ -1468,7 +1520,7 @@ const ShowMoreButton = styled('button')`
   padding: ${space(2)} ${space(3)};
   background: ${p => p.theme.backgroundSecondary};
   border: 1px dashed ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSize.md};
   cursor: pointer;
@@ -1479,8 +1531,8 @@ const ShowMoreButton = styled('button')`
 
   &:hover {
     background: ${p => p.theme.backgroundTertiary};
-    border-color: ${p => p.theme.purple300};
-    color: ${p => p.theme.textColor};
+    border-color: ${p => p.theme.colors.blue400};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 
@@ -1489,7 +1541,7 @@ const JsonInputContainer = styled('div')`
   padding: ${space(2)};
   background: ${p => p.theme.backgroundSecondary};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const CustomDataBadge = styled('div')`
@@ -1497,10 +1549,10 @@ const CustomDataBadge = styled('div')`
   align-items: center;
   gap: ${space(0.5)};
   padding: ${space(0.5)} ${space(1)};
-  background: ${p => p.theme.yellow100};
-  border: 1px solid ${p => p.theme.yellow300};
-  border-radius: ${p => p.theme.borderRadius};
-  color: ${p => p.theme.yellow400};
+  background: ${p => p.theme.colors.yellow100};
+  border: 1px solid ${p => p.theme.colors.yellow400};
+  border-radius: ${p => p.theme.radius.md};
+  color: ${p => p.theme.colors.yellow500};
 `;
 
 const LastUpdatedText = styled('span')`

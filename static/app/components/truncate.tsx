@@ -99,7 +99,7 @@ const FullValue = styled('span')<{
 }>`
   display: none;
   position: absolute;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   padding: ${space(0.5)};
   border: 1px solid ${p => p.theme.innerBorder};
   white-space: nowrap;

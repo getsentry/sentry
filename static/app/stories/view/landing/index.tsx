@@ -2,6 +2,7 @@ import type {PropsWithChildren} from 'react';
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {LocationDescriptor} from 'history';
 
 import performanceWaitingForSpan from 'sentry-images/spot/performance-waiting-for-span.svg';
 import heroImg from 'sentry-images/stories/landing/robopigeon.png';
@@ -13,6 +14,8 @@ import {Link} from 'sentry/components/core/link';
 import {IconOpen} from 'sentry/icons';
 import {Acronym} from 'sentry/stories/view/landing/acronym';
 import {StoryDarkModeProvider} from 'sentry/stories/view/useStoriesDarkMode';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {Colors, Icons, Typography} from './figures';
 
@@ -29,7 +32,7 @@ const frontmatter = {
     actions: [
       {
         children: 'Get Started',
-        to: '/stories?name=app/styles/colors.mdx',
+        to: '/stories/foundations/colors/',
         priority: 'primary',
       },
       {
@@ -43,6 +46,8 @@ const frontmatter = {
 };
 
 export function StoryLanding() {
+  const organization = useOrganization();
+
   return (
     <Fragment>
       <StoryDarkModeProvider>
@@ -57,9 +62,14 @@ export function StoryLanding() {
                 <p>{frontmatter.hero.tagline}</p>
               </Flex>
               <Flex gap="md">
-                {frontmatter.hero.actions.map(props => (
-                  <LinkButton {...props} key={props.to} />
-                ))}
+                {frontmatter.hero.actions.map(props => {
+                  // Normalize internal paths with organization context
+                  const to =
+                    typeof props.to === 'string' && !props.external
+                      ? normalizeUrl(`/organizations/${organization.slug}${props.to}`)
+                      : props.to;
+                  return <LinkButton {...props} to={to} key={props.to} />;
+                })}
               </Flex>
             </Flex>
             <img
@@ -86,25 +96,50 @@ export function StoryLanding() {
             </p>
           </Flex>
           <CardGrid>
-            <Card href="/stories?name=app/styles/colors.mdx" title="Color">
+            <Card
+              to={{
+                pathname: normalizeUrl(
+                  `/organizations/${organization.slug}/stories/foundations/colors/`
+                ),
+              }}
+              title="Color"
+            >
               <CardFigure>
                 <Colors />
               </CardFigure>
             </Card>
-            <Card href="/stories/?name=app%2Ficons%2Ficons.stories.tsx" title="Icons">
+            <Card
+              to={{
+                pathname: normalizeUrl(
+                  `/organizations/${organization.slug}/stories/foundations/icons/`
+                ),
+              }}
+              title="Icons"
+            >
               <CardFigure>
                 <Icons />
               </CardFigure>
             </Card>
             <Card
-              href="/stories/?name=app%2Fstyles%2Ftypography.stories.tsx"
+              to={{
+                pathname: normalizeUrl(
+                  `/organizations/${organization.slug}/stories/foundations/typography/`
+                ),
+              }}
               title="Typography"
             >
               <CardFigure>
                 <Typography />
               </CardFigure>
             </Card>
-            <Card href="/stories/?name=app%2Fstyles%2Fimages.stories.tsx" title="Images">
+            <Card
+              to={{
+                pathname: normalizeUrl(
+                  `/organizations/${organization.slug}/stories/foundations/images/`
+                ),
+              }}
+              title="Images"
+            >
               <CardFigure>
                 <img src={performanceWaitingForSpan} />
               </CardFigure>
@@ -192,12 +227,13 @@ const CardGrid = styled('div')`
 
 interface CardProps {
   children: React.ReactNode;
-  href: string;
   title: string;
+  to: LocationDescriptor;
 }
+
 function Card(props: CardProps) {
   return (
-    <CardLink to={props.href}>
+    <CardLink to={props.to}>
       {props.children}
       <CardTitle>{props.title}</CardTitle>
     </CardLink>
@@ -212,7 +248,7 @@ const CardLink = styled(Link)`
   aspect-ratio: 2/1;
   padding: ${p => p.theme.space.xl};
   border: 1px solid ${p => p.theme.tokens.border.muted};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   transition: all 80ms ease-out;
   transition-property: background-color, color, border-color;
 

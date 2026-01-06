@@ -54,7 +54,6 @@ function BillingCycleSelectCard({
     onUpdate(data);
   };
 
-  // TODO(checkout v3): confirm copy
   let cycleInfo: ReactNode;
   if (isPartnerMigration) {
     if (isAnnual) {
@@ -97,7 +96,7 @@ function BillingCycleSelectCard({
               <Heading as="h3" variant="primary">
                 {intervalName}
               </Heading>
-              {isAnnual && <Tag type="promotion">{t('save 10%')}</Tag>}
+              {isAnnual && <Tag variant="promotion">{t('save 10%')}</Tag>}
             </Flex>
             <Flex align="center" gap="xs">
               {formattedPriceBeforeDiscount && (
@@ -131,7 +130,7 @@ const RadioMarker = styled('div')<{isSelected?: boolean}>`
   width: ${p => p.theme.space.xl};
   height: ${p => p.theme.space.xl};
   border-radius: ${p => p.theme.space['3xl']};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border-color: ${p => (p.isSelected ? p.theme.tokens.border.accent : p.theme.border)};
   border-width: ${p => (p.isSelected ? '4px' : '1px')};
   border-style: solid;

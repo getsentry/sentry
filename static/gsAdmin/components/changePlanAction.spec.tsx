@@ -229,7 +229,7 @@ describe('ChangePlanAction', () => {
     );
     await selectEvent.select(screen.getByRole('textbox', {name: 'Logs (GB)'}), '5');
 
-    expect(screen.queryByText('Available Products')).not.toBeInTheDocument();
+    expect(screen.getByText('Available Products')).toBeInTheDocument(); // will always show if any product is launched and available for an org
 
     expect(screen.getByRole('button', {name: 'Change Plan'})).toBeEnabled();
     await userEvent.click(screen.getByRole('button', {name: 'Change Plan'}));
@@ -241,7 +241,6 @@ describe('ChangePlanAction', () => {
   });
 
   it('completes form with addOns', async () => {
-    mockOrg.features = ['seer-billing', 'seer-user-billing']; // this won't happen IRL, but doing this for testing multiple addons
     const putMock = MockApiClient.addMockResponse({
       url: `/customers/${mockOrg.slug}/subscription/`,
       method: 'PUT',
@@ -267,11 +266,14 @@ describe('ChangePlanAction', () => {
     );
     await selectEvent.select(screen.getByRole('textbox', {name: 'Logs (GB)'}), '5');
 
+    // XXX: irl we would not have both versions of Seer available, but doing this for testing multiple addons
     expect(screen.getByText('Available Products')).toBeInTheDocument();
-    const seerSelections = screen.getAllByText('Seer');
-    expect(seerSelections).toHaveLength(2);
-    await userEvent.click(seerSelections[0]!);
-    await userEvent.click(seerSelections[1]!);
+    const seerSelection = screen.getByText('Seer');
+    const legacySeerSelection = screen.getByText('Seer (Legacy)');
+    expect(seerSelection).toBeInTheDocument();
+    expect(legacySeerSelection).toBeInTheDocument();
+    await userEvent.click(seerSelection);
+    await userEvent.click(legacySeerSelection);
 
     expect(screen.getByRole('button', {name: 'Change Plan'})).toBeEnabled();
     await userEvent.click(screen.getByRole('button', {name: 'Change Plan'}));
@@ -473,7 +475,7 @@ describe('ChangePlanAction', () => {
 
       // Verify Seer budget checkbox is checked when subscription has Seer budget
       const seerCheckbox = screen.getByRole('checkbox', {
-        name: 'Seer',
+        name: 'Seer (Legacy)',
       });
       expect(seerCheckbox).toBeChecked();
     });
@@ -516,7 +518,7 @@ describe('ChangePlanAction', () => {
 
       // Check the Seer budget checkbox
       const seerCheckbox = screen.getByRole('checkbox', {
-        name: 'Seer',
+        name: 'Seer (Legacy)',
       });
       await userEvent.click(seerCheckbox);
 
@@ -568,7 +570,7 @@ describe('ChangePlanAction', () => {
 
       // Verify Seer budget checkbox is unchecked (default state)
       const seerCheckbox = screen.getByRole('checkbox', {
-        name: 'Seer',
+        name: 'Seer (Legacy)',
       });
       expect(seerCheckbox).not.toBeChecked();
 

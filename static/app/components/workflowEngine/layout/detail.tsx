@@ -24,7 +24,7 @@ function DetailLayout({children}: WorkflowEngineDetailLayoutProps) {
 }
 
 const StyledPage = styled(Layout.Page)`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const StyledBody = styled(Layout.Body)`

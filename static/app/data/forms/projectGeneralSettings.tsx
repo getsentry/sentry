@@ -63,7 +63,7 @@ export const fields = {
       };
     },
     saveOnBlur: false,
-    saveMessageAlertType: 'warning',
+    saveMessageAlertVariant: 'warning',
     saveMessage: t(
       "Changing a project's slug can break your build scripts! Please proceed carefully."
     ),
@@ -126,7 +126,7 @@ export const fields = {
         strong: <strong />,
       }
     ),
-    saveMessageAlertType: 'warning',
+    saveMessageAlertVariant: 'warning',
   },
   allowedDomains: {
     name: 'allowedDomains',
@@ -152,8 +152,27 @@ export const fields = {
         </Hovercard>
       ),
     }),
-    getValue: val => extractMultilineFields(val),
-    setValue: val => convertMultilineFieldValue(val),
+    getValue: (val: unknown) => {
+      if (typeof val === 'string') {
+        return extractMultilineFields(val);
+      }
+
+      if (Array.isArray(val) && val.every(item => typeof item === 'string')) {
+        return val;
+      }
+
+      return [];
+    },
+    setValue: (val: unknown) => {
+      if (
+        typeof val === 'string' ||
+        (Array.isArray(val) && val.every(item => typeof item === 'string'))
+      ) {
+        return convertMultilineFieldValue(val);
+      }
+
+      return '';
+    },
   },
   scrapeJavaScript: {
     name: 'scrapeJavaScript',

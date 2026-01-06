@@ -2,6 +2,7 @@ import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -20,13 +21,13 @@ import {
   getHighlightTagData,
 } from 'sentry/components/events/highlights/util';
 import {IconAdd, IconInfo, IconSearch, IconSubtract} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMutateProject from 'sentry/utils/useMutateProject';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export interface EditHighlightsModalProps extends ModalRenderProps {
@@ -338,11 +339,7 @@ export default function EditHighlightsModal({
 
   const organization = useOrganization();
 
-  const {mutate: saveHighlights, isPending} = useMutateProject({
-    organization,
-    project,
-    onSuccess: closeModal,
-  });
+  const {mutate: saveHighlights, isPending} = useUpdateProject(project);
 
   const columnCount = 3;
   return (
@@ -435,7 +432,26 @@ export default function EditHighlightsModal({
             disabled={isPending}
             onClick={() => {
               trackAnalytics('highlights.edit_modal.save_clicked', {organization});
-              saveHighlights({highlightContext, highlightTags});
+              saveHighlights(
+                {highlightContext, highlightTags},
+                {
+                  onError: () => {
+                    addErrorMessage(
+                      tct(`Failed to update '[projectName]' project`, {
+                        projectName: project.name,
+                      })
+                    );
+                  },
+                  onSuccess: () => {
+                    addSuccessMessage(
+                      tct(`Successfully updated '[projectName]' project`, {
+                        projectName: project.name,
+                      })
+                    );
+                    closeModal();
+                  },
+                }
+              );
             }}
             priority="primary"
             size="sm"
@@ -452,7 +468,7 @@ function SectionFilterInput(props: InputProps) {
   return (
     <InputGroup>
       <InputGroup.LeadingItems disablePointerEvents>
-        <IconSearch color="subText" size="xs" />
+        <IconSearch variant="muted" size="xs" />
       </InputGroup.LeadingItems>
       <InputGroup.Input size="xs" autoComplete="off" {...props} />
     </InputGroup>

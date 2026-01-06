@@ -92,7 +92,7 @@ function LoginForm({authConfig}: Props) {
       >
         {error && (
           <Alert.Container>
-            <Alert type="error" showIcon={false}>
+            <Alert variant="danger" showIcon={false}>
               {error}
             </Alert>
           </Alert.Container>
@@ -156,7 +156,7 @@ const LostPasswordLink = styled(Link)`
   font-size: ${p => p.theme.fontSize.md};
 
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 

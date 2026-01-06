@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -8,7 +7,6 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 
 interface CollapsibleTimelineProps {
   children: React.ReactNode;
@@ -18,7 +16,6 @@ interface CollapsibleTimelineProps {
   title: string;
 }
 function CollapsibleTimeline(props: CollapsibleTimelineProps) {
-  const theme = useTheme();
   const flamegraphTheme = useFlamegraphTheme();
   return (
     <Fragment>
@@ -29,7 +26,7 @@ function CollapsibleTimeline(props: CollapsibleTimelineProps) {
       >
         <CollapsibleTimelineLabel>{props.title}</CollapsibleTimelineLabel>
         <StyledButton
-          priority={theme.isChonk ? 'transparent' : undefined}
+          priority="transparent"
           onClick={props.open ? props.onClose : props.onOpen}
           aria-label={props.open ? t('Expand') : t('Collapse')}
           aria-expanded={props.open}
@@ -49,34 +46,7 @@ function CollapsibleTimeline(props: CollapsibleTimelineProps) {
   );
 }
 
-const StyledButton = withChonk(
-  styled(Button)`
-    height: 12px;
-    min-height: 12px;
-    padding: ${space(0.25)} ${space(0.5)};
-    border-radius: 2px;
-    background-color: ${p => p.theme.backgroundSecondary};
-    border: none;
-    box-shadow: none;
-    color: ${p => p.theme.subText};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    &[aria-expanded='true'] {
-      color: ${p => p.theme.subText};
-    }
-
-    > span:first-child {
-      display: none;
-    }
-
-    svg {
-      transition: none;
-    }
-  `,
-  Button
-);
+const StyledButton = Button;
 
 export function CollapsibleTimelineLoadingIndicator({size}: {size?: number}) {
   return (

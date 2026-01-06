@@ -7,7 +7,7 @@ import moment from 'moment-timezone';
 import {Alert} from 'sentry/components/core/alert';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
-import {Flex, Stack} from 'sentry/components/core/layout';
+import {Container, Flex, Stack} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Placeholder from 'sentry/components/placeholder';
@@ -113,6 +113,7 @@ interface SubtotalSummaryProps extends BaseSummaryProps {
 interface TotalSummaryProps extends BaseSummaryProps {
   billedTotal: number;
   buttonDisabled: boolean;
+  buttonDisabledText: React.ReactNode;
   effectiveDate: Date | null;
   isSubmitting: boolean;
   onSubmit: (applyNow?: boolean) => void;
@@ -177,7 +178,6 @@ function ItemWithPrice({
 function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
   const theme = useTheme();
   const isXSmallScreen = useMedia(`(max-width: ${theme.breakpoints.xs})`);
-  const isChonk = theme.isChonk;
 
   const additionalProductCategories = useMemo(
     () =>
@@ -250,7 +250,7 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                   </div>
                 ) : isPaygOnly ? (
                   hasPaygForCategory ? (
-                    <Tag>{t('Available')}</Tag>
+                    <Tag variant="muted">{t('Available')}</Tag>
                   ) : (
                     <Tooltip
                       title={tct('This product is only available with [budgetTerm].', {
@@ -263,17 +263,8 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                           }),
                       })}
                     >
-                      <Tag icon={<IconLock locked size="xs" />}>
-                        {(isChonk || activePlan.budgetTerm === 'pay-as-you-go') &&
-                        !isXSmallScreen ? (
-                          tct('Unlock with [budgetTerm]', {
-                            budgetTerm: displayBudgetName(activePlan, {
-                              title: true,
-                              abbreviated: activePlan.budgetTerm === 'pay-as-you-go',
-                            }),
-                          })
-                        ) : (
-                          // "Unlock with on-demand" gets cut off in non-chonk theme
+                      <Tag variant="muted" icon={<IconLock locked size="xs" />}>
+                        {isXSmallScreen ? (
                           <Text size="xs">
                             {tct('Unlock with [budgetTerm]', {
                               budgetTerm: displayBudgetName(activePlan, {
@@ -282,6 +273,13 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                               }),
                             })}
                           </Text>
+                        ) : (
+                          tct('Unlock with [budgetTerm]', {
+                            budgetTerm: displayBudgetName(activePlan, {
+                              title: true,
+                              abbreviated: activePlan.budgetTerm === 'pay-as-you-go',
+                            }),
+                          })
                         )}
                       </Tag>
                     </Tooltip>
@@ -414,7 +412,7 @@ function SubtotalSummary({
                       bounce: 0.1,
                     }}
                   >
-                    <Tag icon={<IconSentry size="xs" />} type="info">
+                    <Tag icon={<IconSentry size="xs" />} variant="info">
                       <Text size="xs">{t('Default Amount')}</Text>
                     </Tag>
                   </motion.div>
@@ -478,6 +476,7 @@ function SubtotalSummary({
                         size="xs"
                         position="bottom"
                         title={t(
+                          // TODO(seer): serialize pricing info
                           '$40 per active contributor. Total varies month to month based on your active contributor count.'
                         )}
                       />
@@ -500,6 +499,7 @@ function TotalSummary({
   billedTotal,
   onSubmit,
   buttonDisabled,
+  buttonDisabledText,
   isSubmitting,
   effectiveDate,
   renewalDate,
@@ -734,6 +734,7 @@ function TotalSummary({
               priority="danger"
               onClick={() => onSubmit(true)}
               disabled={buttonDisabled || previewDataLoading}
+              title={buttonDisabled ? buttonDisabledText : undefined}
               icon={<IconLightning />}
             >
               {isSubmitting ? t('Checking out...') : t('Migrate Now')}
@@ -744,13 +745,7 @@ function TotalSummary({
             priority="primary"
             onClick={() => onSubmit()}
             disabled={buttonDisabled || previewDataLoading}
-            title={
-              buttonDisabled
-                ? t(
-                    'Please provide your billing information, including your business address and payment method'
-                  )
-                : null
-            }
+            title={buttonDisabled ? buttonDisabledText : undefined}
             icon={<IconLock locked />}
           >
             {isSubmitting ? t('Checking out...') : buttonText}
@@ -789,14 +784,16 @@ function Cart({
     () => utils.hasBillingInfo(billingDetails, subscription, true),
     [billingDetails, subscription]
   );
+  const shouldDisableCheckout = useMemo(
+    () => !hasCompleteBillingInfo || subscription.isSuspended,
+    [hasCompleteBillingInfo, subscription.isSuspended]
+  );
 
   const resetPreviewState = () => setPreviewState(NULL_PREVIEW_STATE);
 
   const fetchPreview = useCallback(
     async () => {
-      if (!hasCompleteBillingInfo) {
-        // NOTE: this should never be necessary because you cannot clear
-        // existing billing info, BUT YA NEVER KNOW
+      if (shouldDisableCheckout) {
         resetPreviewState();
         return;
       }
@@ -852,7 +849,7 @@ function Cart({
       formDataForPreview,
       organization,
       subscription.contractPeriodEnd,
-      hasCompleteBillingInfo,
+      shouldDisableCheckout,
       billingDetails,
     ]
   );
@@ -949,7 +946,11 @@ function Cart({
           </Stack>
           {summaryIsOpen && (
             <Flex direction="column" gap="lg" data-test-id="plan-summary" width="100%">
-              {errorMessage && <Alert type="error">{errorMessage}</Alert>}
+              {errorMessage && (
+                <Container>
+                  <Alert variant="danger">{errorMessage}</Alert>
+                </Container>
+              )}
               <ItemsSummary activePlan={activePlan} formData={formData} />
             </Flex>
           )}
@@ -965,7 +966,19 @@ function Cart({
       <TotalSummary
         activePlan={activePlan}
         billedTotal={previewState.billedTotal}
-        buttonDisabled={!hasCompleteBillingInfo}
+        buttonDisabled={shouldDisableCheckout}
+        buttonDisabledText={
+          subscription.isSuspended
+            ? tct(
+                'Your account has been suspended. Please contact [mailto:support@sentry.io] if you have any questions or need assistance.',
+                {
+                  mailto: <a href="mailto:support@sentry.io" />,
+                }
+              )
+            : t(
+                'Please provide your billing information, including your business address and payment method.'
+              )
+        }
         formData={formData}
         isSubmitting={isSubmitting}
         originalBilledTotal={previewState.originalBilledTotal}

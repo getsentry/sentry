@@ -41,7 +41,7 @@ from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models import Action, Condition
-from sentry.workflow_engine.types import DetectorPriorityLevel, WorkflowEventData
+from sentry.workflow_engine.types import ActionInvocation, DetectorPriorityLevel, WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 pytestmark = [requires_snuba]
@@ -298,7 +298,12 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         )
 
         with pytest.raises(ValueError):
-            self.handler.invoke_legacy_registry(self.event_data, self.action, self.detector)
+            invocation = ActionInvocation(
+                event_data=self.event_data,
+                action=self.action,
+                detector=self.detector,
+            )
+            self.handler.invoke_legacy_registry(invocation)
 
     def test_get_incident_status(self) -> None:
         # Initial priority is high -> incident is critical
@@ -418,7 +423,12 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
 
     @mock.patch.object(TestHandler, "send_alert")
     def test_invoke_legacy_registry(self, mock_send_alert: mock.MagicMock) -> None:
-        self.handler.invoke_legacy_registry(self.event_data, self.action, self.detector)
+        invocation = ActionInvocation(
+            event_data=self.event_data,
+            action=self.action,
+            detector=self.detector,
+        )
+        self.handler.invoke_legacy_registry(invocation)
 
         assert mock_send_alert.call_count == 1
 
@@ -495,7 +505,12 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             group=self.group,
         )
 
-        self.handler.invoke_legacy_registry(event_data_with_activity, self.action, self.detector)
+        invocation = ActionInvocation(
+            event_data=event_data_with_activity,
+            action=self.action,
+            detector=self.detector,
+        )
+        self.handler.invoke_legacy_registry(invocation)
 
         assert mock_send_alert.call_count == 1
 
@@ -562,7 +577,12 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             group=self.group,
         )
 
-        self.handler.invoke_legacy_registry(event_data_with_activity, self.action, self.detector)
+        invocation = ActionInvocation(
+            event_data=event_data_with_activity,
+            action=self.action,
+            detector=self.detector,
+        )
+        self.handler.invoke_legacy_registry(invocation)
 
         assert mock_send_alert.call_count == 1
 
@@ -624,9 +644,12 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         )
 
         with pytest.raises(ValueError, match="Activity data is required for alert context"):
-            self.handler.invoke_legacy_registry(
-                event_data_with_activity, self.action, self.detector
+            invocation = ActionInvocation(
+                event_data=event_data_with_activity,
+                action=self.action,
+                detector=self.detector,
             )
+            self.handler.invoke_legacy_registry(invocation)
 
     def test_invoke_legacy_registry_activity_empty_data(self) -> None:
         # Test with Activity that has non-empty but insufficient data for MetricIssueEvidenceData
@@ -647,6 +670,9 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         with pytest.raises(
             TypeError
         ):  # MetricIssueEvidenceData will raise TypeError for missing args
-            self.handler.invoke_legacy_registry(
-                event_data_with_activity, self.action, self.detector
+            invocation = ActionInvocation(
+                event_data=event_data_with_activity,
+                action=self.action,
+                detector=self.detector,
             )
+            self.handler.invoke_legacy_registry(invocation)

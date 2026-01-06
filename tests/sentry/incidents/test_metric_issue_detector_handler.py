@@ -93,7 +93,7 @@ class TestEvaluateMetricDetector(BaseMetricIssueTest):
         assert occurrence.level == "error"
         assert occurrence.priority == detector_trigger.condition_result
         assert occurrence.assignee
-        assert occurrence.assignee.id == self.detector.created_by_id
+        assert occurrence.assignee.id == self.detector.owner_user_id
 
     def test_metric_issue_occurrence(self) -> None:
         value = self.critical_detector_trigger.comparison + 1

@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useState, type ComponentProps} from 'react';
+import {AnimatePresence} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -14,11 +15,13 @@ export function SlideOverPanelPlayground() {
     <Fragment>
       <Button onClick={() => setIsPanelOpen(true)}>Open Panel</Button>
 
-      <SlideOverPanel open={isPanelOpen} position="right">
-        <Container border="primary" height="100%" padding="md">
-          <Button onClick={() => setIsPanelOpen(false)}>Close Panel</Button>
-        </Container>
-      </SlideOverPanel>
+      {isPanelOpen && (
+        <SlideOverPanel position="right">
+          <Container border="primary" height="100%" padding="md">
+            <Button onClick={() => setIsPanelOpen(false)}>Close Panel</Button>
+          </Container>
+        </SlideOverPanel>
+      )}
     </Fragment>
   );
 }
@@ -34,15 +37,19 @@ export function SlideOverPanelSkeletonPlayground() {
     <Fragment>
       <Button onClick={() => setIsPanelOpen(true)}>Open Panel</Button>
 
-      <SlideOverPanel open={isPanelOpen} position="right">
-        {(options: {isOpening: boolean}) => {
-          return options.isOpening ? (
-            <SkeletonPanelContents onClick={closePanel} />
-          ) : (
-            <PanelContents onClick={closePanel} />
-          );
-        }}
-      </SlideOverPanel>
+      <AnimatePresence>
+        {isPanelOpen && (
+          <SlideOverPanel position="right">
+            {(options: {isOpening: boolean}) => {
+              return options.isOpening ? (
+                <SkeletonPanelContents onClick={closePanel} />
+              ) : (
+                <PanelContents onClick={closePanel} />
+              );
+            }}
+          </SlideOverPanel>
+        )}
+      </AnimatePresence>
     </Fragment>
   );
 }
@@ -56,7 +63,7 @@ function PanelContents({onClick}: PanelContentsProps) {
     <Flex direction="column" border="primary" height="100%" gap="md" padding="md">
       <Button onClick={onClick}>Close Panel</Button>
       <Container>
-        <Alert type="warning">I took a very long time to render!</Alert>
+        <Alert variant="warning">I took a very long time to render!</Alert>
         <ManySlowComponents />
       </Container>
     </Flex>

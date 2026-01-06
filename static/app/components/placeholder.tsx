@@ -35,9 +35,10 @@ const Placeholder = styled(
   flex-shrink: 0;
   justify-content: center;
   align-items: center;
-  border-radius: ${p => p.theme.borderRadius};
-  background-color: ${p => (p.error ? p.theme.red100 : p.theme.backgroundTertiary)};
-  ${p => !!p.error && `color: ${p.theme.red200};`}
+  border-radius: ${p => p.theme.radius.md};
+  background-color: ${p =>
+    p.error ? p.theme.colors.red100 : p.theme.backgroundTertiary};
+  ${p => !!p.error && `color: ${p.theme.colors.red200};`}
   width: ${p => p.width ?? '100%'};
   height: ${p => p.height ?? '60px'};
   ${({shape = 'rect'}) => (shape === 'circle' ? 'border-radius: 100%;' : '')}

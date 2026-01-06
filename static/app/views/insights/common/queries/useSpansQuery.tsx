@@ -19,6 +19,7 @@ import type {
   RPCQueryExtras,
   SamplingMode,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
+import type {ExtrapolationMode} from 'sentry/views/insights/common/queries/types';
 import {
   getRetryDelay,
   shouldRetryHandler,
@@ -248,6 +249,7 @@ type WrappedDiscoverQueryProps<T> = {
   cursor?: string;
   disableAggregateExtrapolation?: string;
   enabled?: boolean;
+  extrapolationMode?: ExtrapolationMode;
   initialData?: T;
   keepPreviousData?: boolean;
   limit?: number;
@@ -279,6 +281,7 @@ function useWrappedDiscoverQueryBase<T>({
   logQuery,
   metricQuery,
   spanQuery,
+  extrapolationMode,
 }: WrappedDiscoverQueryProps<T> & {
   pageFiltersReady: boolean;
 }) {
@@ -294,14 +297,17 @@ function useWrappedDiscoverQueryBase<T>({
     if (samplingMode) {
       queryExtras.sampling = samplingMode;
     }
+    if (extrapolationMode) {
+      queryExtras.extrapolationMode = extrapolationMode;
+    }
 
     if (disableAggregateExtrapolation) {
       queryExtras.disableAggregateExtrapolation = '1';
     }
   }
 
-  if (typeof caseInsensitive === 'number') {
-    queryExtras.caseInsensitive = caseInsensitive.toString();
+  if (typeof caseInsensitive === 'boolean' && caseInsensitive) {
+    queryExtras.caseInsensitive = '1';
   }
 
   if (Array.isArray(logQuery) && logQuery.length > 0) {

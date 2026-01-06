@@ -1,17 +1,18 @@
 import {ExternalLink} from '@sentry/scraps/link/link';
 
-import {hasEveryAccess} from 'sentry/components/acl/access';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {t, tct} from 'sentry/locale';
+import {DEFAULT_CODE_REVIEW_TRIGGERS} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import SeerSettingsPageWrapper from 'getsentry/views/seerAutomation/components/seerSettingsPageWrapper';
+import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 export default function SeerAutomationSettings() {
   const organization = useOrganization();
-  const canWrite = hasEveryAccess(['org:write'], {organization});
+  const canWrite = useCanWriteSettings();
 
   return (
     <SeerSettingsPageWrapper>
@@ -28,9 +29,9 @@ export default function SeerAutomationSettings() {
             organization.allowBackgroundAgentDelegation ?? false,
 
           // Second section
-          enableSeerCoding: organization.enableSeerCoding ?? true,
-          // run on opened PRs -> boolean
-          // run when mentioned -> boolean
+          autoEnableCodeReview: organization.autoEnableCodeReview ?? true,
+          defaultCodeReviewTriggers:
+            organization.defaultCodeReviewTriggers ?? DEFAULT_CODE_REVIEW_TRIGGERS,
 
           // Third section
           enableSeerEnhancedAlerts: organization.enableSeerEnhancedAlerts ?? true,
@@ -68,7 +69,6 @@ export default function SeerAutomationSettings() {
                   type: 'boolean',
                 },
                 {
-                  // TODO: Depends on https://github.com/getsentry/sentry/pull/104362
                   visible: false, // TODO(ryan953): Disabled until the backend is fully ready
                   name: 'allowBackgroundAgentDelegation',
                   label: t('Allow Delegation to Background Agents'),
@@ -88,7 +88,7 @@ export default function SeerAutomationSettings() {
               title: t('Default Code Review for New Repos'),
               fields: [
                 {
-                  name: 'defaultRepoCodeReview',
+                  name: 'autoEnableCodeReview',
                   label: t('Enable Code Review by Default'),
                   help: t(
                     'For all new repos connected, Seer will review your PRs and flag potential bugs'
@@ -96,29 +96,17 @@ export default function SeerAutomationSettings() {
                   type: 'boolean',
                 },
                 {
-                  name: '',
-                  type: 'collapsible',
-                  label: t('additional settings'),
-                  fields: [
-                    {
-                      name: 'defaultRepoPRRunOnOpenedPullRequests',
-                      label: t('Auto Run on Opened Pull Requests'),
-                      help: t(
-                        'Run when a new pull request is published, ignoring subsequent pushes.'
-                      ),
-                      type: 'boolean',
-                    },
-                    {
-                      name: 'defaultRepoPRRunWhenMentioned',
-                      label: t('Run When Mentioned'),
-                      help: tct(
-                        'Run when [code:@sentry review] is commented on a pull request.',
-                        {
-                          code: <code />,
-                        }
-                      ),
-                      type: 'boolean',
-                    },
+                  name: 'defaultCodeReviewTriggers',
+                  label: t('Code Review Triggers'),
+                  help: t(
+                    'Reviews can run on demand, whenever a PR is opened, or after each commit is pushed to a PR.'
+                  ),
+                  type: 'choice',
+                  multiple: true,
+                  choices: [
+                    ['on_command_phrase', t('On Command Phrase')],
+                    ['on_ready_for_review', t('On Ready for Review')],
+                    ['on_new_commit', t('On New Commit')],
                   ],
                 },
               ],

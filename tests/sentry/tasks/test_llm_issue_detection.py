@@ -3,14 +3,19 @@ from datetime import timedelta
 from unittest.mock import Mock, patch
 
 from sentry.issues.grouptype import LLMDetectedExperimentalGroupType
-from sentry.seer.sentry_data_models import EvidenceSpan, EvidenceTraceData
 from sentry.tasks.llm_issue_detection import (
     DetectedIssue,
     create_issue_occurrence_from_detection,
     detect_llm_issues_for_project,
     run_llm_issue_detection,
 )
-from sentry.tasks.llm_issue_detection.trace_data import get_evidence_trace_for_llm_detection
+from sentry.tasks.llm_issue_detection.detection import (
+    START_TIME_DELTA_MINUTES,
+    TRANSACTION_BATCH_SIZE,
+)
+from sentry.tasks.llm_issue_detection.trace_data import (
+    get_project_top_transaction_traces_for_llm_detection,
+)
 from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
@@ -18,8 +23,8 @@ from sentry.utils import json
 
 
 class LLMIssueDetectionTest(TestCase):
-    @patch("sentry.tasks.llm_issue_detection.detection.detect_llm_issues_for_project.delay")
-    def test_run_detection_dispatches_sub_tasks(self, mock_delay):
+    @patch("sentry.tasks.llm_issue_detection.detection.detect_llm_issues_for_project.apply_async")
+    def test_run_detection_dispatches_sub_tasks(self, mock_apply_async):
         """Test run_detection spawns sub-tasks for each project."""
         project = self.create_project()
 
@@ -31,37 +36,44 @@ class LLMIssueDetectionTest(TestCase):
         ):
             run_llm_issue_detection()
 
-        assert mock_delay.called
-        assert mock_delay.call_args[0][0] == project.id
+        mock_apply_async.assert_called_once_with(args=[project.id], countdown=0)
 
     @with_feature("organizations:gen-ai-features")
-    @patch("sentry.tasks.llm_issue_detection.detection.get_transactions_for_project")
-    def test_detect_llm_issues_no_transactions(self, mock_get_transactions):
+    @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
+    @patch(
+        "sentry.tasks.llm_issue_detection.detection.get_project_top_transaction_traces_for_llm_detection"
+    )
+    def test_detect_llm_issues_no_transactions(self, mock_get_transactions, mock_seer_request):
         """Test that the task returns early when there are no transactions."""
         mock_get_transactions.return_value = []
 
         detect_llm_issues_for_project(self.project.id)
 
         mock_get_transactions.assert_called_once_with(
-            self.project.id, limit=100, start_time_delta={"minutes": 30}
+            self.project.id,
+            limit=TRANSACTION_BATCH_SIZE,
+            start_time_delta_minutes=START_TIME_DELTA_MINUTES,
         )
+        mock_seer_request.assert_not_called()
 
     @with_feature("organizations:gen-ai-features")
-    @patch("sentry.tasks.llm_issue_detection.detection.get_evidence_trace_for_llm_detection")
-    @patch("sentry.tasks.llm_issue_detection.detection.get_transactions_for_project")
-    @patch("sentry.tasks.llm_issue_detection.detection.random.shuffle")
-    def test_detect_llm_issues_no_traces(self, mock_shuffle, mock_get_transactions, mock_get_trace):
-        """Test that the task continues gracefully when traces can't be fetched."""
-        mock_transaction = Mock()
-        mock_transaction.name = "test_tx"
-        mock_transaction.project_id = self.project.id
-        mock_get_transactions.return_value = [mock_transaction]
-        mock_shuffle.return_value = None  # shuffle modifies in place
-        mock_get_trace.return_value = None
+    @patch("sentry.tasks.llm_issue_detection.trace_data.Spans.run_table_query")
+    @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
+    def test_detect_llm_issues_no_traces(self, mock_seer_request, mock_spans_query):
+        """Test that the task returns early when traces can't be fetched for top transactions."""
+        mock_spans_query.side_effect = [
+            # First call: Return a transaction
+            {
+                "data": [{"transaction": "transaction_name", "sum(span.duration)": 1000}],
+                "meta": {},
+            },
+            # Second call (trace query): return empty
+            {"data": [], "meta": {}},
+        ]
 
         detect_llm_issues_for_project(self.project.id)
 
-        mock_get_trace.assert_called_once_with(mock_transaction.name, mock_transaction.project_id)
+        mock_seer_request.assert_not_called()
 
     @patch("sentry.tasks.llm_issue_detection.detection.produce_occurrence_to_kafka")
     def test_create_issue_occurrence_from_detection(self, mock_produce_occurrence):
@@ -71,16 +83,17 @@ class LLMIssueDetectionTest(TestCase):
             impact="High - may cause request failures",
             evidence="Connection pool at 95% capacity",
             missing_telemetry="Database connection metrics",
+            offender_span_ids=["span_1", "span_2"],
+            trace_id="abc123xyz",
+            transaction_name="test_transaction",
+            subcategory="Connection Pool Exhaustion",
+            category="Database",
+            verification_reason="Problem is correctly identified",
         )
-
-        mock_trace = Mock()
-        mock_trace.trace_id = "abc123xyz"
 
         create_issue_occurrence_from_detection(
             detected_issue=detected_issue,
-            trace=mock_trace,
             project_id=self.project.id,
-            transaction_name="test_transaction",
         )
 
         assert mock_produce_occurrence.called
@@ -130,73 +143,45 @@ class LLMIssueDetectionTest(TestCase):
         assert "received" in event_data
         assert "timestamp" in event_data
 
-    @patch("sentry.tasks.llm_issue_detection.detection.produce_occurrence_to_kafka")
-    def test_create_issue_occurrence_without_missing_telemetry(self, mock_produce_occurrence):
-        detected_issue = DetectedIssue(
-            title="Slow API Response",
-            explanation="API calls taking too long",
-            impact="Medium",
-            evidence="Response time > 2s",
-        )
-
-        mock_trace = Mock()
-        mock_trace.trace_id = "xyz789"
-
-        create_issue_occurrence_from_detection(
-            detected_issue=detected_issue,
-            trace=mock_trace,
-            project_id=self.project.id,
-            transaction_name="api_endpoint",
-        )
-
-        occurrence = mock_produce_occurrence.call_args.kwargs["occurrence"]
-
-        assert len(occurrence.evidence_display) == 3
-
-        evidence_names = {e.name for e in occurrence.evidence_display}
-        assert evidence_names == {"Explanation", "Impact", "Evidence"}
-
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.tasks.llm_issue_detection.detection.produce_occurrence_to_kafka")
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
-    @patch("sentry.tasks.llm_issue_detection.detection.get_evidence_trace_for_llm_detection")
-    @patch("sentry.tasks.llm_issue_detection.detection.get_transactions_for_project")
+    @patch("sentry.tasks.llm_issue_detection.trace_data.Spans.run_table_query")
     @patch("sentry.tasks.llm_issue_detection.detection.random.shuffle")
     def test_detect_llm_issues_full_flow(
         self,
         mock_shuffle,
-        mock_get_transactions,
-        mock_get_trace,
+        mock_spans_query,
         mock_seer_request,
         mock_produce_occurrence,
     ):
         """Test the full detect_llm_issues_for_project flow with Seer API interaction."""
-        mock_transaction = Mock()
-        mock_transaction.name = "api/users/list"
-        mock_transaction.project_id = self.project.id
-        mock_get_transactions.return_value = [mock_transaction]
-        mock_shuffle.return_value = None
+        mock_shuffle.return_value = None  # shuffles in-place, mock to block from changing order
 
-        mock_span = EvidenceSpan(
-            span_id="span123",
-            parent_span_id=None,
-            op="db.query",
-            description="SELECT * FROM users",
-            exclusive_time=150.5,
-            data={
-                "duration": 200.0,
-                "status": "ok",
+        mock_spans_query.side_effect = [
+            # First call: transaction spans
+            {
+                "data": [
+                    {"transaction": "POST /some/thing", "sum(span.duration)": 1007},
+                    {"transaction": "GET /another/", "sum(span.duration)": 1003},
+                ],
+                "meta": {},
             },
-        )
-
-        mock_trace = EvidenceTraceData(
-            trace_id="trace-abc-123",
-            project_id=self.project.id,
-            transaction_name="api/users/list",
-            total_spans=100,
-            spans=[mock_span],
-        )
-        mock_get_trace.return_value = mock_trace
+            # Second call: trace for transaction 1
+            {
+                "data": [
+                    {"trace": "trace_id_1", "precise.start_ts": 1234},
+                ],
+                "meta": {},
+            },
+            # Third call: trace for transaction 2
+            {
+                "data": [
+                    {"trace": "trace_id_2", "precise.start_ts": 1234},
+                ],
+                "meta": {},
+            },
+        ]
 
         seer_response_data = {
             "issues": [
@@ -206,6 +191,12 @@ class LLMIssueDetectionTest(TestCase):
                     "impact": "High - causes performance degradation",
                     "evidence": "15 queries executed sequentially",
                     "missing_telemetry": "Database query attribution",
+                    "offender_span_ids": ["span_1", "span_2"],
+                    "trace_id": "trace_id_1",
+                    "transaction_name": "POST /some/thing",
+                    "category": "Database",
+                    "subcategory": "N+1 Query",
+                    "verification_reason": "Problem is correctly identified",
                 },
                 {
                     "title": "Memory Leak Risk",
@@ -213,34 +204,54 @@ class LLMIssueDetectionTest(TestCase):
                     "impact": "Medium - may cause OOM",
                     "evidence": "Objects not released after use",
                     "missing_telemetry": None,
+                    "offender_span_ids": ["span_3"],
+                    "trace_id": "trace_id_2",
+                    "transaction_name": "GET /another/",
+                    "category": "Memory",
+                    "subcategory": "Memory Leak",
+                    "verification_reason": "Problem is correctly identified",
                 },
-            ]
+            ],
+            "traces_analyzed": 1,
         }
 
-        mock_response = Mock()
-        mock_response.status = 200
-        mock_response.json.return_value = seer_response_data
-        mock_seer_request.return_value = mock_response
+        mock_response_with_2_issues = Mock()
+        mock_response_with_2_issues.status = 200
+        mock_response_with_2_issues.json.return_value = seer_response_data
+        mock_response_with_no_issues = Mock()
+        mock_response_with_no_issues.status = 200
+        mock_response_with_no_issues.json.return_value = {"issues": [], "traces_analyzed": 1}
+        mock_seer_request.side_effect = [mock_response_with_2_issues, mock_response_with_no_issues]
 
         detect_llm_issues_for_project(self.project.id)
 
-        assert mock_seer_request.called
-        seer_call_kwargs = mock_seer_request.call_args.kwargs
-        assert seer_call_kwargs["path"] == "/v1/automation/issue-detection/analyze"
+        assert mock_spans_query.call_count == 3  # 1 for transactions, 2 for traces
+        assert mock_seer_request.call_count == 2  # 1 per trace
 
-        request_body = json.loads(seer_call_kwargs["body"].decode("utf-8"))
-        assert request_body["project_id"] == self.project.id
-        assert request_body["organization_id"] == self.project.organization_id
-        assert len(request_body["telemetry"]) == 1
-        assert request_body["telemetry"][0]["kind"] == "trace"
-        assert request_body["telemetry"][0]["trace_id"] == "trace-abc-123"
+        first_seer_call = mock_seer_request.call_args_list[0].kwargs
+        assert first_seer_call["path"] == "/v1/automation/issue-detection/analyze"
+        first_request_body = json.loads(first_seer_call["body"].decode("utf-8"))
+        assert first_request_body["project_id"] == self.project.id
+        assert first_request_body["organization_id"] == self.project.organization_id
+        assert len(first_request_body["traces"]) == 1
+        assert first_request_body["traces"][0]["trace_id"] == "trace_id_1"
+        assert first_request_body["traces"][0]["transaction_name"] == "POST /some/thing"
+
+        second_seer_call = mock_seer_request.call_args_list[1].kwargs
+        assert second_seer_call["path"] == "/v1/automation/issue-detection/analyze"
+        second_request_body = json.loads(second_seer_call["body"].decode("utf-8"))
+        assert second_request_body["project_id"] == self.project.id
+        assert second_request_body["organization_id"] == self.project.organization_id
+        assert len(second_request_body["traces"]) == 1
+        assert second_request_body["traces"][0]["trace_id"] == "trace_id_2"
+        assert second_request_body["traces"][0]["transaction_name"] == "GET /another/"
 
         assert mock_produce_occurrence.call_count == 2
 
         first_occurrence = mock_produce_occurrence.call_args_list[0].kwargs["occurrence"]
         assert first_occurrence.type == LLMDetectedExperimentalGroupType
         assert first_occurrence.issue_title == "N+1 Query Detected"
-        assert first_occurrence.culprit == "api/users/list"
+        assert first_occurrence.culprit == "POST /some/thing"
         assert first_occurrence.project_id == self.project.id
         assert len(first_occurrence.evidence_display) == 3
 
@@ -248,74 +259,131 @@ class LLMIssueDetectionTest(TestCase):
         assert second_occurrence.issue_title == "Memory Leak Risk"
         assert len(second_occurrence.evidence_display) == 3
 
+    @with_feature("organizations:gen-ai-features")
+    @patch("sentry.tasks.llm_issue_detection.detection.produce_occurrence_to_kafka")
+    @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
+    @patch("sentry.tasks.llm_issue_detection.trace_data.Spans.run_table_query")
+    @patch("sentry.tasks.llm_issue_detection.detection.random.shuffle")
+    @patch("sentry.tasks.llm_issue_detection.detection.logger.error")
+    def test_detect_llm_issues_continues_on_seer_error(
+        self,
+        mock_logger_error,
+        mock_shuffle,
+        mock_spans_query,
+        mock_seer_request,
+        mock_produce_occurrence,
+    ):
+        mock_shuffle.return_value = None
 
-class TestGetEvidenceTraceForLLMDetection(APITransactionTestCase, SnubaTestCase, SpanTestCase):
+        mock_spans_query.side_effect = [
+            {
+                "data": [
+                    {"transaction": "POST /some/thing", "sum(span.duration)": 1007},
+                    {"transaction": "GET /another/", "sum(span.duration)": 1003},
+                ],
+                "meta": {},
+            },
+            {"data": [{"trace": "trace_id_1", "precise.start_ts": 1234}], "meta": {}},
+            {"data": [{"trace": "trace_id_2", "precise.start_ts": 1235}], "meta": {}},
+        ]
+
+        mock_error_response = Mock()
+        mock_error_response.status = 500
+        mock_error_response.data.decode.return_value = "Internal Server Error"
+
+        mock_success_response = Mock()
+        mock_success_response.status = 200
+        mock_success_response.json.return_value = {
+            "issues": [
+                {
+                    "title": "Success Issue",
+                    "explanation": "This one worked",
+                    "impact": "Low",
+                    "evidence": "All good",
+                    "missing_telemetry": None,
+                    "offender_span_ids": ["span_1"],
+                    "trace_id": "trace_id_2",
+                    "transaction_name": "GET /another/",
+                    "category": "General",
+                    "subcategory": "Success",
+                    "verification_reason": "Problem is correctly identified",
+                }
+            ],
+            "traces_analyzed": 1,
+        }
+
+        mock_seer_request.side_effect = [mock_error_response, mock_success_response]
+
+        detect_llm_issues_for_project(self.project.id)
+
+        assert mock_seer_request.call_count == 2
+        assert mock_logger_error.call_count == 1
+        assert mock_produce_occurrence.call_count == 1
+
+        occurrence = mock_produce_occurrence.call_args.kwargs["occurrence"]
+        assert occurrence.issue_title == "Success Issue"
+        assert occurrence.culprit == "GET /another/"
+
+
+class TestGetProjectTopTransactionTracesForLLMDetection(
+    APITransactionTestCase, SnubaTestCase, SpanTestCase
+):
     def setUp(self) -> None:
         super().setUp()
         self.ten_mins_ago = before_now(minutes=10)
 
-    def test_get_evidence_trace_for_llm_detection(self) -> None:
-        transaction_name = "api/users/profile"
+    def test_returns_deduped_transaction_traces(self) -> None:
+        trace_id_1 = uuid.uuid4().hex
+        span1 = self.create_span(
+            {
+                "description": "GET /api/users/123456",  # will dedupe
+                "sentry_tags": {"transaction": "GET /api/users/123456"},
+                "trace_id": trace_id_1,
+                "is_segment": True,
+                "exclusive_time_ms": 100,
+                "duration_ms": 100,
+            },
+            start_ts=self.ten_mins_ago,
+        )
 
-        # Create multiple traces with different span counts
-        traces_data = [
-            (5, "trace-medium", 0),
-            (2, "trace-small", 10),
-            (8, "trace-large", 20),
-        ]
+        trace_id_2 = uuid.uuid4().hex
+        span2 = self.create_span(
+            {
+                "description": "GET /api/users/789012",  # will dedupe
+                "sentry_tags": {"transaction": "GET /api/users/789012"},
+                "trace_id": trace_id_2,
+                "is_segment": True,
+                "exclusive_time_ms": 200,
+                "duration_ms": 200,  # will return before span1 in transaction query
+            },
+            start_ts=self.ten_mins_ago + timedelta(seconds=1),
+        )
 
-        spans = []
-        trace_ids = []
-        expected_trace_id = None
+        trace_id_3 = uuid.uuid4().hex
+        span3 = self.create_span(
+            {
+                "description": "POST /api/orders",
+                "sentry_tags": {"transaction": "POST /api/orders"},
+                "trace_id": trace_id_3,
+                "is_segment": True,
+                "exclusive_time_ms": 150,
+                "duration_ms": 150,
+            },
+            start_ts=self.ten_mins_ago + timedelta(seconds=2),
+        )
 
-        for span_count, trace_suffix, start_offset_minutes in traces_data:
-            trace_id = uuid.uuid4().hex
-            trace_ids.append(trace_id)
-            if trace_suffix == "trace-medium":
-                expected_trace_id = trace_id
+        self.store_spans([span1, span2, span3], is_eap=True)
 
-            for i in range(span_count):
-                span = self.create_span(
-                    {
-                        "description": f"span-{i}-{trace_suffix}",
-                        "sentry_tags": {"transaction": transaction_name},
-                        "trace_id": trace_id,
-                        "parent_span_id": None if i == 0 else f"parent-{i-1}",
-                        "is_segment": i == 0,
-                    },
-                    start_ts=self.ten_mins_ago + timedelta(minutes=start_offset_minutes + i),
-                )
-                spans.append(span)
+        evidence_traces = get_project_top_transaction_traces_for_llm_detection(
+            self.project.id, limit=TRANSACTION_BATCH_SIZE, start_time_delta_minutes=30
+        )
 
-        self.store_spans(spans, is_eap=True)
+        assert len(evidence_traces) == 2
 
-        # Call the LLM detection function
-        result = get_evidence_trace_for_llm_detection(transaction_name, self.project.id)
+        assert (
+            evidence_traces[0].trace_id == trace_id_2
+        )  # prevails over trace_id_1 because transaction span duration was higher
+        assert evidence_traces[0].transaction_name == "GET /api/users/<NUM>"
 
-        # Verify basic structure
-        assert result is not None
-        assert result.transaction_name == transaction_name
-        assert result.project_id == self.project.id
-        assert result.trace_id in trace_ids
-        assert result.trace_id == expected_trace_id
-        assert result.total_spans == 5
-        assert len(result.spans) == 5
-
-        # Verify it's EvidenceTraceData with EvidenceSpan objects
-        assert isinstance(result, EvidenceTraceData)
-        for result_span in result.spans:
-            assert isinstance(result_span, EvidenceSpan)
-            assert result_span.span_id is not None
-            assert result_span.description is not None
-            assert result_span.description.startswith("span-")
-            assert "trace-medium" in result_span.description
-            assert hasattr(result_span, "op")
-            assert hasattr(result_span, "exclusive_time")
-            assert hasattr(result_span, "data")
-            assert result_span.data is not None
-            assert "duration" in result_span.data
-            assert "status" in result_span.data
-
-        # Verify parent-child relationships are preserved
-        root_spans = [s for s in result.spans if s.parent_span_id is None]
-        assert len(root_spans) == 1
+        assert evidence_traces[1].trace_id == trace_id_3
+        assert evidence_traces[1].transaction_name == "POST /api/orders"

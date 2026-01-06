@@ -205,7 +205,7 @@ class OnDemandBudgetEdit extends Component<Props> {
             subscription={subscription}
           />
           {activePlan.onDemandCategories.length !== perCategoryCategories.length && (
-            <Alert type="warning">
+            <Alert variant="warning">
               {tct(
                 'Additional [oxfordCategories] usage [isOrAre] only available through a shared [budgetTerm] budget. To enable [budgetTerm] usage switch to a shared [budgetTerm] budget.',
                 {
@@ -287,7 +287,7 @@ class OnDemandBudgetEdit extends Component<Props> {
                       <OnDemandType>{t('Shared')}</OnDemandType>
                       {onDemandEnabled &&
                         currentBudgetMode === OnDemandBudgetMode.SHARED && (
-                          <Tag>{t('Current Budget')}</Tag>
+                          <Tag variant="muted">{t('Current Budget')}</Tag>
                         )}
                     </Title>
                     <Description>
@@ -326,7 +326,7 @@ class OnDemandBudgetEdit extends Component<Props> {
                       <OnDemandType>{t('Per-Category')}</OnDemandType>
                       {onDemandEnabled &&
                         currentBudgetMode === OnDemandBudgetMode.PER_CATEGORY && (
-                          <Tag>{t('Current Budget')}</Tag>
+                          <Tag variant="muted">{t('Current Budget')}</Tag>
                         )}
                     </Title>
                     <Description>
@@ -390,7 +390,7 @@ const BudgetModeOption = styled(PanelItem)<{isSelected?: boolean}>`
     p.isSelected &&
     css`
       background: ${p.theme.backgroundSecondary};
-      color: ${p.theme.textColor};
+      color: ${p.theme.tokens.content.primary};
     `}
 `;
 
@@ -419,14 +419,14 @@ const InputFields = styled('div')`
 `;
 
 const StyledRadio = styled(Radio)`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const BudgetDetails = styled('div')`
   display: inline-grid;
   gap: ${space(0.75)};
   font-size: ${p => p.theme.fontSize.xl};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const Title = styled('div')`
@@ -455,7 +455,7 @@ const Currency = styled('div')`
 
 const OnDemandInput = styled(Input)`
   padding-left: ${space(4)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   max-width: 140px;
   height: 36px;
 `;

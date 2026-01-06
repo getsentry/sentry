@@ -21,7 +21,8 @@ local parent_span_id = ARGV[2]
 local has_root_span = ARGV[3] == "true"
 local set_timeout = tonumber(ARGV[4])
 local max_segment_bytes = tonumber(ARGV[5])
-local NUM_ARGS = 5
+local byte_count = tonumber(ARGV[6])
+local NUM_ARGS = 6
 
 local set_span_id = parent_span_id
 local redirect_depth = 0
@@ -76,14 +77,21 @@ if #sunionstore_args > 0 then
 
     -- Merge ingested count keys for merged spans
     local ingested_count_key = string.format("span-buf:ic:%s", set_key)
+    local ingested_byte_count_key = string.format("span-buf:ibc:%s", set_key)
     for i = 1, #sunionstore_args do
         local merged_key = sunionstore_args[i]
         local merged_ic_key = string.format("span-buf:ic:%s", merged_key)
+        local merged_ibc_key = string.format("span-buf:ibc:%s", merged_key)
         local merged_count = redis.call("get", merged_ic_key)
+        local merged_byte_count = redis.call("get", merged_ibc_key)
         if merged_count then
             redis.call("incrby", ingested_count_key, merged_count)
         end
+        if merged_byte_count then
+            redis.call("incrby", ingested_byte_count_key, merged_byte_count)
+        end
         redis.call("del", merged_ic_key)
+        redis.call("del", merged_ibc_key)
     end
 
     while (redis.call("memory", "usage", set_key) or 0) > max_segment_bytes do
@@ -93,8 +101,11 @@ end
 
 -- Track total number of spans ingested for this segment
 local ingested_count_key = string.format("span-buf:ic:%s", set_key)
+local ingested_byte_count_key = string.format("span-buf:ibc:%s", set_key)
 redis.call("incrby", ingested_count_key, num_spans)
+redis.call("incrby", ingested_byte_count_key, byte_count)
 redis.call("expire", ingested_count_key, set_timeout)
+redis.call("expire", ingested_byte_count_key, set_timeout)
 
 redis.call("expire", set_key, set_timeout)
 

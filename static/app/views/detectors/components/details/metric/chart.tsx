@@ -52,7 +52,8 @@ function incidentSeriesTooltip(ctx: IncidentTooltipContext) {
   const endTime = ctx.period.end
     ? defaultFormatAxisLabel(ctx.period.end, true, false, true, false)
     : '-';
-  const color = ctx.period.priority === 'high' ? ctx.theme.red300 : ctx.theme.yellow300;
+  const color =
+    ctx.period.priority === 'high' ? ctx.theme.colors.red400 : ctx.theme.colors.yellow400;
   const priorityLabel = ctx.period.priority === 'high' ? t('Critical') : t('Warning');
 
   const priorityDot = `<span style="display:inline-block;width:10px;height:8px;border-radius:100%;background:${color};margin-right:6px;vertical-align:middle;"></span>`;
@@ -69,7 +70,8 @@ function incidentSeriesTooltip(ctx: IncidentTooltipContext) {
 
 function incidentMarklineTooltip(ctx: IncidentTooltipContext) {
   const time = defaultFormatAxisLabel(ctx.period.start, true, false, true, false);
-  const color = ctx.period.priority === 'high' ? ctx.theme.red300 : ctx.theme.yellow300;
+  const color =
+    ctx.period.priority === 'high' ? ctx.theme.colors.red400 : ctx.theme.colors.yellow400;
   const priorityLabel = ctx.period.priority === 'high' ? t('Critical') : t('Warning');
   const priorityDot = `<span style="display:inline-block;width:10px;height:8px;border-radius:100%;background:${color};margin-right:6px;vertical-align:middle;"></span>`;
   return [
@@ -382,9 +384,17 @@ interface OpenInButtonProps {
 function OpenInButton({detector}: OpenInButtonProps) {
   const organization = useOrganization();
   const location = useLocation();
+  const snubaQuery = detector.dataSources[0]?.queryObj?.snubaQuery;
+
+  if (!snubaQuery) {
+    return null;
+  }
+
   const destination = getDetectorOpenInDestination({
-    detector,
+    detectorName: detector.name,
     organization,
+    projectId: detector.projectId,
+    snubaQuery,
     statsPeriod: decodeScalar(location.query.statsPeriod),
     start: decodeScalar(location.query.start),
     end: decodeScalar(location.query.end),
@@ -433,14 +443,19 @@ export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChar
   const location = useLocation();
   const organization = useOrganization();
   const dateParams = normalizeDateTimeParams(location.query);
+  const snubaQuery = detector.dataSources[0]?.queryObj?.snubaQuery;
 
-  const destination = getDetectorOpenInDestination({
-    detector,
-    organization,
-    statsPeriod: decodeScalar(location.query.statsPeriod),
-    start: decodeScalar(location.query.start),
-    end: decodeScalar(location.query.end),
-  });
+  const destination =
+    snubaQuery &&
+    getDetectorOpenInDestination({
+      detectorName: detector.name,
+      organization,
+      projectId: detector.projectId,
+      snubaQuery,
+      statsPeriod: decodeScalar(location.query.statsPeriod),
+      start: decodeScalar(location.query.start),
+      end: decodeScalar(location.query.end),
+    });
 
   const {data: openPeriods = []} = useOpenPeriods({
     detectorId: detector.id,
@@ -472,14 +487,14 @@ export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChar
     return (
       <ChartContainer overflow="hidden">
         {errorMessage && (
-          <Alert system type="error">
+          <Alert system variant="danger">
             {errorMessage}
           </Alert>
         )}
         <ChartBody>
           <Flex justify="center" align="center">
             <ErrorPanel height={`${CHART_HEIGHT - 45}px`}>
-              <IconWarning color="gray300" size="lg" />
+              <IconWarning variant="muted" size="lg" />
               <div>{t('Error loading chart data')}</div>
             </ErrorPanel>
           </Flex>

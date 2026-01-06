@@ -144,7 +144,7 @@ export const ReplayBrowserColumn: ReplayTableColumn = {
         <DropdownContainer>
           <Tooltip title={t('N/A')}>
             <Flex justify="center" width="20px">
-              <IconNot size="xs" color="gray300" />
+              <IconNot size="xs" variant="muted" />
             </Flex>
           </Tooltip>
         </DropdownContainer>
@@ -252,7 +252,7 @@ export const ReplayCountErrorsColumn: ReplayTableColumn = {
         <TabularNumber>
           {replay.count_errors ? (
             <Flex gap="xs">
-              <IconFire color="red300" />
+              <IconFire variant="danger" />
               {replay.count_errors}
             </Flex>
           ) : (
@@ -293,7 +293,7 @@ export const ReplayCountRageClicksColumn: ReplayTableColumn = {
         <TabularNumber>
           {replay.count_rage_clicks ? (
             <Flex gap="xs">
-              <IconCursorArrow size="sm" color="red300" />
+              <IconCursorArrow size="sm" variant="danger" />
               {replay.count_rage_clicks}
             </Flex>
           ) : (
@@ -644,7 +644,7 @@ const UnreadIndicator = styled('div')`
   height: 8px;
   border-radius: 50%;
 
-  background-color: ${p => p.theme.purple400};
+  background-color: ${p => p.theme.colors.blue500};
   &[data-has-viewed='true'] {
     background-color: transparent;
   }
@@ -655,7 +655,7 @@ const SpanOperationBreakdown = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.colors.gray800};
   font-size: ${p => p.theme.fontSize.md};
   text-align: right;
 `;

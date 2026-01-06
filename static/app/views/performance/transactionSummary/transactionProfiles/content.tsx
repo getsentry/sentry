@@ -318,7 +318,7 @@ const TransactionProfilesContentContainer = styled('div')`
   grid-template-columns: 1fr min-content;
   flex: 1;
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   max-height: 85vh;
 `;
 

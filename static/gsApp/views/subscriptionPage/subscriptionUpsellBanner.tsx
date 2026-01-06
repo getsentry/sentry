@@ -175,7 +175,7 @@ export function SubscriptionUpsellBanner({
         borderless
         priority="link"
         aria-label={t('Dismiss')}
-        icon={<IconClose color="subText" />}
+        icon={<IconClose variant="muted" />}
         size="xs"
         onClick={dismissPrompt}
       />
@@ -186,7 +186,7 @@ export function SubscriptionUpsellBanner({
 const BusinessTrialBannerWrapper = styled('div')<{isNewBillingUI?: boolean}>`
   position: relative;
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${space(2)};
   background: linear-gradient(
     90deg,

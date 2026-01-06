@@ -1540,7 +1540,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                   {thresholdTypeForm(formDisabled)}
                   {showErrorMigrationWarning && (
                     <Alert.Container>
-                      <Alert type="warning">
+                      <Alert variant="warning">
                         {tct(
                           "We've added [code:is:unresolved] to your events filter; please make sure the current thresholds are still valid as this alert is now filtering out resolved and archived errors.",
                           {
@@ -1594,7 +1594,7 @@ function getTimeWindowFromDataset(
 function WarningIcon({tooltipProps, id}: {id: string; tooltipProps?: TooltipProps}) {
   return (
     <Tooltip {...tooltipProps} title={tooltipProps?.title} skipWrapper>
-      <StyledIconWarning id={id} size="md" color="warning" />
+      <StyledIconWarning id={id} size="md" color="yellow300" />
     </Tooltip>
   );
 }
@@ -1622,7 +1622,7 @@ const AlertInfo = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   font-family: ${p => p.theme.text.family};
   font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const StyledCircleIndicator = styled(CircleIndicator)`

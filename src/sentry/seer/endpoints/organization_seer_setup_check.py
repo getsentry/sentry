@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
-class OrganizationSeerSetupCheck(OrganizationEndpoint):
+class OrganizationSeerSetupCheckEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
@@ -46,10 +46,10 @@ class OrganizationSeerSetupCheck(OrganizationEndpoint):
             return Response(status=400)
 
         # Check quotas
-        has_seer_scanner_quota: bool = quotas.backend.has_available_reserved_budget(
+        has_seer_scanner_quota: bool = quotas.backend.check_seer_quota(
             org_id=organization.id, data_category=DataCategory.SEER_SCANNER
         )
-        has_autofix_quota: bool = quotas.backend.has_available_reserved_budget(
+        has_autofix_quota: bool = quotas.backend.check_seer_quota(
             org_id=organization.id, data_category=DataCategory.SEER_AUTOFIX
         )
 

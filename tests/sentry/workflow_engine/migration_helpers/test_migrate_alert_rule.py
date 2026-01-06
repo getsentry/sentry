@@ -757,7 +757,7 @@ class DualUpdateAlertRuleTest(BaseMetricAlertMigrationTest):
             type="something",
             status=QuerySubscription.Status.ACTIVE.value,
         )
-        original_subscription.delete()
+        original_subscription.update(status=QuerySubscription.Status.DELETING.value)
 
         dual_update_migrated_alert_rule(self.metric_alert)
 

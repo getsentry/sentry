@@ -86,6 +86,14 @@ class EventContext(TypedDict):
     trace_id: str | None
     replay_id: str
     segment_id: int
+    user_id: str | None
+    user_email: str | None
+    user_name: str | None
+    user_ip: str | None
+    user_geo_city: str | None
+    user_geo_country_code: str | None
+    user_geo_region: str | None
+    user_geo_subdivision: str | None
 
 
 @sentry_sdk.trace
@@ -367,6 +375,31 @@ def as_trace_item(
     # eventually use the trace_id in its rightful position.
     trace_item_context["attributes"]["replay_id"] = context["replay_id"]
     trace_item_context["attributes"]["segment_id"] = context["segment_id"]
+
+    user_id = context.get("user_id")
+    if user_id is not None:
+        trace_item_context["attributes"]["user_id"] = user_id
+    user_email = context.get("user_email")
+    if user_email is not None:
+        trace_item_context["attributes"]["user_email"] = user_email
+    user_name = context.get("user_name")
+    if user_name is not None:
+        trace_item_context["attributes"]["user_name"] = user_name
+    user_ip = context.get("user_ip")
+    if user_ip is not None:
+        trace_item_context["attributes"]["user_ip"] = user_ip
+    user_geo_city = context.get("user_geo_city")
+    if user_geo_city is not None:
+        trace_item_context["attributes"]["user_geo_city"] = user_geo_city
+    user_geo_country_code = context.get("user_geo_country_code")
+    if user_geo_country_code is not None:
+        trace_item_context["attributes"]["user_geo_country_code"] = user_geo_country_code
+    user_geo_region = context.get("user_geo_region")
+    if user_geo_region is not None:
+        trace_item_context["attributes"]["user_geo_region"] = user_geo_region
+    user_geo_subdivision = context.get("user_geo_subdivision")
+    if user_geo_subdivision is not None:
+        trace_item_context["attributes"]["user_geo_subdivision"] = user_geo_subdivision
 
     return new_trace_item(
         {

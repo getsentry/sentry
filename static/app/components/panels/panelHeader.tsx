@@ -32,7 +32,7 @@ const PanelHeader = styled('div')<Props>`
   /* Do not apply text styles to overlay elements such as dropdowns */
   > *:not(:has([data-overlay], button, a[role='button']), button, a[role='button']),
   &:not(:has(> *)) {
-    color: ${p => (p.lightText ? p.theme.subText : p.theme.textColor)};
+    color: ${p => (p.lightText ? p.theme.subText : p.theme.tokens.content.primary)};
     font-size: ${p => p.theme.fontSize.sm};
     font-weight: ${p => p.theme.fontWeight.bold};
     text-transform: uppercase;
@@ -40,8 +40,8 @@ const PanelHeader = styled('div')<Props>`
   }
 
   border-bottom: 1px solid ${p => p.theme.border};
-  border-radius: calc(${p => p.theme.borderRadius} + 1px)
-    calc(${p => p.theme.borderRadius} + 1px) 0 0;
+  border-radius: calc(${p => p.theme.radius.md} + 1px)
+    calc(${p => p.theme.radius.md} + 1px) 0 0;
   background: ${p => p.theme.backgroundSecondary};
   position: relative;
   ${getPadding};

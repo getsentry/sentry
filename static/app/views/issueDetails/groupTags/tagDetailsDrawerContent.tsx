@@ -41,7 +41,7 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
   const navigate = useNavigate();
   const organization = useOrganization();
   const {tagKey} = useParams<{tagKey: string}>();
-  const sortArrow = <IconArrow color="gray300" size="xs" direction="down" />;
+  const sortArrow = <IconArrow variant="muted" size="xs" direction="down" />;
 
   const sort: TagSort =
     (location.query.tagDrawerSort as TagSort | undefined) ?? DEFAULT_SORT;
@@ -365,7 +365,7 @@ const ColumnSort = styled(Link)`
   font-weight: ${p => p.theme.fontWeight.bold};
   text-decoration: underline;
   text-decoration-style: dotted;
-  text-decoration-color: ${p => p.theme.textColor};
+  text-decoration-color: ${p => p.theme.tokens.content.primary};
   &:hover {
     color: ${p => p.theme.subText};
   }
@@ -411,7 +411,7 @@ const UserSubtitle = styled('div')`
 `;
 
 const ValueLink = styled(Link)`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   word-break: break-all;
 `;
 

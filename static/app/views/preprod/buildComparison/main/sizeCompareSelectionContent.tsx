@@ -20,11 +20,13 @@ import {
   IconDownload,
   IconMobile,
   IconSearch,
+  IconTag,
 } from 'sentry/icons';
 import {IconBranch} from 'sentry/icons/iconBranch';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import parseApiError from 'sentry/utils/parseApiError';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useApiQuery, useMutation, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -84,12 +86,13 @@ export function SizeCompareSelectionContent({
     build_configuration: headBuildDetails.app_info?.build_configuration,
     ...(cursor && {cursor}),
     ...(searchQuery && {query: searchQuery}),
+    ...(projectId && {project: projectId}),
   };
 
   const buildsQuery: UseApiQueryResult<ListBuildsApiResponse, RequestError> =
     useApiQuery<ListBuildsApiResponse>(
       [
-        `/projects/${organization.slug}/${projectId}/preprodartifacts/list-builds/`,
+        `/organizations/${organization.slug}/preprodartifacts/list-builds/`,
         {query: queryParams},
       ],
       {
@@ -123,8 +126,11 @@ export function SizeCompareSelectionContent({
       );
     },
     onError: error => {
+      const errorMessage = parseApiError(error);
       addErrorMessage(
-        error?.message || t('Failed to trigger comparison. Please try again.')
+        errorMessage === 'Unknown API Error'
+          ? t('Failed to trigger comparison. Please try again.')
+          : errorMessage
       );
     },
   });
@@ -170,7 +176,9 @@ export function SizeCompareSelectionContent({
       </InputGroup>
 
       {buildsQuery.isLoading && <LoadingIndicator />}
-      {buildsQuery.isError && <Alert type="error">{buildsQuery.error?.message}</Alert>}
+      {buildsQuery.isError && (
+        <Alert variant="danger">{buildsQuery.error?.message}</Alert>
+      )}
       {buildsQuery.data && (
         <Stack gap="md">
           {buildsQuery.data.builds.map(build => {
@@ -207,6 +215,29 @@ export function SizeCompareSelectionContent({
   );
 }
 
+/**
+ * Formats version and build number into a combined string.
+ * Examples: "v1.2.3 (456)", "v1.2.3", "(456)", or null
+ */
+function formatVersionInfo(
+  version?: string | null,
+  buildNumber?: string | null
+): string | null {
+  if (!version && !buildNumber) {
+    return null;
+  }
+
+  if (version && buildNumber) {
+    return `v${version} (${buildNumber})`;
+  }
+
+  if (version) {
+    return `v${version}`;
+  }
+
+  return `(${buildNumber})`;
+}
+
 interface BuildItemProps {
   build: BuildDetailsApiResponse;
   isSelected: boolean;
@@ -219,8 +250,11 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
   const branchName = build.vcs_info?.head_ref;
   const dateAdded = build.app_info?.date_added;
   const sizeInfo = build.size_info;
+  const version = build.app_info?.version;
+  const buildNumber = build.app_info?.build_number;
 
-  const hasGitInfo = prNumber || branchName || commitHash;
+  const hasGitInfo = Boolean(prNumber || branchName || commitHash);
+  const versionInfo = formatVersionInfo(version, buildNumber);
 
   return (
     <BuildItemContainer
@@ -230,9 +264,9 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
       gap="md"
     >
       <Flex direction="column" gap="sm" flex={1}>
-        {hasGitInfo && (
+        {(hasGitInfo || versionInfo) && (
           <Flex align="center" gap="md">
-            {(prNumber || branchName) && <IconBranch size="xs" color="gray300" />}
+            {(prNumber || branchName) && <IconBranch size="xs" variant="muted" />}
             {prNumber && (
               <Flex align="center" gap="sm">
                 <Text>#{prNumber}</Text>
@@ -243,8 +277,14 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
             )}
             {commitHash && (
               <Flex align="center" gap="sm">
-                <IconCommit size="xs" color="gray300" />
+                <IconCommit size="xs" variant="muted" />
                 <Text>{commitHash}</Text>
+              </Flex>
+            )}
+            {versionInfo && (
+              <Flex align="center" gap="sm">
+                <IconTag size="xs" color="gray300" />
+                <Text>{versionInfo}</Text>
               </Flex>
             )}
           </Flex>
@@ -253,13 +293,13 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
         <Flex align="center" gap="md">
           {dateAdded && (
             <Flex align="center" gap="sm">
-              <IconCalendar size="xs" color="gray300" />
+              <IconCalendar size="xs" variant="muted" />
               <TimeSince date={dateAdded} />
             </Flex>
           )}
           {build.app_info?.build_configuration && (
             <Flex align="center" gap="sm">
-              <IconMobile size="xs" color="gray300" />
+              <IconMobile size="xs" variant="muted" />
               <Tooltip title={t('Build configuration')}>
                 <Text monospace>{build.app_info.build_configuration}</Text>
               </Tooltip>
@@ -267,13 +307,13 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
           )}
           {isSizeInfoCompleted(sizeInfo) && (
             <Flex align="center" gap="sm">
-              <IconCode size="xs" color="gray300" />
+              <IconCode size="xs" variant="muted" />
               <Text>{formattedPrimaryMetricInstallSize(sizeInfo)}</Text>
             </Flex>
           )}
           {isSizeInfoCompleted(sizeInfo) && (
             <Flex align="center" gap="sm">
-              <IconDownload size="xs" color="gray300" />
+              <IconDownload size="xs" variant="muted" />
               <Text>{formattedPrimaryMetricDownloadSize(sizeInfo)}</Text>
             </Flex>
           )}
@@ -286,26 +326,26 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
 
 const BuildItemContainer = styled(Flex)<{isSelected: boolean}>`
   border: 1px solid ${p => (p.isSelected ? p.theme.focusBorder : p.theme.border)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space.md};
   cursor: pointer;
 
   &:hover {
-    background-color: ${p => p.theme.surface100};
+    background-color: ${p => p.theme.colors.surface200};
   }
 
   ${p =>
     p.isSelected &&
     `
-      background-color: ${p.theme.surface200};
+      background-color: ${p.theme.colors.surface300};
     `}
 `;
 
 const BuildItemBranchTag = styled('span')`
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
-  background-color: ${p => p.theme.gray100};
-  border-radius: ${p => p.theme.borderRadius};
-  color: ${p => p.theme.purple400};
+  background-color: ${p => p.theme.colors.gray100};
+  border-radius: ${p => p.theme.radius.md};
+  color: ${p => p.theme.colors.blue500};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.normal};
 `;

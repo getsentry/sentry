@@ -70,7 +70,7 @@ export function ParticipantList({teams = [], users, children}: ParticipantListPr
             <IconChevron
               direction={isExpanded ? 'up' : 'down'}
               size="xs"
-              color="gray300"
+              variant="muted"
             />
           }
           aria-label={t('%s Participants', isExpanded ? t('Collapse') : t('Expand'))}
@@ -112,20 +112,20 @@ const ParticipantListWrapper = styled('div')`
   max-height: 325px;
   overflow-y: auto;
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 
   & > div:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.border};
   }
 
   & > div:first-child {
-    border-top-left-radius: ${p => p.theme.borderRadius};
-    border-top-right-radius: ${p => p.theme.borderRadius};
+    border-top-left-radius: ${p => p.theme.radius.md};
+    border-top-right-radius: ${p => p.theme.radius.md};
   }
 
   & > div:last-child {
-    border-bottom-left-radius: ${p => p.theme.borderRadius};
-    border-bottom-right-radius: ${p => p.theme.borderRadius};
+    border-bottom-left-radius: ${p => p.theme.radius.md};
+    border-bottom-right-radius: ${p => p.theme.radius.md};
   }
 `;
 

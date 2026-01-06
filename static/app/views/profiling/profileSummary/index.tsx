@@ -165,7 +165,7 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
         </StyledHeaderActions>
       )}
       <Tabs onChange={props.onViewChange} value={props.view}>
-        <TabList hideBorder>
+        <TabList>
           <TabList.Item key="flamegraph">{t('Flamegraph')}</TabList.Item>
           <TabList.Item key="profiles">{t('Sampled Profiles')}</TabList.Item>
         </TabList>
@@ -245,7 +245,7 @@ const ActionBar = styled('div')`
   gap: ${space(1)};
   grid-template-columns: min-content auto;
   padding: ${space(1)} ${space(1)};
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 function ProfileSummaryPage() {
@@ -617,7 +617,7 @@ const ProfileVisualization = styled('div')`
 const ProfileDigestContainer = styled('div')`
   grid-area: digest;
   border-left: 1px solid ${p => p.theme.border};
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   display: flex;
   flex: 1 1 100%;
   flex-direction: column;
@@ -787,7 +787,7 @@ const ProfileDigestHeader = styled('div')`
 `;
 
 const ProfileDigestLabel = styled('span')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.bold};
   text-transform: uppercase;

@@ -80,7 +80,7 @@ const CollapseButton = styled(Button)<{folded: boolean}>`
 
 const GroupingComponentWrapper = styled('div')<{isContributing: boolean}>`
   grid-column: 2;
-  color: ${p => (p.isContributing ? p.theme.textColor : p.theme.subText)};
+  color: ${p => (p.isContributing ? p.theme.tokens.content.primary : p.theme.subText)};
 `;
 
 export const GroupingHint = styled('small')`

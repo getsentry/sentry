@@ -37,7 +37,7 @@ const IssueStreamHeaderLabel = styled('div')<{
         width: 1px;
         height: 100%;
 
-        background-color: ${p.theme.gray200};
+        background-color: ${p.theme.colors.gray200};
       }
     `}
 

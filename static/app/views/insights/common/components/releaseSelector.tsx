@@ -31,9 +31,6 @@ import {
 import {formatVersionAndCenterTruncate} from 'sentry/views/insights/common/utils/formatVersionAndCenterTruncate';
 import type {ModuleName} from 'sentry/views/insights/types';
 
-export const PRIMARY_RELEASE_ALIAS = 'R1';
-export const SECONDARY_RELEASE_ALIAS = 'R2';
-
 type Props = {
   allOptionDescription: string;
   allOptionTitle: string;
@@ -45,7 +42,7 @@ type Props = {
   triggerLabelPrefix?: string;
 };
 
-function ReleaseSelector({
+function SingleReleaseSelector({
   allOptionDescription,
   allOptionTitle,
   onChange,
@@ -56,7 +53,7 @@ function ReleaseSelector({
 }: Props) {
   const [searchTerm, setSearchTerm] = useState<string | undefined>(undefined);
   const {data, isLoading} = useReleases(searchTerm, sortBy);
-  const {primaryRelease, secondaryRelease} = useReleaseSelection();
+  const {primaryRelease} = useReleaseSelection();
 
   const options: Array<SelectOption<string> & {count?: number}> = [];
 
@@ -91,7 +88,7 @@ function ReleaseSelector({
   }
 
   data
-    ?.filter(({version}) => ![primaryRelease, secondaryRelease].includes(version))
+    ?.filter(({version}) => primaryRelease !== version)
     .forEach(release => {
       const option = {
         value: release.version,
@@ -190,16 +187,12 @@ function getReleasesSortBy(
   return ReleasesSortOption.DATE;
 }
 
-type ReleaseComparisonSelectorProps = {
+type ReleaseSelectorProps = {
   moduleName: ModuleName;
-  primaryOnly?: boolean;
 };
 
-export function ReleaseComparisonSelector({
-  primaryOnly = false,
-  moduleName,
-}: ReleaseComparisonSelectorProps) {
-  const {primaryRelease, secondaryRelease} = useReleaseSelection();
+export function ReleaseSelector({moduleName}: ReleaseSelectorProps) {
+  const {primaryRelease} = useReleaseSelection();
   const location = useLocation();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
@@ -254,20 +247,15 @@ export function ReleaseComparisonSelector({
     ? formatVersionAndCenterTruncate(primaryRelease, 16)
     : 'All';
 
-  const secondaryTriggerLabelContent = secondaryRelease
-    ? formatVersionAndCenterTruncate(secondaryRelease, 16)
-    : 'None';
-
   return (
     <StyledPageSelector condensed>
-      <ReleaseSelector
+      <SingleReleaseSelector
         allOptionDescription={t('Show data from all releases.')}
         allOptionTitle={t('All')}
         onChange={newValue => {
           trackAnalytics('insights.release.select_release', {
             organization,
             filtered: defined(newValue.value) && newValue.value !== '',
-            type: 'primary',
             moduleName,
           });
 
@@ -276,9 +264,6 @@ export function ReleaseComparisonSelector({
             primaryRelease: newValue.value as string,
           };
 
-          if (!defined(newValue.value) || newValue.value === '') {
-            delete updatedQuery.secondaryRelease;
-          }
           navigate({
             ...location,
             query: updatedQuery,
@@ -287,46 +272,10 @@ export function ReleaseComparisonSelector({
         selectorValue={primaryRelease}
         selectorName={t('Release 1')}
         key="primaryRelease"
-        triggerLabelPrefix={
-          secondaryRelease
-            ? PRIMARY_RELEASE_ALIAS
-            : primaryRelease
-              ? t('Release')
-              : t('Releases')
-        }
+        triggerLabelPrefix={primaryRelease ? t('Release') : t('Releases')}
         triggerLabel={primaryTriggerLabelContent}
         sortBy={sortReleasesBy}
       />
-      {primaryOnly === false && primaryRelease && (
-        <ReleaseSelector
-          allOptionDescription={t('No comparison.')}
-          allOptionTitle={t('None')}
-          onChange={newValue => {
-            trackAnalytics('insights.release.select_release', {
-              organization,
-              filtered: defined(newValue.value) && newValue.value !== '',
-              type: 'secondary',
-              moduleName,
-            });
-
-            const updatedQuery: Record<string, string> = {
-              ...location.query,
-              secondaryRelease: newValue.value as string,
-            };
-
-            navigate({
-              ...location,
-              query: updatedQuery,
-            });
-          }}
-          selectorName={t('Release 2')}
-          selectorValue={secondaryRelease}
-          key="secondaryRelease"
-          triggerLabelPrefix={secondaryRelease ? SECONDARY_RELEASE_ALIAS : t('Compare')}
-          triggerLabel={secondaryTriggerLabelContent}
-          sortBy={sortReleasesBy}
-        />
-      )}
       <ReleasesSort
         sortBy={sortReleasesBy}
         environments={selection.environments}

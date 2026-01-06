@@ -30,6 +30,8 @@ import {
   isAValidSort,
 } from 'sentry/views/insights/http/components/tables/domainsTable';
 import {Referrer} from 'sentry/views/insights/http/referrers';
+import useHasDashboardsPlatformizedHttp from 'sentry/views/insights/http/utils/useHasDashboardsPlatformizedHttp';
+import {PlatformizedHttpOverview} from 'sentry/views/insights/http/views/platformizedOverview';
 import {ModuleName} from 'sentry/views/insights/types';
 
 export function HTTPLandingPage() {
@@ -152,6 +154,11 @@ function PageWithProviders() {
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.SPANS],
   });
+
+  const hasDashboardsPlatformizedHttp = useHasDashboardsPlatformizedHttp();
+  if (hasDashboardsPlatformizedHttp) {
+    return <PlatformizedHttpOverview />;
+  }
 
   return (
     <ModulePageProviders

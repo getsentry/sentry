@@ -369,14 +369,14 @@ const AvatarPreview = styled('div')`
   align-items: center;
   justify-content: center;
   padding: ${space(1)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   background-size: 20px 20px;
   background-position:
     0 0,
     0 10px,
     10px -10px,
     -10px 0px;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   background-image:
     linear-gradient(45deg, ${p => p.theme.backgroundSecondary} 25%, rgba(0, 0, 0, 0) 25%),
     linear-gradient(
@@ -412,7 +412,7 @@ const BlankAvatar = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${p => p.theme.gray200};
+  color: ${p => p.theme.colors.gray200};
   background: ${p => p.theme.backgroundSecondary};
   height: 90px;
   width: 90px;
@@ -430,7 +430,7 @@ const AvatarActions = styled('div')`
   top: ${space(0.25)};
   right: ${space(0.25)};
   display: flex;
-  background: ${p => p.theme.translucentSurface200};
+  background: ${p => p.theme.colors.surface200};
   padding: ${space(0.25)};
   border-radius: 3px;
 `;

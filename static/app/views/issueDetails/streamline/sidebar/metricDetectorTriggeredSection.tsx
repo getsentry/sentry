@@ -19,6 +19,7 @@ import type {Event, EventOccurrence} from 'sentry/types/event';
 import type {
   MetricCondition,
   MetricDetectorConfig,
+  SnubaQuery,
   SnubaQueryDataSource,
 } from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
@@ -27,6 +28,7 @@ import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 import useOrganization from 'sentry/utils/useOrganization';
 import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
 import {getConditionDescription} from 'sentry/views/detectors/components/details/metric/detect';
+import {getDetectorOpenInDestination} from 'sentry/views/detectors/components/details/metric/getDetectorOpenInDestination';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
@@ -74,11 +76,16 @@ function isMetricDetectorEvidenceData(
 
 interface RelatedIssuesProps {
   aggregate: string;
+  end: string;
   eventDateCreated: string | undefined;
+  projectId: string | number;
   query: string;
-  timeWindow: number;
+  start: string;
 }
 
+/**
+ * Calculates the
+ */
 function calculateStartOfInterval({
   eventDateCreated,
   timeWindow,
@@ -101,27 +108,24 @@ function calculateStartOfInterval({
 }
 
 function ContributingIssues({
+  projectId,
   query,
   eventDateCreated,
-  timeWindow,
   aggregate,
+  end,
+  start,
 }: RelatedIssuesProps) {
-  // TODO: When we can link events to open periods, use the end date from the open period
-  const [endDate] = useState(() => new Date().toISOString());
   const organization = useOrganization();
 
   if (!eventDateCreated) {
     return null;
   }
 
-  const startDate = calculateStartOfInterval({
-    eventDateCreated,
-    timeWindow,
-  }).toISOString();
   const queryParams = {
+    project: projectId,
     query: `issue.type:error ${query}`,
-    start: startDate,
-    end: endDate,
+    start,
+    end,
     limit: 5,
     sort: aggregate === 'count_unique(user)' ? 'user' : 'freq',
   };
@@ -130,8 +134,8 @@ function ContributingIssues({
     {
       query,
       dataset: SavedQueryDatasets.ERRORS,
-      start: startDate,
-      end: endDate,
+      start,
+      end,
     }
   )}`;
 
@@ -140,7 +144,7 @@ function ContributingIssues({
       return (
         <Alert.Container>
           <Alert
-            type="info"
+            variant="info"
             trailingItems={
               <Feature features="discover-basic">
                 <LinkButton priority="default" size="xs" to={discoverUrl}>
@@ -188,19 +192,54 @@ function ContributingIssues({
   );
 }
 
+function OpenInDestinationButton({
+  snubaQuery,
+  projectId,
+  start,
+  end,
+}: {
+  end: string;
+  projectId: string | number;
+  snubaQuery: SnubaQuery;
+  start: string;
+}) {
+  const organization = useOrganization();
+  const destination = getDetectorOpenInDestination({
+    organization,
+    projectId,
+    snubaQuery,
+    start,
+    end,
+  });
+
+  if (!destination) {
+    return null;
+  }
+
+  return (
+    <LinkButton size="xs" to={destination.to}>
+      {destination.buttonText}
+    </LinkButton>
+  );
+}
+
 function TriggeredConditionDetails({
   evidenceData,
   eventDateCreated,
+  projectId,
 }: {
   eventDateCreated: string | undefined;
   evidenceData: MetricDetectorEvidenceData;
+  projectId: string | number;
 }) {
   const {conditions, dataSources, value} = evidenceData;
   const dataSource = dataSources[0];
   const snubaQuery = dataSource?.queryObj?.snubaQuery;
   const triggeredCondition = conditions[0];
+  // TODO: When we can link events to open periods, use the end date from the open period
+  const [endDate] = useState(() => new Date().toISOString());
 
-  if (!triggeredCondition || !snubaQuery) {
+  if (!triggeredCondition || !snubaQuery || !eventDateCreated) {
     return null;
   }
 
@@ -208,10 +247,25 @@ function TriggeredConditionDetails({
   const datasetConfig = getDatasetConfig(detectorDataset);
   const isErrorsDataset = detectorDataset === DetectorDataset.ERRORS;
   const issueSearchQuery = datasetConfig.toSnubaQueryString?.(snubaQuery) ?? '';
+  const startDate = calculateStartOfInterval({
+    eventDateCreated,
+    timeWindow: snubaQuery.timeWindow,
+  }).toISOString();
 
   return (
     <Fragment>
-      <InterimSection title="Triggered Condition" type="triggered_condition">
+      <InterimSection
+        title="Triggered Condition"
+        type="triggered_condition"
+        actions={
+          <OpenInDestinationButton
+            snubaQuery={snubaQuery}
+            projectId={projectId}
+            start={startDate}
+            end={endDate}
+          />
+        }
+      >
         <KeyValueList
           shouldSort={false}
           data={[
@@ -270,10 +324,12 @@ function TriggeredConditionDetails({
       </InterimSection>
       {isErrorsDataset && (
         <ContributingIssues
+          projectId={projectId}
           query={issueSearchQuery}
           eventDateCreated={eventDateCreated}
-          timeWindow={snubaQuery.timeWindow}
           aggregate={snubaQuery.aggregate}
+          start={startDate}
+          end={endDate}
         />
       )}
     </Fragment>
@@ -305,6 +361,7 @@ export function MetricDetectorTriggeredSection({
         <TriggeredConditionDetails
           evidenceData={evidenceData}
           eventDateCreated={event.dateCreated}
+          projectId={event.projectID}
         />
       </ErrorBoundary>
     </Fragment>

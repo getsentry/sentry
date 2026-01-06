@@ -73,7 +73,7 @@ function SuperuserWarning({organization, className}: Props) {
             {SUPERUSER_MESSAGE} {WARNING_MESSAGE}
           </Fragment>
         ),
-        type: 'error',
+        variant: 'danger',
         opaque: true,
         neverExpire: true,
         noDuplicates: true,
@@ -86,7 +86,7 @@ function SuperuserWarning({organization, className}: Props) {
   }
 
   return (
-    <StyledBadge type="warning" className={className}>
+    <StyledBadge variant="warning" className={className}>
       <Tooltip
         isHoverable
         title={
@@ -103,8 +103,8 @@ function SuperuserWarning({organization, className}: Props) {
 }
 
 const StyledBadge = styled(Badge)`
-  color: ${p => (p.theme.isChonk ? p.theme.white : undefined)};
-  background: ${p => (p.theme.isChonk ? p.theme.colors.chonk.red400 : undefined)};
+  color: ${p => p.theme.white};
+  background: ${p => p.theme.colors.chonk.red400};
 `;
 
 const TooltipContent = styled('div')`

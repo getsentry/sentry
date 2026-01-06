@@ -583,7 +583,7 @@ class PullRequestEventWebhook(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
             HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
-            HTTP_X_HUB_SIGNATURE="sha1=aa5b11bc52b9fac082cb59f9ee8667cb222c3aff",
+            HTTP_X_HUB_SIGNATURE="sha1=0b16e932708e7bbf258794307969f2c68d09b32b",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
@@ -623,7 +623,7 @@ class PullRequestEventWebhook(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
             HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
-            HTTP_X_HUB_SIGNATURE="sha1=aa5b11bc52b9fac082cb59f9ee8667cb222c3aff",
+            HTTP_X_HUB_SIGNATURE="sha1=0b16e932708e7bbf258794307969f2c68d09b32b",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
@@ -646,7 +646,7 @@ class PullRequestEventWebhook(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
             HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
-            HTTP_X_HUB_SIGNATURE="sha1=b50a13afd33b514e8e62e603827ea62530f0690e",
+            HTTP_X_HUB_SIGNATURE="sha1=55d94c05694c3580c54ce82fc9479836447d8e4a",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
@@ -669,7 +669,7 @@ class PullRequestEventWebhook(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
             HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
-            HTTP_X_HUB_SIGNATURE="sha1=dff1c803cf1e48c1b9aefe4a17952ea132758806",
+            HTTP_X_HUB_SIGNATURE="sha1=a1b0cbbffebca2bf8db704804a4825f54ec66183",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 

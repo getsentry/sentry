@@ -57,8 +57,7 @@ describe('useUpgradeNowParams', () => {
           reservedSpans: undefined,
           reservedSeerAutofix: 0,
           reservedSeerScanner: 0,
-          reservedSeerUsers: undefined,
-          reservedPreventUsers: undefined,
+          reservedSeerUsers: 0,
         },
       })
     );

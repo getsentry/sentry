@@ -144,99 +144,109 @@ export function SortBySelectors({
         title={disableSortReason}
         disabled={!disableSort || (disableSortDirection && disableSort)}
       >
-        {displayType === DisplayType.TABLE || displayType === DisplayType.DETAILS ? (
-          <Select
-            name="sortBy"
-            aria-label={t('Sort by')}
-            disabled={disableSort}
-            placeholder={`${t('Select a column')}\u{2026}`}
-            value={values.sortBy}
-            options={uniqBy(
-              datasetConfig.getTableSortOptions!(organization, widgetQuery),
-              ({value}) => value
-            )}
-            onChange={(option: SelectValue<string>) => {
-              onChange({
-                sortBy: option.value,
-                sortDirection: values.sortDirection,
-              });
-            }}
-          />
-        ) : (
-          <QueryField
-            disabled={disableSort}
-            fieldValue={
-              // Fields in metrics widgets would parse as function in explodeField
-              widgetType === WidgetType.METRICS
-                ? {kind: 'field', field: values.sortBy}
-                : showCustomEquation
-                  ? explodeField({field: CUSTOM_EQUATION_VALUE})
-                  : explodeField({field: values.sortBy})
-            }
-            fieldOptions={timeseriesSortOptions}
-            filterPrimaryOptions={
-              datasetConfig.filterSeriesSortOptions
-                ? datasetConfig.filterSeriesSortOptions(columnSet)
-                : undefined
-            }
-            filterAggregateParameters={datasetConfig.filterAggregateParams}
-            disableParameterSelector={
-              widgetType === WidgetType.SPANS && values.sortBy === LOCKED_SPAN_COUNT_SORT
-            }
-            onChange={value => {
-              if (value.alias && isEquationAlias(value.alias)) {
+        {
+          // Trace Metrics also uses the table sort options because it constrains the options to the selected
+          // group bys and aggregate which is consistent for the explore page (i.e. you can't sort by a field
+          // that is not in the group bys or aggregate).
+          displayType === DisplayType.TABLE ||
+          displayType === DisplayType.DETAILS ||
+          widgetType === WidgetType.TRACEMETRICS ? (
+            <Select
+              name="sortBy"
+              aria-label={t('Sort by')}
+              disabled={disableSort}
+              placeholder={`${t('Select a column')}\u{2026}`}
+              value={values.sortBy}
+              options={uniqBy(
+                datasetConfig.getTableSortOptions!(organization, widgetQuery),
+                ({value}) => value
+              )}
+              onChange={(option: SelectValue<string>) => {
                 onChange({
-                  sortBy: value.alias,
+                  sortBy: option.value,
                   sortDirection: values.sortDirection,
                 });
-                return;
+              }}
+            />
+          ) : (
+            <QueryField
+              disabled={disableSort}
+              fieldValue={
+                // Fields in metrics widgets would parse as function in explodeField
+                widgetType === WidgetType.METRICS
+                  ? {kind: 'field', field: values.sortBy}
+                  : showCustomEquation
+                    ? explodeField({field: CUSTOM_EQUATION_VALUE})
+                    : explodeField({field: values.sortBy})
               }
-
-              let parsedValue = generateFieldAsString(value);
-              const isSortingByCustomEquation = isEquation(parsedValue);
-              setShowCustomEquation(isSortingByCustomEquation);
-              if (isSortingByCustomEquation) {
-                onChange(customEquation);
-                return;
+              fieldOptions={timeseriesSortOptions}
+              filterPrimaryOptions={
+                datasetConfig.filterSeriesSortOptions
+                  ? datasetConfig.filterSeriesSortOptions(columnSet)
+                  : undefined
               }
-              if (
+              filterAggregateParameters={datasetConfig.filterAggregateParams}
+              disableParameterSelector={
                 widgetType === WidgetType.SPANS &&
-                value.kind === FieldValueKind.FUNCTION
-              ) {
-                // A spans function is selected, check if the argument is compatible with the function
-                const functionName = value.function[0];
-                const newValidOptions = getColumnOptions(
-                  widgetType,
-                  value,
-                  timeseriesSortOptions,
-                  datasetConfig.filterAggregateParams ?? (() => true),
-                  true
-                );
-                const newOptionSet = new Set(newValidOptions.map(option => option.value));
-                const newFunctionOption =
-                  timeseriesSortOptions[`function:${functionName}`];
-                if (
-                  value.function[1] &&
-                  !newOptionSet.has(value.function[1]) &&
-                  newFunctionOption?.value?.kind === FieldValueKind.FUNCTION
-                ) {
-                  // Select the default value if it exists, otherwise get the first option from
-                  // the new valid options
-                  const defaultValue: string =
-                    newFunctionOption.value?.meta?.parameters?.[0]?.defaultValue ??
-                    newValidOptions[0]?.value ??
-                    '';
-                  parsedValue = `${functionName}(${defaultValue})`;
-                }
+                values.sortBy === LOCKED_SPAN_COUNT_SORT
               }
-              onChange({
-                sortBy: parsedValue,
-                sortDirection: values.sortDirection,
-              });
-            }}
-            useMenuPortal
-          />
-        )}
+              onChange={value => {
+                if (value.alias && isEquationAlias(value.alias)) {
+                  onChange({
+                    sortBy: value.alias,
+                    sortDirection: values.sortDirection,
+                  });
+                  return;
+                }
+
+                let parsedValue = generateFieldAsString(value);
+                const isSortingByCustomEquation = isEquation(parsedValue);
+                setShowCustomEquation(isSortingByCustomEquation);
+                if (isSortingByCustomEquation) {
+                  onChange(customEquation);
+                  return;
+                }
+                if (
+                  widgetType === WidgetType.SPANS &&
+                  value.kind === FieldValueKind.FUNCTION
+                ) {
+                  // A spans function is selected, check if the argument is compatible with the function
+                  const functionName = value.function[0];
+                  const newValidOptions = getColumnOptions(
+                    widgetType,
+                    value,
+                    timeseriesSortOptions,
+                    datasetConfig.filterAggregateParams ?? (() => true),
+                    true
+                  );
+                  const newOptionSet = new Set(
+                    newValidOptions.map(option => option.value)
+                  );
+                  const newFunctionOption =
+                    timeseriesSortOptions[`function:${functionName}`];
+                  if (
+                    value.function[1] &&
+                    !newOptionSet.has(value.function[1]) &&
+                    newFunctionOption?.value?.kind === FieldValueKind.FUNCTION
+                  ) {
+                    // Select the default value if it exists, otherwise get the first option from
+                    // the new valid options
+                    const defaultValue: string =
+                      newFunctionOption.value?.meta?.parameters?.[0]?.defaultValue ??
+                      newValidOptions[0]?.value ??
+                      '';
+                    parsedValue = `${functionName}(${defaultValue})`;
+                  }
+                }
+                onChange({
+                  sortBy: parsedValue,
+                  sortDirection: values.sortDirection,
+                });
+              }}
+              useMenuPortal
+            />
+          )
+        }
       </Tooltip>
       {showCustomEquation && (
         <ArithmeticInputWrapper>

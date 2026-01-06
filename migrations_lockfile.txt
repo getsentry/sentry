@@ -23,15 +23,15 @@ nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 notifications: 0002_notificationmessage_jsonfield
 
-preprod: 0018_add_preprod_artifact_app_icon_id_field
+preprod: 0019_add_tooling_version_fields
 
 prevent: 0002_alter_integration_id_not_null
 
 releases: 0004_cleanup_failed_safe_deletes
 
-replays: 0006_add_bulk_delete_job
+replays: 0007_organizationmember_replay_access
 
-sentry: 1012_add_event_id_to_open_period
+sentry: 1014_add_pkce_to_apigrant
 
 social_auth: 0003_social_auth_json_field
 
