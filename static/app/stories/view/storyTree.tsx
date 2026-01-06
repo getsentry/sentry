@@ -1,6 +1,8 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Heading} from '@sentry/scraps/text';
+
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {IconChevron} from 'sentry/icons';
@@ -613,7 +615,9 @@ export function CategorizedStoryTree() {
 
         return (
           <li key={section}>
-            <SectionHeader>{SECTION_CONFIG[section].label}</SectionHeader>
+            <Heading as="h3" size="md">
+              {SECTION_CONFIG[section].label}
+            </Heading>
             <StoryTree nodes={data.stories} />
           </li>
         );
@@ -707,14 +711,6 @@ const StoryList = styled('ul')`
   &:first-child {
     padding-left: 0;
   }
-`;
-
-const SectionHeader = styled('h3')`
-  color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  margin: 0;
-  padding: ${p => p.theme.space.md};
 `;
 
 const FolderName = styled('div')`
