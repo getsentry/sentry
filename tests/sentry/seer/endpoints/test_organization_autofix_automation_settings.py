@@ -402,6 +402,45 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
     @patch(
         "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
     )
+    def test_post_parses_repo_name_with_owner_slash_format(
+        self, mock_bulk_get_preferences, mock_bulk_set_preferences
+    ):
+        project = self.create_project(organization=self.organization)
+
+        mock_bulk_get_preferences.return_value = {}
+
+        repo_data = {
+            "provider": "github",
+            "name": "test-org/test-repo",
+            "externalId": "12345",
+        }
+
+        response = self.client.post(
+            self.url,
+            {
+                "projectIds": [project.id],
+                "projectRepoMappings": {
+                    str(project.id): [repo_data],
+                },
+            },
+        )
+        assert response.status_code == 204
+
+        mock_bulk_set_preferences.assert_called_once()
+        call_args = mock_bulk_set_preferences.call_args
+        preferences = call_args[0][1]
+        assert len(preferences) == 1
+        assert len(preferences[0]["repositories"]) == 1
+        assert preferences[0]["repositories"][0]["name"] == "test-repo"
+        assert preferences[0]["repositories"][0]["owner"] == "test-org"
+        assert preferences[0]["repositories"][0]["external_id"] == "12345"
+
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_set_project_preferences"
+    )
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
+    )
     def test_post_clears_repos_with_empty_list(
         self, mock_bulk_get_preferences, mock_bulk_set_preferences
     ):

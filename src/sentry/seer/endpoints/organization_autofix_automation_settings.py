@@ -47,7 +47,7 @@ def merge_repositories(existing: list[dict], new: list[dict]) -> list[dict]:
 
 class RepositorySerializer(CamelSnakeSerializer):
     provider = serializers.CharField(required=True)
-    owner = serializers.CharField(required=True)
+    owner = serializers.CharField(required=False)
     name = serializers.CharField(required=True)
     external_id = serializers.CharField(required=True)
     organization_id = serializers.IntegerField(required=False, allow_null=True)
@@ -59,6 +59,22 @@ class RepositorySerializer(CamelSnakeSerializer):
     instructions = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     base_commit_sha = serializers.CharField(required=False, allow_null=True)
     provider_raw = serializers.CharField(required=False, allow_null=True)
+
+    def validate(self, data):
+        if not data.get("owner"):
+            if "/" not in data["name"]:
+                raise serializers.ValidationError(
+                    "Either 'owner' must be provided, or 'name' must be in 'owner/repo' format"
+                )
+            parts = data["name"].split("/", 2)
+            if len(parts) != 2:
+                raise serializers.ValidationError(
+                    "Invalid repository name. Must be in 'owner/repo' format"
+                )
+            data["owner"] = parts[0]
+            data["name"] = parts[1]
+
+        return data
 
 
 class ProjectRepoMappingField(serializers.Field):
