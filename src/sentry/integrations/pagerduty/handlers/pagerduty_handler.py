@@ -1,3 +1,5 @@
+from typing import override
+
 from sentry.integrations.pagerduty.client import PagerdutySeverity
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.notification_action.action_handler_registry.base import (
@@ -37,5 +39,6 @@ class PagerdutyActionHandler(IntegrationActionHandler):
         return TargetTypeConfigTransformer.from_config_schema(PagerdutyActionHandler.config_schema)
 
     @staticmethod
+    @override
     def execute(invocation: ActionInvocation) -> None:
         execute_via_group_type_registry(invocation)

@@ -1,3 +1,5 @@
+from typing import override
+
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.utils import execute_via_group_type_registry
 from sentry.workflow_engine.models import Action
@@ -46,5 +48,6 @@ class SentryAppActionHandler(ActionHandler):
         return TargetTypeConfigTransformer.from_config_schema(SentryAppActionHandler.config_schema)
 
     @staticmethod
+    @override
     def execute(invocation: ActionInvocation) -> None:
         execute_via_group_type_registry(invocation)

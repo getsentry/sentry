@@ -1,4 +1,5 @@
 import logging
+from typing import override
 
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.organizationmember import OrganizationMember
@@ -19,6 +20,7 @@ logger = logging.getLogger(__name__)
 @group_type_notification_registry.register(MetricIssue.slug)
 class MetricAlertRegistryHandler(LegacyRegistryHandler):
     @staticmethod
+    @override
     def handle_workflow_action(invocation: ActionInvocation) -> None:
         try:
             handler = metric_alert_handler_registry.get(invocation.action.type)

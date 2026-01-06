@@ -32,6 +32,7 @@ from sentry.integrations.repository import (
     get_default_metric_alert_repository,
     get_default_notification_action_repository,
 )
+from sentry.integrations.repository.base import BaseNewNotificationMessage
 from sentry.integrations.repository.metric_alert import (
     MetricAlertNotificationMessage,
     MetricAlertNotificationMessageRepository,
@@ -234,7 +235,7 @@ def _build_notification_payload(
     return attachments, text
 
 
-def _send_notification(
+def _send_notification[Msg: BaseNewNotificationMessage, Repo](
     integration: RpcIntegration,
     metric_issue_context: MetricIssueContext,
     attachments: str,
@@ -242,13 +243,9 @@ def _send_notification(
     channel: str,
     thread_ts: str | None,
     reply_broadcast: bool,
-    notification_message_object: (
-        NewMetricAlertNotificationMessage | NewNotificationActionNotificationMessage
-    ),
-    save_notification_method: Callable,
-    repository: (
-        MetricAlertNotificationMessageRepository | NotificationActionNotificationMessageRepository
-    ),
+    notification_message_object: Msg,
+    save_notification_method: Callable[[Msg, Repo], None],
+    repository: Repo,
 ) -> bool:
     with MessagingInteractionEvent(
         interaction_type=MessagingInteractionType.SEND_INCIDENT_ALERT_NOTIFICATION,

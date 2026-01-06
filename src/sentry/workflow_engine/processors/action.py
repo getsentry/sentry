@@ -189,11 +189,15 @@ def get_unique_active_actions(
 
 
 @scopedstats.timer()
-def fire_actions(actions: BaseQuerySet[Action], event_data: WorkflowEventData) -> None:
+def fire_actions(
+    actions: BaseQuerySet[Action],
+    event_data: WorkflowEventData,
+    workflow_uuid_map: dict[int, str],
+) -> None:
     deduped_actions = get_unique_active_actions(actions)
 
     for action in deduped_actions:
-        task_params = build_trigger_action_task_params(action, event_data)
+        task_params = build_trigger_action_task_params(action, event_data, workflow_uuid_map)
         trigger_action.apply_async(kwargs=task_params, headers={"sentry-propagate-traces": False})
 
 

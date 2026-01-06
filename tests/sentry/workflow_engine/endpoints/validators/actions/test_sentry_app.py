@@ -1,3 +1,4 @@
+import uuid
 from unittest import mock
 
 from rest_framework.serializers import ErrorDetail
@@ -167,4 +168,6 @@ class TestSentryAppActionValidator(BaseWorkflowTest):
         action = validator.save()
 
         setattr(action, "workflow_id", self.workflow.id)
-        action.trigger(self.event_data)  # action should be triggerable
+        action.trigger(
+            self.event_data, notification_uuid=str(uuid.uuid4())
+        )  # action should be triggerable
