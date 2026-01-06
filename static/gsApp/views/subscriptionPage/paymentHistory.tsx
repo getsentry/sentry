@@ -19,13 +19,12 @@ import {
   IconWarning,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import withSubscription from 'getsentry/components/withSubscription';
@@ -38,9 +37,8 @@ import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/componen
 import SubscriptionHeader from './subscriptionHeader';
 
 type Props = {
-  organization: Organization;
   subscription: Subscription;
-} & RouteComponentProps<unknown, unknown>;
+};
 
 enum ReceiptStatus {
   PAID = 'paid',
@@ -52,7 +50,8 @@ enum ReceiptStatus {
 /**
  * Invoice/Payment list view.
  */
-function PaymentHistory({organization, subscription}: Props) {
+function PaymentHistory({subscription}: Props) {
+  const organization = useOrganization();
   const isNewBillingUI = hasNewBillingUI(organization);
   const location = useLocation();
 
@@ -256,4 +255,4 @@ function ReceiptGrid({
   );
 }
 
-export default withOrganization(withSubscription(PaymentHistory));
+export default withSubscription(PaymentHistory);
