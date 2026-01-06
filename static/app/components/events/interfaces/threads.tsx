@@ -39,6 +39,7 @@ import type {PlatformKey, Project} from 'sentry/types/project';
 import {StackType, StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {setActiveThreadId} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
@@ -177,6 +178,11 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
   );
   const hasStreamlinedUI = useHasStreamlinedUI();
   const [activeThread, setActiveThread] = useActiveThreadState(event, threads);
+
+  // Sync active thread to module store for copy functionality
+  useEffect(() => {
+    setActiveThreadId(activeThread?.id);
+  }, [activeThread?.id]);
 
   const stackTraceNotFound = !threads.length;
 
