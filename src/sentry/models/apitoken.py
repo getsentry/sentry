@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import logging
 import re
 import secrets
 from collections.abc import Collection, Mapping
@@ -33,6 +34,9 @@ from sentry.utils.locking import UnableToAcquireLock
 
 DEFAULT_EXPIRATION = timedelta(days=30)
 TOKEN_REDACTED = "***REDACTED***"
+
+logger = logging.getLogger("sentry.apitoken")
+
 
 # RFC 7636 §4.1: code_verifier is 43-128 unreserved characters
 # ABNF: code-verifier = 43*128unreserved
@@ -171,6 +175,10 @@ class ApiTokenManager(ControlOutboxProducingManager["ApiToken"]):
 class ApiToken(ReplicatedControlModel, HasApiScopes):
     __relocation_scope__ = {RelocationScope.Global, RelocationScope.Config}
     category = OutboxCategory.API_TOKEN_UPDATE
+
+    # Outbox settings
+    enqueue_after_flush = True
+    _default_flush: bool | None = None
 
     # users can generate tokens without being application-bound
     application = FlexibleForeignKey("sentry.ApiApplication", null=True)
@@ -553,6 +561,21 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
             return install_token.sentry_app_installation.organization_id
 
         return installation.organization_id
+
+    @property
+    def default_flush(self) -> bool:
+        from sentry import options
+
+        has_async_flush = options.get("api-token-async-flush")
+
+        if self._default_flush is not None:
+            return self._default_flush
+
+        return not has_async_flush
+
+    @default_flush.setter
+    def default_flush(self, value: bool) -> None:
+        self._default_flush = value
 
 
 def is_api_token_auth(auth: object) -> bool:

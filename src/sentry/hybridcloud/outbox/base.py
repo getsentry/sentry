@@ -226,6 +226,7 @@ class ControlOutboxProducingModel(Model):
 
     default_flush: bool | None = None
     replication_version: int = 1
+    enqueue_after_flush: bool = False
 
     class Meta:
         abstract = True
@@ -238,12 +239,20 @@ class ControlOutboxProducingModel(Model):
             transaction.atomic(router.db_for_write(type(self))),
             flush=self.default_flush,
         ):
+            saved_outboxes = []
             if not outbox_before_super:
                 yield
             for outbox in self.outboxes_for_update():
                 outbox.save()
+                saved_outboxes.append(outbox.id)
             if outbox_before_super:
                 yield
+
+        if not self.default_flush and self.enqueue_after_flush:
+            transaction.on_commit(
+                lambda: self._schedule_async_replication(saved_outboxes),
+                using=router.db_for_write(type(self)),
+            )
 
     def save(self, *args: Any, **kwds: Any) -> None:
         with self._maybe_prepare_outboxes(outbox_before_super=False):
@@ -259,6 +268,24 @@ class ControlOutboxProducingModel(Model):
 
     def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
         raise NotImplementedError
+
+    def _schedule_async_replication(self, saved_outboxes: list[int]) -> None:
+        from sentry.hybridcloud.tasks.deliver_from_outbox import drain_outbox_shards_control
+
+        if not saved_outboxes:
+            logger.error(
+                "missing-outboxes.async-replication",
+                extra={
+                    "model": self.__class__.__name__,
+                },
+            )
+            return
+
+        drain_outbox_shards_control.delay(
+            outbox_identifier_low=min(saved_outboxes),
+            outbox_identifier_hi=max(saved_outboxes) + 1,
+            outbox_name="sentry.ControlOutbox",
+        )
 
 
 _CM = TypeVar("_CM", bound=ControlOutboxProducingModel)
