@@ -50,11 +50,11 @@ export function WrapUpStep() {
                 <Heading as="h3" size="lg">
                   {t('Congratulations, you’ve finished setting up Seer!')}
                 </Heading>
-                <p>
+                <Text density="comfortable">
                   {t(
                     'For connected projects and repos, you will now be able to have Seer:'
                   )}
-                </p>
+                </Text>
                 <NextStepsList>
                   {hasCodeReview && (
                     <li>
@@ -72,7 +72,7 @@ export function WrapUpStep() {
                   )}
                   {hasAutoCreatePR && <li>{t('Create PRs to fix issues')}</li>}
                 </NextStepsList>
-                <Text>
+                <Text density="comfortable">
                   {tct(
                     'If you want to adjust your configurations, you can modify them on the [settings:Seer Settings Page], or configure [projects:projects] and [repos:repos] individually. ',
                     {
@@ -90,7 +90,7 @@ export function WrapUpStep() {
                 <Heading as="h3" size="lg">
                   {t('Seer set-up is not complete')}
                 </Heading>
-                <Text>
+                <Text density="comfortable">
                   {tct(
                     'You can restart the wizard and continue setting up Seer, or if you prefer, you can set-up Seer on the [settings:Seer Settings Page], or configure [projects:projects] and [repos:repos] individually. ',
                     {

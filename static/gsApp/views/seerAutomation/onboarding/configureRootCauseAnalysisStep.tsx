@@ -319,7 +319,7 @@ export function ConfigureRootCauseAnalysisStep() {
 
 const StepContentWithBackground = styled(StepContent)`
   background: url(${configureRootCauseAnalysisImg}) no-repeat 638px 0;
-  background-size: 200px 256px;
+  background-size: 187px 240px;
 `;
 
 const AddRepoRow = styled(PanelItem)`
