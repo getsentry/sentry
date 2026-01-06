@@ -379,7 +379,7 @@ interface ItemProps extends LinkProps {
   layout: NavLayout;
 }
 
-const ChonkItem = styled(Link)<ItemProps>`
+export const Item = styled(Link)<ItemProps>`
   display: flex;
   gap: ${space(0.75)};
   justify-content: center;
@@ -430,8 +430,6 @@ const ChonkItem = styled(Link)<ItemProps>`
     }
   }
 `;
-
-const Item = ChonkItem;
 
 const ItemText = styled('span')`
   ${p => p.theme.overflowEllipsis}
