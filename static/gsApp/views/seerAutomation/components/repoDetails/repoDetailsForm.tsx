@@ -18,15 +18,6 @@ interface Props {
 export default function RepoDetailsForm({organization, repoWithSettings}: Props) {
   const canWrite = useCanWriteSettings();
 
-  const initialTriggers =
-    repoWithSettings?.settings?.codeReviewTriggers ??
-    organization.defaultCodeReviewTriggers ??
-    DEFAULT_CODE_REVIEW_TRIGGERS;
-
-  const modifiableInitialTriggers = initialTriggers.filter(
-    trigger => trigger !== 'on_command_phrase'
-  );
-
   return (
     <Form
       allowUndo
@@ -39,7 +30,10 @@ export default function RepoDetailsForm({organization, repoWithSettings}: Props)
             repoWithSettings?.settings?.enabledCodeReview ??
             organization.autoEnableCodeReview ??
             true,
-          codeReviewTriggers: modifiableInitialTriggers,
+          codeReviewTriggers:
+            repoWithSettings?.settings?.codeReviewTriggers ??
+            organization.defaultCodeReviewTriggers ??
+            DEFAULT_CODE_REVIEW_TRIGGERS,
           repositoryIds: [repoWithSettings.id],
         } satisfies RepositorySettings
       }
