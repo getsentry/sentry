@@ -1,24 +1,22 @@
 import {useEffect} from 'react';
+import {useQueryState} from 'nuqs';
 
 import {openPrivateGamingSdkAccessModal} from 'sentry/actionCreators/modal';
 import type {PrivateGamingSdkAccessModalProps} from 'sentry/components/modals/privateGamingSdkAccessModal';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {parseAsBooleanLiteral} from 'sentry/utils/url/parseAsBooleanLiteral';
 
 export function useReopenGamingSdkModal(
   modalProps: Omit<PrivateGamingSdkAccessModalProps, 'onSubmit'> & {onSubmit?: () => void}
 ) {
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [reopenModal, setReopenModal] = useQueryState(
+    'reopenGamingSdkModal',
+    parseAsBooleanLiteral.withOptions({history: 'replace'})
+  );
 
   useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    if (searchParams.get('reopenGamingSdkModal') === 'true') {
-      searchParams.delete('reopenGamingSdkModal');
-      const newSearch = searchParams.toString();
-      const newPath = location.pathname + (newSearch ? `?${newSearch}` : '');
-      navigate(newPath, {replace: true});
+    if (reopenModal) {
+      setReopenModal(null);
       openPrivateGamingSdkAccessModal(modalProps);
     }
-  }, [location.search, location.pathname, navigate, modalProps]);
+  }, [modalProps, reopenModal, setReopenModal]);
 }
