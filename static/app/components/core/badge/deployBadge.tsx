@@ -27,7 +27,7 @@ export function DeployBadge(props: DeployBadgeProps) {
       }}
     >
       <Tooltip title={t('Open In Issues')} skipWrapper>
-        <TruncatedTag type="highlight">{props.deploy.environment}</TruncatedTag>
+        <TruncatedTag variant="info">{props.deploy.environment}</TruncatedTag>
       </Tooltip>
     </Link>
   );

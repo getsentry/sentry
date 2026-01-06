@@ -140,7 +140,7 @@ const StyledRow = styled('div', {
 const HeaderDivider = styled('div')`
   position: absolute;
   left: 0;
-  background-color: ${p => p.theme.gray200};
+  background-color: ${p => p.theme.colors.gray200};
   width: 1px;
   border-radius: ${p => p.theme.radius.md};
   height: 14px;

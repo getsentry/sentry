@@ -23,7 +23,10 @@ import {
 } from 'getsentry/types';
 import {checkIsAddOn, getBilledCategory, hasBillingAccess} from 'getsentry/utils/billing';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
-import {USAGE_OVERVIEW_PANEL_HEADER_HEIGHT} from 'getsentry/views/subscriptionPage/usageOverview/constants';
+import {
+  USAGE_OVERVIEW_PANEL_HEADER_HEIGHT,
+  USAGE_OVERVIEW_PANEL_REFERRER,
+} from 'getsentry/views/subscriptionPage/usageOverview/constants';
 
 function Cta({
   image,
@@ -92,17 +95,21 @@ function Cta({
 function FindOutMoreButton({
   href,
   to,
-}:
-  | {
-      href: string;
-      to?: never;
-    }
-  | {
-      to: string;
-      href?: never;
-    }) {
+  selectedProduct,
+}: {
+  selectedProduct: DataCategory | AddOnCategory;
+} & ({href: string; to?: never} | {to: string; href?: never})) {
   return (
-    <LinkButton icon={<IconOpen />} priority="link" size="sm" href={href} to={to ?? ''}>
+    <LinkButton
+      icon={<IconOpen />}
+      priority="link"
+      size="sm"
+      href={href}
+      to={to ?? ''}
+      analyticsEventName="Subscription Settings: Find Out More Button Clicked"
+      analyticsEventKey="subscription_settings.find_out_more_button_clicked"
+      analyticsParams={{product: selectedProduct}}
+    >
       {t('Find out more')}
     </LinkButton>
   );
@@ -244,7 +251,10 @@ function ProductTrialCta({
           >
             {t('Activate free trial')}
           </StartTrialButton>
-          <FindOutMoreButton href="https://docs.sentry.io/pricing/#product-trials" />
+          <FindOutMoreButton
+            href="https://docs.sentry.io/pricing/#product-trials"
+            selectedProduct={selectedProduct}
+          />
         </Fragment>
       }
       isBanner={isBanner}
@@ -277,7 +287,7 @@ function UpgradeCta({
               <LinkButton
                 icon={<IconUpload />}
                 priority="primary"
-                href={`/checkout/${organization.slug}/?referrer=product-breakdown-panel`}
+                href={`/checkout/${organization.slug}/?referrer=${USAGE_OVERVIEW_PANEL_REFERRER}`}
               >
                 {t('Add to plan')}
               </LinkButton>
@@ -326,11 +336,14 @@ function UpgradeCta({
           <Fragment>
             <LinkButton
               priority="primary"
-              href={`/checkout/${organization.slug}/?referrer=product-breakdown-panel`}
+              href={`/checkout/${organization.slug}/?referrer=${USAGE_OVERVIEW_PANEL_REFERRER}`}
             >
               {t('Upgrade now')}
             </LinkButton>
-            <FindOutMoreButton href="https://docs.sentry.io/pricing/#pricing-by-product-and-data-category" />
+            <FindOutMoreButton
+              href="https://docs.sentry.io/pricing/#pricing-by-product-and-data-category"
+              selectedProduct={selectedProduct}
+            />
           </Fragment>
         ) : undefined
       }
@@ -358,14 +371,19 @@ function SetupCta({
       imageAlt=""
       title={t('Get started with Seer')}
       subtitle={t(
-        'Finish connecting to Github, configure your repositories and projects, and start getting the most out of Seer.'
+        'Finish connecting to GitHub, configure your repositories and projects, and start getting the most out of Seer.'
       )}
       heightOverride={`calc(100% - ${USAGE_OVERVIEW_PANEL_HEADER_HEIGHT})`}
       buttons={
         <LinkButton
           icon={<IconSeer />}
-          href={`/settings/${organization.slug}/seer/`}
+          href={`/settings/${organization.slug}/seer/?referrer=${USAGE_OVERVIEW_PANEL_REFERRER}`}
           priority="primary"
+          analyticsEventName="Subscription Settings: Set Up Button Clicked"
+          analyticsEventKey="subscription_settings.set_up_button_clicked"
+          analyticsParams={{
+            product: selectedProduct,
+          }}
         >
           {t('Set Up Seer')}
         </LinkButton>

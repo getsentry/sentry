@@ -13,42 +13,50 @@ import {ConfigureCodeReviewStep} from './configureCodeReviewStep';
 import {ConfigureDefaultsStep} from './configureDefaultsStep';
 import {ConfigureRootCauseAnalysisStep} from './configureRootCauseAnalysisStep';
 import {ConnectGithubStep} from './connectGithubStep';
-import {NextStepsStep} from './nextStepsStep';
+import {WrapUpStep} from './wrapUpStep';
 
 export function StepsManager() {
   const {provider, isProviderPending, isInstallationPending} = useSeerOnboardingContext();
 
   if (!isInstallationPending && !isProviderPending && !provider) {
     Sentry.logger.error('Seer: No valid integration found for Seer onboarding');
-    return <Alert type="error">{t('No supported SCM integrations are available')}</Alert>;
+    return (
+      <Alert variant="danger">{t('No supported SCM integrations are available')}</Alert>
+    );
   }
 
   return (
     <Fragment>
-      <GuidedSteps.Step stepKey={Steps.CONNECT_GITHUB} title={t('Connect GitHub')}>
+      <GuidedSteps.Step
+        stepKey={String(Steps.CONNECT_GITHUB)}
+        title={t('Connect GitHub')}
+      >
         <ConnectGithubStep />
       </GuidedSteps.Step>
 
       <GuidedSteps.Step
-        stepKey={Steps.SETUP_CODE_REVIEW}
+        stepKey={String(Steps.SETUP_CODE_REVIEW)}
         title={t('Set Up AI Code Review')}
       >
         <ConfigureCodeReviewStep />
       </GuidedSteps.Step>
 
       <GuidedSteps.Step
-        stepKey={Steps.SETUP_ROOT_CAUSE_ANALYSIS}
+        stepKey={String(Steps.SETUP_ROOT_CAUSE_ANALYSIS)}
         title={t('Set Up AI Root Cause Analysis')}
       >
         <ConfigureRootCauseAnalysisStep />
       </GuidedSteps.Step>
 
-      <GuidedSteps.Step stepKey={Steps.SETUP_DEFAULTS} title={t('Set Up Defaults')}>
+      <GuidedSteps.Step
+        stepKey={String(Steps.SETUP_DEFAULTS)}
+        title={t('Set Up Defaults')}
+      >
         <ConfigureDefaultsStep />
       </GuidedSteps.Step>
 
-      <GuidedSteps.Step stepKey={Steps.NEXT_STEPS} title={t('Wrap Up')}>
-        <NextStepsStep />
+      <GuidedSteps.Step stepKey={String(Steps.WRAP_UP)} title={t('Wrap Up')}>
+        <WrapUpStep />
       </GuidedSteps.Step>
     </Fragment>
   );

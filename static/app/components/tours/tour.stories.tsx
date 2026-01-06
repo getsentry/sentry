@@ -168,7 +168,7 @@ export const MY_TOUR_KEY = 'tour.my_tour';
         Then, whenever you'd like to start your tour, just import your context and call
         `startTour()`.
       </p>
-      <Alert type="warning" showIcon={false}>
+      <Alert variant="warning" showIcon={false}>
         <strong>Note:</strong> The tour will not start until all of the steps are present
         in the DOM! The <Storybook.JSXNode name="TourContextProvider" /> component you
         created earlier will be keeping track of this internally. You can check this with
@@ -396,7 +396,7 @@ function TourProvider({
 
 const BlurBoundary = styled('div')`
   position: relative;
-  border: 1px dashed ${p => p.theme.purple400};
+  border: 1px dashed ${p => p.theme.colors.blue500};
   padding: ${space(2)};
   margin: ${space(1)} ${space(2)};
 `;

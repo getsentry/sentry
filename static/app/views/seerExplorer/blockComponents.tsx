@@ -449,19 +449,19 @@ const ResponseDot = styled('div')<{
   background: ${p => {
     switch (p.status) {
       case 'loading':
-        return p.theme.pink400;
+        return p.theme.colors.pink500;
       case 'pending':
-        return p.theme.pink400;
+        return p.theme.colors.pink500;
       case 'content':
-        return p.theme.purple400;
+        return p.theme.colors.blue500;
       case 'success':
-        return p.theme.green400;
+        return p.theme.colors.green500;
       case 'failure':
-        return p.theme.red400;
+        return p.theme.colors.red500;
       case 'mixed':
-        return p.theme.yellow400;
+        return p.theme.colors.yellow500;
       default:
-        return p.theme.purple400;
+        return p.theme.colors.blue500;
     }
   }};
 
@@ -555,10 +555,8 @@ const ToolCallTextContainer = styled('div')`
 `;
 
 const ToolCallText = styled(Text)<{isHighlighted?: boolean}>`
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
+  white-space: normal;
+  overflow: visible;
   text-decoration: underline;
   text-decoration-color: transparent;
   ${p =>

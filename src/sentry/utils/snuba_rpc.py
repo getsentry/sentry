@@ -78,6 +78,10 @@ class SnubaRPCError(SnubaError):
     pass
 
 
+class SnubaRPCRateLimitExceeded(SnubaRPCError):
+    pass
+
+
 class SnubaRPCRequest(Protocol):
     def SerializeToString(self, deterministic: bool = ...) -> bytes: ...
 
@@ -176,6 +180,7 @@ def _make_rpc_requests(
                 "Table RPC query response",
                 extra={
                     "rpc_rows": rpc_rows,
+                    "organization_id": request.meta.organization_id,
                     "page_token": table_response.page_token,
                     "meta": table_response.meta,
                 },
@@ -194,6 +199,7 @@ def _make_rpc_requests(
                 "Timeseries RPC query response",
                 extra={
                     "rpc_rows": rpc_rows,
+                    "organization_id": request.meta.organization_id,
                     "meta": timeseries_response.meta,
                 },
             )
@@ -361,6 +367,8 @@ def _make_rpc_request(
                         log_snuba_info(f"{referrer}.error:\n{error}")
                     if http_resp.status == 404:
                         raise NotFound() from SnubaRPCError(error)
+                    if http_resp.status == 429:
+                        raise SnubaRPCRateLimitExceeded(error)
                     raise SnubaRPCError(error)
                 return http_resp
 
