@@ -339,10 +339,6 @@ export const hasActiveVCFeature = (organization: Organization) =>
   organization.features.includes('vc-marketplace-active-customer');
 
 // TODO(isabella): clean this up after GA
-export const hasNewBillingUI = (organization: Organization) =>
-  organization.features.includes('subscriptions-v3');
-
-// TODO(isabella): clean this up after GA
 export const hasStripeComponentsFeature = (organization: Organization) =>
   organization.features.includes('stripe-components');
 
@@ -472,8 +468,6 @@ export const isNewPayingCustomer = (
   subscription.isFree ||
   isTrialPlan(subscription.plan) ||
   hasPartnerMigrationFeature(organization);
-
-export const isTeamPlan = (plan: string) => plan.includes('team');
 
 /**
  * Get the number of days left on trial

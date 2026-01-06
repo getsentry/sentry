@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 
@@ -18,6 +19,14 @@ class CodeReviewTrigger(StrEnum):
     @classmethod
     def as_choices(cls) -> tuple[tuple[str, str], ...]:
         return tuple((trigger.value, trigger.value) for trigger in cls)
+
+
+@dataclass
+class CodeReviewSettings:
+    """Settings for code review functionality on a repository."""
+
+    enabled: bool
+    triggers: list[CodeReviewTrigger]
 
 
 @region_silo_model
@@ -51,3 +60,8 @@ class RepositorySettings(Model):
             self.code_review_triggers = triggers
 
         super().save(*args, **kwargs)
+
+    def get_code_review_settings(self) -> CodeReviewSettings:
+        """Return code review settings for this repository."""
+        triggers = [CodeReviewTrigger(t) for t in self.code_review_triggers]
+        return CodeReviewSettings(enabled=self.enabled_code_review, triggers=triggers)

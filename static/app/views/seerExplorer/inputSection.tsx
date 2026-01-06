@@ -238,7 +238,7 @@ function InputSection({
     if (isPolling) {
       return (
         <Button
-          icon={<IconPause color="subText" />}
+          icon={<IconPause variant="muted" />}
           onClick={onInterrupt}
           size="sm"
           priority="transparent"

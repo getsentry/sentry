@@ -19,7 +19,7 @@ type Props = RouteComponentProps<unknown, unknown> & {
 
 function LegalAndCompliance(props: Props) {
   return (
-    <SubscriptionPageContainer background="secondary" organization={props.organization}>
+    <SubscriptionPageContainer background="secondary">
       <SentryDocumentTitle title={t('Legal & Compliance')} />
       <SettingsPageHeader
         title="Legal & Compliance"

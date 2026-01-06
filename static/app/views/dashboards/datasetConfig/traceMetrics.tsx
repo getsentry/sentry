@@ -10,7 +10,11 @@ import toArray from 'sentry/utils/array/toArray';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {parseFunction, type QueryFieldValue} from 'sentry/utils/discover/fields';
+import {
+  parseFunction,
+  RateUnit,
+  type QueryFieldValue,
+} from 'sentry/utils/discover/fields';
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -227,7 +231,23 @@ export const TraceMetricsConfig: DatasetConfig<
     );
   },
   getSeriesRequest,
-  transformTable: transformEventsResponseToTable,
+  transformTable: (data, widgetQuery) => {
+    const transformedData = transformEventsResponseToTable(data, widgetQuery);
+
+    // Inject the rate units for per_second and per_minute functions explicitly
+    // because the response does not include these units
+    if (transformedData.meta?.units) {
+      Object.keys(transformedData.meta.units).forEach(key => {
+        const parsedFunction = parseFunction(key);
+        if (parsedFunction?.name === 'per_second') {
+          transformedData.meta!.units![key] = RateUnit.PER_SECOND;
+        } else if (parsedFunction?.name === 'per_minute') {
+          transformedData.meta!.units![key] = RateUnit.PER_MINUTE;
+        }
+      });
+    }
+    return transformedData;
+  },
   transformSeries: (data, widgetQuery) => {
     const multiYAxis = new Set(widgetQuery.aggregates ?? []).size > 1;
     const hasGroupings = new Set(widgetQuery.columns).size > 0;

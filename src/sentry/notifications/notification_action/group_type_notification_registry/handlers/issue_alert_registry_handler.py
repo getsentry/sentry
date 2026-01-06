@@ -1,4 +1,5 @@
 import logging
+from typing import override
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.notifications.notification_action.registry import (
@@ -15,6 +16,7 @@ logger = logging.getLogger(__name__)
 @group_type_notification_registry.register(ErrorGroupType.slug)
 class IssueAlertRegistryHandler(LegacyRegistryHandler):
     @staticmethod
+    @override
     def handle_workflow_action(invocation: ActionInvocation) -> None:
         try:
             handler = issue_alert_handler_registry.get(invocation.action.type)

@@ -7,13 +7,10 @@ import type {ContainerElement} from './container';
 import {Flex, type FlexProps} from './flex';
 import {useResponsivePropValue} from './styles';
 
-type StackLayoutProps = Pick<
-  FlexProps,
-  'align' | 'direction' | 'gap' | 'justify' | 'wrap'
->;
-
-export type StackProps<T extends ContainerElement = 'div'> = StackLayoutProps &
-  FlexProps<T>;
+/**
+ * Stack is just a super set of Flex props with a default direction initializer to 'column'.
+ */
+export type StackProps<T extends ContainerElement = 'div'> = FlexProps<T>;
 
 const StackComponent = styled(
   <T extends ContainerElement = 'div'>({
@@ -40,7 +37,7 @@ const StackComponent = styled(
 ) => React.ReactElement;
 
 function getOrientationFromDirection(
-  direction: NonNullable<StackLayoutProps['direction']>
+  direction: NonNullable<StackProps['direction']>
 ): 'horizontal' | 'vertical' {
   switch (direction) {
     case 'row':

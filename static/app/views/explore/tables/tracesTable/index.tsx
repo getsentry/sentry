@@ -106,7 +106,7 @@ export function TracesTable({tracesTableResult}: TracesTableProps) {
           {showErrorState && (
             <StyledPanelItem span={6} overflow>
               <WarningStreamWrapper>
-                <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+                <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
               </WarningStreamWrapper>
             </StyledPanelItem>
           )}

@@ -2,6 +2,10 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
@@ -12,14 +16,14 @@ import useTimeout from 'sentry/utils/useTimeout';
 import {useReplaySummaryContext} from 'sentry/views/replays/detail/ai/replaySummaryContext';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
-export const LIVE_TOOLTIP_MESSAGE = t('This replay is in progress.');
+const LIVE_TOOLTIP_MESSAGE = t('This replay is in progress.');
 
-export function getReplayExpiresAtMs(startedAt: ReplayRecord['started_at']): number {
+function getReplayExpiresAtMs(startedAt: ReplayRecord['started_at']): number {
   const ONE_HOUR_MS = 3_600_000;
   return startedAt ? startedAt.getTime() + ONE_HOUR_MS : 0;
 }
 
-export function getLiveDurationMs(finishedAt: ReplayRecord['finished_at']): number {
+function getLiveDurationMs(finishedAt: ReplayRecord['finished_at']): number {
   if (!finishedAt) {
     return 0;
   }
@@ -39,14 +43,12 @@ const pulse = keyframes`
   }
 `;
 
-export const LiveIndicator = styled('div')`
+const LiveIndicator = styled('div')`
   background: ${p => p.theme.successText};
   height: 8px;
   width: 8px;
   position: relative;
   border-radius: 50%;
-  margin-left: ${p => p.theme.space.sm};
-  margin-right: ${p => p.theme.space.sm};
 
   @media (prefers-reduced-motion: reduce) {
     &:before {
@@ -66,6 +68,19 @@ export const LiveIndicator = styled('div')`
     left: -6px;
   }
 `;
+
+export function LiveBadge() {
+  return (
+    <Flex align="center" gap="xs">
+      <Tooltip title={LIVE_TOOLTIP_MESSAGE} underlineColor="success" showUnderline>
+        <LiveIndicator />
+      </Tooltip>
+      <Text size="xs" bold variant="success" data-test-id="live-badge">
+        {t('Live')}
+      </Text>
+    </Flex>
+  );
+}
 
 interface UseLiveBadgeParams {
   finishedAt: ReplayRecord['finished_at'];
