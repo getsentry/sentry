@@ -13,7 +13,7 @@ class OAuthDeviceAuthorizationTest(TestCase):
 
     @cached_property
     def path(self) -> str:
-        return "/oauth/device_authorization/"
+        return "/oauth/device/code"
 
     def setUp(self) -> None:
         super().setUp()

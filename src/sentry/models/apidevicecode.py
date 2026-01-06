@@ -76,7 +76,7 @@ class ApiDeviceCode(Model):
     by having users authorize on a separate device with a browser.
 
     Flow:
-    1. Device requests authorization via POST /oauth/device_authorization
+    1. Device requests authorization via POST /oauth/device/code
     2. Server returns device_code (secret) and user_code (human-readable)
     3. Device displays user_code and verification_uri to user
     4. Device polls POST /oauth/token with device_code

@@ -31,7 +31,7 @@ class OAuthDeviceAuthorizationView(View):
     This endpoint initiates the device authorization flow for headless clients
     (CLIs, Docker containers, CI/CD jobs) that cannot use browser-based OAuth.
 
-    Request (POST /oauth/device_authorization):
+    Request (POST /oauth/device/code):
         client_id (required): The OAuth application's client ID
         scope (optional): Space-delimited list of requested scopes
 
