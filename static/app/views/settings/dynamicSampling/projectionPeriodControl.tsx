@@ -15,7 +15,7 @@ interface Props {
 
 export function ProjectionPeriodControl({period, onChange}: Props) {
   return (
-    <Flex as="label" align="center" gap="md">
+    <Flex as="label" align="center" gap="md" marginBottom="0">
       <Tooltip
         showUnderline
         title={t('The time period for which the estimated sample rates are calculated.')}
