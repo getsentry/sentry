@@ -23,15 +23,23 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer):
 
         return conditions
 
-    def update_or_create_condition(self, condition_data: dict[str, Any]) -> DataCondition:
+    def update_or_create_condition(
+        self, condition_data: dict[str, Any], organization_id: int
+    ) -> DataCondition:
         validator = BaseDataConditionValidator()
         condition_id = condition_data.get("id")
 
         if condition_id:
             try:
-                condition = DataCondition.objects.get(id=condition_id)
-            except DataConditionGroup.DoesNotExist:
-                raise serializers.ValidationError(f"Condition with id {condition_id} not found.")
+                # Validate that the condition belongs to this organization
+                condition = DataCondition.objects.get(
+                    id=condition_id,
+                    condition_group__organization_id=organization_id,
+                )
+            except DataCondition.DoesNotExist as exc:
+                raise serializers.ValidationError(
+                    f"Condition with id {condition_id} not found."
+                ) from exc
 
             condition = validator.update(condition, condition_data)
         else:
@@ -44,15 +52,20 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer):
         instance: DataConditionGroup,
         validated_data: dict[str, Any],
     ) -> DataConditionGroup:
-        remove_items_by_api_input(validated_data.get("conditions", []), instance.conditions, "id")
+        # Require organization context to validate ownership of conditions
+        context_org = self.context.get("organization") if self.context else None
+        if not context_org:
+            raise serializers.ValidationError("Organization context is required.")
+        if instance.organization_id != context_org.id:
+            raise serializers.ValidationError(f"Condition group with id {instance.id} not found.")
 
+        remove_items_by_api_input(validated_data.get("conditions", []), instance.conditions, "id")
         conditions = validated_data.pop("conditions", None)
         if conditions:
             for condition_data in conditions:
                 if not condition_data.get("condition_group_id"):
                     condition_data["condition_group_id"] = instance.id
-
-                self.update_or_create_condition(condition_data)
+                self.update_or_create_condition(condition_data, context_org.id)
 
         # update the condition group
         instance.update(**validated_data)
