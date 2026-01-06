@@ -7,6 +7,7 @@ import {Prose} from '@sentry/scraps/text/prose';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {type ModalRenderProps} from 'sentry/actionCreators/modal';
+import {ExternalLink} from 'sentry/components/core/link';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -194,9 +195,9 @@ export function PrivateGamingSdkAccessModal({
                 const metadata = CONSOLE_PLATFORM_METADATA[platform];
                 return (
                   <li key={platform}>
-                    <a href={metadata?.repoURL} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink href={metadata?.repoURL}>
                       {metadata?.displayName}
-                    </a>
+                    </ExternalLink>
                   </li>
                 );
               })}
