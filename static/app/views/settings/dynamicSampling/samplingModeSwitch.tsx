@@ -1,10 +1,9 @@
-import styled from '@emotion/styled';
+import {Flex} from '@sentry/scraps/layout';
 
 import {ExternalLink} from 'sentry/components/core/link';
 import {Switch} from 'sentry/components/core/switch';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {openSamplingModeSwitchModal} from 'sentry/views/settings/dynamicSampling/samplingModeSwitchModal';
 import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
@@ -28,7 +27,7 @@ export function SamplingModeSwitch({initialTargetRate}: Props) {
   };
 
   return (
-    <Wrapper>
+    <Flex as="label" align="center" gap="md">
       <Tooltip
         title={tct(
           'Manually specify the percentage of incoming traffic that should be stored for each project. [link:Read the docs]',
@@ -53,13 +52,6 @@ export function SamplingModeSwitch({initialTargetRate}: Props) {
           checked={samplingMode === 'project'}
         />
       </Tooltip>
-    </Wrapper>
+    </Flex>
   );
 }
-
-const Wrapper = styled('label')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  margin-bottom: 0;
-`;
