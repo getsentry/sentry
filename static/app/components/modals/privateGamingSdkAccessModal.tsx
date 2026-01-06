@@ -8,6 +8,7 @@ import {Prose} from '@sentry/scraps/text/prose';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {type ModalRenderProps} from 'sentry/actionCreators/modal';
 import SelectField from 'sentry/components/forms/fields/selectField';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {CONSOLE_PLATFORM_METADATA} from 'sentry/constants/consolePlatforms';
 import {IconGithub} from 'sentry/icons';
@@ -72,12 +73,14 @@ export function PrivateGamingSdkAccessModal({
   const currentPath = location.pathname + location.search;
   const queryClient = useQueryClient();
 
-  const {isPending, data: userIdentities} = useApiQuery<UserIdentityConfig[]>(
-    ['/users/me/user-identities/'],
-    {
-      staleTime: Infinity,
-    }
-  );
+  const {
+    isPending,
+    isError,
+    data: userIdentities,
+    refetch,
+  } = useApiQuery<UserIdentityConfig[]>(['/users/me/user-identities/'], {
+    staleTime: Infinity,
+  });
 
   const {mutate} = useMutation<
     ConsoleSdkInviteResponse,
@@ -201,6 +204,8 @@ export function PrivateGamingSdkAccessModal({
           </Prose>
         ) : isPending ? (
           <LoadingIndicator />
+        ) : isError ? (
+          <LoadingError onRetry={refetch} />
         ) : hasGithubIdentity ? (
           <Fragment>
             <p>
