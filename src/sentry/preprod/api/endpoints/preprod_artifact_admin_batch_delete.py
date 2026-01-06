@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 
 import orjson
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -85,106 +86,31 @@ class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
             )
         )
 
-        # Track deletion results
-        deletion_results = []
-        total_files_deleted = []
-        total_size_metrics_deleted = 0
-        total_installable_artifacts_deleted = 0
+        artifact_ids = [str(artifact.id) for artifact in artifacts_to_delete]
 
-        # Delete each artifact
-        for preprod_artifact in artifacts_to_delete:
-            artifact_id = preprod_artifact.id
+        try:
+            result = delete_artifact_and_related_objects(artifacts_to_delete)
+            return Response(
+                {
+                    "success": True,
+                    "message": f"Successfully deleted {len(result.artifacts_deleted)} artifacts.",
+                    "artifact_ids": artifact_ids,
+                    "files_deleted": result.files_deleted,
+                    "size_metrics_deleted": result.size_metrics_deleted,
+                    "installable_artifacts_deleted": result.installable_artifacts_deleted,
+                }
+            )
 
-            try:
-                organization_id = preprod_artifact.project.organization_id
-                project_id = preprod_artifact.project.id
-
-                result = delete_artifact_and_related_objects(
-                    preprod_artifact, artifact_id=artifact_id
-                )
-
-                total_files_deleted.extend(result.files_deleted)
-                total_size_metrics_deleted += result.size_metrics_count
-                total_installable_artifacts_deleted += result.installable_count
-
-                deletion_results.append(
-                    {
-                        "artifact_id": str(artifact_id),
-                        "success": True,
-                        "files_deleted": result.files_deleted,
-                        "size_metrics_deleted": result.size_metrics_count,
-                        "installable_artifacts_deleted": result.installable_count,
-                    }
-                )
-
-                logger.info(
-                    "preprod_artifact.admin_batch_delete.artifact_deleted",
-                    extra={
-                        "artifact_id": artifact_id,
-                        "user_id": request.user.id,
-                        "organization_id": organization_id,
-                        "project_id": project_id,
-                        "files_deleted": result.files_deleted,
-                        "size_metrics_deleted": result.size_metrics_count,
-                        "installable_artifacts_deleted": result.installable_count,
-                    },
-                )
-
-            except Exception as e:
-                deletion_results.append(
-                    {
-                        "artifact_id": str(artifact_id),
-                        "success": False,
-                        "error": "Internal error deleting artifact.",
-                    }
-                )
-                logger.exception(
-                    "preprod_artifact.admin_batch_delete.artifact_delete_failed",
-                    extra={
-                        "artifact_id": artifact_id,
-                        "user_id": request.user.id,
-                        "error": str(e),
-                    },
-                )
-
-        # Calculate summary
-        successful_deletions = [result for result in deletion_results if result["success"]]
-        failed_deletions = [result for result in deletion_results if not result["success"]]
-
-        successful_artifact_ids = [result["artifact_id"] for result in successful_deletions]
-        failed_artifact_ids = [result["artifact_id"] for result in failed_deletions]
-
-        logger.info(
-            "preprod_artifact.admin_batch_delete.completed",
-            extra={
-                "user_id": request.user.id,
-                "requested_count": len(preprod_artifact_ids),
-                "found_count": len(artifacts_to_delete),
-                "successful_count": len(successful_deletions),
-                "failed_count": len(failed_deletions),
-                "successful_artifact_ids": successful_artifact_ids,
-                "failed_artifact_ids": failed_artifact_ids,
-                "total_files_deleted": len(total_files_deleted),
-                "total_size_metrics_deleted": total_size_metrics_deleted,
-                "total_installable_artifacts_deleted": total_installable_artifacts_deleted,
-            },
-        )
-
-        return Response(
-            {
-                "success": True,
-                "message": f"Batch deletion completed. {len(successful_deletions)} artifacts deleted successfully.",
-                "successful_artifact_ids": successful_artifact_ids,
-                "failed_artifact_ids": failed_artifact_ids,
-                "summary": {
-                    "requested_count": len(preprod_artifact_ids),
-                    "found_count": len(artifacts_to_delete),
-                    "successful_deletions": len(successful_deletions),
-                    "failed_deletions": len(failed_deletions),
-                    "total_files_deleted": len(total_files_deleted),
-                    "total_size_metrics_deleted": total_size_metrics_deleted,
-                    "total_installable_artifacts_deleted": total_installable_artifacts_deleted,
+        except Exception as e:
+            logger.exception(
+                "preprod_artifact.admin_batch_delete.artifacts_delete_failed",
+                extra={
+                    "artifact_ids": artifact_ids,
+                    "user_id": request.user.id,
+                    "error": str(e),
                 },
-                "results": deletion_results,
-            }
-        )
+            )
+            return Response(
+                {"success": False, "error": "Internal error deleting artifacts."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )

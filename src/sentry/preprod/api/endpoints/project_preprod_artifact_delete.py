@@ -49,9 +49,7 @@ class ProjectPreprodArtifactDeleteEndpoint(PreprodArtifactEndpoint):
         )
 
         try:
-            result = delete_artifact_and_related_objects(
-                head_artifact, artifact_id=head_artifact_id
-            )
+            result = delete_artifact_and_related_objects([head_artifact])
 
             logger.info(
                 "preprod_artifact.deleted",

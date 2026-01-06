@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
 from dataclasses import dataclass
 
 from django.db import router, transaction
@@ -10,7 +11,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import (
     TraceItemFilterWithType,
     TraceItemType,
 )
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, IntArray
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
 from sentry.models.files.file import File
@@ -97,20 +98,35 @@ def bulk_delete_artifacts_and_related_data(
 
 
 def delete_artifact_and_related_objects(
-    preprod_artifact: PreprodArtifact, artifact_id: int
+    preprod_artifacts: list[PreprodArtifact],
 ) -> ArtifactDeletionResult:
     """
-    Delete a single artifact and all its related data.
+    Delete artifacts and all their related data.
     """
-    with transaction.atomic(using=router.db_for_write(PreprodArtifact)):
-        result = bulk_delete_artifacts_and_related_data([preprod_artifact.id])
-
-        _delete_preprod_data_from_eap(
-            organization_id=preprod_artifact.project.organization_id,
-            project_id=preprod_artifact.project.id,
-            preprod_artifact_id=preprod_artifact.id,
-            artifact_id=artifact_id,
+    if not preprod_artifacts:
+        return ArtifactDeletionResult(
+            size_metrics_deleted=0,
+            installable_artifacts_deleted=0,
+            artifacts_deleted=0,
+            files_deleted=0,
         )
+
+    with transaction.atomic(using=router.db_for_write(PreprodArtifact)):
+        artifact_ids = [artifact.id for artifact in preprod_artifacts]
+        result = bulk_delete_artifacts_and_related_data(artifact_ids)
+
+        # Prepare data for batched deletion in EAP
+        artifacts_by_project: defaultdict[tuple[int, int], list[int]] = defaultdict(list)
+        for artifact in preprod_artifacts:
+            key = (artifact.project.organization_id, artifact.project.id)
+            artifacts_by_project[key].append(artifact.id)
+
+        for (organization_id, project_id), artifact_ids_batch in artifacts_by_project.items():
+            _delete_preprod_data_from_eap(
+                organization_id=organization_id,
+                project_id=project_id,
+                preprod_artifact_ids=artifact_ids_batch,
+            )
 
         return result
 
@@ -118,17 +134,19 @@ def delete_artifact_and_related_objects(
 def _delete_preprod_data_from_eap(
     organization_id: int,
     project_id: int,
-    preprod_artifact_id: int,
-    artifact_id: int,
+    preprod_artifact_ids: list[int],
 ) -> None:
     """
-    Delete all preprod data (both size metrics and build distribution) from EAP for the given artifact.
+    Delete all preprod data (both size metrics and build distribution) from EAP for the given artifacts.
     """
+    if not preprod_artifact_ids:
+        return
+
     try:
         artifact_id_filter = ComparisonFilter(
             key=AttributeKey(name="preprod_artifact_id", type=AttributeKey.TYPE_INT),
-            op=ComparisonFilter.OP_EQUALS,
-            value=AttributeValue(val_int=preprod_artifact_id),
+            op=ComparisonFilter.OP_IN,
+            value=AttributeValue(val_int_array=IntArray(values=preprod_artifact_ids)),
         )
 
         request = DeleteTraceItemsRequest(
