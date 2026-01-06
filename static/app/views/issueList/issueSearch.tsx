@@ -1,20 +1,28 @@
+import {
+  SearchQueryBuilderProvider,
+  useSearchQueryBuilder,
+} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 
-import IssueListSearchBar from './searchBar';
+import {IssueListSeerComboBox} from './issueListSeerComboBox';
+import IssueListSearchBar, {useIssueListSearchBarDataProvider} from './searchBar';
 
-type IssueSearchWithSavedSearchesProps = {
+type IssueSearchProps = {
   onSearch: (query: string) => void;
   query: string;
   className?: string;
 };
 
-export function IssueSearch({
-  query,
-  onSearch,
-  className,
-}: IssueSearchWithSavedSearchesProps) {
+function IssueSearchBar({query, onSearch, className}: IssueSearchProps) {
   const organization = useOrganization();
+  const {displayAskSeer} = useSearchQueryBuilder();
+
+  if (displayAskSeer) {
+    // IssueListSeerComboBox handles navigation directly to apply both query and sort
+    return <IssueListSeerComboBox />;
+  }
 
   return (
     <IssueListSearchBar
@@ -25,5 +33,33 @@ export function IssueSearch({
       onSearch={onSearch}
       placeholder={t('Search for events, users, tags, and more')}
     />
+  );
+}
+
+export function IssueSearch({query, onSearch, className}: IssueSearchProps) {
+  const organization = useOrganization();
+  const {selection: pageFilters} = usePageFilters();
+  const {getFilterKeys, getFilterKeySections, getTagValues} =
+    useIssueListSearchBarDataProvider({pageFilters});
+
+  // Gate behind gen-ai-search-agent-translate (internal only) plus standard AI consent checks
+  const areAiFeaturesAllowed =
+    !organization?.hideAiFeatures &&
+    organization.features.includes('gen-ai-features') &&
+    organization.features.includes('gen-ai-search-agent-translate');
+
+  const providerProps = {
+    initialQuery: query || '',
+    filterKeys: getFilterKeys(),
+    filterKeySections: getFilterKeySections(),
+    getTagValues,
+    searchSource: 'main_search' as const,
+    enableAISearch: areAiFeaturesAllowed,
+  };
+
+  return (
+    <SearchQueryBuilderProvider {...providerProps}>
+      <IssueSearchBar query={query} onSearch={onSearch} className={className} />
+    </SearchQueryBuilderProvider>
   );
 }
