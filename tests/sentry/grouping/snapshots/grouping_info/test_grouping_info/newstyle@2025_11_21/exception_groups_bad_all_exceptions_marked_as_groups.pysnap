@@ -2,7 +2,7 @@
 source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
 ---
 {
-  "grouping_config": "newstyle:2023-01-11",
+  "grouping_config": "newstyle:2025-11-21",
   "variants": {
     "app_chained_exception_message": {
       "component": {
@@ -29,7 +29,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                     "id": "type",
                     "name": null,
                     "values": [
-                      "System.Exception"
+                      "InnerException"
                     ]
                   },
                   {
@@ -38,40 +38,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                     "id": "value",
                     "name": null,
                     "values": [
-                      "Some Inner Exception"
-                    ]
-                  },
-                  {
-                    "contributes": false,
-                    "hint": null,
-                    "id": "stacktrace",
-                    "name": "stacktrace",
-                    "values": []
-                  }
-                ]
-              },
-              {
-                "contributes": true,
-                "hint": null,
-                "id": "exception",
-                "name": "exception",
-                "values": [
-                  {
-                    "contributes": true,
-                    "hint": null,
-                    "id": "type",
-                    "name": null,
-                    "values": [
-                      "MyApp.Exception"
-                    ]
-                  },
-                  {
-                    "contributes": true,
-                    "hint": "stripped event-specific values",
-                    "id": "value",
-                    "name": null,
-                    "values": [
-                      "Test <int>"
+                      "Nope"
                     ]
                   },
                   {
@@ -122,7 +89,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
       },
       "contributes": true,
       "description": "chained exception messages",
-      "hash": "e2bf1e0628b7b1824a9b63dec7a079a3",
+      "hash": "93b26686d00504b4e5aa1cb0244d8b37",
       "hint": null,
       "key": "app_chained_exception_message",
       "type": "component"

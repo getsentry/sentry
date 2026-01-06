@@ -2,7 +2,7 @@
 source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
-  hash: "e2bf1e0628b7b1824a9b63dec7a079a3"
+  hash: "93b26686d00504b4e5aa1cb0244d8b37"
   contributing component: chained_exception
   hint: None
   root_component:
@@ -10,14 +10,9 @@ app:
       chained_exception*
         exception*
           type*
-            "System.Exception"
+            "InnerException"
           value*
-            "Some Inner Exception"
-        exception*
-          type*
-            "MyApp.Exception"
-          value* (stripped event-specific values)
-            "Test <int>"
+            "Nope"
         exception*
           type*
             "System.AggregateException"

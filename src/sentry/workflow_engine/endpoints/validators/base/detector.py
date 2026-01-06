@@ -146,7 +146,8 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                 data_conditions: list[DataConditionType] = condition_group.get("conditions")
 
                 if data_conditions and instance.workflow_condition_group:
-                    group_validator = BaseDataConditionGroupValidator()
+                    # Pass context for organization validation of condition IDs
+                    group_validator = BaseDataConditionGroupValidator(context=self.context)
                     group_validator.update(instance.workflow_condition_group, condition_group)
 
             # Handle config field update
