@@ -287,10 +287,10 @@ def pytest_configure(config: pytest.Config) -> None:
     sentry_sdk.get_global_scope().set_client(None)
     register_extensions()
 
-    from sentry.utils.redis import clusters
+    #from sentry.utils.redis import clusters
 
-    with clusters.get("default").all() as client:
-        client.flushdb()
+    #with clusters.get("default").all() as client:
+    #    client.flushdb()
 
 
 def register_extensions() -> None:

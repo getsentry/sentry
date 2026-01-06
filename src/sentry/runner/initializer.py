@@ -363,7 +363,7 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
 
     configure_sdk()
 
-    setup_services(validate=not skip_service_validation)
+    setup_services(validate=False)
 
     import_grouptype()
 
