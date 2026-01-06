@@ -128,7 +128,7 @@ export const SECTION_CONFIG: Record<StorySection, {label: string}> = {
   product: {label: 'Shared'},
 };
 
-const COMPONENT_SUBCATEGORY_CONFIG: Record<
+export const COMPONENT_SUBCATEGORY_CONFIG: Record<
   ComponentSubcategory,
   {
     components: string[];
@@ -413,7 +413,7 @@ function inferStoryLocation(path: string): StoryLocation {
   return {section: 'product'};
 }
 
-function inferComponentSubcategory(componentName: string): ComponentSubcategory {
+export function inferComponentSubcategory(componentName: string): ComponentSubcategory {
   for (const [subcategory, config] of Object.entries(COMPONENT_SUBCATEGORY_CONFIG)) {
     if (config.components.includes(componentName)) {
       return subcategory as ComponentSubcategory;

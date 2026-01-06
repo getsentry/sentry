@@ -6,6 +6,8 @@ import {Item, Section} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren} from '@react-types/shared';
 
+import {Text} from '@sentry/scraps/text';
+
 import {Badge} from 'sentry/components/core/badge';
 import {ListBox} from 'sentry/components/core/compactSelect/listBox';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
@@ -15,6 +17,8 @@ import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {StoryTreeNode} from 'sentry/stories/view/storyTree';
 import {
+  COMPONENT_SUBCATEGORY_CONFIG,
+  inferComponentSubcategory,
   SECTION_CONFIG,
   SECTION_ORDER,
   useStoryHierarchy,
@@ -49,17 +53,18 @@ export function StorySearch() {
         continue;
       }
 
-      // For components section, flatten all subcategories into component groups
+      // For components section, consolidate all subcategories into a single section
       if (section === 'core') {
-        for (const subcategoryFolder of data.stories) {
-          const nodes = Object.values(subcategoryFolder.children);
-          if (nodes.length) {
-            sections.push({
-              key: subcategoryFolder.path,
-              label: subcategoryFolder.name,
-              options: nodes,
-            });
-          }
+        const allCoreNodes = data.stories.flatMap(subcategoryFolder =>
+          Object.values(subcategoryFolder.children)
+        );
+
+        if (allCoreNodes.length > 0) {
+          sections.push({
+            key: section,
+            label: SECTION_CONFIG[section].label,
+            options: allCoreNodes,
+          });
         }
       } else if (section === 'product' && data.stories.length > 0) {
         const flattenedStories = data.stories.flatMap(tree => tree.flat());
@@ -92,13 +97,31 @@ export function StorySearch() {
         if (isSearchSection(item)) {
           return (
             <Section key={item.key} title={<SectionTitle>{item.label}</SectionTitle>}>
-              {item.options.map(storyItem => (
-                <Item
-                  key={storyItem.filesystemPath}
-                  textValue={storyItem.label}
-                  {...({label: storyItem.label, hideCheck: true} as any)}
-                />
-              ))}
+              {item.options.map(storyItem => {
+                const subcategoryKey =
+                  item.key === 'core'
+                    ? inferComponentSubcategory(storyItem.name.toLowerCase())
+                    : undefined;
+                const subcategoryLabel = subcategoryKey
+                  ? COMPONENT_SUBCATEGORY_CONFIG[subcategoryKey].label
+                  : undefined;
+
+                return (
+                  <Item
+                    key={storyItem.filesystemPath}
+                    textValue={storyItem.label}
+                    {...({
+                      label: storyItem.label,
+                      trailingItems: subcategoryLabel ? (
+                        <Text size="sm" variant="muted">
+                          {subcategoryLabel}
+                        </Text>
+                      ) : undefined,
+                      hideCheck: true,
+                    } as any)}
+                  />
+                );
+              })}
             </Section>
           );
         }
