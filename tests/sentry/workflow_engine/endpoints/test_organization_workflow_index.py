@@ -65,6 +65,20 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         hits = int(response["X-Hits"])
         assert hits == 3
 
+    def test_only_returns_workflows_from_organization(self) -> None:
+        other_org = self.create_organization()
+        self.create_workflow(organization_id=other_org.id, name="Other Org Workflow")
+
+        response = self.get_success_response(self.organization.slug)
+        assert len(response.data) == 3
+        workflow_names = {w["name"] for w in response.data}
+        assert "Other Org Workflow" not in workflow_names
+        assert workflow_names == {
+            self.workflow.name,
+            self.workflow_two.name,
+            self.workflow_three.name,
+        }
+
     def test_empty_result(self) -> None:
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "aaaaaaaaaaaaa"}
@@ -345,6 +359,53 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         )
         assert len(response3.data) == 2
         assert {self.workflow.name, self.workflow_two.name} == {w["name"] for w in response3.data}
+
+    def test_filter_by_detector(self) -> None:
+        project_1 = self.create_project(organization=self.organization)
+        project_2 = self.create_project(organization=self.organization)
+        project_3 = self.create_project(organization=self.organization)
+
+        detector_1 = self.create_detector(project=project_1, name="Detector 1")
+        detector_2 = self.create_detector(project=project_2, name="Detector 2")
+        detector_3 = self.create_detector(project=project_3, name="Detector 3")
+
+        self.create_detector_workflow(workflow=self.workflow, detector=detector_1)
+        self.create_detector_workflow(workflow=self.workflow_two, detector=detector_2)
+        self.create_detector_workflow(workflow=self.workflow_three, detector=detector_3)
+
+        # Filter by single detector
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"detector": str(detector_1.id)},
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == self.workflow.name
+
+        # Filter by multiple detectors
+        response2 = self.get_success_response(
+            self.organization.slug,
+            qs_params=[
+                ("detector", str(detector_1.id)),
+                ("detector", str(detector_2.id)),
+            ],
+        )
+        assert len(response2.data) == 2
+        assert {w["name"] for w in response2.data} == {self.workflow.name, self.workflow_two.name}
+
+        # Filter by non-existent detector ID returns no results
+        response3 = self.get_success_response(
+            self.organization.slug,
+            qs_params={"detector": "999999"},
+        )
+        assert len(response3.data) == 0
+
+        # Invalid detector ID format returns error
+        response4 = self.get_error_response(
+            self.organization.slug,
+            qs_params={"detector": "not-an-id"},
+            status_code=400,
+        )
+        assert response4.data == {"detector": ["Invalid detector ID format"]}
 
     def test_compound_query(self) -> None:
         self.create_detector_workflow(
