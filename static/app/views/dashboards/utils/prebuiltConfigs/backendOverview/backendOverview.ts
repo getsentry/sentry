@@ -242,7 +242,7 @@ const THIRD_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
             {
               dashboardId: '-1',
               field: SpanFields.NORMALIZED_DESCRIPTION,
-              staticDashboardId: 2,
+              staticDashboardId: 3,
             },
           ],
         },
