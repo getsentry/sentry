@@ -113,8 +113,8 @@ export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: '',
-          fields: ['avg(measurements.time_to_initial_display)'],
-          aggregates: ['avg(measurements.time_to_initial_display)'],
+          fields: ['avg(measurements.time_to_full_display)'],
+          aggregates: ['avg(measurements.time_to_full_display)'],
           columns: [],
           fieldAliases: [''],
           conditions: TRANSACTION_OP_CONDITION,

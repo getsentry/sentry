@@ -49,8 +49,8 @@ export const MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: '',
-          fields: ['device.class', 'avg(measurements.time_to_initial_display)'],
-          aggregates: ['avg(measurements.time_to_initial_display)'],
+          fields: ['device.class', 'avg(measurements.time_to_full_display)'],
+          aggregates: ['avg(measurements.time_to_full_display)'],
           columns: ['device.class'],
           fieldAliases: ['Device Class', 'AVG TTFD'],
           conditions: TRANSACTION_CONDITION,
@@ -103,12 +103,12 @@ export const MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: 'TTFD',
-          fields: ['avg(measurements.time_to_initial_display)'],
-          aggregates: ['avg(measurements.time_to_initial_display)'],
+          fields: ['avg(measurements.time_to_full_display)'],
+          aggregates: ['avg(measurements.time_to_full_display)'],
           columns: [],
           fieldAliases: [],
           conditions: TRANSACTION_CONDITION,
-          orderby: 'avg(measurements.time_to_initial_display)',
+          orderby: 'avg(measurements.time_to_full_display)',
         },
       ],
       layout: {
@@ -184,8 +184,8 @@ export const MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: '',
-          fields: ['avg(measurements.time_to_initial_display)'],
-          aggregates: ['avg(measurements.time_to_initial_display)'],
+          fields: ['avg(measurements.time_to_full_display)'],
+          aggregates: ['avg(measurements.time_to_full_display)'],
           columns: [],
           fieldAliases: [''],
           conditions: TRANSACTION_CONDITION,
