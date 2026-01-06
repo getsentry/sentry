@@ -23,7 +23,6 @@ import {fetchMutation, useMutation, useQueryClient} from 'sentry/utils/queryClie
 import {
   useConsoleSdkInvites,
   useRevokeConsoleSdkInvite,
-  type ConsoleSdkInviteUser,
 } from 'getsentry/views/consoleSdkInvites/hooks';
 
 interface ToggleConsolePlatformsModalProps extends ModalRenderProps {
@@ -40,8 +39,9 @@ function ToggleConsolePlatformsModal({
 }: ToggleConsolePlatformsModalProps) {
   const {enabledConsolePlatforms = [], consoleSdkInviteQuota = 0} = organization;
 
-  const {data: userIdentities, isPending}: {data: ConsoleSdkInviteUser[] | undefined} =
-    useConsoleSdkInvites(organization.slug);
+  const {data: userIdentities, isPending: isInvitesFetchPending} = useConsoleSdkInvites(
+    organization.slug
+  );
   const {mutate: revokeConsoleInvite} = useRevokeConsoleSdkInvite();
   const queryClient = useQueryClient();
   const {isPending, mutate: updateConsolePlatforms} = useMutation({
@@ -155,13 +155,13 @@ function ToggleConsolePlatformsModal({
             <SimpleTable.HeaderCell>Email</SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell>Platforms</SimpleTable.HeaderCell>
           </SimpleTable.Header>
-          {isPending && (
+          {isInvitesFetchPending && (
             <SimpleTable.Empty>
               <LoadingIndicator />
             </SimpleTable.Empty>
           )}
 
-          {!isPending &&
+          {!isInvitesFetchPending &&
             (userIdentities === undefined || userIdentities.length === 0) && (
               <SimpleTable.Empty>No invites found</SimpleTable.Empty>
             )}
