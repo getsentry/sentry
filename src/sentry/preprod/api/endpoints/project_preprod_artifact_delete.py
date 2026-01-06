@@ -12,7 +12,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiDeleteEvent
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
-from sentry.preprod.helpers.deletion import delete_artifact_and_related_objects
+from sentry.preprod.helpers.deletion import delete_artifacts_and_eap_data
 from sentry.preprod.models import PreprodArtifact
 
 logger = logging.getLogger(__name__)
@@ -49,7 +49,7 @@ class ProjectPreprodArtifactDeleteEndpoint(PreprodArtifactEndpoint):
         )
 
         try:
-            result = delete_artifact_and_related_objects([head_artifact])
+            result = delete_artifacts_and_eap_data([head_artifact])
 
             logger.info(
                 "preprod_artifact.deleted",

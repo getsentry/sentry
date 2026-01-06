@@ -13,7 +13,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.permissions import StaffPermission
 from sentry.preprod.analytics import PreprodArtifactApiAdminBatchDeleteEvent
-from sentry.preprod.helpers.deletion import delete_artifact_and_related_objects
+from sentry.preprod.helpers.deletion import delete_artifacts_and_eap_data
 from sentry.preprod.models import PreprodArtifact
 
 logger = logging.getLogger(__name__)
@@ -87,7 +87,7 @@ class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
         )
 
         try:
-            result = delete_artifact_and_related_objects(artifacts_to_delete)
+            result = delete_artifacts_and_eap_data(artifacts_to_delete)
             return Response(
                 {
                     "success": True,
