@@ -12,11 +12,8 @@ import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSectio
 import {TreemapDiffSection} from 'sentry/views/preprod/buildComparison/main/treemapDiffSection';
 import type {SizeAnalysisComparisonResults} from 'sentry/views/preprod/types/appSizeTypes';
 
-type ContentProps = {
-  baseMetricId: string;
-  headMetricId: string;
-  project: Project;
-};
+// Currently Content and Section props are identical.
+type ContentProps = SectionProps;
 
 function EventXrayDiffContent({baseMetricId, headMetricId, project}: ContentProps) {
   const organization = useOrganization();
