@@ -331,7 +331,6 @@ from sentry.issues.endpoints.event_owners import EventOwnersEndpoint
 from sentry.issues.endpoints.event_reprocessable import EventReprocessableEndpoint
 from sentry.issues.endpoints.group_attachments import GroupAttachmentsEndpoint
 from sentry.issues.endpoints.group_current_release import GroupCurrentReleaseEndpoint
-from sentry.issues.endpoints.group_first_last_release import GroupFirstLastReleaseEndpoint
 from sentry.issues.endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
 from sentry.issues.endpoints.group_integrations import GroupIntegrationsEndpoint
 from sentry.issues.endpoints.group_reprocessing import GroupReprocessingEndpoint
@@ -961,11 +960,6 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             r"^(?P<issue_id>[^/]+)/current-release/$",
             GroupCurrentReleaseEndpoint.as_view(),
             name=f"{name_prefix}-group-current-release",
-        ),
-        re_path(
-            r"^(?P<issue_id>[^/]+)/first-last-release/$",
-            GroupFirstLastReleaseEndpoint.as_view(),
-            name=f"{name_prefix}-group-first-last-release",
         ),
         re_path(
             r"^(?P<issue_id>[^/]+)/autofix/$",
