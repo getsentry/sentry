@@ -7,7 +7,7 @@ from django.db.models.functions import Coalesce
 from django.http.response import HttpResponseBase
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import ParseError, PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -218,18 +218,12 @@ class OrganizationOnDemandRuleStatsEndpoint(OrganizationEndpoint):
         the maximum allowed limit of on-demand alert rules that can be created.
         """
         project_id = request.GET.get("project_id")
-
-        if project_id is None:
-            return Response(
-                {"detail": "Missing required parameter 'project_id'"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        project_id_int = int(project_id)
-        if project_id_int < 0:
-            return Response(
-                {"detail": "Invalid project_id"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        try:
+            project_id_int = int(project_id)
+            if project_id_int <= 0:
+                raise ValueError()
+        except (ValueError, TypeError):
+            raise ParseError(detail="Invalid project_id")
 
         projects = self.get_projects(request, organization, project_ids={project_id_int})
         project = projects[0]
