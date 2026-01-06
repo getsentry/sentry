@@ -1,18 +1,26 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.utils import timezone
 from rest_framework.exceptions import NotFound
 
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
+from sentry.models.group import Group
+from sentry.models.groupowner import ISSUE_OWNERS_DEBOUNCE_KEY
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
-from sentry.tasks.codeowners import code_owners_auto_sync, update_code_owners_schema
+from sentry.tasks.codeowners import (
+    code_owners_auto_sync,
+    invalidate_project_issue_owners_cache,
+    update_code_owners_schema,
+)
 from sentry.taskworker.retry import RetryTaskError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.utils.cache import cache
 
 LATEST_GITHUB_CODEOWNERS = {
     "filepath": "CODEOWNERS",
@@ -355,3 +363,20 @@ class CodeOwnersTest(TestCase):
         assert code_owners.raw == original_raw
         # Notification should have been sent
         mock_send_email.assert_called_once_with()
+
+
+class InvalidateProjectIssueOwnersCacheTest(TestCase):
+    def test_invalidate_project_issue_owners_cache_clears_cache_for_groups(self) -> None:
+        group = Group.objects.create(
+            project=self.project,
+            message="Test group",
+            last_seen=timezone.now(),
+        )
+        cache_key = ISSUE_OWNERS_DEBOUNCE_KEY(group.id)
+        cache.set(cache_key, True, 3600)
+
+        assert cache.get(cache_key) is True
+
+        invalidate_project_issue_owners_cache(self.project.id)
+
+        assert cache.get(cache_key) is None
