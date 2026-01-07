@@ -620,7 +620,7 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         RepositorySettings.objects.create(
             repository=repo,
             enabled_code_review=True,
-            code_review_triggers=["on_command_phrase", "on_ready_for_review"],
+            code_review_triggers=["on_new_commit", "on_ready_for_review"],
         )
 
         url = reverse("sentry-api-0-code-review-repo-settings")
@@ -634,7 +634,7 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         assert resp.status_code == 200
         assert resp.data == {
             "enabledCodeReview": True,
-            "codeReviewTriggers": ["on_command_phrase", "on_ready_for_review"],
+            "codeReviewTriggers": ["on_new_commit", "on_ready_for_review", "on_command_phrase"],
         }
 
     @patch(
@@ -717,7 +717,7 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         assert resp1.status_code == 200
         assert resp1.data == {
             "enabledCodeReview": True,
-            "codeReviewTriggers": ["on_new_commit"],
+            "codeReviewTriggers": ["on_new_commit", "on_command_phrase"],
         }
 
         # Request for org2 should return defaults (no settings created)

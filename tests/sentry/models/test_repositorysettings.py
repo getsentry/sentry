@@ -31,7 +31,7 @@ class TestRepositorySettings(TestCase):
         settings = repo_settings.get_code_review_settings()
 
         assert settings.enabled is False
-        assert settings.triggers == []
+        assert settings.triggers == [CodeReviewTrigger.ON_COMMAND_PHRASE]
 
     def test_get_code_review_settings_with_enabled_and_triggers(self) -> None:
         repo_settings = RepositorySettings.objects.create(
@@ -59,7 +59,10 @@ class TestRepositorySettings(TestCase):
 
         settings = repo_settings.get_code_review_settings()
 
-        assert settings.triggers == [CodeReviewTrigger.ON_NEW_COMMIT]
+        assert settings.triggers == [
+            CodeReviewTrigger.ON_NEW_COMMIT,
+            CodeReviewTrigger.ON_COMMAND_PHRASE,
+        ]
         assert isinstance(settings.triggers[0], CodeReviewTrigger)
 
     def test_repository_settings_unique_per_repository(self) -> None:
