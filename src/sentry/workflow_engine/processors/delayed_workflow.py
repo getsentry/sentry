@@ -818,35 +818,15 @@ def _summarize_by_first[T1, T2: int | str](it: Iterable[tuple[T1, T2]]) -> dict[
     return {key: sorted(values) for key, values in result.items()}
 
 
-@sentry_sdk.trace
-def process_delayed_workflows(
-    batch_client: DelayedWorkflowClient, project_id: int, batch_key: str | None = None
-) -> None:
-    """
-    Grab workflows, groups, and data condition groups from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
-    """
+def _process_workflows_for_project(project: Project, event_data: EventRedisData) -> None:
+    """Process workflows for a project - evaluate conditions and fire actions."""
     with sentry_sdk.start_span(op="delayed_workflow.prepare_data"):
-        project = fetch_project(project_id)
-        if not project:
-            return
-
         if features.has(
             "organizations:workflow-engine-process-workflows-logs", project.organization
         ):
             log_context.set_verbose(True)
 
-        redis_data = batch_client.for_project(project_id).get_hash_data(batch_key)
-        event_data = EventRedisData.from_redis_data(redis_data, continue_on_error=True)
-
-        # Store original keys for cleanup - must clean all regardless of deletion status
-        original_event_keys = set(event_data.events.keys())
         original_count = len(event_data.events)
-
-        metrics.incr(
-            "workflow_engine.delayed_workflow",
-            amount=original_count,
-        )
-
         workflows_to_envs = fetch_workflows_envs(list(event_data.workflow_ids))
 
         event_data = event_data.filter_by_workflow_ids(set(workflows_to_envs.keys()))
@@ -858,11 +838,7 @@ def process_delayed_workflows(
                 amount=filtered_count,
             )
 
-        # Early exit if all workflows deleted - still clean up Redis
         if not event_data.events:
-            cleanup_redis_buffer(
-                batch_client.for_project(project_id), original_event_keys, batch_key
-            )
             return
 
         data_condition_groups = fetch_data_condition_groups(list(event_data.dcg_ids))
@@ -893,7 +869,6 @@ def process_delayed_workflows(
         data_condition_groups, event_data, workflows_to_envs, dcg_to_slow_conditions
     )
     if not condition_groups:
-        cleanup_redis_buffer(batch_client.for_project(project_id), original_event_keys, batch_key)
         return
     logger.debug(
         "delayed_workflow.condition_query_groups",
@@ -954,4 +929,29 @@ def process_delayed_workflows(
     )
 
     fire_actions_for_groups(project.organization, groups_to_dcgs, group_to_groupevent)
-    cleanup_redis_buffer(batch_client.for_project(project_id), original_event_keys, batch_key)
+
+
+@sentry_sdk.trace
+def process_delayed_workflows(
+    batch_client: DelayedWorkflowClient, project_id: int, batch_key: str | None = None
+) -> None:
+    """
+    Grab workflows, groups, and data condition groups from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
+    """
+    project_client = batch_client.for_project(project_id)
+    redis_data = project_client.get_hash_data(batch_key)
+    event_data = EventRedisData.from_redis_data(redis_data, continue_on_error=True)
+    event_keys = set(event_data.events.keys())
+
+    metrics.incr(
+        "workflow_engine.delayed_workflow",
+        amount=len(event_data.events),
+    )
+
+    project = fetch_project(project_id)
+    if not project:
+        return
+
+    _process_workflows_for_project(project, event_data)
+
+    cleanup_redis_buffer(project_client, event_keys, batch_key)
