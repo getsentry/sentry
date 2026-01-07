@@ -13,14 +13,16 @@ import {ConfigureCodeReviewStep} from './configureCodeReviewStep';
 import {ConfigureDefaultsStep} from './configureDefaultsStep';
 import {ConfigureRootCauseAnalysisStep} from './configureRootCauseAnalysisStep';
 import {ConnectGithubStep} from './connectGithubStep';
-import {NextStepsStep} from './nextStepsStep';
+import {WrapUpStep} from './wrapUpStep';
 
 export function StepsManager() {
   const {provider, isProviderPending, isInstallationPending} = useSeerOnboardingContext();
 
   if (!isInstallationPending && !isProviderPending && !provider) {
     Sentry.logger.error('Seer: No valid integration found for Seer onboarding');
-    return <Alert type="error">{t('No supported SCM integrations are available')}</Alert>;
+    return (
+      <Alert variant="danger">{t('No supported SCM integrations are available')}</Alert>
+    );
   }
 
   return (
@@ -54,7 +56,7 @@ export function StepsManager() {
       </GuidedSteps.Step>
 
       <GuidedSteps.Step stepKey={String(Steps.WRAP_UP)} title={t('Wrap Up')}>
-        <NextStepsStep />
+        <WrapUpStep />
       </GuidedSteps.Step>
     </Fragment>
   );

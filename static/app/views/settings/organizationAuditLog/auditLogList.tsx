@@ -13,8 +13,11 @@ import {DateTime} from 'sentry/components/dateTime';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import type {ChangeData} from 'sentry/components/timeRangeSelector';
-import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
+import {
+  TimeRangeSelector,
+  TimeRangeSelectTrigger,
+  type ChangeData,
+} from 'sentry/components/timeRangeSelector';
 import {getAbsoluteSummary} from 'sentry/components/timeRangeSelector/utils';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -59,7 +62,7 @@ const addUsernameDisplay = (logEntryUser: User | undefined) => {
       <Name data-test-id="actor-name">
         <Flex align="center" gap="md">
           {logEntryUser.name}
-          <Tag>{t('Sentry Staff')}</Tag>
+          <Tag variant="muted">{t('Sentry Staff')}</Tag>
         </Flex>
       </Name>
     );
@@ -297,7 +300,7 @@ function AuditLogList({
   const {displayStart, displayEnd} = getDisplayValues();
 
   const currentValue = statsPeriod || allTime;
-  let displayLabel: React.ReactNode;
+  let displayLabel: React.JSX.Element | string;
 
   if (displayStart && displayEnd) {
     // Show formatted absolute date range using display values (user's intended timezone)
@@ -321,9 +324,11 @@ function AuditLogList({
         }}
         utc={utc}
         maxPickableDays={getDaysSinceDate(organization.dateCreated)}
-        triggerProps={{
-          children: displayLabel,
-        }}
+        trigger={triggerProps => (
+          <TimeRangeSelectTrigger {...triggerProps}>
+            {displayLabel ?? triggerProps.children}
+          </TimeRangeSelectTrigger>
+        )}
       />
       <EventSelector
         clearable

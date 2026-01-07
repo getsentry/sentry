@@ -1,8 +1,9 @@
 import {useEffect, useRef, useState} from 'react';
-import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
+
+import type {BreakpointSize} from 'sentry/utils/theme';
 
 function useInstantRef<T>(value: T) {
   const ref = useRef(value);
@@ -10,7 +11,7 @@ function useInstantRef<T>(value: T) {
   return ref;
 }
 
-type Breakpoint = keyof Theme['breakpoints'];
+type Breakpoint = BreakpointSize;
 export function checkBreakpoints(
   breakpoints: Record<Breakpoint, string>,
   width: number

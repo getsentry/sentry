@@ -15,8 +15,11 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import type {ChangeData} from 'sentry/components/timeRangeSelector';
-import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
+import {
+  TimeRangeSelector,
+  TimeRangeSelectTrigger,
+  type ChangeData,
+} from 'sentry/components/timeRangeSelector';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
@@ -322,9 +325,11 @@ function ReleaseOverview() {
               utc={utc ?? null}
               onChange={handleDateChange}
               menuTitle={t('Filter Time Range')}
-              triggerProps={{
-                children: defaultDateTimeSelected ? releaseBoundsLabel : null,
-              }}
+              trigger={triggerProps => (
+                <TimeRangeSelectTrigger {...triggerProps}>
+                  {defaultDateTimeSelected ? releaseBoundsLabel : triggerProps.children}
+                </TimeRangeSelectTrigger>
+              )}
               relativeOptions={({defaultOptions, arbitraryOptions}) =>
                 releaseBounds.type === 'ancient'
                   ? {...defaultOptions, ...arbitraryOptions}

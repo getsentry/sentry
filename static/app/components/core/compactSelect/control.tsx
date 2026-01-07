@@ -17,6 +17,7 @@ import {mergeProps} from '@react-aria/utils';
 import type {OverlayTriggerState} from '@react-stately/overlays';
 
 import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
+import {Stack} from '@sentry/scraps/layout';
 
 import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
@@ -427,7 +428,7 @@ export function Control({
       <Fragment>
         <TriggerLabel>{options[0]?.label}</TriggerLabel>
         {options.length > 1 && (
-          <StyledBadge type="default">{`+${options.length - 1}`}</StyledBadge>
+          <StyledBadge variant="muted">{`+${options.length - 1}`}</StyledBadge>
         )}
       </Fragment>
     );
@@ -537,7 +538,7 @@ export function Control({
                 {typeof menuBody === 'function'
                   ? menuBody({closeOverlay: overlayState.close})
                   : menuBody}
-                {!hideOptions && <OptionsWrap>{children}</OptionsWrap>}
+                {!hideOptions && <Stack minHeight="0">{children}</Stack>}
                 {menuFooter && (
                   <MenuFooter>
                     {typeof menuFooter === 'function'
@@ -605,7 +606,7 @@ const MenuHeaderTrailingItems = styled('div')`
 
 const MenuTitle = styled('span')`
   font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: ${p => p.theme.font.weight.medium};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   white-space: nowrap;
   margin-right: ${space(2)};
 `;
@@ -620,7 +621,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 const ClearButton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: ${p => p.theme.font.weight.regular};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.subText};
   padding: 0 ${space(0.5)};
   margin: -${space(0.25)} -${space(0.5)};
@@ -671,12 +672,6 @@ const StyledPositionWrapper = styled(PositionWrapper, {
   min-width: 100%;
   display: ${p => (p.visible ? 'block' : 'none')};
   z-index: ${p => p?.zIndex};
-`;
-
-const OptionsWrap = styled('div')`
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
 `;
 
 const MenuFooter = styled('div')`

@@ -1,6 +1,8 @@
 import {useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {
@@ -268,7 +270,7 @@ export default function SentryAppDetailedView() {
       <PermissionWrapper>
         <Title>{t('Permissions')}</Title>
         {permissions.read.length > 0 && (
-          <Permission>
+          <Flex>
             <Indicator />
             <Text key="read">
               {tct('[read] access to [resources] resources', {
@@ -276,10 +278,10 @@ export default function SentryAppDetailedView() {
                 resources: permissions.read.join(', '),
               })}
             </Text>
-          </Permission>
+          </Flex>
         )}
         {permissions.write.length > 0 && (
-          <Permission>
+          <Flex>
             <Indicator />
             <Text key="write">
               {tct('[read] and [write] access to [resources] resources', {
@@ -288,10 +290,10 @@ export default function SentryAppDetailedView() {
                 resources: permissions.write.join(', '),
               })}
             </Text>
-          </Permission>
+          </Flex>
         )}
         {permissions.admin.length > 0 && (
-          <Permission>
+          <Flex>
             <Indicator />
             <Text key="admin">
               {tct('[admin] access to [resources] resources', {
@@ -299,7 +301,7 @@ export default function SentryAppDetailedView() {
                 resources: permissions.admin.join(', '),
               })}
             </Text>
-          </Permission>
+          </Flex>
         )}
       </PermissionWrapper>
     );
@@ -419,10 +421,6 @@ const Text = styled('p')`
   margin: 0px 6px;
 `;
 
-const Permission = styled('div')`
-  display: flex;
-`;
-
 const PermissionWrapper = styled('div')`
   padding-bottom: ${space(2)};
 `;
@@ -445,7 +443,7 @@ const StyledButton = styled(Button)`
   color: ${p => p.theme.subText};
   background: ${p => p.theme.tokens.background.primary};
 
-  border: ${p => `1px solid ${p.theme.gray300}`};
+  border: ${p => `1px solid ${p.theme.colors.gray400}`};
   box-sizing: border-box;
   box-shadow: 0px 2px 1px rgba(0, 0, 0, 0.08);
   border-radius: 4px;

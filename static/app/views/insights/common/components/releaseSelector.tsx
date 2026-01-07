@@ -44,7 +44,7 @@ type Props = {
   selectorValue?: string;
 };
 
-function ReleaseSelector({
+function SingleReleaseSelector({
   allOptionDescription,
   allOptionTitle,
   onChange,
@@ -193,11 +193,11 @@ function getReleasesSortBy(
   return ReleasesSortOption.DATE;
 }
 
-type ReleaseComparisonSelectorProps = {
+type ReleaseSelectorProps = {
   moduleName: ModuleName;
 };
 
-export function ReleaseComparisonSelector({moduleName}: ReleaseComparisonSelectorProps) {
+export function ReleaseSelector({moduleName}: ReleaseSelectorProps) {
   const {primaryRelease} = useReleaseSelection();
   const location = useLocation();
   const navigate = useNavigate();
@@ -255,14 +255,13 @@ export function ReleaseComparisonSelector({moduleName}: ReleaseComparisonSelecto
 
   return (
     <StyledPageSelector condensed>
-      <ReleaseSelector
+      <SingleReleaseSelector
         allOptionDescription={t('Show data from all releases.')}
         allOptionTitle={t('All')}
         onChange={newValue => {
           trackAnalytics('insights.release.select_release', {
             organization,
             filtered: defined(newValue.value) && newValue.value !== '',
-            type: 'primary',
             moduleName,
           });
 

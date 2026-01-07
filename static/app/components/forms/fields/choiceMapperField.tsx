@@ -380,7 +380,7 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
 
     return (
       <Fragment>
-        <Header>
+        <Flex align="center">
           <LabelColumn>
             <HeadingItem>{mappedColumnLabel}</HeadingItem>
           </LabelColumn>
@@ -390,7 +390,7 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
               {i === mappedKeys.length - 1 && dropdown}
             </Heading>
           ))}
-        </Header>
+        </Flex>
         {Object.keys(value).map(itemKey => (
           <Row key={itemKey}>
             <LabelColumn>{value[itemKey].__label ?? valueMap[itemKey]}</LabelColumn>
@@ -437,11 +437,6 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
     );
   }
 }
-
-const Header = styled('div')`
-  display: flex;
-  align-items: center;
-`;
 
 const Heading = styled('div')`
   display: flex;

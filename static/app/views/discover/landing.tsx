@@ -48,7 +48,7 @@ function NoAccess() {
   return (
     <Layout.Page withPadding>
       <Alert.Container>
-        <Alert type="warning" showIcon={false}>
+        <Alert variant="warning" showIcon={false}>
           {t("You don't have access to this feature")}
         </Alert>
       </Alert.Container>
@@ -250,7 +250,7 @@ function DiscoverLanding() {
               ) : (
                 <QueriesContainer>
                   {organization.features.includes('expose-migrated-discover-queries') && (
-                    <Alert type="info">
+                    <Alert variant="info">
                       {tct(
                         'Your saved transactions queries are also available in the new Explore UI. Try them out in [exploreLink:Explore] instead.',
                         {

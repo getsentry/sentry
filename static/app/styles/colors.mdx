@@ -19,52 +19,56 @@ import {IconCheckmark, IconClose} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
-export const GRAY_PALETTES = [
-  [{color: 'gray500', text: 'lightModeWhite'}],
-  [{color: 'gray400', text: 'lightModeWhite'}],
-  [{color: 'gray300', text: 'lightModeWhite'}],
-  [{color: 'gray200', text: 'lightModeBlack'}],
-  [{color: 'gray100', text: 'lightModeBlack'}],
-];
+export function createGrayPalette(theme) {
+  return [
+    [{name: 'gray500', value: theme.colors.gray500}],
+    [{name: 'gray400', value: theme.colors.gray400}],
+    [{name: 'gray300', value: theme.colors.gray300}],
+    [{name: 'gray200', value: theme.colors.gray200}],
+    [{name: 'gray100', value: theme.colors.gray100}],
+  ];
+}
 
-export const LEVELS_PALETTES = [
-  [
-    {color: 'purple400', text: 'lightModeWhite'},
-    {color: 'purple300', text: 'lightModeWhite'},
-    {color: 'purple200', text: 'lightModeBlack'},
-    {color: 'purple100', text: 'lightModeBlack'},
-  ],
-  [
-    {color: 'blue400', text: 'lightModeWhite'},
-    {color: 'blue300', text: 'lightModeWhite'},
-    {color: 'blue200', text: 'lightModeBlack'},
-    {color: 'blue100', text: 'lightModeBlack'},
-  ],
-  [
-    {color: 'green400', text: 'lightModeWhite'},
-    {color: 'green300', text: 'lightModeBlack'},
-    {color: 'green200', text: 'lightModeBlack'},
-    {color: 'green100', text: 'lightModeBlack'},
-  ],
-  [
-    {color: 'yellow400', text: 'lightModeBlack'},
-    {color: 'yellow300', text: 'lightModeBlack'},
-    {color: 'yellow200', text: 'lightModeBlack'},
-    {color: 'yellow100', text: 'lightModeBlack'},
-  ],
-  [
-    {color: 'red400', text: 'lightModeWhite'},
-    {color: 'red300', text: 'lightModeWhite'},
-    {color: 'red200', text: 'lightModeBlack'},
-    {color: 'red100', text: 'lightModeBlack'},
-  ],
-  [
-    {color: 'pink400', text: 'lightModeWhite'},
-    {color: 'pink300', text: 'lightModeWhite'},
-    {color: 'pink200', text: 'lightModeBlack'},
-    {color: 'pink100', text: 'lightModeBlack'},
-  ],
-];
+export function createLevelsPalette(theme) {
+  return [
+    [
+      {name: 'purple400', value: theme.colors.purple400},
+      {name: 'purple300', value: theme.colors.purple300},
+      {name: 'purple200', value: theme.colors.purple200},
+      {name: 'purple100', value: theme.colors.purple100},
+    ],
+    [
+      {name: 'blue400', value: theme.colors.blue400},
+      {name: 'blue300', value: theme.colors.blue300},
+      {name: 'blue200', value: theme.colors.blue200},
+      {name: 'blue100', value: theme.colors.blue100},
+    ],
+    [
+      {name: 'green400', value: theme.colors.green400},
+      {name: 'green300', value: theme.colors.green300},
+      {name: 'green200', value: theme.colors.green200},
+      {name: 'green100', value: theme.colors.green100},
+    ],
+    [
+      {name: 'yellow400', value: theme.colors.yellow400},
+      {name: 'yellow300', value: theme.colors.yellow300},
+      {name: 'yellow200', value: theme.colors.yellow200},
+      {name: 'yellow100', value: theme.colors.yellow100},
+    ],
+    [
+      {name: 'red400', value: theme.colors.red400},
+      {name: 'red300', value: theme.colors.red300},
+      {name: 'red200', value: theme.colors.red200},
+      {name: 'red100', value: theme.colors.red100},
+    ],
+    [
+      {name: 'pink400', value: theme.colors.pink400},
+      {name: 'pink300', value: theme.colors.pink300},
+      {name: 'pink200', value: theme.colors.pink200},
+      {name: 'pink100', value: theme.colors.pink100},
+    ],
+  ];
+}
 
 export const FixedWidth = styled('div')`
   max-width: 800px;
@@ -104,8 +108,8 @@ border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
 border-radius: ${p => p.theme.radius.md};
 }
 
-background: ${p => p.theme[p.color]};
-color: ${p => p.theme[p.text]};
+background: ${p => p.color};
+color: ${p => p.textColor};
 `;
 
 export const ExampleImg = styled('img')`
@@ -129,7 +133,7 @@ export const PositiveLabel = styled(({className}) => (
 
 export const NegativeLabel = styled(({className}) => (
   <div className={className}>
-    <IconClose color="red400" />
+    <IconClose variant="danger" />
     DON'T
   </div>
 ))`
@@ -160,8 +164,9 @@ export function ExampleCard({imgSrc, text, isPositive}) {
   );
 }
 
-export function ColorPalette({name, palette = []}) {
+export function ColorPalette({name, paletteType}) {
   const theme = useTheme();
+  const palette = paletteType === 'grays' ? createGrayPalette(theme) : createLevelsPalette(theme);
 
 return (
 
@@ -171,21 +176,27 @@ return (
       <li key={`${name}-${i}`}>
         <PalettePanel typeof="ul">
           {section.map((color, index) => {
+            const textColor = color.name.endsWith('100') || color.name.endsWith('200')
+              ? theme.tokens.content.primary
+              : theme.tokens.content.primary;
+
             return (
               <PalettePanelItem
-                key={`${name}-${color.color}-${index}`}
-                color={color.color}
-                text={color.text}
+                key={`${name}-${color.name}-${index}`}
+                color={color.value}
+                textColor={textColor}
               >
-                <strong>{color.color}</strong>
-                {theme[color.color]}
+                <strong>{color.name}</strong>
+                {color.value}
               </PalettePanelItem>
             );
           })}
         </PalettePanel>
       </li>
     );
-  })}
+
+})}
+
 </SideBySide>
 ); }
 
@@ -204,7 +215,7 @@ Here are the recommended use cases:
 - **Gray 100:** dividers and borders around small elements (buttons, form inputs). \*/}
 
 <Storybook.ThemeToggle>
-  <ColorPalette name="grays" palette={GRAY_PALETTES} />
+  <ColorPalette name="grays" paletteType="grays" />
 </Storybook.ThemeToggle>
 
 ## Accent Colors
@@ -232,7 +243,7 @@ Each hue comes in 4 levels: 400 (dark), 300 (full opacity), 200 (medium opacity)
 - **The 100 level** has very low opacity, useful as background fills.
 
 <Storybook.ThemeToggle>
-  <ColorPalette name="levels" palette={LEVELS_PALETTES} />
+  <ColorPalette name="levels" paletteType="levels" />
 </Storybook.ThemeToggle>
 
 ## Accessibility

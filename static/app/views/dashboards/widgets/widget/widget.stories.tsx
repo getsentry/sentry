@@ -27,7 +27,11 @@ export default Storybook.story('Widget', (story, APIReference) => {
         <SmallStorybookSizingWindow>
           <Widget
             Title={<Widget.WidgetTitle title="epm() : /insights/frontend/assets" />}
-            TitleBadges={[<Tag key="frontend">frontend</Tag>]}
+            TitleBadges={[
+              <Tag key="frontend" variant="muted">
+                frontend
+              </Tag>,
+            ]}
             Actions={
               <Widget.WidgetToolbar>
                 <Button size="xs">Say More</Button>

@@ -71,7 +71,7 @@ export function OwnershipOwnerFilter({
             <Fragment>
               {label}
               {!isMyTeams && selectedTeams.length > 1 && (
-                <StyledBadge type="default">{`+${selectedTeams.length - 1}`}</StyledBadge>
+                <StyledBadge variant="muted">{`+${selectedTeams.length - 1}`}</StyledBadge>
               )}
             </Fragment>
           }

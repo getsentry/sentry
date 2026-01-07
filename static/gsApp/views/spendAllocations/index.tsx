@@ -307,7 +307,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
 
   if (!organization.features.includes('spend-allocations')) {
     return (
-      <SubscriptionPageContainer background="secondary" organization={organization}>
+      <SubscriptionPageContainer background="secondary">
         <PlanFeature organization={organization} features={['spend-allocations']}>
           {({plan}) => (
             <Panel dashedBorder data-test-id="disabled-allocations">
@@ -352,14 +352,14 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
 
   if (isDisabledByPartner(subscription)) {
     return (
-      <SubscriptionPageContainer background="secondary" organization={organization}>
+      <SubscriptionPageContainer background="secondary">
         <PartnershipNote subscription={subscription} />
       </SubscriptionPageContainer>
     );
   }
 
   return (
-    <SubscriptionPageContainer background="secondary" organization={organization}>
+    <SubscriptionPageContainer background="secondary">
       <SentryDocumentTitle title={t('Spend Allocations')} orgSlug={organization.slug} />
       <SettingsPageHeader
         title={t('Spend Allocations')}
@@ -372,7 +372,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
                   aria-label={t('Manage Subscription')}
                   size="sm"
                   style={{marginRight: space(1)}}
-                  to={`/settings/${organization.slug}/billing/checkout/?referrer=spend_allocations`}
+                  to={`/checkout/${organization.slug}/?referrer=spend_allocations`}
                 >
                   {t('Manage Subscription')}
                 </LinkButton>

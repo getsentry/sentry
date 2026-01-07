@@ -46,48 +46,48 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
  */
 function renderTag(kind: FieldValueKind): React.ReactNode {
   let text: string | undefined;
-  let tagType: TagProps['type'] | undefined;
+  let tagVariant: TagProps['variant'] | undefined;
 
   switch (kind) {
     case FieldValueKind.FUNCTION:
       text = 'f(x)';
-      tagType = 'warning';
+      tagVariant = 'warning';
       break;
     case FieldValueKind.CUSTOM_MEASUREMENT:
     case FieldValueKind.MEASUREMENT:
       text = 'field';
-      tagType = 'highlight';
+      tagVariant = 'info';
       break;
     case FieldValueKind.BREAKDOWN:
       text = 'field';
-      tagType = 'highlight';
+      tagVariant = 'info';
       break;
     case FieldValueKind.TAG:
       text = 'tag';
-      tagType = 'warning';
+      tagVariant = 'warning';
       break;
     case FieldValueKind.NUMERIC_METRICS:
       text = 'f(x)';
-      tagType = 'warning';
+      tagVariant = 'warning';
       break;
     case FieldValueKind.FIELD:
       text = 'field';
-      tagType = 'highlight';
+      tagVariant = 'info';
       break;
     case FieldValueKind.EQUATION:
       text = 'equation';
-      tagType = 'warning';
+      tagVariant = 'warning';
       break;
     case FieldValueKind.METRICS:
       text = 'metrics';
-      tagType = 'warning';
+      tagVariant = 'warning';
       break;
     default:
       unreachable(kind);
       throw new Error(`Invalid field value kind: ${kind}`);
   }
 
-  return <Tag type={tagType}>{text}</Tag>;
+  return <Tag variant={tagVariant}>{text}</Tag>;
 }
 
 /**

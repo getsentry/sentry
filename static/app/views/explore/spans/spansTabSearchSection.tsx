@@ -24,6 +24,7 @@ import {TourElement} from 'sentry/components/tours/components';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   type AggregationKey,
@@ -67,6 +68,7 @@ const crossEventDropdownItems: DropdownMenuProps['items'] = [
 ];
 
 function CrossEventQueryingDropdown() {
+  const organization = useOrganization();
   const crossEvents = useQueryParamsCrossEvents();
   const setCrossEvents = useSetQueryParamsCrossEvents();
 
@@ -74,6 +76,11 @@ function CrossEventQueryingDropdown() {
     if (typeof key !== 'string' || !isCrossEventType(key)) {
       return;
     }
+
+    trackAnalytics('trace.explorer.cross_event_added', {
+      organization,
+      type: key,
+    });
 
     if (!crossEvents || crossEvents.length === 0) {
       setCrossEvents([{query: '', type: key}]);
@@ -202,6 +209,7 @@ const SpansTabCrossEventSearchBar = memo(
 );
 
 function SpansTabCrossEventSearchBars() {
+  const organization = useOrganization();
   const crossEvents = useQueryParamsCrossEvents();
   const setCrossEvents = useSetQueryParamsCrossEvents();
 
@@ -256,6 +264,12 @@ function SpansTabCrossEventSearchBars() {
               ]}
               onChange={({value: newValue}) => {
                 if (!isCrossEventType(newValue)) return;
+
+                trackAnalytics('trace.explorer.cross_event_changed', {
+                  organization,
+                  new_type: newValue,
+                  old_type: crossEvent.type,
+                });
 
                 setCrossEvents(
                   crossEvents.map((c, i) => {
@@ -313,6 +327,10 @@ function SpansTabCrossEventSearchBars() {
                 )
               );
             }
+            trackAnalytics('trace.explorer.cross_event_removed', {
+              organization,
+              type: crossEvent.type,
+            });
             setCrossEvents(crossEvents.filter((_, i) => i !== index));
           }}
         />

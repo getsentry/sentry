@@ -223,7 +223,7 @@ function EditAccessSelector({
   // Avatars/Badges in the Edit Access Selector Button
   const triggerAvatars =
     selectedOptions.includes('_allUsers') || !dashboardCreator ? (
-      <StyledBadge key="_all" size={listOnly ? 26 : 20} type="info">
+      <StyledBadge key="_all" size={listOnly ? 26 : 20} variant="info">
         {t('All')}
       </StyledBadge>
     ) : selectedOptions.length === 2 ? (

@@ -1,6 +1,8 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
@@ -245,7 +247,7 @@ function EnvironmentRow({
 }: RowProps) {
   return (
     <EnvironmentItem>
-      <Name>{isSystemRow ? t('All Environments') : name}</Name>
+      <Flex align="center">{isSystemRow ? t('All Environments') : name}</Flex>
       <Access access={['project:write']} project={project}>
         {({hasAccess}) => (
           <Fragment>
@@ -272,11 +274,6 @@ const EnvironmentItem = styled(PanelItem)`
 
 const TabsContainer = styled('div')`
   margin-bottom: ${space(2)};
-`;
-
-const Name = styled('div')`
-  display: flex;
-  align-items: center;
 `;
 
 const EnvironmentButton = styled(Button)`

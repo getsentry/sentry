@@ -176,7 +176,7 @@ export function InstrumentationGuide() {
             title={t('Auto-Instrument with %s', platform.label)}
             trailingItems={
               platform.guides.length > 1 ? (
-                <CompactSelect<GuideKey>
+                <CompactSelect
                   size="xs"
                   trigger={triggerProps => (
                     <SelectTrigger.Button {...triggerProps} borderless size="zero" />

@@ -21,6 +21,7 @@ import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import {ALLOWED_CELL_ACTIONS} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
   TabularColumn,
@@ -156,6 +157,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
   const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
+  const {projects} = useProjects();
   const navigate = useNavigate();
 
   const getGenericRenderer: FieldRendererGetter = (field, _dataRow, meta) => {
@@ -175,6 +177,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
       theme,
       location,
       unit,
+      projects,
     };
   };
 

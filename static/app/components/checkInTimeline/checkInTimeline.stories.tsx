@@ -8,6 +8,7 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {TimeRangeSelectTrigger} from 'sentry/components/timeRangeSelector';
 import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -25,17 +26,17 @@ enum ExampleStatus {
 
 const statusStyle: TickStyle<ExampleStatus> = theme => ({
   [ExampleStatus.ERROR]: {
-    labelColor: theme.red400,
-    tickColor: theme.red300,
+    labelColor: theme.colors.red500,
+    tickColor: theme.colors.red400,
   },
   [ExampleStatus.TIMEOUT]: {
-    labelColor: theme.yellow400,
-    tickColor: theme.yellow300,
-    hatchTick: theme.yellow200,
+    labelColor: theme.colors.yellow500,
+    tickColor: theme.colors.yellow400,
+    hatchTick: theme.colors.yellow200,
   },
   [ExampleStatus.OK]: {
-    labelColor: theme.green400,
-    tickColor: theme.green300,
+    labelColor: theme.colors.green500,
+    tickColor: theme.colors.green400,
   },
 });
 
@@ -105,7 +106,11 @@ export default Storybook.story('CheckInTimeline', story => {
         </p>
 
         <Controls>
-          <DatePageFilter triggerProps={{prefix: 'Time Window'}} />
+          <DatePageFilter
+            trigger={triggerProps => (
+              <TimeRangeSelectTrigger {...triggerProps} prefix="Time Window" />
+            )}
+          />
           <CompactSelect
             trigger={triggerProps => (
               <SelectTrigger.Button {...triggerProps} prefix="Spacing" />

@@ -87,16 +87,16 @@ const getEventTypes = memoize((app: SentryApp) => {
 });
 
 function ResponseCode({code}: {code: number}) {
-  let type: TagProps['type'] = 'error';
+  let variant: TagProps['variant'] = 'danger';
   if (code <= 399 && code >= 300) {
-    type = 'warning';
+    variant = 'warning';
   } else if (code <= 299 && code >= 100) {
-    type = 'success';
+    variant = 'success';
   }
 
   return (
     <Tags>
-      <StyledTag type={type}>{code === 0 ? 'timeout' : code}</StyledTag>
+      <StyledTag variant={variant}>{code === 0 ? 'timeout' : code}</StyledTag>
     </Tags>
   );
 }

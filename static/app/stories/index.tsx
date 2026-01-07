@@ -1,4 +1,5 @@
 export {APIReference} from './apiReference';
+export {ColorReference} from './colorReference';
 export {Demo} from './demo';
 export {JSXNode, JSXProperty} from './jsx';
 export {ModuleExports} from './moduleExports';
@@ -8,3 +9,5 @@ export {SideBySide} from './layout';
 export {SizingWindow, Grid} from './layout';
 export {story} from './storybook';
 export {ThemeSwitcher, ThemeToggle} from './theme';
+export {TokenReference} from './tokenReference';
+export {StoryTable as Table} from './table';

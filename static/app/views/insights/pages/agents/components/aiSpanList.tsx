@@ -123,7 +123,7 @@ function TransactionWrapper({
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
   const theme = useTheme();
-  const colors = [...theme.chart.getColorPalette(5), theme.red300];
+  const colors = [...theme.chart.getColorPalette(5), theme.colors.red400];
   const timeBounds = getNodeTimeBounds(nodes);
 
   const nodeAiRunParentsMap = useMemo<Record<string, AITraceSpanNode>>(() => {
@@ -223,7 +223,7 @@ const TraceListItem = memo(function TraceListItem({
               radius="full"
               style={{bottom: -6, right: -6, padding: 1, background: 'inherit'}}
             >
-              <IconFire display="block" size="xs" color="red300" />
+              <IconFire display="block" size="xs" variant="danger" />
             </Container>
           </Tooltip>
         )}
@@ -427,8 +427,8 @@ const ListItemContainer = styled('div')<{
   outline: ${p =>
     p.isSelected
       ? p.hasErrors
-        ? `2px solid ${p.theme.red200}`
-        : `2px solid ${p.theme.purple200}`
+        ? `2px solid ${p.theme.colors.red200}`
+        : `2px solid ${p.theme.colors.blue200}`
       : 'none'};
 
   &:hover {
@@ -442,7 +442,7 @@ const DurationBar = styled('div')<{
 }>`
   width: 100%;
   height: 4px;
-  background-color: ${p => p.theme.gray200};
+  background-color: ${p => p.theme.colors.gray200};
   border-radius: 2px;
   position: relative;
 

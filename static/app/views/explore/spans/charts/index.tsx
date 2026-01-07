@@ -2,6 +2,7 @@ import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {Flex} from '@sentry/scraps/layout';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -11,11 +12,13 @@ import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useChartSelection} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
+import {CHART_SELECTION_ALERT_KEY} from 'sentry/views/explore/components/attributeBreakdowns/constants';
 import {FloatingTrigger} from 'sentry/views/explore/components/attributeBreakdowns/floatingTrigger';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
@@ -166,6 +169,12 @@ function Chart({
   const organization = useOrganization();
   const {chartSelection, setChartSelection} = useChartSelection();
   const [interval, setInterval, intervalOptions] = useChartInterval();
+  const {
+    dismiss: dismissChartSelectionAlert,
+    isDismissed: isChartSelectionAlertDismissed,
+  } = useDismissAlert({
+    key: CHART_SELECTION_ALERT_KEY,
+  });
 
   const chartHeight = visualize.visible ? CHART_HEIGHT : 50;
 
@@ -206,11 +215,11 @@ function Chart({
   }, [chartType, timeseriesResult, visualize, samplingMode, topEvents]);
 
   const Title = (
-    <ChartTitle>
+    <Flex>
       <Widget.WidgetTitle
         title={prettifyAggregation(visualize.yAxis) ?? visualize.yAxis}
       />
-    </ChartTitle>
+    </Flex>
   );
 
   const Actions = (
@@ -278,13 +287,25 @@ function Chart({
               chartRef={chartRef}
               chartXRangeSelection={{
                 initialSelection: initialChartSelection,
-                onChartClick: params => {
+                onSelectionEnd: () => {
+                  if (!isChartSelectionAlertDismissed) {
+                    dismissChartSelectionAlert();
+                  }
+                },
+                onInsideSelectionClick: params => {
                   if (!params.selectionState) return;
 
-                  // Always show the action menu when the chart is clicked.
                   params.setSelectionState({
                     ...params.selectionState,
                     isActionMenuVisible: true,
+                  });
+                },
+                onOutsideSelectionClick: params => {
+                  if (!params.selectionState?.isActionMenuVisible) return;
+
+                  params.setSelectionState({
+                    ...params.selectionState,
+                    isActionMenuVisible: false,
                   });
                 },
                 onClearSelection: () => {
@@ -335,8 +356,4 @@ const ChartList = styled('div')`
   display: grid;
   row-gap: ${space(1)};
   margin-bottom: ${space(1)};
-`;
-
-const ChartTitle = styled('div')`
-  display: flex;
 `;

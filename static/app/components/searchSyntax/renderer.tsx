@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useRef, useState} from 'react';
-import {css, keyframes} from '@emotion/react';
+import {css, keyframes, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import modifyColor from 'color';
 import {useReducedMotion} from 'framer-motion';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -286,11 +287,42 @@ const colorType = (p: TokenGroupProps) =>
     p.active ? 'Active' : ''
   }` as const;
 
+/**
+ * Search filter "token" border
+ * NOTE: Not being used anymore in the new Search UI
+ */
+function makeSearchTokenVariants(theme: Theme) {
+  return {
+    searchTokenBorder: {
+      valid: theme.colors.blue200,
+      validActive: modifyColor(theme.colors.blue200).opaquer(1).string(),
+      invalid: theme.colors.red200,
+      invalidActive: modifyColor(theme.colors.red200).opaquer(1).string(),
+      warning: theme.colors.yellow200,
+      warningActive: modifyColor(theme.colors.yellow200).opaquer(1).string(),
+    },
+    searchTokenBackground: {
+      valid: theme.colors.blue100,
+      validActive: modifyColor(theme.colors.blue100).opaquer(1.0).string(),
+      invalid: theme.colors.red100,
+      invalidActive: modifyColor(theme.colors.red100).opaquer(0.8).string(),
+      warning: theme.colors.yellow100,
+      warningActive: modifyColor(theme.colors.yellow100).opaquer(0.8).string(),
+    },
+  };
+}
+
 const TokenGroup = styled('span')<TokenGroupProps>`
-  --token-bg: ${p => p.theme.searchTokenBackground[colorType(p)]};
-  --token-border: ${p => p.theme.searchTokenBorder[colorType(p)]};
+  --token-bg: ${p =>
+    makeSearchTokenVariants(p.theme).searchTokenBackground[colorType(p)]};
+  --token-border: ${p =>
+    makeSearchTokenVariants(p.theme).searchTokenBorder[colorType(p)]};
   --token-value-color: ${p =>
-    p.invalid ? p.theme.red400 : p.warning ? p.theme.gray400 : p.theme.blue400};
+    p.invalid
+      ? p.theme.colors.red500
+      : p.warning
+        ? p.theme.colors.gray500
+        : p.theme.colors.blue500};
 
   position: relative;
   animation-name: ${shakeAnimation};
@@ -319,7 +351,7 @@ const Negation = styled('span')`
   margin-left: -1px;
   font-weight: ${p => p.theme.fontWeight.bold};
   border-radius: 2px 0 0 2px;
-  color: ${p => p.theme.red400};
+  color: ${p => p.theme.colors.red500};
 `;
 
 const Key = styled('span')<{negated: boolean}>`
@@ -358,7 +390,7 @@ const Operator = styled('span')`
   border-left: none;
   border-right: none;
   margin: -1px 0;
-  color: ${p => p.theme.pink400};
+  color: ${p => p.theme.colors.pink500};
 `;
 
 const Value = styled('span')`
@@ -381,21 +413,21 @@ const FreeText = styled('span')`
 
 const Unit = styled('span')`
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.green400};
+  color: ${p => p.theme.colors.green500};
 `;
 
 const LogicBoolean = styled('span')<{invalid: boolean}>`
   font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.subText};
-  ${p => p.invalid && `color: ${p.theme.red400}`}
+  ${p => p.invalid && `color: ${p.theme.colors.red500}`}
 `;
 
 const Boolean = styled('span')`
-  color: ${p => p.theme.pink400};
+  color: ${p => p.theme.colors.pink500};
 `;
 
 const DateTime = styled('span')`
-  color: ${p => p.theme.green400};
+  color: ${p => p.theme.colors.green500};
 `;
 
 const ListComma = styled('span')`
@@ -410,16 +442,16 @@ const InList = styled('span')`
   &:before {
     content: '[';
     font-weight: ${p => p.theme.fontWeight.bold};
-    color: ${p => p.theme.purple400};
+    color: ${p => p.theme.colors.blue500};
   }
   &:after {
     content: ']';
     font-weight: ${p => p.theme.fontWeight.bold};
-    color: ${p => p.theme.purple400};
+    color: ${p => p.theme.colors.blue500};
   }
 
   ${Value} {
-    color: ${p => p.theme.purple400};
+    color: ${p => p.theme.colors.blue500};
   }
 `;
 
@@ -438,7 +470,7 @@ const LogicGroup = styled(({children, ...props}: any) => (
     &:before {
       position: absolute;
       top: -5px;
-      color: ${p => p.theme.pink400};
+      color: ${p => p.theme.colors.pink500};
       font-size: 16px;
       font-weight: ${p => p.theme.fontWeight.bold};
     }

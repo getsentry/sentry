@@ -6,6 +6,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type RefObject,
 } from 'react';
 import * as Sentry from '@sentry/react';
 
@@ -22,6 +23,7 @@ import {useIntegrationProvider} from './useIntegrationProvider';
 interface SeerOnboardingContextProps {
   addRepositoryProjectMappings: (additionalMappings: Record<string, string[]>) => void;
   addRootCauseAnalysisRepository: (repoId: string) => void;
+  autoCreatePR: RefObject<boolean | null> | null;
   changeRepositoryProjectMapping: (
     repoId: string,
     index: number,
@@ -40,11 +42,13 @@ interface SeerOnboardingContextProps {
   selectedCodeReviewRepositories: RepositoryWithSettings[];
   selectedCodeReviewRepositoriesMap: Record<string, boolean>;
   selectedRootCauseAnalysisRepositories: RepositoryWithSettings[];
+  setAutoCreatePR: (value: boolean) => void;
   setCodeReviewRepositories: (newSelections: Record<string, boolean>) => void;
   unselectedCodeReviewRepositories: RepositoryWithSettings[];
 }
 
 const SeerOnboardingContext = createContext<SeerOnboardingContextProps>({
+  autoCreatePR: null,
   installationData: undefined,
   isInstallationPending: false,
   isProviderPending: false,
@@ -59,6 +63,7 @@ const SeerOnboardingContext = createContext<SeerOnboardingContextProps>({
   changeRepositoryProjectMapping: () => {},
   changeRootCauseAnalysisRepository: () => {},
   clearRootCauseAnalysisRepositories: () => {},
+  setAutoCreatePR: () => {},
   setCodeReviewRepositories: () => {},
   removeRootCauseAnalysisRepository: () => {},
   addRootCauseAnalysisRepository: () => {},
@@ -73,6 +78,9 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
   const [repositoryProjectMapping, setRepositoryProjectMapping] = useState<
     Record<string, string[]>
   >({});
+  // This is not state because we just avoid re-render. This is used on a different view than
+  // where it is set, so we don't need the reactivity.
+  const autoCreatePRRef = useRef<boolean | null>(null);
 
   // Track if we've initialized the map to avoid overwriting user changes
   const hasInitializedCodeReviewMap = useRef(false);
@@ -131,6 +139,10 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
         .filter(repo => repo !== undefined),
     [selectedCodeReviewRepositoriesMap, repositoriesMap]
   );
+
+  const setAutoCreatePR = useCallback((value: boolean) => {
+    autoCreatePRRef.current = value;
+  }, []);
 
   const setCodeReviewRepositories = useCallback(
     (newSelections: Record<string, boolean>) => {
@@ -312,6 +324,8 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
         addRepositoryProjectMappings,
         changeRepositoryProjectMapping,
         clearRootCauseAnalysisRepositories,
+        setAutoCreatePR,
+        autoCreatePR: autoCreatePRRef,
       }}
     >
       {children}
