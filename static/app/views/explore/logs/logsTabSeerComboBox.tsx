@@ -1,5 +1,6 @@
 import {useCallback, useMemo} from 'react';
 
+import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
@@ -13,6 +14,7 @@ import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import useRouter from 'sentry/utils/useRouter';
 import type {WritableAggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {
   useQueryParams,
@@ -49,6 +51,7 @@ export function LogsTabSeerComboBox() {
   const organization = useOrganization();
   const queryParams = useQueryParams();
   const setQueryParams = useSetQueryParams();
+  const router = useRouter();
   const {
     currentInputValueRef,
     query,
@@ -201,6 +204,29 @@ export function LogsTabSeerComboBox() {
         mode,
       });
 
+      // Update page filters datetime if AI provided start/end or statsPeriod
+      if (resultStart && resultEnd) {
+        updateDateTime(
+          {
+            start,
+            end,
+            period: null,
+            utc: pageFilters.selection.datetime.utc,
+          },
+          router
+        );
+      } else if (statsPeriod && statsPeriod !== pageFilters.selection.datetime.period) {
+        updateDateTime(
+          {
+            period: statsPeriod,
+            start: null,
+            end: null,
+            utc: pageFilters.selection.datetime.utc,
+          },
+          router
+        );
+      }
+
       askSeerSuggestedQueryRef.current = JSON.stringify({
         query: queryToUse,
         groupBys,
@@ -221,6 +247,7 @@ export function LogsTabSeerComboBox() {
       organization,
       pageFilters.selection.datetime,
       queryParams.aggregateFields,
+      router,
       setQueryParams,
     ]
   );
