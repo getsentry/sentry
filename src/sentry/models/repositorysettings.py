@@ -54,4 +54,7 @@ class RepositorySettings(Model):
     def get_code_review_settings(self) -> CodeReviewSettings:
         """Return code review settings for this repository."""
         triggers = [CodeReviewTrigger(t) for t in self.code_review_triggers]
+        # ON_COMMAND_PHRASE is always enabled
+        if CodeReviewTrigger.ON_COMMAND_PHRASE not in triggers:
+            triggers.append(CodeReviewTrigger.ON_COMMAND_PHRASE)
         return CodeReviewSettings(enabled=self.enabled_code_review, triggers=triggers)

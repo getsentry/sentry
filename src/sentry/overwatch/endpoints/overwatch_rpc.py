@@ -227,10 +227,11 @@ class CodeReviewRepoSettingsEndpoint(Endpoint):
                 }
             )
 
+        repo_code_review_settings = repo_settings.get_code_review_settings()
         return Response(
             {
-                "enabledCodeReview": repo_settings.enabled_code_review,
-                "codeReviewTriggers": repo_settings.code_review_triggers,
+                "enabledCodeReview": repo_code_review_settings.enabled,
+                "codeReviewTriggers": repo_code_review_settings.triggers,
             }
         )
 
