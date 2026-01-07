@@ -5,7 +5,7 @@ import {
   useLocation,
   useNavigationType,
 } from 'react-router-dom';
-import type {Event} from '@sentry/core';
+import type {Event, Log} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
 import {NODE_ENV, SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
@@ -200,6 +200,15 @@ export function initializeSdk(config: Config) {
 
       return event;
     },
+
+    beforeSendLog: log => {
+      if (isFilteredLog(log)) {
+        return null;
+      }
+
+      return log;
+    },
+
     enableLogs: true,
     sendDefaultPii: true,
     _experiments: {
@@ -303,4 +312,13 @@ export function addEndpointTagToRequestError(event: Event): void {
   if (messageMatch) {
     event.tags = {...event.tags, endpoint: messageMatch[1]};
   }
+}
+
+export function isFilteredLog(log: Log): boolean {
+  // Ignore the console banner from `static/app/bootstrap/printConsoleBanner.ts`
+  if (log.message.includes('Hey, you opened the console!')) {
+    return true;
+  }
+
+  return false;
 }
