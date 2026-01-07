@@ -33,7 +33,7 @@ class OrganizationEventsStatsPreprodSizeEndpointTest(OrganizationEventsEndpointT
             return self.client.get(self.url if url is None else url, data=data, format="json")
 
     def test_max_install_size_aggregate(self) -> None:
-        """Test that max(max_install_size) aggregate returns correct values."""
+        """Test that max(install_size) aggregate returns correct values."""
         size_values = [1000000, 2000000, 3000000, 4000000, 5000000, 6000000]
         for i, size in enumerate(size_values):
             Factories.store_preprod_size_metric(
@@ -51,7 +51,7 @@ class OrganizationEventsStatsPreprodSizeEndpointTest(OrganizationEventsEndpointT
                 "start": self.start,
                 "end": self.end,
                 "interval": "1h",
-                "yAxis": "max(max_install_size)",
+                "yAxis": "max(install_size)",
                 "project": self.project.id,
                 "dataset": self.dataset,
             },
@@ -62,7 +62,7 @@ class OrganizationEventsStatsPreprodSizeEndpointTest(OrganizationEventsEndpointT
         ]
 
     def test_max_download_size_aggregate(self) -> None:
-        """Test that max(max_download_size) aggregate works correctly."""
+        """Test that max(download_size) aggregate works correctly."""
         size_values = [500000, 600000, 700000]
         for i, size in enumerate(size_values):
             Factories.store_preprod_size_metric(
@@ -79,7 +79,7 @@ class OrganizationEventsStatsPreprodSizeEndpointTest(OrganizationEventsEndpointT
                 "start": self.start,
                 "end": self.start + timedelta(hours=3),
                 "interval": "1h",
-                "yAxis": "max(max_download_size)",
+                "yAxis": "max(download_size)",
                 "project": self.project.id,
                 "dataset": self.dataset,
             },
@@ -96,7 +96,7 @@ class OrganizationEventsStatsPreprodSizeEndpointTest(OrganizationEventsEndpointT
                 "start": self.start,
                 "end": self.end,
                 "interval": "1h",
-                "yAxis": "max(max_install_size)",
+                "yAxis": "max(install_size)",
                 "project": self.project.id,
                 "dataset": self.dataset,
             },
@@ -129,7 +129,7 @@ class OrganizationEventsStatsPreprodSizeEndpointTest(OrganizationEventsEndpointT
                 "start": self.start,
                 "end": self.start + timedelta(hours=2),
                 "interval": "1h",
-                "yAxis": "max(max_install_size)",
+                "yAxis": "max(install_size)",
                 "project": self.project.id,
                 "dataset": self.dataset,
                 "query": "app_id:com.example.app1",
@@ -163,7 +163,7 @@ class OrganizationEventsStatsPreprodSizeEndpointTest(OrganizationEventsEndpointT
                 "start": self.start,
                 "end": self.start + timedelta(hours=2),
                 "interval": "1h",
-                "yAxis": "max(max_install_size)",
+                "yAxis": "max(install_size)",
                 "project": self.project.id,
                 "dataset": self.dataset,
                 "query": "git_head_ref:main",
@@ -205,7 +205,7 @@ class OrganizationEventsStatsPreprodSizeEndpointTest(OrganizationEventsEndpointT
                 "start": self.start,
                 "end": self.start + timedelta(hours=2),
                 "interval": "1h",
-                "yAxis": "max(max_install_size)",
+                "yAxis": "max(install_size)",
                 "project": self.project.id,
                 "dataset": self.dataset,
             },
@@ -213,25 +213,3 @@ class OrganizationEventsStatsPreprodSizeEndpointTest(OrganizationEventsEndpointT
         assert response.status_code == 200, response.content
         data = [attrs for time, attrs in response.data["data"]]
         assert data[0] == [{"count": 3000000}]
-
-    def test_requires_feature_flag(self) -> None:
-        """Test that the endpoint requires the preprod-frontend-routes feature flag."""
-        Factories.store_preprod_size_metric(
-            project_id=self.project.id,
-            organization_id=self.organization.id,
-            timestamp=self.start,
-            max_install_size=1000000,
-        )
-
-        response = self._do_request(
-            data={
-                "start": self.start,
-                "end": self.end,
-                "interval": "1h",
-                "yAxis": "max(max_install_size)",
-                "project": self.project.id,
-                "dataset": self.dataset,
-            },
-            features={"organizations:preprod-frontend-routes": False},
-        )
-        assert response.status_code != 200

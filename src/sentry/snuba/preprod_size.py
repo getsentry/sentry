@@ -4,10 +4,7 @@ from datetime import timedelta
 import sentry_sdk
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
-    ComparisonFilter,
-    TraceItemFilter,
-)
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
 from sentry.search.eap.preprod_size.definitions import PREPROD_SIZE_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
@@ -56,6 +53,7 @@ class PreprodSize(rpc_dataset_common.RPCBase):
             rpc_dataset_common.TableQuery(
                 query_string=query_string,
                 selected_columns=selected_columns,
+                equations=equations,
                 orderby=orderby,
                 offset=offset,
                 limit=limit,
