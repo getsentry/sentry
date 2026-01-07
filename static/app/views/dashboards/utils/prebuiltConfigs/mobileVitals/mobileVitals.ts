@@ -189,7 +189,7 @@ const avgFrameDelayWidget: Widget = {
 
 const frameMetricsRow: Widget[] = spaceWidgetsEquallyOnRow(
   [slowFrameRateWidget, frozenFrameRateWidget, avgFrameDelayWidget],
-  2,
+  1,
   {h: 1, minH: 1}
 );
 
@@ -231,7 +231,7 @@ const appStartTable: Widget = {
   layout: {
     x: 0,
     h: 3,
-    y: 3,
+    y: 2,
     minH: 2,
     w: 6,
   },
@@ -291,7 +291,7 @@ const screenRenderingTable: Widget = {
   layout: {
     x: 0,
     h: 3,
-    y: 9,
+    y: 5,
     minH: 2,
     w: 6,
   },
@@ -335,7 +335,7 @@ const screenLoadTable: Widget = {
   layout: {
     x: 0,
     h: 3,
-    y: 6,
+    y: 8,
     minH: 2,
     w: 6,
   },
