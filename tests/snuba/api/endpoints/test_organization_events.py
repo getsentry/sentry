@@ -32,7 +32,6 @@ from sentry.testutils.cases import (
     APITransactionTestCase,
     OurLogTestCase,
     PerformanceIssueTestCase,
-    PreprodSizeMetricsTestCase,
     ProfileFunctionsTestCase,
     ProfilesSnubaTestCase,
     SnubaTestCase,
@@ -60,7 +59,6 @@ class OrganizationEventsEndpointTestBase(
     OurLogTestCase,
     TraceMetricsTestCase,
     ProfileFunctionsTestCase,
-    PreprodSizeMetricsTestCase,
 ):
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"

@@ -2,12 +2,17 @@ import logging
 from datetime import timedelta
 
 import sentry_sdk
+from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
+    ComparisonFilter,
+    TraceItemFilter,
+)
 
 from sentry.search.eap.preprod_size.definitions import PREPROD_SIZE_DEFINITIONS
+from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.sampling import events_meta_from_rpc_request_meta
-from sentry.search.eap.types import AdditionalQueries, SearchResolverConfig
+from sentry.search.eap.types import AdditionalQueries, EAPResponse, SearchResolverConfig
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.snuba.discover import zerofill
@@ -28,19 +33,40 @@ class PreprodSize(rpc_dataset_common.RPCBase):
     DEFINITIONS = PREPROD_SIZE_DEFINITIONS
 
     @classmethod
-    def _get_sub_item_type_filter(cls) -> TraceItemFilter:
-        """
-        Create a filter to restrict queries to sub_item_type="size_metric".
-
-        This ensures that the PreprodSize dataset only queries size metric data,
-        excluding other preprod data types (like snapshot testing).
-        """
-        return TraceItemFilter(
-            comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="sub_item_type", type=AttributeKey.Type.TYPE_STRING),
-                op=ComparisonFilter.OP_EQUALS,
-                value=AttributeValue(val_str="size_metric"),
-            )
+    @sentry_sdk.trace
+    def run_table_query(
+        cls,
+        *,
+        params: SnubaParams,
+        query_string: str,
+        selected_columns: list[str],
+        orderby: list[str] | None,
+        offset: int,
+        limit: int,
+        referrer: str,
+        config: SearchResolverConfig,
+        sampling_mode: SAMPLING_MODES | None = None,
+        equations: list[str] | None = None,
+        search_resolver: SearchResolver | None = None,
+        page_token: PageToken | None = None,
+        debug: bool = False,
+        additional_queries: AdditionalQueries | None = None,
+    ) -> EAPResponse:
+        return cls._run_table_query(
+            rpc_dataset_common.TableQuery(
+                query_string=query_string,
+                selected_columns=selected_columns,
+                orderby=orderby,
+                offset=offset,
+                limit=limit,
+                referrer=referrer,
+                sampling_mode=sampling_mode,
+                resolver=search_resolver or cls.get_resolver(params=params, config=config),
+                page_token=page_token,
+                additional_queries=additional_queries,
+                extra_conditions=cls._get_sub_item_type_filter(),
+            ),
+            debug=debug,
         )
 
     @classmethod
@@ -57,12 +83,6 @@ class PreprodSize(rpc_dataset_common.RPCBase):
         comparison_delta: timedelta | None = None,
         additional_queries: AdditionalQueries | None = None,
     ) -> SnubaTSResult:
-        """
-        Execute a timeseries query for preprod size metrics.
-
-        This method follows the TraceMetrics pattern and automatically filters
-        to sub_item_type="size_metric".
-        """
         cls.validate_granularity(params)
         search_resolver = cls.get_resolver(params, config)
         sub_item_type_filter = cls._get_sub_item_type_filter()
@@ -109,4 +129,14 @@ class PreprodSize(rpc_dataset_common.RPCBase):
             params.start,
             params.end,
             params.granularity_secs,
+        )
+
+    @classmethod
+    def _get_sub_item_type_filter(cls) -> TraceItemFilter:
+        return TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="sub_item_type", type=AttributeKey.Type.TYPE_STRING),
+                op=ComparisonFilter.OP_EQUALS,
+                value=AttributeValue(val_str="size_metric"),
+            )
         )
