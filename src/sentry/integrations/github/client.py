@@ -640,7 +640,7 @@ class GitHubBaseClient(
             # Some GitHub instances don't enforce rate limiting and will respond with a 404
             pass
         else:
-            if rate_limit.remaining < MINIMUM_REQUESTS:
+            if rate_limit.remaining < (MINIMUM_REQUESTS - len(files)):
                 metrics.incr(
                     "integrations.github.get_blame_for_files.not_enough_requests_remaining"
                 )
@@ -652,6 +652,7 @@ class GitHubBaseClient(
                         "remaining": rate_limit.remaining,
                         "next_window": rate_limit.next_window(),
                         "organization_integration_id": self.org_integration_id,
+                        "num_files": len(files),
                     },
                 )
                 raise ApiRateLimitedError("Not enough requests remaining for GitHub")
