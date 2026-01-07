@@ -2,7 +2,7 @@ import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
 import type {SentryRouteObject} from 'sentry/router/types';
 import errorHandler from 'sentry/utils/errorHandler';
 
-import SubscriptionContext from 'getsentry/components/subscriptionContext';
+import SubscriptionContext from 'getsentry/views/subscriptionContext';
 
 const settingsRoutes = (): SentryRouteObject => ({
   children: [
@@ -30,7 +30,6 @@ const settingsRoutes = (): SentryRouteObject => ({
           path: 'cancel/',
           name: 'Cancel',
           component: errorHandler(SubscriptionContext),
-          deprecatedRouteProps: true,
           children: [
             {
               index: true,
@@ -82,7 +81,6 @@ const settingsRoutes = (): SentryRouteObject => ({
           path: 'receipts/:invoiceGuid/',
           name: 'Receipt Details',
           component: errorHandler(SubscriptionContext),
-          deprecatedRouteProps: true,
           children: [
             {
               index: true,
@@ -107,13 +105,11 @@ const settingsRoutes = (): SentryRouteObject => ({
       path: 'subscription/redeem-code/',
       name: 'Redeem Promotional Code',
       component: make(() => import('../views/redeemPromoCode')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'legal/',
       name: 'Legal & Compliance',
       component: make(() => import('../views/legalAndCompliance/legalAndCompliance')),
-      deprecatedRouteProps: true,
     },
     {
       name: 'Support',

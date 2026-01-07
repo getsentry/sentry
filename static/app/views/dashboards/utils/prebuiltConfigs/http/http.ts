@@ -5,6 +5,11 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import {type PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
+  PERCENTAGE_3XX,
+  PERCENTAGE_4XX,
+  PERCENTAGE_5XX,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/http/constants';
+import {
   AVERAGE_DURATION_TEXT,
   BASE_FILTERS,
   DASHBOARD_TITLE,
@@ -62,27 +67,27 @@ const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '3XX',
-          conditions: `${FILTER_STRING} tags[http.response.status_code,number]:>=300 tags[http.response.status_code,number]:<=399`,
-          fields: ['count(span.duration)'],
-          aggregates: ['count(span.duration)'],
+          conditions: FILTER_STRING,
+          fields: [PERCENTAGE_3XX],
+          aggregates: [PERCENTAGE_3XX],
           columns: [],
-          orderby: 'count(span.duration)',
+          orderby: PERCENTAGE_3XX,
         },
         {
           name: '4XX',
-          conditions: `${FILTER_STRING} tags[http.response.status_code,number]:>=400 tags[http.response.status_code,number]:<=499`,
-          fields: ['count(span.duration)'],
-          aggregates: ['count(span.duration)'],
+          conditions: FILTER_STRING,
+          fields: [PERCENTAGE_4XX],
+          aggregates: [PERCENTAGE_4XX],
           columns: [],
-          orderby: 'count(span.duration)',
+          orderby: PERCENTAGE_4XX,
         },
         {
           name: '5XX',
-          conditions: `${FILTER_STRING} tags[http.response.status_code,number]:>=500 tags[http.response.status_code,number]:<=599`,
-          fields: ['count(span.duration)'],
-          aggregates: ['count(span.duration)'],
+          conditions: FILTER_STRING,
+          fields: [PERCENTAGE_5XX],
+          aggregates: [PERCENTAGE_5XX],
           columns: [],
-          orderby: 'count(span.duration)',
+          orderby: PERCENTAGE_5XX,
         },
       ],
     },
@@ -100,6 +105,9 @@ const DOMAIN_TABLE: Widget = {
     {
       aggregates: [
         'epm()',
+        PERCENTAGE_3XX,
+        PERCENTAGE_4XX,
+        PERCENTAGE_5XX,
         `avg(${SpanFields.SPAN_SELF_TIME})`,
         `sum(${SpanFields.SPAN_SELF_TIME})`,
       ],
@@ -108,6 +116,9 @@ const DOMAIN_TABLE: Widget = {
         SpanFields.SPAN_DOMAIN,
         SpanFields.PROJECT,
         'epm()',
+        PERCENTAGE_3XX,
+        PERCENTAGE_4XX,
+        PERCENTAGE_5XX,
         `avg(${SpanFields.SPAN_SELF_TIME})`,
         `sum(${SpanFields.SPAN_SELF_TIME})`,
       ],
@@ -115,6 +126,9 @@ const DOMAIN_TABLE: Widget = {
         t('Domain'),
         t('Project'),
         `${t('Requests')} ${RATE_UNIT_TITLE[RateUnit.PER_MINUTE]}`,
+        t('3XXs'),
+        t('4XXs'),
+        t('5XXs'),
         DataTitles.avg,
         DataTitles.timeSpent,
       ],

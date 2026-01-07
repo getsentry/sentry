@@ -169,7 +169,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
   }
 
   a {
-    color: ${theme.linkColor};
+    color: ${theme.tokens.interactive.link.accent.rest};
     &:focus-visible,
     &:hover {
       color: ${theme.linkHoverColor};
@@ -295,7 +295,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
         }
 
         .exception {
-          border-color: ${theme.innerBorder};
+          border-color: ${theme.tokens.border.secondary};
         }
 
         .traceback {
