@@ -11,10 +11,15 @@ from redis.exceptions import ResponseError
 
 from sentry.digests.backends.base import Backend, InvalidState, ScheduleEntry
 from sentry.digests.types import Record
-from sentry.utils.locking.backends.redis import RedisLockBackend
+from sentry.utils.locking.backends.redis import RedisClusterLockBackend, RedisLockBackend
 from sentry.utils.locking.lock import Lock
 from sentry.utils.locking.manager import LockManager
-from sentry.utils.redis import check_cluster_versions, get_cluster_from_options, load_redis_script
+from sentry.utils.redis import (
+    check_cluster_versions,
+    get_cluster_from_options,
+    load_redis_script,
+    redis_clusters,
+)
 from sentry.utils.versioning import Version
 
 logger = logging.getLogger("sentry.digests")
@@ -254,3 +259,160 @@ class RedisBackend(Backend):
         connection = self._get_connection(key)
         with self._get_timeline_lock(key, duration=30).acquire():
             script([key], ["DELETE", self.namespace, self.ttl, timestamp, key], connection)
+
+
+class RedisClusterBackend(Backend):
+    """
+    Implements the digest backend API, backed by Redis Cluster.
+
+    Uses hash tags {timeline_id} to ensure all timeline-related keys land in
+    the same Redis Cluster slot, enabling atomic multi-key operations.
+    """
+
+    def __init__(self, **options: Any) -> None:
+        cluster_name = options.pop("cluster", "default")
+        self.cluster = redis_clusters.get_binary(cluster_name)
+        self.locks = LockManager(RedisClusterLockBackend(self.cluster))
+
+        self.namespace = options.pop("namespace", "d")
+        self.ttl = options.pop("ttl", 60 * 60)
+        self.script = load_redis_script("digests/digests_cluster.lua")
+
+        super().__init__(**options)
+
+    def validate(self) -> None:
+        logger.debug("Validating Redis Cluster connectivity...")
+        self.cluster.ping()
+
+    def _get_timeline_lock(self, key: str, duration: int) -> Lock:
+        lock_key = f"{self.namespace}:t:{{{key}}}"
+        return self.locks.get(
+            lock_key, duration=duration, routing_key=lock_key, name="digest_timeline_lock"
+        )
+
+    def add(
+        self,
+        key: str,
+        record: Record,
+        increment_delay: int | None = None,
+        maximum_delay: int | None = None,
+        timestamp: float | None = None,
+    ) -> bool:
+        if timestamp is None:
+            timestamp = time.time()
+
+        if increment_delay is None:
+            increment_delay = self.increment_delay
+
+        if maximum_delay is None:
+            maximum_delay = self.maximum_delay
+
+        return bool(
+            self.script(
+                [key],
+                [
+                    "ADD",
+                    self.namespace,
+                    self.ttl,
+                    timestamp,
+                    key,
+                    record.key,
+                    self.codec.encode(record.value),
+                    record.timestamp,
+                    increment_delay,
+                    maximum_delay,
+                    self.capacity if self.capacity else -1,
+                    self.truncation_chance,
+                ],
+                self.cluster,
+            )
+        )
+
+    def schedule(self, deadline: float, timestamp: float | None = None) -> Iterable[ScheduleEntry]:
+        if timestamp is None:
+            timestamp = time.time()
+
+        try:
+            results = self.script(
+                ["-"],
+                ["SCHEDULE", self.namespace, self.ttl, timestamp, deadline],
+                self.cluster,
+            )
+            for key, ts in results:
+                yield ScheduleEntry(key.decode("utf-8"), float(ts))
+        except Exception as error:
+            logger.exception("Failed to perform scheduling due to error: %s", error)
+
+    def maintenance(self, deadline: float, timestamp: float | None = None) -> None:
+        if timestamp is None:
+            timestamp = time.time()
+
+        try:
+            self.script(
+                ["-"],
+                ["MAINTENANCE", self.namespace, self.ttl, timestamp, deadline],
+                self.cluster,
+            )
+        except Exception as error:
+            logger.exception("Failed to perform maintenance due to error: %s", error)
+
+    @contextmanager
+    def digest(
+        self, key: str, minimum_delay: int | None = None, timestamp: float | None = None
+    ) -> Generator[list[Record]]:
+        if minimum_delay is None:
+            minimum_delay = self.minimum_delay
+
+        if timestamp is None:
+            timestamp = time.time()
+
+        with self._get_timeline_lock(key, duration=30).acquire():
+            try:
+                response = self.script(
+                    [key],
+                    [
+                        "DIGEST_OPEN",
+                        self.namespace,
+                        self.ttl,
+                        timestamp,
+                        key,
+                        self.capacity if self.capacity else -1,
+                    ],
+                    self.cluster,
+                )
+            except ResponseError as e:
+                if "err(invalid_state):" in str(e):
+                    raise InvalidState("Timeline is not in the ready state.") from e
+                raise
+
+            records = [
+                Record(key.decode(), self.codec.decode(value), float(timestamp))
+                for key, value, timestamp in response
+                if value is not None
+            ]
+
+            filtered_records = [record for record in records if record.value is not None]
+            if len(records) != len(filtered_records):
+                logger.warning(
+                    "Filtered out missing records when fetching digest",
+                    extra={
+                        "key": key,
+                        "record_count": len(records),
+                        "filtered_record_count": len(filtered_records),
+                    },
+                )
+            yield filtered_records
+
+            self.script(
+                [key],
+                ["DIGEST_CLOSE", self.namespace, self.ttl, timestamp, key, minimum_delay]
+                + [record.key for record in records],
+                self.cluster,
+            )
+
+    def delete(self, key: str, timestamp: float | None = None) -> None:
+        if timestamp is None:
+            timestamp = time.time()
+
+        with self._get_timeline_lock(key, duration=30).acquire():
+            self.script([key], ["DELETE", self.namespace, self.ttl, timestamp, key], self.cluster)
