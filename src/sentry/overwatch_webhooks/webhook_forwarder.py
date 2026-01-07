@@ -146,7 +146,11 @@ class OverwatchGithubWebhookForwarder:
                 # feature isn't enabled, no work to do
                 return
 
-            github_org = event.get("repository", {}).get("owner", {}).get("login")
+            repository = event.get("repository", {})
+            github_org = None
+            if isinstance(repository, dict):
+                github_org = repository.get("owner", {}).get("login")
+
             if github_org and github_org in GH_ORGS_TO_ONLY_SEND_TO_SEER:
                 verbose_log(
                     "overwatch.debug.github_org_not_whitelisted",
