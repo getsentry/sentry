@@ -1,6 +1,6 @@
+import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import type {TagValue} from 'sentry/types/group';
 import {DEVICE_CLASS_TAG_VALUES, isDeviceClass} from 'sentry/utils/fields';
-import type {GetTagValues} from 'sentry/views/dashboards/datasetConfig/base';
 
 /**
  * Returns a function that fetches tag values for a given tag key. Useful as

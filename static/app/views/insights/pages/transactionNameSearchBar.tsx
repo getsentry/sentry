@@ -145,7 +145,7 @@ export function TransactionNameSearchBar(props: SearchBarProps) {
         );
 
         const parsedResults = results.reduce(
-          (searchGroup: SearchGroup, item) => {
+          (searchGroup: SearchGroup, item: string) => {
             searchGroup.children.push({
               value: item,
               title: item,
