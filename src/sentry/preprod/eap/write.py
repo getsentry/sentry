@@ -73,7 +73,9 @@ def produce_preprod_size_metric_to_eap(
         "analysis_file_id": size_metric.analysis_file_id,
         "artifact_state": artifact.state,
         "artifact_type": artifact.artifact_type,
-        "platform_name": "apple" if artifact.is_ios() else "android" if artifact.is_android() else None,
+        "platform_name": (
+            "apple" if artifact.is_ios() else "android" if artifact.is_android() else None
+        ),
         "app_id": artifact.app_id,
         "app_name": artifact.app_name,
         "build_version": artifact.build_version,
@@ -157,7 +159,9 @@ def produce_preprod_build_distribution_to_eap(
         "sub_item_type": "build_distribution",
         "artifact_state": artifact.state,
         "artifact_type": artifact.artifact_type,
-        "platform_name": "apple" if artifact.is_ios() else "android" if artifact.is_android() else None,
+        "platform_name": (
+            "apple" if artifact.is_ios() else "android" if artifact.is_android() else None
+        ),
         "app_id": artifact.app_id,
         "app_name": artifact.app_name,
         "build_version": artifact.build_version,
