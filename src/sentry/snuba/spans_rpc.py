@@ -303,6 +303,7 @@ class Spans(rpc_dataset_common.RPCBase):
         search_resolver: SearchResolver | None = None,
         attributes: list[AttributeKey] | None = None,
         max_buckets: int = 75,
+        skip_translate_internal_to_public_alias: bool = False,
     ) -> list[dict[str, Any]]:
         search_resolver = search_resolver or cls.get_resolver(params, config)
         stats_filter, _, _ = search_resolver.resolve_query(query_string)
@@ -344,11 +345,18 @@ class Spans(rpc_dataset_common.RPCBase):
                         continue
 
                     for bucket in attribute.buckets:
-                        public_alias, _, _ = translate_internal_to_public_alias(
-                            attribute.attribute_name, "string", SupportedTraceItemType.SPANS
-                        )
-                        public_alias = public_alias or attribute.attribute_name
-                        attrs[public_alias].append({"label": bucket.label, "value": bucket.value})
+                        if skip_translate_internal_to_public_alias:
+                            attrs[attribute.attribute_name].append(
+                                {"label": bucket.label, "value": bucket.value}
+                            )
+                        else:
+                            public_alias, _, _ = translate_internal_to_public_alias(
+                                attribute.attribute_name, "string", SupportedTraceItemType.SPANS
+                            )
+                            public_alias = public_alias or attribute.attribute_name
+                            attrs[public_alias].append(
+                                {"label": bucket.label, "value": bucket.value}
+                            )
                 stats.append({"attribute_distributions": {"data": attrs}})
 
         return stats
