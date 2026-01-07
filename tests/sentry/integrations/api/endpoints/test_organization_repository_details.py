@@ -71,6 +71,7 @@ class OrganizationRepositoryGetTest(APITestCase):
         assert response.data["settings"]["codeReviewTriggers"] == [
             "on_new_commit",
             "on_ready_for_review",
+            "on_command_phrase",
         ]
 
     def test_get_repository_expand_settings_no_settings_exist(self) -> None:
