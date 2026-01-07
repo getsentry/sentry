@@ -45,6 +45,9 @@ import {defined} from 'sentry/utils';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {isNativePlatform} from 'sentry/utils/platform';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {decodeInteger} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
@@ -932,8 +935,13 @@ function TopIssues() {
   const user = useUser();
   const {teams: userTeams} = useUserTeams();
   const {selection} = usePageFilters();
-  const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(true);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const hasClusterParam = location.query.cluster !== undefined;
+  const filterFromUrl = location.query.assigned === '1';
+  const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(
+    hasClusterParam ? filterFromUrl : true
+  );
   const [showDevTools, setShowDevTools] = useState(false);
   const [showJsonInput, setShowJsonInput] = useState(false);
   const [jsonInputValue, setJsonInputValue] = useState('');
@@ -942,6 +950,8 @@ function TopIssues() {
   );
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [disableFilters, setDisableFilters] = useState(false);
+
+  const selectedClusterId = decodeInteger(location.query.cluster);
 
   const {data: topIssuesResponse, isPending} = useApiQuery<TopIssuesResponse>(
     [`/organizations/${organization.slug}/top-issues/`],
@@ -962,7 +972,6 @@ function TopIssues() {
       setCustomClusterData(clusters as ClusterSummary[]);
       setJsonError(null);
       setShowJsonInput(false);
-      setCurrentIndex(0);
     } catch (e) {
       setJsonError(t('Invalid JSON: %s', e instanceof Error ? e.message : String(e)));
     }
@@ -973,7 +982,6 @@ function TopIssues() {
     setJsonInputValue('');
     setJsonError(null);
     setDisableFilters(false);
-    setCurrentIndex(0);
   };
 
   const isUsingCustomData = customClusterData !== null;
@@ -1021,15 +1029,38 @@ function TopIssues() {
     userTeams,
   ]);
 
+  const currentIndex = useMemo(() => {
+    if (selectedClusterId === undefined) {
+      return 0;
+    }
+    const idx = filteredClusters.findIndex(c => c.cluster_id === selectedClusterId);
+    return idx >= 0 ? idx : 0;
+  }, [filteredClusters, selectedClusterId]);
+
   const currentCluster = filteredClusters[currentIndex];
   const totalClusters = filteredClusters.length;
 
+  const navigateToCluster = (clusterId: number) => {
+    navigate({
+      pathname: location.pathname,
+      query: {...location.query, cluster: String(clusterId)},
+    });
+  };
+
   const handlePrevious = () => {
-    setCurrentIndex(prev => Math.max(0, prev - 1));
+    const prevIndex = Math.max(0, currentIndex - 1);
+    const prevCluster = filteredClusters[prevIndex];
+    if (prevCluster) {
+      navigateToCluster(prevCluster.cluster_id);
+    }
   };
 
   const handleNext = () => {
-    setCurrentIndex(prev => Math.min(totalClusters - 1, prev + 1));
+    const nextIndex = Math.min(totalClusters - 1, currentIndex + 1);
+    const nextCluster = filteredClusters[nextIndex];
+    if (nextCluster) {
+      navigateToCluster(nextCluster.cluster_id);
+    }
   };
 
   const hasTopIssuesUI = organization.features.includes('top-issues-ui');
@@ -1089,7 +1120,8 @@ function TopIssues() {
                   checked={filterByAssignedToMe}
                   onChange={e => {
                     setFilterByAssignedToMe(e.target.checked);
-                    setCurrentIndex(0);
+                    const newQuery = {...location.query, cluster: undefined};
+                    navigate({pathname: location.pathname, query: newQuery});
                   }}
                   aria-label={t('Assigned to me')}
                   size="sm"
