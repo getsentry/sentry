@@ -1153,19 +1153,6 @@ def handle_auto_assignment(job: PostProcessJob) -> None:
     )
 
 
-def process_service_hooks(job: PostProcessJob) -> None:
-    if job["is_reprocessed"]:
-        return
-
-    if _should_single_process_event(job):
-        # we will kick off service hooks in the workflow engine task
-        return
-
-    from sentry.sentry_apps.tasks.service_hooks import kick_off_service_hooks
-
-    kick_off_service_hooks(job["event"], job["has_alert"])
-
-
 def process_resource_change_bounds(job: PostProcessJob) -> None:
     if not should_process_resource_change_bounds(job):
         return
@@ -1652,7 +1639,6 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         handle_auto_assignment,
         kick_off_seer_automation,
         process_workflow_engine_issue_alerts,
-        process_service_hooks,
         process_resource_change_bounds,
         process_data_forwarding,
         process_plugins,

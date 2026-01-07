@@ -359,7 +359,7 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
         action_data = {
             "id": "sentry.mail.actions.NotifyEmailAction",
             "targetType": ActionTargetType.ISSUE_OWNERS.value,
-            "fallthroughType": FallthroughChoiceType.ALL_MEMBERS.value,
+            "fallthrough_type": FallthroughChoiceType.ALL_MEMBERS.value,
         }
         Rule.objects.filter(project=self.event.project).delete()
         rule = self.create_project_rule(project=self.event.project, action_data=[action_data])
@@ -386,7 +386,7 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
         action_data = {
             "id": "sentry.mail.actions.NotifyEmailAction",
             "targetType": ActionTargetType.ISSUE_OWNERS.value,
-            "fallthroughType": FallthroughChoiceType.NO_ONE.value,
+            "fallthrough_type": FallthroughChoiceType.NO_ONE.value,
         }
         Rule.objects.filter(project=self.event.project).delete()
         rule = self.create_project_rule(project=self.event.project, action_data=[action_data])
