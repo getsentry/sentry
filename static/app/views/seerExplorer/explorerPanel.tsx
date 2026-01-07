@@ -435,10 +435,7 @@ function ExplorerPanel() {
         if (isPolling && !readOnly && !interruptRequested && !isFileApprovalPending) {
           e.preventDefault();
           interruptRun();
-        } else if (readOnly) {
-          e.preventDefault();
-          setIsMinimized(true);
-        } else if (!isFileApprovalPending) {
+        } else if (readOnly || !isFileApprovalPending) {
           // Don't minimize if file approval is pending (Escape is used to reject)
           e.preventDefault();
           setIsMinimized(true);
@@ -623,14 +620,16 @@ function ExplorerPanel() {
                 }}
               />
             ))}
-            {isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches && (
-              <FileChangeApprovalBlock
-                currentIndex={fileApprovalIndex}
-                isLast
-                pendingInput={pendingInput!}
-              />
-            )}
-            {isQuestionPending && currentQuestion && (
+            {!readOnly &&
+              isFileApprovalPending &&
+              fileApprovalIndex < fileApprovalTotalPatches && (
+                <FileChangeApprovalBlock
+                  currentIndex={fileApprovalIndex}
+                  isLast
+                  pendingInput={pendingInput!}
+                />
+              )}
+            {!readOnly && isQuestionPending && currentQuestion && (
               <AskUserQuestionBlock
                 currentQuestion={currentQuestion}
                 customText={customText}
