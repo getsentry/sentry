@@ -10,6 +10,7 @@ from django.db.models import QuerySet
 from django.utils import timezone
 from rest_framework.request import Request
 
+from sentry import options
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
@@ -246,6 +247,11 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
                 outbox.save()
 
             SentryAppAvatar.objects.filter(sentry_app=self).delete()
+
+            if options.get("sentry-apps.hard-delete"):
+                # actually delete the object. we need to delete all soft-deleted objects before removing ParanoidModel
+                return super(Model, self).delete(*args, **kwargs)
+
             return super().delete(*args, **kwargs)
 
     def _disable(self):
