@@ -16,6 +16,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.overwatch_webhooks.types import OrganizationSummary, WebhookDetails
 from sentry.overwatch_webhooks.webhook_publisher import OverwatchWebhookPublisher
+from sentry.seer.code_review.utils import get_webhook_option_key
 from sentry.types.region import get_region_by_name
 from sentry.utils import metrics
 
@@ -23,14 +24,6 @@ from sentry.utils import metrics
 _INSTALLATION_EVENTS = {
     GithubWebhookType.INSTALLATION,
     GithubWebhookType.INSTALLATION_REPOSITORIES,
-}
-
-# Mapping of webhook types to their corresponding option keys
-_WEBHOOK_TYPE_TO_OPTION = {
-    GithubWebhookType.ISSUE_COMMENT: "github.webhook.issue-comment",
-    GithubWebhookType.PULL_REQUEST: "github.webhook.pr",
-    GithubWebhookType.PULL_REQUEST_REVIEW_COMMENT: "github.webhook.pr-review-comment",
-    GithubWebhookType.PULL_REQUEST_REVIEW: "github.webhook.pr-review",
 }
 
 
@@ -44,8 +37,9 @@ def get_github_events_to_forward_overwatch() -> set[GithubWebhookType]:
     """
     events = set(_INSTALLATION_EVENTS)
 
-    for webhook_type, option_key in _WEBHOOK_TYPE_TO_OPTION.items():
-        if options.get(option_key):
+    for webhook_type in GithubWebhookType:
+        option_key = get_webhook_option_key(webhook_type)
+        if option_key and options.get(option_key):
             events.add(webhook_type)
 
     return events

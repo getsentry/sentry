@@ -10,7 +10,6 @@ from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 
 from ..preflight import CodeReviewPreflightService
-from ..utils import get_pr_author_id
 
 if TYPE_CHECKING:
     from sentry.integrations.github.webhook import WebhookProcessor
@@ -56,6 +55,8 @@ def handle_webhook_event(
             extra={"github_event": github_event.value},
         )
         return
+
+    from ..utils import get_pr_author_id
 
     preflight = CodeReviewPreflightService(
         organization=organization,
