@@ -213,18 +213,20 @@ class ScheduleRunner:
             return 60
 
         while True:
+            # Peek at the top, and if it is due, pop, spawn and update last run time
             _, entry = self._heap[0]
             if entry.is_due():
                 heapq.heappop(self._heap)
                 try:
                     self._try_spawn(entry)
                 except Exception as e:
+                    # Trap errors from spawning/update state so that the heap stays consistent.
                     capture_exception(e)
                 heapq.heappush(self._heap, (entry.remaining_seconds(), entry))
                 continue
             else:
+                # The top of the heap isn't ready, break for sleep
                 break
-
         return self._heap[0][0]
 
     def _try_spawn(self, entry: ScheduleEntry) -> None:
