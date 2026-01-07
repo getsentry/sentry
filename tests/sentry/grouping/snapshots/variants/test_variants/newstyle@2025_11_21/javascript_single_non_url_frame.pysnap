@@ -9,24 +9,16 @@ app:
     app (ignored because system stacktrace takes precedence)
       stacktrace (ignored because it contains no in-app frames)
         frame (non app frame)
-          module (ignored bad javascript module)
-            "foo/bar/baz"
-          filename (ignored because frame points to a URL)
-            "foo.py"
-          function*
-            "a"
+          filename*
+            "great.js"
 --------------------------------------------------------------------------
 system:
-  hash: "0cc175b9c0f1b6a831c399e269772661"
+  hash: "d2ab6870c762b8a67d831c2a608bbfb4"
   contributing component: stacktrace
   hint: None
   root_component:
     system*
       stacktrace*
         frame*
-          module (ignored bad javascript module)
-            "foo/bar/baz"
-          filename (ignored because frame points to a URL)
-            "foo.py"
-          function*
-            "a"
+          filename*
+            "great.js"

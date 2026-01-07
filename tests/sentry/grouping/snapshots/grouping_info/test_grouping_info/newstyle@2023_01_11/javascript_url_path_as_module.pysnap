@@ -24,12 +24,12 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                 "name": null,
                 "values": [
                   {
-                    "contributes": false,
-                    "hint": "ignored bad javascript module",
+                    "contributes": true,
+                    "hint": null,
                     "id": "module",
                     "name": null,
                     "values": [
-                      "foo/bar/baz"
+                      "dogs.are.great"
                     ]
                   },
                   {
@@ -38,17 +38,48 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                     "id": "filename",
                     "name": null,
                     "values": [
-                      "foo.py"
+                      "great.js"
                     ]
                   },
                   {
-                    "contributes": true,
+                    "contributes": false,
                     "hint": null,
                     "id": "function",
                     "name": null,
+                    "values": []
+                  }
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": "non app frame",
+                "id": "frame",
+                "name": null,
+                "values": [
+                  {
+                    "contributes": false,
+                    "hint": "ignored bad javascript module",
+                    "id": "module",
+                    "name": null,
                     "values": [
-                      "a"
+                      "adopt/dont/shop.js"
                     ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored because frame points to a URL",
+                    "id": "filename",
+                    "name": null,
+                    "values": [
+                      "shop.js"
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": null,
+                    "id": "function",
+                    "name": null,
+                    "values": []
                   }
                 ]
               }
@@ -83,12 +114,12 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                 "name": null,
                 "values": [
                   {
-                    "contributes": false,
-                    "hint": "ignored bad javascript module",
+                    "contributes": true,
+                    "hint": null,
                     "id": "module",
                     "name": null,
                     "values": [
-                      "foo/bar/baz"
+                      "dogs.are.great"
                     ]
                   },
                   {
@@ -97,17 +128,48 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                     "id": "filename",
                     "name": null,
                     "values": [
-                      "foo.py"
+                      "great.js"
                     ]
                   },
                   {
-                    "contributes": true,
+                    "contributes": false,
                     "hint": null,
                     "id": "function",
                     "name": null,
+                    "values": []
+                  }
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": null,
+                "id": "frame",
+                "name": null,
+                "values": [
+                  {
+                    "contributes": false,
+                    "hint": "ignored bad javascript module",
+                    "id": "module",
+                    "name": null,
                     "values": [
-                      "a"
+                      "adopt/dont/shop.js"
                     ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored because frame points to a URL",
+                    "id": "filename",
+                    "name": null,
+                    "values": [
+                      "shop.js"
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": null,
+                    "id": "function",
+                    "name": null,
+                    "values": []
                   }
                 ]
               }
@@ -117,7 +179,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
       },
       "contributes": true,
       "description": "event-level stacktrace — all frames",
-      "hash": "0cc175b9c0f1b6a831c399e269772661",
+      "hash": "1001e7b7dd0155a6d4021cd6d6b9f50d",
       "hint": null,
       "key": "system_stacktrace",
       "type": "component"
