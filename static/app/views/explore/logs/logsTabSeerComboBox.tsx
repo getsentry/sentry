@@ -1,6 +1,5 @@
 import {useCallback, useMemo} from 'react';
 
-import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
@@ -11,15 +10,15 @@ import type {DateString} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
+import {LOGS_QUERY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LOGS_AGGREGATE_FIELD_KEY} from 'sentry/views/explore/logs/logsQueryParams';
 import type {WritableAggregateField} from 'sentry/views/explore/queryParams/aggregateField';
-import {
-  useQueryParams,
-  useSetQueryParams,
-} from 'sentry/views/explore/queryParams/context';
+import {useQueryParams} from 'sentry/views/explore/queryParams/context';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {isVisualize} from 'sentry/views/explore/queryParams/visualize';
@@ -27,6 +26,7 @@ import {isVisualize} from 'sentry/views/explore/queryParams/visualize';
 interface AskSeerSearchQuery {
   end: string | null;
   groupBys: string[];
+  mode: string;
   query: string;
   sort: string;
   start: string | null;
@@ -37,6 +37,7 @@ interface LogsAskSeerTranslateResponse {
   responses: Array<{
     end: string | null;
     group_by: string[];
+    mode: string;
     query: string;
     sort: string;
     start: string | null;
@@ -46,12 +47,12 @@ interface LogsAskSeerTranslateResponse {
 }
 
 export function LogsTabSeerComboBox() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
   const organization = useOrganization();
   const queryParams = useQueryParams();
-  const setQueryParams = useSetQueryParams();
-  const router = useRouter();
   const {
     currentInputValueRef,
     query,
@@ -123,6 +124,7 @@ export function LogsTabSeerComboBox() {
           statsPeriod: r?.stats_period ?? '',
           start: r?.start ?? null,
           end: r?.end ?? null,
+          mode: r?.mode ?? 'samples',
         })),
       };
     },
@@ -155,8 +157,13 @@ export function LogsTabSeerComboBox() {
         end = pageFilters.selection.datetime.end;
       }
 
-      // Update mode based on groupBys
-      const mode = groupBys.length > 0 ? Mode.AGGREGATE : Mode.SAMPLES;
+      // Update mode based on groupBys or response mode (matches Trace Explorer logic)
+      const mode =
+        groupBys.length > 0
+          ? Mode.AGGREGATE
+          : result.mode === 'aggregates'
+            ? Mode.AGGREGATE
+            : Mode.SAMPLES;
 
       // Build aggregateFields array (similar to useSetQueryParamsGroupBys logic)
       // This combines groupBys with existing visualizations
@@ -197,43 +204,39 @@ export function LogsTabSeerComboBox() {
         aggregateFields.push({groupBy});
       }
 
-      // Update all params in a single call to avoid race conditions
-      setQueryParams({
-        query: queryToUse,
-        aggregateFields,
-        mode,
-      });
+      // Build datetime selection similar to Trace Explorer
+      const selection = {
+        ...pageFilters.selection,
+        datetime: {
+          start,
+          end,
+          utc: pageFilters.selection.datetime.utc,
+          period:
+            resultStart && resultEnd
+              ? null
+              : statsPeriod || pageFilters.selection.datetime.period,
+        },
+      };
 
-      // Update page filters datetime if AI provided start/end or statsPeriod
-      if (resultStart && resultEnd) {
-        updateDateTime(
-          {
-            start,
-            end,
-            period: null,
-            utc: pageFilters.selection.datetime.utc,
-          },
-          router
-        );
-      } else if (statsPeriod && statsPeriod !== pageFilters.selection.datetime.period) {
-        updateDateTime(
-          {
-            period: statsPeriod,
-            start: null,
-            end: null,
-            utc: pageFilters.selection.datetime.utc,
-          },
-          router
-        );
-      }
+      // Build complete URL with all params (query, mode, aggregateFields, datetime)
+      // This matches the Trace Explorer pattern of single navigation
+      const newQuery = {
+        ...location.query,
+        [LOGS_QUERY_KEY]: queryToUse,
+        mode,
+        [LOGS_AGGREGATE_FIELD_KEY]: aggregateFields.map(field => JSON.stringify(field)),
+        // Datetime params from selection
+        start: selection.datetime.start,
+        end: selection.datetime.end,
+        statsPeriod: selection.datetime.period,
+        utc: selection.datetime.utc,
+      };
 
       askSeerSuggestedQueryRef.current = JSON.stringify({
+        selection,
         query: queryToUse,
         groupBys,
         mode,
-        statsPeriod,
-        start,
-        end,
       });
 
       trackAnalytics('logs.ai_query_applied', {
@@ -241,14 +244,17 @@ export function LogsTabSeerComboBox() {
         query: queryToUse,
         group_by_count: groupBys.length,
       });
+
+      // Single navigation with all params (matches Trace Explorer pattern)
+      navigate({...location, query: newQuery}, {replace: true, preventScrollReset: true});
     },
     [
       askSeerSuggestedQueryRef,
+      location,
+      navigate,
       organization,
-      pageFilters.selection.datetime,
+      pageFilters.selection,
       queryParams.aggregateFields,
-      router,
-      setQueryParams,
     ]
   );
 
