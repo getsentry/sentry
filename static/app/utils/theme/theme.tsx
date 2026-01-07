@@ -169,13 +169,9 @@ type AlertColors = Record<
   }
 >;
 
-const generateThemeUtils = (
-  tokens: Tokens,
-  colors: ReturnType<typeof deprecatedColorMappings>,
-  aliases: Aliases
-) => ({
+const generateThemeUtils = (tokens: Tokens) => ({
   tooltipUnderline: (
-    underlineColor: ColorOrAlias | 'warning' | 'danger' | 'success' | 'muted' = 'gray300'
+    underlineColor: 'warning' | 'danger' | 'success' | 'muted' = 'muted'
   ) => ({
     textDecoration: 'underline' as const,
     textDecorationThickness: '0.75px',
@@ -189,8 +185,7 @@ const generateThemeUtils = (
             ? tokens.content.success
             : underlineColor === 'muted'
               ? tokens.content.secondary
-              : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                (colors[underlineColor] ?? aliases[underlineColor]),
+              : undefined,
     textDecorationStyle: 'dotted' as const,
   }),
   overflowEllipsis: css`
@@ -573,12 +568,7 @@ const commonTheme = {
 };
 
 type Aliases = typeof lightAliases;
-/**
- * Do not use this type. Use direct colors access via theme.colors or encapsulate
- * colors into human readable variants that signify the color's purpose.
- * @deprecated
- */
-export type ColorOrAlias = keyof Aliases;
+
 export interface SentryTheme
   extends Omit<typeof lightThemeDefinition, 'chart' | 'tokens'> {
   chart: {
@@ -1395,11 +1385,7 @@ const lightThemeDefinition = {
   }),
 
   // @TODO: these colors need to be ported
-  ...generateThemeUtils(
-    baseLightTheme.tokens,
-    deprecatedColorMappings(lightColors),
-    lightAliases
-  ),
+  ...generateThemeUtils(baseLightTheme.tokens),
   alert: generateAlertTheme(lightColors, lightAliases),
   button: generateButtonTheme(lightColors, lightAliases, baseLightTheme.tokens),
   tag: generateTagTheme(lightColors),
@@ -1448,11 +1434,7 @@ export const darkTheme: SentryTheme = {
   }),
 
   // @TODO: these colors need to be ported
-  ...generateThemeUtils(
-    baseDarkTheme.tokens,
-    deprecatedColorMappings(darkColors),
-    darkAliases
-  ),
+  ...generateThemeUtils(baseDarkTheme.tokens),
   alert: generateAlertTheme(darkColors, darkAliases),
   button: generateButtonTheme(darkColors, darkAliases, baseDarkTheme.tokens),
   tag: generateTagTheme(darkColors),
