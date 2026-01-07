@@ -157,7 +157,7 @@ function GroupReleaseStats({
               <SidebarSection.Title>{t('Releases')}</SidebarSection.Title>
               <SidebarSection.Content>
                 <AlertLink.Container>
-                  <AlertLink type="muted" to={releaseTrackingUrl}>
+                  <AlertLink variant="muted" to={releaseTrackingUrl}>
                     {t('See which release caused this issue ')}
                   </AlertLink>
                 </AlertLink.Container>

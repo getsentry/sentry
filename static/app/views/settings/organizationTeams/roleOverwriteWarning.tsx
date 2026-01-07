@@ -19,7 +19,7 @@ export function RoleOverwriteIcon(props: Props) {
 
   return (
     <Tooltip title={getOverwriteString(props)}>
-      <IconInfo size="sm" color="gray300" />
+      <IconInfo size="sm" variant="muted" />
     </Tooltip>
   );
 }
@@ -31,7 +31,7 @@ export function RoleOverwritePanelAlert(props: Props) {
   }
 
   return (
-    <PanelAlert data-test-id="alert-role-overwrite" type="info">
+    <PanelAlert data-test-id="alert-role-overwrite" variant="info">
       {getOverwriteString(props)}
     </PanelAlert>
   );

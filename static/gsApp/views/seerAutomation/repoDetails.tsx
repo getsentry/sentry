@@ -3,35 +3,21 @@ import {Fragment} from 'react';
 import {Alert} from '@sentry/scraps/alert/alert';
 import {LinkButton} from '@sentry/scraps/button/linkButton';
 
+import NotFound from 'sentry/components/errors/notFound';
 import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconBitbucket} from 'sentry/icons/iconBitbucket';
-import {IconGithub} from 'sentry/icons/iconGithub';
-import {IconGitlab} from 'sentry/icons/iconGitlab';
-import {IconOpen} from 'sentry/icons/iconOpen';
-import {IconVsts} from 'sentry/icons/iconVsts';
 import {t, tct} from 'sentry/locale';
+import showNewSeer from 'sentry/utils/seer/showNewSeer';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import RepoDetailsForm from 'getsentry/views/seerAutomation/components/repoDetails/repoDetailsForm';
+import RepoProviderIcon from 'getsentry/views/seerAutomation/components/repoProviderIcon';
 import useRepositoryWithSettings from 'getsentry/views/seerAutomation/onboarding/hooks/useRepositoryWithSettings';
-
-const PROVIDER_ICONS = {
-  github: IconGithub,
-  'integrations:github': IconGithub,
-  'integrations:github_enterprise': IconGithub,
-  bitbucket: IconBitbucket,
-  'integrations:bitbucket': IconBitbucket,
-  visualstudio: IconVsts,
-  'integrations:vsts': IconVsts,
-  gitlab: IconGitlab,
-  'integrations:gitlab': IconGitlab,
-};
 
 export default function SeerRepoDetails() {
   const {repoId} = useParams<{repoId: string}>();
@@ -42,7 +28,14 @@ export default function SeerRepoDetails() {
     error,
     isPending,
     refetch,
-  } = useRepositoryWithSettings({repositoryId: repoId});
+  } = useRepositoryWithSettings({
+    repositoryId: repoId,
+    enabled: showNewSeer(organization),
+  });
+
+  if (!showNewSeer(organization)) {
+    return <NotFound />;
+  }
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -51,10 +44,6 @@ export default function SeerRepoDetails() {
   if (error) {
     return <LoadingError onRetry={refetch} />;
   }
-
-  const ProviderIcon =
-    PROVIDER_ICONS[repoWithSettings?.provider?.id as keyof typeof PROVIDER_ICONS] ??
-    IconOpen;
 
   return (
     <Fragment>
@@ -67,7 +56,7 @@ export default function SeerRepoDetails() {
           repoName: <code>{repoWithSettings?.name}</code>,
           providerLink: (
             <ExternalLink href={repoWithSettings?.url}>
-              <ProviderIcon size="md" />
+              <RepoProviderIcon size="md" provider={repoWithSettings?.provider.id} />
             </ExternalLink>
           ),
         })}
@@ -88,7 +77,7 @@ export default function SeerRepoDetails() {
           repoWithSettings={repoWithSettings}
         />
       ) : (
-        <Alert type="warning">{t('Seer is not supported for this repository.')}</Alert>
+        <Alert variant="warning">{t('Seer is not supported for this repository.')}</Alert>
       )}
     </Fragment>
   );

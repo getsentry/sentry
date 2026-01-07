@@ -21,13 +21,13 @@ import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
+import {openOnDemandBudgetEditModal} from 'getsentry/actionCreators/modal';
 import {sendAddEventsRequest} from 'getsentry/actionCreators/upsell';
 import type {EventType} from 'getsentry/components/addEventsCTA';
 import StartTrialButton from 'getsentry/components/startTrialButton';
 import useSubscription from 'getsentry/hooks/useSubscription';
 import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
 import {getPotentialProductTrial, getSeerTrialCategory} from 'getsentry/utils/billing';
-import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
 
 type AiSetupDataConsentProps = {
   groupId?: string;
@@ -93,7 +93,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
     }
     if (isPerCategoryOnDemand) {
       // Seer does not support per category on demand budgets, so we need to redirect to the checkout page to prompt the user to switch
-      navigate('/checkout/?referrer=ai_setup_data_consent#step3');
+      navigate('/checkout/?referrer=ai_setup_data_consent#step2');
       return;
     }
     openOnDemandBudgetEditModal({
@@ -113,7 +113,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
       <SingleCard>
         <Flex align="center" gap="md">
           <MeetSeerHeader>MEET SEER</MeetSeerHeader>
-          <IconSeer animation="waiting" color="subText" size="lg" />
+          <IconSeer animation="waiting" variant="muted" size="lg" />
         </Flex>
         <Paragraph>
           {t(
@@ -288,7 +288,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
         </LegalText>
       </SingleCard>
       {warnAboutGithubIntegration && (
-        <Alert type="warning" showIcon={false}>
+        <Alert variant="warning" showIcon={false}>
           {t(
             'Seer currently works best with GitHub repositories, but support for other providers is coming soon. Either way, you can still use Seer to triage and dive into issues.'
           )}

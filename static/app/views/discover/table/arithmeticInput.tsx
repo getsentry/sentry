@@ -428,7 +428,7 @@ const DropdownItemsList = styled('ul')`
 
 const ListItem = styled('li')`
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 
@@ -455,9 +455,11 @@ const DropdownListItem = styled(ListItem)`
   padding: ${space(1)} ${space(2)};
   cursor: pointer;
 
-  &:hover,
+  &:hover {
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
   &.active {
-    background: ${p => p.theme.hover};
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 `;
 
@@ -477,6 +479,6 @@ const Info = styled('div')`
   color: ${p => p.theme.subText};
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;

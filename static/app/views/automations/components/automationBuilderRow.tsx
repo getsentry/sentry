@@ -34,7 +34,7 @@ export default function AutomationBuilderRow({
           className="delete-row"
         />
       </RowContainer>
-      {hasError && errorMessage && <Alert type="error">{errorMessage}</Alert>}
+      {hasError && errorMessage && <Alert variant="danger">{errorMessage}</Alert>}
     </Flex>
   );
 }
@@ -43,7 +43,7 @@ const RowContainer = styled('div')<{incompatible?: boolean}>`
   display: flex;
   background-color: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.radius.md};
-  border: 1px ${p => p.theme.innerBorder} solid;
+  border: 1px ${p => p.theme.tokens.border.secondary} solid;
   border-color: ${p => (p.incompatible ? p.theme.tokens.border.danger : 'none')};
   position: relative;
   padding: ${space(0.75)} ${space(1.5)};

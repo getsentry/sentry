@@ -1,10 +1,13 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 
+import {AlertLink} from '@sentry/scraps/alert/alertLink';
 import {LinkButton} from '@sentry/scraps/button/linkButton';
 import {Flex} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import Feature from 'sentry/components/acl/feature';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
@@ -22,6 +25,7 @@ import {
   useMutateDataForwarder,
 } from 'sentry/views/settings/organizationDataForwarding/util/hooks';
 import {
+  DATA_FORWARDING_FEATURES,
   DataForwarderProviderSlug,
   ProviderLabels,
   type DataForwarder,
@@ -30,11 +34,15 @@ import {
 export default function OrganizationDataForwardingSetup() {
   const navigate = useNavigate();
   const organization = useOrganization();
-  const dataForwarders = useDataForwarders({params: {orgSlug: organization.slug}});
+  const {data: dataForwarders = []} = useDataForwarders({
+    params: {orgSlug: organization.slug},
+  });
+  const canCreateForwarder =
+    dataForwarders.length < Object.values(DataForwarderProviderSlug).length;
 
   const disabledProviders = useMemo(
-    () => new Set(dataForwarders.data?.map(df => df.provider)),
-    [dataForwarders.data]
+    () => new Set(dataForwarders.map(df => df.provider)),
+    [dataForwarders]
   );
 
   const {projects} = useProjects({orgId: organization.slug});
@@ -114,48 +122,79 @@ export default function OrganizationDataForwardingSetup() {
             {t('Back')}
           </LinkButton>
         </Flex>
-        <Tabs value={provider} onChange={setProvider} disableOverflow>
-          <TabList variant="floating">
-            {Object.entries(ProviderLabels).map(([key, label]) => (
-              <TabList.Item
-                key={key}
-                disabled={disabledProviders.has(key as DataForwarderProviderSlug)}
-                tooltip={
-                  disabledProviders.has(key as DataForwarderProviderSlug)
-                    ? {title: t('Only one configuration is allowed per provider.')}
-                    : undefined
-                }
-              >
-                <Flex align="center" gap="sm">
-                  <PluginIcon pluginId={key} />
-                  <b>{label}</b>
-                </Flex>
-              </TabList.Item>
-            ))}
-          </TabList>
-        </Tabs>
-        <Form
-          model={formModel}
-          onSubmit={data => {
-            const {enroll_new_projects, project_ids, is_enabled, ...config} = data;
-            const dataForwardingPayload: Record<string, any> = {
-              provider,
-              config,
-              is_enabled,
-              enroll_new_projects,
-              project_ids,
-            };
-            createDataForwarder(dataForwardingPayload as DataForwarder);
-          }}
-          submitLabel={t('Complete Setup')}
+        <Feature
+          features={DATA_FORWARDING_FEATURES}
+          hookName="feature-disabled:data-forwarding"
         >
-          <JsonForm
-            forms={getDataForwarderFormGroups({
-              provider,
-              projects,
-            })}
-          />
-        </Form>
+          {({hasFeature, features}) => (
+            <Fragment>
+              {!canCreateForwarder && (
+                <AlertLink
+                  variant="warning"
+                  to={`/settings/${organization.slug}/data-forwarding/`}
+                >
+                  {t(
+                    'Cannot create any more forwarders, manage your existing ones instead.'
+                  )}
+                </AlertLink>
+              )}
+              {!hasFeature && (
+                <FeatureDisabled
+                  alert
+                  featureName={t('Data Forwarding')}
+                  features={features}
+                />
+              )}
+              <Tabs value={provider} onChange={setProvider} disableOverflow>
+                <TabList variant="floating">
+                  {Object.entries(ProviderLabels).map(([key, label]) => (
+                    <TabList.Item
+                      key={key}
+                      disabled={
+                        disabledProviders.has(key as DataForwarderProviderSlug) ||
+                        !hasFeature
+                      }
+                      tooltip={
+                        disabledProviders.has(key as DataForwarderProviderSlug)
+                          ? {title: t('Only one configuration is allowed per provider.')}
+                          : undefined
+                      }
+                    >
+                      <Flex align="center" gap="sm">
+                        <PluginIcon pluginId={key} />
+                        <b>{label}</b>
+                      </Flex>
+                    </TabList.Item>
+                  ))}
+                </TabList>
+              </Tabs>
+              <Form
+                submitDisabled={!canCreateForwarder || !hasFeature}
+                model={formModel}
+                onSubmit={data => {
+                  const {enroll_new_projects, project_ids, is_enabled, ...config} = data;
+                  const dataForwardingPayload: Record<string, any> = {
+                    provider,
+                    config,
+                    is_enabled,
+                    enroll_new_projects,
+                    project_ids,
+                  };
+                  createDataForwarder(dataForwardingPayload as DataForwarder);
+                }}
+                submitLabel={t('Complete Setup')}
+              >
+                <JsonForm
+                  disabled={!canCreateForwarder || !hasFeature}
+                  forms={getDataForwarderFormGroups({
+                    provider,
+                    projects,
+                  })}
+                />
+              </Form>
+            </Fragment>
+          )}
+        </Feature>
       </Flex>
     </Fragment>
   );

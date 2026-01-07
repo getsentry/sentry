@@ -169,10 +169,10 @@ const styles = (theme: Theme, isDark: boolean) => css`
   }
 
   a {
-    color: ${theme.linkColor};
+    color: ${theme.tokens.interactive.link.accent.rest};
     &:focus-visible,
     &:hover {
-      color: ${theme.linkHoverColor};
+      color: ${theme.tokens.interactive.link.accent.hover};
     }
   }
 
@@ -261,7 +261,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
               color: ${theme.tokens.content.primary};
 
               &:hover {
-                color: ${theme.linkHoverColor};
+                color: ${theme.tokens.interactive.link.accent.hover};
               }
             }
           }
@@ -295,7 +295,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
         }
 
         .exception {
-          border-color: ${theme.innerBorder};
+          border-color: ${theme.tokens.border.secondary};
         }
 
         .traceback {

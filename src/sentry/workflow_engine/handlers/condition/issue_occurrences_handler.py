@@ -1,6 +1,6 @@
 from typing import Any
 
-from sentry.models.group import Group
+from sentry.tasks.post_process import fetch_buffered_group_stats
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
@@ -22,7 +22,6 @@ class IssueOccurrencesConditionHandler(DataConditionHandler[WorkflowEventData]):
 
     @staticmethod
     def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
-        group: Group = event_data.group
         try:
             value = int(comparison["value"])
         except (TypeError, ValueError, KeyError):
@@ -30,9 +29,12 @@ class IssueOccurrencesConditionHandler(DataConditionHandler[WorkflowEventData]):
 
         # This value is slightly delayed due to us batching writes to times_seen. We attempt to work
         # around this by including pending updates from buffers to improve accuracy.
-        try:
-            issue_occurrences: int = group.times_seen_with_pending
-        except AssertionError:
-            # This is a fallback for when times_seen_pending has not yet been set
-            issue_occurrences = group.times_seen
+        group = event_data.group
+        fetch_buffered_group_stats(event_data.group)
+        issue_occurrences = (
+            group.times_seen_with_pending
+            if hasattr(group, "_times_seen_pending")
+            else group.times_seen
+        )
+
         return bool(issue_occurrences >= value)

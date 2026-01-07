@@ -39,7 +39,7 @@ export const FieldWrapper = styled('div')<FieldWrapperProps>`
   ${p =>
     !p.stacked &&
     css`
-      border-bottom: 1px solid ${p.theme.innerBorder};
+      border-bottom: 1px solid ${p.theme.tokens.border.secondary};
     `}
 
   ${p =>

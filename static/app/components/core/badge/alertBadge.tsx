@@ -12,12 +12,9 @@ import {
 } from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 
-import {ChonkAlertBadgeDiamondBackground} from './alertBadge.chonk';
-
-export interface AlertBadgeProps {
+interface AlertBadgeProps {
   /**
    * Displays a "disabled" badge
    */
@@ -90,11 +87,52 @@ function getDiamondTheme(
   if (status === IncidentStatus.WARNING) {
     return {
       text: t('Warning'),
-      backgroundColor: theme.warningText,
+      backgroundColor: theme.tokens.content.warning,
       icon: IconExclamation,
     };
   }
   return {text: t('Resolved'), backgroundColor: theme.successText, icon: IconCheckmark};
+}
+
+function makeAlertBadgeDiamondBackgroundTheme(
+  status: AlertBadgeProps['status'],
+  isIssue: AlertBadgeProps['isIssue'],
+  isDisabled: AlertBadgeProps['isDisabled'],
+  theme: Theme
+): React.CSSProperties {
+  if (isDisabled) {
+    return {
+      color: theme.tokens.content.primary,
+      background: theme.colors.surface500,
+      border: `1px solid ${theme.colors.surface100}`,
+    };
+  }
+  if (isIssue) {
+    return {
+      color: theme.tokens.content.primary,
+      background: theme.colors.surface500,
+      border: `1px solid ${theme.colors.surface100}`,
+    };
+  }
+  if (status === IncidentStatus.CRITICAL) {
+    return {
+      color: theme.colors.white,
+      background: theme.colors.chonk.red400,
+      border: `1px solid ${theme.colors.red100}`,
+    };
+  }
+  if (status === IncidentStatus.WARNING) {
+    return {
+      color: theme.colors.black,
+      background: theme.colors.chonk.yellow400,
+      border: `1px solid ${theme.colors.yellow100}`,
+    };
+  }
+  return {
+    color: theme.colors.black,
+    background: theme.colors.chonk.green400,
+    border: `1px solid ${theme.colors.green100}`,
+  };
 }
 
 const PaddedContainer = styled(Flex)`
@@ -102,25 +140,20 @@ const PaddedContainer = styled(Flex)`
   padding: 5px 4px;
 `;
 
-const DiamondBackground = withChonk(
-  styled('div')<AlertBadgeProps>`
-    background-color: ${p =>
-      getDiamondTheme(p.status, p.isIssue, p.isDisabled, p.theme).backgroundColor};
-    width: 26px;
-    height: 26px;
+const DiamondBackground = styled('div')<AlertBadgeProps>`
+  ${p => ({
+    ...makeAlertBadgeDiamondBackgroundTheme(p.status, p.isIssue, p.isDisabled, p.theme),
+  })};
 
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 2px;
-    transform: rotate(45deg);
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: ${p => p.theme.radius.xs};
 
-    > svg {
-      width: 13px;
-      height: 13px;
-      transform: rotate(-45deg);
-      color: ${p => p.theme.white};
-    }
-  `,
-  ChonkAlertBadgeDiamondBackground
-);
+  > svg {
+    width: 13px;
+    height: 13px;
+  }
+`;

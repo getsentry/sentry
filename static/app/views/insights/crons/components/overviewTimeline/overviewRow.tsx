@@ -118,8 +118,8 @@ export function OverviewRow({
             {scheduleAsText(monitor.config)}
           </ScheduleDetails>
           <MonitorStatuses>
-            {monitor.isMuted && <Tag>{t('Muted')}</Tag>}
-            {isDisabled && <Tag>{t('Disabled')}</Tag>}
+            {monitor.isMuted && <Tag variant="muted">{t('Muted')}</Tag>}
+            {isDisabled && <Tag variant="muted">{t('Disabled')}</Tag>}
           </MonitorStatuses>
         </DetailsContainer>
       </DetailsLink>
@@ -362,7 +362,7 @@ const MonitorEnvContainer = styled('div')`
   padding: ${space(3)} ${space(2)};
   gap: ${space(4)};
   flex-direction: column;
-  border-right: 1px solid ${p => p.theme.innerBorder};
+  border-right: 1px solid ${p => p.theme.tokens.border.secondary};
   text-align: right;
 `;
 

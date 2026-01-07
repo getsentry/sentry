@@ -11,6 +11,7 @@ import {
   BreadcrumbsDrawer,
 } from 'sentry/components/events/breadcrumbs/breadcrumbsDrawer';
 import BreadcrumbsTimeline from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
+import {CopyBreadcrumbsDropdown} from 'sentry/components/events/breadcrumbs/copyBreadcrumbs';
 import {
   BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
   BREADCRUMB_TIME_DISPLAY_OPTIONS,
@@ -154,6 +155,7 @@ export default function BreadcrumbsDataSection({
         }}
         size="xs"
       />
+      <CopyBreadcrumbsDropdown breadcrumbs={enhancedCrumbs} />
     </ButtonBar>
   );
 
@@ -218,7 +220,7 @@ const ViewAllContainer = styled('div')`
     width: 1px;
     top: -${space(1)};
     height: ${space(1)};
-    background: ${p => p.theme.border};
+    background: ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 `;
 

@@ -67,7 +67,7 @@ const SectionHeading = styled('div')`
   padding: ${space(1)} ${space(2)};
 
   &:not(:first-of-type) {
-    border-top: 1px solid ${p => p.theme.innerBorder};
+    border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 
@@ -82,7 +82,7 @@ const Empty = styled('div')`
   padding: ${space(2)};
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSize.md};
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 export default HelpSearch;

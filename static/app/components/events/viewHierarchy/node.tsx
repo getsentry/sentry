@@ -14,7 +14,7 @@ type NodeProps = {
   isSelected?: boolean;
 };
 
-function Node({
+export function Node({
   label,
   id,
   isExpanded,
@@ -33,9 +33,9 @@ function Node({
         collapsible={collapsible}
       >
         {isExpanded ? (
-          <IconSubtract legacySize="9px" color="white" />
+          <StyledIconSubtract legacySize="9px" />
         ) : (
-          <IconAdd legacySize="9px" color="white" />
+          <StyledIconAdd legacySize="9px" />
         )}
       </IconWrapper>
       <NodeTitle id={`${id}-title`} focused={isFocused}>
@@ -45,7 +45,12 @@ function Node({
   );
 }
 
-export {Node};
+const StyledIconSubtract = styled(IconSubtract)`
+  color: ${p => p.theme.colors.white};
+`;
+const StyledIconAdd = styled(IconAdd)`
+  color: ${p => p.theme.colors.white};
+`;
 
 const NodeContents = styled('div')`
   padding-left: 0;

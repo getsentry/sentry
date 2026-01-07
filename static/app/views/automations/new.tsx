@@ -1,6 +1,7 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {Observer} from 'mobx-react-lite';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/core/button';
@@ -33,6 +34,7 @@ import {EditableAutomationName} from 'sentry/views/automations/components/editab
 import {getAutomationAnalyticsPayload} from 'sentry/views/automations/components/forms/common/getAutomationAnalyticsPayload';
 import {AutomationFormProvider} from 'sentry/views/automations/components/forms/context';
 import {useCreateAutomation} from 'sentry/views/automations/hooks';
+import {useAutomationBuilderErrors} from 'sentry/views/automations/hooks/useAutomationBuilderErrors';
 import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
@@ -78,15 +80,11 @@ export default function AutomationNewSettings() {
   const theme = useTheme();
   const maxWidth = theme.breakpoints.lg;
 
-  const [automationBuilderErrors, setAutomationBuilderErrors] = useState<
-    Record<string, any>
-  >({});
-  const removeError = useCallback((errorId: string) => {
-    setAutomationBuilderErrors(prev => {
-      const {[errorId]: _removedError, ...remainingErrors} = prev;
-      return remainingErrors;
-    });
-  }, []);
+  const {
+    errors: automationBuilderErrors,
+    setErrors: setAutomationBuilderErrors,
+    removeError,
+  } = useAutomationBuilderErrors();
 
   const initialConnectedIds = useMemo(() => {
     const connectedIdsQuery = location.query.connectedIds as
@@ -105,24 +103,29 @@ export default function AutomationNewSettings() {
   const {mutateAsync: createAutomation, error} = useCreateAutomation();
 
   const handleSubmit = useCallback<OnSubmitCallback>(
-    async (data, _, __, ___, ____) => {
+    async (data, onSubmitSuccess, onSubmitError, _event, formModel) => {
       const errors = validateAutomationBuilderState(state);
       setAutomationBuilderErrors(errors);
       const newAutomationData = getNewAutomationData(data as AutomationFormData, state);
 
       if (Object.keys(errors).length === 0) {
         try {
+          formModel.setFormSaving();
           const automation = await createAutomation(newAutomationData);
+          onSubmitSuccess(formModel.getData());
           trackAnalytics('automation.created', {
             organization,
             ...getAutomationAnalyticsPayload(newAutomationData),
+            source: 'full',
             success: true,
           });
           navigate(makeAutomationDetailsPathname(organization.slug, automation.id));
-        } catch {
+        } catch (err) {
+          onSubmitError(err);
           trackAnalytics('automation.created', {
             organization,
             ...getAutomationAnalyticsPayload(newAutomationData),
+            source: 'full',
             success: false,
           });
         }
@@ -130,11 +133,12 @@ export default function AutomationNewSettings() {
         trackAnalytics('automation.created', {
           organization,
           ...getAutomationAnalyticsPayload(newAutomationData),
+          source: 'full',
           success: false,
         });
       }
     },
-    [createAutomation, state, navigate, organization]
+    [createAutomation, state, navigate, organization, setAutomationBuilderErrors]
   );
 
   return (
@@ -185,9 +189,13 @@ export default function AutomationNewSettings() {
         </Layout.Page>
         <StickyFooter>
           <Flex style={{maxWidth}} align="center" gap="md" justify="end">
-            <Button priority="primary" type="submit">
-              {t('Create Alert')}
-            </Button>
+            <Observer>
+              {() => (
+                <Button priority="primary" type="submit" disabled={model.isSaving}>
+                  {t('Create Alert')}
+                </Button>
+              )}
+            </Observer>
           </Flex>
         </StickyFooter>
       </AutomationFormProvider>

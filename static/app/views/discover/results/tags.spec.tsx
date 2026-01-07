@@ -3,7 +3,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   screen,
@@ -39,6 +38,18 @@ describe('Tags', () => {
   }
 
   const org = OrganizationFixture();
+
+  const defaultLocation = LocationFixture({
+    pathname: '/organizations/org-slug/discover/results/',
+    query: {},
+  });
+
+  const initialRouterConfig = {
+    location: {
+      pathname: '/organizations/org-slug/discover/results/',
+    },
+  };
+
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/events-facets/`,
@@ -86,12 +97,12 @@ describe('Tags', () => {
         api={new MockApiClient()}
         totalValues={30}
         organization={org}
-        location={{...LocationFixture(), query: {}}}
+        location={defaultLocation}
         generateUrl={generateUrl}
         confirmedQuery={false}
       />,
       {
-        deprecatedRouterMocks: true,
+        initialRouterConfig,
       }
     );
 
@@ -112,26 +123,18 @@ describe('Tags', () => {
       ...commonQueryConditions,
     });
 
-    const initialData = initializeOrg({
-      organization: org,
-      router: {
-        location: {query: {}},
-      },
-    });
-
-    render(
+    const {router} = render(
       <Tags
         eventView={view}
         api={new MockApiClient()}
         organization={org}
         totalValues={30}
-        location={initialData.router.location}
+        location={defaultLocation}
         generateUrl={generateUrl}
         confirmedQuery={false}
       />,
       {
-        router: initialData.router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig,
       }
     );
 
@@ -147,7 +150,7 @@ describe('Tags', () => {
       })
     );
 
-    expect(initialData.router.push).toHaveBeenCalledWith('/endpoint/environment/abcd123');
+    expect(router.location.pathname).toBe('/endpoint/environment/abcd123');
   });
 
   it('renders tag keys', async () => {
@@ -164,12 +167,12 @@ describe('Tags', () => {
         api={new MockApiClient()}
         totalValues={30}
         organization={org}
-        location={{...LocationFixture(), query: {}}}
+        location={defaultLocation}
         generateUrl={generateUrl}
         confirmedQuery={false}
       />,
       {
-        deprecatedRouterMocks: true,
+        initialRouterConfig,
       }
     );
 
@@ -183,13 +186,6 @@ describe('Tags', () => {
   });
 
   it('excludes top tag values on current page query', async () => {
-    const initialData = initializeOrg({
-      organization: org,
-      router: {
-        location: {pathname: '/organizations/org-slug/discover/homepage/', query: {}},
-      },
-    });
-
     const view = new EventView({
       fields: [],
       sorts: [],
@@ -203,13 +199,19 @@ describe('Tags', () => {
         api={new MockApiClient()}
         totalValues={30}
         organization={org}
-        location={initialData.router.location}
+        location={LocationFixture({
+          pathname: '/organizations/org-slug/discover/homepage/',
+          query: {},
+        })}
         generateUrl={generateUrl}
         confirmedQuery={false}
       />,
       {
-        router: initialData.router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/discover/homepage/',
+          },
+        },
       }
     );
 
@@ -270,12 +272,12 @@ describe('Tags', () => {
         api={new MockApiClient()}
         totalValues={30}
         organization={org}
-        location={{...LocationFixture(), query: {}}}
+        location={defaultLocation}
         generateUrl={generateUrl}
         confirmedQuery={false}
       />,
       {
-        deprecatedRouterMocks: true,
+        initialRouterConfig,
       }
     );
 
