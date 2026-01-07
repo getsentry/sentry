@@ -1120,6 +1120,8 @@ function TopIssues() {
                   checked={filterByAssignedToMe}
                   onChange={e => {
                     setFilterByAssignedToMe(e.target.checked);
+                    const newQuery = {...location.query, cluster: undefined};
+                    navigate({pathname: location.pathname, query: newQuery});
                   }}
                   aria-label={t('Assigned to me')}
                   size="sm"
