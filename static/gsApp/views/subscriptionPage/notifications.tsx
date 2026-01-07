@@ -21,7 +21,6 @@ import Redirect from 'sentry/components/redirect';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconCheckmark, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useMedia from 'sentry/utils/useMedia';
@@ -35,7 +34,7 @@ import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 import {hasSpendVisibilityNotificationsFeature} from 'getsentry/views/subscriptionPage/utils';
 
-interface SubscriptionNotificationsProps extends RouteComponentProps<unknown, unknown> {
+interface SubscriptionNotificationsProps {
   subscription: Subscription;
 }
 
