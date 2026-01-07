@@ -21,7 +21,7 @@ import {BillingInformation} from 'getsentry/views/subscriptionPage/billingInform
 // TODO(isabella): tbh most of these tests should be in a spec for the individual panel components
 
 describe('Subscription > BillingInformation', () => {
-  const {organization, router} = initializeOrg({
+  const {organization} = initializeOrg({
     organization: {access: ['org:billing']},
   });
   const subscription = SubscriptionFixture({organization});
@@ -77,13 +77,7 @@ describe('Subscription > BillingInformation', () => {
       body: [],
     });
 
-    render(
-      <BillingInformation
-        organization={org}
-        subscription={subscription}
-        location={router.location}
-      />
-    );
+    render(<BillingInformation subscription={subscription} />, {organization: org});
 
     await screen.findByText('Insufficient Access');
     expect(
@@ -104,13 +98,7 @@ describe('Subscription > BillingInformation', () => {
       }),
     });
 
-    render(
-      <BillingInformation
-        organization={organization}
-        subscription={subscription}
-        location={router.location}
-      />
-    );
+    render(<BillingInformation subscription={subscription} />, {organization});
 
     await screen.findByText('Billing Information');
 
@@ -170,13 +158,7 @@ describe('Subscription > BillingInformation', () => {
     const sub: TSubscription = {...subscription, paymentSource: null};
     SubscriptionStore.set(organization.slug, sub);
 
-    render(
-      <BillingInformation
-        organization={organization}
-        subscription={sub}
-        location={router.location}
-      />
-    );
+    render(<BillingInformation subscription={sub} />, {organization});
 
     await screen.findByText('Billing Information');
 
@@ -201,18 +183,15 @@ describe('Subscription > BillingInformation', () => {
   });
 
   it('opens credit card form with billing failure query', async () => {
-    router.location = {
-      ...router.location,
-      query: {referrer: 'billing-failure'},
-    };
-
-    render(
-      <BillingInformation
-        organization={organization}
-        subscription={subscription}
-        location={router.location}
-      />
-    );
+    render(<BillingInformation subscription={subscription} />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/settings/org-slug/billing/details/',
+          query: {referrer: 'billing-failure'},
+        },
+      },
+    });
 
     await screen.findByText('Payment method');
     expect(
@@ -234,13 +213,7 @@ describe('Subscription > BillingInformation', () => {
     const sub: TSubscription = {...subscription, accountBalance: 100_00};
     SubscriptionStore.set(organization.slug, sub);
 
-    render(
-      <BillingInformation
-        organization={organization}
-        subscription={sub}
-        location={router.location}
-      />
-    );
+    render(<BillingInformation subscription={sub} />, {organization});
 
     await screen.findByText('Billing Information');
     expect(screen.getByText('Account balance: $100')).toBeInTheDocument();
@@ -255,13 +228,7 @@ describe('Subscription > BillingInformation', () => {
     const sub: TSubscription = {...subscription, accountBalance: -100_00};
     SubscriptionStore.set(organization.slug, sub);
 
-    render(
-      <BillingInformation
-        organization={organization}
-        subscription={sub}
-        location={router.location}
-      />
-    );
+    render(<BillingInformation subscription={sub} />, {organization});
 
     await screen.findByText('Billing Information');
     expect(screen.getByText('Account balance: $100 credit')).toBeInTheDocument();
@@ -271,13 +238,7 @@ describe('Subscription > BillingInformation', () => {
     const sub = {...subscription, accountBalance: 0};
     SubscriptionStore.set(organization.slug, sub);
 
-    render(
-      <BillingInformation
-        organization={organization}
-        subscription={sub}
-        location={router.location}
-      />
-    );
+    render(<BillingInformation subscription={sub} />, {organization});
 
     await screen.findByText('Billing Information');
     expect(screen.queryByText(/account balance/i)).not.toBeInTheDocument();
@@ -313,17 +274,17 @@ describe('Subscription > BillingInformation', () => {
       },
     });
 
-    const {rerender} = render(
-      <BillingInformation
-        organization={organization}
-        subscription={subscription}
-        location={router.location}
-      />
-    );
+    const {rerender} = render(<BillingInformation subscription={subscription} />, {
+      organization,
+    });
 
     await screen.findByText('Billing Information');
     const cardPanel = await screen.findByTestId('credit-card-panel');
     const inCardPanel = within(cardPanel);
+
+    // Click edit button to expand the panel
+    await userEvent.click(inCardPanel.getByRole('button', {name: 'Edit payment method'}));
+
     expect(
       inCardPanel.getByText(
         /, you authorize Sentry to automatically charge you recurring subscription fees and applicable on-demand fees. Recurring charges occur at the start of your selected billing cycle for subscription fees and monthly for on-demand fees. You may cancel your subscription at any time/
@@ -340,13 +301,7 @@ describe('Subscription > BillingInformation', () => {
     // due to the nature of how the components are abstracted, this is necessary for testing
     // but in prod the UI refreshes on SubscriptionStore update
     SubscriptionStore.set(organization.slug, updatedSubscription);
-    rerender(
-      <BillingInformation
-        organization={organization}
-        subscription={updatedSubscription}
-        location={router.location}
-      />
-    );
+    rerender(<BillingInformation subscription={updatedSubscription} />);
     expect(inCardPanel.getByText('Visa ****1111 12/30')).toBeInTheDocument();
     expect(inCardPanel.getByText('United States 94107')).toBeInTheDocument();
   });
@@ -358,17 +313,15 @@ describe('Subscription > BillingInformation', () => {
       statusCode: 400,
     });
 
-    render(
-      <BillingInformation
-        organization={organization}
-        subscription={subscription}
-        location={router.location}
-      />
-    );
+    render(<BillingInformation subscription={subscription} />, {organization});
 
     await screen.findByText('Billing Information');
     const cardPanel = await screen.findByTestId('credit-card-panel');
     const inCardPanel = within(cardPanel);
+
+    // Click edit button to expand the panel
+    await userEvent.click(inCardPanel.getByRole('button', {name: 'Edit payment method'}));
+
     await inCardPanel.findByText(
       'Unable to initialize payment setup, please try again later.'
     );
@@ -386,17 +339,14 @@ describe('Subscription > BillingInformation', () => {
       },
     });
 
-    render(
-      <BillingInformation
-        organization={organization}
-        subscription={subscription}
-        location={router.location}
-      />
-    );
+    render(<BillingInformation subscription={subscription} />, {organization});
 
     await screen.findByText('Billing Information');
     const cardPanel = await screen.findByTestId('credit-card-panel');
     const inCardPanel = within(cardPanel);
+
+    // Click edit button to expand the panel
+    await userEvent.click(inCardPanel.getByRole('button', {name: 'Edit payment method'}));
 
     // Save the updated credit card details
     await userEvent.click(inCardPanel.getByRole('button', {name: 'Save Changes'}));
@@ -407,13 +357,7 @@ describe('Subscription > BillingInformation', () => {
   it('uses stripe components when flag is enabled', async () => {
     organization.features = ['stripe-components'];
 
-    render(
-      <BillingInformation
-        organization={organization}
-        subscription={subscription}
-        location={router.location}
-      />
-    );
+    render(<BillingInformation subscription={subscription} />, {organization});
 
     const billingDetailsPanel = await screen.findByTestId('billing-details-panel');
     const inBillingDetailsPanel = within(billingDetailsPanel);
