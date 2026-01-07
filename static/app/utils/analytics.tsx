@@ -85,6 +85,8 @@ import type {ReplayEventParameters} from './analytics/replayAnalyticsEvents';
 import {replayEventMap} from './analytics/replayAnalyticsEvents';
 import type {SearchEventParameters} from './analytics/searchAnalyticsEvents';
 import {searchEventMap} from './analytics/searchAnalyticsEvents';
+import {seerAnalyticsEventsMap} from './analytics/seerAnalyticsEvents';
+import type {SeerAnalyticsEventsParameters} from './analytics/seerAnalyticsEvents';
 import type {SettingsEventParameters} from './analytics/settingsAnalyticsEvents';
 import {settingsEventMap} from './analytics/settingsAnalyticsEvents';
 import type {SignupAnalyticsParameters} from './analytics/signupAnalyticsEvents';
@@ -119,6 +121,7 @@ interface EventParameters
     ReleasesEventParameters,
     ReplayEventParameters,
     SearchEventParameters,
+    SeerAnalyticsEventsParameters,
     SettingsEventParameters,
     TeamInsightsEventParameters,
     DynamicSamplingEventParameters,
@@ -163,6 +166,7 @@ const allEventMap: Record<string, string | null> = {
   ...releasesEventMap,
   ...replayEventMap,
   ...searchEventMap,
+  ...seerAnalyticsEventsMap,
   ...settingsEventMap,
   ...workflowEventMap,
   ...dynamicSamplingEventMap,

@@ -1,7 +1,6 @@
 import type {FieldValue} from 'sentry/components/forms/model';
 import type {PriorityLevel} from 'sentry/types/group';
 import type {IntegrationType} from 'sentry/types/integrations';
-import type {Organization} from 'sentry/types/organization';
 import type {Broadcast} from 'sentry/types/system';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
@@ -66,22 +65,6 @@ interface SetPriorityParams extends CommonGroupAnalyticsData {
 
 export type IssueEventParameters = {
   'actionable_items.expand_clicked': ActionableItemDebugParam;
-  'autofix.coding_agent.launch_from_root_cause': {
-    group_id: string;
-    organization: Organization;
-  };
-  'autofix.root_cause.find_solution': {
-    group_id: string;
-    instruction_provided: boolean;
-    organization: Organization;
-  };
-  'autofix.setup_modal_viewed': {
-    groupId: string;
-    projectId: string;
-    setup_gen_ai_consent: boolean;
-    setup_integration: boolean;
-    setup_write_integration?: boolean;
-  };
   'breadcrumbs.drawer.action': {control: string; value?: string};
   'breadcrumbs.issue_details.change_time_display': {value: string};
   'breadcrumbs.issue_details.drawer_opened': {control: string};
@@ -442,10 +425,6 @@ export type IssueEventParameters = {
 type IssueEventKey = keyof IssueEventParameters;
 
 export const issueEventMap: Record<IssueEventKey, string | null> = {
-  'autofix.coding_agent.launch_from_root_cause':
-    'Autofix: Coding Agent Launch From Root Cause',
-  'autofix.root_cause.find_solution': 'Autofix: Root Cause Find Solution',
-  'autofix.setup_modal_viewed': 'Autofix: Setup Modal Viewed',
   'breadcrumbs.issue_details.change_time_display': 'Breadcrumb Time Display Toggled',
   'breadcrumbs.issue_details.drawer_opened': 'Breadcrumb Drawer Opened',
   'breadcrumbs.drawer.action': 'Breadcrumb Drawer Action Taken',
