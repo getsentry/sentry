@@ -334,3 +334,30 @@ def test_verify_compatibility():
     result = _verify_compatibility(spans)
     assert len(result) == len(spans)
     assert [v is None for v in result] == [True, True, False, False, False, False, False]
+
+
+@exclude_experimental_detectors
+class TestSegmentDropKillswitch(TestCase):
+    def setUp(self) -> None:
+        self.project = self.create_project()
+
+    def test_drop_segment_by_org_id(self) -> None:
+        """Test that segments are dropped when org_id matches killswitch."""
+        segment_span = build_mock_span(
+            project_id=self.project.id,
+            is_segment=True,
+        )
+        child_span = build_mock_span(
+            project_id=self.project.id,
+            parent_span_id=segment_span["span_id"],
+        )
+
+        with override_options(
+            {
+                "spans.process-segments.drop-segments": [
+                    {"org_id": str(self.project.organization_id)}
+                ]
+            }
+        ):
+            processed_spans = process_segment([child_span, segment_span])
+            assert len(processed_spans) == 0
