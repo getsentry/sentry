@@ -192,6 +192,9 @@ const CenterSection = styled(motion.div)`
 
 const SessionHistoryButtonWrapper = styled('div')<{isSelected: boolean}>`
   button {
-    background-color: ${p => (p.isSelected ? p.theme.hover : 'transparent')};
+    background-color: ${p =>
+      p.isSelected
+        ? p.theme.tokens.interactive.transparent.neutral.background.active
+        : 'transparent'};
   }
 `;
