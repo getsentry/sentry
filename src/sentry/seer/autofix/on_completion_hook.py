@@ -15,7 +15,6 @@ from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.seer.explorer.client_utils import fetch_run_status
 from sentry.seer.explorer.on_completion_hook import ExplorerOnCompletionHook
 from sentry.seer.models import (
-    AutofixHandoffPoint,
     SeerApiError,
     SeerApiResponseValidationError,
     SeerAutomationHandoffConfiguration,
@@ -347,10 +346,6 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             return None
         handoff_config = preference_response.preference.automation_handoff
         if not handoff_config:
-            return None
-
-        # Verify the handoff point matches
-        if handoff_config.handoff_point != AutofixHandoffPoint.ROOT_CAUSE:
             return None
 
         return handoff_config
