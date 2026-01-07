@@ -11,7 +11,7 @@ export function RequestSdkAccessButton({
   organization,
   origin,
   projectId,
-}: PrivateGamingSdkAccessModalProps) {
+}: Omit<PrivateGamingSdkAccessModalProps, 'onSubmit'>) {
   const buttonProps: PrivateGamingSdkAccessModalProps = {
     gamingPlatform,
     organization,
