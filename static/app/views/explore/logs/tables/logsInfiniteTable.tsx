@@ -1,6 +1,7 @@
 import type {CSSProperties, RefObject} from 'react';
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import type {Virtualizer} from '@tanstack/react-virtual';
 import {useVirtualizer, useWindowVirtualizer} from '@tanstack/react-virtual';
 
@@ -94,6 +95,8 @@ type LogsTableProps = {
   scrollContainer?: React.RefObject<HTMLElement | null>;
   stringAttributes?: TagCollection;
 };
+
+const {info, fmt} = Sentry.logger;
 
 const LOGS_GRID_SCROLL_PIXEL_REVERSE_THRESHOLD = LOGS_GRID_BODY_ROW_HEIGHT * 2; // If you are less than this number of pixels from the top of the table while scrolling backward, fetch the previous page.
 const LOGS_OVERSCAN_AMOUNT = 50; // How many items to render beyond the visible area.
@@ -431,6 +434,14 @@ export function LogsInfiniteTable({
         </CenteredEmptyStateContainer>
       </Fragment>
     );
+  }
+
+  if (originalData.length < 20 && originalData.length > 0 && !isPending && !isError) {
+    if (virtualItems.length !== originalData.length) {
+      info(
+        fmt`Mismatch in virtualItems.length and data.length: virtualItems.length: ${virtualItems.length}, data.length: ${originalData.length}`
+      );
+    }
   }
 
   return (
