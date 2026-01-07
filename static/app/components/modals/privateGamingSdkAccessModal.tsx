@@ -234,7 +234,7 @@ export function PrivateGamingSdkAccessModal({
               onClick={() => {
                 const separator = currentPath.includes('?') ? '&' : '?';
                 const pathWithReopenFlag = `${currentPath}${separator}reopenGamingSdkModal=1`;
-                window.location.href = `/identity/login/github/?next=${pathWithReopenFlag}`;
+                window.location.href = `/identity/login/github/?next=${encodeURIComponent(pathWithReopenFlag)}`;
               }}
             >
               {t('Log in with GitHub')}
