@@ -18,7 +18,7 @@ from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.utils import metrics
 
 from ..utils import _get_target_commit_sha
-from .config import WHITELISTED_GITHUB_ORGS
+from .config import GH_ORGS_TO_ONLY_SEND_TO_SEER
 
 logger = logging.getLogger(__name__)
 
@@ -143,7 +143,7 @@ def handle_pull_request_event(
         return
 
     github_org = event.get("repository", {}).get("owner", {}).get("login")
-    if github_org in WHITELISTED_GITHUB_ORGS:
+    if github_org in GH_ORGS_TO_ONLY_SEND_TO_SEER:
         from .task import schedule_task
 
         schedule_task(

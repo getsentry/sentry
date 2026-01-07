@@ -1,6 +1,6 @@
 from sentry.integrations.github.webhook_types import GithubWebhookType
 
-WHITELISTED_GITHUB_ORGS = {
+GH_ORGS_TO_ONLY_SEND_TO_SEER = {
     "sentry-ecosystem",  # on s4s2 & us
     "coding-workflows-s4s",  # on us
     "sentry-coding-workflows",  # on us
