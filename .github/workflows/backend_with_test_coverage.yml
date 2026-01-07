@@ -25,7 +25,6 @@ jobs:
             --ignore tests/acceptance \
             --ignore tests/apidocs \
             --ignore tests/js \
-            --ignore tests/tools \
-            --cov .
+            --ignore tests/tools
 
           ls -lah .coverage*
