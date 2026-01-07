@@ -55,6 +55,7 @@ export function IssueSearch({query, onSearch, className}: IssueSearchProps) {
     getTagValues,
     searchSource: 'main_search' as const,
     enableAISearch: areAiFeaturesAllowed,
+    onSearch,
   };
 
   return (
