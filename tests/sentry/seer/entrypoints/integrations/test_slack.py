@@ -42,8 +42,10 @@ MOCK_SEER_WEBHOOKS = {
         "run_id": RUN_ID,
         "pull_requests": [
             {
-                "pr_number": 123,
-                "pr_url": "https://github.com/owner/repo/pull/123",
+                "pull_request": {
+                    "pr_number": 123,
+                    "pr_url": "https://github.com/owner/repo/pull/123",
+                },
             }
         ],
     },
@@ -113,7 +115,7 @@ class SlackEntrypointTest(TestCase):
         assert cache_payload["channel_id"] == self.channel_id
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_message")
-    def test_on_autofix_update_root_cause(self, mock_send_threaded_message):
+    def test_on_autofix_update(self, mock_send_threaded_message):
         ep = SlackEntrypoint(
             slack_request=self.slack_request,
             group=self.group,

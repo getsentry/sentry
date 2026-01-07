@@ -53,7 +53,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
         self.slack_request = slack_request
         self.group = group
         self.channel_id = slack_request.channel_id or ""
-        self.thread_ts = slack_request.data.get("message", {}).get("ts")
+        self.thread_ts = slack_request.data["message"]["ts"]
         self.organization_id = organization_id
         self.install = SlackIntegration(
             model=slack_request.integration, organization_id=organization_id
@@ -159,7 +159,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
                 )
                 return
             case SentryAppEventType.SEER_CODING_COMPLETED:
-                changes = event_payload.get("changes", {})
+                changes = event_payload.get("changes", [])
                 _send_thread_update(
                     install=install,
                     channel_id=cache_payload["channel_id"],

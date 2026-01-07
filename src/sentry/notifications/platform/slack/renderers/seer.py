@@ -174,17 +174,18 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             )
         elif data.current_point == AutofixStoppingPoint.OPEN_PR:
             current_stage_mrkdwn = ":link:  *Pull Request*"
+            action_id = encode_action_id(
+                action=SlackAction.SEER_AUTOFIX_VIEW_PR.value,
+                organization_id=data.organization_id,
+                project_id=data.project_id,
+            )
             for pull_request in data.pull_requests:
                 action_elements.append(
                     LinkButtonElement(
                         text=f"View PR (#{pull_request['pr_number']})",
                         style="primary",
                         url=pull_request["pr_url"],
-                        action_id=encode_action_id(
-                            action=SlackAction.SEER_AUTOFIX_VIEW_PR.value,
-                            organization_id=data.organization_id,
-                            project_id=data.project_id,
-                        ),
+                        action_id=f'{action_id}::{pull_request["pr_number"]}',
                     )
                 )
 
