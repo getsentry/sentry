@@ -261,7 +261,7 @@ const generateButtonTheme = (
     focusShadow: colors.red200,
   },
   link: {
-    color: alias.linkColor,
+    color: tokens.interactive.link.accent.rest,
     colorActive: alias.linkHoverColor,
     background: 'transparent',
     backgroundActive: 'transparent',
@@ -278,7 +278,7 @@ const generateButtonTheme = (
     backgroundActive: alias.background,
     border: alias.disabledBorder,
     borderActive: alias.disabledBorder,
-    borderTranslucent: alias.translucentInnerBorder,
+    borderTranslucent: tokens.border.transparent.neutral.muted,
     focusBorder: 'transparent',
     focusShadow: 'transparent',
   },
@@ -1194,21 +1194,10 @@ const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
   backgroundTertiary: tokens.background.tertiary,
 
   /**
-   * Background for the header of a page
-   */
-  headerBackground: tokens.background.primary,
-
-  /**
    * Primary border color
    */
   border: tokens.border.primary,
   translucentBorder: tokens.border.transparent.neutral.muted,
-
-  /**
-   * Inner borders, e.g. borders inside of a grid
-   */
-  innerBorder: tokens.border.secondary,
-  translucentInnerBorder: tokens.border.transparent.neutral.muted,
 
   /**
    * A color that denotes a "success", or something good
@@ -1261,19 +1250,8 @@ const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
   /**
    * Link color indicates that something is clickable
    */
-  linkColor: tokens.interactive.link.accent.rest,
   linkHoverColor: tokens.interactive.link.accent.hover,
   linkUnderline: tokens.interactive.link.accent.rest,
-
-  /**
-   * Default Progressbar color
-   */
-  progressBar: colors.chonk.blue400,
-
-  /**
-   * Default Progressbar color
-   */
-  progressBackground: colors.gray100,
 });
 
 const lightAliases = generateAliases(baseLightTheme.tokens, lightColors);

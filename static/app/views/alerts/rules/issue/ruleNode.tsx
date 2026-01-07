@@ -650,7 +650,7 @@ const RuleRow = styled('div')`
 const RuleRowContainer = styled('div')<{incompatible?: boolean}>`
   background-color: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.radius.md};
-  border: 1px ${p => p.theme.innerBorder} solid;
+  border: 1px ${p => p.theme.tokens.border.secondary} solid;
   border-color: ${p => (p.incompatible ? p.theme.colors.red200 : 'none')};
 `;
 

@@ -273,7 +273,7 @@ const Header = styled('div')`
 
   /* This is used in detail pages to match the height of sidebar header. */
   height: 44px;
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 
   button {
     color: inherit;
@@ -364,7 +364,7 @@ const SeparatorWrapper = styled('div')`
 
 const Separator = styled('hr')`
   height: 1px;
-  background: ${p => p.theme.innerBorder};
+  background: ${p => p.theme.tokens.border.secondary};
   margin: 0 ${space(1)};
   border: none;
 `;
@@ -431,7 +431,7 @@ const ItemText = styled('span')`
 
 const Footer = styled('div')<{layout: NavLayout}>`
   padding: ${space(1)} ${space(1)};
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 
   ${p =>
     p.layout === NavLayout.MOBILE &&
