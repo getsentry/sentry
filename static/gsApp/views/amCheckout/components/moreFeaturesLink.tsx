@@ -4,7 +4,6 @@ import {ExternalLink} from 'sentry/components/core/link';
 import {IconCheckmark} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type Props = {
   color?: string;
@@ -24,7 +23,7 @@ function MoreFeaturesLink({color, legacySize}: Props) {
 const MoreLink = styled(ExternalLink)<{color?: string}>`
   display: grid;
   grid-template-columns: max-content auto;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
   align-content: center;
   color: ${p => p.color ?? p.theme.subText};
