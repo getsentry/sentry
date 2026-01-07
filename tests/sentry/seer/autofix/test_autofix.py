@@ -18,6 +18,7 @@ from sentry.seer.autofix.autofix import (
     get_all_tags_overview,
     trigger_autofix,
 )
+from sentry.seer.autofix.types import AutofixSelectRootCausePayload
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -1469,3 +1470,51 @@ class TestGetLogsForEvent(TestCase):
         assert merged[0]["message"] == "foo" and merged[0]["consecutive_count"] == 2
         assert merged[1]["message"] == "bar"
         assert merged[2]["message"] == "foo" and "consecutive_count" not in merged[2]
+
+
+class UpdateAutofixTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.run_id = 123
+        self.payload: AutofixSelectRootCausePayload = {"type": "select_root_cause", "cause_id": 1}
+
+    @patch("sentry.seer.autofix.autofix.requests.post")
+    def test_update_autofix_http_error(self, mock_post):
+        from sentry.seer.autofix.autofix import update_autofix
+
+        mock_response = Mock()
+        mock_response.raise_for_status.side_effect = Exception("bad request, fix something")
+        mock_post.return_value = mock_response
+
+        response = update_autofix(run_id=self.run_id, payload=self.payload)
+
+        assert response.status_code == 500
+        assert response.data["detail"] == "Failed to update autofix run"
+
+    @patch("sentry.seer.autofix.autofix.requests.post")
+    def test_update_autofix_json_decode_error(self, mock_post):
+        from sentry.seer.autofix.autofix import update_autofix
+
+        mock_response = Mock()
+        mock_response.raise_for_status.return_value = None
+        mock_response.json.side_effect = Exception("Invalid JSON")
+        mock_post.return_value = mock_response
+
+        response = update_autofix(run_id=self.run_id, payload=self.payload)
+
+        assert response.status_code == 500
+        assert response.data["detail"] == "Seer returned an invalid response"
+
+    @patch("sentry.seer.autofix.autofix.requests.post")
+    def test_update_autofix_success(self, mock_post):
+        from sentry.seer.autofix.autofix import update_autofix
+
+        mock_response = Mock()
+        mock_response.raise_for_status.return_value = None
+        mock_response.json.return_value = {"run_id": self.run_id, "status": "updated"}
+        mock_post.return_value = mock_response
+
+        response = update_autofix(run_id=self.run_id, payload=self.payload)
+
+        assert response.status_code == 200
+        assert response.data == mock_response.json.return_value
