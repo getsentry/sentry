@@ -1,73 +1,125 @@
-import {useEffect, useState} from 'react';
+import {useEffect} from 'react';
 
 import DetailedError from 'sentry/components/errors/detailedError';
+import NotFound from 'sentry/components/errors/notFound';
+import {getEventTimestampInSeconds} from 'sentry/components/events/interfaces/utils';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
+import type {Event} from 'sentry/types/event';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 /**
- * This component performs a client-side redirect to Event Details given only
- * an event ID (which normally additionally requires the event's Issue/Group ID).
- * It does this by using an XHR against the identically-named ProjectEventRedirect
- * _Django_ view, which responds with a 302 with the Location of the corresponding
- * Event Details page (if it exists).
+ * This component redirects to the Event Details page given only an event ID
+ * (which normally additionally requires the event's Issue/Group ID).
  *
- * See:
- * https://github.com/getsentry/sentry/blob/824c03089907ad22a9282303a5eaca33989ce481/src/sentry/web/urls.py#L578
+ * It fetches the event data from the API to extract the group ID, then navigates
+ * to the appropriate issue event page. For events without a group ID (e.g.,
+ * transaction events), it falls back to the trace details page.
+ *
+ * This component handles routes:
+ * - /projects/:projectId/events/:eventId/
+ * - /:orgId/:projectId/events/:eventId/ (legacy)
  */
 export default function ProjectEventRedirect() {
-  const [error, setError] = useState<string | null>(null);
+  const organization = useOrganization();
+  const location = useLocation();
   const navigate = useNavigate();
-  const params = useParams<{eventId: string; orgId: string; projectId: string}>();
+  const params = useParams<{eventId: string; projectId: string}>();
+  const datetimeSelection = normalizeDateTimeParams(location.query);
+
+  // Construct the eventSlug in the format expected by the events API: "projectSlug:eventId"
+  const eventSlug = `${params.projectId}:${params.eventId}`;
+
+  const {
+    data: event,
+    isPending,
+    error,
+  } = useApiQuery<Event>(
+    [`/organizations/${organization.slug}/events/${eventSlug}/`],
+    {staleTime: 2 * 60 * 1000} // 2 minutes in milliseconds
+  );
 
   useEffect(() => {
-    // This presumes that _this_ React view/route is only reachable at
-    // /:org/:project/events/:eventId (the same URL which serves the ProjectEventRedirect
-    // Django view).
-    const endpoint = `/organizations/${params.orgId}/projects/${params.projectId}/events/${params.eventId}/`;
+    if (!event) {
+      return;
+    }
 
-    // Use XmlHttpRequest directly instead of our client API helper (fetch),
-    // because you can't reach the underlying XHR via $.ajax, and we need
-    // access to `xhr.responseURL`.
-    //
-    // TODO(epurkhiser): We can likely replace tihs with fetch
-    const xhr = new XMLHttpRequest();
+    // If the event has a group ID, navigate to the issue event page
+    if (event.groupID && event.eventID) {
+      navigate(
+        {
+          pathname: `/organizations/${organization.slug}/issues/${event.groupID}/events/${event.eventID}/`,
+          query: {
+            project: location.query.project,
+            referrer: location.query.referrer,
+          },
+        },
+        {replace: true}
+      );
+      return;
+    }
 
-    // Hitting this endpoint will return a 302 with a new location, which
-    // the XHR will follow and make a _second_ request. Using HEAD instead
-    // of GET returns an empty response instead of the entire HTML content.
-    xhr.open('HEAD', endpoint);
-    xhr.send();
+    // For events without a group ID (e.g., transaction events), try to navigate to trace details
+    const traceId = event.contexts?.trace?.trace_id;
+    if (traceId) {
+      const timestamp = getEventTimestampInSeconds(event);
+      navigate(
+        getTraceDetailsUrl({
+          organization,
+          traceSlug: traceId,
+          dateSelection: datetimeSelection,
+          timestamp,
+          eventId: event.eventID,
+          location,
+        }),
+        {replace: true}
+      );
+    }
+  }, [event, organization, datetimeSelection, location, navigate]);
 
-    xhr.onload = () => {
-      if (xhr.status === 404) {
-        setError(t('Could not find an issue for the provided event id'));
-        return;
-      }
-      // responseURL is the URL of the document the browser ultimately loaded,
-      // after following any redirects. It _should_ be the page we're trying
-      // to reach; use the router to go there.
-      //
-      // Use `replace` so that hitting the browser back button will skip all
-      // this redirect business.
-      const url = new URL(xhr.responseURL);
-      if (url.origin === window.location.origin) {
-        navigate(url.pathname, {replace: true});
-      } else {
-        // If the origin has changed, we cannot do a simple replace with the router.
-        // Instead, we opt to do a full redirect.
-        window.location.replace(xhr.responseURL);
-      }
-    };
-    xhr.onerror = () => {
-      setError(t('Could not load the requested event'));
-    };
-  }, [params, navigate]);
+  if (error) {
+    const notFound = error.status === 404;
+    const permissionDenied = error.status === 403;
 
-  return error ? (
-    <DetailedError heading={t('Not found')} message={error} hideSupportLinks />
-  ) : (
-    <Layout.Page withPadding />
-  );
+    if (notFound) {
+      return <NotFound />;
+    }
+
+    if (permissionDenied) {
+      return (
+        <LoadingError message={t('You do not have permission to view that event.')} />
+      );
+    }
+
+    return (
+      <DetailedError
+        heading={t('Error')}
+        message={error.message || t('Could not load the requested event')}
+        hideSupportLinks
+      />
+    );
+  }
+
+  if (
+    isPending ||
+    (!isPending && event) // Prevents flash of loading error below once event is loaded successfully
+  ) {
+    return (
+      <Layout.Page withPadding>
+        <LoadingIndicator />
+      </Layout.Page>
+    );
+  }
+
+  // This is only reachable if the event hasn't loaded for an unknown reason or
+  // we haven't been able to re-route to the correct page
+  return <LoadingError message={t('Failed to load the details for the event')} />;
 }
