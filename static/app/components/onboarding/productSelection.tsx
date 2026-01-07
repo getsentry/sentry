@@ -262,8 +262,7 @@ export const platformProductAvailability = {
     ProductSolution.LOGS,
     ProductSolution.METRICS,
   ],
-  'php-laravel': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'php-symfony': [
+  'php-laravel': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
