@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import timedelta
 
 from django.urls import reverse
+from rest_framework.test import APIClient
 
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
