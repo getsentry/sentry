@@ -15,7 +15,7 @@ const DetailsContainer = styled('div')`
     text-transform: uppercase;
     font-size: ${p => p.theme.fontSize.md};
     color: ${p => p.theme.subText};
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 

@@ -8,8 +8,8 @@ from sentry.testutils.cases import TestMigrations
 
 @pytest.mark.migrations
 class BackfillOnCommandPhraseTriggerTest(TestMigrations):
-    migrate_from = "1014_add_pkce_to_apigrant"
-    migrate_to = "1015_backfill_on_command_phrase_trigger"
+    migrate_from = "1015_backfill_self_hosted_sentry_app_emails"
+    migrate_to = "1016_backfill_on_command_phrase_trigger"
 
     def setup_initial_state(self) -> None:
         self.org = self.create_organization()
