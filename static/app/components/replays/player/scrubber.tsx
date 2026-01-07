@@ -149,7 +149,7 @@ export const PlayerScrubber = styled(Scrubber)`
 
   ${Meter} {
     border-radius: ${p => p.theme.radius.md};
-    background: ${p => p.theme.translucentInnerBorder};
+    background: ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 
   ${RangeWrapper} {

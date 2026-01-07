@@ -207,7 +207,7 @@ const AlignedGridLineOverlay = styled(GridLineOverlay)`
 `;
 
 const AlignedGridLineLabels = styled(GridLineLabels)`
-  box-shadow: -1px 0 0 0 ${p => p.theme.translucentInnerBorder};
+  box-shadow: -1px 0 0 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
   grid-row: 1;
   grid-column: 3/-1;
 `;

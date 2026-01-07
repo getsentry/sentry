@@ -340,7 +340,7 @@ export const Gridline = styled('div')<{labelPosition: LabelPosition; left: numbe
     p.labelPosition === 'left-top' &&
     css`
       height: 100%;
-      border-left: 1px solid ${p.theme.translucentInnerBorder};
+      border-left: 1px solid ${p.theme.tokens.border.transparent.neutral.muted};
     `}
   ${p =>
     p.labelPosition === 'center-bottom' &&
