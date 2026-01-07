@@ -82,6 +82,8 @@ export function SelectOption(props: Props) {
   );
 }
 
-const StyledIconCheckmark = styled(IconCheckmark)<{isMultiple: boolean}>`
+const StyledIconCheckmark = styled(IconCheckmark, {
+  shouldForwardProp: prop => prop !== 'isMultiple',
+})<{isMultiple: boolean}>`
   color: ${p => (p.isMultiple ? p.theme.colors.white : undefined)};
 `;
