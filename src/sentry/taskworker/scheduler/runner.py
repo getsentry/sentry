@@ -246,8 +246,12 @@ class ScheduleRunner:
                 sample_rate=1.0,
             )
         else:
-            run_state = self._run_storage.read(entry.fullname)
+            # We were not able to set a key, this could be because
+            # we are racing another scheduler instance, or a schedule
+            # was made more frequent. Advance to the present, so that
+            # we can align with the new schedule once the key expires.
             entry.set_last_run(now)
+            run_state = self._run_storage.read(entry.fullname)
 
             logger.info(
                 "taskworker.scheduler.sync_with_storage",
