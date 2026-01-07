@@ -176,9 +176,13 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
             except (IndexError, KeyError):
                 return {"data": []}, 0
 
-            sanitized_keys = set()
+            sanitized_keys_set = set()
+            sanitized_keys = []
             for internal_name in internal_alias_attr_keys:
                 if internal_name in SPANS_STATS_EXCLUDED_ATTRIBUTES_PUBLIC_ALIAS:
+                    continue
+
+                if internal_name in sanitized_keys_set:
                     continue
 
                 substring_match_name = SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS.get("string").get(
@@ -187,12 +191,14 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
 
                 if value_substring_match:
                     if value_substring_match in substring_match_name:
-                        sanitized_keys.add(internal_name)
+                        sanitized_keys.append(internal_name)
+                        sanitized_keys_set.add(internal_name)
                     continue
 
-                sanitized_keys.add(internal_name)
+                sanitized_keys_set.add(internal_name)
+                sanitized_keys.append(internal_name)
 
-            sanitized_keys = list(sanitized_keys)[offset : offset + limit]
+            sanitized_keys = sanitized_keys[offset : offset + limit]
 
             if not sanitized_keys:
                 return {"data": []}, 0
