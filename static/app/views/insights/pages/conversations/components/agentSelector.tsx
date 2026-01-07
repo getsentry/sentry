@@ -1,7 +1,9 @@
 import {useCallback, useMemo, useState} from 'react';
 import debounce from 'lodash/debounce';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+
 import {t} from 'sentry/locale';
 import {decodeList} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
@@ -105,9 +107,9 @@ export function AgentSelector() {
           debouncedSetSearch(newValue);
         }
       }}
-      triggerProps={{
-        prefix: t('Agent'),
-      }}
+      trigger={triggerProps => (
+        <SelectTrigger.Button {...triggerProps} prefix={t('Agent')} />
+      )}
       onChange={newValue => {
         const values = newValue.map(v => v.value).filter(Boolean);
         navigate({
