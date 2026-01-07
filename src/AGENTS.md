@@ -311,6 +311,30 @@ def send_email(user_id: int, subject: str, body: str) -> None:
 4. Return strings for numeric IDs
 5. Implement pagination with `cursor`
 6. Use `GET` for read, `POST` for create, `PUT` for update
+7. **Error responses MUST use `"detail"` key** (Django REST Framework convention)
+
+### Error Response Convention
+
+Following Django REST Framework standards, all error responses must use `"detail"` as the key for error messages.
+
+```python
+from django.http import JsonResponse
+from rest_framework.response import Response
+
+# ✅ CORRECT: Use "detail" for error messages
+return JsonResponse({"detail": "Internal server error"}, status=500)
+return Response({"detail": "Invalid input"}, status=400)
+
+# ❌ WRONG: Don't use "error" or other keys
+return JsonResponse({"error": "Internal server error"}, status=500)
+return Response({"message": "Invalid input"}, status=400)
+```
+
+**Why `detail`?**
+
+- Standard Django REST Framework convention
+- Consistent with existing Sentry codebase
+- Expected by API clients and error handlers
 
 ## Common Patterns
 
