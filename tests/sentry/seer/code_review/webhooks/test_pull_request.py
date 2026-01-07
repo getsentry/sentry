@@ -62,11 +62,12 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             event_with_draft = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
             event_with_draft["pull_request"]["draft"] = True
 
-            self._send_webhook_event(
+            response = self._send_webhook_event(
                 GithubWebhookType.PULL_REQUEST,
                 orjson.dumps(event_with_draft),
             )
 
+            assert response.status_code == 204
             self.mock_seer.assert_not_called()
 
     def test_pull_request_skips_unsupported_action(self) -> None:
@@ -180,4 +181,34 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
                 orjson.dumps(event),
             )
 
+            self.mock_seer.assert_not_called()
+
+    def test_pull_request_blocks_draft_for_ready_for_review_action(self) -> None:
+        """Test that draft PRs are blocked for ready_for_review action."""
+        with self.code_review_setup(), self.tasks():
+            event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+            event["action"] = "ready_for_review"
+            event["pull_request"]["draft"] = True
+
+            response = self._send_webhook_event(
+                GithubWebhookType.PULL_REQUEST,
+                orjson.dumps(event),
+            )
+
+            assert response.status_code == 204
+            self.mock_seer.assert_not_called()
+
+    def test_pull_request_blocks_draft_for_synchronize_action(self) -> None:
+        """Test that draft PRs are blocked for synchronize action."""
+        with self.code_review_setup(), self.tasks():
+            event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+            event["action"] = "synchronize"
+            event["pull_request"]["draft"] = True
+
+            response = self._send_webhook_event(
+                GithubWebhookType.PULL_REQUEST,
+                orjson.dumps(event),
+            )
+
+            assert response.status_code == 204
             self.mock_seer.assert_not_called()

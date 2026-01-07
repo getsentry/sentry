@@ -139,6 +139,7 @@ def handle_pull_request_event(
         return
 
     if pull_request.get("draft") is True:
+        _warn_and_increment_metric(ErrorStatus.DRAFT_PR, action=action_value, extra=extra)
         return
 
     if not options.get("github.webhook.pr"):
