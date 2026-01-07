@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from rest_framework.request import Request
 
 from sentry.api.api_owners import ApiOwner
@@ -52,4 +52,4 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
                     "image_id": image_id,
                 },
             )
-            return HttpResponse({"error": "Internal server error"}, status=500)
+            return JsonResponse({"detail": "Internal server error"}, status=500)
