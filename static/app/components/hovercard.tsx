@@ -104,8 +104,6 @@ function HovercardContent({
         arrowProps={{
           ...arrowProps,
           size: 20,
-          background: theme.tokens.background.primary,
-          border: theme.tokens.border.primary,
         }}
         originPoint={arrowData}
         placement={placement}

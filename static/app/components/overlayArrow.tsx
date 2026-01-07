@@ -2,11 +2,7 @@ import type {PopperProps} from 'react-popper';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {ColorOrAlias} from 'sentry/utils/theme';
-
 export interface OverlayArrowProps extends React.ComponentPropsWithRef<'div'> {
-  background?: ColorOrAlias | string;
-  border?: ColorOrAlias | string;
   placement?: PopperProps<any>['placement'];
   ref?: React.Ref<HTMLDivElement>;
   size?: number;
@@ -16,14 +12,7 @@ export interface OverlayArrowProps extends React.ComponentPropsWithRef<'div'> {
 const sizeRatio = 0.5;
 const heightRatio = 0.3;
 
-export function OverlayArrow({
-  placement,
-  ref,
-  size = 16,
-  background,
-  border,
-  ...props
-}: OverlayArrowProps) {
+export function OverlayArrow({placement, ref, size = 16, ...props}: OverlayArrowProps) {
   const theme = useTheme();
 
   const offset = placement?.startsWith('top') ? 3 : 1.5;
@@ -44,28 +33,16 @@ export function OverlayArrow({
               ${size},0
               ${size / 2},${size * heightRatio + topOffset}
               ${size / 2 - 2},${size * heightRatio + topOffset}`}
-            fill={
-              border
-                ? (theme[border as ColorOrAlias] ?? border)
-                : theme.tokens.border.primary
-            }
+            fill={theme.tokens.border.primary}
           />
         ) : null}
         <polygon
           points={`0,0 ${size},0 ${size / 2},${size * heightRatio + topOffset}`}
-          fill={
-            border
-              ? (theme[border as ColorOrAlias] ?? border)
-              : theme.tokens.border.primary
-          }
+          fill={theme.tokens.border.primary}
         />
         <polygon
           points={`${offset},0 ${size - offset}, 0 ${size / 2},${size * heightRatio}`}
-          fill={
-            background
-              ? (theme[background as ColorOrAlias] ?? background)
-              : theme.tokens.background.primary
-          }
+          fill={theme.tokens.background.primary}
         />
       </svg>
     </OverlayArrowWrap>
