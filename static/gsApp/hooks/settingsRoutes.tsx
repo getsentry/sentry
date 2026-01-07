@@ -113,7 +113,6 @@ const settingsRoutes = (): SentryRouteObject => ({
       path: 'legal/',
       name: 'Legal & Compliance',
       component: make(() => import('../views/legalAndCompliance/legalAndCompliance')),
-      deprecatedRouteProps: true,
     },
     {
       name: 'Support',
