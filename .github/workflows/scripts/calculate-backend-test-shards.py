@@ -29,7 +29,6 @@ def collect_test_count():
             PYTEST_ARGS,
             capture_output=True,
             text=True,
-            timeout=60,
             check=False,
         )
 
