@@ -3,12 +3,9 @@ import type {Layout} from 'react-grid-layout';
 import {t} from 'sentry/locale';
 import type {Tag} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
+import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {SavedQueryDatasets, type DatasetSource} from 'sentry/utils/discover/types';
 import type {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import type {
-  AttributeValueType,
-  AttributeValueUnit,
-} from 'sentry/views/dashboards/widgets/common/types';
 
 import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholds';
 
@@ -87,8 +84,8 @@ export type LinkedDashboard = {
 };
 
 type Unit = {
-  valueType: AttributeValueType;
-  valueUnit: AttributeValueUnit;
+  valueType: AggregationOutputType;
+  valueUnit: DataUnit;
 };
 
 /**
