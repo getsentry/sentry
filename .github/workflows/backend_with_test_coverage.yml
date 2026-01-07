@@ -26,9 +26,6 @@ jobs:
             --ignore tests/apidocs \
             --ignore tests/js \
             --ignore tests/tools \
-            --cov . \
-            --cov-report="xml:.artifacts/coverage.xml" \
-            --cov-context=test
+            --cov .
 
-          ls -lah .coverage* || true
-          ls -lah .artifacts
+          ls -lah .coverage*
