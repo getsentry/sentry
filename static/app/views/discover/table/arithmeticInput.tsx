@@ -455,9 +455,11 @@ const DropdownListItem = styled(ListItem)`
   padding: ${space(1)} ${space(2)};
   cursor: pointer;
 
-  &:hover,
+  &:hover {
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
   &.active {
-    background: ${p => p.theme.hover};
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 `;
 

@@ -233,7 +233,7 @@ const generateButtonTheme = (
     color: tokens.content.primary,
     colorActive: tokens.content.primary,
     background: alias.background,
-    backgroundActive: alias.hover,
+    backgroundActive: tokens.background.transparent.neutral.muted,
     border: alias.border,
     borderActive: alias.border,
     borderTranslucent: alias.translucentBorder,
@@ -1226,13 +1226,6 @@ const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
    */
   disabled: colors.gray400,
   disabledBorder: colors.gray400,
-
-  /**
-   * Indicates a "hover" state. Deprecated – use `InteractionStateLayer` instead for
-   * interaction (hover/press) states.
-   * @deprecated
-   */
-  hover: colors.gray100,
 
   /**
    * Indicates that something is "active" or "selected"
