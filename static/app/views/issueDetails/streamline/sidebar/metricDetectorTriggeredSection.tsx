@@ -14,6 +14,7 @@ import GroupList from 'sentry/components/issues/groupList';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
+import {treeResultLocator} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, EventOccurrence} from 'sentry/types/event';
@@ -144,8 +145,13 @@ function ContributingIssues({
 
   const queryContainsBooleanLogic = useMemo(() => {
     try {
-      const parsedQuery = parseSearch(query);
-      return parsedQuery?.some(token => token.type === Token.LOGIC_BOOLEAN);
+      return treeResultLocator<boolean>({
+        tree: parseSearch(query) ?? [],
+        noResultValue: false,
+        visitorTest: ({token, returnResult}) => {
+          return token.type === Token.LOGIC_BOOLEAN ? returnResult(true) : null;
+        },
+      });
     } catch {
       return false;
     }
