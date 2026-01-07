@@ -1260,16 +1260,6 @@ const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
   linkColor: tokens.interactive.link.accent.rest,
   linkHoverColor: tokens.interactive.link.accent.hover,
   linkUnderline: tokens.interactive.link.accent.rest,
-
-  /**
-   * Default Progressbar color
-   */
-  progressBar: colors.chonk.blue400,
-
-  /**
-   * Default Progressbar color
-   */
-  progressBackground: colors.gray100,
 });
 
 const lightAliases = generateAliases(baseLightTheme.tokens, lightColors);

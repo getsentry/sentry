@@ -42,7 +42,7 @@ const getVariantStyle = ({
   return `
     height: 6px;
     border-radius: 100px;
-    background: ${theme.progressBackground};
+    background: ${theme.colors.gray100};
     :before {
       top: 0;
       left: 0;
@@ -66,7 +66,7 @@ const ProgressBar = styled(({className, value}: Props) => (
   :before {
     content: ' ';
     width: ${p => p.value}%;
-    background-color: ${p => p.theme.progressBar};
+    background-color: ${p => p.theme.colors.chonk.blue400};
     position: absolute;
   }
 
