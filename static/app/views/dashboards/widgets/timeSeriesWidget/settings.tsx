@@ -16,6 +16,7 @@ export const FALLBACK_UNIT_FOR_FIELD_TYPE = {
   percentage: null,
   string: null,
   size: SizeUnit.BYTE,
+  size_base10: SizeUnit.BYTE,
   rate: RateUnit.PER_SECOND,
   score: null,
 } satisfies Record<AggregationOutputType, DataUnit>;

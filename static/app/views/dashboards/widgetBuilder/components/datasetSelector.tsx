@@ -67,17 +67,20 @@ function WidgetBuilderDatasetSelector() {
     ]);
   }
 
-  if (organization.features.includes('visibility-explore-view')) {
-    datasetChoices.push([WidgetType.SPANS, t('Spans')]);
-  }
+  datasetChoices.push([WidgetType.ISSUE, t('Issues')]);
   if (isLogsEnabled(organization)) {
     datasetChoices.push([WidgetType.LOGS, t('Logs')]);
   }
   if (hasTraceMetricsDashboards) {
     datasetChoices.push([WidgetType.TRACEMETRICS, t('Metrics')]);
   }
-  datasetChoices.push([WidgetType.ISSUE, t('Issues')]);
+  if (organization.features.includes('preprod-frontend-routes')) {
+    datasetChoices.push([WidgetType.MOBILE_APP_SIZE, t('Mobile Builds')]);
+  }
   datasetChoices.push([WidgetType.RELEASE, t('Releases')]);
+  if (organization.features.includes('visibility-explore-view')) {
+    datasetChoices.push([WidgetType.SPANS, t('Spans')]);
+  }
   datasetChoices.push([WidgetType.TRANSACTIONS, t('Transactions')]);
 
   return (

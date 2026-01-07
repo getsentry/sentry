@@ -32,6 +32,7 @@ import {ErrorsConfig} from './errors';
 import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
 import {IssuesConfig} from './issues';
 import {LogsConfig} from './logs';
+import {MobileAppSizeConfig} from './mobileAppSize';
 import {ReleasesConfig} from './releases';
 import {SpansConfig} from './spans';
 import {TraceMetricsConfig} from './traceMetrics';
@@ -285,7 +286,9 @@ export function getDatasetConfig<T extends WidgetType | undefined>(
             ? typeof SpansConfig
             : T extends WidgetType.TRACEMETRICS
               ? typeof TraceMetricsConfig
-              : typeof ErrorsAndTransactionsConfig;
+              : T extends WidgetType.MOBILE_APP_SIZE
+                ? typeof MobileAppSizeConfig
+                : typeof ErrorsAndTransactionsConfig;
 
 export function getDatasetConfig(
   widgetType?: WidgetType
@@ -297,7 +300,8 @@ export function getDatasetConfig(
   | typeof TransactionsConfig
   | typeof LogsConfig
   | typeof SpansConfig
-  | typeof TraceMetricsConfig {
+  | typeof TraceMetricsConfig
+  | typeof MobileAppSizeConfig {
   switch (widgetType) {
     case WidgetType.ISSUE:
       return IssuesConfig;
@@ -313,6 +317,8 @@ export function getDatasetConfig(
       return SpansConfig;
     case WidgetType.TRACEMETRICS:
       return TraceMetricsConfig;
+    case WidgetType.MOBILE_APP_SIZE:
+      return MobileAppSizeConfig;
     case WidgetType.DISCOVER:
     default:
       return ErrorsAndTransactionsConfig;
