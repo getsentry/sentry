@@ -121,9 +121,14 @@ export function PrivateGamingSdkAccessModal({
     },
     onError: errorResponse => {
       const errorMessage = tct('[error] - [detail]', {
-        error: (errorResponse.responseJSON?.error as string) || 'Error occurred',
+        error:
+          typeof errorResponse.responseJSON?.error === 'string'
+            ? errorResponse.responseJSON.error
+            : t('Error occurred'),
         detail:
-          (errorResponse.responseJSON?.detail as string) || 'Unknown Error occurred',
+          typeof errorResponse.responseJSON?.detail === 'string'
+            ? errorResponse.responseJSON.detail
+            : t('Unknown Error occurred'),
       });
       addErrorMessage(errorMessage);
     },
@@ -244,10 +249,14 @@ export function PrivateGamingSdkAccessModal({
         {mutation.error && (
           <Alert variant="danger">
             {tct('[error] - [detail]', {
-              error: (mutation.error.responseJSON?.error as string) || 'Error occurred',
+              error:
+                typeof mutation.error.responseJSON?.error === 'string'
+                  ? mutation.error.responseJSON.error
+                  : t('Error occurred'),
               detail:
-                (mutation.error.responseJSON?.detail as string) ||
-                'Unknown Error occurred',
+                typeof mutation.error.responseJSON?.detail === 'string'
+                  ? mutation.error.responseJSON.detail
+                  : t('Unknown Error occurred'),
             })}
           </Alert>
         )}
