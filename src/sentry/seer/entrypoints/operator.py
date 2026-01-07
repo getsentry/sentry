@@ -157,7 +157,11 @@ def process_autofix_updates(
         if not cache_payload:
             logger.info("operator.no_cache_payload", extra=logging_ctx)
             continue
-
-        entrypoint_cls.on_autofix_update(
-            event_type=event_type, event_payload=event_payload, cache_payload=cache_payload
-        )
+        try:
+            entrypoint_cls.on_autofix_update(
+                event_type=event_type, event_payload=event_payload, cache_payload=cache_payload
+            )
+        except Exception:
+            logger.exception("operator.on_autofix_update_error", extra=logging_ctx)
+        else:
+            logger.info("operator.on_autofix_update_success", extra=logging_ctx)

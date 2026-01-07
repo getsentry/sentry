@@ -969,10 +969,10 @@ class TestSeerRpcMethods(APITestCase):
         # Verify that the task was called for each valid event
         assert mock_delay.call_count == len(seer_events)
 
-    @patch("sentry.seer.endpoints.seer_rpc.SeerOperator")
+    @patch("sentry.seer.endpoints.seer_rpc.process_autofix_updates")
     @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
     def test_send_seer_webhook_operator_no_feature_flag(
-        self, mock_broadcast, mock_operator
+        self, mock_broadcast, mock_process_autofix_updates
     ) -> None:
         """Slack workflows flag should not affect broadcasting the webhooks."""
         from sentry.seer.endpoints.seer_rpc import send_seer_webhook
@@ -985,12 +985,12 @@ class TestSeerRpcMethods(APITestCase):
             )
 
         assert result["success"]
-        mock_operator.process_autofix_updates.assert_not_called()
+        mock_process_autofix_updates.assert_not_called()
         mock_broadcast.assert_called_once()
 
-    @patch("sentry.seer.endpoints.seer_rpc.SeerOperator")
+    @patch("sentry.seer.endpoints.seer_rpc.process_autofix_updates")
     @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
-    def test_send_seer_webhook_operator(self, mock_broadcast, mock_operator) -> None:
+    def test_send_seer_webhook_operator(self, mock_broadcast, mock_process_autofix_updates) -> None:
         """Slack workflows flag should not affect broadcasting the webhooks."""
         from sentry.seer.endpoints.seer_rpc import send_seer_webhook
 
@@ -1008,10 +1008,12 @@ class TestSeerRpcMethods(APITestCase):
             )
 
         assert result["success"]
-        mock_operator.process_autofix_updates.assert_called_once_with(
-            run_id=event_payload["run_id"],
-            event_type=SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED,
-            event_payload=event_payload,
+        mock_process_autofix_updates.apply_async.assert_called_once_with(
+            kwargs={
+                "run_id": event_payload["run_id"],
+                "event_type": SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED,
+                "event_payload": event_payload,
+            },
         )
         mock_broadcast.assert_called_once()
 
