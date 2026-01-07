@@ -4,6 +4,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
 )
 from snuba_sdk import And, Column, Condition, Entity, Function, Join, Op, Relationship
 
+from sentry.discover.translation.mep_to_eap import translate_columns
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
 from sentry.models.group import GroupStatus
 from sentry.search.events.constants import METRICS_MAP
@@ -692,3 +693,21 @@ class GetEntityKeyFromSnubaQueryTest(TestCase):
                 assert expected_entity_key == get_entity_key_from_snuba_query(
                     snuba_query, self.organization.id, self.project.id
                 )
+
+    def test_translate_aggregate_transaction_duration_to_span_duration(self) -> None:
+        assert translate_columns(["p95(transaction.duration)"], need_equation=False)[0] == [
+            "p95(span.duration)"
+        ]
+        assert translate_columns(["avg(transaction.duration)"], need_equation=False)[0] == [
+            "avg(span.duration)"
+        ]
+        assert translate_columns(["count()"], need_equation=False)[0] == ["count(span.duration)"]
+        assert translate_columns(
+            ["count_if(transaction.duration,greater,300)"], need_equation=False
+        )[0] == ["count_if(span.duration,greater,300)"]
+        assert translate_columns(["p95(span.duration)"], need_equation=False)[0] == [
+            "p95(span.duration)"
+        ]
+        assert translate_columns(["count_unique(user)"], need_equation=False)[0] == [
+            "count_unique(user)"
+        ]

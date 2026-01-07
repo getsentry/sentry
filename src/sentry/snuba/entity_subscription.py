@@ -16,6 +16,7 @@ from snuba_sdk import Column, Condition, Entity, Join, Op, Request
 from sentry import features
 from sentry.api.helpers.error_upsampling import are_any_projects_error_upsampled
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
+from sentry.discover.translation.mep_to_eap import translate_columns
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
@@ -334,7 +335,7 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
             search_resolver=search_resolver,
             params=snuba_params,
             query_string=query,
-            y_axes=[self.aggregate],
+            y_axes=translate_columns([self.aggregate], need_equation=False)[0],
             groupby=[],
             referrer=referrer,
             sampling_mode="NORMAL",
