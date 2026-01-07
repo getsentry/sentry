@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
-import type {Client} from 'sentry/api';
 import {Container} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import ApiForm from 'sentry/components/forms/apiForm';
@@ -12,12 +11,9 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import SubscriptionContext from 'getsentry/components/subscriptionContext';
@@ -28,19 +24,17 @@ import {isDisabledByPartner} from 'getsentry/utils/partnerships';
 import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 import PartnershipNote from 'getsentry/views/subscriptionPage/partnershipNote';
 
-type Props = RouteComponentProps<unknown, unknown> & {
-  api: Client;
-  organization: Organization;
-  subscription: Subscription;
-};
+function RedeemPromoCode({subscription}: {subscription: Subscription}) {
+  const api = useApi();
+  const organization = useOrganization();
 
-function RedeemPromoCode({organization, api, subscription}: Props) {
   const {accountBalance} = subscription;
   const accountCredit =
     accountBalance < 0 ? Number((accountBalance / -100).toFixed(2)) : 0;
   useRouteAnalyticsParams({
     account_credit: accountCredit,
   });
+
   const AccountCredit =
     accountCredit > 0 ? (
       <AccountCreditWrapper id="account-balance">
@@ -106,14 +100,14 @@ function RedeemPromoCode({organization, api, subscription}: Props) {
   );
 }
 
-export default withApi(withSubscription(withOrganization(RedeemPromoCode)));
+export default withSubscription(RedeemPromoCode);
 
 const AccountCreditWrapper = styled('div')`
   width: 100%;
   display: flex;
   justify-content: flex-start;
-  gap: ${space(1)};
-  padding: 0 ${space(2)};
+  gap: ${p => p.theme.space.md};
+  padding: 0 ${p => p.theme.space.xl};
 `;
 
 const ItemContainer = styled('span')`
