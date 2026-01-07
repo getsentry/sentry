@@ -39,12 +39,7 @@ from sentry.snuba.query_sources import QuerySource
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
-from sentry.utils.http import (
-    absolute_uri,
-    is_using_customer_domain,
-    is_valid_origin,
-    origin_from_request,
-)
+from sentry.utils.http import absolute_uri, is_using_customer_domain, origin_from_request
 from sentry.utils.sdk import capture_exception, merge_context_into_scope
 
 from ..utils.pagination_factory import (
@@ -390,15 +385,16 @@ class Endpoint(APIView):
 
         try:
             with sentry_sdk.start_span(op="base.dispatch.request", name=type(self).__name__):
-                if origin:
-                    if request.auth:
-                        allowed_origins = request.auth.get_allowed_origins()
-                    else:
-                        allowed_origins = None
-                    if not is_valid_origin(origin, allowed=allowed_origins):
-                        response = Response(f"Invalid origin: {origin}", status=400)
-                        self.response = self.finalize_response(request, response, *args, **kwargs)
-                        return self.response
+                # if origin:
+                #     if request.auth:
+                #         allowed_origins = request.auth.get_allowed_origins()
+                #     else:
+                #         allowed_origins = None
+
+                #     if not is_valid_origin(origin, allowed=allowed_origins):
+                #         response = Response(f"Invalid origin: {origin}", status=400)
+                #         self.response = self.finalize_response(request, response, *args, **kwargs)
+                #         return self.response
 
                 if request.auth:
                     update_token_access_record(request.auth)

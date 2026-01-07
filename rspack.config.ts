@@ -758,6 +758,21 @@ if (IS_UI_DEV_ONLY) {
     },
     proxy: [
       {
+        // Evaluated in order - we put this first to proxy these requests to local devserver.
+        context: [
+          '/region/us/api/0/organizations/*/seer/explorer-chat/**',
+          '/region/us/api/0/organizations/*/seer/explorer-runs/',
+          '/region/us/api/0/organizations/*/seer/explorer-update/**',
+        ],
+        target: `http://127.0.0.1:8000/`,
+        pathRewrite: {
+          '^/region/[^/]*': '',
+        },
+        headers: {
+          Authorization: 'Bearer <YOUR_DEVSERVER_USER_TOKEN_HERE>',
+        },
+      },
+      {
         context: ['/api/', '/avatar/', '/organization-avatar/', '/extensions/'],
         target: 'https://sentry.io',
         secure: false,
