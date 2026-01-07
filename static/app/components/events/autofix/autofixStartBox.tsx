@@ -240,7 +240,7 @@ const StyledInput = styled(TextArea)`
   resize: none;
   background: ${p => p.theme.tokens.background.primary};
 
-  border-color: ${p => p.theme.innerBorder};
+  border-color: ${p => p.theme.tokens.border.secondary};
   &:hover {
     border-color: ${p => p.theme.border};
   }

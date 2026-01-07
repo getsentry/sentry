@@ -23,7 +23,7 @@ import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {AddAutofixRepoModalContent} from './addAutofixRepoModal';
+import {AddAutofixRepoModal} from './addAutofixRepoModal';
 import {AutofixRepoItem} from './autofixRepoItem';
 import {MAX_REPOS_LIMIT} from './constants';
 
@@ -231,15 +231,13 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
 
   const openAddRepoModal = useCallback(() => {
     openModal(deps => (
-      <AddAutofixRepoModalContent
+      <AddAutofixRepoModal
         {...deps}
-        repositories={repositories || []}
         selectedRepoIds={selectedRepoIds}
         onSave={handleSaveModalSelections}
-        isFetchingRepositories={isFetchingRepositories}
       />
     ));
-  }, [repositories, selectedRepoIds, handleSaveModalSelections, isFetchingRepositories]);
+  }, [selectedRepoIds, handleSaveModalSelections]);
 
   return (
     <Panel>

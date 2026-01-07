@@ -65,44 +65,17 @@ export function VisualizationWidget({
       onDataFetchStart={onDataFetchStart}
       tableItemLimit={tableItemLimit}
     >
-      {({timeseriesResults, timeseriesResultsTypes = {}, errorMessage, loading}) => {
-        const valueUnitResultTypes: Record<
-          string,
-          {valueType: AttributeValueType; valueUnit: AttributeValueUnit}
-        > = {};
-        Object.entries(timeseriesResultsTypes).forEach(([key, outputType]) => {
-          valueUnitResultTypes[key] = mapAggregationTypeToValueTypeAndUnit(
-            outputType,
-            key
-          );
-        });
-
-        widget.queries.forEach(query => {
-          query.units?.forEach((unit, index) => {
-            if (unit && query.fields) {
-              valueUnitResultTypes[query.fields[index]!] = unit;
-            }
-          });
-        });
-
-        const firstUnit = widget.queries[0]?.units?.[0];
-
-        if (
-          firstUnit &&
-          widget.queries?.[0]?.aggregates?.length === 1 &&
-          widget.queries?.[0]?.columns?.length > 0
-        ) {
-          // if there's only one aggregate and more then one group by the series names are the name of the group, not the aggregate name
-          // But we can just assume the units is for all the series
-          // TODO: This doesn't work with multiple group bys
-          timeseriesResults?.forEach(series => {
-            valueUnitResultTypes[series.seriesName] = firstUnit;
-          });
-        }
-
+      {({
+        timeseriesResults,
+        timeseriesResultsTypes,
+        timeseriesResultsUnits,
+        errorMessage,
+        loading,
+      }) => {
         const plottables = transformLegacySeriesToPlottables(
           timeseriesResults,
-          valueUnitResultTypes,
+          timeseriesResultsTypes,
+          timeseriesResultsUnits,
           widget
         );
 
