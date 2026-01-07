@@ -12,19 +12,19 @@ PREPROD_SIZE_ATTRIBUTE_DEFINITIONS = {
             search_type="integer",
         ),
         ResolvedAttribute(
-            public_alias="max_install_size",
+            public_alias="install_size",
             internal_name="max_install_size",
             search_type="integer",
         ),
         ResolvedAttribute(
-            public_alias="max_download_size",
+            public_alias="download_size",
             internal_name="max_download_size",
             search_type="integer",
         ),
         ResolvedAttribute(
-            public_alias="artifact_type",
-            internal_name="artifact_type",
-            search_type="integer",
+            public_alias="platform_name",
+            internal_name="platform_name",
+            search_type="string",
         ),
         ResolvedAttribute(
             public_alias="app_id",
