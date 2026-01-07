@@ -385,8 +385,9 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       });
     });
 
-    // Get series result type
-    // Only used by custom measurements in errorsAndTransactions at the moment
+    // Retrieve the config's series result types and units
+    // Since each query only differs in its query filter, we can use the first widget queries
+    // to derive the types and units since they share the same aggregations and fields
     const timeseriesResultsTypes = responses.reduce(
       (acc, response) => {
         acc = {...acc, ...config.getSeriesResultType?.(response[0], widget.queries[0]!)};

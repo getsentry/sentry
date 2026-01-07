@@ -35,19 +35,15 @@ export function transformLegacySeriesToPlottables(
       const fieldType =
         timeseriesResultsTypes?.[unaliasedSeriesName] ??
         aggregateOutputType(unaliasedSeriesName);
-      let valueType: AggregationOutputType;
-      let valueUnit: DataUnit | null;
-      if (timeseriesResultsUnits?.[series.seriesName]) {
-        valueType = timeseriesResultsTypes?.[series.seriesName] ?? fieldType;
-        valueUnit = timeseriesResultsUnits?.[series.seriesName] ?? null;
-      } else {
-        const mapped = mapAggregationTypeToValueTypeAndUnit(
-          fieldType,
-          unaliasedSeriesName
-        );
-        valueType = mapped.valueType as AggregationOutputType;
-        valueUnit = mapped.valueUnit;
-      }
+
+      // Prefer results types and units from the config if available
+      // Fallback to the default mapping logic if not available
+      const mapped = mapAggregationTypeToValueTypeAndUnit(fieldType, unaliasedSeriesName);
+      const valueType =
+        timeseriesResultsTypes?.[series.seriesName] ??
+        (mapped.valueType as AggregationOutputType);
+      const valueUnit = timeseriesResultsUnits?.[series.seriesName] ?? mapped.valueUnit;
+
       const timeSeries = convertEventsStatsToTimeSeriesData(
         series.seriesName,
         createEventsStatsFromSeries(series, valueType, valueUnit)
