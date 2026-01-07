@@ -3,6 +3,7 @@ from typing import ClassVar, Self
 from django.db import models
 from django.utils import timezone
 
+from sentry import options
 from sentry.db.models import BaseModel, sane_repr
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
@@ -31,7 +32,10 @@ class ParanoidManager(BaseManager[M]):
     Only exposes objects that have NOT been soft-deleted.
     """
 
-    def get_queryset(self) -> ParanoidQuerySet[M]:
+    def get_queryset(self) -> BaseQuerySet[M]:
+        if options.get("sentry-apps.disable-paranoia"):
+            return super().get_queryset()
+
         return ParanoidQuerySet(self.model, using=self._db).filter(date_deleted__isnull=True)
 
 
