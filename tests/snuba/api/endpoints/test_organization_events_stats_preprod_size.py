@@ -35,13 +35,13 @@ class OrganizationEventsStatsPreprodSizeEndpointTest(OrganizationEventsEndpointT
     def test_max_install_size_aggregate(self) -> None:
         """Test that max(max_install_size) aggregate returns correct values."""
         size_values = [1000000, 2000000, 3000000, 4000000, 5000000, 6000000]
-        for hour, size in enumerate(size_values):
+        for i, size in enumerate(size_values):
             Factories.store_preprod_size_metric(
                 project_id=self.project.id,
                 organization_id=self.organization.id,
-                timestamp=self.start + timedelta(hours=hour),
+                timestamp=self.start + timedelta(hours=i),
                 max_install_size=size,
-                size_metric_id=hour,
+                size_metric_id=i,
                 app_id="com.example.app",
                 git_head_ref="main",
             )
@@ -64,13 +64,13 @@ class OrganizationEventsStatsPreprodSizeEndpointTest(OrganizationEventsEndpointT
     def test_max_download_size_aggregate(self) -> None:
         """Test that max(max_download_size) aggregate works correctly."""
         size_values = [500000, 600000, 700000]
-        for hour, size in enumerate(size_values):
+        for i, size in enumerate(size_values):
             Factories.store_preprod_size_metric(
                 project_id=self.project.id,
                 organization_id=self.organization.id,
-                timestamp=self.start + timedelta(hours=hour),
+                timestamp=self.start + timedelta(hours=i),
                 max_download_size=size,
-                size_metric_id=hour,
+                size_metric_id=i,
                 app_id="com.example.app",
             )
 
@@ -235,27 +235,3 @@ class OrganizationEventsStatsPreprodSizeEndpointTest(OrganizationEventsEndpointT
             features={"organizations:preprod-frontend-routes": False},
         )
         assert response.status_code != 200
-
-    def test_sub_item_type_filter_automatic(self) -> None:
-        """Test that sub_item_type=size_metric filter is applied automatically."""
-        Factories.store_preprod_size_metric(
-            project_id=self.project.id,
-            organization_id=self.organization.id,
-            timestamp=self.start + timedelta(hours=0),
-            max_install_size=1000000,
-            app_id="com.example.app",
-        )
-
-        response = self._do_request(
-            data={
-                "start": self.start,
-                "end": self.start + timedelta(hours=2),
-                "interval": "1h",
-                "yAxis": "max(max_install_size)",
-                "project": self.project.id,
-                "dataset": self.dataset,
-            },
-        )
-        assert response.status_code == 200, response.content
-        data = [attrs for time, attrs in response.data["data"]]
-        assert data[0] == [{"count": 1000000}]

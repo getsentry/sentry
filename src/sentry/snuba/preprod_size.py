@@ -4,7 +4,10 @@ from datetime import timedelta
 import sentry_sdk
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
+    ComparisonFilter,
+    TraceItemFilter,
+)
 
 from sentry.search.eap.preprod_size.definitions import PREPROD_SIZE_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
@@ -28,16 +31,6 @@ class PreprodSize(rpc_dataset_common.RPCBase):
     """
 
     DEFINITIONS = PREPROD_SIZE_DEFINITIONS
-
-    @classmethod
-    def _get_sub_item_type_filter(cls) -> TraceItemFilter:
-        return TraceItemFilter(
-            comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="sub_item_type", type=AttributeKey.Type.TYPE_STRING),
-                op=ComparisonFilter.OP_EQUALS,
-                value=AttributeValue(val_str="size_metric"),
-            )
-        )
 
     @classmethod
     @sentry_sdk.trace
@@ -136,4 +129,14 @@ class PreprodSize(rpc_dataset_common.RPCBase):
             params.start,
             params.end,
             params.granularity_secs,
+        )
+
+    @classmethod
+    def _get_sub_item_type_filter(cls) -> TraceItemFilter:
+        return TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="sub_item_type", type=AttributeKey.Type.TYPE_STRING),
+                op=ComparisonFilter.OP_EQUALS,
+                value=AttributeValue(val_str="size_metric"),
+            )
         )
