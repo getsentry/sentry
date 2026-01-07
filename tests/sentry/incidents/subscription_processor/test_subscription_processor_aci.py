@@ -322,6 +322,59 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
         assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
 
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
+    def test_comparison_alert_eap(self, helper_metrics):
+        detector = self.comparison_detector_above
+        self.snuba_query.update(
+            dataset=Dataset.EventsAnalyticsPlatform.value,
+            type=SnubaQuery.Type.PERFORMANCE.value,
+        )
+        self.send_update(self.critical_threshold + 1, timedelta(minutes=-10))
+
+        # Shouldn't trigger, since there should be no data in the comparison period
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
+        helper_metrics.incr.assert_has_calls(
+            [
+                call("incidents.alert_rules.skipping_update_comparison_value_invalid"),
+            ]
+        )
+        self.metrics.incr.assert_has_calls(
+            [
+                call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
+            ]
+        )
+        comparison_delta = timedelta(seconds=detector.config["comparison_delta"])
+        comparison_date = timezone.now() - comparison_delta
+
+        for i in range(4):
+            self.store_event(
+                data={
+                    "timestamp": (comparison_date - timedelta(minutes=30 + i)).isoformat(),
+                    "environment": self.environment.name,
+                },
+                project_id=self.project.id,
+            )
+        self.metrics.incr.reset_mock()
+        self.send_update(2, timedelta(minutes=-9))
+        # Shouldn't trigger, since there are 4 events in the comparison period, and 2/4 == 50%
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
+
+        self.send_update(4, timedelta(minutes=-8))
+        # Shouldn't trigger, since there are 4 events in the comparison period, and 4/4 == 100%
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
+
+        self.send_update(6, timedelta(minutes=-7))
+        # Shouldn't trigger: 6/4 == 150%, but we want > 150%
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
+
+        self.send_update(7, timedelta(minutes=-6))
+        # Should trigger: 7/4 == 175% > 150%
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.HIGH
+
+        # Check that we successfully resolve
+        self.send_update(6, timedelta(minutes=-5))
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
+
+    @patch("sentry.incidents.utils.process_update_helpers.metrics")
     def test_is_unresolved_comparison_query(self, helper_metrics):
         """
         Test that uses the ErrorsQueryBuilder (because of the specific query)
