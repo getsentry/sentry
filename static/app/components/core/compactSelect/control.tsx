@@ -17,6 +17,7 @@ import {mergeProps} from '@react-aria/utils';
 import type {OverlayTriggerState} from '@react-stately/overlays';
 
 import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
+import {Stack} from '@sentry/scraps/layout';
 
 import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
@@ -551,7 +552,7 @@ export function Control({
                 {typeof menuBody === 'function'
                   ? menuBody({closeOverlay: overlayState.close})
                   : menuBody}
-                {!hideOptions && <OptionsWrap>{children}</OptionsWrap>}
+                {!hideOptions && <Stack minHeight="0">{children}</Stack>}
                 {menuFooter && (
                   <MenuFooter>
                     {typeof menuFooter === 'function'
@@ -597,7 +598,7 @@ const MenuHeader = styled('div')<{size: NonNullable<ControlProps['size']>}>`
   align-items: center;
   justify-content: space-between;
   padding: ${p => headerVerticalPadding[p.size]} ${space(1.5)};
-  box-shadow: 0 1px 0 ${p => p.theme.translucentInnerBorder};
+  box-shadow: 0 1px 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
 
   [data-menu-has-search='true'] > & {
     padding-bottom: 0;
@@ -687,14 +688,8 @@ const StyledPositionWrapper = styled(PositionWrapper, {
   z-index: ${p => p?.zIndex};
 `;
 
-const OptionsWrap = styled('div')`
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-`;
-
 const MenuFooter = styled('div')`
-  box-shadow: 0 -1px 0 ${p => p.theme.translucentInnerBorder};
+  box-shadow: 0 -1px 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
   padding: ${space(1)} ${space(1.5)};
   z-index: 2;
 `;

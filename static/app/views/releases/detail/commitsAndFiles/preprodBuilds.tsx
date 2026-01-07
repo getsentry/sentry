@@ -22,6 +22,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import PreprodBuildsSearchBar from 'sentry/views/preprod/components/preprodBuildsSearchBar';
+import {usePreprodBuildsAnalytics} from 'sentry/views/preprod/hooks/usePreprodBuildsAnalytics';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
 import {ReleaseContext} from 'sentry/views/releases/detail';
@@ -31,6 +32,7 @@ import {PreprodOnboarding} from './preprodOnboarding';
 export default function PreprodBuilds() {
   const organization = useOrganization();
   const releaseContext = useContext(ReleaseContext);
+  const projectId = releaseContext.project.id;
   const projectSlug = releaseContext.project.slug;
   const projectPlatform = releaseContext.project.platform;
   const params = useParams<{release: string}>();
@@ -83,6 +85,10 @@ export default function PreprodBuilds() {
     queryParams.query = urlSearchQuery.trim();
   }
 
+  if (projectId) {
+    queryParams.project = projectId;
+  }
+
   const {
     data: buildsData,
     isPending: isLoadingBuilds,
@@ -94,7 +100,7 @@ export default function PreprodBuilds() {
     RequestError
   > = useApiQuery<ListBuildsApiResponse>(
     [
-      `/projects/${organization.slug}/${projectSlug}/preprodartifacts/list-builds/`,
+      `/organizations/${organization.slug}/preprodartifacts/list-builds/`,
       {query: queryParams},
     ],
     {
@@ -126,6 +132,18 @@ export default function PreprodBuilds() {
 
   const hasSearchQuery = !!urlSearchQuery?.trim();
   const showOnboarding = builds.length === 0 && !hasSearchQuery && !isLoadingBuilds;
+
+  usePreprodBuildsAnalytics({
+    builds,
+    cursor,
+    display: activeDisplay,
+    enabled: !!projectSlug && !!params.release,
+    error: !!buildsError,
+    isLoading: isLoadingBuilds,
+    pageSource: 'releases_details_preprod_builds',
+    projectCount: 1,
+    searchQuery: urlSearchQuery,
+  });
 
   const handleBuildRowClick = useCallback(
     (build: BuildDetailsApiResponse) => {

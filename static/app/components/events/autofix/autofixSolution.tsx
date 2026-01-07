@@ -211,7 +211,7 @@ function SolutionDescription({
 }
 
 const Description = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   padding-bottom: ${space(2)};
   margin-bottom: ${space(2)};
 `;
@@ -519,7 +519,7 @@ function AutofixSolutionDisplay({
           <HeaderWrapper>
             <HeaderText>
               <Flex justify="center" align="center" ref={iconFixRef}>
-                <IconFix size="sm" color="green400" />
+                <IconFix size="sm" variant="success" />
               </Flex>
               {t('Custom Solution')}
             </HeaderText>
@@ -547,7 +547,7 @@ function AutofixSolutionDisplay({
       <HeaderWrapper>
         <HeaderText>
           <Flex justify="center" align="center" ref={iconFixRef}>
-            <IconFix size="md" color="green400" />
+            <IconFix size="md" variant="success" />
           </Flex>
           {t('Solution')}
           <Button
@@ -770,7 +770,7 @@ const SubmitButton = styled(Button)`
 `;
 
 const BottomDivider = styled('div')`
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   margin-top: ${p => p.theme.space.lg};
 `;
 

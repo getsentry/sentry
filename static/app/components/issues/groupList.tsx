@@ -374,7 +374,7 @@ const GroupPlaceholder = styled('div')`
   padding: ${space(1)};
 
   &:not(:last-child) {
-    border-bottom: solid 1px ${p => p.theme.innerBorder};
+    border-bottom: solid 1px ${p => p.theme.tokens.border.secondary};
   }
 `;
 

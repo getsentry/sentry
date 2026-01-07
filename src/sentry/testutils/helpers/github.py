@@ -4,10 +4,13 @@ Utilities for testing GitHub integration webhooks.
 
 from __future__ import annotations
 
+from collections.abc import Collection, Generator, Mapping
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 from typing import Any
 from uuid import uuid4
 
+import orjson
 from django.http.response import HttpResponseBase
 
 from sentry import options
@@ -131,3 +134,44 @@ class GitHubWebhookTestCase(APITestCase):
             content_type="application/json",
             **headers,
         )
+
+
+class GitHubWebhookCodeReviewTestCase(GitHubWebhookTestCase):
+    CODE_REVIEW_FEATURES = {"organizations:gen-ai-features", "organizations:code-review-beta"}
+    OPTIONS_TO_SET: dict[str, bool] = {}
+
+    @contextmanager
+    def code_review_setup(
+        self,
+        features: Collection[str] | Mapping[str, Any] | None = None,
+        options: dict[str, bool] | None = None,
+    ) -> Generator[None]:
+        """Helper to set up code review test context."""
+        self.organization.update_option("sentry:enable_pr_review_test_generation", True)
+        features_to_enable = self.CODE_REVIEW_FEATURES if features is None else features
+        options_to_set = dict(self.OPTIONS_TO_SET) | (options or {})
+        with (
+            self.feature(features_to_enable),
+            self.options(options_to_set),
+        ):
+            yield
+
+    def _send_webhook_event(
+        self, github_event: GithubWebhookType, event_data: bytes | str
+    ) -> HttpResponseBase:
+        """Helper to send a GitHub webhook event."""
+        self.event_dict = (
+            orjson.loads(event_data) if isinstance(event_data, (bytes, str)) else event_data
+        )
+        repo_id = int(self.event_dict["repository"]["id"])
+
+        integration = self.create_github_integration()
+        self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id=repo_id,
+            integration_id=integration.id,
+        )
+        response = self.send_github_webhook_event(github_event, event_data)
+        assert response.status_code == 204
+        return response

@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 
 const displaySelectOptions: Array<SelectOption<PreprodBuildsDisplay>> = [
   {value: PreprodBuildsDisplay.SIZE, label: t('Size')},
-  {value: PreprodBuildsDisplay.DISTRIBUTION, label: t('Distribution'), disabled: true},
+  {value: PreprodBuildsDisplay.DISTRIBUTION, label: t('Distribution')},
 ];
 
 type DisplayOptionsProps = {

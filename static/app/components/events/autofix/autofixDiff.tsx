@@ -733,7 +733,8 @@ const FileName = styled('div')`
 `;
 
 const DiffContainer = styled('div')<{integratedStyle?: boolean}>`
-  border-top: ${p => (p.integratedStyle ? 'none' : '1px solid ' + p.theme.innerBorder)};
+  border-top: ${p =>
+    p.integratedStyle ? 'none' : '1px solid ' + p.theme.tokens.border.secondary};
   display: grid;
   grid-template-columns: auto auto 1fr;
   overflow-x: auto;

@@ -1,6 +1,12 @@
+import {Fragment, useEffect, useState} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+
+import {
+  ExplorerPanelProvider,
+  useExplorerPanel,
+} from 'sentry/views/seerExplorer/useExplorerPanel';
 
 import * as useSeerExplorerModule from './hooks/useSeerExplorer';
 import ExplorerPanel from './explorerPanel';
@@ -10,6 +16,70 @@ jest.mock('react-dom', () => ({
   ...jest.requireActual('react-dom'),
   createPortal: (node: React.ReactNode) => node,
 }));
+
+// Wrapper component to provide the panel context ExplorerPanel reads from.
+function ExplorerPanelTestWrapper({
+  isOpen,
+  children,
+}: {
+  children: React.ReactNode;
+  isOpen: boolean;
+}) {
+  const {openExplorerPanel, closeExplorerPanel} = useExplorerPanel();
+  useEffect(() => {
+    if (isOpen) {
+      openExplorerPanel();
+    } else {
+      closeExplorerPanel();
+    }
+  }, [isOpen, openExplorerPanel, closeExplorerPanel]);
+  return <Fragment>{children}</Fragment>;
+}
+
+// Wrapper function for render() to include panel context (isOpen) and router config
+function renderWithPanelContext(
+  ui: React.ReactElement,
+  isOpen: boolean,
+  options?: Parameters<typeof render>[1]
+) {
+  const setIsOpenRef: {current?: React.Dispatch<React.SetStateAction<boolean>>} = {};
+
+  function Wrapper({children}: {children: React.ReactNode}) {
+    const [isOpenState, setIsOpen] = useState(isOpen);
+    useEffect(() => {
+      setIsOpenRef.current = setIsOpen;
+    }, []);
+    return (
+      <ExplorerPanelProvider>
+        <ExplorerPanelTestWrapper isOpen={isOpenState}>
+          {children}
+        </ExplorerPanelTestWrapper>
+      </ExplorerPanelProvider>
+    );
+  }
+
+  const initialRouterConfig = {
+    location: {
+      pathname: '/organizations/org-slug/issues/1234567890/',
+      query: {},
+    },
+    route: '/organizations/:orgId/issues/:groupId/',
+  };
+
+  const result = render(<Wrapper>{ui}</Wrapper>, {
+    ...options,
+    initialRouterConfig,
+  });
+
+  const rerenderWithOpen = (newIsOpen: boolean) => {
+    act(() => setIsOpenRef.current?.(newIsOpen));
+  };
+
+  return {
+    ...result,
+    rerenderWithOpen,
+  };
+}
 
 describe('ExplorerPanel', () => {
   const organization = OrganizationFixture({
@@ -53,7 +123,7 @@ describe('ExplorerPanel', () => {
 
   describe('Feature Flag and Organization Checks', () => {
     it('renders when feature flag is enabled', () => {
-      render(<ExplorerPanel isVisible />, {organization});
+      renderWithPanelContext(<ExplorerPanel />, true, {organization});
 
       expect(
         screen.getByText(/Ask Seer anything about your application./)
@@ -65,7 +135,7 @@ describe('ExplorerPanel', () => {
         features: [],
       });
 
-      const {container} = render(<ExplorerPanel isVisible />, {
+      const {container} = renderWithPanelContext(<ExplorerPanel />, true, {
         organization: disabledOrg,
       });
 
@@ -78,7 +148,7 @@ describe('ExplorerPanel', () => {
         hideAiFeatures: true,
       });
 
-      const {container} = render(<ExplorerPanel isVisible />, {
+      const {container} = renderWithPanelContext(<ExplorerPanel />, true, {
         organization: disabledOrg,
       });
 
@@ -88,7 +158,7 @@ describe('ExplorerPanel', () => {
 
   describe('Empty State', () => {
     it('shows empty state when no messages exist', () => {
-      render(<ExplorerPanel isVisible />, {organization});
+      renderWithPanelContext(<ExplorerPanel />, true, {organization});
 
       expect(
         screen.getByText(/Ask Seer anything about your application./)
@@ -96,7 +166,7 @@ describe('ExplorerPanel', () => {
     });
 
     it('shows input section in empty state', () => {
-      render(<ExplorerPanel isVisible />, {organization});
+      renderWithPanelContext(<ExplorerPanel />, true, {organization});
 
       expect(
         screen.getByPlaceholderText('Type your message or / command and press Enter ↵')
@@ -145,13 +215,12 @@ describe('ExplorerPanel', () => {
         interruptRun: jest.fn(),
         interruptRequested: false,
         runId: null,
-        setRunId: jest.fn(),
         respondToUserInput: jest.fn(),
         switchToRun: jest.fn(),
         createPR: jest.fn(),
       });
 
-      render(<ExplorerPanel isVisible />, {organization});
+      renderWithPanelContext(<ExplorerPanel />, true, {organization});
 
       expect(screen.getByText('What is this error?')).toBeInTheDocument();
       expect(
@@ -168,7 +237,7 @@ describe('ExplorerPanel', () => {
 
   describe('Input Handling', () => {
     it('can type in textarea', async () => {
-      render(<ExplorerPanel isVisible />, {organization});
+      renderWithPanelContext(<ExplorerPanel />, true, {organization});
 
       const textarea = screen.getByTestId('seer-explorer-input');
       await userEvent.type(textarea, 'Test message');
@@ -225,7 +294,7 @@ describe('ExplorerPanel', () => {
         },
       });
 
-      render(<ExplorerPanel isVisible />, {organization});
+      renderWithPanelContext(<ExplorerPanel />, true, {organization});
 
       const textarea = screen.getByTestId('seer-explorer-input');
       await userEvent.type(textarea, 'Test message');
@@ -291,7 +360,7 @@ describe('ExplorerPanel', () => {
         },
       });
 
-      render(<ExplorerPanel isVisible />, {organization});
+      renderWithPanelContext(<ExplorerPanel />, true, {organization});
 
       const textarea = screen.getByTestId('seer-explorer-input');
       await userEvent.type(textarea, 'Test message');
@@ -303,15 +372,17 @@ describe('ExplorerPanel', () => {
 
   describe('Visibility Control', () => {
     it('renders when isVisible=true', () => {
-      render(<ExplorerPanel isVisible />, {organization});
+      renderWithPanelContext(<ExplorerPanel />, true, {organization});
 
       expect(screen.getByTestId('seer-explorer-input')).toBeInTheDocument();
     });
 
     it('can handle visibility changes', () => {
-      const {rerender} = render(<ExplorerPanel isVisible={false} />, {organization});
+      const {rerenderWithOpen} = renderWithPanelContext(<ExplorerPanel />, false, {
+        organization,
+      });
 
-      rerender(<ExplorerPanel isVisible />);
+      rerenderWithOpen(true);
 
       expect(screen.getByTestId('seer-explorer-input')).toBeInTheDocument();
     });

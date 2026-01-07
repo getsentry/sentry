@@ -114,7 +114,7 @@ function SidebarCharts({
           if (errored) {
             return (
               <ErrorPanel height="300px">
-                <IconWarning color="gray300" size="lg" />
+                <IconWarning variant="muted" size="lg" />
               </ErrorPanel>
             );
           }

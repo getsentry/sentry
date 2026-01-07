@@ -151,7 +151,7 @@ const StyledHovercard = styled(Hovercard)`
   width: 250px;
   ${Header} {
     font-weight: ${p => p.theme.fontWeight.normal};
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
   ${Body} {
     padding: ${space(1.5)};

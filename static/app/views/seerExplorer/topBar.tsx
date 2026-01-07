@@ -11,6 +11,7 @@ import {
   IconContract,
   IconCopy,
   IconExpand,
+  IconLink,
   IconMegaphone,
   IconSeer,
   IconTimer,
@@ -22,10 +23,12 @@ import {toggleSeerExplorerPanel} from 'sentry/views/seerExplorer/utils';
 
 interface TopBarProps {
   blocks: Block[];
+  isCopyLinkEnabled: boolean;
   isCopySessionEnabled: boolean;
   isEmptyState: boolean;
   isPolling: boolean;
   isSessionHistoryOpen: boolean;
+  onCopyLinkClick: () => void;
   onCopySessionClick: () => void;
   onCreatePR: (repoName?: string) => void;
   onFeedbackClick: () => void;
@@ -50,11 +53,13 @@ function TopBar({
   onPRWidgetClick,
   onSessionHistoryClick,
   onCopySessionClick,
+  onCopyLinkClick,
   onSizeToggleClick,
   panelSize,
   prWidgetButtonRef,
   repoPRStates,
   isCopySessionEnabled,
+  isCopyLinkEnabled,
   sessionHistoryButtonRef,
 }: TopBarProps) {
   // Check if there are any file patches
@@ -102,6 +107,15 @@ function TopBar({
           aria-label={t('Copy conversation to clipboard')}
           title={t('Copy conversation to clipboard')}
           disabled={!isCopySessionEnabled}
+        />
+        <Button
+          icon={<IconLink />}
+          onClick={onCopyLinkClick}
+          priority="transparent"
+          size="sm"
+          aria-label={t('Copy link to current chat and web page')}
+          title={t('Copy link to current chat and web page')}
+          disabled={!isCopyLinkEnabled}
         />
       </Flex>
       <AnimatePresence initial={false}>
@@ -178,6 +192,9 @@ const CenterSection = styled(motion.div)`
 
 const SessionHistoryButtonWrapper = styled('div')<{isSelected: boolean}>`
   button {
-    background-color: ${p => (p.isSelected ? p.theme.hover : 'transparent')};
+    background-color: ${p =>
+      p.isSelected
+        ? p.theme.tokens.interactive.transparent.neutral.background.active
+        : 'transparent'};
   }
 `;

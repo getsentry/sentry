@@ -12,7 +12,6 @@ import sessionStorage from 'sentry/utils/sessionStorage';
 import {readStorageValue} from 'sentry/utils/useSessionStorage';
 
 import type {Subscription} from 'getsentry/types';
-import {hasNewBillingUI} from 'getsentry/utils/billing';
 import {GETSENTRY_EVENT_MAP} from 'getsentry/utils/trackGetsentryAnalytics';
 
 import trackAmplitudeEvent from './trackAmplitudeEvent';
@@ -193,7 +192,7 @@ export default function rawTrackAnalyticsEvent(
 
       if (eventKey in GETSENTRY_EVENT_MAP) {
         data.isNewCheckout = true;
-        data.isNewBillingUI = hasNewBillingUI(organization);
+        data.isNewBillingUI = true;
       }
     }
 

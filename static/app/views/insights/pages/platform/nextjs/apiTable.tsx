@@ -26,7 +26,7 @@ import type {SpanProperty} from 'sentry/views/insights/types';
 
 const getP95Threshold = (avg: number) => {
   return {
-    error: avg * 3,
+    danger: avg * 3,
     warning: avg * 2,
   };
 };
