@@ -109,9 +109,7 @@ export function ConfigureRootCauseAnalysisStep() {
           projectRepoMappings[projectId] = [];
         }
 
-        // repo.name = `githubOrg/repositoryName`, need to split it for backend
-        const [owner, name] = (repo.name || '/').split('/');
-        if (!owner || !name || !repo.provider) {
+        if (!repo.name || !repo.provider) {
           Sentry.logger.error('Seer Onboarding: Invalid repository name', {
             repoName: repo.name,
           });
@@ -121,9 +119,8 @@ export function ConfigureRootCauseAnalysisStep() {
           external_id: repo.externalId,
           integration_id: repo.integrationId,
           organization_id: parseInt(organization.id, 10),
-          owner,
           provider: repo.provider?.name,
-          name,
+          name: repo.name,
         });
       }
     }

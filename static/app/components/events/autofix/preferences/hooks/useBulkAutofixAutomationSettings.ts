@@ -31,7 +31,6 @@ export interface BackendRepository {
   integration_id: string;
   name: string;
   organization_id: number;
-  owner: string;
   provider: string;
   base_commit_sha?: string;
   branch_name?: string;
@@ -41,6 +40,7 @@ export interface BackendRepository {
     tag_value: string;
   }>;
   instructions?: string;
+  owner?: string;
   provider_raw?: string;
 }
 
