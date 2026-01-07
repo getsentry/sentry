@@ -5,6 +5,8 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import type {DistributedOmit} from 'type-fest';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {IconCheckmark, IconChevron, IconInfo, IconNot, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -181,12 +183,6 @@ const StyledIconWrapper = styled('div')<{variant: AlertProps['variant']}>`
         : p.theme.colors.black};
 `;
 
-const StyledExpandIconWrap = styled('div')`
-  display: flex;
-  align-items: center;
-  align-self: flex-start;
-`;
-
 const StyledExpandContainer = styled('div')<{
   showIcon: boolean;
   showTrailingItems: boolean;
@@ -258,7 +254,7 @@ export function Alert({
           </StyledTrailingItems>
         )}
         {showExpand && (
-          <StyledExpandIconWrap>
+          <Flex align="center" alignSelf="flex-start">
             <Button
               size="zero"
               borderless
@@ -269,7 +265,7 @@ export function Alert({
                 props.handleExpandChange?.(!isExpanded);
               }}
             />
-          </StyledExpandIconWrap>
+          </Flex>
         )}
         {isExpanded && (
           <Fragment>

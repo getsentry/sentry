@@ -9,7 +9,6 @@
  */
 import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
-import modifyColor from 'color';
 import {spring, type Transition} from 'framer-motion';
 
 import {withLegacyTokens, type LegacyTokens} from 'sentry/utils/theme/compat';
@@ -171,15 +170,25 @@ type AlertColors = Record<
 >;
 
 const generateThemeUtils = (
+  tokens: Tokens,
   colors: ReturnType<typeof deprecatedColorMappings>,
   aliases: Aliases
 ) => ({
-  tooltipUnderline: (underlineColor: ColorOrAlias = 'gray300') => ({
+  tooltipUnderline: (
+    underlineColor: ColorOrAlias | 'warning' | 'danger' | 'success' = 'gray300'
+  ) => ({
     textDecoration: 'underline' as const,
     textDecorationThickness: '0.75px',
     textUnderlineOffset: '1.25px',
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    textDecorationColor: colors[underlineColor] ?? aliases[underlineColor],
+    textDecorationColor:
+      underlineColor === 'warning'
+        ? tokens.content.warning
+        : underlineColor === 'danger'
+          ? tokens.content.danger
+          : underlineColor === 'success'
+            ? tokens.content.success
+            : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+              (colors[underlineColor] ?? aliases[underlineColor]),
     textDecorationStyle: 'dotted' as const,
   }),
   overflowEllipsis: css`
@@ -269,7 +278,7 @@ const generateButtonTheme = (
     backgroundActive: alias.background,
     border: alias.disabledBorder,
     borderActive: alias.disabledBorder,
-    borderTranslucent: alias.translucentInnerBorder,
+    borderTranslucent: tokens.border.transparent.neutral.muted,
     focusBorder: 'transparent',
     focusShadow: 'transparent',
   },
@@ -1195,11 +1204,7 @@ const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
   border: tokens.border.primary,
   translucentBorder: tokens.border.transparent.neutral.muted,
 
-  /**
-   * Inner borders, e.g. borders inside of a grid
-   */
   innerBorder: tokens.border.secondary,
-  translucentInnerBorder: tokens.border.transparent.neutral.muted,
 
   /**
    * A color that denotes a "success", or something good
@@ -1218,12 +1223,6 @@ const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
    */
   danger: tokens.content.danger,
   dangerText: tokens.content.danger,
-
-  /**
-   * A color that denotes a warning
-   */
-  warning: tokens.content.warning,
-  warningText: tokens.content.warning,
 
   /**
    * A color that indicates something is disabled where user can not interact or use
@@ -1261,29 +1260,6 @@ const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
   linkColor: tokens.interactive.link.accent.rest,
   linkHoverColor: tokens.interactive.link.accent.hover,
   linkUnderline: tokens.interactive.link.accent.rest,
-
-  // @todo(jonasbadalic) should these reference chonk colors?
-  searchTokenBackground: {
-    valid: colors.blue100,
-    validActive: modifyColor(colors.blue100).opaquer(1.0).string(),
-    invalid: colors.red100,
-    invalidActive: modifyColor(colors.red100).opaquer(0.8).string(),
-    warning: colors.yellow100,
-    warningActive: modifyColor(colors.yellow100).opaquer(0.8).string(),
-  },
-
-  /**
-   * Search filter "token" border
-   * NOTE: Not being used anymore in the new Search UI
-   */
-  searchTokenBorder: {
-    valid: colors.blue200,
-    validActive: modifyColor(colors.blue200).opaquer(1).string(),
-    invalid: colors.red200,
-    invalidActive: modifyColor(colors.red200).opaquer(1).string(),
-    warning: colors.yellow200,
-    warningActive: modifyColor(colors.yellow200).opaquer(1).string(),
-  },
 });
 
 const lightAliases = generateAliases(baseLightTheme.tokens, lightColors);
@@ -1439,7 +1415,11 @@ const lightThemeDefinition = {
   }),
 
   // @TODO: these colors need to be ported
-  ...generateThemeUtils(deprecatedColorMappings(lightColors), lightAliases),
+  ...generateThemeUtils(
+    baseLightTheme.tokens,
+    deprecatedColorMappings(lightColors),
+    lightAliases
+  ),
   alert: generateAlertTheme(lightColors, lightAliases),
   button: generateButtonTheme(lightColors, lightAliases, baseLightTheme.tokens),
   tag: generateTagTheme(lightColors),
@@ -1488,7 +1468,11 @@ export const darkTheme: SentryTheme = {
   }),
 
   // @TODO: these colors need to be ported
-  ...generateThemeUtils(deprecatedColorMappings(darkColors), darkAliases),
+  ...generateThemeUtils(
+    baseDarkTheme.tokens,
+    deprecatedColorMappings(darkColors),
+    darkAliases
+  ),
   alert: generateAlertTheme(darkColors, darkAliases),
   button: generateButtonTheme(darkColors, darkAliases, baseDarkTheme.tokens),
   tag: generateTagTheme(darkColors),

@@ -30,6 +30,36 @@ class SeerEndpoint(StrEnum):
     PR_REVIEW_RERUN = "/v1/automation/codegen/pr-review/rerun"
 
 
+def get_seer_endpoint_for_event(github_event: GithubWebhookType) -> SeerEndpoint:
+    """
+    Get the appropriate Seer endpoint for a given GitHub webhook event.
+
+    Args:
+        github_event: The GitHub webhook event type
+
+    Returns:
+        The SeerEndpoint to use for the event
+    """
+    if github_event == GithubWebhookType.CHECK_RUN:
+        return SeerEndpoint.PR_REVIEW_RERUN
+    return SeerEndpoint.OVERWATCH_REQUEST
+
+
+def get_webhook_option_key(webhook_type: GithubWebhookType) -> str | None:
+    """
+    Get the option key for a given GitHub webhook type.
+
+    Args:
+        webhook_type: The GitHub webhook event type
+
+    Returns:
+        The option key string if the webhook type has an associated option, None otherwise
+    """
+    from .webhooks.config import WEBHOOK_TYPE_TO_OPTION_KEY
+
+    return WEBHOOK_TYPE_TO_OPTION_KEY.get(webhook_type)
+
+
 def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:
     """
     Make a request to the Seer API and return the response data.
@@ -60,30 +90,63 @@ def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:
         return response.data
 
 
-def _get_trigger_metadata(event_payload: Mapping[str, Any]) -> dict[str, Any]:
-    """Extract trigger metadata fields from the event payload."""
-    comment = event_payload.get("comment")
+def _get_trigger_metadata_for_pull_request(event_payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Extract trigger metadata for pull_request events."""
+    trigger_user = event_payload.get("sender", {}).get("login") or event_payload.get(
+        "pull_request", {}
+    ).get("user", {}).get("login")
 
-    if comment:
-        trigger_user = comment.get("user", {}).get("login")
-        trigger_comment_id = comment.get("id")
-        trigger_comment_type = (
-            "pull_request_review_comment"
-            if comment.get("pull_request_review_id") is not None
-            else "issue_comment"
-        )
-    else:
-        trigger_user = event_payload.get("sender", {}).get("login") or event_payload.get(
-            "pull_request", {}
-        ).get("user", {}).get("login")
-        trigger_comment_id = None
-        trigger_comment_type = None
+    return {
+        "trigger_user": trigger_user,
+        "trigger_comment_id": None,
+        "trigger_comment_type": None,
+    }
+
+
+def _get_trigger_metadata_for_issue_comment(event_payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Extract trigger metadata for issue_comment events."""
+    comment = event_payload.get("comment", {})
+    trigger_user = comment.get("user", {}).get("login")
+    trigger_comment_id = comment.get("id")
+    trigger_comment_type = "issue_comment"
 
     return {
         "trigger_user": trigger_user,
         "trigger_comment_id": trigger_comment_id,
         "trigger_comment_type": trigger_comment_type,
     }
+
+
+def _get_trigger_metadata_for_pull_request_review_comment(
+    event_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Extract trigger metadata for pull_request_review_comment events."""
+    comment = event_payload.get("comment", {})
+    trigger_user = comment.get("user", {}).get("login")
+    trigger_comment_id = comment.get("id")
+    trigger_comment_type = "pull_request_review_comment"
+
+    return {
+        "trigger_user": trigger_user,
+        "trigger_comment_id": trigger_comment_id,
+        "trigger_comment_type": trigger_comment_type,
+    }
+
+
+def _get_trigger_metadata(
+    github_event: GithubWebhookType, event_payload: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Extract trigger metadata fields from the event payload based on the GitHub event type."""
+    if github_event == GithubWebhookType.PULL_REQUEST:
+        return _get_trigger_metadata_for_pull_request(event_payload)
+
+    if github_event == GithubWebhookType.ISSUE_COMMENT:
+        return _get_trigger_metadata_for_issue_comment(event_payload)
+
+    if github_event == GithubWebhookType.PULL_REQUEST_REVIEW_COMMENT:
+        return _get_trigger_metadata_for_pull_request_review_comment(event_payload)
+
+    raise ValueError(f"unsupported-event-type-for-trigger-metadata: {github_event}")
 
 
 def _get_target_commit_sha(
@@ -179,7 +242,7 @@ def transform_webhook_to_codegen_request(
         "base_commit_sha": target_commit_sha,
     }
 
-    trigger_metadata = _get_trigger_metadata(event_payload)
+    trigger_metadata = _get_trigger_metadata(github_event, event_payload)
 
     # Build CodecovTaskRequest
     return {
@@ -201,3 +264,27 @@ def transform_webhook_to_codegen_request(
             },
         },
     }
+
+
+def get_pr_author_id(event: Mapping[str, Any]) -> str | None:
+    """
+    Extract the PR author's GitHub user ID from the webhook payload.
+    The user information can be found in different locations depending on the webhook type.
+    """
+    # Check issue.user.id (for issue comments on PRs)
+    if (user_id := event.get("issue", {}).get("user", {}).get("id")) is not None:
+        return str(user_id)
+
+    # Check pull_request.user.id (for pull request events)
+    if (user_id := event.get("pull_request", {}).get("user", {}).get("id")) is not None:
+        return str(user_id)
+
+    # Check user.id (fallback for direct user events)
+    if (user_id := event.get("user", {}).get("id")) is not None:
+        return str(user_id)
+
+    # Check sender.id (for check_run events). Sender is the user who triggered the event
+    if (user_id := event.get("sender", {}).get("id")) is not None:
+        return str(user_id)
+
+    return None

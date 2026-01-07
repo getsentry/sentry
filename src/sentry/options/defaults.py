@@ -3076,6 +3076,12 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "spans.process-segments.drop-segments",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "indexed-spans.agg-span-waterfall.enable",
@@ -3471,13 +3477,6 @@ register(
     default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Secret Scanning. Email allowlist for notifications.
-register(
-    "secret-scanning.github.notifications.email-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Rate limiting for the occurrence consumer
 register(
@@ -3777,6 +3776,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Manual option for hard deleting sentry apps and installations.
+register(
+    "sentry-apps.hard-delete",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Killswitch for web vital issue detection
 register(
     "issue-detection.web-vitals-detection.enabled",
@@ -3816,22 +3823,13 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Project ID allowlist to enable detailed search debug logging for diagnosing
-# bugs with issue feed search.
-register(
-    "snuba.search.debug-log-project-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Project ID allowlist to enable truncation of group IDs in Snuba query
+# Option to enable truncation of group IDs in Snuba query
 # when search filters are selective.
 register(
-    "snuba.search.truncate-group-ids-for-selective-filters-project-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+    "snuba.search.truncate-group-ids-for-selective-filters-enabled",
+    type=Bool,
+    default=True,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Organization slug allowlist to enable Autopilot for specific organizations.
@@ -3839,5 +3837,13 @@ register(
     "autopilot.organization-allowlist",
     type=Sequence,
     default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Global flag to enable API token async flush
+register(
+    "api-token-async-flush",
+    default=False,
+    type=Bool,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )

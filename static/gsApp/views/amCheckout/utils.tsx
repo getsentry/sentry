@@ -45,12 +45,12 @@ import type {
   CheckoutFormData,
   PlanContent,
 } from 'getsentry/views/amCheckout/types';
+import {bigNumFormatter} from 'getsentry/views/spendAllocations/utils';
 import {
   normalizeOnDemandBudget,
   parseOnDemandBudgetsFromSubscription,
   trackOnDemandBudgetAnalytics,
-} from 'getsentry/views/onDemandBudgets/utils';
-import {bigNumFormatter} from 'getsentry/views/spendAllocations/utils';
+} from 'getsentry/views/spendLimits/utils';
 
 const CURRENCY_LOCALE = 'en-US';
 
