@@ -98,7 +98,7 @@ function createPlottableFromTimeSeries(
   }
 }
 
-export function mapAggregationTypeToValueTypeAndUnit(
+function mapAggregationTypeToValueTypeAndUnit(
   aggregationType: AggregationOutputType,
   fieldName: string
 ): {
