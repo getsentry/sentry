@@ -1,6 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import * as qs from 'query-string';
+import type {LocationDescriptor} from 'history';
 
 import {LinkButton} from '@sentry/scraps/button/linkButton';
 import {Text} from '@sentry/scraps/text';
@@ -33,6 +33,7 @@ import {getDetectorOpenInDestination} from 'sentry/views/detectors/components/de
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
+import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 interface MetricDetectorEvidenceData {
@@ -108,7 +109,7 @@ function calculateStartOfInterval({
 /**
  * Issues list does not support AND/OR in the query, but Discover does.
  */
-function BooleanLogicError({discoverUrl}: {discoverUrl: string}) {
+function BooleanLogicError({discoverUrl}: {discoverUrl: LocationDescriptor}) {
   return (
     <Alert.Container>
       <Alert
@@ -170,14 +171,18 @@ function ContributingIssues({
     sort: aggregate === 'count_unique(user)' ? 'user' : 'freq',
   };
 
-  const discoverUrl = `/organizations/${organization.slug}/discover/results/?${qs.stringify(
-    {
+  const discoverUrl: LocationDescriptor = {
+    pathname: makeDiscoverPathname({
+      organization,
+      path: '/results/',
+    }),
+    query: {
       query,
       dataset: SavedQueryDatasets.ERRORS,
       start,
       end,
-    }
-  )}`;
+    },
+  };
 
   return (
     <InterimSection
