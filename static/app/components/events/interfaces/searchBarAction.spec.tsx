@@ -15,32 +15,32 @@ const options: NonNullable<
       {
         value: BreadcrumbType.HTTP,
         label: 'HTTP request',
-        leadingItems: <Type color="green300" type={BreadcrumbType.HTTP} />,
+        leadingItems: <Type variant="success" type={BreadcrumbType.HTTP} />,
       },
       {
         value: BreadcrumbType.TRANSACTION,
         label: 'Transaction',
-        leadingItems: <Type color="pink300" type={BreadcrumbType.TRANSACTION} />,
+        leadingItems: <Type variant="promotion" type={BreadcrumbType.TRANSACTION} />,
       },
       {
         value: BreadcrumbType.UI,
         label: 'User Action',
-        leadingItems: <Type color="purple300" type={BreadcrumbType.UI} />,
+        leadingItems: <Type variant="accent" type={BreadcrumbType.UI} />,
       },
       {
         value: BreadcrumbType.NAVIGATION,
         label: 'Navigation',
-        leadingItems: <Type color="green300" type={BreadcrumbType.NAVIGATION} />,
+        leadingItems: <Type variant="success" type={BreadcrumbType.NAVIGATION} />,
       },
       {
         value: BreadcrumbType.DEBUG,
         label: 'Debug',
-        leadingItems: <Type color="purple300" type={BreadcrumbType.DEBUG} />,
+        leadingItems: <Type variant="accent" type={BreadcrumbType.DEBUG} />,
       },
       {
         value: BreadcrumbType.ERROR,
         label: 'Error',
-        leadingItems: <Type color="red300" type={BreadcrumbType.ERROR} />,
+        leadingItems: <Type variant="danger" type={BreadcrumbType.ERROR} />,
       },
     ],
   },

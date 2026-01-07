@@ -53,7 +53,6 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import type {Color} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -552,7 +551,7 @@ function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
                 })
               }
             >
-              <IconCircleFill size="xs" color={color as Color} />
+              <StyledIconCircleFill size="xs" fill={color} />
               {operationName}
               <HighlightsOpPct>{pctLabel}%</HighlightsOpPct>
             </HighlightsOpRow>
@@ -609,7 +608,7 @@ function HighLightEAPOpsBreakdown({node}: {node: EapSpanNode}) {
                 })
               }
             >
-              <IconCircleFill size="xs" color={color as Color} />
+              <StyledIconCircleFill size="xs" fill={color} />
               {operationName}
               <HighlightsOpPct>{pctLabel}%</HighlightsOpPct>
             </HighlightsOpRow>
@@ -619,6 +618,10 @@ function HighLightEAPOpsBreakdown({node}: {node: EapSpanNode}) {
     </HighlightsOpsBreakdownWrapper>
   );
 }
+
+const StyledIconCircleFill = styled(IconCircleFill)<{fill: string}>`
+  fill: ${p => p.fill};
+`;
 
 const TopOpsList = styled('div')`
   display: flex;
