@@ -31,7 +31,7 @@ BACKOFF_SCHEDULE = [10, 20, 30, 30, 30, 30, 30]
 @instrumented_task(
     name="sentry.uptime.consumers.tasks.process_uptime_backlog",
     namespace=uptime_tasks,
-    retry=Retry(times=3, delay=1),
+    retry=Retry(times=3, delay=1, on=(Exception,)),
 )
 def process_uptime_backlog(subscription_id: str, attempt: int = 1):
     """
@@ -150,6 +150,7 @@ def process_uptime_backlog(subscription_id: str, attempt: int = 1):
                 "uptime.backlog.cleared",
                 extra={"subscription_id": subscription_id, "processed_count": processed_count},
             )
+            metrics.incr("uptime.backlog.cleared", amount=1, sample_rate=1.0)
             return
 
         if processed_count > 0:
@@ -174,6 +175,7 @@ def process_uptime_backlog(subscription_id: str, attempt: int = 1):
                     "remaining_items": remaining,
                 },
             )
+            metrics.incr("uptime.backlog.rescheduling", amount=1, sample_rate=1.0)
 
         next_backoff = BACKOFF_SCHEDULE[next_attempt - 1]
         remaining_time_seconds = sum(BACKOFF_SCHEDULE[next_attempt - 1 :]) + 60
