@@ -214,7 +214,7 @@ const SuperHeaderLabel = styled(IssueStreamHeaderLabel)`
 `;
 
 const SuperHeader = styled(PanelHeader)`
-  background-color: ${p => p.theme.headerBackground};
+  background-color: ${p => p.theme.tokens.background.primary};
   padding: ${space(1)};
   text-transform: capitalize;
 `;

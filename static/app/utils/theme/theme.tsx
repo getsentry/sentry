@@ -1194,11 +1194,6 @@ const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
   backgroundTertiary: tokens.background.tertiary,
 
   /**
-   * Background for the header of a page
-   */
-  headerBackground: tokens.background.primary,
-
-  /**
    * Primary border color
    */
   border: tokens.border.primary,
