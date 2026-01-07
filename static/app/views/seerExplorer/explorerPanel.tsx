@@ -106,9 +106,9 @@ function ExplorerPanel() {
   const rawUser = useUser() as unknown;
   const userId = isUser(rawUser) ? rawUser.id : undefined;
   const ownerUserId = sessionData?.owner_user_id;
-  const canEdit =
-    userId !== undefined &&
-    (ownerUserId === undefined || ownerUserId.toString() === userId);
+  const readOnly =
+    userId === undefined ||
+    (ownerUserId !== undefined && ownerUserId.toString() !== userId);
 
   // Get PR widget data for menu
   const {menuItems: prWidgetItems, menuFooter: prWidgetFooter} = usePRWidgetData({
@@ -226,7 +226,7 @@ function ExplorerPanel() {
   }, [focusedBlockIndex]);
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (!canEdit) {
+    if (readOnly) {
       return;
     }
 
@@ -426,9 +426,12 @@ function ExplorerPanel() {
       const isPrintableChar = e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
 
       if (e.key === 'Escape') {
-        if (isPolling && canEdit && !interruptRequested && !isFileApprovalPending) {
+        if (isPolling && !readOnly && !interruptRequested && !isFileApprovalPending) {
           e.preventDefault();
           interruptRun();
+        } else if (readOnly) {
+          e.preventDefault();
+          setIsMinimized(true);
         } else if (!isFileApprovalPending) {
           // Don't minimize if file approval is pending (Escape is used to reject)
           e.preventDefault();
@@ -440,7 +443,7 @@ function ExplorerPanel() {
         // If a block is focused, auto-focus input when user starts typing.
         // Don't do this if file approval or question is pending (textarea isn't visible)
         if (
-          canEdit &&
+          !readOnly &&
           focusedBlockIndex !== -1 &&
           !isFileApprovalPending &&
           !isQuestionPending
@@ -468,7 +471,7 @@ function ExplorerPanel() {
     isVisible,
     isMenuOpen,
     isPolling,
-    canEdit,
+    readOnly,
     focusedBlockIndex,
     interruptRun,
     interruptRequested,
@@ -542,6 +545,7 @@ function ExplorerPanel() {
         isEmptyState={isEmptyState}
         isPolling={isPolling}
         isSessionHistoryOpen={isMenuOpen && menuMode === 'session-history'}
+        readOnly={readOnly}
         onCreatePR={createPR}
         onFeedbackClick={handleFeedback}
         onNewChatClick={() => {
@@ -582,7 +586,7 @@ function ExplorerPanel() {
                 }
                 isFocused={focusedBlockIndex === index}
                 isPolling={isPolling}
-                editEnabled={canEdit}
+                readOnly={readOnly}
                 onClick={() => handleBlockClick(index)}
                 onMouseEnter={() => {
                   // Don't change focus while menu is open, if already on this block, or if hover is disabled
@@ -636,7 +640,7 @@ function ExplorerPanel() {
         )}
       </BlocksContainer>
       <InputSection
-        enabled={canEdit}
+        enabled={!readOnly}
         focusedBlockIndex={focusedBlockIndex}
         inputValue={inputValue}
         interruptRequested={interruptRequested}

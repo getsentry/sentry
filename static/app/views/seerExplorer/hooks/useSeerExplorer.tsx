@@ -485,10 +485,6 @@ export const useSeerExplorer = () => {
 
   /** Resets the hook state. The session isn't actually created until the user sends a message. */
   const startNewSession = useCallback(() => {
-    if (!interruptRequested && isPolling(filteredSessionData, waitingForResponse)) {
-      // Make interrupt request before resetting state.
-      interruptRun();
-    }
     // Reset state.
     setRunId(null);
     setWaitingForResponse(false);
@@ -502,15 +498,7 @@ export const useSeerExplorer = () => {
         makeInitialSeerExplorerData()
       );
     }
-  }, [
-    queryClient,
-    orgSlug,
-    setRunId,
-    filteredSessionData,
-    waitingForResponse,
-    interruptRun,
-    interruptRequested,
-  ]);
+  }, [queryClient, orgSlug, setRunId]);
 
   /** Switches to a different run and fetches its latest state. */
   const switchToRun = useCallback(

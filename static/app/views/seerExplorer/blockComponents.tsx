@@ -26,7 +26,6 @@ import {
 interface BlockProps {
   block: Block;
   blockIndex: number;
-  editEnabled?: boolean;
   isAwaitingFileApproval?: boolean;
   isAwaitingQuestion?: boolean;
   isFocused?: boolean;
@@ -41,6 +40,7 @@ interface BlockProps {
   onRegisterEnterHandler?: (
     handler: (key: 'Enter' | 'ArrowUp' | 'ArrowDown') => boolean
   ) => void;
+  readOnly?: boolean;
   ref?: React.Ref<HTMLDivElement>;
 }
 
@@ -131,7 +131,6 @@ function getToolStatus(
 function BlockComponent({
   block,
   blockIndex: _blockIndex,
-  editEnabled = true,
   isAwaitingFileApproval,
   isAwaitingQuestion,
   isLast,
@@ -144,6 +143,7 @@ function BlockComponent({
   onMouseLeave,
   onNavigate,
   onRegisterEnterHandler,
+  readOnly = false,
   ref,
 }: BlockProps) {
   const organization = useOrganization();
@@ -281,7 +281,7 @@ function BlockComponent({
     !block.loading &&
     !isAwaitingFileApproval &&
     !isAwaitingQuestion &&
-    editEnabled; // move this check to inside button bar once there are more actions
+    !readOnly; // move this check to inside button bar once there are more actions
 
   return (
     <Block
