@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   setApiQueryData,
   useApiQuery,
@@ -19,6 +20,7 @@ import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
 import {
   makeSeerExplorerQueryKey,
   RUN_ID_QUERY_PARAM,
+  usePageReferrer,
 } from 'sentry/views/seerExplorer/utils';
 
 export type PendingUserInput = {
@@ -118,6 +120,7 @@ export const useSeerExplorer = () => {
 
   // Support deep links that carry a run id; set it once and clean the URL.
   const {openExplorerPanel} = useExplorerPanel();
+  const {getPageReferrer} = usePageReferrer();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -176,6 +179,20 @@ export const useSeerExplorer = () => {
       const screenshot = captureAsciiSnapshot?.();
 
       setWaitingForResponse(true);
+
+      trackAnalytics('seer.explorer.message_sent', {
+        referrer: getPageReferrer(),
+        surface: 'global_panel',
+        organization,
+      });
+
+      if (effectiveRunId === null) {
+        trackAnalytics('seer.explorer.session_created', {
+          referrer: getPageReferrer(),
+          surface: 'global_panel',
+          organization,
+        });
+      }
 
       // Calculate insert index first
       const effectiveMessageLength =
@@ -259,12 +276,18 @@ export const useSeerExplorer = () => {
       deletedFromIndex,
       captureAsciiSnapshot,
       setRunId,
+      getPageReferrer,
+      organization,
     ]
   );
 
-  const deleteFromIndex = useCallback((index: number) => {
-    setDeletedFromIndex(index);
-  }, []);
+  const deleteFromIndex = useCallback(
+    (index: number) => {
+      setDeletedFromIndex(index);
+      trackAnalytics('seer.explorer.rethink_requested', {organization});
+    },
+    [organization]
+  );
 
   const interruptRun = useCallback(async () => {
     if (!orgSlug || !runId || interruptRequested) {

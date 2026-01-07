@@ -177,13 +177,6 @@ export type TeamInsightsEventParameters = {
   'releases_list.click_add_release_health': {
     project_id: number;
   };
-  'seer.autofix.feedback_submitted': {
-    autofix_run_id: string;
-    group_id: string;
-    positive: boolean;
-    step_type: 'root_cause' | 'solution' | 'changes';
-    user_id: string;
-  };
   'suspect_commit.feedback_submitted': {
     choice_selected: boolean;
     group_owner_id: number;
@@ -263,7 +256,6 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'project_detail.releases_tour.close': 'Project Detail: Releases Tour Close',
   'release_detail.pagination': 'Release Detail: Pagination',
   'releases_list.click_add_release_health': 'Releases List: Click Add Release Health',
-  'seer.autofix.feedback_submitted': 'Seer: Autofix Feedback Submitted',
   trace_timeline_clicked: 'Trace Timeline Clicked',
   trace_timeline_more_events_clicked: 'Trace Timeline More Events Clicked',
   'suspect_commit.feedback_submitted': 'Suspect Commit Feedback Submitted',

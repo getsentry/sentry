@@ -2,6 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import {createPortal} from 'react-dom';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -26,10 +27,12 @@ import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
 import {
   RUN_ID_QUERY_PARAM,
   useCopySessionDataToClipboard,
+  usePageReferrer,
 } from 'sentry/views/seerExplorer/utils';
 
 function ExplorerPanel() {
   const {isOpen: isVisible} = useExplorerPanel();
+  const {getPageReferrer} = usePageReferrer();
   const organization = useOrganization({allowNull: true});
   const {projects} = useProjects();
 
@@ -50,6 +53,18 @@ function ExplorerPanel() {
   const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
 
   const {panelSize, handleMaxSize, handleMedSize} = usePanelSizing();
+
+  // Panel opened analytic
+  useEffect(() => {
+    if (isVisible && !isMinimized) {
+      trackAnalytics('seer.explorer.global_panel.opened', {
+        referrer: getPageReferrer(),
+        organization,
+      });
+    }
+  }, [isVisible, isMinimized, organization, getPageReferrer]);
+
+  // Session data and management
   const {
     runId,
     sessionData,
@@ -70,7 +85,7 @@ function ExplorerPanel() {
 
   const {copySessionToClipboard} = useCopySessionDataToClipboard({
     blocks: sessionData?.blocks || [],
-    orgSlug: organization?.slug ?? '',
+    organization,
     projects,
     enabled: copySessionEnabled,
   });
@@ -502,7 +517,9 @@ function ExplorerPanel() {
     } catch {
       addErrorMessage('Failed to copy link to current chat');
     }
-  }, [runId]);
+
+    trackAnalytics('seer.explorer.session_link_copied', {organization});
+  }, [runId, organization]);
 
   const panelContent = (
     <PanelContainers
@@ -549,6 +566,7 @@ function ExplorerPanel() {
                 }}
                 block={block}
                 blockIndex={index}
+                getPageReferrer={getPageReferrer}
                 isAwaitingFileApproval={isFileApprovalPending}
                 isAwaitingQuestion={isQuestionPending}
                 isLatestTodoBlock={index === latestTodoBlockIndex}
@@ -581,7 +599,10 @@ function ExplorerPanel() {
                   deleteFromIndex(index);
                   focusInput();
                 }}
-                onNavigate={() => setIsMinimized(true)}
+                onNavigate={() => {
+                  setIsMinimized(true);
+                  // child handles navigation
+                }}
                 onRegisterEnterHandler={handler => {
                   blockEnterHandlers.current.set(index, handler);
                 }}
