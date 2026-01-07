@@ -295,7 +295,7 @@ export default function MetricChart({
                 </ValueItem>
                 {waitingForDataPercent > 0 && (
                   <StyledTooltip
-                    underlineColor="gray200"
+                    underlineColor="muted"
                     showUnderline
                     title={t(
                       'The time spent waiting for metrics matching the filters used.'
