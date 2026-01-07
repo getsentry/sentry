@@ -11,7 +11,6 @@ from .details import RelayDetailsEndpoint
 from .health_check import RelayHealthCheck
 from .index import RelayIndexEndpoint
 from .project_configs import RelayProjectConfigsEndpoint
-from .project_ids import RelayProjectIdsEndpoint
 from .public_keys import RelayPublicKeysEndpoint
 from .register_challenge import RelayRegisterChallengeEndpoint
 from .register_response import RelayRegisterResponseEndpoint
@@ -22,7 +21,6 @@ __all__ = (
     "RelayIdSerializer",
     "RelayIndexEndpoint",
     "RelayProjectConfigsEndpoint",
-    "RelayProjectIdsEndpoint",
     "RelayPublicKeysEndpoint",
     "RelayRegisterChallengeEndpoint",
     "RelayRegisterResponseEndpoint",
