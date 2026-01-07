@@ -61,7 +61,9 @@ function Cta({
         {icon && <Flex align="center">{icon}</Flex>}
         {image && (
           <Flex align="center">
-            <Image src={image} alt={imageAlt} />
+            <Container maxWidth="200px">
+              <Image src={image} alt={imageAlt} />
+            </Container>
           </Flex>
         )}
         <Text bold align={isBanner ? 'left' : 'center'} size="lg" textWrap="balance">
