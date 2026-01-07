@@ -169,10 +169,14 @@ export function BaseChartActionDropdown({
     menuOptions.push(menuOption);
   }
 
+  const newAlertLabel = organization.features.includes('workflow-engine-ui')
+    ? t('Create a Monitor for')
+    : t('Create an Alert for');
+
   if (alertMenuOptions.length > 0) {
     menuOptions.push({
       key: 'create-alert',
-      label: t('Create Alert for'),
+      label: newAlertLabel,
       isSubmenu: true,
       children: alertMenuOptions.map(option => ({
         ...option,
