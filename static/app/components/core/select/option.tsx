@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {ClassNames} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import {CheckWrap} from '@sentry/scraps/select';
 
@@ -65,9 +66,9 @@ export function SelectOption(props: Props) {
               <Fragment>
                 <CheckWrap isMultiple={isMultiple} isSelected={isSelected} size={size}>
                   {isSelected && (
-                    <IconCheckmark
+                    <StyledIconCheckmark
                       size={isMultiple ? 'xs' : 'sm'}
-                      color={isMultiple ? 'white' : undefined}
+                      isMultiple={isMultiple}
                     />
                   )}
                 </CheckWrap>
@@ -80,3 +81,7 @@ export function SelectOption(props: Props) {
     </ClassNames>
   );
 }
+
+const StyledIconCheckmark = styled(IconCheckmark)<{isMultiple: boolean}>`
+  color: ${p => (p.isMultiple ? p.theme.colors.white : undefined)};
+`;
