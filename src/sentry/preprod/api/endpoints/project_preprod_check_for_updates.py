@@ -115,7 +115,7 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
             current_filter_kwargs = get_base_filters()
             current_filter_kwargs.update(
                 {
-                    "build_version": provided_build_version,
+                    "mobile_app_info__build_version": provided_build_version,
                 }
             )
 
@@ -126,32 +126,51 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
             # Add build_number filter if provided
             if provided_build_number is not None:
                 try:
-                    current_filter_kwargs["build_number"] = int(provided_build_number)
+                    current_filter_kwargs["mobile_app_info__build_number"] = int(
+                        provided_build_number
+                    )
                 except ValueError:
                     return Response({"error": "Invalid build_number format"}, status=400)
 
             if build_configuration:
                 current_filter_kwargs["build_configuration"] = build_configuration
 
-            preprod_artifact = PreprodArtifact.objects.filter(**current_filter_kwargs).latest(
-                "date_added"
+            preprod_artifact = (
+                PreprodArtifact.objects.select_related("mobile_app_info")
+                .filter(**current_filter_kwargs)
+                .latest("date_added")
             )
         except PreprodArtifact.DoesNotExist:
             logger.warning(
                 "No artifact found for binary identifier with version %s", provided_build_version
             )
 
-        if preprod_artifact and preprod_artifact.build_version and preprod_artifact.build_number:
+        build_version = (
+            preprod_artifact.mobile_app_info.build_version
+            if preprod_artifact and hasattr(preprod_artifact, "mobile_app_info")
+            else None
+        )
+        build_number = (
+            preprod_artifact.mobile_app_info.build_number
+            if preprod_artifact and hasattr(preprod_artifact, "mobile_app_info")
+            else None
+        )
+        app_name = (
+            preprod_artifact.mobile_app_info.app_name
+            if preprod_artifact and hasattr(preprod_artifact, "mobile_app_info")
+            else None
+        )
+        if preprod_artifact and build_version and build_number:
             current = InstallableBuildDetails(
                 id=str(preprod_artifact.id),
-                build_version=preprod_artifact.build_version,
-                build_number=preprod_artifact.build_number,
+                build_version=build_version,
+                build_number=build_number,
                 release_notes=(
                     preprod_artifact.extras.get("release_notes")
                     if preprod_artifact.extras
                     else None
                 ),
-                app_name=preprod_artifact.app_name,
+                app_name=app_name,
                 download_url=get_download_url_for_artifact(preprod_artifact),
                 created_date=preprod_artifact.date_added.isoformat(),
             )
@@ -169,7 +188,7 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
             new_build_filter_kwargs["build_configuration"] = build_configuration
         all_versions = (
             PreprodArtifact.objects.filter(**new_build_filter_kwargs)
-            .values_list("build_version", flat=True)
+            .values_list("mobile_app_info__build_version", flat=True)
             .distinct()
         )
 
@@ -187,8 +206,10 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
 
         # Get all artifacts for the highest version
         if highest_version:
-            new_build_filter_kwargs["build_version"] = highest_version
-            potential_artifacts = PreprodArtifact.objects.filter(**new_build_filter_kwargs)
+            new_build_filter_kwargs["mobile_app_info__build_version"] = highest_version
+            potential_artifacts = PreprodArtifact.objects.select_related("mobile_app_info").filter(
+                **new_build_filter_kwargs
+            )
 
             # Filter for installable artifacts and get the one with highest build_number
             installable_artifacts = [
@@ -196,20 +217,39 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
             ]
             if len(installable_artifacts) > 0:
                 best_artifact = max(
-                    installable_artifacts, key=lambda a: (a.build_number, a.date_added)
+                    installable_artifacts,
+                    key=lambda a: (
+                        (a.mobile_app_info.build_number if hasattr(a, "mobile_app_info") else 0),
+                        a.date_added,
+                    ),
                 )
                 if not preprod_artifact or preprod_artifact.id != best_artifact.id:
-                    if best_artifact.build_version and best_artifact.build_number:
+                    best_build_version = (
+                        best_artifact.mobile_app_info.build_version
+                        if hasattr(best_artifact, "mobile_app_info")
+                        else None
+                    )
+                    best_build_number = (
+                        best_artifact.mobile_app_info.build_number
+                        if hasattr(best_artifact, "mobile_app_info")
+                        else None
+                    )
+                    best_app_name = (
+                        best_artifact.mobile_app_info.app_name
+                        if hasattr(best_artifact, "mobile_app_info")
+                        else None
+                    )
+                    if best_build_version and best_build_number:
                         update = InstallableBuildDetails(
                             id=str(best_artifact.id),
-                            build_version=best_artifact.build_version,
-                            build_number=best_artifact.build_number,
+                            build_version=best_build_version,
+                            build_number=best_build_number,
                             release_notes=(
                                 best_artifact.extras.get("release_notes")
                                 if best_artifact.extras
                                 else None
                             ),
-                            app_name=best_artifact.app_name,
+                            app_name=best_app_name,
                             download_url=get_download_url_for_artifact(best_artifact),
                             created_date=best_artifact.date_added.isoformat(),
                         )

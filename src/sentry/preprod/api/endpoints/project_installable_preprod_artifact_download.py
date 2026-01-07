@@ -40,6 +40,7 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
             installable = InstallablePreprodArtifact.objects.select_related(
                 "preprod_artifact",
                 "preprod_artifact__project",
+                "preprod_artifact__mobile_app_info",
             ).get(
                 url_path=url_path,
             )
@@ -66,8 +67,16 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
 
         if format_type == "plist":
             app_id = preprod_artifact.app_id
-            build_version = preprod_artifact.build_version
-            app_name = preprod_artifact.app_name
+            build_version = (
+                preprod_artifact.mobile_app_info.build_version
+                if hasattr(preprod_artifact, "mobile_app_info")
+                else None
+            )
+            app_name = (
+                preprod_artifact.mobile_app_info.app_name
+                if hasattr(preprod_artifact, "mobile_app_info")
+                else None
+            )
             if not app_id or not build_version or not app_name:
                 return Response({"error": "App details not found"}, status=404)
 
@@ -134,10 +143,20 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
 
             fp = file_obj.getfile()
             filename = preprod_artifact.app_id or "app"
-            if preprod_artifact.build_version:
-                filename += f"@{preprod_artifact.build_version}"
-            if preprod_artifact.build_number:
-                filename += f"+{preprod_artifact.build_number}"
+            build_version = (
+                preprod_artifact.mobile_app_info.build_version
+                if hasattr(preprod_artifact, "mobile_app_info")
+                else None
+            )
+            if build_version:
+                filename += f"@{build_version}"
+            build_number = (
+                preprod_artifact.mobile_app_info.build_number
+                if hasattr(preprod_artifact, "mobile_app_info")
+                else None
+            )
+            if build_number:
+                filename += f"+{build_number}"
             ext = format_type if format_type else "bin"
             filename += f".{ext}"
             response = FileResponse(

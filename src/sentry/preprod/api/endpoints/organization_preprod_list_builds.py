@@ -86,7 +86,7 @@ class OrganizationPreprodListBuildsEndpoint(OrganizationEndpoint):
 
         queryset = (
             PreprodArtifact.objects.select_related(
-                "project", "build_configuration", "commit_comparison"
+                "project", "build_configuration", "commit_comparison", "mobile_app_info"
             )
             .prefetch_related("preprodartifactsizemetrics_set")
             .filter(project_id__in=project_ids)

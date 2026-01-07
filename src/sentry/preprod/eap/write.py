@@ -78,9 +78,15 @@ def produce_preprod_size_metric_to_eap(
             "apple" if artifact.is_ios() else "android" if artifact.is_android() else None
         ),
         "app_id": artifact.app_id,
-        "app_name": artifact.app_name,
-        "build_version": artifact.build_version,
-        "build_number": artifact.build_number,
+        "app_name": (
+            artifact.mobile_app_info.app_name if hasattr(artifact, "mobile_app_info") else None
+        ),
+        "build_version": (
+            artifact.mobile_app_info.build_version if hasattr(artifact, "mobile_app_info") else None
+        ),
+        "build_number": (
+            artifact.mobile_app_info.build_number if hasattr(artifact, "mobile_app_info") else None
+        ),
         "main_binary_identifier": artifact.main_binary_identifier,
         "artifact_date_built": (
             int(artifact.date_built.timestamp()) if artifact.date_built else None
@@ -164,9 +170,15 @@ def produce_preprod_build_distribution_to_eap(
             "apple" if artifact.is_ios() else "android" if artifact.is_android() else None
         ),
         "app_id": artifact.app_id,
-        "app_name": artifact.app_name,
-        "build_version": artifact.build_version,
-        "build_number": artifact.build_number,
+        "app_name": (
+            artifact.mobile_app_info.app_name if hasattr(artifact, "mobile_app_info") else None
+        ),
+        "build_version": (
+            artifact.mobile_app_info.build_version if hasattr(artifact, "mobile_app_info") else None
+        ),
+        "build_number": (
+            artifact.mobile_app_info.build_number if hasattr(artifact, "mobile_app_info") else None
+        ),
         "main_binary_identifier": artifact.main_binary_identifier,
         "artifact_date_built": (
             int(artifact.date_built.timestamp()) if artifact.date_built else None
