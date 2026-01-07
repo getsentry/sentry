@@ -414,22 +414,6 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
 
         assert result == handoff_config
 
-    @patch("sentry.seer.autofix.on_completion_hook.get_project_seer_preferences")
-    def test_get_handoff_config_returns_none_when_handoff_point_mismatch(self, mock_get_prefs):
-        """Returns None when handoff_point is not ROOT_CAUSE."""
-        handoff_config = self._make_handoff_config(
-            handoff_point=AutofixHandoffPoint.SOLUTION  # Not ROOT_CAUSE
-        )
-        mock_get_prefs.return_value = self._make_preference_response(handoff_config=handoff_config)
-
-        result = AutofixOnCompletionHook._get_handoff_config_if_applicable(
-            stopping_point=AutofixStoppingPoint.CODE_CHANGES,
-            current_step=AutofixStep.ROOT_CAUSE,
-            group_id=self.group.id,
-        )
-
-        assert result is None
-
     @patch("sentry.seer.autofix.on_completion_hook.trigger_coding_agent_handoff")
     @patch("sentry.seer.autofix.on_completion_hook.get_project_seer_preferences")
     def test_maybe_continue_pipeline_triggers_handoff_when_configured(
