@@ -45,10 +45,6 @@ function RedeemPromoCode({subscription}: {subscription: Subscription}) {
     account_credit: accountCredit,
   });
 
-  if (!subscription) {
-    return <LoadingIndicator />;
-  }
-
   const AccountCredit =
     accountCredit > 0 ? (
       <AccountCreditWrapper id="account-balance">
