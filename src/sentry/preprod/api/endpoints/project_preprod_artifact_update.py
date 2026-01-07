@@ -290,7 +290,6 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
             head_artifact.app_icon_id = data["app_icon_id"]
             updated_fields.append("app_icon_id")
 
-        # Create or update PreprodArtifactMobileAppInfo with mobile app fields
         mobile_app_info_updates = {}
         if "build_version" in data:
             mobile_app_info_updates["build_version"] = data["build_version"]

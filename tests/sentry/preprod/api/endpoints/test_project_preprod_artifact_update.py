@@ -456,7 +456,6 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_update_preprod_artifact_creates_mobile_app_info(self) -> None:
-        """Test that updating mobile app fields creates PreprodArtifactMobileAppInfo."""
         data = {
             "build_version": "1.2.3",
             "build_number": 456,
@@ -473,14 +472,12 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert "app_name" in resp_data["updatedFields"]
         assert "app_icon_id" in resp_data["updatedFields"]
 
-        # Verify deprecated fields are still written on PreprodArtifact
         self.preprod_artifact.refresh_from_db()
         assert self.preprod_artifact.build_version == "1.2.3"
         assert self.preprod_artifact.build_number == 456
         assert self.preprod_artifact.app_name == "Test App"
         assert self.preprod_artifact.app_icon_id == "icon-123"
 
-        # Verify PreprodArtifactMobileAppInfo was created
         mobile_app_info = PreprodArtifactMobileAppInfo.objects.get(
             preprod_artifact=self.preprod_artifact
         )
@@ -489,14 +486,11 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert mobile_app_info.app_name == "Test App"
         assert mobile_app_info.app_icon_id == "icon-123"
 
-        # Verify one-to-one relationship works
         assert self.preprod_artifact.mobile_app_info.id == mobile_app_info.id
         assert mobile_app_info.preprod_artifact.id == self.preprod_artifact.id
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_update_preprod_artifact_updates_existing_mobile_app_info(self) -> None:
-        """Test that updating mobile app fields updates existing PreprodArtifactMobileAppInfo."""
-        # First, create initial mobile app info
         initial_data = {
             "build_version": "1.0.0",
             "build_number": 100,
@@ -505,7 +499,6 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         response1 = self._make_request(initial_data)
         assert response1.status_code == 200
 
-        # Verify initial creation
         mobile_app_info = PreprodArtifactMobileAppInfo.objects.get(
             preprod_artifact=self.preprod_artifact
         )
@@ -515,7 +508,6 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert mobile_app_info.app_icon_id is None
         initial_mobile_app_info_id = mobile_app_info.id
 
-        # Update with new data
         updated_data = {
             "build_version": "2.0.0",
             "build_number": 200,
@@ -524,17 +516,15 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         response2 = self._make_request(updated_data)
         assert response2.status_code == 200
 
-        # Verify the same PreprodArtifactMobileAppInfo object was updated (not created new)
         mobile_app_info_after = PreprodArtifactMobileAppInfo.objects.get(
             preprod_artifact=self.preprod_artifact
         )
         assert mobile_app_info_after.id == initial_mobile_app_info_id
         assert mobile_app_info_after.build_version == "2.0.0"
         assert mobile_app_info_after.build_number == 200
-        assert mobile_app_info_after.app_name == "Initial App"  # Should be preserved
+        assert mobile_app_info_after.app_name == "Initial App"
         assert mobile_app_info_after.app_icon_id == "new-icon-456"
 
-        # Verify only one PreprodArtifactMobileAppInfo exists
         count = PreprodArtifactMobileAppInfo.objects.filter(
             preprod_artifact=self.preprod_artifact
         ).count()
@@ -542,14 +532,11 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_update_preprod_artifact_partial_mobile_app_info_update(self) -> None:
-        """Test that partial updates only update provided fields in PreprodArtifactMobileAppInfo."""
-        # Update with only build_version
         data = {"build_version": "3.0.0"}
         response = self._make_request(data)
 
         assert response.status_code == 200
 
-        # Verify PreprodArtifactMobileAppInfo was created with only build_version
         mobile_app_info = PreprodArtifactMobileAppInfo.objects.get(
             preprod_artifact=self.preprod_artifact
         )

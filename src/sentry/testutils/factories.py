@@ -2602,7 +2602,6 @@ class Factories:
             artifact.update(date_added=date_added)
         return artifact
 
-        # Create PreprodArtifactMobileAppInfo with mobile app fields if any are provided
         mobile_app_info_fields = {}
         if build_version is not None:
             mobile_app_info_fields["build_version"] = build_version
