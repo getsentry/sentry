@@ -1,8 +1,10 @@
 import {Fragment, useEffect, useState} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
 
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
 import {
   ExplorerPanelProvider,
   useExplorerPanel,
@@ -367,6 +369,101 @@ describe('ExplorerPanel', () => {
       await userEvent.keyboard('{Enter}');
 
       expect(textarea).toHaveValue('');
+    });
+  });
+
+  describe('read only states', () => {
+    const runId = 999;
+
+    beforeEach(() => {
+      MockApiClient.clearMockResponses();
+
+      // useSeerExplorer reads sessionStorage for the initial run id - use this to seed it.
+      sessionStorage.setItem('seer-explorer-run-id', String(runId));
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-runs/`,
+        method: 'GET',
+        body: {
+          data: [],
+        },
+      });
+    });
+
+    function mockSessionResponse(ownerUserId: number | null | undefined) {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
+        method: 'GET',
+        body: {
+          session: {
+            blocks: [],
+            run_id: runId,
+            status: 'completed',
+            updated_at: '2024-01-01T00:00:00Z',
+            owner_user_id: ownerUserId,
+          },
+        },
+      });
+    }
+
+    it('should have disabled input section when useUser returns none', async () => {
+      ConfigStore.set('user', undefined as any);
+      mockSessionResponse(2);
+
+      renderWithPanelContext(<ExplorerPanel />, true, {organization});
+
+      const textarea = await screen.findByTestId('seer-explorer-input');
+
+      expect(textarea).toBeDisabled();
+      expect(textarea).toHaveAttribute(
+        'placeholder',
+        'This conversation is owned by another user and is read-only'
+      );
+    });
+
+    it('should have disabled input section when explorer owner differs', async () => {
+      ConfigStore.set('user', UserFixture({id: '1'}));
+      mockSessionResponse(2);
+
+      renderWithPanelContext(<ExplorerPanel />, true, {organization});
+
+      const textarea = await screen.findByTestId('seer-explorer-input');
+
+      await waitFor(() => expect(textarea).toBeDisabled());
+      expect(textarea).toHaveAttribute(
+        'placeholder',
+        'This conversation is owned by another user and is read-only'
+      );
+    });
+
+    it('enables input when owner id is null', async () => {
+      ConfigStore.set('user', UserFixture({id: '1'}));
+      mockSessionResponse(null);
+
+      renderWithPanelContext(<ExplorerPanel />, true, {organization});
+
+      const textarea = await screen.findByTestId('seer-explorer-input');
+
+      await waitFor(() => expect(textarea).toBeEnabled());
+      expect(textarea).toHaveAttribute(
+        'placeholder',
+        'Type your message or / command and press Enter ↵'
+      );
+    });
+
+    it('enables input when owner id matches', async () => {
+      ConfigStore.set('user', UserFixture({id: '1'}));
+      mockSessionResponse(1);
+
+      renderWithPanelContext(<ExplorerPanel />, true, {organization});
+
+      const textarea = await screen.findByTestId('seer-explorer-input');
+
+      await waitFor(() => expect(textarea).toBeEnabled());
+      expect(textarea).toHaveAttribute(
+        'placeholder',
+        'Type your message or / command and press Enter ↵'
+      );
     });
   });
 
