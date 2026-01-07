@@ -87,7 +87,7 @@ function DeadRageClickWidgetVisualization({items}: {items: DeadRageSelectorItem[
           </ClicksGridCell>
           <ClicksGridCell>
             <ClickCount>
-              <IconCursorArrow size="xs" color="yellow300" />
+              <IconCursorArrow size="xs" variant="warning" />
               {item.count_dead_clicks || 0}
             </ClickCount>
           </ClicksGridCell>

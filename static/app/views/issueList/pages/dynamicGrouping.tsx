@@ -479,7 +479,9 @@ function ClusterCard({
     <CardContainer>
       <CardHeader>
         {cluster.impact && (
-          <ClusterTitle>
+          <ClusterTitleLink
+            to={`/organizations/${organization.slug}/issues/top-issues/?cluster=${cluster.cluster_id}`}
+          >
             {cluster.impact}
             <Text
               as="span"
@@ -489,7 +491,7 @@ function ClusterCard({
             >
               [CLUSTER-{cluster.cluster_id}]
             </Text>
-          </ClusterTitle>
+          </ClusterTitleLink>
         )}
         {!clusterStats.isPending &&
           (clusterStats.newIssuesCount > 0 ||
@@ -1235,6 +1237,7 @@ const CardsColumn = styled('div')`
 `;
 
 const CardContainer = styled('div')`
+  position: relative;
   background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.radius.md};
@@ -1243,10 +1246,12 @@ const CardContainer = styled('div')`
   min-width: 0;
   overflow: hidden;
   transition:
+    background-color 0.2s ease,
     border-color 0.2s ease,
     box-shadow 0.2s ease;
 
   &:hover {
+    background: ${p => p.theme.tokens.background.secondary};
     border-color: ${p => p.theme.colors.blue200};
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   }
@@ -1259,13 +1264,20 @@ const CardHeader = styled('div')`
   gap: ${space(1)};
 `;
 
-const ClusterTitle = styled('h3')`
+const ClusterTitleLink = styled(Link)`
   margin: 0;
   font-size: ${p => p.theme.fontSize.xl};
   font-weight: 600;
   color: ${p => p.theme.tokens.content.primary};
   line-height: 1.3;
   word-break: break-word;
+  text-decoration: none;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
 `;
 
 const StatsRow = styled('div')`
@@ -1347,13 +1359,16 @@ const StatusTag = styled('div')<{color: 'purple' | 'yellow' | 'red'}>`
   }}
 `;
 
-const TabSection = styled('div')``;
+const TabSection = styled('div')`
+  position: relative;
+  z-index: 1;
+`;
 
 const TabBar = styled('div')`
   display: flex;
   gap: ${space(0.5)};
   padding: ${space(1)} ${space(3)} 0;
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const Tab = styled('button')<{isActive: boolean}>`
@@ -1391,8 +1406,10 @@ const TabContent = styled('div')`
 `;
 
 const CardFooter = styled('div')`
+  position: relative;
+  z-index: 1;
   padding: ${space(2)} ${space(3)};
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1457,7 +1474,7 @@ const IssueMessage = styled(EventMessage)`
 const MetaSeparator = styled('div')`
   height: 10px;
   width: 1px;
-  background-color: ${p => p.theme.innerBorder};
+  background-color: ${p => p.theme.tokens.border.secondary};
 `;
 
 const DescriptionText = styled('p')`

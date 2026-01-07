@@ -762,7 +762,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     color: ${p.theme.subText};
   }
   .tooltip-footer {
-    border-top: solid 1px ${p.theme.innerBorder};
+    border-top: solid 1px ${p.theme.tokens.border.secondary};
     text-align: center;
     position: relative;
     width: auto;
