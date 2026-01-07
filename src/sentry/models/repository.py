@@ -25,7 +25,7 @@ from sentry.db.pending_deletion import (
     reset_pending_deletion_field_names,
 )
 from sentry.models.options.organization_option import OrganizationOption
-from sentry.models.repositorysettings import RepositorySettings
+from sentry.models.repositorysettings import CodeReviewTrigger, RepositorySettings
 from sentry.organizations.services.organization.service import organization_service
 from sentry.signals import pending_delete
 from sentry.users.services.user import RpcUser
@@ -177,6 +177,10 @@ class Repository(Model):
             )
             if not isinstance(triggers, list):
                 triggers = DEFAULT_CODE_REVIEW_TRIGGERS
+
+            # ON_COMMAND_PHRASE is always enabled
+            if CodeReviewTrigger.ON_COMMAND_PHRASE not in triggers:
+                triggers.append(CodeReviewTrigger.ON_COMMAND_PHRASE)
 
             RepositorySettings.objects.get_or_create(
                 repository_id=self.id,

@@ -33,7 +33,7 @@ class RepositorySettingsSerializer(Serializer):
         code_review_settings = obj.get_code_review_settings()
         return {
             "enabledCodeReview": code_review_settings.enabled,
-            "codeReviewTriggers": code_review_settings.triggers,
+            "codeReviewTriggers": [trigger.value for trigger in code_review_settings.triggers],
         }
 
 
