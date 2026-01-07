@@ -1293,7 +1293,7 @@ const ClusterStats = styled('div')`
   align-items: center;
   gap: ${space(2)};
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const TimeStats = styled('div')`
@@ -1301,7 +1301,7 @@ const TimeStats = styled('div')`
   align-items: center;
   gap: ${space(2)};
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StatItem = styled('div')`
@@ -1318,7 +1318,7 @@ const ProjectAvatars = styled('div')`
 
 const MoreProjectsCount = styled('span')`
   font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-left: ${space(0.25)};
 `;
 
@@ -1377,7 +1377,8 @@ const Tab = styled('button')<{isActive: boolean}>`
   padding: ${space(1)} ${space(1.5)};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: 500;
-  color: ${p => (p.isActive ? p.theme.tokens.content.primary : p.theme.subText)};
+  color: ${p =>
+    p.isActive ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
   cursor: pointer;
   position: relative;
   margin-bottom: -1px;
@@ -1460,14 +1461,14 @@ const IssueTitle = styled('div')`
     font-size: ${p => p.theme.fontSize.sm};
     font-style: normal;
     font-weight: ${p => p.theme.fontWeight.normal};
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
 const IssueMessage = styled(EventMessage)`
   margin: 0;
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   opacity: 0.9;
 `;
 
@@ -1480,7 +1481,7 @@ const MetaSeparator = styled('div')`
 const DescriptionText = styled('p')`
   margin: 0;
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   line-height: 1.5;
 `;
 
@@ -1500,7 +1501,7 @@ const TagPill = styled('span')`
   display: inline-block;
   padding: ${space(0.25)} ${space(1)};
   font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   background: ${p => p.theme.backgroundSecondary};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
@@ -1514,7 +1515,7 @@ const InfoRow = styled('div')`
 `;
 
 const InfoLabel = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: 500;
   min-width: 60px;
   flex-shrink: 0;
@@ -1527,7 +1528,7 @@ const InfoValue = styled('span')`
 
 const FilterLabel = styled('span')<{disabled?: boolean}>`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => (p.disabled ? p.theme.tokens.content.disabled : p.theme.subText)};
+  color: ${p => (p.disabled ? p.theme.tokens.content.disabled : p.theme.tokens.content.secondary)};
 `;
 
 const ShowMoreButton = styled('button')`
@@ -1538,7 +1539,7 @@ const ShowMoreButton = styled('button')`
   background: ${p => p.theme.backgroundSecondary};
   border: 1px dashed ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.md};
   cursor: pointer;
   transition:
@@ -1574,7 +1575,7 @@ const CustomDataBadge = styled('div')`
 
 const LastUpdatedText = styled('span')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   white-space: nowrap;
 `;
 

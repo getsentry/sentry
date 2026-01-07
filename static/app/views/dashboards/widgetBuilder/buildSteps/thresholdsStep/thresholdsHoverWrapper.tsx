@@ -84,7 +84,7 @@ const Row = styled('span')`
 `;
 
 const ContextTitle = styled('h6')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-bottom: 0 !important;
 `;
 

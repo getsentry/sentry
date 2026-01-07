@@ -471,7 +471,7 @@ const TransactionButton = styled('button')`
   border: none;
   outline: none;
   justify-content: flex-start;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.normal};
 
   &:hover:not(:disabled) {

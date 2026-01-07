@@ -193,16 +193,16 @@ const IntegrationDetails = styled('div')`
 `;
 
 const StyledLink = styled(Link)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   &:before {
     content: '|';
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     margin-right: ${space(0.75)};
   }
 `;
 
 const LearnMore = styled(Link)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 type PublishStatusProps = {status: SentryApp['status']};
@@ -211,20 +211,20 @@ const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
   <div {...props}>{status}</div>
 ))`
   color: ${p =>
-    p.status === 'published' ? p.theme.tokens.content.success : p.theme.subText};
+    p.status === 'published' ? p.theme.tokens.content.success : p.theme.tokens.content.secondary};
   font-weight: light;
   margin-right: ${space(0.75)};
   text-transform: capitalize;
   &:before {
     content: '|';
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     margin-right: ${space(0.75)};
     font-weight: ${p => p.theme.fontWeight.normal};
   }
 `;
 
 const ResolveNowButton = styled(LinkButton)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   float: right;
 `;
 

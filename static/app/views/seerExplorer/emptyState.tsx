@@ -36,7 +36,7 @@ const Container = styled('div')`
 
 const Text = styled('div')`
   margin-top: ${space(2)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.md};
   line-height: 1.4;
   max-width: 300px;

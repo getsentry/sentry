@@ -115,7 +115,7 @@ const InvisibleInput = styled('textarea')<{size: 'small' | 'normal'}>`
   background: transparent;
   font-size: ${p => p.theme.fontSize.sm};
   font-family: ${p => p.theme.text.familyMono};
-  caret-color: ${p => p.theme.subText};
+  caret-color: ${p => p.theme.tokens.content.secondary};
   color: transparent;
 
   &::selection {

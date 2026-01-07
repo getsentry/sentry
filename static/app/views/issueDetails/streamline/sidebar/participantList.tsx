@@ -118,7 +118,7 @@ const ListTitle = styled('div')`
   align-items: center;
   padding: ${space(1)} ${space(1.5)};
   background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-transform: uppercase;
   font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.sm};
@@ -150,6 +150,6 @@ const StyledAvatarList = styled(AvatarList)`
 `;
 
 const LastSeen = styled(DateTime)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.xs};
 `;

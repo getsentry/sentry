@@ -195,7 +195,7 @@ const Legend = styled('div')`
 
 const CrontabText = styled(Text)`
   font-family: ${p => p.theme.text.familyMono};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const MonitorSlug = styled('button')`

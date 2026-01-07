@@ -201,7 +201,7 @@ const SubText = styled('span')`
 `;
 
 const SubHeaderText = styled(motion.h6)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const ButtonWrapper = styled('div')`
