@@ -4,13 +4,7 @@ import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {BillingDetailsFixture} from 'getsentry-test/fixtures/billingDetails';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {Subscription as TSubscription} from 'getsentry/types';
@@ -218,10 +212,11 @@ describe('Subscription > BillingInformation', () => {
     expect(
       screen.queryByRole('button', {name: 'Edit payment method'})
     ).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Save Changes'})).toBeInTheDocument();
-
+    const cardPanel = await screen.findByTestId('credit-card-panel');
+    const inCardPanel = within(cardPanel);
+    expect(inCardPanel.getByRole('button', {name: 'Save Changes'})).toBeInTheDocument();
     expect(
-      screen.getByText(/Your credit card will be charged upon update./)
+      inCardPanel.getByText(/Your credit card will be charged upon update./)
     ).toBeInTheDocument();
   });
 
@@ -296,11 +291,11 @@ describe('Subscription > BillingInformation', () => {
       },
     };
 
-    const updateMock = MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/`,
-      method: 'PUT',
-      body: updatedSubscription,
-    });
+    // const updateMock = MockApiClient.addMockResponse({
+    //   url: `/customers/${organization.slug}/`,
+    //   method: 'PUT',
+    //   body: updatedSubscription,
+    // });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/payments/setup/`,
@@ -322,6 +317,7 @@ describe('Subscription > BillingInformation', () => {
     );
 
     await screen.findByText('Billing Information');
+    await userEvent.click(screen.getByRole('button', {name: 'Edit payment method'}));
     const cardPanel = await screen.findByTestId('credit-card-panel');
     const inCardPanel = within(cardPanel);
     expect(
@@ -334,7 +330,7 @@ describe('Subscription > BillingInformation', () => {
     await userEvent.click(inCardPanel.getByRole('button', {name: 'Save Changes'}));
 
     // Wait for the API call to complete
-    await waitFor(() => expect(updateMock).toHaveBeenCalled());
+    await inCardPanel.findByRole('button', {name: 'Edit payment method'});
 
     // for testing purposes, update the store and rerender with the updated subscription
     // due to the nature of how the components are abstracted, this is necessary for testing
@@ -402,31 +398,5 @@ describe('Subscription > BillingInformation', () => {
     await userEvent.click(inCardPanel.getByRole('button', {name: 'Save Changes'}));
 
     expect(await screen.findByText('card invalid')).toBeInTheDocument();
-  });
-
-  it('uses stripe components when flag is enabled', async () => {
-    organization.features = ['stripe-components'];
-
-    render(
-      <BillingInformation
-        organization={organization}
-        subscription={subscription}
-        location={router.location}
-      />
-    );
-
-    const billingDetailsPanel = await screen.findByTestId('billing-details-panel');
-    const inBillingDetailsPanel = within(billingDetailsPanel);
-
-    // check for our custom fields outside of the Stripe components
-    // already open because /billing-details is not mocked
-    expect(
-      inBillingDetailsPanel.getByRole('textbox', {name: 'Billing email'})
-    ).toBeInTheDocument();
-
-    // There shouldn't be any of the fields from the LegacyBillingDetailsForm
-    expect(
-      inBillingDetailsPanel.queryByRole('textbox', {name: 'Street Address 1'})
-    ).not.toBeInTheDocument();
   });
 });

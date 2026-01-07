@@ -121,9 +121,28 @@ jest.mock('@stripe/react-stripe-js', () => ({
         setupIntent: {payment_method: 'test-pm'},
       });
     }),
+    confirmSetup: jest.fn((options: any) => {
+      if (options?.clientSecret === 'ERROR') {
+        return Promise.resolve({error: {message: 'card invalid'}});
+      }
+      return Promise.resolve({
+        error: undefined,
+        setupIntent: {payment_method: 'test-pm'},
+      });
+    }),
+    confirmPayment: jest.fn((options: any) => {
+      if (options?.clientSecret === 'ERROR') {
+        return Promise.resolve({error: {message: 'payment failed'}});
+      }
+      return Promise.resolve({
+        error: undefined,
+        paymentIntent: {id: 'test-payment'},
+      });
+    }),
   })),
   useElements: jest.fn(() => ({
     getElement: jest.fn(() => ({})),
+    submit: jest.fn(() => Promise.resolve({error: undefined})),
   })),
 }));
 jest.mock('getsentry/utils/trackMarketingEvent');

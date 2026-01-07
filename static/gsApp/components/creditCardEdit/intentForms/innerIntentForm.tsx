@@ -29,6 +29,7 @@ function InnerIntentForm({
   const stripe = useStripe();
   const [submitDisabled, setSubmitDisabled] = useState(true);
 
+  // TODO(ISABELLA): this is the problem, formData is not complete
   const handleFormChange = (formData: StripePaymentElementChangeEvent) => {
     if (formData.complete) {
       setSubmitDisabled(false);

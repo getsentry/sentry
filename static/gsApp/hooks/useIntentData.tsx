@@ -63,11 +63,16 @@ function usePaymentIntentData({endpoint}: HookProps): HookResult {
     staleTime: Infinity,
   });
 
+  const errorMessage =
+    typeof error?.responseJSON?.detail === 'string'
+      ? error?.responseJSON?.detail
+      : (error?.responseJSON?.detail?.message ?? error?.message);
+
   return {
     intentData: paymentIntentData,
     isLoading: isLoading || isPending,
     isError,
-    error: error?.message,
+    error: errorMessage,
   };
 }
 
