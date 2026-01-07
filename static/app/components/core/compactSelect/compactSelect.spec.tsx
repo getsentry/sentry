@@ -134,6 +134,31 @@ describe('CompactSelect', () => {
         />
       );
     });
+
+    it('should not allow undefined or null as children of SelectTrigger', () => {
+      void (
+        <CompactSelect
+          value=""
+          onChange={() => {}}
+          trigger={props => {
+            // @ts-expect-error TS2322: Type null is not assignable to type NonNullable<ReactNode>
+            return <SelectTrigger.Button {...props}>{null}</SelectTrigger.Button>;
+          }}
+          options={[]}
+        />
+      );
+      void (
+        <CompactSelect
+          value=""
+          onChange={() => {}}
+          trigger={props => {
+            // @ts-expect-error TS2322: Type undefined is not assignable to type NonNullable<ReactNode>
+            return <SelectTrigger.Button {...props}>{undefined}</SelectTrigger.Button>;
+          }}
+          options={[]}
+        />
+      );
+    });
   });
 
   it('renders', async () => {
