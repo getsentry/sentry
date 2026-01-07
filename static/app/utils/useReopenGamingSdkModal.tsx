@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useEffect, useRef} from 'react';
 import {useQueryState} from 'nuqs';
 
 import {openPrivateGamingSdkAccessModal} from 'sentry/actionCreators/modal';
@@ -12,11 +12,13 @@ export function useReopenGamingSdkModal(
     'reopenGamingSdkModal',
     parseAsBooleanLiteral.withOptions({history: 'replace'})
   );
+  const modalPropsRef = useRef(modalProps);
+  modalPropsRef.current = modalProps;
 
   useEffect(() => {
     if (reopenModal) {
       setReopenModal(null);
-      openPrivateGamingSdkAccessModal(modalProps);
+      openPrivateGamingSdkAccessModal(modalPropsRef.current);
     }
-  }, [modalProps, reopenModal, setReopenModal]);
+  }, [reopenModal, setReopenModal]);
 }
