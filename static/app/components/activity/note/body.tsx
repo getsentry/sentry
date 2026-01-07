@@ -42,7 +42,7 @@ const StyledNoteBody = styled(MarkedText)`
 
   blockquote {
     font-size: 15px;
-    border-left: 5px solid ${p => p.theme.innerBorder};
+    border-left: 5px solid ${p => p.theme.tokens.border.secondary};
     padding-left: ${space(1)};
     margin-left: 0;
   }

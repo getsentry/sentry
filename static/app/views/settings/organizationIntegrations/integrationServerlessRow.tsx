@@ -143,7 +143,7 @@ const Item = styled('div')`
   padding: ${space(2)};
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 
   display: grid;

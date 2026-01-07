@@ -101,7 +101,7 @@ const FullValue = styled('span')<{
   position: absolute;
   background: ${p => p.theme.tokens.background.primary};
   padding: ${space(0.5)};
-  border: 1px solid ${p => p.theme.innerBorder};
+  border: 1px solid ${p => p.theme.tokens.border.secondary};
   white-space: nowrap;
   border-radius: ${space(0.5)};
   top: -5px;

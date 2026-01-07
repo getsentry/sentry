@@ -540,12 +540,12 @@ const EditHighlightSectionContent = styled('div')<{columnCount: number}>`
 const EditHighlightColumn = styled('div')`
   grid-column: span 1;
   &:not(:first-child) {
-    border-left: 1px solid ${p => p.theme.innerBorder};
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
     padding-left: ${space(2)};
     margin-left: -1px;
   }
   &:not(:last-child) {
-    border-right: 1px solid ${p => p.theme.innerBorder};
+    border-right: 1px solid ${p => p.theme.tokens.border.secondary};
     padding-right: ${space(2)};
   }
 `;

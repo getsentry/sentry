@@ -301,8 +301,8 @@ const ValueButton = styled(UnstyledButton)`
 
   :focus {
     background-color: ${p => p.theme.colors.blue100};
-    border-left: 1px solid ${p => p.theme.innerBorder};
-    border-right: 1px solid ${p => p.theme.innerBorder};
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
+    border-right: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 
@@ -315,8 +315,8 @@ const ValueEditing = styled('div')`
 
   :focus-within {
     background-color: ${p => p.theme.colors.blue100};
-    border-left: 1px solid ${p => p.theme.innerBorder};
-    border-right: 1px solid ${p => p.theme.innerBorder};
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
+    border-right: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 
@@ -328,7 +328,7 @@ const DeleteButton = styled(UnstyledButton)`
 
   :focus {
     background-color: ${p => p.theme.colors.gray100};
-    border-left: 1px solid ${p => p.theme.innerBorder};
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 

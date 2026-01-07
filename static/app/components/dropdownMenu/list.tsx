@@ -284,6 +284,6 @@ const MenuTitle = styled('div')`
 
 const Separator = styled('li')`
   list-style-type: none;
-  border-top: solid 1px ${p => p.theme.innerBorder};
+  border-top: solid 1px ${p => p.theme.tokens.border.secondary};
   margin: ${space(0.5)} ${space(1.5)};
 `;

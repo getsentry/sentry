@@ -716,7 +716,7 @@ const FunctionWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
   display: flex;
   align-items: flex-start;
   position: relative;
-  border: 1px solid ${p => p.theme.innerBorder};
+  border: 1px solid ${p => p.theme.tokens.border.secondary};
   border-radius: ${p => p.theme.radius.md};
   height: fit-content;
   /* Ensures that filters do not grow outside of the container */
@@ -793,7 +793,7 @@ const DeleteButton = styled('button')`
 
   :focus {
     background-color: ${p => p.theme.colors.gray100};
-    border-left: 1px solid ${p => p.theme.innerBorder};
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
     outline: none;
   }
 `;

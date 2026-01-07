@@ -1199,8 +1199,6 @@ const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
   border: tokens.border.primary,
   translucentBorder: tokens.border.transparent.neutral.muted,
 
-  innerBorder: tokens.border.secondary,
-
   /**
    * A color that denotes a "success", or something good
    */

@@ -271,7 +271,7 @@ const ChapterWrapper = styled('details')`
     width: 1px;
     top: 1px;
     bottom: -9px;
-    background: ${p => p.theme.innerBorder};
+    background: ${p => p.theme.tokens.border.secondary};
   }
 
   &:first-child summary::after {
@@ -371,7 +371,7 @@ const ChapterTitle = styled('div')`
     font-weight: ${p => p.theme.fontWeight.bold};
   }
 
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   margin-bottom: -1px; /* Compensate for border to fully eliminate gap */
 
   details:last-child:not([open]) & {

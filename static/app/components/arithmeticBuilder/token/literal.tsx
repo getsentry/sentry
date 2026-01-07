@@ -291,7 +291,7 @@ const Row = styled('div')`
   align-items: stretch;
   height: 24px;
   max-width: 100%;
-  border: 1px solid ${p => p.theme.innerBorder};
+  border: 1px solid ${p => p.theme.tokens.border.secondary};
   border-radius: ${p => p.theme.radius.md};
 
   :focus {
@@ -343,7 +343,7 @@ const DeleteButton = styled('button')`
 
   :focus {
     background-color: ${p => p.theme.colors.gray100};
-    border-left: 1px solid ${p => p.theme.innerBorder};
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
     outline: none;
   }
 `;

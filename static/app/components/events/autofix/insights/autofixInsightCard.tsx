@@ -356,7 +356,7 @@ const ContextBody = styled('div')`
   border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   overflow: hidden;
   position: relative;
-  border-top: 1px dashed ${p => p.theme.innerBorder};
+  border-top: 1px dashed ${p => p.theme.tokens.border.secondary};
 
   code {
     white-space: pre-wrap;

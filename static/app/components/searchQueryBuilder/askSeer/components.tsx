@@ -6,7 +6,7 @@ export const AskSeerPane = styled('div')`
   align-items: center;
   justify-content: flex-start;
   padding: 0;
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   background-color: ${p => p.theme.colors.blue100};
   width: 100%;
 `;

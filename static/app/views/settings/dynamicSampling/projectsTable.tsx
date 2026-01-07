@@ -422,7 +422,7 @@ const TableRowWrapper = styled('div')`
   grid-template-columns: 1fr 165px 165px 152px;
   overflow: hidden;
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 

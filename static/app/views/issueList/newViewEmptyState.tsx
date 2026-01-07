@@ -190,7 +190,7 @@ const QueryRow = styled('li')`
       bottom: 0;
       left: 0;
       right: 0;
-      border-bottom: 1px solid ${p => p.theme.innerBorder};
+      border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
     }
   }
 `;

@@ -241,7 +241,7 @@ export function PolicyRow({
 const PolicyFrame = styled('iframe')`
   height: 300px;
   width: 100%;
-  border: 1px solid ${p => p.theme.innerBorder};
+  border: 1px solid ${p => p.theme.tokens.border.secondary};
   border-radius: 3px;
   margin-bottom: ${space(1)};
 `;

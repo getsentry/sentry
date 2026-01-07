@@ -445,7 +445,7 @@ function extractFrames(node: CallTreeNode | null, platform: PlatformKey): Frame[
 
 const SpanContainer = styled('div')`
   container: profiling-container / inline-size;
-  border: 1px solid ${p => p.theme.innerBorder};
+  border: 1px solid ${p => p.theme.tokens.border.secondary};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
 

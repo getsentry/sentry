@@ -234,7 +234,7 @@ const DropdownMenuItem = styled(MenuItem)`
   font-size: ${p => p.theme.fontSize.md};
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 

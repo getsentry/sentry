@@ -1353,7 +1353,7 @@ const TabBar = styled('div')`
   display: flex;
   gap: ${space(0.5)};
   padding: ${space(1)} ${space(3)} 0;
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const Tab = styled('button')<{isActive: boolean}>`
@@ -1392,7 +1392,7 @@ const TabContent = styled('div')`
 
 const CardFooter = styled('div')`
   padding: ${space(2)} ${space(3)};
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1457,7 +1457,7 @@ const IssueMessage = styled(EventMessage)`
 const MetaSeparator = styled('div')`
   height: 10px;
   width: 1px;
-  background-color: ${p => p.theme.innerBorder};
+  background-color: ${p => p.theme.tokens.border.secondary};
 `;
 
 const DescriptionText = styled('p')`

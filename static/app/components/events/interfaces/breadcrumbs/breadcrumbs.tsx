@@ -347,7 +347,7 @@ const StyledList = styled(List as any)<SharedListProps>`
 export const BreadcrumbRow = styled('div')<{error: boolean}>`
   :not(:last-child) {
     border-bottom: 1px solid
-      ${p => (p.error ? p.theme.colors.red400 : p.theme.innerBorder)};
+      ${p => (p.error ? p.theme.colors.red400 : p.theme.tokens.border.secondary)};
   }
 
   :after {

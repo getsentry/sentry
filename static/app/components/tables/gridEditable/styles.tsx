@@ -203,7 +203,7 @@ export const GridRow = styled('tr')<{isClickable?: boolean}>`
     background-color: ${p => p.theme.tokens.background.primary};
 
     &:not(:last-child) {
-      border-bottom: 1px solid ${p => p.theme.innerBorder};
+      border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
     }
 
     &:last-child {

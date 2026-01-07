@@ -103,7 +103,7 @@ const GroupingComponentList = styled('ul')<{hasFold: boolean; isInline: boolean}
   ${p =>
     p.hasFold &&
     css`
-      border-left: 1px solid ${p.theme.innerBorder};
+      border-left: 1px solid ${p.theme.tokens.border.secondary};
     `}
 `;
 

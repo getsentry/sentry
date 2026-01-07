@@ -101,7 +101,7 @@ export function OrganizationSampleRateInput({
 const SampleRateRow = styled('div')`
   display: flex;
   padding: ${space(1.5)} ${space(2)} ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   gap: ${space(4)};
 `;
 

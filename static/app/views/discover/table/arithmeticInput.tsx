@@ -428,7 +428,7 @@ const DropdownItemsList = styled('ul')`
 
 const ListItem = styled('li')`
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 
@@ -477,6 +477,6 @@ const Info = styled('div')`
   color: ${p => p.theme.subText};
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;

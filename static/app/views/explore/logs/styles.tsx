@@ -193,7 +193,7 @@ export const LogBasicRendererContainer = styled('span')<{align?: 'left' | 'right
 
 export const DetailsBody = styled('div')`
   display: flex;
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   padding: ${space(1)} 0;
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.sm};

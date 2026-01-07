@@ -1273,13 +1273,13 @@ const SidebarSection = styled('div')`
   &:not(:last-child) {
     margin-bottom: ${p => p.theme.space['2xl']};
     padding-bottom: ${p => p.theme.space['2xl']};
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 
 const CardHeader = styled('div')`
   padding: ${p => p.theme.space['2xl']};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const TagPill = styled('span')`
@@ -1294,7 +1294,7 @@ const TagPill = styled('span')`
 
 const CardFooter = styled('div')`
   padding: ${p => p.theme.space.xl} ${p => p.theme.space['2xl']};
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const AvatarStack = styled('div')`
@@ -1406,7 +1406,7 @@ const TagRow = styled('div')`
   cursor: default;
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 
   &:hover {

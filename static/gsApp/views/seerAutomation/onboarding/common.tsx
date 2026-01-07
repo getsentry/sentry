@@ -9,7 +9,7 @@ export const MaxWidthPanel = styled(Panel)`
 
 export const PanelDescription = styled('div')`
   padding: ${p => p.theme.space.xl};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 export const StepContent = styled('div')`

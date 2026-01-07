@@ -187,7 +187,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
 
     &:before {
       content: '';
-      background: ${p => p.theme.innerBorder};
+      background: ${p => p.theme.tokens.border.secondary};
       border-radius: 3px;
       display: block;
       height: 6px;
@@ -251,7 +251,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
   }
 
   .rr-controller__btns button:active {
-    background: ${p => p.theme.innerBorder};
+    background: ${p => p.theme.tokens.border.secondary};
   }
 
   .rr-controller__btns button.active {
