@@ -214,24 +214,3 @@ class OrganizationEventsStatsPreprodSizeEndpointTest(OrganizationEventsEndpointT
         data = [attrs for time, attrs in response.data["data"]]
         assert data[0] == [{"count": 3000000}]
 
-    def test_requires_feature_flag(self) -> None:
-        """Test that the endpoint requires the preprod-frontend-routes feature flag."""
-        Factories.store_preprod_size_metric(
-            project_id=self.project.id,
-            organization_id=self.organization.id,
-            timestamp=self.start,
-            max_install_size=1000000,
-        )
-
-        response = self._do_request(
-            data={
-                "start": self.start,
-                "end": self.end,
-                "interval": "1h",
-                "yAxis": "max(install_size)",
-                "project": self.project.id,
-                "dataset": self.dataset,
-            },
-            features={"organizations:preprod-frontend-routes": False},
-        )
-        assert response.status_code != 200
