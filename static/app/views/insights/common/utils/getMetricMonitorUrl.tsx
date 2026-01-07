@@ -48,7 +48,7 @@ export function getMetricMonitorUrl({
   } as const;
 
   return {
-    pathname: makeMonitorCreatePathname(organization.slug),
+    pathname: `${makeMonitorCreatePathname(organization.slug)}settings`,
     query: queryParams,
   };
 }
