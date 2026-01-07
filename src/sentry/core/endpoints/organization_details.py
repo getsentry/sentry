@@ -97,6 +97,7 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
+from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
@@ -400,6 +401,15 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         if value and not all(value):
             raise serializers.ValidationError("Empty values are not allowed.")
         return validate_pii_selectors(value)
+
+    def validate_defaultCodeReviewTriggers(self, value):
+        # Ensure ON_COMMAND_PHRASE is always a default code review trigger
+        if value is not None:
+            triggers = list(value)
+            if CodeReviewTrigger.ON_COMMAND_PHRASE.value not in triggers:
+                triggers.append(CodeReviewTrigger.ON_COMMAND_PHRASE.value)
+                value = triggers
+        return value
 
     def validate_attachmentsRole(self, value):
         try:

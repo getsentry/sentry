@@ -32,6 +32,7 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationslugreservation import OrganizationSlugReservation
+from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.signals import project_created
 from sentry.silo.safety import unguarded_write
@@ -1308,6 +1309,33 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         data = {"defaultSeerScannerAutomation": True}
         self.get_success_response(self.organization.slug, **data)
         assert self.organization.get_option("sentry:default_seer_scanner_automation") is True
+
+    def test_default_code_review_triggers_adds_on_command_phrase(self) -> None:
+        data: dict[str, list[CodeReviewTrigger]] = {"defaultCodeReviewTriggers": []}
+        self.get_success_response(self.organization.slug, **data)
+        assert self.organization.get_option("sentry:default_code_review_triggers") == [
+            CodeReviewTrigger.ON_COMMAND_PHRASE
+        ]
+
+        data = {"defaultCodeReviewTriggers": [CodeReviewTrigger.ON_READY_FOR_REVIEW]}
+        self.get_success_response(self.organization.slug, **data)
+        assert self.organization.get_option("sentry:default_code_review_triggers") == [
+            CodeReviewTrigger.ON_READY_FOR_REVIEW,
+            CodeReviewTrigger.ON_COMMAND_PHRASE,
+        ]
+
+    def test_default_code_review_triggers_preserves_on_command_phrase(self) -> None:
+        data = {
+            "defaultCodeReviewTriggers": [
+                CodeReviewTrigger.ON_COMMAND_PHRASE,
+                CodeReviewTrigger.ON_READY_FOR_REVIEW,
+            ]
+        }
+        self.get_success_response(self.organization.slug, **data)
+        assert self.organization.get_option("sentry:default_code_review_triggers") == [
+            CodeReviewTrigger.ON_COMMAND_PHRASE,
+            CodeReviewTrigger.ON_READY_FOR_REVIEW,
+        ]
 
     def test_enabled_console_platforms_present_in_response(self) -> None:
         response = self.get_success_response(self.organization.slug)
