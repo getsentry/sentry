@@ -455,7 +455,7 @@ function FlamegraphSearch({
           </Fragment>
         ) : (
           <Tooltip title={t(`Also supports regular expressions, e.g. /^functionName/i`)}>
-            <StyledIconInfo size="xs" color="gray300" />
+            <StyledIconInfo size="xs" variant="muted" />
           </Tooltip>
         )
       }

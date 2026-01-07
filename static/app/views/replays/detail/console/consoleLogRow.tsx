@@ -148,7 +148,7 @@ const ICONS = {
   ),
   [BreadcrumbLevelType.WARNING]: (
     <Tooltip title={BreadcrumbLevelType.WARNING}>
-      <IconWarning color="yellow300" size="xs" />
+      <IconWarning variant="warning" size="xs" />
     </Tooltip>
   ),
   [BreadcrumbLevelType.INFO]: (

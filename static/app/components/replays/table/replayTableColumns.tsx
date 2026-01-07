@@ -198,7 +198,7 @@ export const ReplayCountDeadClicksColumn: ReplayTableColumn = {
         <TabularNumber>
           {replay.count_dead_clicks ? (
             <Flex gap="xs">
-              <IconCursorArrow size="sm" color="yellow300" />
+              <IconCursorArrow size="sm" variant="warning" />
               {replay.count_dead_clicks}
             </Flex>
           ) : (

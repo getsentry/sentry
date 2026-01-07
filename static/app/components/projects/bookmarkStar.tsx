@@ -54,7 +54,7 @@ function BookmarkStar({className, organization, project, onToggle}: Props) {
       borderless
       className={className}
       icon={
-        <IconStar color={isBookmarked ? 'yellow300' : 'subText'} isSolid={isBookmarked} />
+        <IconStar variant={isBookmarked ? 'warning' : 'muted'} isSolid={isBookmarked} />
       }
     />
   );

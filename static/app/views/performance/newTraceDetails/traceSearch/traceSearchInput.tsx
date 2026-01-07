@@ -218,7 +218,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
         ) : (
           <StyledSearchIcon
             data-test-id="trace-search-success"
-            color="subText"
+            variant="muted"
             size="xs"
           />
         )}
