@@ -182,7 +182,7 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
                 if internal_name in sanitized_keys_set:
                     continue
 
-                public_alias = SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS.get("string").get(
+                public_alias = SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS.get("string", {}).get(
                     internal_name, internal_name
                 )
 
