@@ -522,6 +522,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:view-hierarchy-scrubbing", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable email notifications when auto-detected uptime monitors graduate from onboarding
     manager.add("organizations:uptime-auto-detected-monitor-emails", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable task-based retry for out-of-order uptime results
+    manager.add("organizations:uptime-backlog-retry", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:use-metrics-layer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable endpoint and frontend for AI-powered UF summaries
     manager.add("organizations:user-feedback-ai-summaries", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
