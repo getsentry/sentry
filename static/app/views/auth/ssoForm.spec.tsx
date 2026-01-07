@@ -1,5 +1,3 @@
-import {RouterFixture} from 'sentry-fixture/routerFixture';
-
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import SsoForm from 'sentry/views/auth/ssoForm';
@@ -33,9 +31,7 @@ describe('SsoForm', () => {
       serverHostname: 'testserver',
     };
 
-    render(<SsoForm authConfig={authConfig} />, {
-      deprecatedRouterMocks: true,
-    });
+    render(<SsoForm authConfig={authConfig} />);
 
     expect(screen.getByLabelText('Organization ID')).toBeInTheDocument();
   });
@@ -50,16 +46,13 @@ describe('SsoForm', () => {
       },
     });
 
-    render(<SsoForm authConfig={emptyAuthConfig} />, {
-      deprecatedRouterMocks: true,
-    });
+    render(<SsoForm authConfig={emptyAuthConfig} />);
     await doSso(mockRequest);
 
     expect(await screen.findByText('Invalid org name')).toBeInTheDocument();
   });
 
   it('handles success', async () => {
-    const router = RouterFixture();
     const mockRequest = MockApiClient.addMockResponse({
       url: '/auth/sso-locate/',
       method: 'POST',
@@ -69,12 +62,15 @@ describe('SsoForm', () => {
       },
     });
 
-    render(<SsoForm authConfig={emptyAuthConfig} />, {
-      router,
-      deprecatedRouterMocks: true,
-    });
+    const {router} = render(<SsoForm authConfig={emptyAuthConfig} />);
     await doSso(mockRequest);
 
-    await waitFor(() => expect(router.push).toHaveBeenCalledWith({pathname: '/next/'}));
+    await waitFor(() =>
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: '/next/',
+        })
+      )
+    );
   });
 });

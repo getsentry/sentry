@@ -1,7 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {DO_NOT_USE_getChonkButtonStyles} from 'sentry/components/core/button/styles.chonk';
+import {DO_NOT_USE_getButtonStyles} from 'sentry/components/core/button/styles';
 import {space} from 'sentry/styles/space';
 import type {FormSize, Theme} from 'sentry/utils/theme';
 
@@ -72,10 +72,10 @@ export const ChonkStyledSegmentWrap = styled('label')<{
   z-index: ${p => (p.isSelected ? 1 : undefined)};
 
   padding: ${p => segmentedWrapPadding[p.size]};
-  font-weight: ${p => p.theme.font.weight.regular};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 
   ${p => ({
-    ...DO_NOT_USE_getChonkButtonStyles({
+    ...DO_NOT_USE_getButtonStyles({
       ...p,
       disabled: p.isDisabled,
       priority: p.isSelected && p.priority === 'primary' ? 'primary' : 'default',
@@ -100,7 +100,7 @@ export const ChonkStyledSegmentWrap = styled('label')<{
 export const ChonkStyledVisibleLabel = styled('span')`
   ${p => p.theme.overflowEllipsis}
   user-select: none;
-  font-weight: ${p => p.theme.font.weight.medium};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   text-align: center;
 `;
 

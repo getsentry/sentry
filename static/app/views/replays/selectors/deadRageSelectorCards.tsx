@@ -12,7 +12,6 @@ import {IconCursorArrow, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
-import type {ColorOrAlias} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import {
   HeaderContainer,
@@ -85,6 +84,7 @@ function AccordionWidget({
   deadOrRage: 'dead' | 'rage';
   header: ReactNode;
 }) {
+  const clickColor = deadOrRage === 'dead' ? 'yellow300' : 'red300';
   const [selectedListIndex, setSelectListIndex] = useState(-1);
   const {isLoading, isError, data} = useDeadRageSelectors({
     per_page: 3,
@@ -95,7 +95,6 @@ function AccordionWidget({
   });
   const location = useLocation();
   const filteredData = data.filter(d => (d[clickType] ?? 0) > 0);
-  const clickColor = deadOrRage === 'dead' ? 'yellow300' : 'red300';
 
   return (
     <StyledWidgetContainer data-test-id="selector-widget">
@@ -168,7 +167,7 @@ function AccordionItemHeader({
   selectorQuery,
   id,
 }: {
-  clickColor: ColorOrAlias;
+  clickColor: 'yellow300' | 'red300';
   count: number;
   id: number;
   selector: string;
@@ -205,7 +204,7 @@ const SplitCardContainer = styled('div')`
 `;
 
 const ClickCount = styled(TextOverflow)`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
   display: grid;
   grid-template-columns: auto auto;
   gap: ${space(0.75)};

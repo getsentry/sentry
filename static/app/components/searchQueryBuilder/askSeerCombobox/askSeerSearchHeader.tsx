@@ -26,5 +26,5 @@ const HeaderWrapper = styled('div')`
 `;
 
 const StyledIconSeer = styled(IconSeer)`
-  color: ${p => p.theme.purple400};
+  color: ${p => p.theme.colors.blue500};
 `;

@@ -139,7 +139,7 @@ function DataRequests() {
       <PageHeader title="Data Requests" />
 
       <Alert.Container>
-        <Alert type="warning" showIcon={false}>
+        <Alert variant="warning" showIcon={false}>
           Use this form to determine what action needs taken for a data request.
         </Alert>
       </Alert.Container>

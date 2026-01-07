@@ -62,7 +62,7 @@ const addUsernameDisplay = (logEntryUser: User | undefined) => {
       <Name data-test-id="actor-name">
         <Flex align="center" gap="md">
           {logEntryUser.name}
-          <Tag>{t('Sentry Staff')}</Tag>
+          <Tag variant="muted">{t('Sentry Staff')}</Tag>
         </Flex>
       </Name>
     );

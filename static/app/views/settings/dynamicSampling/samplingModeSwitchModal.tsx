@@ -186,7 +186,7 @@ const InputWrapper = styled('div')`
 `;
 
 const ErrorMessage = styled('div')`
-  color: ${p => p.theme.red300};
+  color: ${p => p.theme.colors.red400};
   font-size: ${p => p.theme.fontSize.xs};
 `;
 

@@ -51,13 +51,13 @@ function RedeemPromoCode({organization, api, subscription}: Props) {
 
   if (isDisabledByPartner(subscription)) {
     return (
-      <SubscriptionPageContainer background="secondary" organization={organization}>
+      <SubscriptionPageContainer background="secondary">
         <PartnershipNote subscription={subscription} />
       </SubscriptionPageContainer>
     );
   }
   return (
-    <SubscriptionPageContainer background="secondary" organization={organization}>
+    <SubscriptionPageContainer background="secondary">
       <SubscriptionContext>
         <div className="ref-redeem-code">
           <SentryDocumentTitle

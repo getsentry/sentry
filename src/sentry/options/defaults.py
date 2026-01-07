@@ -670,6 +670,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Coding Workflows
+register(
+    "coding_workflows.code_review.github.check_run.rerun.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Codecov Integration
 register("codecov.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("codecov.base-url", default="https://api.codecov.io")
@@ -681,6 +689,12 @@ register("codecov.forward-webhooks.regions", default=[], flags=FLAG_AUTOMATOR_MO
 register("overwatch.enabled-regions", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 # enable verbose debug logging for overwatch webhook forwarding
 register("overwatch.forward-webhooks.verbose", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Control forwarding of specific GitHub webhook types to overwatch (True) or seer (False)
+register("github.webhook.issue-comment", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("github.webhook.pr", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("github.webhook.pr-review-comment", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("github.webhook.pr-review", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # GitHub Integration
 register("github-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -3305,6 +3319,13 @@ register(
 )
 
 register(
+    "workflow_engine.exclude_issue_stream_detector",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "grouping.grouphash_metadata.ingestion_writes_enabled",
     type=Bool,
     default=True,
@@ -3756,6 +3777,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Manual option for hard deleting sentry apps and installations.
+register(
+    "sentry-apps.hard-delete",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Killswitch for web vital issue detection
 register(
     "issue-detection.web-vitals-detection.enabled",
@@ -3795,11 +3824,27 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Project ID allowlist to enable detailed search debug logging for diagnosing
-# bugs with issue feed search.
+# Option to enable truncation of group IDs in Snuba query
+# when search filters are selective.
 register(
-    "snuba.search.debug-log-project-allowlist",
+    "snuba.search.truncate-group-ids-for-selective-filters-enabled",
+    type=Bool,
+    default=True,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Organization slug allowlist to enable Autopilot for specific organizations.
+register(
+    "autopilot.organization-allowlist",
     type=Sequence,
     default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Global flag to enable API token async flush
+register(
+    "api-token-async-flush",
+    default=False,
+    type=Bool,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )

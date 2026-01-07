@@ -54,7 +54,7 @@ const ListBoxOverlay = styled(Overlay)`
 `;
 
 const BackgroundColorWrapper = styled('div')`
-  background-color: ${p => p.theme.purple100};
+  background-color: ${p => p.theme.colors.blue100};
 `;
 
 const StyledPositionWrapper = styled('div')<{visible?: boolean}>`

@@ -26,7 +26,7 @@ function EventIdFieldStatusIcon({status, onClickIconClose}: Props) {
     case EventIdStatus.LOADING:
       return <ControlState isSaving />;
     case EventIdStatus.LOADED:
-      return <IconCheckmark color="successText" />;
+      return <IconCheckmark variant="success" />;
     default:
       return null;
   }
@@ -41,7 +41,7 @@ const CloseIcon = styled('div')`
 `;
 
 const StyledIconClose = styled(IconClose)`
-  color: ${p => p.theme.gray200};
+  color: ${p => p.theme.colors.gray200};
   :hover {
     color: ${p => p.theme.subText};
   }

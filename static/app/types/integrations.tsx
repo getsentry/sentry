@@ -365,7 +365,14 @@ export type DocIntegration = {
 };
 
 type IntegrationAspects = {
-  alerts?: Array<AlertProps & {text: string; icon?: string | React.ReactNode}>;
+  // This was previously passed to us
+  alerts?: Array<
+    unknown & {
+      text: string;
+      icon?: string | React.ReactNode;
+      variant?: AlertProps['variant'];
+    }
+  >;
   configure_integration?: {
     title: string;
   };

@@ -76,7 +76,7 @@ export default function ReplayInlineOnboardingPanel({
           triggerProps={{
             showChevron: false,
             borderless: true,
-            icon: <IconClose color="subText" />,
+            icon: <IconClose variant="muted" />,
           }}
           size="xs"
           items={[
@@ -110,7 +110,7 @@ export default function ReplayInlineOnboardingPanel({
 }
 
 const PurpleText = styled('span')`
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.colors.blue400};
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 

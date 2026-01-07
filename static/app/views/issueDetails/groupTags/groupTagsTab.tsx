@@ -86,7 +86,7 @@ export function GroupTagsTab() {
     <Layout.Body>
       <Layout.Main width="full">
         <Alert.Container>
-          <Alert type="info" showIcon={false}>
+          <Alert variant="info" showIcon={false}>
             {tct(
               'Tags are automatically indexed for searching and breakdown charts. Learn how to [link: add custom tags to issues]',
               {
@@ -200,7 +200,7 @@ const TagBarBackground = styled('div')<{widthPercent: string}>`
   top: 0;
   bottom: 0;
   left: 0;
-  background: ${p => p.theme.surface100};
+  background: ${p => p.theme.colors.surface200};
   border-radius: ${p => p.theme.radius.md};
   width: ${p => p.widthPercent};
 `;
@@ -220,7 +220,7 @@ const TagBarGlobalSelectionLink = styled(GlobalSelectionLink)`
     color: ${p => p.theme.tokens.content.primary};
     text-decoration: underline;
     ${TagBarBackground} {
-      background: ${p => p.theme.blue300};
+      background: ${p => p.theme.colors.blue400};
     }
   }
 `;

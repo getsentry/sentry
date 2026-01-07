@@ -1,6 +1,7 @@
-import {useTheme, type Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 
-import type {ColorOrAlias, Size} from 'sentry/utils/theme';
+import type {ColorOrAlias, ContentVariant, IconSize} from 'sentry/utils/theme';
 
 import {useIconDefaults} from './useIconDefaults';
 
@@ -18,8 +19,8 @@ export interface SVGIconProps extends React.SVGAttributes<SVGSVGElement> {
    */
   legacySize?: string;
   ref?: React.Ref<SVGSVGElement>;
-  size?: Exclude<Size, '2xs'>;
-  variant?: keyof Theme['tokens']['content'];
+  size?: IconSize;
+  variant?: ContentVariant;
 }
 
 export function SvgIcon(props: SVGIconProps) {
@@ -42,9 +43,13 @@ export function SvgIcon(props: SVGIconProps) {
       viewBox="0 0 16 16"
       {...rest}
       fill={
-        iconProps.variant
-          ? theme.tokens.content[iconProps.variant]
-          : resolveIconColor(theme, iconProps)
+        // Exception for warning icon variant. Design enginering needs to figure out what
+        // to align this color to, as content.warning looks too dark in this context.
+        iconProps.variant === 'warning'
+          ? theme.tokens.graphics.warning.vibrant
+          : iconProps.variant
+            ? theme.tokens.content[iconProps.variant]
+            : resolveIconColor(theme, iconProps)
       }
       height={size}
       width={size}
@@ -82,7 +87,7 @@ SvgIcon.ICON_DIRECTION_TO_ROTATION_ANGLE = ICON_DIRECTION_TO_ROTATION_ANGLE;
  * a common icon size interface and handles the resolution. With some small changes to the types, this
  * could be achieved via a small wrapper around the Container component.
  */
-const ICON_SIZES: Record<Exclude<Size, '2xs'>, string> = {
+const ICON_SIZES: Record<IconSize, string> = {
   xs: '12px',
   sm: '14px',
   md: '18px',

@@ -2,6 +2,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Panel from 'sentry/components/panels/panel';
@@ -162,9 +164,9 @@ function EventCustomPerformanceMetric({
     <StyledPanel>
       <div>
         <div>{name}</div>
-        <ValueRow>
+        <Flex align="center">
           <Value>{rendered}</Value>
-        </ValueRow>
+        </Flex>
       </div>
       <StyledDropdownMenuControl
         items={[
@@ -210,11 +212,6 @@ const Measurements = styled('div')`
 const Container = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   margin-bottom: ${space(4)};
-`;
-
-const ValueRow = styled('div')`
-  display: flex;
-  align-items: center;
 `;
 
 const Value = styled('span')`

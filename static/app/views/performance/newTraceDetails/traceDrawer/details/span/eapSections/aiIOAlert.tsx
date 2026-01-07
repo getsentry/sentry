@@ -102,7 +102,7 @@ export function AIIOAlert({
 
   return (
     <Alert.Container>
-      <Alert type="info">
+      <Alert variant="info">
         <Stack direction="column" gap="md" paddingTop="2xs">
           <Heading as="h4" variant="accent">
             {t('Missing the input and output of your AI model?')}
@@ -257,7 +257,7 @@ function ManualContent({sdkLanguage}: {sdkLanguage: SupportedSDKLanguage}) {
 
 // TODO(aknaus): Remove this once the Prose component adds styling for code elements
 const StyledCode = styled('code')`
-  color: ${p => p.theme.pink400};
+  color: ${p => p.theme.colors.pink500};
 `;
 
 const codeSnippetStyles = css`

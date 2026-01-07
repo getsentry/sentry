@@ -216,15 +216,15 @@ class EventRedisData:
         A DCG can be recorded with an event for later processing multiple times.
         We need to pick a time to use when processing them in bulk, so to bias for recency we associate each DCG with the latest timestamp.
         """
-        result: dict[int, datetime | None] = defaultdict(lambda: None)
+        result: dict[int, datetime | None] = {}
 
         for key, instance in self.events.items():
             timestamp = instance.timestamp
+            if timestamp is None:
+                continue
             for dcg_id in key.dcg_ids:
-                existing_timestamp = result[dcg_id]
-                if timestamp is None:
-                    continue
-                elif existing_timestamp is not None and timestamp > existing_timestamp:
+                existing_timestamp = result.get(dcg_id)
+                if existing_timestamp is None or timestamp > existing_timestamp:
                     result[dcg_id] = timestamp
         return result
 
@@ -388,7 +388,7 @@ def get_condition_query_groups(
         slow_conditions = dcg_to_slow_conditions[dcg.id]
         workflow_id = event_data.dcg_to_workflow.get(dcg.id)
         workflow_env = workflows_to_envs[workflow_id] if workflow_id else None
-        timestamp = event_data.dcg_to_timestamp[dcg.id]
+        timestamp = event_data.dcg_to_timestamp.get(dcg.id)
         if timestamp is not None:
             delay = now - timestamp
             # If it's been more than 1.5 minutes, we're taking too long to process the event and
@@ -733,6 +733,7 @@ def fire_actions_for_groups(
                 filtered_actions = filter_recently_fired_workflow_actions(
                     dcgs_for_group, workflow_event_data
                 )
+                # TODO: trigger service hooks from here
 
                 metrics.incr(
                     "workflow_engine.delayed_workflow.triggered_actions",
@@ -747,6 +748,14 @@ def fire_actions_for_groups(
                     is_delayed=True,
                     start_timestamp=start_timestamp,
                 )
+
+                # Create mapping: workflow_id -> notification_uuid for propagation
+                workflow_uuid_map: dict[int, str] = {}
+                if workflow_fire_histories:
+                    workflow_uuid_map = {
+                        history.workflow_id: str(history.notification_uuid)
+                        for history in workflow_fire_histories
+                    }
 
                 event_id = (
                     workflow_event_data.event.event_id
@@ -766,7 +775,9 @@ def fire_actions_for_groups(
                 )
                 total_actions += len(filtered_actions)
 
-                fire_actions(filtered_actions, workflow_event_data)
+                fire_actions(
+                    filtered_actions, workflow_event_data, workflow_uuid_map=workflow_uuid_map
+                )
 
     logger.debug(
         "workflow_engine.delayed_workflow.triggered_actions_summary",

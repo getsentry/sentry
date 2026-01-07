@@ -119,7 +119,7 @@ export function DashboardsNavItems({initialDashboards}: DashboardsNavItemsProps)
                     <StyledInteractionStateLayer
                       isPressed={isDragging === dashboard.id}
                     />
-                    <IconGrabbable color="gray300" />
+                    <IconGrabbable variant="muted" />
                   </GrabHandleWrapper>
                   <ProjectIcon
                     projectPlatforms={dashboardProjectPlatforms}
@@ -172,7 +172,7 @@ const StyledReorderItem = styled(Reorder.Item, {
   shouldForwardProp: prop => prop !== 'grabbing',
 })<{grabbing: boolean}>`
   position: relative;
-  background-color: ${p => (p.grabbing ? p.theme.translucentSurface200 : 'transparent')};
+  background-color: ${p => (p.grabbing ? p.theme.colors.surface200 : 'transparent')};
   border-radius: ${p => p.theme.radius.md};
 `;
 

@@ -13,7 +13,7 @@ const GRID_STATUS_MESSAGE_HEIGHT = GRID_BODY_ROW_HEIGHT * 4;
  * Local z-index stacking context
  * https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Positioning/Understanding_z_index/The_stacking_context
  */
-const Z_INDEX_STICKY_HEADER = 1;
+const Z_INDEX_STICKY_HEADER = 2;
 
 // Parent context is GridHeadCell
 const Z_INDEX_GRID_RESIZER = 1;
@@ -312,7 +312,7 @@ export const GridResizer = styled('div')<{dataRows: number}>`
   }
 
   &:hover::after {
-    background-color: ${p => p.theme.gray200};
+    background-color: ${p => p.theme.colors.gray200};
   }
 
   /**
@@ -321,7 +321,7 @@ export const GridResizer = styled('div')<{dataRows: number}>`
    */
   &:active::after,
   &:focus::after {
-    background-color: ${p => p.theme.purple300};
+    background-color: ${p => p.theme.colors.blue400};
   }
 
   /**
@@ -335,7 +335,7 @@ export const GridResizer = styled('div')<{dataRows: number}>`
     display: block;
     width: 7px;
     height: ${GRID_HEAD_ROW_HEIGHT}px;
-    background-color: ${p => p.theme.purple300};
+    background-color: ${p => p.theme.colors.blue400};
     opacity: 0.4;
   }
 `;

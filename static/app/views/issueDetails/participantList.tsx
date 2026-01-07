@@ -70,7 +70,7 @@ export function ParticipantList({teams = [], users, children}: ParticipantListPr
             <IconChevron
               direction={isExpanded ? 'up' : 'down'}
               size="xs"
-              color="gray300"
+              variant="muted"
             />
           }
           aria-label={t('%s Participants', isExpanded ? t('Collapse') : t('Expand'))}

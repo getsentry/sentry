@@ -16,6 +16,7 @@ describe('getHighlightedSpanAttributes', () => {
     const attributes = {
       'gen_ai.request.model': 'gpt-4',
       'gen_ai.cost.total_tokens': '0',
+      'gen_ai.usage.input_tokens': '100',
       'gen_ai.operation.type': 'ai_client',
     };
 
@@ -58,7 +59,7 @@ describe('getHighlightedSpanAttributes', () => {
     expect(Sentry.captureMessage).not.toHaveBeenCalled();
   });
 
-  it('should emit Sentry error when gen_ai span has no model', () => {
+  it('should not emit Sentry error when gen_ai span has no model', () => {
     const attributes = {
       'gen_ai.cost.total_tokens': '0',
       'gen_ai.operation.type': 'ai_client',
@@ -69,20 +70,7 @@ describe('getHighlightedSpanAttributes', () => {
       attributes,
     });
 
-    expect(Sentry.captureMessage).toHaveBeenCalledWith('Gen AI span missing model', {
-      level: 'warning',
-      tags: {
-        feature: 'agent-monitoring',
-        span_type: 'gen_ai',
-        has_model: 'false',
-        gen_ai_operation_type: 'ai_client',
-        gen_ai_system: 'unknown',
-        gen_ai_agent_name: 'unknown',
-      },
-      extra: {
-        attributes,
-      },
-    });
+    expect(Sentry.captureMessage).not.toHaveBeenCalled();
   });
 
   it('should not emit Sentry error for non-gen_ai spans', () => {
