@@ -5,6 +5,7 @@ from datetime import timedelta
 from django.urls import reverse
 from rest_framework.test import APIClient
 
+from sentry.preprod.models import PreprodArtifact
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now
@@ -290,7 +291,7 @@ class OrganizationPreprodAppSizeStatsEndpointTest(APITestCase):
             app_id="com.example.app",
             git_head_ref="main",
             build_configuration_name="Release",
-            artifact_type=0,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
             max_install_size=100000,
         )
 
@@ -303,7 +304,7 @@ class OrganizationPreprodAppSizeStatsEndpointTest(APITestCase):
             app_id="com.example.app",
             git_head_ref="develop",
             build_configuration_name="Debug",
-            artifact_type=1,
+            artifact_type=PreprodArtifact.ArtifactType.AAB,
             max_install_size=200000,
         )
 

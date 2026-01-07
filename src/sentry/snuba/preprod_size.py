@@ -53,6 +53,7 @@ class PreprodSize(rpc_dataset_common.RPCBase):
             rpc_dataset_common.TableQuery(
                 query_string=query_string,
                 selected_columns=selected_columns,
+                equations=equations,
                 orderby=orderby,
                 offset=offset,
                 limit=limit,
