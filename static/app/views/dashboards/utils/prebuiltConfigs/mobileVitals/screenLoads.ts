@@ -1,18 +1,86 @@
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import type {Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SpanFields} from 'sentry/views/insights/types';
 
 const TRANSACTION_CONDITION = 'is_transaction:true transaction.op:[ui.load,navigation]';
 const SPAN_OPERATIONS_CONDITION =
   'transaction.op:[ui.load,navigation] has:span.description span.op:[file.read,file.write,ui.load,navigation,http.client,db,db.sql.room,db.sql.query,db.sql.transaction]';
 
-export const MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG: PrebuiltDashboard = {
-  dateCreated: '',
-  title: t('Mobile Vitals Screen Load as a Dashboard'),
-  projects: [],
-  widgets: [
+// First row (big numbers)
+const headerRowWidgets: Widget[] = spaceWidgetsEquallyOnRow(
+  [
+    {
+      id: 'avg-ttid-big-number',
+      title: 'Avg TTID',
+      description: '',
+      displayType: DisplayType.BIG_NUMBER,
+      widgetType: WidgetType.SPANS,
+      interval: '1h',
+      thresholds: null,
+      queries: [
+        {
+          name: '',
+          fields: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`],
+          aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`],
+          columns: [],
+          fieldAliases: [''],
+          conditions: TRANSACTION_CONDITION,
+          orderby: '',
+        },
+      ],
+    },
+    {
+      id: 'avg-ttfd-big-number',
+      title: 'Avg TTFD',
+      description: '',
+      displayType: DisplayType.BIG_NUMBER,
+      widgetType: WidgetType.SPANS,
+      interval: '1h',
+      thresholds: null,
+      queries: [
+        {
+          name: '',
+          fields: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`],
+          aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`],
+          columns: [],
+          fieldAliases: [''],
+          conditions: TRANSACTION_CONDITION,
+          orderby: '',
+        },
+      ],
+    },
+    {
+      id: 'total-count-big-number',
+      title: 'Total Count',
+      description: '',
+      displayType: DisplayType.BIG_NUMBER,
+      widgetType: WidgetType.SPANS,
+      interval: '1h',
+      thresholds: null,
+      queries: [
+        {
+          name: '',
+          fields: [`count(${SpanFields.SPAN_DURATION})`],
+          aggregates: [`count(${SpanFields.SPAN_DURATION})`],
+          columns: [],
+          fieldAliases: [''],
+          conditions: TRANSACTION_CONDITION,
+          orderby: '',
+        },
+      ],
+    },
+  ],
+  0,
+  {h: 1, minH: 1}
+);
+
+// Second row widgets
+const secondRowWidgets: Widget[] = spaceWidgetsEquallyOnRow(
+  [
     {
       id: 'ttid-device-class-table',
       title: 'TTID by Device Class',
@@ -35,14 +103,54 @@ export const MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG: PrebuiltDashboard = {
           orderby: '-device.class',
         },
       ],
-      layout: {
-        h: 2,
-        x: 0,
-        y: 1,
-        w: 2,
-        minH: 2,
-      },
     },
+    {
+      id: 'average-ttid-line',
+      title: 'Average TTID',
+      description: '',
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
+      interval: '1h',
+      thresholds: null,
+      queries: [
+        {
+          name: 'TTID',
+          fields: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`],
+          aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`],
+          columns: [],
+          fieldAliases: [],
+          conditions: TRANSACTION_CONDITION,
+          orderby: 'avg(measurements.time_to_initial_display)',
+        },
+      ],
+    },
+    {
+      id: 'total-count-line',
+      title: 'Total Count',
+      description: '',
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
+      interval: '1h',
+      thresholds: null,
+      queries: [
+        {
+          name: '',
+          fields: [`count(${SpanFields.SPAN_DURATION})`],
+          aggregates: [`count(${SpanFields.SPAN_DURATION})`],
+          columns: [],
+          fieldAliases: [],
+          conditions: TRANSACTION_CONDITION,
+          orderby: `count(${SpanFields.SPAN_DURATION})`,
+        },
+      ],
+    },
+  ],
+  1
+);
+
+// Third row widgets
+const thirdRowWidgets: Widget[] = spaceWidgetsEquallyOnRow(
+  [
     {
       id: 'ttfd-device-class-table',
       title: 'TTFD by Device Class',
@@ -65,40 +173,6 @@ export const MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG: PrebuiltDashboard = {
           orderby: '-device.class',
         },
       ],
-      layout: {
-        h: 2,
-        x: 0,
-        y: 3,
-        w: 2,
-        minH: 2,
-      },
-    },
-    {
-      id: 'average-ttid-line',
-      title: 'Average TTID',
-      description: '',
-      displayType: DisplayType.LINE,
-      widgetType: WidgetType.SPANS,
-      interval: '1h',
-      thresholds: null,
-      queries: [
-        {
-          name: 'TTID',
-          fields: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`],
-          aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`],
-          columns: [],
-          fieldAliases: [],
-          conditions: TRANSACTION_CONDITION,
-          orderby: 'avg(measurements.time_to_initial_display)',
-        },
-      ],
-      layout: {
-        h: 2,
-        x: 2,
-        y: 1,
-        w: 2,
-        minH: 2,
-      },
     },
     {
       id: 'average-ttfd-line',
@@ -119,194 +193,98 @@ export const MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG: PrebuiltDashboard = {
           orderby: 'avg(measurements.time_to_full_display)',
         },
       ],
-      layout: {
-        h: 2,
-        x: 2,
-        y: 3,
-        w: 2,
-        minH: 2,
-      },
     },
+  ],
+  3,
+  {h: 2, minH: 2}
+);
+
+// Span operations table (full width)
+const spanOperationsTable: Widget = {
+  id: 'span-operations-table',
+  title: 'Span Operations',
+  description: '',
+  displayType: DisplayType.TABLE,
+  widgetType: WidgetType.SPANS,
+  interval: '1h',
+  thresholds: null,
+  queries: [
     {
-      id: 'total-count-line',
-      title: 'Total Count',
-      description: '',
-      displayType: DisplayType.LINE,
-      widgetType: WidgetType.SPANS,
-      interval: '1h',
-      thresholds: null,
-      queries: [
-        {
-          name: '',
-          fields: [`count(${SpanFields.SPAN_DURATION})`],
-          aggregates: [`count(${SpanFields.SPAN_DURATION})`],
-          columns: [],
-          fieldAliases: [],
-          conditions: TRANSACTION_CONDITION,
-          orderby: `count(${SpanFields.SPAN_DURATION})`,
-        },
+      name: '',
+      fields: [
+        SpanFields.SPAN_OP,
+        SpanFields.SPAN_DESCRIPTION,
+        `avg(${SpanFields.SPAN_SELF_TIME})`,
+        `sum(${SpanFields.SPAN_SELF_TIME})`,
       ],
-      layout: {
-        h: 2,
-        x: 4,
-        y: 1,
-        w: 2,
-        minH: 2,
-      },
+      aggregates: [
+        `avg(${SpanFields.SPAN_SELF_TIME})`,
+        `sum(${SpanFields.SPAN_SELF_TIME})`,
+      ],
+      columns: [SpanFields.SPAN_OP, SpanFields.SPAN_DESCRIPTION],
+      fieldAliases: ['Operation', '', '', ''],
+      conditions: SPAN_OPERATIONS_CONDITION,
+      orderby: '-sum(span.self_time)',
     },
+  ],
+  layout: {
+    h: 4,
+    x: 0,
+    y: 5,
+    w: 6,
+    minH: 2,
+  },
+};
+
+// Span events table (full width)
+const spanEventsTable: Widget = {
+  id: 'span-events-table',
+  title: 'Span Events',
+  description: '',
+  displayType: DisplayType.TABLE,
+  widgetType: WidgetType.SPANS,
+  interval: '1h',
+  thresholds: null,
+  queries: [
     {
-      id: 'avg-ttid-big-number',
-      title: 'Avg TTID',
-      description: '',
-      displayType: DisplayType.BIG_NUMBER,
-      widgetType: WidgetType.SPANS,
-      interval: '1h',
-      thresholds: null,
-      queries: [
-        {
-          name: '',
-          fields: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`],
-          aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`],
-          columns: [],
-          fieldAliases: [''],
-          conditions: TRANSACTION_CONDITION,
-          orderby: '',
-        },
+      name: '',
+      fields: [
+        SpanFields.TRACE,
+        SpanFields.ID,
+        SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY,
+        SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY,
       ],
-      layout: {
-        h: 1,
-        x: 0,
-        y: 0,
-        w: 2,
-        minH: 1,
-      },
-    },
-    {
-      id: 'avg-ttfd-big-number',
-      title: 'Avg TTFD',
-      description: '',
-      displayType: DisplayType.BIG_NUMBER,
-      widgetType: WidgetType.SPANS,
-      interval: '1h',
-      thresholds: null,
-      queries: [
-        {
-          name: '',
-          fields: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`],
-          aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`],
-          columns: [],
-          fieldAliases: [''],
-          conditions: TRANSACTION_CONDITION,
-          orderby: '',
-        },
+      aggregates: [],
+      columns: [
+        SpanFields.TRACE,
+        SpanFields.ID,
+        SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY,
+        SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY,
       ],
-      layout: {
-        h: 1,
-        x: 2,
-        y: 0,
-        w: 2,
-        minH: 1,
-      },
+      fieldAliases: ['', '', '', ''],
+      conditions: 'span.op:[ui.load,navigation] is_transaction:true',
+      orderby: '-measurements.time_to_initial_display',
     },
-    {
-      id: 'total-count-big-number',
-      title: 'Total Count',
-      description: '',
-      displayType: DisplayType.BIG_NUMBER,
-      widgetType: WidgetType.SPANS,
-      interval: '1h',
-      thresholds: null,
-      queries: [
-        {
-          name: '',
-          fields: [`count(${SpanFields.SPAN_DURATION})`],
-          aggregates: [`count(${SpanFields.SPAN_DURATION})`],
-          columns: [],
-          fieldAliases: [''],
-          conditions: TRANSACTION_CONDITION,
-          orderby: '',
-        },
-      ],
-      layout: {
-        h: 1,
-        x: 4,
-        y: 0,
-        w: 2,
-        minH: 1,
-      },
-    },
-    {
-      id: 'span-operations-table',
-      title: 'Span Operations',
-      description: '',
-      displayType: DisplayType.TABLE,
-      widgetType: WidgetType.SPANS,
-      interval: '1h',
-      thresholds: null,
-      queries: [
-        {
-          name: '',
-          fields: [
-            SpanFields.SPAN_OP,
-            SpanFields.SPAN_DESCRIPTION,
-            `avg(${SpanFields.SPAN_SELF_TIME})`,
-            `sum(${SpanFields.SPAN_SELF_TIME})`,
-          ],
-          aggregates: [
-            `avg(${SpanFields.SPAN_SELF_TIME})`,
-            `sum(${SpanFields.SPAN_SELF_TIME})`,
-          ],
-          columns: [SpanFields.SPAN_OP, SpanFields.SPAN_DESCRIPTION],
-          fieldAliases: ['Operation', '', '', ''],
-          conditions: SPAN_OPERATIONS_CONDITION,
-          orderby: '-sum(span.self_time)',
-        },
-      ],
-      layout: {
-        h: 4,
-        x: 0,
-        y: 5,
-        w: 6,
-        minH: 2,
-      },
-    },
-    {
-      id: 'span-events-table',
-      title: 'Span Events',
-      description: '',
-      displayType: DisplayType.TABLE,
-      widgetType: WidgetType.SPANS,
-      interval: '1h',
-      thresholds: null,
-      queries: [
-        {
-          name: '',
-          fields: [
-            SpanFields.TRACE,
-            SpanFields.ID,
-            SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY,
-            SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY,
-          ],
-          aggregates: [],
-          columns: [
-            SpanFields.TRACE,
-            SpanFields.ID,
-            SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY,
-            SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY,
-          ],
-          fieldAliases: ['', '', '', ''],
-          conditions: 'span.op:[ui.load,navigation] is_transaction:true',
-          orderby: '-measurements.time_to_initial_display',
-        },
-      ],
-      layout: {
-        h: 4,
-        x: 0,
-        y: 9,
-        w: 6,
-        minH: 2,
-      },
-    },
+  ],
+  layout: {
+    h: 4,
+    x: 0,
+    y: 9,
+    w: 6,
+    minH: 2,
+  },
+};
+
+export const MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG: PrebuiltDashboard = {
+  dateCreated: '',
+  title: t('Mobile Vitals Screen Load as a Dashboard'),
+  projects: [],
+  widgets: [
+    ...headerRowWidgets,
+    ...secondRowWidgets,
+    ...thirdRowWidgets,
+    spanOperationsTable,
+    spanEventsTable,
   ],
   filters: {
     globalFilter: [

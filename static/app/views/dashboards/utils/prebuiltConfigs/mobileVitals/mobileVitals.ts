@@ -1,16 +1,16 @@
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import type {Widget} from 'sentry/views/dashboards/types';
 import {type PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SpanFields} from 'sentry/views/insights/types';
 
 const TRANSACTION_OP_CONDITION = 'transaction.op:[ui.load,navigation]';
 
-export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
-  dateCreated: '',
-  title: t('Mobile Vitals as a Dashboard'),
-  projects: [],
-  widgets: [
+// First row widgets (big numbers)
+const firstRowWidgets: Widget[] = spaceWidgetsEquallyOnRow(
+  [
     {
       id: 'cold-start-big-number',
       title: 'Avg. Cold App Start',
@@ -36,13 +36,6 @@ export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
           orderby: '',
         },
       ],
-      layout: {
-        x: 0,
-        h: 1,
-        y: 0,
-        minH: 1,
-        w: 3,
-      },
     },
     {
       id: 'warm-start-big-number',
@@ -69,13 +62,6 @@ export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
           orderby: '',
         },
       ],
-      layout: {
-        x: 3,
-        h: 1,
-        y: 0,
-        minH: 1,
-        w: 3,
-      },
     },
     {
       id: 'avg-ttid-big-number',
@@ -96,13 +82,6 @@ export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
           orderby: '',
         },
       ],
-      layout: {
-        x: 0,
-        h: 1,
-        y: 1,
-        minH: 1,
-        w: 3,
-      },
     },
     {
       id: 'avg-ttfd-big-number',
@@ -123,18 +102,19 @@ export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
           orderby: '',
         },
       ],
-      layout: {
-        x: 3,
-        h: 1,
-        y: 1,
-        minH: 1,
-        w: 3,
-      },
     },
+  ],
+  0,
+  {h: 1, minH: 1}
+);
+
+// Second row widgets (big numbers)
+const secondRowWidgets: Widget[] = spaceWidgetsEquallyOnRow(
+  [
     {
-      id: 'avg-frame-delay-big-number',
-      title: 'Avg. Frame Delay',
-      description: 'Average frame delay',
+      id: 'avg-ttid-big-number',
+      title: 'Avg. TTID',
+      description: 'Average time to initial display',
       displayType: DisplayType.BIG_NUMBER,
       widgetType: WidgetType.SPANS,
       interval: '1h',
@@ -142,21 +122,70 @@ export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: '',
-          fields: [`avg(${SpanFields.MOBILE_FRAMES_DELAY})`],
-          aggregates: [`avg(${SpanFields.MOBILE_FRAMES_DELAY})`],
+          fields: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`],
+          aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`],
           columns: [],
           fieldAliases: [''],
           conditions: TRANSACTION_OP_CONDITION,
           orderby: '',
         },
       ],
-      layout: {
-        x: 4,
-        h: 1,
-        y: 2,
-        minH: 1,
-        w: 2,
-      },
+    },
+    {
+      id: 'avg-ttfd-big-number',
+      title: 'Avg. TTFD',
+      description: 'Average time to full display',
+      displayType: DisplayType.BIG_NUMBER,
+      widgetType: WidgetType.SPANS,
+      interval: '1h',
+      thresholds: null,
+      queries: [
+        {
+          name: '',
+          fields: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`],
+          aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`],
+          columns: [],
+          fieldAliases: [''],
+          conditions: TRANSACTION_OP_CONDITION,
+          orderby: '',
+        },
+      ],
+    },
+  ],
+  1,
+  {h: 1, minH: 1}
+);
+
+// Third row widgets (frame metrics)
+const thirdRowWidgets: Widget[] = spaceWidgetsEquallyOnRow(
+  [
+    {
+      id: 'slow-frame-rate-big-number',
+      title: 'Slow Frame Rate',
+      description: 'The percentage of frames that were slow',
+      displayType: DisplayType.BIG_NUMBER,
+      widgetType: WidgetType.SPANS,
+      interval: '1h',
+      thresholds: null,
+      queries: [
+        {
+          name: '',
+          fields: [
+            `avg(${SpanFields.MOBILE_SLOW_FRAMES})`,
+            `avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
+            `equation|( avg(${SpanFields.MOBILE_SLOW_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES}) )`,
+          ],
+          aggregates: [
+            `avg(${SpanFields.MOBILE_SLOW_FRAMES})`,
+            `avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
+            `equation|( avg(${SpanFields.MOBILE_SLOW_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES}) )`,
+          ],
+          columns: [],
+          fieldAliases: ['', '', ''],
+          conditions: TRANSACTION_OP_CONDITION,
+          orderby: '',
+        },
+      ],
     },
     {
       id: 'frozen-frame-rate-big-number',
@@ -185,18 +214,11 @@ export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
           orderby: '',
         },
       ],
-      layout: {
-        x: 2,
-        h: 1,
-        y: 2,
-        minH: 1,
-        w: 2,
-      },
     },
     {
-      id: 'slow-frame-rate-big-number',
-      title: 'Slow Frame Rate',
-      description: 'The percentage of frames that were slow',
+      id: 'avg-frame-delay-big-number',
+      title: 'Avg. Frame Delay',
+      description: 'Average frame delay',
       displayType: DisplayType.BIG_NUMBER,
       widgetType: WidgetType.SPANS,
       interval: '1h',
@@ -204,176 +226,179 @@ export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: '',
-          fields: [
-            `avg(${SpanFields.MOBILE_SLOW_FRAMES})`,
-            `avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
-            `equation|( avg(${SpanFields.MOBILE_SLOW_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES}) )`,
-          ],
-          aggregates: [
-            `avg(${SpanFields.MOBILE_SLOW_FRAMES})`,
-            `avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
-            `equation|( avg(${SpanFields.MOBILE_SLOW_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES}) )`,
-          ],
+          fields: [`avg(${SpanFields.MOBILE_FRAMES_DELAY})`],
+          aggregates: [`avg(${SpanFields.MOBILE_FRAMES_DELAY})`],
           columns: [],
-          fieldAliases: ['', '', ''],
+          fieldAliases: [''],
           conditions: TRANSACTION_OP_CONDITION,
           orderby: '',
         },
       ],
-      layout: {
-        x: 0,
-        h: 1,
-        y: 2,
-        minH: 1,
-        w: 2,
-      },
     },
+  ],
+  2,
+  {h: 1, minH: 1}
+);
+
+// Tables (full width)
+const appStartTable: Widget = {
+  id: 'app-start-table',
+  title: 'App Start',
+  description: '',
+  displayType: DisplayType.TABLE,
+  widgetType: WidgetType.SPANS,
+  interval: '1h',
+  thresholds: null,
+  queries: [
     {
-      id: 'app-start-table',
-      title: 'App Start',
-      description: '',
-      displayType: DisplayType.TABLE,
-      widgetType: WidgetType.SPANS,
-      interval: '1h',
-      thresholds: null,
-      queries: [
+      name: '',
+      fields: [
+        SpanFields.TRANSACTION,
+        `avg(${SpanFields.APP_START_COLD})`,
+        `avg(${SpanFields.APP_START_WARM})`,
+        `count(${SpanFields.SPAN_DURATION})`,
+      ],
+      aggregates: [
+        `avg(${SpanFields.APP_START_COLD})`,
+        `avg(${SpanFields.APP_START_WARM})`,
+        `count(${SpanFields.SPAN_DURATION})`,
+      ],
+      columns: [SpanFields.TRANSACTION],
+      fieldAliases: ['Screen', 'Cold Start', 'Warm Start', 'Screen Loads'],
+      conditions: '',
+      orderby: '-count(span.duration)',
+      linkedDashboards: [
         {
-          name: '',
-          fields: [
-            'transaction',
-            `avg(${SpanFields.APP_START_COLD})`,
-            `avg(${SpanFields.APP_START_WARM})`,
-            `count(${SpanFields.SPAN_DURATION})`,
-          ],
-          aggregates: [
-            `avg(${SpanFields.APP_START_COLD})`,
-            `avg(${SpanFields.APP_START_WARM})`,
-            `count(${SpanFields.SPAN_DURATION})`,
-          ],
-          columns: [`${SpanFields.TRANSACTION}`],
-          fieldAliases: ['Screen', 'Cold Start', 'Warm Start', 'Screen Loads'],
-          conditions: '',
-          orderby: '-count(span.duration)',
-          linkedDashboards: [
-            {
-              field: 'transaction',
-              dashboardId: '-1',
-              staticDashboardId: 9,
-            },
-          ],
+          field: 'transaction',
+          dashboardId: '-1',
+          staticDashboardId: 9,
         },
       ],
-      layout: {
-        x: 0,
-        h: 3,
-        y: 3,
-        minH: 2,
-        w: 6,
-      },
     },
+  ],
+  layout: {
+    x: 0,
+    h: 3,
+    y: 3,
+    minH: 2,
+    w: 6,
+  },
+};
+const screenRenderingTable: Widget = {
+  id: 'screen-rendering-table',
+  title: 'Screen Rendering',
+  description: '',
+  displayType: DisplayType.TABLE,
+  widgetType: WidgetType.SPANS,
+  interval: '1h',
+  thresholds: null,
+  queries: [
     {
-      id: 'screen-rendering-table',
-      title: 'Screen Rendering',
-      description: '',
-      displayType: DisplayType.TABLE,
-      widgetType: WidgetType.SPANS,
-      interval: '1h',
-      thresholds: null,
-      queries: [
+      name: '',
+      fields: [
+        SpanFields.TRANSACTION,
+        `avg(${SpanFields.MOBILE_SLOW_FRAMES})`,
+        `avg(${SpanFields.MOBILE_FROZEN_FRAMES})`,
+        `avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
+        `equation|avg(${SpanFields.MOBILE_SLOW_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
+        `equation|avg(${SpanFields.MOBILE_FROZEN_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
+        `avg(tags[frames_delay,number])`,
+        `count(${SpanFields.SPAN_DURATION})`,
+      ],
+      aggregates: [
+        `avg(${SpanFields.MOBILE_SLOW_FRAMES})`,
+        `avg(${SpanFields.MOBILE_FROZEN_FRAMES})`,
+        `avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
+        `equation|avg(${SpanFields.MOBILE_SLOW_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
+        `equation|avg(${SpanFields.MOBILE_FROZEN_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
+        `avg(tags[frames_delay,number])`,
+        `count(${SpanFields.SPAN_DURATION})`,
+      ],
+      columns: [SpanFields.TRANSACTION],
+      fieldAliases: [
+        'Screen',
+        'Slow Frames',
+        'Frozen Frames',
+        'Total Frames',
+        'Slow Frame Rate',
+        'Frozen Frame Rate',
+        'Frame Delay',
+        'Screen Loads',
+      ],
+      conditions: '',
+      orderby: '-count(span.duration)',
+      linkedDashboards: [
         {
-          name: '',
-          fields: [
-            SpanFields.TRANSACTION,
-            `avg(${SpanFields.MOBILE_SLOW_FRAMES})`,
-            `avg(${SpanFields.MOBILE_FROZEN_FRAMES})`,
-            `avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
-            `equation|avg(${SpanFields.MOBILE_SLOW_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
-            `equation|avg(${SpanFields.MOBILE_FROZEN_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
-            `avg(tags[frames_delay,number])`,
-            `count(${SpanFields.SPAN_DURATION})`,
-          ],
-          aggregates: [
-            `avg(${SpanFields.MOBILE_SLOW_FRAMES})`,
-            `avg(${SpanFields.MOBILE_FROZEN_FRAMES})`,
-            `avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
-            `equation|avg(${SpanFields.MOBILE_SLOW_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
-            `equation|avg(${SpanFields.MOBILE_FROZEN_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
-            `avg(tags[frames_delay,number])`,
-            `count(${SpanFields.SPAN_DURATION})`,
-          ],
-          columns: [SpanFields.TRANSACTION],
-          fieldAliases: [
-            'Screen',
-            'Slow Frames',
-            'Frozen Frames',
-            'Total Frames',
-            'Slow Frame Rate',
-            'Frozen Frame Rate',
-            'Frame Delay',
-            'Screen Loads',
-          ],
-          conditions: '',
-          orderby: '-count(span.duration)',
-          linkedDashboards: [
-            {
-              field: 'transaction',
-              dashboardId: '-1',
-              staticDashboardId: 11,
-            },
-          ],
+          field: 'transaction',
+          dashboardId: '-1',
+          staticDashboardId: 11,
         },
       ],
-      layout: {
-        x: 0,
-        h: 3,
-        y: 9,
-        minH: 2,
-        w: 6,
-      },
     },
+  ],
+  layout: {
+    x: 0,
+    h: 3,
+    y: 9,
+    minH: 2,
+    w: 6,
+  },
+};
+const screenLoadTable: Widget = {
+  id: 'screen-load-table',
+  title: 'Screen Load',
+  description: '',
+  displayType: DisplayType.TABLE,
+  widgetType: WidgetType.SPANS,
+  interval: '1h',
+  thresholds: null,
+  queries: [
     {
-      id: 'screen-load-table',
-      title: 'Screen Load',
-      description: '',
-      displayType: DisplayType.TABLE,
-      widgetType: WidgetType.SPANS,
-      interval: '1h',
-      thresholds: null,
-      queries: [
+      name: '',
+      fields: [
+        SpanFields.TRANSACTION,
+        `avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`,
+        `avg(${SpanFields.SPAN_DURATION})`,
+        `count(${SpanFields.SPAN_DURATION})`,
+      ],
+      aggregates: [
+        `avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`,
+        `avg(${SpanFields.SPAN_DURATION})`,
+        `count(${SpanFields.SPAN_DURATION})`,
+      ],
+      columns: [SpanFields.TRANSACTION],
+      fieldAliases: ['Screen', 'TTID', 'TTFD', 'Screen Loads'],
+      conditions: '',
+      orderby: '-count(span.duration)',
+      linkedDashboards: [
         {
-          name: '',
-          fields: [
-            SpanFields.TRANSACTION,
-            `avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`,
-            `avg(${SpanFields.SPAN_DURATION})`,
-            `count(${SpanFields.SPAN_DURATION})`,
-          ],
-          aggregates: [
-            `avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`,
-            `avg(${SpanFields.SPAN_DURATION})`,
-            `count(${SpanFields.SPAN_DURATION})`,
-          ],
-          columns: [SpanFields.TRANSACTION],
-          fieldAliases: ['Screen', 'TTID', 'TTFD', 'Screen Loads'],
-          conditions: '',
-          orderby: '-count(span.duration)',
-          linkedDashboards: [
-            {
-              field: 'transaction',
-              dashboardId: '-1',
-              staticDashboardId: 10,
-            },
-          ],
+          field: 'transaction',
+          dashboardId: '-1',
+          staticDashboardId: 10,
         },
       ],
-      layout: {
-        x: 0,
-        h: 3,
-        y: 6,
-        minH: 2,
-        w: 6,
-      },
     },
+  ],
+  layout: {
+    x: 0,
+    h: 3,
+    y: 6,
+    minH: 2,
+    w: 6,
+  },
+};
+
+export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
+  dateCreated: '',
+  title: t('Mobile Vitals as a Dashboard'),
+  projects: [],
+  widgets: [
+    ...firstRowWidgets,
+    ...secondRowWidgets,
+    ...thirdRowWidgets,
+    appStartTable,
+    screenLoadTable,
+    screenRenderingTable,
   ],
   filters: {
     globalFilter: [

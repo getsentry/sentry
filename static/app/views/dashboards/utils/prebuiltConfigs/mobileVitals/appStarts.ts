@@ -1,7 +1,9 @@
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import type {Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SpanFields} from 'sentry/views/insights/types';
 
 const COLD_START_CONDITION =
@@ -11,11 +13,9 @@ const WARM_START_CONDITION =
 const OPERATIONS_CONDITION =
   '!span.description:"Cold Start" !span.description:"Warm Start" !span.description:"Cold App Start" !span.description:"Warm App Start" !span.description:"Initial Frame Render" has:span.description transaction.op:[ui.load,navigation] has:ttid app_start_type:cold span.op:[app.start.cold,app.start.warm,contentprovider.load,application.load,activity.load,ui.load,process.load]';
 
-export const MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG: PrebuiltDashboard = {
-  dateCreated: '',
-  title: t('Mobile Vitals App Start as a Dashboard'),
-  projects: [],
-  widgets: [
+// First row widgets (charts)
+const firstRowWidgets: Widget[] = spaceWidgetsEquallyOnRow(
+  [
     {
       id: 'avg-cold-start-line',
       title: 'Average Cold Start',
@@ -35,40 +35,6 @@ export const MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG: PrebuiltDashboard = {
           orderby: `avg(${SpanFields.SPAN_DURATION})`,
         },
       ],
-      layout: {
-        x: 0,
-        minH: 2,
-        w: 3,
-        y: 0,
-        h: 2,
-      },
-    },
-    {
-      id: 'avg-warm-start-line',
-      title: 'Average Warm Start',
-      description: '',
-      displayType: DisplayType.LINE,
-      widgetType: WidgetType.SPANS,
-      interval: '1h',
-      thresholds: null,
-      queries: [
-        {
-          name: '',
-          fields: [`avg(${SpanFields.SPAN_DURATION})`],
-          aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
-          columns: [],
-          fieldAliases: [],
-          conditions: WARM_START_CONDITION,
-          orderby: `avg(${SpanFields.SPAN_DURATION})`,
-        },
-      ],
-      layout: {
-        x: 0,
-        minH: 2,
-        w: 3,
-        y: 2,
-        h: 2,
-      },
     },
     {
       id: 'cold-start-device-distribution-table',
@@ -89,13 +55,33 @@ export const MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG: PrebuiltDashboard = {
           orderby: '-avg(measurements.app_start_cold)',
         },
       ],
-      layout: {
-        x: 3,
-        minH: 2,
-        w: 3,
-        y: 0,
-        h: 2,
-      },
+    },
+  ],
+  0
+);
+
+// Second row widgets
+const secondRowWidgets: Widget[] = spaceWidgetsEquallyOnRow(
+  [
+    {
+      id: 'avg-warm-start-line',
+      title: 'Average Warm Start',
+      description: '',
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
+      interval: '1h',
+      thresholds: null,
+      queries: [
+        {
+          name: '',
+          fields: [`avg(${SpanFields.SPAN_DURATION})`],
+          aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
+          columns: [],
+          fieldAliases: [],
+          conditions: WARM_START_CONDITION,
+          orderby: `avg(${SpanFields.SPAN_DURATION})`,
+        },
+      ],
     },
     {
       id: 'warm-start-device-distribution-table',
@@ -116,73 +102,78 @@ export const MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG: PrebuiltDashboard = {
           orderby: '-avg(measurements.app_start_warm)',
         },
       ],
-      layout: {
-        x: 3,
-        minH: 2,
-        w: 3,
-        y: 2,
-        h: 2,
-      },
-    },
-    {
-      id: 'operations-table',
-      title: 'Operations',
-      description: '',
-      displayType: DisplayType.TABLE,
-      widgetType: WidgetType.SPANS,
-      interval: '1h',
-      thresholds: null,
-      queries: [
-        {
-          name: '',
-          fields: [
-            SpanFields.SPAN_OP,
-            SpanFields.SPAN_DESCRIPTION,
-            `avg(${SpanFields.SPAN_SELF_TIME})`,
-          ],
-          aggregates: [`avg(${SpanFields.SPAN_SELF_TIME})`],
-          columns: [SpanFields.SPAN_OP, SpanFields.SPAN_DESCRIPTION],
-          fieldAliases: ['Operation', 'Description', 'AVG Duration'],
-          conditions: OPERATIONS_CONDITION,
-          orderby: '-avg(span.self_time)',
-        },
-      ],
-      layout: {
-        x: 0,
-        minH: 2,
-        w: 6,
-        y: 4,
-        h: 6,
-      },
-    },
-    {
-      id: 'span-events-table',
-      title: 'Span Events',
-      description: '',
-      displayType: DisplayType.TABLE,
-      widgetType: WidgetType.SPANS,
-      interval: '1h',
-      thresholds: null,
-      queries: [
-        {
-          name: '',
-          fields: [SpanFields.ID, SpanFields.SPAN_DURATION, SpanFields.SPAN_DURATION],
-          aggregates: [],
-          columns: [SpanFields.ID, SpanFields.SPAN_DURATION, SpanFields.SPAN_DURATION],
-          fieldAliases: ['Transaction id', 'Profile', ''],
-          conditions: '',
-          orderby: '-id',
-        },
-      ],
-      layout: {
-        x: 0,
-        minH: 2,
-        w: 6,
-        y: 10,
-        h: 4,
-      },
     },
   ],
+  2
+);
+
+// Operations table (full width)
+const operationsTable: Widget = {
+  id: 'operations-table',
+  title: 'Operations',
+  description: '',
+  displayType: DisplayType.TABLE,
+  widgetType: WidgetType.SPANS,
+  interval: '1h',
+  thresholds: null,
+  queries: [
+    {
+      name: '',
+      fields: [
+        SpanFields.SPAN_OP,
+        SpanFields.SPAN_DESCRIPTION,
+        `avg(${SpanFields.SPAN_SELF_TIME})`,
+      ],
+      aggregates: [`avg(${SpanFields.SPAN_SELF_TIME})`],
+      columns: [SpanFields.SPAN_OP, SpanFields.SPAN_DESCRIPTION],
+      fieldAliases: ['Operation', 'Description', 'AVG Duration'],
+      conditions: OPERATIONS_CONDITION,
+      orderby: '-avg(span.self_time)',
+    },
+  ],
+  layout: {
+    x: 0,
+    minH: 2,
+    w: 6,
+    y: 4,
+    h: 6,
+  },
+};
+
+// Span events table (full width)
+const spanEventsTable: Widget = {
+  id: 'span-events-table',
+  title: 'Span Events',
+  description: '',
+  displayType: DisplayType.TABLE,
+  widgetType: WidgetType.SPANS,
+  interval: '1h',
+  thresholds: null,
+  queries: [
+    {
+      name: '',
+      fields: [SpanFields.ID, SpanFields.SPAN_DURATION, SpanFields.SPAN_DURATION],
+      aggregates: [],
+      columns: [SpanFields.ID, SpanFields.SPAN_DURATION, SpanFields.SPAN_DURATION],
+      fieldAliases: ['Transaction id', 'Profile', ''],
+      conditions: '',
+      orderby: '-id',
+    },
+  ],
+  layout: {
+    x: 0,
+    minH: 2,
+    w: 6,
+    y: 10,
+    h: 4,
+  },
+};
+
+export const MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG: PrebuiltDashboard = {
+  dateCreated: '',
+  title: t('Mobile Vitals App Start as a Dashboard'),
+  projects: [],
+  widgets: [...firstRowWidgets, ...secondRowWidgets, operationsTable, spanEventsTable],
   filters: {
     globalFilter: [
       {
