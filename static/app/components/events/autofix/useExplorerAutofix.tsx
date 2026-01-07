@@ -399,6 +399,36 @@ export function useExplorerAutofix(
     );
   }, [queryClient, orgSlug, groupId]);
 
+  /**
+   * Trigger coding agent handoff for an existing run.
+   */
+  const triggerCodingAgentHandoff = useCallback(
+    async (runId: number, integrationId: number) => {
+      setWaitingForResponse(true);
+
+      try {
+        await api.requestPromise(`/organizations/${orgSlug}/issues/${groupId}/autofix/`, {
+          method: 'POST',
+          data: {
+            step: 'coding_agent_handoff',
+            run_id: runId,
+            integration_id: integrationId,
+          },
+        });
+
+        // Invalidate to fetch fresh data
+        queryClient.invalidateQueries({
+          queryKey: makeExplorerAutofixQueryKey(orgSlug, groupId),
+        });
+      } catch (e: any) {
+        setWaitingForResponse(false);
+        addErrorMessage(e?.responseJSON?.detail ?? 'Failed to launch coding agent');
+        throw e;
+      }
+    },
+    [api, orgSlug, groupId, queryClient]
+  );
+
   // Clear waiting state when we get a response
   if (waitingForResponse && runState) {
     const hasLoadingBlock = runState.blocks.some(block => block.loading);
@@ -432,5 +462,9 @@ export function useExplorerAutofix(
      * Reset the autofix state.
      */
     reset,
+    /**
+     * Trigger coding agent handoff for an existing run.
+     */
+    triggerCodingAgentHandoff,
   };
 }

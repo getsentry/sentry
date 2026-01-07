@@ -143,9 +143,15 @@ export function ExplorerSeerDrawer({
   aiConfig,
 }: ExplorerSeerDrawerProps) {
   const organization = useOrganization();
-  const {runState, isLoading, isPolling, startStep, createPR, reset} = useExplorerAutofix(
-    group.id
-  );
+  const {
+    runState,
+    isLoading,
+    isPolling,
+    startStep,
+    createPR,
+    reset,
+    triggerCodingAgentHandoff,
+  } = useExplorerAutofix(group.id);
 
   // Extract data from run state
   const blocks = useMemo(() => runState?.blocks ?? [], [runState?.blocks]);
@@ -188,6 +194,15 @@ export function ExplorerSeerDrawer({
       openSeerExplorer({startNewRun: true});
     }
   }, [runState?.run_id]);
+
+  const handleCodingAgentHandoff = useCallback(
+    async (integrationId: number) => {
+      if (runState?.run_id) {
+        await triggerCodingAgentHandoff(runState.run_id, integrationId);
+      }
+    },
+    [triggerCodingAgentHandoff, runState?.run_id]
+  );
 
   const {copy} = useCopyToClipboard();
   const handleCopyMarkdown = useCallback(() => {
@@ -382,6 +397,7 @@ export function ExplorerSeerDrawer({
               artifacts={artifacts}
               hasCodeChanges={hasChanges}
               onStartStep={handleStartStep}
+              onCodingAgentHandoff={handleCodingAgentHandoff}
               onOpenChat={handleOpenChat}
               isLoading={isPolling}
             />
