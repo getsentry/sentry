@@ -314,7 +314,7 @@ export function addEndpointTagToRequestError(event: Event): void {
   }
 }
 
-export function isFilteredLog(log: Log): boolean {
+function isFilteredLog(log: Log): boolean {
   // Ignore the console banner from `static/app/bootstrap/printConsoleBanner.ts`
   if (log.message.includes('Hey, you opened the console!')) {
     return true;
