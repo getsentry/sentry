@@ -1,5 +1,5 @@
 import {Fragment, useMemo, useState, type PropsWithChildren} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 import type {LocationDescriptor} from 'history';
@@ -53,7 +53,7 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import type {Color, ColorOrAlias} from 'sentry/utils/theme';
+import type {Color} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -254,24 +254,26 @@ const HeaderContainer = styled(FlexBox)`
   margin-bottom: ${space(1)};
 `;
 
-const DURATION_COMPARISON_STATUS_COLORS: {
-  equal: {light: ColorOrAlias; normal: ColorOrAlias};
-  faster: {light: ColorOrAlias; normal: ColorOrAlias};
-  slower: {light: ColorOrAlias; normal: ColorOrAlias};
-} = {
-  faster: {
-    light: 'green100',
-    normal: 'green300',
-  },
-  slower: {
-    light: 'red100',
-    normal: 'red300',
-  },
-  equal: {
-    light: 'gray100',
-    normal: 'gray300',
-  },
-};
+function makeDurationComparisonStatusColors(theme: Theme): {
+  equal: {light: string; normal: string};
+  faster: {light: string; normal: string};
+  slower: {light: string; normal: string};
+} {
+  return {
+    faster: {
+      light: theme.colors.green100,
+      normal: theme.colors.green600,
+    },
+    slower: {
+      light: theme.colors.red100,
+      normal: theme.colors.red600,
+    },
+    equal: {
+      light: theme.tokens.background.transparent.neutral.muted,
+      normal: theme.tokens.content.secondary,
+    },
+  };
+}
 
 const MIN_PCT_DURATION_DIFFERENCE = 10;
 
@@ -298,7 +300,9 @@ const getDurationComparison = (
     <Tooltip
       title={baseDescription}
       showUnderline
-      underlineColor={DURATION_COMPARISON_STATUS_COLORS[status].normal}
+      underlineColor={
+        status === 'faster' ? 'success' : status === 'slower' ? 'danger' : 'muted'
+      }
     >
       {getDuration(baseline, 2, true)}
     </Tooltip>
@@ -650,9 +654,9 @@ const HiglightsDurationComparison = styled('div')<
 >`
   white-space: nowrap;
   border-radius: 12px;
-  color: ${p => p.theme[DURATION_COMPARISON_STATUS_COLORS[p.status].normal]};
-  background-color: ${p => p.theme[DURATION_COMPARISON_STATUS_COLORS[p.status].light]};
-  border: solid 1px ${p => p.theme[DURATION_COMPARISON_STATUS_COLORS[p.status].light]};
+  color: ${p => makeDurationComparisonStatusColors(p.theme)[p.status].normal};
+  background-color: ${p => makeDurationComparisonStatusColors(p.theme)[p.status].light};
+  border: solid 1px ${p => makeDurationComparisonStatusColors(p.theme)[p.status].light};
   font-size: ${p => p.theme.fontSize.xs};
   padding: ${space(0.25)} ${space(1)};
   display: inline-block;
@@ -776,7 +780,12 @@ const DurationContainer = styled('span')`
 `;
 
 const Comparison = styled('span')<{status: 'faster' | 'slower' | 'equal'}>`
-  color: ${p => p.theme[DURATION_COMPARISON_STATUS_COLORS[p.status].normal]};
+  color: ${p =>
+    p.status === 'faster'
+      ? p.theme.tokens.content.success
+      : p.status === 'slower'
+        ? p.theme.tokens.content.danger
+        : p.theme.tokens.content.secondary};
 `;
 
 const TableValueRow = styled('div')`
