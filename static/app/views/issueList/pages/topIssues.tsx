@@ -1029,7 +1029,6 @@ function TopIssues() {
     userTeams,
   ]);
 
-  // Find cluster index by cluster_id from query param, fallback to 0
   const currentIndex = useMemo(() => {
     if (selectedClusterId === undefined) {
       return 0;
