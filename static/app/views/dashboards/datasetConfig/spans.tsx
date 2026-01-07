@@ -242,9 +242,9 @@ export const SpansConfig: DatasetConfig<
   },
   getSeriesResultUnit: (data, widgetQuery) => {
     const resultUnits: Record<string, DataUnit> = {};
-    widgetQuery.units?.forEach((unit, index) => {
-      if (unit && widgetQuery.fields) {
-        resultUnits[widgetQuery.fields[index]!] = unit.valueUnit;
+    widgetQuery.fieldMeta?.forEach((meta, index) => {
+      if (meta && widgetQuery.fields) {
+        resultUnits[widgetQuery.fields[index]!] = meta.valueUnit;
       }
     });
     const isMultiSeriesStats = isMultiSeriesEventsStats(data);
@@ -252,24 +252,24 @@ export const SpansConfig: DatasetConfig<
     // if there's only one aggregate and more then one group by the series names are the name of the group, not the aggregate name
     // But we can just assume the units is for all the series
     // TODO: This doesn't work with multiple aggregates
-    const firstUnit = widgetQuery.units?.find(unit => unit !== null);
+    const firstMeta = widgetQuery.fieldMeta?.find(meta => meta !== null);
     if (
       isMultiSeriesStats &&
-      firstUnit &&
+      firstMeta &&
       widgetQuery.aggregates?.length === 1 &&
       widgetQuery.columns?.length > 0
     ) {
       Object.keys(data).forEach(seriesName => {
-        resultUnits[seriesName] = firstUnit.valueUnit;
+        resultUnits[seriesName] = firstMeta.valueUnit;
       });
     }
     return resultUnits;
   },
   getSeriesResultType: (data, widgetQuery) => {
     const resultTypes: Record<string, AggregationOutputType> = {};
-    widgetQuery.units?.forEach((unit, index) => {
-      if (unit && widgetQuery.fields) {
-        resultTypes[widgetQuery.fields[index]!] = unit.valueType;
+    widgetQuery.fieldMeta?.forEach((meta, index) => {
+      if (meta && widgetQuery.fields) {
+        resultTypes[widgetQuery.fields[index]!] = meta.valueType as AggregationOutputType;
       }
     });
 
@@ -278,15 +278,15 @@ export const SpansConfig: DatasetConfig<
     // if there's only one aggregate and more then one group by the series names are the name of the group, not the aggregate name
     // But we can just assume the units is for all the series
     // TODO: This doesn't work with multiple aggregates
-    const firstUnit = widgetQuery.units?.find(unit => unit !== null);
+    const firstMeta = widgetQuery.fieldMeta?.find(meta => meta !== null);
     if (
       isMultiSeriesStats &&
-      firstUnit &&
+      firstMeta &&
       widgetQuery.aggregates?.length === 1 &&
       widgetQuery.columns?.length > 0
     ) {
       Object.keys(data).forEach(seriesName => {
-        resultTypes[seriesName] = firstUnit.valueType;
+        resultTypes[seriesName] = firstMeta.valueType;
       });
     }
     return resultTypes;

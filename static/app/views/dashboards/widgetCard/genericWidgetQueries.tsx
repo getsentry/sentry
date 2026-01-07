@@ -402,14 +402,28 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     // to derive the types and units since they share the same aggregations and fields
     const timeseriesResultsTypes = responses.reduce(
       (acc, response) => {
-        acc = {...acc, ...config.getSeriesResultType?.(response[0], widget.queries[0]!)};
+        let allResultTypes: Record<string, AggregationOutputType> = {};
+        widget.queries.forEach(query => {
+          allResultTypes = {
+            ...allResultTypes,
+            ...config.getSeriesResultType?.(response[0], query),
+          };
+        });
+        acc = {...acc, ...allResultTypes};
         return acc;
       },
       {} as Record<string, AggregationOutputType>
     );
     const timeseriesResultsUnits = responses.reduce(
       (acc, response) => {
-        acc = {...acc, ...config.getSeriesResultUnit?.(response[0], widget.queries[0]!)};
+        let allResultUnits: Record<string, DataUnit> = {};
+        widget.queries.forEach(query => {
+          allResultUnits = {
+            ...allResultUnits,
+            ...config.getSeriesResultUnit?.(response[0], query),
+          };
+        });
+        acc = {...acc, ...allResultUnits};
         return acc;
       },
       {} as Record<string, DataUnit>

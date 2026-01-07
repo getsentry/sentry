@@ -3,9 +3,9 @@ import type {Layout} from 'react-grid-layout';
 import {t} from 'sentry/locale';
 import type {Tag} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
-import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {SavedQueryDatasets, type DatasetSource} from 'sentry/utils/discover/types';
 import type {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import type {TimeSeriesMeta} from 'sentry/views/dashboards/widgets/common/types';
 
 import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholds';
 
@@ -83,11 +83,6 @@ export type LinkedDashboard = {
   staticDashboardId?: PrebuiltDashboardId;
 };
 
-type Unit = {
-  valueType: AggregationOutputType;
-  valueUnit: DataUnit;
-};
-
 /**
  * A widget query is one or more aggregates and a single filter string (conditions.)
  * Widgets can have multiple widget queries, and they all combine into a unified timeseries view (for example)
@@ -101,6 +96,8 @@ export type WidgetQuery = {
   // Table column alias.
   // We may want to have alias for y-axis in the future too
   fieldAliases?: string[];
+  // Used to define the units of the fields in the widget queries, currently not saved
+  fieldMeta?: Array<Pick<TimeSeriesMeta, 'valueType' | 'valueUnit'> | null>;
   // Fields is replaced with aggregates + columns. It
   // is currently used to track column order on table
   // widgets.
@@ -115,8 +112,6 @@ export type WidgetQuery = {
   // TODO: currently not stored in the backend, only used
   // by prebuilt dashboards in the frontend.
   slideOutId?: SlideoutId;
-  // Used to define the units of the fields in the widget queries, currently not saved
-  units?: Array<Unit | null>;
 };
 
 type WidgetChangedReason = {

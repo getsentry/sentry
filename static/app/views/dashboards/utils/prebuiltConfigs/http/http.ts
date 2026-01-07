@@ -71,6 +71,7 @@ const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
           fields: [PERCENTAGE_3XX],
           aggregates: [PERCENTAGE_3XX],
           columns: [],
+          fieldMeta: [{valueType: 'percentage', valueUnit: null}],
           orderby: PERCENTAGE_3XX,
         },
         {
@@ -79,6 +80,7 @@ const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
           fields: [PERCENTAGE_4XX],
           aggregates: [PERCENTAGE_4XX],
           columns: [],
+          fieldMeta: [{valueType: 'percentage', valueUnit: null}],
           orderby: PERCENTAGE_4XX,
         },
         {
@@ -87,6 +89,7 @@ const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
           fields: [PERCENTAGE_5XX],
           aggregates: [PERCENTAGE_5XX],
           columns: [],
+          fieldMeta: [{valueType: 'percentage', valueUnit: null}],
           orderby: PERCENTAGE_5XX,
         },
       ],
@@ -138,6 +141,14 @@ const DOMAIN_TABLE: Widget = {
           field: SpanFields.SPAN_DOMAIN,
           staticDashboardId: 5,
         },
+      ],
+      fieldMeta: [
+        null,
+        null,
+        null,
+        {valueType: 'percentage', valueUnit: null},
+        {valueType: 'percentage', valueUnit: null},
+        {valueType: 'percentage', valueUnit: null},
       ],
       conditions: FILTER_STRING,
       name: '',
