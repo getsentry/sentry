@@ -91,7 +91,9 @@ SecondaryNav.Header = function SecondaryNavHeader({children}: {children?: ReactN
   );
 };
 
-const StyledIconChevron = styled(IconChevron)<{isCollapsed: boolean}>`
+const StyledIconChevron = styled(IconChevron, {
+  shouldForwardProp: prop => prop !== 'isCollapsed',
+})<{isCollapsed: boolean}>`
   color: ${p => (p.isCollapsed ? p.theme.colors.white : undefined)};
 `;
 
