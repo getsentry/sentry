@@ -96,7 +96,6 @@ export function useSentryAppExternalIssues({
                 event,
                 sentryAppComponent: component,
                 sentryAppInstallation: installation,
-                externalIssue,
               });
             },
           },
