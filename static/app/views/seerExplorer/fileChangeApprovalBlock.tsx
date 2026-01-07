@@ -99,7 +99,8 @@ const Block = styled('div')<{isFocused?: boolean; isLast?: boolean}>`
   position: relative;
   flex-shrink: 0;
   cursor: pointer;
-  background: ${p => (p.isFocused ? p.theme.hover : 'transparent')};
+  background: ${p =>
+    p.isFocused ? p.theme.tokens.background.transparent.neutral.muted : 'transparent'};
 `;
 
 const BlockContentWrapper = styled('div')`

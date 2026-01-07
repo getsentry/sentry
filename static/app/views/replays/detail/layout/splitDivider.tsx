@@ -26,7 +26,7 @@ const SplitDivider = styled((props: Props & DOMAttributes<HTMLDivElement>) => (
 
   &:hover,
   &[data-is-held='true'] {
-    background: ${p => p.theme.hover};
+    background: ${p => p.theme.tokens.background.transparent.neutral.muted};
   }
   &[data-is-held='true'] {
     user-select: none;

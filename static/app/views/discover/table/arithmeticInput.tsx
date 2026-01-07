@@ -457,7 +457,7 @@ const DropdownListItem = styled(ListItem)`
 
   &:hover,
   &.active {
-    background: ${p => p.theme.hover};
+    background: ${p => p.theme.tokens.background.transparent.neutral.muted};
   }
 `;
 

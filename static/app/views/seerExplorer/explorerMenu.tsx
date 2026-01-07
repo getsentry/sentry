@@ -464,7 +464,8 @@ const MenuPanel = styled('div')<{
 const MenuItem = styled('div')<{isSelected: boolean}>`
   padding: ${p => p.theme.space.md};
   cursor: pointer;
-  background: ${p => (p.isSelected ? p.theme.hover : 'transparent')};
+  background: ${p =>
+    p.isSelected ? p.theme.tokens.background.transparent.neutral.muted : 'transparent'};
   border-bottom: 1px solid ${p => p.theme.border};
 
   &:last-child {
@@ -472,7 +473,7 @@ const MenuItem = styled('div')<{isSelected: boolean}>`
   }
 
   &:hover {
-    background: ${p => p.theme.hover};
+    background: ${p => p.theme.tokens.background.transparent.neutral.muted};
   }
 `;
 

@@ -87,7 +87,7 @@ export function mentionStyle({theme, minHeight, streamlined}: Options) {
         padding: space(0.5),
         borderRadius: theme.radius.md,
         '&focused': {
-          backgroundColor: theme.hover,
+          backgroundColor: theme.tokens.background.transparent.neutral.muted,
         },
       },
     },

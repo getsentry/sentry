@@ -265,7 +265,7 @@ const StyledLink = styled(Link)`
   color: ${p => p.theme.colors.gray500};
   &:hover {
     color: ${p => p.theme.colors.gray500};
-    background: ${p => p.theme.hover};
+    background: ${p => p.theme.tokens.background.transparent.neutral.muted};
   }
 `;
 

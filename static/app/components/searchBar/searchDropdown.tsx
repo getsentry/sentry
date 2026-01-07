@@ -563,7 +563,7 @@ const SearchListItem = styled('li')<{isChild?: boolean; isDisabled?: boolean}>`
 
         &:hover,
         &.active {
-          background: ${p.theme.hover};
+          background: ${p.theme.tokens.background.transparent.neutral.muted};
         }
       `;
     }

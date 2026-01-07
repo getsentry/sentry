@@ -26,7 +26,7 @@ const BaseSplitDivider = styled(({icon, ...props}: DividerProps) => (
 
   &:hover,
   &[data-is-held='true'] {
-    background: ${p => p.theme.hover};
+    background: ${p => p.theme.tokens.background.transparent.neutral.muted};
   }
   &[data-is-held='true'] {
     user-select: none;

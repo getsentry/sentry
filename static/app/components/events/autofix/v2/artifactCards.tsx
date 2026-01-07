@@ -791,7 +791,7 @@ const TreeRow = styled('div')<{$isClickable?: boolean}>`
     cursor: pointer;
 
     &:hover {
-      background-color: ${p.theme.hover};
+      background-color: ${p.theme.tokens.background.transparent.neutral.muted};
     }
   `}
 `;
