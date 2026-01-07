@@ -81,7 +81,7 @@ WHITELISTED_ACTIONS = {
 
 def _get_trigger_for_action(action: PullRequestAction) -> CodeReviewTrigger:
     match action:
-        case PullRequestAction.READY_FOR_REVIEW:
+        case PullRequestAction.OPENED | PullRequestAction.READY_FOR_REVIEW:
             return CodeReviewTrigger.ON_READY_FOR_REVIEW
         case PullRequestAction.SYNCHRONIZE:
             return CodeReviewTrigger.ON_NEW_COMMIT
