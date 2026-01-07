@@ -31,7 +31,11 @@ function useSetupIntentData({endpoint}: HookProps): HookResult {
       setIsLoading(false);
     },
     onError: err => {
-      setError(err.message);
+      const errorMessage =
+        typeof err?.responseJSON?.detail === 'string'
+          ? err?.responseJSON?.detail
+          : (err?.responseJSON?.detail?.message ?? err?.message);
+      setError(errorMessage);
       setIsLoading(false);
     },
   });

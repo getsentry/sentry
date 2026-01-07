@@ -4,11 +4,17 @@ import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {BillingDetailsFixture} from 'getsentry-test/fixtures/billingDetails';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {Subscription as TSubscription} from 'getsentry/types';
-import {PlanTier} from 'getsentry/types';
+import {FTCConsentLocation, PlanTier} from 'getsentry/types';
 import {BillingInformation} from 'getsentry/views/subscriptionPage/billingInformation';
 
 // Stripe mocks handled by global setup.ts
@@ -22,6 +28,8 @@ describe('Subscription > BillingInformation', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    SubscriptionStore.init();
+    router.location = {...router.location, query: {}};
 
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
@@ -279,8 +287,9 @@ describe('Subscription > BillingInformation', () => {
   });
 
   it('can update credit card with setupintent', async () => {
+    const testSubscription = SubscriptionFixture({organization});
     const updatedSubscription = {
-      ...subscription,
+      ...testSubscription,
       paymentSource: {
         last4: '1111',
         countryCode: 'US',
@@ -290,12 +299,6 @@ describe('Subscription > BillingInformation', () => {
         expYear: 2030,
       },
     };
-
-    // const updateMock = MockApiClient.addMockResponse({
-    //   url: `/customers/${organization.slug}/`,
-    //   method: 'PUT',
-    //   body: updatedSubscription,
-    // });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/payments/setup/`,
@@ -307,11 +310,19 @@ describe('Subscription > BillingInformation', () => {
         lastError: null,
       },
     });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      method: 'PUT',
+      body: {
+        paymentMethod: 'blahblahblah',
+        ftcConsentLocation: FTCConsentLocation.BILLING_DETAILS,
+      },
+    });
 
     const {rerender} = render(
       <BillingInformation
         organization={organization}
-        subscription={subscription}
+        subscription={testSubscription}
         location={router.location}
       />
     );
@@ -327,10 +338,11 @@ describe('Subscription > BillingInformation', () => {
     ).toBeInTheDocument();
 
     // Save the updated credit card details
+    expect(inCardPanel.getByRole('button', {name: 'Save Changes'})).toBeEnabled();
     await userEvent.click(inCardPanel.getByRole('button', {name: 'Save Changes'}));
 
     // Wait for the API call to complete
-    await inCardPanel.findByRole('button', {name: 'Edit payment method'});
+    await waitFor(() => inCardPanel.findByRole('button', {name: 'Edit payment method'}));
 
     // for testing purposes, update the store and rerender with the updated subscription
     // due to the nature of how the components are abstracted, this is necessary for testing
@@ -349,20 +361,35 @@ describe('Subscription > BillingInformation', () => {
 
   it('shows an error if the setupintent creation fails', async () => {
     MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      method: 'PUT',
+      body: {
+        paymentMethod: 'blahblahblah',
+        ftcConsentLocation: FTCConsentLocation.BILLING_DETAILS,
+      },
+    });
+
+    const testSubscription = SubscriptionFixture({organization});
+
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/payments/setup/`,
       method: 'POST',
       statusCode: 400,
+      body: {
+        detail: 'Unable to initialize payment setup, please try again later.',
+      },
     });
 
     render(
       <BillingInformation
         organization={organization}
-        subscription={subscription}
+        subscription={testSubscription}
         location={router.location}
       />
     );
 
     await screen.findByText('Billing Information');
+    await userEvent.click(screen.getByRole('button', {name: 'Edit payment method'}));
     const cardPanel = await screen.findByTestId('credit-card-panel');
     const inCardPanel = within(cardPanel);
     await inCardPanel.findByText(
@@ -382,10 +409,12 @@ describe('Subscription > BillingInformation', () => {
       },
     });
 
+    const sub: TSubscription = {...subscription, paymentSource: null};
+
     render(
       <BillingInformation
         organization={organization}
-        subscription={subscription}
+        subscription={sub}
         location={router.location}
       />
     );
