@@ -79,11 +79,11 @@ function ShowMoreButton({
       disableBorder={disableBorder}
     >
       <ShowMoreText>
-        <StyledIconList color="gray300" />
+        <StyledIconList variant="muted" />
         {tct('Show [count] [buttonTitle]', {count: items - collapseCount, buttonTitle})}
       </ShowMoreText>
 
-      <IconChevron color="gray300" direction="down" />
+      <IconChevron variant="muted" direction="down" />
     </ShowMore>
   );
 }

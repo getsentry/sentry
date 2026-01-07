@@ -288,7 +288,7 @@ function Task({task, hidePanel}: TaskProps) {
         icon={
           task.skippable ? (
             <Button
-              icon={<IconNot size="sm" color="subText" />}
+              icon={<IconNot size="sm" variant="muted" />}
               aria-label={t('Skip Task')}
               onClick={event => {
                 event.stopPropagation();
@@ -304,7 +304,7 @@ function Task({task, hidePanel}: TaskProps) {
         title={<strong>{task.title}</strong>}
         actions={
           <ClickIndicator>
-            <IconChevron direction="right" size="xs" color="subText" />
+            <IconChevron direction="right" size="xs" variant="muted" />
           </ClickIndicator>
         }
       />

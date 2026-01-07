@@ -435,7 +435,7 @@ const CardContent = styled('div')`
   }
 
   a {
-    color: ${p => p.theme.linkColor};
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
     text-decoration: none;
 
     &:hover {

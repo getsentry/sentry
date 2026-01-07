@@ -11,7 +11,7 @@ export default function ArchivedReplayAlert({message}: Props) {
   return (
     <Alert variant="warning" data-test-id="replay-archived" showIcon={false}>
       <Flex gap="xs" align="center">
-        <IconDelete color="gray500" size="sm" />
+        <IconDelete variant="muted" size="sm" />
         {message ?? t('This replay has been deleted.')}
       </Flex>
     </Alert>

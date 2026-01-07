@@ -212,7 +212,7 @@ export class RenderField extends Component<RenderProps, State> {
           <Container area="manage-project">
             <Button
               onClick={() => handleDelete(index)}
-              icon={<IconDelete color="gray300" />}
+              icon={<IconDelete variant="muted" />}
               size="sm"
               aria-label={t('Delete')}
             />
@@ -331,7 +331,7 @@ const Item = styled('div')`
   padding: ${space(2)};
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 
   display: grid;
