@@ -224,6 +224,7 @@ const CHART_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
           aggregates: [PERCENTAGE_3XX],
           columns: [],
           orderby: PERCENTAGE_3XX,
+          fieldMeta: [{valueType: 'percentage', valueUnit: null}],
         },
         {
           name: '4XX',
@@ -232,6 +233,7 @@ const CHART_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
           aggregates: [PERCENTAGE_4XX],
           columns: [],
           orderby: PERCENTAGE_4XX,
+          fieldMeta: [{valueType: 'percentage', valueUnit: null}],
         },
         {
           name: '5XX',
@@ -240,6 +242,7 @@ const CHART_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
           aggregates: [PERCENTAGE_5XX],
           columns: [],
           orderby: PERCENTAGE_5XX,
+          fieldMeta: [{valueType: 'percentage', valueUnit: null}],
         },
       ],
     },
@@ -281,6 +284,13 @@ const TRANSACTIONS_TABLE: Widget = {
         t('5XXs'),
         DataTitles.avg,
         DataTitles.timeSpent,
+      ],
+      fieldMeta: [
+        null,
+        null,
+        {valueType: 'percentage', valueUnit: null},
+        {valueType: 'percentage', valueUnit: null},
+        {valueType: 'percentage', valueUnit: null},
       ],
       conditions: FILTER_STRING,
       name: '',
