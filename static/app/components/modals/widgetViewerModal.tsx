@@ -914,7 +914,7 @@ function OpenButton({
       path = getWidgetExploreUrl(widget, dashboardFilters, selection, organization);
       break;
     case WidgetType.TRACEMETRICS:
-      openLabel = t('Open in Metrics');
+      openLabel = t('Open in Explore');
       path = getWidgetMetricsUrl(widget, dashboardFilters, selection, organization);
       break;
     case WidgetType.DISCOVER:
