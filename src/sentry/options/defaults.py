@@ -3471,13 +3471,6 @@ register(
     default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Secret Scanning. Email allowlist for notifications.
-register(
-    "secret-scanning.github.notifications.email-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Rate limiting for the occurrence consumer
 register(
