@@ -31,7 +31,7 @@ from sentry.workflow_engine.processors.detector import (
     associate_new_group_with_detector,
     ensure_association_with_detector,
     get_detectors_for_event_data,
-    get_specific_detector,
+    get_preferred_detector,
     process_detectors,
 )
 from sentry.workflow_engine.types import (
@@ -947,7 +947,7 @@ class TestGetDetectorsForEvent(TestCase):
             assert result_excluded.preferred_detector == self.error_detector
 
 
-class TestGetSpecificDetector(TestCase):
+class TestGetPreferredDetector(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(project=self.project, type=MetricIssue.type_id)
@@ -976,7 +976,7 @@ class TestGetSpecificDetector(TestCase):
 
         event_data = WorkflowEventData(event=group_event, group=self.group)
 
-        result = get_specific_detector(event_data)
+        result = get_preferred_detector(event_data)
 
         assert result == self.detector
 
@@ -987,7 +987,7 @@ class TestGetSpecificDetector(TestCase):
 
         event_data = WorkflowEventData(event=group_event, group=self.group)
 
-        result = get_specific_detector(event_data)
+        result = get_preferred_detector(event_data)
 
         assert result == self.error_detector
 
@@ -1002,7 +1002,7 @@ class TestGetSpecificDetector(TestCase):
 
         event_data = WorkflowEventData(event=activity, group=self.group)
 
-        result = get_specific_detector(event_data)
+        result = get_preferred_detector(event_data)
 
         assert result == self.detector
 
@@ -1029,7 +1029,7 @@ class TestGetSpecificDetector(TestCase):
         event_data = WorkflowEventData(event=group_event, group=self.group)
 
         with pytest.raises(Detector.DoesNotExist):
-            get_specific_detector(event_data)
+            get_preferred_detector(event_data)
 
     def test_errors_on_no_detector(self) -> None:
         occurrence = IssueOccurrence(
@@ -1055,7 +1055,7 @@ class TestGetSpecificDetector(TestCase):
         event_data = WorkflowEventData(event=group_event, group=self.group)
 
         with pytest.raises(Detector.DoesNotExist):
-            get_specific_detector(event_data)
+            get_preferred_detector(event_data)
 
 
 class TestAssociateNewGroupWithDetector(TestCase):
