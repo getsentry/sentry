@@ -424,28 +424,30 @@ class ApiTokenInternalIntegrationTest(TestCase):
 
     @override_options({"api-token-async-flush": True})
     def test_multiple_tokens_use_different_shards(self) -> None:
-        """Verify that multiple tokens for the same user use different shards."""
         user = self.create_user()
 
         token1 = ApiToken.objects.create(user_id=user.id)
         token2 = ApiToken.objects.create(user_id=user.id)
 
-        outboxes1 = ControlOutbox.objects.filter(
+        token_1_outboxes = ControlOutbox.objects.filter(
             shard_scope=OutboxScope.API_TOKEN_SCOPE,
             shard_identifier=token1.id,
             category=OutboxCategory.API_TOKEN_UPDATE,
             object_identifier=token1.id,
         )
-        assert outboxes1.exists()
+        assert token_1_outboxes.exists()
 
-        outboxes2 = ControlOutbox.objects.filter(
+        token_2_outboxes = ControlOutbox.objects.filter(
             shard_scope=OutboxScope.API_TOKEN_SCOPE,
             shard_identifier=token2.id,
             category=OutboxCategory.API_TOKEN_UPDATE,
             object_identifier=token2.id,
         )
-        assert outboxes2.exists()
+        assert token_2_outboxes.exists()
 
-        # Verify they use different shards (the key to parallelization)
         assert token1.id != token2.id
-        assert outboxes1.first().shard_identifier != outboxes2.first().shard_identifier
+        token_1_outbox = token_1_outboxes.first()
+        assert token_1_outbox is not None
+        token_2_outbox = token_2_outboxes.first()
+        assert token_2_outbox is not None
+        assert token_1_outbox.shard_identifier != token_2_outbox.shard_identifier
