@@ -414,6 +414,12 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                         "buffer_size": cluster.zcard(backlog_key),
                     },
                 )
+                metrics.incr(
+                    "uptime.backlog.task_scheduled",
+                    amount=1,
+                    sample_rate=1.0,
+                    tags=metric_tags,
+                )
         finally:
             if lock_acquired:
                 schedule_lock.release()

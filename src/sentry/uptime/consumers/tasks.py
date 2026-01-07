@@ -150,6 +150,7 @@ def process_uptime_backlog(subscription_id: str, attempt: int = 1):
                 "uptime.backlog.cleared",
                 extra={"subscription_id": subscription_id, "processed_count": processed_count},
             )
+            metrics.incr("uptime.backlog.cleared", amount=1, sample_rate=1.0)
             return
 
         if processed_count > 0:
@@ -174,6 +175,7 @@ def process_uptime_backlog(subscription_id: str, attempt: int = 1):
                     "remaining_items": remaining,
                 },
             )
+            metrics.incr("uptime.backlog.rescheduling", amount=1, sample_rate=1.0)
 
         next_backoff = BACKOFF_SCHEDULE[next_attempt - 1]
         remaining_time_seconds = sum(BACKOFF_SCHEDULE[next_attempt - 1 :]) + 60
