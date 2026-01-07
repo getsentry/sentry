@@ -308,6 +308,18 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       ) as TableDataWithTitle;
       transformedData.title = widget.queries[i]?.name ?? '';
 
+      const meta = transformedData.meta;
+      const fieldMeta = widget?.queries?.[i]?.fieldMeta;
+      if (fieldMeta && meta) {
+        fieldMeta.forEach((m, index) => {
+          const field = widget.queries?.[i]?.fields?.[index];
+          if (m && field) {
+            meta.units![field] = m.valueUnit ?? '';
+            meta.fields![field] = m.valueType;
+          }
+        });
+      }
+
       // Overwrite the local var to work around state being stale in tests.
       transformedTableResults = [...transformedTableResults, transformedData];
 
@@ -390,14 +402,28 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     // to derive the types and units since they share the same aggregations and fields
     const timeseriesResultsTypes = responses.reduce(
       (acc, response) => {
-        acc = {...acc, ...config.getSeriesResultType?.(response[0], widget.queries[0]!)};
+        let allResultTypes: Record<string, AggregationOutputType> = {};
+        widget.queries.forEach(query => {
+          allResultTypes = {
+            ...allResultTypes,
+            ...config.getSeriesResultType?.(response[0], query),
+          };
+        });
+        acc = {...acc, ...allResultTypes};
         return acc;
       },
       {} as Record<string, AggregationOutputType>
     );
     const timeseriesResultsUnits = responses.reduce(
       (acc, response) => {
-        acc = {...acc, ...config.getSeriesResultUnit?.(response[0], widget.queries[0]!)};
+        let allResultUnits: Record<string, DataUnit> = {};
+        widget.queries.forEach(query => {
+          allResultUnits = {
+            ...allResultUnits,
+            ...config.getSeriesResultUnit?.(response[0], query),
+          };
+        });
+        acc = {...acc, ...allResultUnits};
         return acc;
       },
       {} as Record<string, DataUnit>
