@@ -23,7 +23,6 @@ import {
   useMutation,
   useQueryClient,
 } from 'sentry/utils/queryClient';
-import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -233,10 +232,9 @@ export function PrivateGamingSdkAccessModal({
               priority="primary"
               icon={<IconGithub />}
               onClick={() => {
-                const pathWithReopenFlag = addQueryParamsToExistingUrl(currentPath, {
-                  reopenGamingSdkModal: '1',
-                });
-                window.location.href = `/identity/login/github/?next=${encodeURIComponent(pathWithReopenFlag)}`;
+                const separator = currentPath.includes('?') ? '&' : '?';
+                const pathWithReopenFlag = `${currentPath}${separator}reopenGamingSdkModal=1`;
+                window.location.href = `/identity/login/github/?next=${pathWithReopenFlag}`;
               }}
             >
               {t('Log in with GitHub')}
