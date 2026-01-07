@@ -8,239 +8,198 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 const TRANSACTION_OP_CONDITION = 'transaction.op:[ui.load,navigation]';
 
-// First row widgets (big numbers)
+const coldStartBigNumberWidget: Widget = {
+  id: 'cold-start-big-number',
+  title: 'Avg. Cold App Start',
+  description: 'Average cold app start duration',
+  displayType: DisplayType.BIG_NUMBER,
+  widgetType: WidgetType.SPANS,
+  interval: '1h',
+  thresholds: {
+    max_values: {
+      max1: 3000,
+      max2: 5000,
+    },
+    unit: null,
+  },
+  queries: [
+    {
+      name: '',
+      fields: [`avg(${SpanFields.APP_START_COLD})`],
+      aggregates: [`avg(${SpanFields.APP_START_COLD})`],
+      columns: [],
+      fieldAliases: [''],
+      conditions: TRANSACTION_OP_CONDITION,
+      orderby: '',
+    },
+  ],
+};
+
+const warmStartBigNumberWidget: Widget = {
+  id: 'warm-start-big-number',
+  title: 'Avg. Warm App Start',
+  description: 'Average warm app start duration',
+  displayType: DisplayType.BIG_NUMBER,
+  widgetType: WidgetType.SPANS,
+  interval: '1h',
+  thresholds: {
+    max_values: {
+      max1: 1000,
+      max2: 2000,
+    },
+    unit: null,
+  },
+  queries: [
+    {
+      name: '',
+      fields: [`avg(${SpanFields.APP_START_WARM})`],
+      aggregates: [`avg(${SpanFields.APP_START_WARM})`],
+      columns: [],
+      fieldAliases: [''],
+      conditions: TRANSACTION_OP_CONDITION,
+      orderby: '',
+    },
+  ],
+};
+
+const avgTTIDBigNumberWidget: Widget = {
+  id: 'avg-ttid-big-number',
+  title: 'Avg. TTID',
+  description: 'Average time to initial display',
+  displayType: DisplayType.BIG_NUMBER,
+  widgetType: WidgetType.SPANS,
+  interval: '1h',
+  thresholds: null,
+  queries: [
+    {
+      name: '',
+      fields: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`],
+      aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`],
+      columns: [],
+      fieldAliases: [''],
+      conditions: TRANSACTION_OP_CONDITION,
+      orderby: '',
+    },
+  ],
+};
+
+const avgTTFDBigNumberWidget: Widget = {
+  id: 'avg-ttfd-big-number',
+  title: 'Avg. TTFD',
+  description: 'Average time to full display',
+  displayType: DisplayType.BIG_NUMBER,
+  widgetType: WidgetType.SPANS,
+  interval: '1h',
+  thresholds: null,
+  queries: [
+    {
+      name: '',
+      fields: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`],
+      aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`],
+      columns: [],
+      fieldAliases: [''],
+      conditions: TRANSACTION_OP_CONDITION,
+      orderby: '',
+    },
+  ],
+};
+
 const firstRowWidgets: Widget[] = spaceWidgetsEquallyOnRow(
   [
-    {
-      id: 'cold-start-big-number',
-      title: 'Avg. Cold App Start',
-      description: 'Average cold app start duration',
-      displayType: DisplayType.BIG_NUMBER,
-      widgetType: WidgetType.SPANS,
-      interval: '1h',
-      thresholds: {
-        max_values: {
-          max1: 3000,
-          max2: 5000,
-        },
-        unit: null,
-      },
-      queries: [
-        {
-          name: '',
-          fields: [`avg(${SpanFields.APP_START_COLD})`],
-          aggregates: [`avg(${SpanFields.APP_START_COLD})`],
-          columns: [],
-          fieldAliases: [''],
-          conditions: TRANSACTION_OP_CONDITION,
-          orderby: '',
-        },
-      ],
-    },
-    {
-      id: 'warm-start-big-number',
-      title: 'Avg. Warm App Start',
-      description: 'Average warm app start duration',
-      displayType: DisplayType.BIG_NUMBER,
-      widgetType: WidgetType.SPANS,
-      interval: '1h',
-      thresholds: {
-        max_values: {
-          max1: 1000,
-          max2: 2000,
-        },
-        unit: null,
-      },
-      queries: [
-        {
-          name: '',
-          fields: [`avg(${SpanFields.APP_START_WARM})`],
-          aggregates: [`avg(${SpanFields.APP_START_WARM})`],
-          columns: [],
-          fieldAliases: [''],
-          conditions: TRANSACTION_OP_CONDITION,
-          orderby: '',
-        },
-      ],
-    },
-    {
-      id: 'avg-ttid-big-number',
-      title: 'Avg. TTID',
-      description: 'Average time to initial display',
-      displayType: DisplayType.BIG_NUMBER,
-      widgetType: WidgetType.SPANS,
-      interval: '1h',
-      thresholds: null,
-      queries: [
-        {
-          name: '',
-          fields: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`],
-          aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`],
-          columns: [],
-          fieldAliases: [''],
-          conditions: TRANSACTION_OP_CONDITION,
-          orderby: '',
-        },
-      ],
-    },
-    {
-      id: 'avg-ttfd-big-number',
-      title: 'Avg. TTFD',
-      description: 'Average time to full display',
-      displayType: DisplayType.BIG_NUMBER,
-      widgetType: WidgetType.SPANS,
-      interval: '1h',
-      thresholds: null,
-      queries: [
-        {
-          name: '',
-          fields: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`],
-          aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`],
-          columns: [],
-          fieldAliases: [''],
-          conditions: TRANSACTION_OP_CONDITION,
-          orderby: '',
-        },
-      ],
-    },
+    coldStartBigNumberWidget,
+    warmStartBigNumberWidget,
+    avgTTIDBigNumberWidget,
+    avgTTFDBigNumberWidget,
   ],
   0,
   {h: 1, minH: 1}
 );
 
-// Second row widgets (big numbers)
-const secondRowWidgets: Widget[] = spaceWidgetsEquallyOnRow(
-  [
+const slowFrameRateWidget: Widget = {
+  id: 'slow-frame-rate-big-number',
+  title: 'Slow Frame Rate',
+  description: 'The percentage of frames that were slow',
+  displayType: DisplayType.BIG_NUMBER,
+  widgetType: WidgetType.SPANS,
+  interval: '1h',
+  thresholds: null,
+  queries: [
     {
-      id: 'avg-ttid-big-number',
-      title: 'Avg. TTID',
-      description: 'Average time to initial display',
-      displayType: DisplayType.BIG_NUMBER,
-      widgetType: WidgetType.SPANS,
-      interval: '1h',
-      thresholds: null,
-      queries: [
-        {
-          name: '',
-          fields: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`],
-          aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`],
-          columns: [],
-          fieldAliases: [''],
-          conditions: TRANSACTION_OP_CONDITION,
-          orderby: '',
-        },
+      name: '',
+      fields: [
+        `avg(${SpanFields.MOBILE_SLOW_FRAMES})`,
+        `avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
+        `equation|( avg(${SpanFields.MOBILE_SLOW_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES}) )`,
       ],
-    },
-    {
-      id: 'avg-ttfd-big-number',
-      title: 'Avg. TTFD',
-      description: 'Average time to full display',
-      displayType: DisplayType.BIG_NUMBER,
-      widgetType: WidgetType.SPANS,
-      interval: '1h',
-      thresholds: null,
-      queries: [
-        {
-          name: '',
-          fields: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`],
-          aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`],
-          columns: [],
-          fieldAliases: [''],
-          conditions: TRANSACTION_OP_CONDITION,
-          orderby: '',
-        },
+      aggregates: [
+        `avg(${SpanFields.MOBILE_SLOW_FRAMES})`,
+        `avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
+        `equation|( avg(${SpanFields.MOBILE_SLOW_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES}) )`,
       ],
+      columns: [],
+      fieldAliases: ['', '', ''],
+      conditions: TRANSACTION_OP_CONDITION,
+      orderby: '',
     },
   ],
-  1,
-  {h: 1, minH: 1}
-);
+};
 
-// Third row widgets (frame metrics)
-const thirdRowWidgets: Widget[] = spaceWidgetsEquallyOnRow(
-  [
+const frozenFrameRateWidget: Widget = {
+  id: 'frozen-frame-rate-big-number',
+  title: 'Frozen Frame Rate',
+  description: 'The percentage of frames that were frozen',
+  displayType: DisplayType.BIG_NUMBER,
+  widgetType: WidgetType.SPANS,
+  interval: '1h',
+  thresholds: null,
+  queries: [
     {
-      id: 'slow-frame-rate-big-number',
-      title: 'Slow Frame Rate',
-      description: 'The percentage of frames that were slow',
-      displayType: DisplayType.BIG_NUMBER,
-      widgetType: WidgetType.SPANS,
-      interval: '1h',
-      thresholds: null,
-      queries: [
-        {
-          name: '',
-          fields: [
-            `avg(${SpanFields.MOBILE_SLOW_FRAMES})`,
-            `avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
-            `equation|( avg(${SpanFields.MOBILE_SLOW_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES}) )`,
-          ],
-          aggregates: [
-            `avg(${SpanFields.MOBILE_SLOW_FRAMES})`,
-            `avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
-            `equation|( avg(${SpanFields.MOBILE_SLOW_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES}) )`,
-          ],
-          columns: [],
-          fieldAliases: ['', '', ''],
-          conditions: TRANSACTION_OP_CONDITION,
-          orderby: '',
-        },
+      name: '',
+      fields: [
+        `avg(${SpanFields.MOBILE_FROZEN_FRAMES})`,
+        `avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
+        `equation|( avg(${SpanFields.MOBILE_FROZEN_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES}) )`,
       ],
-    },
-    {
-      id: 'frozen-frame-rate-big-number',
-      title: 'Frozen Frame Rate',
-      description: 'The percentage of frames that were frozen',
-      displayType: DisplayType.BIG_NUMBER,
-      widgetType: WidgetType.SPANS,
-      interval: '1h',
-      thresholds: null,
-      queries: [
-        {
-          name: '',
-          fields: [
-            `avg(${SpanFields.MOBILE_FROZEN_FRAMES})`,
-            `avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
-            `equation|( avg(${SpanFields.MOBILE_FROZEN_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES}) )`,
-          ],
-          aggregates: [
-            `avg(${SpanFields.MOBILE_FROZEN_FRAMES})`,
-            `avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
-            `equation|( avg(${SpanFields.MOBILE_FROZEN_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES}) )`,
-          ],
-          columns: [],
-          fieldAliases: ['', '', ''],
-          conditions: TRANSACTION_OP_CONDITION,
-          orderby: '',
-        },
+      aggregates: [
+        `avg(${SpanFields.MOBILE_FROZEN_FRAMES})`,
+        `avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
+        `equation|( avg(${SpanFields.MOBILE_FROZEN_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES}) )`,
       ],
-    },
-    {
-      id: 'avg-frame-delay-big-number',
-      title: 'Avg. Frame Delay',
-      description: 'Average frame delay',
-      displayType: DisplayType.BIG_NUMBER,
-      widgetType: WidgetType.SPANS,
-      interval: '1h',
-      thresholds: null,
-      queries: [
-        {
-          name: '',
-          fields: [`avg(${SpanFields.MOBILE_FRAMES_DELAY})`],
-          aggregates: [`avg(${SpanFields.MOBILE_FRAMES_DELAY})`],
-          columns: [],
-          fieldAliases: [''],
-          conditions: TRANSACTION_OP_CONDITION,
-          orderby: '',
-        },
-      ],
+      columns: [],
+      fieldAliases: ['', '', ''],
+      conditions: TRANSACTION_OP_CONDITION,
+      orderby: '',
     },
   ],
+};
+
+const avgFrameDelayWidget: Widget = {
+  id: 'avg-frame-delay-big-number',
+  title: 'Avg. Frame Delay',
+  description: 'Average frame delay',
+  displayType: DisplayType.BIG_NUMBER,
+  widgetType: WidgetType.SPANS,
+  interval: '1h',
+  thresholds: null,
+  queries: [
+    {
+      name: '',
+      fields: [`avg(${SpanFields.MOBILE_FRAMES_DELAY})`],
+      aggregates: [`avg(${SpanFields.MOBILE_FRAMES_DELAY})`],
+      columns: [],
+      fieldAliases: [''],
+      conditions: TRANSACTION_OP_CONDITION,
+      orderby: '',
+    },
+  ],
+};
+
+const frameMetricsRow: Widget[] = spaceWidgetsEquallyOnRow(
+  [slowFrameRateWidget, frozenFrameRateWidget, avgFrameDelayWidget],
   2,
   {h: 1, minH: 1}
 );
 
-// Tables (full width)
 const appStartTable: Widget = {
   id: 'app-start-table',
   title: 'App Start',
@@ -344,6 +303,7 @@ const screenRenderingTable: Widget = {
     w: 6,
   },
 };
+
 const screenLoadTable: Widget = {
   id: 'screen-load-table',
   title: 'Screen Load',
@@ -394,8 +354,7 @@ export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
   projects: [],
   widgets: [
     ...firstRowWidgets,
-    ...secondRowWidgets,
-    ...thirdRowWidgets,
+    ...frameMetricsRow,
     appStartTable,
     screenLoadTable,
     screenRenderingTable,

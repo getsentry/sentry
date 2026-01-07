@@ -8,7 +8,6 @@ import {SpanFields} from 'sentry/views/insights/types';
 const SPAN_OPERATIONS_CONDITION =
   'span.op:[app.start.cold,app.start.warm,contentprovider.load,application.load,activity.load,ui.load,process.load]';
 
-// Span operations table (full width)
 const spanOperationsTable: Widget = {
   id: 'span-operations-table',
   title: 'Span Operations',

@@ -10,196 +10,197 @@ const TRANSACTION_CONDITION = 'is_transaction:true transaction.op:[ui.load,navig
 const SPAN_OPERATIONS_CONDITION =
   'transaction.op:[ui.load,navigation] has:span.description span.op:[file.read,file.write,ui.load,navigation,http.client,db,db.sql.room,db.sql.query,db.sql.transaction]';
 
-// First row (big numbers)
-const headerRowWidgets: Widget[] = spaceWidgetsEquallyOnRow(
-  [
+const avgTTIDBigNumberWidget: Widget = {
+  id: 'avg-ttid-big-number',
+  title: 'Avg TTID',
+  description: '',
+  displayType: DisplayType.BIG_NUMBER,
+  widgetType: WidgetType.SPANS,
+  interval: '1h',
+  thresholds: null,
+  queries: [
     {
-      id: 'avg-ttid-big-number',
-      title: 'Avg TTID',
-      description: '',
-      displayType: DisplayType.BIG_NUMBER,
-      widgetType: WidgetType.SPANS,
-      interval: '1h',
-      thresholds: null,
-      queries: [
-        {
-          name: '',
-          fields: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`],
-          aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`],
-          columns: [],
-          fieldAliases: [''],
-          conditions: TRANSACTION_CONDITION,
-          orderby: '',
-        },
-      ],
-    },
-    {
-      id: 'avg-ttfd-big-number',
-      title: 'Avg TTFD',
-      description: '',
-      displayType: DisplayType.BIG_NUMBER,
-      widgetType: WidgetType.SPANS,
-      interval: '1h',
-      thresholds: null,
-      queries: [
-        {
-          name: '',
-          fields: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`],
-          aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`],
-          columns: [],
-          fieldAliases: [''],
-          conditions: TRANSACTION_CONDITION,
-          orderby: '',
-        },
-      ],
-    },
-    {
-      id: 'total-count-big-number',
-      title: 'Total Count',
-      description: '',
-      displayType: DisplayType.BIG_NUMBER,
-      widgetType: WidgetType.SPANS,
-      interval: '1h',
-      thresholds: null,
-      queries: [
-        {
-          name: '',
-          fields: [`count(${SpanFields.SPAN_DURATION})`],
-          aggregates: [`count(${SpanFields.SPAN_DURATION})`],
-          columns: [],
-          fieldAliases: [''],
-          conditions: TRANSACTION_CONDITION,
-          orderby: '',
-        },
-      ],
+      name: '',
+      fields: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`],
+      aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`],
+      columns: [],
+      fieldAliases: [''],
+      conditions: TRANSACTION_CONDITION,
+      orderby: '',
     },
   ],
+};
+
+const avgTTFDBigNumberWidget: Widget = {
+  id: 'avg-ttfd-big-number',
+  title: 'Avg TTFD',
+  description: '',
+  displayType: DisplayType.BIG_NUMBER,
+  widgetType: WidgetType.SPANS,
+  interval: '1h',
+  thresholds: null,
+  queries: [
+    {
+      name: '',
+      fields: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`],
+      aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`],
+      columns: [],
+      fieldAliases: [''],
+      conditions: TRANSACTION_CONDITION,
+      orderby: '',
+    },
+  ],
+};
+
+const totalCountBigNumberWidget: Widget = {
+  id: 'total-count-big-number',
+  title: 'Total Count',
+  description: '',
+  displayType: DisplayType.BIG_NUMBER,
+  widgetType: WidgetType.SPANS,
+  interval: '1h',
+  thresholds: null,
+  queries: [
+    {
+      name: '',
+      fields: [`count(${SpanFields.SPAN_DURATION})`],
+      aggregates: [`count(${SpanFields.SPAN_DURATION})`],
+      columns: [],
+      fieldAliases: [''],
+      conditions: TRANSACTION_CONDITION,
+      orderby: '',
+    },
+  ],
+};
+
+const headerRowWidgets: Widget[] = spaceWidgetsEquallyOnRow(
+  [avgTTIDBigNumberWidget, avgTTFDBigNumberWidget, totalCountBigNumberWidget],
   0,
   {h: 1, minH: 1}
 );
 
-// Second row widgets
-const secondRowWidgets: Widget[] = spaceWidgetsEquallyOnRow(
-  [
+const ttidDeviceClassTableWidget: Widget = {
+  id: 'ttid-device-class-table',
+  title: 'TTID by Device Class',
+  description: '',
+  displayType: DisplayType.TABLE,
+  widgetType: WidgetType.SPANS,
+  interval: '1h',
+  thresholds: null,
+  queries: [
     {
-      id: 'ttid-device-class-table',
-      title: 'TTID by Device Class',
-      description: '',
-      displayType: DisplayType.TABLE,
-      widgetType: WidgetType.SPANS,
-      interval: '1h',
-      thresholds: null,
-      queries: [
-        {
-          name: '',
-          fields: [
-            SpanFields.DEVICE_CLASS,
-            `avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`,
-          ],
-          aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`],
-          columns: [SpanFields.DEVICE_CLASS],
-          fieldAliases: ['Device Class', 'AVG TTID'],
-          conditions: TRANSACTION_CONDITION,
-          orderby: '-device.class',
-        },
+      name: '',
+      fields: [
+        SpanFields.DEVICE_CLASS,
+        `avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`,
       ],
-    },
-    {
-      id: 'average-ttid-line',
-      title: 'Average TTID',
-      description: '',
-      displayType: DisplayType.LINE,
-      widgetType: WidgetType.SPANS,
-      interval: '1h',
-      thresholds: null,
-      queries: [
-        {
-          name: 'TTID',
-          fields: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`],
-          aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`],
-          columns: [],
-          fieldAliases: [],
-          conditions: TRANSACTION_CONDITION,
-          orderby: 'avg(measurements.time_to_initial_display)',
-        },
-      ],
-    },
-    {
-      id: 'total-count-line',
-      title: 'Total Count',
-      description: '',
-      displayType: DisplayType.LINE,
-      widgetType: WidgetType.SPANS,
-      interval: '1h',
-      thresholds: null,
-      queries: [
-        {
-          name: '',
-          fields: [`count(${SpanFields.SPAN_DURATION})`],
-          aggregates: [`count(${SpanFields.SPAN_DURATION})`],
-          columns: [],
-          fieldAliases: [],
-          conditions: TRANSACTION_CONDITION,
-          orderby: `count(${SpanFields.SPAN_DURATION})`,
-        },
-      ],
+      aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`],
+      columns: [SpanFields.DEVICE_CLASS],
+      fieldAliases: ['Device Class', 'AVG TTID'],
+      conditions: TRANSACTION_CONDITION,
+      orderby: '-device.class',
     },
   ],
+};
+
+const averageTtidLineWidget: Widget = {
+  id: 'average-ttid-line',
+  title: 'Average TTID',
+  description: '',
+  displayType: DisplayType.LINE,
+  widgetType: WidgetType.SPANS,
+  interval: '1h',
+  thresholds: null,
+  queries: [
+    {
+      name: 'TTID',
+      fields: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`],
+      aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`],
+      columns: [],
+      fieldAliases: [],
+      conditions: TRANSACTION_CONDITION,
+      orderby: 'avg(measurements.time_to_initial_display)',
+    },
+  ],
+};
+
+const totalCountLineWidget: Widget = {
+  id: 'total-count-line',
+  title: 'Total Count',
+  description: '',
+  displayType: DisplayType.LINE,
+  widgetType: WidgetType.SPANS,
+  interval: '1h',
+  thresholds: null,
+  queries: [
+    {
+      name: '',
+      fields: [`count(${SpanFields.SPAN_DURATION})`],
+      aggregates: [`count(${SpanFields.SPAN_DURATION})`],
+      columns: [],
+      fieldAliases: [],
+      conditions: TRANSACTION_CONDITION,
+      orderby: `count(${SpanFields.SPAN_DURATION})`,
+    },
+  ],
+};
+
+const secondRowWidgets: Widget[] = spaceWidgetsEquallyOnRow(
+  [ttidDeviceClassTableWidget, averageTtidLineWidget, totalCountLineWidget],
   1
 );
 
-// Third row widgets
-const thirdRowWidgets: Widget[] = spaceWidgetsEquallyOnRow(
-  [
+const ttfdDeviceClassTableWidget: Widget = {
+  id: 'ttfd-device-class-table',
+  title: 'TTFD by Device Class',
+  description: '',
+  displayType: DisplayType.TABLE,
+  widgetType: WidgetType.SPANS,
+  interval: '1h',
+  thresholds: null,
+  queries: [
     {
-      id: 'ttfd-device-class-table',
-      title: 'TTFD by Device Class',
-      description: '',
-      displayType: DisplayType.TABLE,
-      widgetType: WidgetType.SPANS,
-      interval: '1h',
-      thresholds: null,
-      queries: [
-        {
-          name: '',
-          fields: [
-            SpanFields.DEVICE_CLASS,
-            `avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`,
-          ],
-          aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`],
-          columns: [SpanFields.DEVICE_CLASS],
-          fieldAliases: ['Device Class', 'AVG TTFD'],
-          conditions: TRANSACTION_CONDITION,
-          orderby: '-device.class',
-        },
+      name: '',
+      fields: [
+        SpanFields.DEVICE_CLASS,
+        `avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`,
       ],
-    },
-    {
-      id: 'average-ttfd-line',
-      title: 'Average TTFD',
-      description: '',
-      displayType: DisplayType.LINE,
-      widgetType: WidgetType.SPANS,
-      interval: '1h',
-      thresholds: null,
-      queries: [
-        {
-          name: 'TTFD',
-          fields: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`],
-          aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`],
-          columns: [],
-          fieldAliases: [],
-          conditions: TRANSACTION_CONDITION,
-          orderby: 'avg(measurements.time_to_full_display)',
-        },
-      ],
+      aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`],
+      columns: [SpanFields.DEVICE_CLASS],
+      fieldAliases: ['Device Class', 'AVG TTFD'],
+      conditions: TRANSACTION_CONDITION,
+      orderby: '-device.class',
     },
   ],
+};
+
+const averageTtfdLineWidget: Widget = {
+  id: 'average-ttfd-line',
+  title: 'Average TTFD',
+  description: '',
+  displayType: DisplayType.LINE,
+  widgetType: WidgetType.SPANS,
+  interval: '1h',
+  thresholds: null,
+  queries: [
+    {
+      name: 'TTFD',
+      fields: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`],
+      aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`],
+      columns: [],
+      fieldAliases: [],
+      conditions: TRANSACTION_CONDITION,
+      orderby: 'avg(measurements.time_to_full_display)',
+    },
+  ],
+};
+
+const thirdRowWidgets: Widget[] = spaceWidgetsEquallyOnRow(
+  [ttfdDeviceClassTableWidget, averageTtfdLineWidget],
   3,
   {h: 2, minH: 2}
 );
 
-// Span operations table (full width)
 const spanOperationsTable: Widget = {
   id: 'span-operations-table',
   title: 'Span Operations',
@@ -236,7 +237,6 @@ const spanOperationsTable: Widget = {
   },
 };
 
-// Span events table (full width)
 const spanEventsTable: Widget = {
   id: 'span-events-table',
   title: 'Span Events',

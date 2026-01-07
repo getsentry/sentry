@@ -13,101 +13,100 @@ const WARM_START_CONDITION =
 const OPERATIONS_CONDITION =
   '!span.description:"Cold Start" !span.description:"Warm Start" !span.description:"Cold App Start" !span.description:"Warm App Start" !span.description:"Initial Frame Render" has:span.description transaction.op:[ui.load,navigation] has:ttid app_start_type:cold span.op:[app.start.cold,app.start.warm,contentprovider.load,application.load,activity.load,ui.load,process.load]';
 
-// First row widgets (charts)
-const firstRowWidgets: Widget[] = spaceWidgetsEquallyOnRow(
-  [
+const avgColdStartLineWidget: Widget = {
+  id: 'avg-cold-start-line',
+  title: 'Average Cold Start',
+  description: '',
+  displayType: DisplayType.LINE,
+  widgetType: WidgetType.SPANS,
+  interval: '1h',
+  thresholds: null,
+  queries: [
     {
-      id: 'avg-cold-start-line',
-      title: 'Average Cold Start',
-      description: '',
-      displayType: DisplayType.LINE,
-      widgetType: WidgetType.SPANS,
-      interval: '1h',
-      thresholds: null,
-      queries: [
-        {
-          name: '',
-          fields: [`avg(${SpanFields.SPAN_DURATION})`],
-          aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
-          columns: [],
-          fieldAliases: [],
-          conditions: COLD_START_CONDITION,
-          orderby: `avg(${SpanFields.SPAN_DURATION})`,
-        },
-      ],
-    },
-    {
-      id: 'cold-start-device-distribution-table',
-      title: 'Cold Start Device Distribution',
-      description: '',
-      displayType: DisplayType.TABLE,
-      widgetType: WidgetType.SPANS,
-      interval: '1h',
-      thresholds: null,
-      queries: [
-        {
-          name: '',
-          fields: [SpanFields.DEVICE_CLASS, `avg(${SpanFields.APP_START_COLD})`],
-          aggregates: [`avg(${SpanFields.APP_START_COLD})`],
-          columns: [SpanFields.DEVICE_CLASS],
-          fieldAliases: ['', ''],
-          conditions: '',
-          orderby: '-avg(measurements.app_start_cold)',
-        },
-      ],
+      name: '',
+      fields: [`avg(${SpanFields.SPAN_DURATION})`],
+      aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
+      columns: [],
+      fieldAliases: [],
+      conditions: COLD_START_CONDITION,
+      orderby: `avg(${SpanFields.SPAN_DURATION})`,
     },
   ],
+};
+
+const coldStartDeviceDistributionWidget: Widget = {
+  id: 'cold-start-device-distribution-table',
+  title: 'Cold Start Device Distribution',
+  description: '',
+  displayType: DisplayType.TABLE,
+  widgetType: WidgetType.SPANS,
+  interval: '1h',
+  thresholds: null,
+  queries: [
+    {
+      name: '',
+      fields: [SpanFields.DEVICE_CLASS, `avg(${SpanFields.APP_START_COLD})`],
+      aggregates: [`avg(${SpanFields.APP_START_COLD})`],
+      columns: [SpanFields.DEVICE_CLASS],
+      fieldAliases: ['', ''],
+      conditions: '',
+      orderby: '-avg(measurements.app_start_cold)',
+    },
+  ],
+};
+
+const avgWarmStartLineWidget: Widget = {
+  id: 'avg-warm-start-line',
+  title: 'Average Warm Start',
+  description: '',
+  displayType: DisplayType.LINE,
+  widgetType: WidgetType.SPANS,
+  interval: '1h',
+  thresholds: null,
+  queries: [
+    {
+      name: '',
+      fields: [`avg(${SpanFields.SPAN_DURATION})`],
+      aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
+      columns: [],
+      fieldAliases: [],
+      conditions: WARM_START_CONDITION,
+      orderby: `avg(${SpanFields.SPAN_DURATION})`,
+    },
+  ],
+};
+
+const warmStartDeviceDistributionWidget: Widget = {
+  id: 'warm-start-device-distribution-table',
+  title: 'Warm Start Device Distribution',
+  description: '',
+  displayType: DisplayType.TABLE,
+  widgetType: WidgetType.SPANS,
+  interval: '1h',
+  thresholds: null,
+  queries: [
+    {
+      name: '',
+      fields: [SpanFields.DEVICE_CLASS, `avg(${SpanFields.APP_START_WARM})`],
+      aggregates: [`avg(${SpanFields.APP_START_WARM})`],
+      columns: [SpanFields.DEVICE_CLASS],
+      fieldAliases: ['', ''],
+      conditions: '',
+      orderby: '-avg(measurements.app_start_warm)',
+    },
+  ],
+};
+
+const firstRowWidgets: Widget[] = spaceWidgetsEquallyOnRow(
+  [avgColdStartLineWidget, coldStartDeviceDistributionWidget],
   0
 );
 
-// Second row widgets
 const secondRowWidgets: Widget[] = spaceWidgetsEquallyOnRow(
-  [
-    {
-      id: 'avg-warm-start-line',
-      title: 'Average Warm Start',
-      description: '',
-      displayType: DisplayType.LINE,
-      widgetType: WidgetType.SPANS,
-      interval: '1h',
-      thresholds: null,
-      queries: [
-        {
-          name: '',
-          fields: [`avg(${SpanFields.SPAN_DURATION})`],
-          aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
-          columns: [],
-          fieldAliases: [],
-          conditions: WARM_START_CONDITION,
-          orderby: `avg(${SpanFields.SPAN_DURATION})`,
-        },
-      ],
-    },
-    {
-      id: 'warm-start-device-distribution-table',
-      title: 'Warm Start Device Distribution',
-      description: '',
-      displayType: DisplayType.TABLE,
-      widgetType: WidgetType.SPANS,
-      interval: '1h',
-      thresholds: null,
-      queries: [
-        {
-          name: '',
-          fields: [SpanFields.DEVICE_CLASS, `avg(${SpanFields.APP_START_WARM})`],
-          aggregates: [`avg(${SpanFields.APP_START_WARM})`],
-          columns: [SpanFields.DEVICE_CLASS],
-          fieldAliases: ['', ''],
-          conditions: '',
-          orderby: '-avg(measurements.app_start_warm)',
-        },
-      ],
-    },
-  ],
+  [avgWarmStartLineWidget, warmStartDeviceDistributionWidget],
   2
 );
 
-// Operations table (full width)
 const operationsTable: Widget = {
   id: 'operations-table',
   title: 'Operations',
