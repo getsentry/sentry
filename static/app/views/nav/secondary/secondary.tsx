@@ -68,12 +68,11 @@ SecondaryNav.Header = function SecondaryNavHeader({children}: {children?: ReactN
       <div>{children}</div>
       <div>
         <Button
-          borderless={isCollapsed ? false : true}
           size="xs"
           icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
           aria-label={isCollapsed ? t('Expand') : t('Collapse')}
           onClick={() => setIsCollapsed(!isCollapsed)}
-          priority={isCollapsed ? 'primary' : undefined}
+          priority={isCollapsed ? 'primary' : 'transparent'}
           analyticsEventName="Sidebar: Secondary Toggle Button Clicked"
           analyticsEventKey="sidebar_secondary_toggle_button_clicked"
           analyticsParams={{
@@ -274,10 +273,6 @@ const Header = styled('div')`
   /* This is used in detail pages to match the height of sidebar header. */
   height: 44px;
   border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-
-  button {
-    color: inherit;
-  }
 `;
 
 const Body = styled('div')<{layout: NavLayout}>`
