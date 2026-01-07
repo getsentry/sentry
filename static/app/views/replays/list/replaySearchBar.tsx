@@ -4,6 +4,7 @@ import orderBy from 'lodash/orderBy';
 import {fetchTagValues, useFetchOrganizationTags} from 'sentry/actionCreators/tags';
 import {EMAIL_REGEX} from 'sentry/components/events/contexts/knownContext/user';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -24,7 +25,6 @@ import {
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-import type {GetTagValues} from 'sentry/views/dashboards/datasetConfig/base';
 
 const getReplayFieldDefinition = (key: string) => getFieldDefinition(key, 'replay');
 

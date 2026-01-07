@@ -5,10 +5,10 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
-import type {GetTagValues} from 'sentry/views/dashboards/datasetConfig/base';
 import type {TagValueLoader} from 'sentry/views/issueList/types';
 
 type Props = {
