@@ -211,7 +211,7 @@ const AnnotationNoMargin = styled(EventAnnotation)`
   position: relative;
 
   & > a:hover {
-    color: ${p => p.theme.linkHoverColor};
+    color: ${p => p.theme.tokens.interactive.link.accent.hover};
   }
 `;
 
