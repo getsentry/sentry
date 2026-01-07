@@ -211,7 +211,7 @@ function SolutionDescription({
 }
 
 const Description = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   padding-bottom: ${space(2)};
   margin-bottom: ${space(2)};
 `;
@@ -770,7 +770,7 @@ const SubmitButton = styled(Button)`
 `;
 
 const BottomDivider = styled('div')`
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   margin-top: ${p => p.theme.space.lg};
 `;
 

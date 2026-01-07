@@ -474,7 +474,7 @@ const PlatformListItem = styled(ListItem)`
 `;
 
 const PlatformListItemIcon = styled(PlatformIcon)`
-  border: 1px solid ${p => p.theme.innerBorder};
+  border: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const RadioLabel = styled(RadioLineItem)`

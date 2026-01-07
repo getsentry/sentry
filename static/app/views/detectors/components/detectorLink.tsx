@@ -257,7 +257,7 @@ const StyledProjectBadge = styled(ProjectBadge)`
 const Separator = styled('span')`
   height: 10px;
   width: 1px;
-  background-color: ${p => p.theme.innerBorder};
+  background-color: ${p => p.theme.tokens.border.secondary};
   border-radius: 1px;
 `;
 

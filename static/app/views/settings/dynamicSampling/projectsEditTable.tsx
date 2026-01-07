@@ -221,7 +221,7 @@ export function ProjectsEditTable({
 }
 
 const Footer = styled('div')`
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   display: flex;
   justify-content: flex-end;
   gap: ${space(2)};

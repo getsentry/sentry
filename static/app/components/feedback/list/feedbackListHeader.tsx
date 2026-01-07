@@ -94,7 +94,7 @@ const HeaderPanelItem = styled('div')`
   gap: ${space(1)};
   align-items: center;
   border: 1px solid transparent;
-  border-bottom-color: ${p => p.theme.innerBorder};
+  border-bottom-color: ${p => p.theme.tokens.border.secondary};
 `;
 
 const RefreshContainer = styled('div')`

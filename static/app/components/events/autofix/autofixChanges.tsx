@@ -470,7 +470,7 @@ const NoChangesPadding = styled('div')`
 
 const Separator = styled('hr')`
   border: none;
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   margin: ${space(2)} -${space(2)} 0 -${space(2)};
 `;
 
@@ -492,7 +492,7 @@ const HeaderWrapper = styled('div')`
 `;
 
 const BottomDivider = styled('div')`
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   margin-top: ${p => p.theme.space.xl};
   margin-bottom: ${p => p.theme.space.xl};
 `;

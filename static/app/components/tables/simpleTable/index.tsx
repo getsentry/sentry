@@ -125,7 +125,7 @@ const StyledRow = styled('div', {
   align-items: center;
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 
   ${p =>

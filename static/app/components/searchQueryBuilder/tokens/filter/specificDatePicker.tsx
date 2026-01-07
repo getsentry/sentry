@@ -273,7 +273,7 @@ const StyledInput = styled(Input)`
 
 const ControlsWrapper = styled('div')`
   padding: ${space(1.5)} ${space(2)};
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const TimeUtcWrapper = styled('div')`

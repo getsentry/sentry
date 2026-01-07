@@ -478,7 +478,7 @@ const SectionedOverlayFooter = styled('div')`
   align-items: center;
   justify-content: flex-end;
   padding: ${p => p.theme.space.md};
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const RecentFiltersPane = styled('ul')`
@@ -488,7 +488,7 @@ const RecentFiltersPane = styled('ul')`
   background: ${p => p.theme.backgroundSecondary};
   padding: ${p => p.theme.space.md} 10px;
   gap: ${p => p.theme.space['2xs']};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   margin: 0;
 `;
 
@@ -500,7 +500,7 @@ const SectionedListBoxPane = styled('div')`
 const DetailsPane = styled('div')`
   grid-area: details;
   overflow-y: auto;
-  border-left: 1px solid ${p => p.theme.innerBorder};
+  border-left: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const SectionedListBoxTabPane = styled('div')`
@@ -509,7 +509,7 @@ const SectionedListBoxTabPane = styled('div')`
   display: flex;
   flex-wrap: wrap;
   gap: ${p => p.theme.space['2xs']};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const RecentFilterPill = styled('li')`
@@ -521,7 +521,7 @@ const RecentFilterPill = styled('li')`
   font-size: ${p => p.theme.fontSize.md};
   padding: 0 ${p => p.theme.space.lg} 0 ${p => p.theme.space.sm};
   background-color: ${p => p.theme.tokens.background.primary};
-  box-shadow: inset 0 0 0 1px ${p => p.theme.innerBorder};
+  box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.secondary};
   border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
   cursor: pointer;
 

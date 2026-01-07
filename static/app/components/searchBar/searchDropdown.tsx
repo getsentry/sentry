@@ -507,7 +507,7 @@ const Info = styled('div')`
   color: ${p => p.theme.subText};
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 
@@ -554,7 +554,7 @@ const SearchListItem = styled('li')<{isChild?: boolean; isDisabled?: boolean}>`
   padding: 4px ${space(2)};
 
   min-height: ${p => (p.isChild ? '30px' : '36px')};
-  ${p => !p.isChild && `border-top: 1px solid ${p.theme.innerBorder};`}
+  ${p => !p.isChild && `border-top: 1px solid ${p.theme.tokens.border.secondary};`}
 
   ${p => {
     if (!p.isDisabled) {
@@ -631,7 +631,7 @@ const DropdownFooter = styled(`div`)`
   width: 100%;
   min-height: 45px;
   background-color: ${p => p.theme.backgroundSecondary};
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   flex-direction: row;
   display: flex;
   align-items: center;

@@ -240,7 +240,7 @@ const DeletedFileMessage = styled('div')`
 `;
 
 const DiffContainer = styled('div')`
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   display: grid;
   grid-template-columns: auto auto 1fr;
   overflow-x: auto;

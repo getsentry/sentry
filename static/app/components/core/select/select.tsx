@@ -258,7 +258,7 @@ const getStylesConfig = ({
         left: space(1.5),
         right: space(1.5),
         bottom: 0,
-        borderBottom: `solid 1px ${theme.innerBorder}`,
+        borderBottom: `solid 1px ${theme.tokens.border.secondary}`,
       },
     }),
   } satisfies StylesConfig;

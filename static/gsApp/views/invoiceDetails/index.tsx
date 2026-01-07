@@ -318,7 +318,7 @@ const InvoiceItems = styled('table')`
 
   tr th,
   tr td {
-    border-top: 1px solid ${p => p.theme.innerBorder};
+    border-top: 1px solid ${p => p.theme.tokens.border.secondary};
     padding: ${space(2)} ${space(1)};
   }
   thead tr:first-child th,

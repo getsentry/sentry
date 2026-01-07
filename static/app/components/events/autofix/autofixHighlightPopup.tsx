@@ -726,7 +726,7 @@ const InputWrapper = styled('form')`
 
 const StyledInput = styled(TextArea)`
   flex-grow: 1;
-  border-color: ${p => p.theme.innerBorder};
+  border-color: ${p => p.theme.tokens.border.secondary};
   padding-right: ${space(4)};
   padding-top: ${space(0.75)};
   padding-bottom: ${space(0.75)};

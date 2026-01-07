@@ -476,7 +476,7 @@ const StyledMenuItem = styled(MenuItem)<{width: 'small' | 'large'}>`
   width: ${p => (p.width === 'large' ? '350px' : '200px')};
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 

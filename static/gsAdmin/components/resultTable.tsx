@@ -14,7 +14,7 @@ const ResultTable = styled('table')`
 
   thead tr:last-child > th,
   tbody tr:not(:last-child) > td {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 
   th {
