@@ -99,16 +99,22 @@ function ExplorerPanel() {
   // Check owner id to determine edit permission. Defensive against any useUser return shape.
   // Despite the type annotation, useUser can return null or undefined when not logged in.
   // This component is in the top-level index so we have to guard against this.
-  const isUser = (value: unknown): value is User =>
-    Boolean(
-      value && typeof value === 'object' && 'id' in value && typeof value.id === 'string'
-    );
   const rawUser = useUser() as unknown;
-  const userId = isUser(rawUser) ? rawUser.id : undefined;
-  const ownerUserId = sessionData?.owner_user_id;
-  const readOnly =
-    userId === undefined ||
-    (ownerUserId !== undefined && ownerUserId.toString() !== userId);
+  const ownerUserId = sessionData?.owner_user_id ?? undefined;
+  const readOnly = useMemo(() => {
+    const isUser = (value: unknown): value is User =>
+      Boolean(
+        value &&
+          typeof value === 'object' &&
+          'id' in value &&
+          typeof value.id === 'string'
+      );
+    const userId = isUser(rawUser) ? rawUser.id : undefined;
+    return (
+      userId === undefined ||
+      (ownerUserId !== undefined && ownerUserId?.toString() !== userId)
+    );
+  }, [rawUser, ownerUserId]);
 
   // Get PR widget data for menu
   const {menuItems: prWidgetItems, menuFooter: prWidgetFooter} = usePRWidgetData({
