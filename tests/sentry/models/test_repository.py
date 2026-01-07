@@ -118,7 +118,7 @@ class RepositoryCodeReviewSettingsTest(TestCase):
         OrganizationOption.objects.set_value(
             organization=org,
             key="sentry:default_code_review_triggers",
-            value=["on_new_commit", "on_ready_for_review"],
+            value=["on_command_phrase", "on_ready_for_review"],
         )
 
         repo = Repository.objects.create(
@@ -129,7 +129,31 @@ class RepositoryCodeReviewSettingsTest(TestCase):
 
         settings = RepositorySettings.objects.get(repository=repo)
         assert settings.enabled_code_review is True
-        assert settings.code_review_triggers == ["on_new_commit", "on_ready_for_review"]
+        assert settings.code_review_triggers == ["on_command_phrase", "on_ready_for_review"]
+
+    def test_settings_created_with_on_command_phrase_trigger(self):
+        org = self.create_organization()
+
+        OrganizationOption.objects.set_value(
+            organization=org,
+            key="sentry:auto_enable_code_review",
+            value=True,
+        )
+        OrganizationOption.objects.set_value(
+            organization=org,
+            key="sentry:default_code_review_triggers",
+            value=["on_ready_for_review"],
+        )
+
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            name="test-repo",
+            provider="integrations:github",
+        )
+
+        settings = RepositorySettings.objects.get(repository=repo)
+        assert settings.enabled_code_review is True
+        assert settings.code_review_triggers == ["on_ready_for_review", "on_command_phrase"]
 
     def test_no_settings_for_unsupported_provider(self):
         org = self.create_organization()
