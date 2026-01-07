@@ -19,7 +19,7 @@ describe('UsageOverviewTable', () => {
   const usageData = CustomerUsageFixture();
 
   beforeEach(() => {
-    organization.features = ['subscriptions-v3', 'seer-billing'];
+    organization.features = ['seer-billing'];
     organization.access = ['org:billing'];
     SubscriptionStore.set(organization.slug, subscription);
   });
@@ -179,7 +179,6 @@ describe('UsageOverviewTable', () => {
   });
 
   it('renders table based on add-on state', async () => {
-    organization.features.push('seer-user-billing');
     const subWithSeer = SubscriptionWithLegacySeerFixture({organization});
     SubscriptionStore.set(organization.slug, subWithSeer);
     render(
@@ -194,7 +193,6 @@ describe('UsageOverviewTable', () => {
 
     await screen.findByRole('columnheader', {name: 'Feature'});
 
-    // Org has Seer user flag but did not buy Seer add on, only legacy add-on
     expect(screen.getAllByRole('cell', {name: 'Seer'})).toHaveLength(1);
     expect(screen.getByRole('cell', {name: 'Issue Fixes'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: 'Issue Scans'})).toBeInTheDocument();
@@ -204,12 +202,20 @@ describe('UsageOverviewTable', () => {
     expect(screen.queryByRole('cell', {name: /Prevent*Reviews/})).not.toBeInTheDocument();
   });
 
-  it('renders add-on sub-categories if unlimited', async () => {
+  it('renders multi-category add-on sub-categories if unlimited', async () => {
     const sub = SubscriptionFixture({organization});
     sub.categories.seerAutofix = {
       ...sub.categories.seerAutofix!,
       reserved: UNLIMITED_RESERVED,
       prepaid: UNLIMITED_RESERVED,
+    };
+    sub.addOns!.legacySeer = {
+      ...sub.addOns!.legacySeer!,
+      enabled: true,
+    };
+    sub.addOns!.seer = {
+      ...sub.addOns!.seer!,
+      isAvailable: false,
     };
 
     render(
@@ -235,12 +241,20 @@ describe('UsageOverviewTable', () => {
     expect(screen.queryByRole('cell', {name: 'Seer'})).not.toBeInTheDocument();
   });
 
-  it('renders add-on sub-categories if non-zero non-unlimited reserved volume', async () => {
+  it('renders multi-category add-on sub-categories if non-zero non-unlimited reserved volume', async () => {
     const sub = SubscriptionFixture({organization});
     sub.categories.seerAutofix = {
       ...sub.categories.seerAutofix!,
       reserved: 100,
       prepaid: 100,
+    };
+    sub.addOns!.legacySeer = {
+      ...sub.addOns!.legacySeer!,
+      enabled: true,
+    };
+    sub.addOns!.seer = {
+      ...sub.addOns!.seer!,
+      isAvailable: false,
     };
 
     render(
@@ -255,7 +269,7 @@ describe('UsageOverviewTable', () => {
 
     await screen.findByRole('columnheader', {name: 'Feature'});
 
-    // issue fixes is unlimited
+    // issue fixes is non-zero, non-unlimited
     expect(screen.getByRole('cell', {name: 'Issue Fixes'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '0 / 100'})).toBeInTheDocument();
 
@@ -264,5 +278,85 @@ describe('UsageOverviewTable', () => {
 
     // add-on is not rendered since at least one of its sub-categories is unlimited
     expect(screen.queryByRole('cell', {name: 'Seer'})).not.toBeInTheDocument();
+  });
+
+  it('renders singular category add-on if non-zero non-unlimited reserved volume', async () => {
+    const sub = SubscriptionFixture({organization});
+    sub.categories.seerUsers = {
+      ...sub.categories.seerUsers!,
+      reserved: 100,
+      prepaid: 110,
+      free: 10,
+    };
+    sub.addOns!.legacySeer = {
+      ...sub.addOns!.legacySeer!,
+      isAvailable: false,
+    };
+    sub.addOns!.seer = {
+      ...sub.addOns!.seer!,
+      enabled: true,
+    };
+
+    render(
+      <UsageOverviewTable
+        subscription={sub}
+        organization={organization}
+        usageData={usageData}
+        onRowClick={jest.fn()}
+        selectedProduct={DataCategory.ERRORS}
+      />
+    );
+
+    await screen.findByRole('columnheader', {name: 'Feature'});
+
+    expect(screen.getByRole('cell', {name: 'Seer'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('cell', {name: '0 / 110 active contributors (10 gifted)'})
+    ).toBeInTheDocument();
+  });
+
+  it('renders add-on with missing metric history', async () => {
+    subscription.addOns!.seer = {
+      ...subscription.addOns!.seer!,
+      enabled: true,
+    };
+    subscription.addOns!.legacySeer = {
+      ...subscription.addOns!.legacySeer!,
+      isAvailable: false,
+    };
+    delete subscription.categories.seerUsers;
+    render(
+      <UsageOverviewTable
+        subscription={subscription}
+        organization={organization}
+        usageData={usageData}
+        onRowClick={jest.fn()}
+        selectedProduct={DataCategory.ERRORS}
+      />
+    );
+    await screen.findByRole('columnheader', {name: 'Feature'});
+
+    expect(screen.getByRole('cell', {name: 'Seer'})).toBeInTheDocument();
+    // nullifies everything
+    expect(screen.getByRole('cell', {name: '0 active contributors'})).toBeInTheDocument();
+  });
+
+  it('does not render data category with missing metric history', async () => {
+    // NOTE(isabella): currently we only allow rendering of missing metric histories
+    // for add-ons since we iterate through the subscription's metric histories (subscription.categories)
+    // to render individual data category rows in the table
+    delete subscription.categories.errors;
+    render(
+      <UsageOverviewTable
+        subscription={subscription}
+        organization={organization}
+        usageData={usageData}
+        onRowClick={jest.fn()}
+        selectedProduct={DataCategory.ERRORS}
+      />
+    );
+    await screen.findByRole('columnheader', {name: 'Feature'});
+
+    expect(screen.queryByRole('cell', {name: 'Errors'})).not.toBeInTheDocument();
   });
 });

@@ -198,7 +198,7 @@ export function useAttributeBreakdownsTooltip({
         // to preventthe tooltip from being closed when the mouse is moved to the tooltip content
         // and clicking actions shouldn't clear the chart selection.
         const wrapContent = (content: string) =>
-          `<div data-explore-chart-selection-region data-attribute-breakdowns-chart-region>${content}</div>`;
+          `<div data-attribute-breakdowns-chart-region>${content}</div>`;
 
         // If the tooltip is NOT frozen, set the tooltip params and return the formatted content,
         // including the tooltip actions placeholder.

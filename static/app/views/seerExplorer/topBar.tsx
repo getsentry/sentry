@@ -9,7 +9,9 @@ import {
   IconAdd,
   IconClose,
   IconContract,
+  IconCopy,
   IconExpand,
+  IconLink,
   IconMegaphone,
   IconSeer,
   IconTimer,
@@ -21,9 +23,13 @@ import {toggleSeerExplorerPanel} from 'sentry/views/seerExplorer/utils';
 
 interface TopBarProps {
   blocks: Block[];
+  isCopyLinkEnabled: boolean;
+  isCopySessionEnabled: boolean;
   isEmptyState: boolean;
   isPolling: boolean;
   isSessionHistoryOpen: boolean;
+  onCopyLinkClick: () => void;
+  onCopySessionClick: () => void;
   onCreatePR: (repoName?: string) => void;
   onFeedbackClick: () => void;
   onNewChatClick: () => void;
@@ -46,15 +52,19 @@ function TopBar({
   onNewChatClick,
   onPRWidgetClick,
   onSessionHistoryClick,
+  onCopySessionClick,
+  onCopyLinkClick,
   onSizeToggleClick,
   panelSize,
   prWidgetButtonRef,
   repoPRStates,
+  isCopySessionEnabled,
+  isCopyLinkEnabled,
   sessionHistoryButtonRef,
 }: TopBarProps) {
   // Check if there are any file patches
   const hasCodeChanges = useMemo(() => {
-    return blocks.some(b => b.file_patches && b.file_patches.length > 0);
+    return blocks.some(b => b.merged_file_patches && b.merged_file_patches.length > 0);
   }, [blocks]);
 
   return (
@@ -89,6 +99,24 @@ function TopBar({
             aria-expanded={isSessionHistoryOpen}
           />
         </SessionHistoryButtonWrapper>
+        <Button
+          icon={<IconCopy />}
+          onClick={onCopySessionClick}
+          priority="transparent"
+          size="sm"
+          aria-label={t('Copy conversation to clipboard')}
+          title={t('Copy conversation to clipboard')}
+          disabled={!isCopySessionEnabled}
+        />
+        <Button
+          icon={<IconLink />}
+          onClick={onCopyLinkClick}
+          priority="transparent"
+          size="sm"
+          aria-label={t('Copy link to current chat and web page')}
+          title={t('Copy link to current chat and web page')}
+          disabled={!isCopyLinkEnabled}
+        />
       </Flex>
       <AnimatePresence initial={false}>
         {!isEmptyState && (
@@ -108,7 +136,7 @@ function TopBar({
                 onToggleMenu={onPRWidgetClick}
               />
             ) : (
-              <IconSeer variant={isPolling ? 'loading' : 'waiting'} size="md" />
+              <IconSeer animation={isPolling ? 'loading' : 'waiting'} size="md" />
             )}
           </CenterSection>
         )}

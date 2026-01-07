@@ -1,8 +1,10 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import AskUserQuestionBlock from 'sentry/views/seerExplorer/askUserQuestionBlock';
 import BlockComponent from 'sentry/views/seerExplorer/blockComponents';
 import EmptyState from 'sentry/views/seerExplorer/emptyState';
@@ -19,10 +21,17 @@ import PanelContainers, {
 } from 'sentry/views/seerExplorer/panelContainers';
 import {usePRWidgetData} from 'sentry/views/seerExplorer/prWidget';
 import TopBar from 'sentry/views/seerExplorer/topBar';
-import type {Block, ExplorerPanelProps} from 'sentry/views/seerExplorer/types';
+import type {Block} from 'sentry/views/seerExplorer/types';
+import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
+import {
+  RUN_ID_QUERY_PARAM,
+  useCopySessionDataToClipboard,
+} from 'sentry/views/seerExplorer/utils';
 
-function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
+function ExplorerPanel() {
+  const {isOpen: isVisible} = useExplorerPanel();
   const organization = useOrganization({allowNull: true});
+  const {projects} = useProjects();
 
   const [inputValue, setInputValue] = useState('');
   const [focusedBlockIndex, setFocusedBlockIndex] = useState(-1); // -1 means input is focused
@@ -42,6 +51,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
 
   const {panelSize, handleMaxSize, handleMedSize} = usePanelSizing();
   const {
+    runId,
     sessionData,
     sendMessage,
     deleteFromIndex,
@@ -54,13 +64,24 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     createPR,
   } = useSeerExplorer();
 
+  const copySessionEnabled = Boolean(
+    sessionData?.status === 'completed' && !!runId && !!organization?.slug
+  );
+
+  const {copySessionToClipboard} = useCopySessionDataToClipboard({
+    blocks: sessionData?.blocks || [],
+    orgSlug: organization?.slug ?? '',
+    projects,
+    enabled: copySessionEnabled,
+  });
+
   // Handle external open events (from openSeerExplorer() calls)
   const {isWaitingForSessionData} = useExternalOpen({
     isVisible,
     sendMessage,
     startNewSession,
     switchToRun,
-    sessionRunId: sessionData?.run_id,
+    sessionRunId: runId ?? undefined,
     sessionBlocks: sessionData?.blocks,
   });
 
@@ -233,7 +254,31 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     setIsMinimized(false);
   }, [setFocusedBlockIndex, textareaRef, setIsMinimized]);
 
+  const langfuseUrl = runId
+    ? `https://langfuse.getsentry.net/project/clx9kma1k0001iebwrfw4oo0z/traces?filter=sessionId%3Bstring%3B%3B%3D%3B${runId}`
+    : undefined;
+
+  const handleOpenLangfuse = useCallback(() => {
+    // Command handler. Disabled in slash command menu for non-employees
+    if (langfuseUrl) {
+      window.open(langfuseUrl, '_blank');
+    }
+  }, [langfuseUrl]);
+
   const openFeedbackForm = useFeedbackForm();
+
+  const handleFeedback = useCallback(() => {
+    if (openFeedbackForm) {
+      openFeedbackForm({
+        formTitle: 'Seer Explorer Feedback',
+        messagePlaceholder: 'How can we make Seer Explorer better for you?',
+        tags: {
+          ['feedback.source']: 'seer_explorer',
+          ...(langfuseUrl ? {['langfuse_url']: langfuseUrl} : {}),
+        },
+      });
+    }
+  }, [openFeedbackForm, langfuseUrl]);
 
   const {menu, isMenuOpen, menuMode, closeMenu, openSessionHistory, openPRWidget} =
     useExplorerMenu({
@@ -247,6 +292,8 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
         onMaxSize: handleMaxSize,
         onMedSize: handleMedSize,
         onNew: startNewSession,
+        onFeedback: openFeedbackForm ? handleFeedback : undefined,
+        onLangfuse: handleOpenLangfuse,
       },
       onChangeSession: switchToRun,
       menuAnchorRef: sessionHistoryButtonRef,
@@ -434,18 +481,6 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     },
   });
 
-  const handleFeedbackClick = useCallback(() => {
-    if (openFeedbackForm) {
-      openFeedbackForm({
-        formTitle: 'Seer Explorer Feedback',
-        messagePlaceholder: 'How can we make Seer Explorer better for you?',
-        tags: {
-          ['feedback.source']: 'seer_explorer',
-        },
-      });
-    }
-  }, [openFeedbackForm]);
-
   const handleSizeToggle = useCallback(() => {
     if (panelSize === 'max') {
       handleMedSize();
@@ -453,6 +488,21 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
       handleMaxSize();
     }
   }, [panelSize, handleMaxSize, handleMedSize]);
+
+  const handleCopyLink = useCallback(async () => {
+    if (!runId) {
+      return;
+    }
+
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set(RUN_ID_QUERY_PARAM, String(runId));
+      await navigator.clipboard.writeText(url.toString());
+      addSuccessMessage('Copied link to current chat');
+    } catch {
+      addErrorMessage('Failed to copy link to current chat');
+    }
+  }, [runId]);
 
   const panelContent = (
     <PanelContainers
@@ -468,13 +518,17 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
         isPolling={isPolling}
         isSessionHistoryOpen={isMenuOpen && menuMode === 'session-history'}
         onCreatePR={createPR}
-        onFeedbackClick={handleFeedbackClick}
+        onFeedbackClick={handleFeedback}
         onNewChatClick={() => {
           startNewSession();
           focusInput();
         }}
         onPRWidgetClick={openPRWidget}
+        onCopySessionClick={copySessionToClipboard}
+        onCopyLinkClick={handleCopyLink}
         onSessionHistoryClick={openSessionHistory}
+        isCopySessionEnabled={copySessionEnabled}
+        isCopyLinkEnabled={!!runId}
         onSizeToggleClick={handleSizeToggle}
         panelSize={panelSize}
         prWidgetButtonRef={prWidgetButtonRef}

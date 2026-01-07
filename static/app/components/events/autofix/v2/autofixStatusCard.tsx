@@ -1,10 +1,12 @@
 import styled from '@emotion/styled';
+import {motion} from 'framer-motion';
 
 import {Container} from '@sentry/scraps/layout/container';
 import {Flex} from '@sentry/scraps/layout/flex';
 
 import {Button} from 'sentry/components/core/button';
 import {Text} from 'sentry/components/core/text';
+import {cardAnimationProps} from 'sentry/components/events/autofix/v2/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -45,6 +47,24 @@ export function ExplorerStatusCard({
     return null;
   }
 
+  return (
+    <ExplorerStatusCardContent
+      loadingBlock={loadingBlock}
+      blocks={blocks}
+      onOpenChat={onOpenChat}
+    />
+  );
+}
+
+function ExplorerStatusCardContent({
+  loadingBlock,
+  blocks,
+  onOpenChat,
+}: {
+  blocks?: Block[];
+  loadingBlock?: Block;
+  onOpenChat?: () => void;
+}) {
   const isThinkingBlock = (block: Block): boolean => {
     const content = block.message?.content?.trim()?.toLowerCase();
     return content === 'thinking' || content === 'thinking...';
@@ -141,30 +161,37 @@ export function ExplorerStatusCard({
   const completedTodos = todos.filter(todo => todo.status === 'completed').length;
 
   return (
-    <Container padding="xl" border="primary" radius="md" background="primary">
-      <Flex direction="column" gap="xl">
-        <Container borderBottom="primary" paddingBottom="xl">
-          <Flex align="center" gap="lg">
-            <StyledLoadingIndicator size={18} />
-            <Text size="md" ellipsis>
-              {displayText}
-            </Text>
-          </Flex>
-        </Container>
-        {onOpenChat && (
-          <Flex align="center" justify="between">
-            <Button size="md" onClick={onOpenChat} priority="primary" icon={<IconChat />}>
-              {t('Open Chat')}
-            </Button>
-            {totalTodos > 0 && (
-              <Text variant="muted">
-                {`${completedTodos}/${totalTodos} ${t('todos completed')}`}
+    <AnimatedStatusCard {...cardAnimationProps}>
+      <Container padding="xl" border="primary" radius="md" background="primary">
+        <Flex direction="column" gap="xl">
+          <Container borderBottom="primary" paddingBottom="xl">
+            <Flex align="center" gap="lg">
+              <StyledLoadingIndicator size={18} />
+              <Text size="md" ellipsis>
+                {displayText}
               </Text>
-            )}
-          </Flex>
-        )}
-      </Flex>
-    </Container>
+            </Flex>
+          </Container>
+          {onOpenChat && (
+            <Flex align="center" justify="between">
+              <Button
+                size="md"
+                onClick={onOpenChat}
+                priority="primary"
+                icon={<IconChat />}
+              >
+                {t('Open Chat')}
+              </Button>
+              {totalTodos > 0 && (
+                <Text variant="muted">
+                  {`${completedTodos}/${totalTodos} ${t('todos completed')}`}
+                </Text>
+              )}
+            </Flex>
+          )}
+        </Flex>
+      </Container>
+    </AnimatedStatusCard>
   );
 }
 
@@ -176,4 +203,8 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   .loading-indicator {
     border-width: 2px;
   }
+`;
+
+const AnimatedStatusCard = styled(motion.div)`
+  transform-origin: top center;
 `;

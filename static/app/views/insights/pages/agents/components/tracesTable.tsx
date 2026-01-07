@@ -113,7 +113,7 @@ export function TracesTable() {
         'count_if(gen_ai.operation.type,equals,ai_client)',
         'count_if(gen_ai.operation.type,equals,tool)',
         'sum(gen_ai.usage.total_tokens)',
-        'sum(gen_ai.usage.total_cost)',
+        'sum(gen_ai.cost.total_tokens)',
       ],
       limit: tracesRequest.data?.data.length ?? 0,
       enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
@@ -175,7 +175,7 @@ export function TracesTable() {
           llmCalls: Number(span['count_if(gen_ai.operation.type,equals,ai_client)'] ?? 0),
           toolCalls: Number(span['count_if(gen_ai.operation.type,equals,tool)'] ?? 0),
           totalTokens: Number(span['sum(gen_ai.usage.total_tokens)'] ?? 0),
-          totalCost: Number(span['sum(gen_ai.usage.total_cost)'] ?? 0),
+          totalCost: Number(span['sum(gen_ai.cost.total_tokens)'] ?? 0),
           totalErrors: Number(errors[span.trace] ?? 0),
         };
         return acc;
@@ -409,7 +409,7 @@ function AgentTags({agents}: {agents: string[]}) {
               },
             }}
           >
-            <Tag key={agent} type="default">
+            <Tag key={agent} variant="muted">
               {agent}
             </Tag>
           </Link>

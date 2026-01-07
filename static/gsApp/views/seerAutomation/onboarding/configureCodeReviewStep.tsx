@@ -1,14 +1,14 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import configureCodeReviewImg from 'sentry-images/spot/seer-config-check.svg';
 
-import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
-import {Switch} from '@sentry/scraps/switch';
+import {Separator} from '@sentry/scraps/separator';
+import {Text} from '@sentry/scraps/text';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
   GuidedSteps,
   useGuidedStepsContext,
@@ -16,29 +16,18 @@ import {
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
+import {DEFAULT_CODE_REVIEW_TRIGGERS} from 'sentry/types/integrations';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useUpdateOrganization} from 'sentry/utils/useUpdateOrganization';
 
+import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {useSeerOnboardingContext} from 'getsentry/views/seerAutomation/onboarding/hooks/seerOnboardingContext';
-import {useUpdateRepositorySettings} from 'getsentry/views/seerAutomation/onboarding/hooks/useUpdateRepositorySettings';
+import {useBulkUpdateRepositorySettings} from 'getsentry/views/seerAutomation/onboarding/hooks/useBulkUpdateRepositorySettings';
 
-import {
-  Field,
-  FieldDescription,
-  FieldLabel,
-  MaxWidthPanel,
-  PanelDescription,
-  StepContent,
-} from './common';
+import {MaxWidthPanel, PanelDescription, StepContent} from './common';
 import {RepositorySelector} from './repositorySelector';
 
 // This is the max # of repos that we will allow to be pre-selected.
 const MAX_REPOSITORIES_TO_PRESELECT = 10;
-const DEFAULT_CODE_REVIEW_TRIGGERS = [
-  'on_command_phrase',
-  'on_new_commit',
-  'on_ready_for_review',
-];
 
 export function ConfigureCodeReviewStep() {
   const organization = useOrganization();
@@ -47,50 +36,23 @@ export function ConfigureCodeReviewStep() {
     clearRootCauseAnalysisRepositories,
     selectedCodeReviewRepositories,
     unselectedCodeReviewRepositories,
-    setCodeReviewRepositories,
   } = useSeerOnboardingContext();
 
-  const [enableCodeReview, setEnableCodeReview] = useState(
-    organization.autoEnableCodeReview ?? true
-  );
-
-  const {mutate: updateOrganization, isPending: isUpdateOrganizationPending} =
-    useUpdateOrganization(organization);
-
   const {mutate: updateRepositorySettings, isPending: isUpdateRepositorySettingsPending} =
-    useUpdateRepositorySettings();
+    useBulkUpdateRepositorySettings();
 
   const handleNextStep = useCallback(() => {
     const existingRepostoriesToRemove = unselectedCodeReviewRepositories
       .filter(repo => repo.settings?.enabledCodeReview)
       .map(repo => repo.id);
 
-    const updateOrganizationEnabledCodeReview = () =>
-      new Promise<void>((resolve, reject) => {
-        if (enableCodeReview === organization.autoEnableCodeReview) {
-          // No update needed, just resolve
-          resolve();
-          return;
-        }
+    const hasSelectedRepositories = selectedCodeReviewRepositories.length > 0;
+    const hasUnselectedRepositories = existingRepostoriesToRemove.length > 0;
 
-        updateOrganization(
-          {
-            autoEnableCodeReview: enableCodeReview,
-          },
-          {
-            onSuccess: () => {
-              resolve();
-            },
-            onError: () => {
-              reject(new Error(t('Failed to enable AI Code Review')));
-            },
-          }
-        );
-      });
-
+    // Turn on code review for the selected repositories.
     const updateEnabledCodeReview = () =>
       new Promise<void>((resolve, reject) => {
-        if (selectedCodeReviewRepositories.length === 0) {
+        if (!hasSelectedRepositories) {
           resolve();
           return;
         }
@@ -98,7 +60,7 @@ export function ConfigureCodeReviewStep() {
         updateRepositorySettings(
           {
             codeReviewTriggers: DEFAULT_CODE_REVIEW_TRIGGERS,
-            enabledCodeReview: enableCodeReview,
+            enabledCodeReview: true,
             repositoryIds: selectedCodeReviewRepositories.map(repo => repo.id),
           },
           {
@@ -115,7 +77,7 @@ export function ConfigureCodeReviewStep() {
     // This handles the case where we load selected repositories from the server, but the user unselects some of them.
     const updateUnselectedRepositories = () =>
       new Promise<void>((resolve, reject) => {
-        if (existingRepostoriesToRemove.length === 0) {
+        if (!hasUnselectedRepositories) {
           resolve();
           return;
         }
@@ -138,7 +100,6 @@ export function ConfigureCodeReviewStep() {
       });
 
     const promises = [
-      updateOrganizationEnabledCodeReview(),
       // This is intentionally serial bc they both mutate the same resource (the organization)
       // And react-query will only resolve the latest mutation
       updateEnabledCodeReview().then(() => updateUnselectedRepositories()),
@@ -151,6 +112,17 @@ export function ConfigureCodeReviewStep() {
           // the user will have an overwhelming number of repositories to map.
           clearRootCauseAnalysisRepositories();
         }
+
+        if (hasSelectedRepositories || hasUnselectedRepositories) {
+          addSuccessMessage(t('AI Code Review settings updated successfully'));
+
+          trackGetsentryAnalytics('seer.onboarding.code_review_updated', {
+            organization,
+            added_repositories: selectedCodeReviewRepositories.length,
+            removed_repositories: existingRepostoriesToRemove.length,
+          });
+        }
+
         setCurrentStep(currentStep + 1);
       })
       .catch(() => {
@@ -162,27 +134,11 @@ export function ConfigureCodeReviewStep() {
     clearRootCauseAnalysisRepositories,
     selectedCodeReviewRepositories,
     unselectedCodeReviewRepositories,
-    enableCodeReview,
-    organization.autoEnableCodeReview,
     currentStep,
     setCurrentStep,
-    updateOrganization,
     updateRepositorySettings,
+    organization,
   ]);
-
-  const handleChangeCodeReview = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setEnableCodeReview(e.target.checked);
-
-      // Unselect selected repositories if code review is disabled
-      if (!e.target.checked) {
-        setCodeReviewRepositories(
-          Object.fromEntries(selectedCodeReviewRepositories.map(repo => [repo.id, false]))
-        );
-      }
-    },
-    [setEnableCodeReview, setCodeReviewRepositories, selectedCodeReviewRepositories]
-  );
 
   return (
     <Fragment>
@@ -190,36 +146,21 @@ export function ConfigureCodeReviewStep() {
         <MaxWidthPanel>
           <PanelBody>
             <PanelDescription>
-              <p>{t(`You've successfully connected to GitHub!`)}</p>
+              <Flex direction="column" gap="lg">
+                <Text>{t(`You've successfully connected to GitHub!`)}</Text>
+                <Separator orientation="horizontal" border="muted" />
 
-              <p>
-                {t(
-                  `Now, select which repositories you would like to run Seer’s AI Code Review on.`
-                )}
-              </p>
-            </PanelDescription>
-
-            <Field>
-              <Flex direction="column" flex="1" gap="xs">
-                <FieldLabel>{t('AI Code Review')}</FieldLabel>
-                <FieldDescription>
-                  {t(
-                    'For all repos below, AND for all newly connected repos, Seer will review your PRs and flag potential bugs.'
-                  )}
-                </FieldDescription>
+                <Flex direction="column" gap="sm">
+                  <Text bold>{t('AI Code Review')}</Text>
+                  <Text variant="muted" density="comfortable">
+                    {t(
+                      `For all selected repositories below, Seer's AI Code Review will be run to review your PRs and flag potential bugs. `
+                    )}
+                  </Text>
+                </Flex>
               </Flex>
-              <Switch
-                size="lg"
-                checked={enableCodeReview}
-                onChange={handleChangeCodeReview}
-              />
-            </Field>
-            {enableCodeReview ? null : (
-              <Alert type="info">
-                {t('AI Code Review needs to be enabled in order to select repositories.')}
-              </Alert>
-            )}
-            <RepositorySelector disabled={!enableCodeReview} />
+            </PanelDescription>
+            <RepositorySelector />
           </PanelBody>
         </MaxWidthPanel>
 
@@ -227,16 +168,14 @@ export function ConfigureCodeReviewStep() {
           <Flex direction="row" gap="xl" align="center">
             <Button
               size="md"
-              disabled={isUpdateRepositorySettingsPending || isUpdateOrganizationPending}
+              disabled={isUpdateRepositorySettingsPending}
               onClick={handleNextStep}
               priority="primary"
               aria-label={t('Next Step')}
             >
               {t('Next Step')}
             </Button>
-            {(isUpdateRepositorySettingsPending || isUpdateOrganizationPending) && (
-              <InlineLoadingIndicator size={20} />
-            )}
+            {isUpdateRepositorySettingsPending && <InlineLoadingIndicator size={20} />}
           </Flex>
         </GuidedSteps.ButtonWrapper>
       </StepContentWithBackground>

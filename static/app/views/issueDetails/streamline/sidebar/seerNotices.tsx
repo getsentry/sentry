@@ -216,7 +216,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
       {/* Collapsed summary */}
       {!isLoadingPreferences && anyStepIncomplete && stepsCollapsed && (
         <CollapsedSummaryCard onClick={() => setStepsCollapsed(false)}>
-          <IconSeer variant="waiting" size="lg" style={{marginRight: 8}} />
+          <IconSeer animation="waiting" size="lg" style={{marginRight: 8}} />
           <span>
             {t(
               'Only %s step%s left to get the most out of Seer.',
@@ -237,7 +237,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
             transition={{duration: 0.2}}
           >
             <StepsHeader>
-              <IconSeer variant="waiting" size="xl" />
+              <IconSeer animation="waiting" size="xl" />
               Debug Faster with Seer
             </StepsHeader>
             <StyledGuidedSteps>
@@ -534,7 +534,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
       )}
       {/* Banners for unreadable repos */}
       {hasMultipleUnreadableRepos && (
-        <StyledAlert type="warning" key="multiple-repos">
+        <StyledAlert variant="warning" key="multiple-repos">
           {tct("Seer can't access these repositories: [repoList].", {
             repoList: <b>{unreadableRepos.map(repo => repo.name).join(', ')}</b>,
           })}
@@ -559,7 +559,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
         </StyledAlert>
       )}
       {hasSingleUnreadableRepo && (
-        <StyledAlert type="warning" key="single-repo">
+        <StyledAlert variant="warning" key="single-repo">
           {unreadableRepos[0]?.provider.includes('github')
             ? tct(
                 "Seer can't access the [repo] repository, make sure the [integrationLink:GitHub integration] is correctly set up.",
@@ -663,7 +663,7 @@ const CollapsedSummaryCard = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  background: ${p => p.theme.pink400}10;
+  background: ${p => p.theme.colors.pink500}10;
   border: 1px solid ${p => p.theme.border};
   border-radius: 6px;
   padding: ${space(1)};
@@ -675,6 +675,6 @@ const CollapsedSummaryCard = styled('div')`
   transition: box-shadow 0.2s;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
   &:hover {
-    background: ${p => p.theme.pink400}20;
+    background: ${p => p.theme.colors.pink500}20;
   }
 `;

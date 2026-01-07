@@ -90,7 +90,7 @@ function DashboardCard({
           icon={
             <IconStar
               isSolid={favorited}
-              color={favorited ? 'yellow300' : 'gray500'}
+              color={favorited ? 'yellow300' : 'subText'}
               size="sm"
               aria-label={favorited ? t('Unstar') : t('Star')}
             />
@@ -172,12 +172,12 @@ const Detail = styled('div')`
 `;
 
 const CardBody = styled('div')`
-  background: ${p => p.theme.gray100};
+  background: ${p => p.theme.colors.gray100};
   padding: ${space(1.5)} ${space(2)};
   max-height: 100px;
   min-height: 100px;
   overflow: hidden;
-  border-bottom: 1px solid ${p => p.theme.gray100};
+  border-bottom: 1px solid ${p => p.theme.colors.gray100};
 `;
 
 const CardFooter = styled('div')`
@@ -206,7 +206,7 @@ const ContextMenuWrapper = styled('div')`
   right: ${space(2)};
   bottom: ${space(1)};
   display: flex;
-  ${p => (p.theme.isChonk ? `gap: ${space(0.5)};` : '')}
+  gap: ${space(0.5)};
 `;
 
 const StyledButton = styled(Button)`

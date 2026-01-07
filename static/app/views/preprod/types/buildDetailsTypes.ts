@@ -5,14 +5,26 @@ import type {Platform} from './sharedTypes';
 
 export interface BuildDetailsApiResponse {
   app_info: BuildDetailsAppInfo;
+  distribution_info: BuildDetailsDistributionInfo;
   id: string;
+  project_id: number;
+  project_slug: string;
   state: BuildDetailsState;
   vcs_info: BuildDetailsVcsInfo;
   size_info?: BuildDetailsSizeInfo;
+  posted_status_checks?: PostedStatusChecks | null;
   base_artifact_id?: string | null;
+  base_build_info?: BuildDetailsAppInfo | null;
+}
+
+interface BuildDetailsDistributionInfo {
+  is_installable: boolean;
+  download_count: number;
+  release_notes: string | null;
 }
 
 export interface BuildDetailsAppInfo {
+  app_icon_id?: string | null;
   android_app_info?: AndroidAppInfo | null;
   app_id?: string | null;
   apple_app_info?: AppleAppInfo | null;
@@ -119,4 +131,38 @@ export enum BuildDetailsSizeAnalysisState {
   PROCESSING = 1,
   COMPLETED = 2,
   FAILED = 3,
+}
+
+interface PostedStatusChecks {
+  size?: StatusCheckResult | null;
+}
+
+export type StatusCheckResult = StatusCheckResultSuccess | StatusCheckResultFailure;
+
+interface StatusCheckResultSuccess {
+  success: true;
+  check_id?: string | null;
+}
+
+interface StatusCheckResultFailure {
+  success: false;
+  error_type?: StatusCheckErrorType | null;
+}
+
+export enum StatusCheckErrorType {
+  UNKNOWN = 'unknown',
+  API_ERROR = 'api_error',
+  INTEGRATION_ERROR = 'integration_error',
+}
+
+export function isStatusCheckSuccess(
+  result: StatusCheckResult | undefined | null
+): result is StatusCheckResultSuccess {
+  return result?.success === true;
+}
+
+export function isStatusCheckFailure(
+  result: StatusCheckResult | undefined | null
+): result is StatusCheckResultFailure {
+  return result?.success === false;
 }

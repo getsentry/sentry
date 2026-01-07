@@ -6,17 +6,19 @@ from typing import Any, cast
 from django.core.exceptions import BadRequest
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from snuba_sdk import Column, Condition, Op
+from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
 
 from sentry import eventstore, features
 from sentry.api import client
 from sentry.api.endpoints.organization_events_timeseries import TOP_EVENTS_DATASETS
 from sentry.api.serializers.base import serialize
+from sentry.api.serializers.models.activity import ActivitySerializer
 from sentry.api.serializers.models.event import EventSerializer
 from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.utils import default_start_end_dates
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ObjectStatus
 from sentry.issues.grouptype import GroupCategory
+from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
 from sentry.models.group import EventOrdering, Group
 from sentry.models.organization import Organization
@@ -42,7 +44,9 @@ from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import query_trace_data
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import get_dataset
+from sentry.types.activity import ActivityType
 from sentry.utils.dates import outside_retention_with_modified_start, parse_stats_period
+from sentry.utils.snuba import raw_snql_query
 from sentry.utils.snuba_rpc import get_trace_rpc
 
 logger = logging.getLogger(__name__)
@@ -120,7 +124,7 @@ def execute_table_query(
         If neither project_ids nor project_slugs are provided, all active projects will be queried.
 
         To prevent excessive queries and timeouts, either stats_period or *both* start and end must be provided.
-        Providing start or end with stats_period will result in a ValueError.
+        Start/end params take precedence over stats_period.
     """
     stats_period, start, end = validate_date_params(stats_period, start, end)
 
@@ -139,12 +143,15 @@ def execute_table_query(
         sort_field = sort.lstrip("-")
         if sort_field not in fields:
             fields.append(sort_field)
+    elif "timestamp" in fields:
+        # Default to -timestamp only if timestamp was selected.
+        sort = "-timestamp"
 
     params: dict[str, Any] = {
         "dataset": dataset,
         "field": fields,
         "query": query or None,
-        "sort": sort if sort else ("-timestamp" if "timestamp" in fields else None),
+        "sort": sort,
         "per_page": per_page,
         "statsPeriod": stats_period,
         "start": start,
@@ -171,6 +178,7 @@ def execute_table_query(
         )
         return {"data": resp.data["data"]}
     except client.ApiError as e:
+        # For 400 errors, return an error string for the query builder agent.
         if e.status_code == 400:
             logger.exception("execute_table_query: bad request", extra={"org_id": org_id})
             error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
@@ -206,7 +214,7 @@ def execute_timeseries_query(
         If neither project_ids nor project_slugs are provided, all active projects will be queried.
 
         To prevent excessive queries and timeouts, either stats_period or *both* start and end must be provided.
-        Providing start or end with stats_period will result in a ValueError.
+        Start/end params take precedence over stats_period.
     """
     stats_period, start, end = validate_date_params(stats_period, start, end)
 
@@ -280,6 +288,78 @@ def execute_timeseries_query(
             return {metric_name: data}
 
     return data
+
+
+def execute_trace_table_query(
+    *,
+    organization_id: int,
+    query: str | None = None,
+    sort: str | None = None,
+    per_page: int,
+    project_ids: list[int] | None = None,
+    project_slugs: list[str] | None = None,
+    stats_period: str | None = None,
+    start: str | None = None,
+    end: str | None = None,
+    sampling_mode: SAMPLING_MODES = "NORMAL",
+    case_insensitive: bool | None = None,
+):
+    """
+    Execute a query to get trace samples by passing through the OrganizationTracesEndpoint.
+    This endpoint does not support any kind of aggregation.
+
+    Arg notes:
+        project_ids: The IDs of the projects to query. Cannot be provided with project_slugs.
+        project_slugs: The slugs of the projects to query. Cannot be provided with project_ids.
+        If neither project_ids nor project_slugs are provided, all active projects will be queried.
+        Start/end params take precedence over stats_period. Default time range is the last 24 hours.
+    """
+    stats_period, start, end = validate_date_params(
+        stats_period, start, end, default_stats_period="24h"
+    )
+
+    organization = Organization.objects.get(id=organization_id)
+    if not project_ids and not project_slugs:
+        project_ids = [ALL_ACCESS_PROJECT_ID]
+
+    params: dict[str, Any] = {
+        "dataset": "spans",  # the only supported value.
+        "query": query or None,
+        "sort": sort,
+        "per_page": per_page,
+        "statsPeriod": stats_period,
+        "start": start,
+        "end": end,
+        "project": project_ids,
+        "projectSlug": project_slugs,
+        "sampling": sampling_mode,
+        "referrer": Referrer.SEER_EXPLORER_TOOLS,
+    }
+
+    # Add boolean params only if provided.
+    if case_insensitive is not None:
+        params["caseInsensitive"] = "1" if case_insensitive else "0"
+
+    # Remove None values
+    params = {k: v for k, v in params.items() if v is not None}
+
+    try:
+        resp = client.get(
+            auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
+            user=None,
+            path=f"/organizations/{organization.slug}/traces/",
+            params=params,
+        )
+        return {"data": resp.data["data"]}
+    except client.ApiError as e:
+        # For 400 errors, return an error string for the query builder agent.
+        if e.status_code == 400:
+            logger.exception(
+                "execute_trace_table_query: bad request", extra={"org_id": organization_id}
+            )
+            error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
+            return {"error": str(error_detail) if error_detail is not None else str(e.body)}
+        raise
 
 
 def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
@@ -648,47 +728,12 @@ def _get_issue_event_timeseries(
     return data, stats_period, interval
 
 
-def _get_trace_with_spans(
-    trace_ids: list[str], organization: Organization, start: datetime, end: datetime
-) -> str | None:
-    """
-    Given a list of trace IDs, return a trace ID with at least one span (non-deterministic).
-    """
-    # Allow errors if start is outside retention.
-    _, start = outside_retention_with_modified_start(start, end, organization)
-
-    if not trace_ids:
-        return None
-
-    if len(trace_ids) == 1:
-        query = f"trace:{trace_ids[0]}"
-    else:
-        query = f"trace:[{','.join(trace_ids)}]"
-
-    # Table query for a single item that has one of the trace IDs.
-    result = execute_table_query(
-        org_id=organization.id,
-        dataset="spans",
-        per_page=1,
-        fields=["trace"],
-        query=query,
-        sort="-timestamp",
-        start=start.isoformat(),
-        end=end.isoformat(),
-    )
-
-    if not result or not result.get("data"):
-        return None
-
-    return result["data"][0]["trace"]
-
-
 def _get_recommended_event(
     group: Group,
     organization: Organization,
     start: datetime | None = None,
     end: datetime | None = None,
-) -> Event | GroupEvent | None:
+) -> GroupEvent | None:
     """
     Our own implementation of Group.get_recommended_event. Requires the return event to fall in the time range and have a non-empty trace.
     Time range defaults to the group's first and last seen times.
@@ -698,7 +743,7 @@ def _get_recommended_event(
     if start is None:
         start = group.first_seen
     if end is None:
-        end = group.last_seen
+        end = group.last_seen + timedelta(seconds=5)
 
     expired, _ = outside_retention_with_modified_start(start, end, organization)
     if expired:
@@ -718,62 +763,71 @@ def _get_recommended_event(
     else:
         dataset = Dataset.IssuePlatform
 
-    # Get up to 30 events with a recommended ordering.
-    events: list[Event] = eventstore.backend.get_events_snql(
-        organization_id=organization.id,
-        group_id=group.id,
-        start=start,
-        end=end,
-        conditions=[
-            Condition(Column("project_id"), Op.IN, [group.project.id]),
-            Condition(Column("group_id"), Op.IN, [group.id]),
-        ],
-        limit=30,
-        orderby=EventOrdering.RECOMMENDED.value,
-        referrer=Referrer.SEER_EXPLORER_TOOLS,
-        dataset=dataset,
-        tenant_ids={"organization_id": group.project.organization_id},
-        inner_limit=1000,
-    )
+    w_size = timedelta(days=3)
+    w_start = max(end - w_size, start)
+    w_end = end
+    event_query_limit = 100
+    fallback_event: GroupEvent | None = None  # Highest recommended in most recent window
 
-    if not events:
-        return None
+    while w_start >= start:
+        # Get candidate events with the standard recommended ordering.
+        # This is an expensive orderby, hence the inner limit and sliding window.
+        events: list[Event] = eventstore.backend.get_events_snql(
+            organization_id=organization.id,
+            group_id=group.id,
+            start=w_start,
+            end=w_end,
+            conditions=[
+                Condition(Column("project_id"), Op.IN, [group.project.id]),
+                Condition(Column("group_id"), Op.IN, [group.id]),
+            ],
+            limit=event_query_limit,
+            orderby=EventOrdering.RECOMMENDED.value,
+            referrer=Referrer.SEER_EXPLORER_TOOLS,
+            dataset=dataset,
+            tenant_ids={"organization_id": group.project.organization_id},
+            inner_limit=1000,
+        )
 
-    trace_ids = list({e.trace_id for e in events if e.trace_id})
-    if len(trace_ids) == 0:
-        return events[0].for_group(group)
-    elif len(trace_ids) == 1:
-        query = f"trace:{trace_ids[0]}"
-    else:
-        query = f"trace:[{','.join(trace_ids)}]"
+        if events and not fallback_event:
+            fallback_event = events[0].for_group(group)
 
-    # Query EAP to get the span count of each trace.
-    # Extend the time range by +-1 day to account for min/max trace start/end times.
-    spans_start = start - timedelta(days=1)
-    spans_end = end + timedelta(days=1)
+        trace_ids = list({e.trace_id for e in events if e.trace_id})
 
-    result = execute_table_query(
-        org_id=organization.id,
-        dataset="spans",
-        per_page=len(trace_ids),
-        fields=["trace", "count()"],
-        query=query,
-        start=spans_start.isoformat(),
-        end=spans_end.isoformat(),
-    )
+        if len(trace_ids) > 0:
+            # Query EAP to get the span count of each trace.
+            # Extend the time range by +-1 day to account for min/max trace start/end times.
+            spans_start = w_start - timedelta(days=1)
+            spans_end = w_end + timedelta(days=1)
 
-    if not result or not result.get("data"):
-        return events[0].for_group(group)
+            count_field = "count(span.duration)"
+            result = execute_table_query(
+                org_id=organization.id,
+                dataset="spans",
+                per_page=len(trace_ids),
+                fields=["trace", count_field],
+                query=f"trace:[{','.join(trace_ids)}]",
+                start=spans_start.isoformat(),
+                end=spans_end.isoformat(),
+            )
 
-    # Return the first event with a span count greater than 0.
-    traces_with_spans: set[str] = set()
-    for item in result["data"]:
-        if item.get("trace") and item["count()"] > 0:
-            traces_with_spans.add(item["trace"])
+            if result and result.get("data"):
+                # Return the first event with a span count greater than 0.
+                traces_with_spans = {
+                    item["trace"]
+                    for item in result["data"]
+                    if item.get("trace") and item.get(count_field, 0) > 0
+                }
 
-    for e in events:
-        if e.trace_id in traces_with_spans:
-            return e.for_group(group)
+                for e in events:
+                    if e.trace_id in traces_with_spans:
+                        return e.for_group(group)
+
+        if w_start == start:
+            break
+
+        w_end = w_start
+        w_start = max(w_start - w_size, start)
 
     logger.warning(
         "_get_recommended_event: No event with a span found",
@@ -784,7 +838,19 @@ def _get_recommended_event(
             "end": end,
         },
     )
-    return events[0].for_group(group)
+    return fallback_event
+
+
+# Activity types to include in issue details for Seer Explorer (manual actions only)
+_SEER_EXPLORER_ACTIVITY_TYPES = [
+    ActivityType.NOTE.value,
+    ActivityType.SET_RESOLVED.value,
+    ActivityType.SET_RESOLVED_IN_RELEASE.value,
+    ActivityType.SET_RESOLVED_IN_COMMIT.value,
+    ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
+    ActivityType.SET_UNRESOLVED.value,
+    ActivityType.ASSIGNED.value,
+]
 
 
 def get_issue_and_event_response(
@@ -827,6 +893,22 @@ def get_issue_and_event_response(
         else:
             timeseries, timeseries_stats_period, timeseries_interval = None, None, None
 
+        # Fetch user activity (comments, status changes, etc.)
+        try:
+            activities = Activity.objects.filter(
+                group=group,
+                type__in=_SEER_EXPLORER_ACTIVITY_TYPES,
+            ).order_by("-datetime")[:50]
+            serialized_activities = serialize(
+                list(activities), user=None, serializer=ActivitySerializer()
+            )
+        except Exception:
+            logger.exception(
+                "Failed to get user activity for issue",
+                extra={"organization_id": organization.id, "issue_id": group.id},
+            )
+            serialized_activities = []
+
         result = {
             **result,
             "issue": serialized_group,
@@ -834,6 +916,7 @@ def get_issue_and_event_response(
             "timeseries_stats_period": timeseries_stats_period,
             "timeseries_interval": timeseries_interval,
             "tags_overview": tags_overview,
+            "user_activity": serialized_activities,
         }
 
     return result
@@ -852,8 +935,8 @@ def get_issue_and_event_details_v2(
 
     if bool(issue_id) == bool(event_id):
         raise BadRequest("Either issue_id or event_id must be provided, but not both.")
-    if bool(start) != bool(end):
-        raise BadRequest("start and end must be provided together.")
+
+    validate_date_params(None, start, end, allow_none=True)
 
     organization = Organization.objects.get(id=organization_id)
 
@@ -878,8 +961,8 @@ def get_issue_and_event_details_v2(
         else:
             group = Group.objects.by_qualified_short_id(organization_id, issue_id)
 
-        start_dt = datetime.fromisoformat(start) if start else group.first_seen
-        end_dt = datetime.fromisoformat(end) if end else group.last_seen
+        start_dt = datetime.fromisoformat(start) if start else None
+        end_dt = datetime.fromisoformat(end) if end else None
         event = _get_recommended_event(group, organization, start_dt, end_dt)
 
     else:
@@ -907,7 +990,7 @@ def get_issue_and_event_details_v2(
 
     if group is None:
         logger.warning(
-            "get_issue_and_event_details: Missing group",
+            "get_issue_and_event_details_v2: Missing group",
             extra={
                 "organization_id": organization_id,
                 "project_slug": project_slug,
@@ -919,7 +1002,7 @@ def get_issue_and_event_details_v2(
 
     if event is None:
         logger.warning(
-            "get_issue_and_event_details: Missing event",
+            "get_issue_and_event_details_v2: Missing event",
             extra={
                 "organization_id": organization_id,
                 "project_slug": project_slug,
@@ -935,230 +1018,6 @@ def get_issue_and_event_details_v2(
         return get_issue_and_event_response(event, group, organization)
 
     return get_issue_and_event_response(event, None, organization)
-
-
-def get_issue_and_event_details(
-    *,
-    organization_id: int,
-    issue_id: str | None,
-    selected_event: str,
-) -> dict[str, Any] | None:
-    """
-    Tool to get details for a Sentry issue and one of its associated events. null issue_id can be passed so the
-    is issue is looked up from the event. We assume the event is always associated with an issue, otherwise None is returned.
-
-    Args:
-        organization_id: The ID of the organization to query.
-        issue_id: The issue/group ID (numeric) or short ID (string) to look up. If None, we fill this in with the event's `group` property.
-        selected_event:
-          If issue_id is provided, this is the event to return and must exist in the issue - the options are "oldest", "latest", "recommended", or a UUID.
-          If issue_id is not provided, this must be a UUID.
-
-    Returns:
-        A dict containing:
-            Issue fields: aside from `issue` these are nullable if an error occurred.
-            `issue`: Serialized issue details.
-            `tags_overview`: A summary of all tags in the issue.
-            `event_timeseries`: Event counts over time for the issue.
-            `timeseries_stats_period`: The stats period used for the event timeseries.
-            `timeseries_interval`: The interval used for the event timeseries.
-
-            Event fields:
-            `event`: Serialized event details.
-            `event_id`: The event ID of the selected event.
-            `event_trace_id`: The trace ID of the selected event. Nullable.
-            `project_id`: The event and issue's project ID.
-            `project_slug`: The event and issue's project slug.
-
-        Returns None when the requested event or issue is not found, or an error occurred.
-    """
-    try:
-        organization = Organization.objects.get(id=organization_id)
-    except Organization.DoesNotExist:
-        logger.warning(
-            "Organization does not exist",
-            extra={"organization_id": organization_id, "issue_id": issue_id},
-        )
-        return None
-
-    org_project_ids = list(
-        Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE).values_list(
-            "id", flat=True
-        )
-    )
-    if not org_project_ids:
-        return None
-
-    event: Event | GroupEvent | None = None
-    group: Group
-
-    # Fetch the group object.
-    if issue_id is None:
-        # If issue_id is not provided, first find the event. Then use this to fetch the group.
-        uuid.UUID(selected_event)  # Raises ValueError if not valid UUID
-        # We can't use get_event_by_id since we don't know the exact project yet.
-        events_result = eventstore.backend.get_events(
-            filter=eventstore.Filter(
-                event_ids=[selected_event],
-                organization_id=organization_id,
-                project_ids=org_project_ids,
-            ),
-            limit=1,
-            tenant_ids={"organization_id": organization_id},
-        )
-        if not events_result:
-            logger.warning(
-                "Could not find the requested event ID",
-                extra={
-                    "organization_id": organization_id,
-                    "issue_id": issue_id,
-                    "selected_event": selected_event,
-                },
-            )
-            return None
-
-        event = events_result[0]
-        assert event is not None
-        if event.group is None:
-            logger.warning(
-                "Event is not associated with a group",
-                extra={"organization_id": organization_id, "event_id": event.event_id},
-            )
-            return None
-
-        group = event.group
-
-    else:
-        # Fetch the group from issue_id.
-        try:
-            if issue_id.isdigit():
-                group = Group.objects.get(project_id__in=org_project_ids, id=int(issue_id))
-            else:
-                group = Group.objects.by_qualified_short_id(organization_id, issue_id)
-
-        except Group.DoesNotExist:
-            logger.warning(
-                "Requested issue does not exist for organization",
-                extra={"organization_id": organization_id, "issue_id": issue_id},
-            )
-            return None
-
-    # Get the issue data, tags overview, and event count timeseries.
-    serialized_group = dict(serialize(group, user=None, serializer=GroupSerializer()))
-    # Add issueTypeDescription as it provides better context for LLMs. Note the initial type should be BaseGroupSerializerResponse.
-    serialized_group["issueTypeDescription"] = group.issue_type.description
-
-    try:
-        tags_overview = get_all_tags_overview(group)
-    except Exception:
-        logger.exception(
-            "Failed to get tags overview for issue",
-            extra={"organization_id": organization_id, "issue_id": issue_id},
-        )
-        tags_overview = None
-
-    ts_result = _get_issue_event_timeseries(
-        organization=organization,
-        project_id=group.project_id,
-        issue_short_id=group.qualified_short_id,
-        first_seen_delta=datetime.now(UTC) - group.first_seen,
-        issue_category=group.issue_category,
-    )
-    if ts_result:
-        timeseries, timeseries_stats_period, timeseries_interval = ts_result
-    else:
-        timeseries, timeseries_stats_period, timeseries_interval = None, None, None
-
-    # Fetch event from group, if not already fetched.
-    if event is None:
-        if selected_event == "oldest":
-            event = group.get_oldest_event()
-        elif selected_event == "latest":
-            event = group.get_latest_event()
-        elif selected_event == "recommended":
-            event = group.get_recommended_event()
-        else:
-            uuid.UUID(selected_event)  # Raises ValueError if not valid UUID
-            event = eventstore.backend.get_event_by_id(
-                project_id=group.project_id,
-                event_id=selected_event,
-                group_id=group.id,
-                tenant_ids={"organization_id": organization_id},
-            )
-
-    # If the recommended event (default when agent doesn't specify an event) doesn't have a useful trace, try finding a different event.
-    try:
-        if selected_event == "recommended" and (
-            event is None
-            or event.trace_id is None
-            or _get_trace_with_spans(
-                [event.trace_id],
-                organization,
-                group.first_seen - timedelta(days=1),
-                group.last_seen + timedelta(days=1),
-            )
-            is None
-        ):
-            logger.info(
-                "No spans found for recommended event, trying a different event.",
-                extra={
-                    "organization_id": organization_id,
-                    "issue_id": group.id,
-                    "recommended_event_id": event.event_id if event else None,
-                    "event_trace_id": event.trace_id if event else None,
-                },
-            )
-
-            candidate_event = _get_recommended_event(group, organization)
-            if candidate_event:
-                event = candidate_event
-
-                logger.info(
-                    "Replaced recommended event with an event with spans.",
-                    extra={
-                        "organization_id": organization_id,
-                        "issue_id": group.id,
-                        "candidate_event_id": candidate_event.event_id,
-                        "candidate_event_trace_id": candidate_event.trace_id,
-                    },
-                )
-
-    except Exception:
-        logger.exception(
-            "Error getting event with valid trace",
-            extra={
-                "organization_id": organization_id,
-                "issue_id": group.id,
-                "selected_event": selected_event,
-            },
-        )
-
-    if event is None:
-        logger.warning(
-            "Could not find the selected event.",
-            extra={
-                "organization_id": organization_id,
-                "issue_id": issue_id,
-                "selected_event": selected_event,
-            },
-        )
-        return None
-
-    # Serialize event.
-    serialized_event = serialize(event, user=None, serializer=EventSerializer())
-
-    return {
-        "issue": serialized_group,
-        "event_timeseries": timeseries,
-        "timeseries_stats_period": timeseries_stats_period,
-        "timeseries_interval": timeseries_interval,
-        "tags_overview": tags_overview,
-        "event": serialized_event,
-        "event_id": event.event_id,
-        "event_trace_id": event.trace_id,
-        "project_id": event.project_id,
-        "project_slug": event.project.slug,
-    }
 
 
 def get_replay_metadata(
@@ -1591,3 +1450,125 @@ def get_metric_attributes_for_trace(
             filtered_items.append(item)
 
     return {"data": filtered_items}
+
+
+def get_baseline_tag_distribution(
+    *,
+    organization_id: int,
+    project_id: int,
+    group_id: int,
+    tag_keys: list[str],
+    stats_period: str | None = None,
+    start: str | None = None,
+    end: str | None = None,
+) -> dict[str, Any] | None:
+    """
+    Get baseline tag distribution for suspect attributes analysis.
+
+    Returns tag value counts for all events/occurrences except those in the specified issue,
+    filtered to only include the specified tag keys. Queries both error events and
+    issue platform occurrences (performance issues, etc.) to build a comprehensive baseline.
+
+    Args:
+        organization_id: The organization ID
+        project_id: The project ID
+        group_id: The issue group ID to exclude from baseline
+        tag_keys: List of tag keys to fetch (from the issue's tags_overview)
+        stats_period: Stats period for the time range (e.g. "7d"). Defaults to "7d" if no time params provided.
+        start: ISO timestamp for start of time range (optional)
+        end: ISO timestamp for end of time range (optional)
+
+    Returns:
+        Dict with "baseline_tag_distribution" containing list of
+        {"tag_key": str, "tag_value": str, "count": int} entries.
+    """
+
+    if not tag_keys:
+        return {"baseline_tag_distribution": []}
+
+    stats_period, start, end = validate_date_params(
+        stats_period, start, end, default_stats_period="7d"
+    )
+
+    if stats_period:
+        period_delta = parse_stats_period(stats_period)
+        assert period_delta is not None  # Already validated
+        end_dt = datetime.now(timezone.utc)
+        start_dt = end_dt - period_delta
+    else:
+        assert start and end
+        start_dt = datetime.fromisoformat(start)
+        end_dt = datetime.fromisoformat(end)
+
+    # Query both error events and issue platform occurrences for a comprehensive baseline.
+    # "events" contains error issues, "search_issues" contains performance and other issue types.
+    combined_counts: dict[tuple[str, str], int] = {}
+
+    for dataset in ["events", "search_issues"]:
+        query = Query(
+            match=Entity(dataset),
+            select=[
+                Function(
+                    "arrayJoin",
+                    parameters=[
+                        Function(
+                            "arrayZip",
+                            parameters=[
+                                Column("tags.key"),
+                                Column("tags.value"),
+                            ],
+                        ),
+                    ],
+                    alias="variants",
+                ),
+                Function("count", parameters=[], alias="count"),
+            ],
+            where=[
+                Condition(Column("project_id"), Op.EQ, project_id),
+                Condition(Column("timestamp"), Op.GTE, start_dt),
+                Condition(Column("timestamp"), Op.LT, end_dt),
+                # Exclude the current issue from baseline
+                Condition(Column("group_id"), Op.NEQ, group_id),
+                # Only include specified tag keys
+                Condition(
+                    Function(
+                        "has",
+                        parameters=[
+                            tag_keys,
+                            Function("tupleElement", parameters=[Column("variants"), 1]),
+                        ],
+                    ),
+                    Op.EQ,
+                    1,
+                ),
+            ],
+            groupby=[Column("variants")],
+            limit=Limit(5000),
+        )
+
+        snuba_request = Request(
+            dataset=dataset,
+            app_id="seer-explorer",
+            query=query,
+            tenant_ids={"organization_id": organization_id},
+        )
+        response = raw_snql_query(
+            snuba_request,
+            referrer="seer.explorer.get_baseline_tag_distribution",
+            use_cache=True,
+        )
+
+        for result in response.get("data", []):
+            key = (result["variants"][0], result["variants"][1])
+            combined_counts[key] = combined_counts.get(key, 0) + result["count"]
+
+    baseline_distribution = [
+        {
+            "tag_key": tag_key,
+            "tag_value": tag_value,
+            "count": count,
+        }
+        for (tag_key, tag_value), count in combined_counts.items()
+    ]
+
+    return {"baseline_tag_distribution": baseline_distribution}

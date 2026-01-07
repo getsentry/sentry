@@ -180,7 +180,7 @@ class FetchOpenPeriodsTest(BaseMetricIssueTest):
 
     @freeze_time(frozen_time)
     @with_feature("organizations:incidents")
-    @with_feature("organizations:new-metric-issue-charts")
+    @with_feature("organizations:workflow-engine-ui")
     def test_use_open_period_serializer(self) -> None:
         detector = self.create_detector(project=self.project)
         group = self.create_group(type=MetricIssue.type_id, priority=PriorityLevel.HIGH)
@@ -213,7 +213,7 @@ class FetchOpenPeriodsTest(BaseMetricIssueTest):
 
     @freeze_time(frozen_time)
     @with_feature("organizations:incidents")
-    @with_feature("organizations:new-metric-issue-charts")
+    @with_feature("organizations:workflow-engine-ui")
     def test_use_open_period_serializer_with_offset(self) -> None:
         group = self.create_group(type=MetricIssue.type_id, priority=PriorityLevel.HIGH)
 

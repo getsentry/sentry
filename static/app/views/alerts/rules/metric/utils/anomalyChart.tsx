@@ -67,7 +67,7 @@ export function getAnomalyMarkerSeries(
             },
           ]);
           // Create a marker line for the start of the anomaly
-          series.push(createAnomalyMarkerSeries(opts.theme.purple300, start));
+          series.push(createAnomalyMarkerSeries(opts.theme.colors.blue400, start));
         }
         // reset the start/end to capture the next anomaly block
         start = undefined;
@@ -77,7 +77,7 @@ export function getAnomalyMarkerSeries(
   if (start && end) {
     // push in the last block
     // Create a marker line for the start of the anomaly
-    series.push(createAnomalyMarkerSeries(opts.theme.purple300, start));
+    series.push(createAnomalyMarkerSeries(opts.theme.colors.blue400, start));
     anomalyBlocks.push([
       {
         xAxis: start,

@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {setWindowLocation} from 'sentry-test/utils';
 
+import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import {uniqueId} from 'sentry/utils/guid';
 import sessionStorage from 'sentry/utils/sessionStorage';
@@ -184,6 +185,31 @@ describe('rawTrackAnalyticsEvent', () => {
     );
     setWindowLocation('http:/localhost/');
   });
+
+  it('sets custom_referrer if found in local storage', () => {
+    sessionStorage.setItem(CUSTOM_REFERRER_KEY, JSON.stringify('batman'));
+    setWindowLocation('http:/localhost');
+    rawTrackAnalyticsEvent({
+      eventKey: 'test_event',
+      eventName: 'Test Event',
+      organization,
+    });
+
+    expect(trackReloadEvent).toHaveBeenCalledWith(
+      'test_event',
+      expect.objectContaining({custom_referrer: 'batman'})
+    );
+
+    expect(trackAmplitudeEvent).toHaveBeenCalledWith(
+      'Test Event',
+      org_id,
+      expect.objectContaining({custom_referrer: 'batman'}),
+      {time: undefined}
+    );
+    setWindowLocation('http:/localhost/');
+    expect(sessionStorage.getItem(CUSTOM_REFERRER_KEY)).toBeNull();
+  });
+
   it('start analytics session', () => {
     rawTrackAnalyticsEvent(
       {

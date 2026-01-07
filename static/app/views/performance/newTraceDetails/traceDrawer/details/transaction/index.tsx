@@ -32,8 +32,8 @@ import {MCPInputSection} from 'sentry/views/performance/newTraceDetails/traceDra
 import {MCPOutputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/mcpOutput';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
+import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 
 import {AdditionalData, hasAdditionalData} from './sections/additionalData';
 import {BreadCrumbs} from './sections/breadCrumbs';
@@ -48,8 +48,8 @@ import {hasSDKContext} from './sections/sdk';
 
 type TransactionNodeDetailHeaderProps = {
   event: EventTransaction;
-  node: TraceTreeNode<TraceTree.Transaction>;
-  onTabScrollToNode: (node: TraceTreeNode<any>) => void;
+  node: TransactionNode;
+  onTabScrollToNode: (node: BaseNode) => void;
   organization: Organization;
   hideNodeActions?: boolean;
 };
@@ -77,9 +77,13 @@ function TransactionNodeDetailHeader({
       {!hideNodeActions && (
         <TraceDrawerComponents.NodeActions
           node={node}
+          profileId={node.profileId}
+          profilerId={node.profilerId}
+          threadId={event?.contexts?.trace?.data?.['thread.id']}
           organization={organization}
           onTabScrollToNode={onTabScrollToNode}
           eventSize={event?.size}
+          showJSONLink
         />
       )}
     </TraceDrawerComponents.HeaderContainer>
@@ -93,7 +97,7 @@ export function TransactionNodeDetails({
   onParentClick,
   replay,
   hideNodeActions,
-}: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.Transaction>>) {
+}: TraceTreeNodeDetailsProps<TransactionNode>) {
   const {projects} = useProjects();
   const issues = useMemo(() => {
     return [...node.errors, ...node.occurrences];
@@ -137,9 +141,9 @@ export function TransactionNodeDetails({
         hideNodeActions={hideNodeActions}
       />
       <TraceDrawerComponents.BodyContainer>
-        {node.canFetch ? null : (
+        {node.canFetchChildren ? null : (
           <Alert.Container>
-            <StyledAlert type="info">
+            <StyledAlert variant="info">
               {tct(
                 'This transaction does not have any child spans. You can add more child spans via [customInstrumentationLink:custom instrumentation].',
                 {
@@ -182,12 +186,7 @@ export function TransactionNodeDetails({
         />
 
         {event.projectSlug ? (
-          <Entries
-            definedEvent={event}
-            projectSlug={event.projectSlug}
-            group={undefined}
-            organization={organization}
-          />
+          <Entries definedEvent={event} projectSlug={event.projectSlug} />
         ) : null}
 
         <TraceDrawerComponents.EventTags
@@ -233,8 +232,8 @@ export function TransactionNodeDetails({
 type TransactionSpecificSectionsProps = {
   cacheMetrics: Array<Pick<SpanResponse, 'avg(cache.item_size)' | 'cache_miss_rate()'>>;
   event: EventTransaction;
-  node: TraceTreeNode<TraceTree.Transaction>;
-  onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
+  node: TransactionNode;
+  onParentClick: (node: BaseNode) => void;
   organization: Organization;
 };
 

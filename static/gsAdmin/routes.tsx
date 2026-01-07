@@ -44,7 +44,6 @@ function buildRoutes() {
   const routes: SentryRouteObject = {
     path: '/_admin/',
     component: Layout,
-    deprecatedRouteProps: true,
     children: [
       {
         index: true,

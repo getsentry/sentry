@@ -24,7 +24,7 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Tag, TagCollection} from 'sentry/types/group';
+import type {TagCollection} from 'sentry/types/group';
 import type {Release} from 'sentry/types/release';
 import {ReleaseStatus} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -38,6 +38,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import type {GetTagValues} from 'sentry/views/dashboards/datasetConfig/base';
 import ReleaseArchivedNotice from 'sentry/views/releases/detail/overview/releaseArchivedNotice';
 import MobileBuilds from 'sentry/views/releases/list/mobileBuilds';
 import ReleaseHealthCTA from 'sentry/views/releases/list/releaseHealthCTA';
@@ -210,19 +211,29 @@ export default function ReleasesList() {
     return projects?.find(p => p.id === `${selectedProjectId}`);
   }, [selection.projects, projects]);
 
-  const shouldShowMobileBuildsTab = useMemo(() => {
-    const singleProjectSelected =
-      selection.projects?.length === 1 && selection.projects[0] !== ALL_ACCESS_PROJECTS;
+  // Get selected project IDs, handling "All Projects" case
+  const selectedProjectIds = useMemo(() => {
+    const selectedIds = selection.projects.filter(id => id !== ALL_ACCESS_PROJECTS);
 
-    if (!singleProjectSelected || !selectedProject?.platform) {
+    // If no specific projects selected (All Projects), use all accessible project IDs
+    return selectedIds.length === 0
+      ? projects.map(p => p.id)
+      : selectedIds.map(id => `${id}`);
+  }, [selection.projects, projects]);
+
+  const shouldShowMobileBuildsTab = useMemo(() => {
+    if (!organization.features?.includes('preprod-frontend-routes')) {
       return false;
     }
 
-    return (
-      organization.features?.includes('preprod-frontend-routes') &&
-      isMobileRelease(selectedProject.platform, false)
-    );
-  }, [organization.features, selectedProject?.platform, selection.projects]);
+    // Check if at least one project has a mobile platform
+    const hasAnyStrictlyMobileProject = selectedProjectIds
+      .map(id => ProjectsStore.getById(id))
+      .filter(Boolean)
+      .some(project => project?.platform && isMobileRelease(project.platform, false));
+
+    return hasAnyStrictlyMobileProject;
+  }, [organization.features, selectedProjectIds]);
 
   const selectedTab = useMemo(() => {
     if (!shouldShowMobileBuildsTab) {
@@ -328,18 +339,21 @@ export default function ReleasesList() {
     [api, location, organization]
   );
 
-  const getTagValues = useCallback(
-    async (tag: Tag, currentQuery: string): Promise<string[]> => {
+  const getTagValues = useCallback<GetTagValues>(
+    async (tag, currentQuery) => {
       const values = await tagValueLoader(tag.key, currentQuery);
       return values.map(({value}) => value);
     },
     [tagValueLoader]
   );
 
-  const hasAnyMobileProject = selection.projects
-    .map(id => `${id}`)
-    .map(ProjectsStore.getById)
-    .some(project => project?.platform && isMobileRelease(project.platform));
+  const hasAnyMobileProject = useMemo(() => {
+    return selectedProjectIds
+      .map(id => ProjectsStore.getById(id))
+      .filter(Boolean)
+      .some(project => project?.platform && isMobileRelease(project.platform));
+  }, [selectedProjectIds]);
+
   const showReleaseAdoptionStages =
     hasAnyMobileProject && selection.environments.length === 1;
   const shouldShowQuickstart = Boolean(
@@ -443,7 +457,7 @@ export default function ReleasesList() {
               {selectedTab === 'mobile-builds' && (
                 <MobileBuilds
                   organization={organization}
-                  projectSlug={selectedProject?.slug}
+                  selectedProjectIds={selectedProjectIds}
                 />
               )}
 

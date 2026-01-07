@@ -19,6 +19,7 @@ import {Text} from '@sentry/scraps/text/text';
 
 import {IconUpgrade} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import showNewSeer from 'sentry/utils/seer/showNewSeer';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -61,7 +62,7 @@ export default function SeerAutomationTrial() {
   useEffect(() => {
     // If the org is on the old-seer plan then they shouldn't be here on this new settings page
     // they need to goto the old settings page, or get downgraded off old seer.
-    if (organization.features.includes('seer-added')) {
+    if (!showNewSeer(organization)) {
       navigate(normalizeUrl(`/organizations/${organization.slug}/settings/seer/`));
       return;
     }
@@ -71,7 +72,9 @@ export default function SeerAutomationTrial() {
       navigate(normalizeUrl(`/organizations/${organization.slug}/settings/seer/`));
       return;
     }
-  }, [navigate, organization.features, organization.slug]);
+
+    // Else you don't yet have the new seer plan, then stay here and click to start a trial.
+  }, [navigate, organization.features, organization.slug, organization]);
 
   return (
     <Fragment>
@@ -158,7 +161,7 @@ export default function SeerAutomationTrial() {
                 {t('Try Out Seer Now')}
               </LinkButton>
             ) : (
-              <Alert type="warning">
+              <Alert variant="warning">
                 {t(
                   'You need to be a billing member to try out Seer. Please contact your organization owner to upgrade your plan.'
                 )}

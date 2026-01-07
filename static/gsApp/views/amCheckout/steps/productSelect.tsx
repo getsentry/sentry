@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -14,7 +13,6 @@ import {IconCheckmark, IconSeer, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import type {Color} from 'sentry/utils/theme';
 
 import {AddOnCategory} from 'getsentry/types';
 import {getReservedBudgetCategoryForAddOn} from 'getsentry/utils/billing';
@@ -29,32 +27,16 @@ import * as utils from 'getsentry/views/amCheckout/utils';
 
 export function getProductCheckoutDescription({
   product,
-  isNewCheckout,
   withPunctuation,
-  includedBudget,
 }: {
-  isNewCheckout: boolean;
   product: AddOnCategory;
   withPunctuation: boolean;
   includedBudget?: string;
 }) {
   if (product === AddOnCategory.LEGACY_SEER) {
-    if (isNewCheckout) {
-      return tct('Detect and fix issues faster with our AI agent[punctuation]', {
-        punctuation: withPunctuation ? '.' : '',
-      });
-    }
-    return tct(
-      'Detect and fix issues faster with [budgetText]our AI agent[punctuation]',
-      {
-        budgetText: includedBudget
-          ? tct('[includedBudget]/mo in credits towards ', {
-              includedBudget,
-            })
-          : '',
-        punctuation: withPunctuation ? '.' : '',
-      }
-    );
+    return tct('Detect and fix issues faster with our AI agent[punctuation]', {
+      punctuation: withPunctuation ? '.' : '',
+    });
   }
   return '';
 }
@@ -71,7 +53,6 @@ function ProductSelect({
       subscription.addOns?.[addOnInfo.apiName]?.isAvailable ?? false
   );
 
-  const theme = useTheme();
   const billingInterval = utils.getShortInterval(activePlan.billingInterval);
 
   return (
@@ -142,7 +123,7 @@ function ProductSelect({
                 ariaRole="checkbox"
               >
                 <Flex align="center" gap="lg" padding="xl">
-                  <IconSeer variant="waiting" size="lg" />
+                  <IconSeer animation="waiting" size="lg" />
                   <Heading as="h2">
                     {t('Detect and fix issues faster with our AI agent')}
                   </Heading>
@@ -166,7 +147,7 @@ function ProductSelect({
                       <Flex align="center" gap="md">
                         {formattedMonthlyBudget && (
                           <Tag
-                            type="promotion"
+                            variant="promotion"
                             data-test-id="product-option-feature-credits"
                           >
                             {tct('Includes [includedBudget]/mo in credits', {
@@ -210,7 +191,7 @@ function ProductSelect({
                             data-test-id={`product-option-feature-${category}`}
                           >
                             <IconContainer>
-                              <IconCheckmark color={theme.successText as Color} />
+                              <IconCheckmark variant="success" />
                             </IconContainer>
                             <Flex direction="column" gap="xs">
                               <Text size="md">
@@ -242,13 +223,13 @@ function ProductSelect({
           return (
             <Flex direction="column" gap="xl" key={apiName}>
               <Flex gap="sm" align="center">
-                <Badge type="new">{t('New')}</Badge>
+                <Badge variant="new">{t('New')}</Badge>
                 <Heading as="h2">
                   {t('Find and fix issues anywhere with Seer AI debugger')}
                 </Heading>
               </Flex>
               {!isSelected && subscription.addOns?.[AddOnCategory.SEER]?.enabled && (
-                <Alert type="warning" icon={<IconWarning />}>
+                <Alert variant="warning" icon={<IconWarning />}>
                   {t(
                     'Billing continues through the current cycle. New contributors and repos won’t get code reviews after cancellation.'
                   )}

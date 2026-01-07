@@ -87,13 +87,13 @@ function DeadRageClickWidgetVisualization({items}: {items: DeadRageSelectorItem[
           </ClicksGridCell>
           <ClicksGridCell>
             <ClickCount>
-              <IconCursorArrow size="xs" color="yellow400" />
+              <IconCursorArrow size="xs" color="yellow300" />
               {item.count_dead_clicks || 0}
             </ClickCount>
           </ClicksGridCell>
           <ClicksGridCell>
             <ClickCount>
-              <IconCursorArrow size="xs" color="red400" />
+              <IconCursorArrow size="xs" variant="danger" />
               {item.count_rage_clicks || 0}
             </ClickCount>
           </ClicksGridCell>
@@ -130,7 +130,7 @@ const ClicksGridCell = styled('div')`
 `;
 
 const ClickCount = styled(TextOverflow)`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
   display: grid;
   grid-template-columns: auto auto;
   gap: ${space(0.75)};

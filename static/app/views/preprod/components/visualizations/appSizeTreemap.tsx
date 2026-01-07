@@ -13,10 +13,13 @@ import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
 import {IconClose, IconContract, IconExpand, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {ChartRenderingContext} from 'sentry/views/insights/common/components/chart';
-import {getAppSizeCategoryInfo} from 'sentry/views/preprod/components/visualizations/appSizeTheme';
+import {getAppSizeCategoryInfo} from 'sentry/views/preprod/components/visualizations/appSizeTreemapTheme';
+import {
+  TreemapControlButtons,
+  type TreemapControlButton,
+} from 'sentry/views/preprod/components/visualizations/treemapControlButtons';
 import {TreemapType, type TreemapElement} from 'sentry/views/preprod/types/appSizeTypes';
 import {filterTreemapElement} from 'sentry/views/preprod/utils/treemapFiltering';
 
@@ -125,8 +128,8 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     // Use headerColor for parent nodes, regular color for leaf nodes
     const hasChildren = element.children && element.children.length > 0;
     const borderColor =
-      hasChildren && categoryInfo.headerColor
-        ? categoryInfo.headerColor
+      hasChildren && categoryInfo.translucentColor
+        ? categoryInfo.translucentColor
         : categoryInfo.color;
 
     const data: any = {
@@ -149,7 +152,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
         fontFamily: 'Rubik',
         padding: 0,
         textShadowBlur: 2,
-        textShadowColor: theme.gray500,
+        textShadowColor: theme.colors.gray800,
         textShadowOffsetY: 0.5,
       },
       upperLabel: {
@@ -163,7 +166,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
         fontFamily: 'Rubik',
         padding: 0,
         textShadowBlur: 2,
-        textShadowColor: theme.gray500,
+        textShadowColor: theme.colors.gray800,
         textShadowOffsetY: 0.5,
       },
     };
@@ -186,7 +189,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
           <span
             style={{
               fontFamily: 'monospace',
-              backgroundColor: theme.gray100,
+              backgroundColor: theme.colors.gray100,
               padding: theme.space.xs,
               borderRadius: theme.radius.md,
             }}
@@ -222,7 +225,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
         top: '0',
         emphasis: {
           itemStyle: {
-            color: theme.surface100,
+            color: theme.colors.surface200,
             textStyle: {
               fontSize: 12,
               fontWeight: 'bold',
@@ -333,11 +336,53 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     },
   };
 
+  const treemapControlButtons: TreemapControlButton[] = [
+    {
+      ariaLabel: t('Recenter View'),
+      title: t('Recenter'),
+      icon: <IconContract />,
+      onClick: handleRecenter,
+      disabled: !isZoomed,
+    },
+  ];
+  if (!isFullscreen) {
+    treemapControlButtons.push({
+      ariaLabel: t('Open Full-Screen View'),
+      title: t('Fullscreen'),
+      icon: <IconExpand />,
+      disabled: false,
+      onClick: () => {
+        openInsightChartModal({
+          title: t('Size Analysis'),
+          fullscreen: true,
+          children: unfilteredRoot ? (
+            <FullscreenModalContent
+              unfilteredRoot={unfilteredRoot}
+              initialSearch={searchQuery}
+              alertMessage={alertMessage}
+              onAlertClick={onAlertClick}
+              onSearchChange={onSearchChange}
+            />
+          ) : (
+            <Container height="100%" width="100%">
+              <AppSizeTreemap
+                root={root}
+                searchQuery={searchQuery}
+                alertMessage={alertMessage}
+                onAlertClick={onAlertClick}
+              />
+            </Container>
+          ),
+        });
+      },
+    });
+  }
+
   return (
     <Flex direction="column" gap="sm" height="100%" width="100%">
       {alertMessage && (
         <ClickableAlert
-          type="warning"
+          variant="warning"
           onClick={onAlertClick}
           style={{cursor: onAlertClick ? 'pointer' : 'default'}}
         >
@@ -362,54 +407,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
           tooltip={tooltip}
           onChartReady={handleChartReady}
         />
-        <ButtonContainer
-          direction="row"
-          position="absolute"
-          onMouseDown={e => e.stopPropagation()}
-        >
-          <Button
-            size="xs"
-            aria-label={t('Recenter View')}
-            title={t('Recenter')}
-            borderless
-            icon={<IconContract />}
-            onClick={handleRecenter}
-            disabled={!isZoomed}
-          />
-          {!isFullscreen && (
-            <Button
-              size="xs"
-              aria-label={t('Open Full-Screen View')}
-              title={t('Fullscreen')}
-              borderless
-              icon={<IconExpand />}
-              onClick={() => {
-                openInsightChartModal({
-                  title: t('Size Analysis'),
-                  fullscreen: true,
-                  children: unfilteredRoot ? (
-                    <FullscreenModalContent
-                      unfilteredRoot={unfilteredRoot}
-                      initialSearch={searchQuery}
-                      alertMessage={alertMessage}
-                      onAlertClick={onAlertClick}
-                      onSearchChange={onSearchChange}
-                    />
-                  ) : (
-                    <Container height="100%" width="100%">
-                      <AppSizeTreemap
-                        root={root}
-                        searchQuery={searchQuery}
-                        alertMessage={alertMessage}
-                        onAlertClick={onAlertClick}
-                      />
-                    </Container>
-                  ),
-                });
-              }}
-            />
-          )}
-        </ButtonContainer>
+        <TreemapControlButtons buttons={treemapControlButtons} />
       </Container>
     </Flex>
   );
@@ -418,33 +416,5 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
 const ClickableAlert = styled(Alert)`
   &:hover {
     opacity: ${p => (p.onClick ? 0.9 : 1)};
-  }
-`;
-
-const ButtonContainer = styled(Flex)`
-  top: 0px;
-  right: 0;
-  height: 20px;
-  align-items: center;
-  gap: ${space(0.5)};
-  z-index: 10;
-
-  button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: ${p => p.theme.white};
-    height: 22px;
-    min-height: 20px;
-    max-height: 20px;
-    padding: 0 ${space(0.5)};
-    background: rgba(0, 0, 0, 0.8);
-    border-radius: ${p => p.theme.radius.md};
-    box-shadow: ${p => p.theme.dropShadowMedium};
-
-    &:hover {
-      color: ${p => p.theme.white};
-      background: rgba(0, 0, 0, 0.9);
-    }
   }
 `;

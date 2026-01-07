@@ -267,7 +267,7 @@ function WidgetBuilderSlideout({
               {isTransactionsWidget && showTransactionsDeprecationAlert && (
                 <Section>
                   <Alert
-                    type="warning"
+                    variant="warning"
                     trailingItems={
                       <StyledCloseButton
                         icon={<IconClose size="sm" />}
@@ -485,7 +485,7 @@ const CloseButton = styled(Button)`
   color: ${p => p.theme.subText};
   height: fit-content;
   &:hover {
-    color: ${p => p.theme.gray400};
+    color: ${p => p.theme.colors.gray500};
   }
   z-index: 100;
 `;

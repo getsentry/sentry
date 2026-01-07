@@ -1,9 +1,9 @@
 import {css} from '@emotion/react';
+import styled from '@emotion/styled';
 
-import {DO_NOT_USE_getChonkButtonStyles} from 'sentry/components/core/button/styles.chonk';
+import {DO_NOT_USE_getButtonStyles} from 'sentry/components/core/button/styles';
 import {space} from 'sentry/styles/space';
 import type {FormSize, Theme} from 'sentry/utils/theme';
-import {chonkStyled} from 'sentry/utils/theme/theme';
 
 export type Priority = 'default' | 'primary';
 
@@ -18,7 +18,7 @@ const getChildTransforms = (count: number) => {
   );
 };
 
-export const ChonkStyledGroupWrap = chonkStyled('div')<{
+export const ChonkStyledGroupWrap = styled('div')<{
   listSize: number;
   priority: Priority;
   size: FormSize;
@@ -56,7 +56,7 @@ const segmentedWrapPadding = {
   xs: '6px 8px 6px 8px',
 } as const;
 
-export const ChonkStyledSegmentWrap = chonkStyled('label')<{
+export const ChonkStyledSegmentWrap = styled('label')<{
   isSelected: boolean;
   priority: Priority;
   size: FormSize;
@@ -72,9 +72,15 @@ export const ChonkStyledSegmentWrap = chonkStyled('label')<{
   z-index: ${p => (p.isSelected ? 1 : undefined)};
 
   padding: ${p => segmentedWrapPadding[p.size]};
-  font-weight: ${p => p.theme.font.weight.regular};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 
-  ${p => ({...DO_NOT_USE_getChonkButtonStyles({...p, disabled: p.isDisabled, priority: p.isSelected && p.priority === 'primary' ? 'primary' : 'default'})})}
+  ${p => ({
+    ...DO_NOT_USE_getButtonStyles({
+      ...p,
+      disabled: p.isDisabled,
+      priority: p.isSelected && p.priority === 'primary' ? 'primary' : 'default',
+    }),
+  })}
 
   &:has(input:focus-visible) {
     ${p => p.theme.focusRing()};
@@ -91,10 +97,10 @@ export const ChonkStyledSegmentWrap = chonkStyled('label')<{
   }
 `;
 
-export const ChonkStyledVisibleLabel = chonkStyled('span')`
+export const ChonkStyledVisibleLabel = styled('span')`
   ${p => p.theme.overflowEllipsis}
   user-select: none;
-  font-weight: ${p => p.theme.font.weight.medium};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   text-align: center;
 `;
 
@@ -115,7 +121,7 @@ function getTextColor({
   return theme.subText;
 }
 
-export const ChonkStyledLabelWrap = chonkStyled('span')<{
+export const ChonkStyledLabelWrap = styled('span')<{
   isSelected: boolean;
   priority: Priority;
   size: FormSize;

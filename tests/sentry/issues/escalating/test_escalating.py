@@ -7,11 +7,17 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
+    TraceItemColumnValues,
+    TraceItemTableResponse,
+)
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeValue
 
 from sentry.issues.escalating.escalating import (
     GroupsCountResponse,
     _start_and_end_dates,
-    get_group_hourly_count,
+    get_group_hourly_count_eap,
+    get_group_hourly_count_snuba,
     is_escalating,
     query_groups_past_counts,
 )
@@ -19,6 +25,7 @@ from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupFo
 from sentry.issues.grouptype import GroupCategory, ProfileFileIOGroupType
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import GroupInbox
+from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.sentry_metrics.client.snuba import build_mri
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -306,7 +313,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         assert group is not None
 
         # Events are aggregated in the hourly count query by date rather than the last 24hrs
-        assert get_group_hourly_count(group) == 1
+        assert get_group_hourly_count_snuba(group) == 1
 
     @freeze_time(TIME_YESTERDAY)
     def test_is_forecast_out_of_range(self) -> None:
@@ -354,3 +361,91 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
 
         # Test cache
         assert cache.get(f"hourly-group-count:{archived_group.project.id}:{archived_group.id}") == 6
+
+
+class TestGetGroupHourlyCountEAP(TestCase):
+    @patch("sentry.snuba.rpc_dataset_common.snuba_rpc.table_rpc")
+    def test_returns_count_from_eap(self, mock_table_rpc: mock.MagicMock) -> None:
+        group = self.create_group()
+
+        mock_response = TraceItemTableResponse(
+            column_values=[
+                TraceItemColumnValues(
+                    attribute_name="count()",
+                    results=[AttributeValue(val_double=42.0)],
+                )
+            ]
+        )
+        mock_table_rpc.return_value = [mock_response]
+
+        result = get_group_hourly_count_eap(group)
+
+        assert result == 42
+        mock_table_rpc.assert_called_once()
+
+    @patch("sentry.snuba.rpc_dataset_common.snuba_rpc.table_rpc")
+    def test_returns_zero_on_empty_column_values(self, mock_table_rpc: mock.MagicMock) -> None:
+        group = self.create_group()
+
+        mock_response = TraceItemTableResponse(column_values=[])
+        mock_table_rpc.return_value = [mock_response]
+
+        result = get_group_hourly_count_eap(group)
+
+        assert result == 0
+
+    @patch("sentry.snuba.rpc_dataset_common.snuba_rpc.table_rpc")
+    def test_returns_zero_on_exception(self, mock_table_rpc: mock.MagicMock) -> None:
+        group = self.create_group()
+        mock_table_rpc.side_effect = Exception("RPC failed")
+
+        result = get_group_hourly_count_eap(group)
+
+        assert result == 0
+
+    @patch("sentry.issues.escalating.escalating.EscalatingGroupForecast.fetch_todays_forecast")
+    @patch("sentry.issues.escalating.escalating.get_group_hourly_count_eap")
+    @patch("sentry.issues.escalating.escalating.get_group_hourly_count_snuba")
+    def test_uses_snuba_count_as_source_of_truth(
+        self, mock_snuba: mock.MagicMock, mock_eap: mock.MagicMock, mock_forecast: mock.MagicMock
+    ) -> None:
+        group = self.create_group()
+
+        mock_snuba.return_value = 100
+        mock_eap.return_value = 5
+        mock_forecast.return_value = 50
+
+        with self.options({EAPOccurrencesComparator._should_eval_option_name(): True}):
+            result = is_escalating(group)
+
+        # Should escalate because Snuba count (100) > forecast (50)
+        assert result == (True, 50)
+        mock_snuba.assert_called_once_with(group)
+        mock_eap.assert_called_once_with(group)
+
+    @patch("sentry.issues.escalating.escalating.EscalatingGroupForecast.fetch_todays_forecast")
+    @patch("sentry.issues.escalating.escalating.get_group_hourly_count_eap")
+    @patch("sentry.issues.escalating.escalating.get_group_hourly_count_snuba")
+    def test_uses_eap_count_as_source_of_truth(
+        self, mock_snuba: mock.MagicMock, mock_eap: mock.MagicMock, mock_forecast: mock.MagicMock
+    ) -> None:
+        group = self.create_group()
+
+        mock_snuba.return_value = 100
+        mock_eap.return_value = 5
+        mock_forecast.return_value = 50
+
+        with self.options(
+            {
+                EAPOccurrencesComparator._should_eval_option_name(): True,
+                EAPOccurrencesComparator._callsite_allowlist_option_name(): [
+                    "issues.escalating.is_escalating"
+                ],
+            }
+        ):
+            result = is_escalating(group)
+
+        # Shouldn't escalate because EAP count (5) < forecast (50)
+        assert result == (False, None)
+        mock_snuba.assert_called_once_with(group)
+        mock_eap.assert_called_once_with(group)

@@ -36,6 +36,7 @@ import {
 } from 'sentry/components/events/contexts/platformContext/utils';
 import {userContextToActor} from 'sentry/components/events/interfaces/utils';
 import StructuredEventData from 'sentry/components/structuredEventData';
+import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -318,7 +319,6 @@ export function getContextIcon({
   type,
   value = {},
   contextIconProps = {},
-  theme,
 }: {
   alias: string;
   theme: Theme;
@@ -349,7 +349,7 @@ export function getContextIcon({
       break;
     case 'user': {
       const user = userContextToActor(value);
-      const iconSize = theme.iconSizes[contextIconProps?.size ?? 'xl'];
+      const iconSize = SvgIcon.ICON_SIZES[contextIconProps?.size ?? 'xl'];
       return <UserAvatar user={user} size={parseInt(iconSize, 10)} gravatar={false} />;
     }
     case 'gpu':

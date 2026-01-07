@@ -8,8 +8,6 @@ import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {chonkStyled} from 'sentry/utils/theme/theme';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {
@@ -95,10 +93,8 @@ export function Sidebar() {
 const SidebarWrapper = styled('div')<{tourIsActive: boolean}>`
   width: ${PRIMARY_SIDEBAR_WIDTH}px;
   padding: ${space(1.5)} 0 ${space(1)} 0;
-  border-right: 1px solid
-    ${p => (p.theme.isChonk ? p.theme.border : p.theme.translucentGray200)};
-  background: ${p =>
-    p.theme.isChonk ? p.theme.tokens.background.primary : p.theme.surface300};
+  border-right: 1px solid ${p => p.theme.border};
+  background: ${p => p.theme.tokens.background.primary};
   display: flex;
   flex-direction: column;
 
@@ -114,7 +110,7 @@ const CollapsedSecondaryWrapper = styled(motion.div)`
   top: 0;
   left: ${PRIMARY_SIDEBAR_WIDTH}px;
   height: 100%;
-  box-shadow: ${p => (p.theme.isChonk ? 'none' : p.theme.dropShadowHeavy)};
+  box-shadow: none;
   background: ${p => p.theme.tokens.background.primary};
 `;
 
@@ -127,16 +123,7 @@ const SidebarHeader = styled('header')<{isSuperuser: boolean}>`
   margin-bottom: ${space(0.5)};
 `;
 
-const SuperuserBadgeContainer = styled('div')`
-  position: absolute;
-  top: -8px;
-  left: 2px;
-  right: 2px;
-  font-size: 12px;
-  margin: 0;
-`;
-
-const ChonkSuperuserBadgeContainer = chonkStyled('div')`
+const SuperuserBadge = styled('div')`
   position: absolute;
   top: -${p => p.theme.space.lg};
   z-index: ${p => p.theme.zIndex.initial};
@@ -144,5 +131,3 @@ const ChonkSuperuserBadgeContainer = chonkStyled('div')`
   width: ${PRIMARY_SIDEBAR_WIDTH}px;
   background: ${p => p.theme.colors.chonk.red400};
 `;
-
-const SuperuserBadge = withChonk(SuperuserBadgeContainer, ChonkSuperuserBadgeContainer);

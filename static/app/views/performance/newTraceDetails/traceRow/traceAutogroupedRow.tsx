@@ -1,11 +1,8 @@
 import {t} from 'sentry/locale';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
-import type {ParentAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/parentAutogroupNode';
-import type {SiblingAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/siblingAutogroupNode';
-import {
-  AutogroupedTraceBar,
-  makeTraceNodeBarColor,
-} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
+import type {ParentAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/parentAutogroupNode';
+import type {SiblingAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/siblingAutogroupNode';
+import {AutogroupedTraceBar} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
 import {
   maybeFocusTraceRow,
   TRACE_COUNT_FORMATTER,
@@ -68,10 +65,9 @@ export function TraceAutogroupedRow(
           entire_space={props.node.space}
           errors={props.node.errors}
           virtualized_index={props.virtualized_index}
-          color={makeTraceNodeBarColor(props.theme, props.node)}
+          color={props.node.makeBarColor(props.theme)}
           node_spaces={props.node.autogroupedSegments}
           occurrences={props.node.occurrences}
-          profiles={props.node.profiles}
         />
         <button
           ref={props.registerSpanArrowRef}

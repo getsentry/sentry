@@ -8,7 +8,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import LegacyCreditCardSetup from 'getsentry/components/creditCardEdit/legacySetup';
 import StripeCreditCardSetup from 'getsentry/components/creditCardEdit/stripeSetup';
 import type {FTCConsentLocation, Subscription} from 'getsentry/types';
-import {hasNewBillingUI, hasStripeComponentsFeature} from 'getsentry/utils/billing';
+import {hasStripeComponentsFeature} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics, {
   type GetsentryEventKey,
 } from 'getsentry/utils/trackGetsentryAnalytics';
@@ -39,7 +39,6 @@ function CreditCardSetup({
   isModal,
 }: CreditCardSetupProps) {
   const shouldUseStripe = hasStripeComponentsFeature(organization);
-  const isNewBillingUI = hasNewBillingUI(organization);
 
   const commonProps = {
     organization,
@@ -54,7 +53,7 @@ function CreditCardSetup({
       <Fragment>
         {referrer?.includes('billing-failure') && (
           <Alert.Container>
-            <Alert type="warning" showIcon={false}>
+            <Alert variant="warning" showIcon={false}>
               {t('Your credit card will be charged upon update.')}
             </Alert>
           </Alert.Container>
@@ -68,7 +67,7 @@ function CreditCardSetup({
                 organization,
                 referrer: decodeScalar(referrer),
                 isStripeComponent: true,
-                isNewBillingUI,
+                isNewBillingUI: true,
               });
             }
           }}
@@ -91,7 +90,7 @@ function CreditCardSetup({
             organization,
             referrer: decodeScalar(referrer),
             isStripeComponent: false,
-            isNewBillingUI,
+            isNewBillingUI: true,
           });
         }
       }}

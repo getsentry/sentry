@@ -87,7 +87,8 @@ from sentry.seer.explorer.on_completion_hook import call_on_completion_hook
 from sentry.seer.explorer.tools import (
     execute_table_query,
     execute_timeseries_query,
-    get_issue_and_event_details,
+    execute_trace_table_query,
+    get_baseline_tag_distribution,
     get_issue_and_event_details_v2,
     get_log_attributes_for_trace,
     get_metric_attributes_for_trace,
@@ -372,9 +373,7 @@ def get_attributes_and_values(
     """
     Fetches all string attributes and the corresponding values with counts for a given period.
     """
-    stats_period, start, end = validate_date_params(
-        stats_period, start, end, default_stats_period="7d"
-    )
+    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     if stats_period:
         period = parse_stats_period(stats_period) or datetime.timedelta(days=7)
@@ -1017,7 +1016,6 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_spans": get_spans,
     "get_issue_filter_keys": get_issue_filter_keys,
     "get_filter_key_values": get_filter_key_values,
-    "execute_issues_query": execute_issues_query,
     "get_issues_stats": get_issues_stats,
     "get_event_filter_keys": get_event_filter_keys,
     "get_event_filter_key_values": get_event_filter_key_values,
@@ -1028,17 +1026,19 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_profiles_for_trace": rpc_get_profiles_for_trace,
     "get_issues_for_transaction": rpc_get_issues_for_transaction,
     "get_trace_waterfall": rpc_get_trace_waterfall,
-    "get_issue_and_event_details": get_issue_and_event_details,
     "get_issue_and_event_details_v2": get_issue_and_event_details_v2,
     "get_profile_flamegraph": rpc_get_profile_flamegraph,
     "execute_table_query": execute_table_query,
     "execute_timeseries_query": execute_timeseries_query,
+    "execute_trace_table_query": execute_trace_table_query,
+    "execute_issues_query": execute_issues_query,
     "get_trace_item_attributes": get_trace_item_attributes,
     "get_repository_definition": get_repository_definition,
     "call_custom_tool": call_custom_tool,
     "call_on_completion_hook": call_on_completion_hook,
     "get_log_attributes_for_trace": get_log_attributes_for_trace,
     "get_metric_attributes_for_trace": get_metric_attributes_for_trace,
+    "get_baseline_tag_distribution": get_baseline_tag_distribution,
     #
     # Replays
     "get_replay_summary_logs": rpc_get_replay_summary_logs,

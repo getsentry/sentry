@@ -90,7 +90,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             # Check for code changes
             if block.file_patches:
                 webhook_action_type = SeerActionType.CODING_COMPLETED
-                patches_by_repo = state.get_file_patches_by_repo()
+                diffs_by_repo = state.get_diffs_by_repo()
                 webhook_payload["code_changes"] = {
                     repo: [
                         {
@@ -101,7 +101,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                         }
                         for p in patches
                     ]
-                    for repo, patches in patches_by_repo.items()
+                    for repo, patches in diffs_by_repo.items()
                 }
                 break
 

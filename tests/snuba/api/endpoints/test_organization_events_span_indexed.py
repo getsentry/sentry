@@ -11,7 +11,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 from sentry.insights.models import InsightsStarredSegment
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
-from sentry.utils.snuba_rpc import _make_rpc_requests
+from sentry.utils.snuba_rpc import _make_rpc_requests, table_rpc
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 # Downsampling is deterministic, so unless the algorithm changes we can find a known id that will appear in the
@@ -6975,3 +6975,52 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert returned_ids == {span1["span_id"], span2["span_id"]}
 
         assert span3["span_id"] not in returned_ids
+
+    def test_no_project_sent_spans(self):
+        project1 = self.create_project(flags=0)
+        project2 = self.create_project(flags=0)
+
+        request = {
+            "field": ["timestamp", "span.description"],
+            "project": [project1.id, project2.id],
+            "dataset": "spans",
+            "sort": "-timestamp",
+            "statsPeriod": "1h",
+        }
+
+        response = self.do_request(request)
+        assert response.status_code == 200
+        assert response.data["data"] == []
+
+    @mock.patch("sentry.utils.snuba_rpc.table_rpc", wraps=table_rpc)
+    def test_sent_spans_project_optimization(self, mock_table_rpc):
+        project1 = self.create_project(flags=0)
+        project2 = self.create_project(flags=0)
+
+        spans = [
+            self.create_span({"description": "foo"}, project=project1, start_ts=self.ten_mins_ago),
+        ]
+        self.store_spans(spans, is_eap=True)
+
+        response = self.do_request(
+            {
+                "field": [
+                    "timestamp",
+                    "span.description",
+                ],
+                "dataset": "spans",
+                "project": [project1.id, project2.id],
+            }
+        )
+        assert response.status_code == 200
+        assert response.data["data"] == [
+            {
+                "id": mock.ANY,
+                "timestamp": mock.ANY,
+                "span.description": "foo",
+                "project.name": project1.slug,
+            }
+        ]
+
+        mock_table_rpc.assert_called_once()
+        assert mock_table_rpc.call_args.args[0][0].meta.project_ids == [project1.id]

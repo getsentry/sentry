@@ -66,9 +66,9 @@ describe('BreadcrumbsDrawer', () => {
       expect(within(drawerScreen).getByText(level)).toBeInTheDocument();
       expect(within(drawerScreen).getByText(message)).toBeInTheDocument();
     }
-    expect(within(drawerScreen).getAllByText('06:00:48.760 PM')).toHaveLength(
-      MOCK_BREADCRUMBS.length
-    );
+    expect(
+      within(drawerScreen).getAllByText('May 21, 2019 6:00:48.760 PM UTC')
+    ).toHaveLength(MOCK_BREADCRUMBS.length);
   });
 
   it('allows search to affect displayed crumbs', async () => {
@@ -158,9 +158,9 @@ describe('BreadcrumbsDrawer', () => {
 
   it('allows time display dropdown to change all displayed crumbs', async () => {
     const drawerScreen = await renderBreadcrumbDrawer();
-    expect(within(drawerScreen).getAllByText('06:00:48.760 PM')).toHaveLength(
-      MOCK_BREADCRUMBS.length
-    );
+    expect(
+      within(drawerScreen).getAllByText('May 21, 2019 6:00:48.760 PM UTC')
+    ).toHaveLength(MOCK_BREADCRUMBS.length);
     expect(within(drawerScreen).queryByText('-1min 2ms')).not.toBeInTheDocument();
     const timeControl = within(drawerScreen).getByRole('button', {
       name: 'Change Time Format for All Breadcrumbs',
@@ -168,7 +168,9 @@ describe('BreadcrumbsDrawer', () => {
     await userEvent.click(timeControl);
     await userEvent.click(within(drawerScreen).getByRole('option', {name: 'Relative'}));
 
-    expect(within(drawerScreen).queryByText('06:00:48.760 PM')).not.toBeInTheDocument();
+    expect(
+      within(drawerScreen).queryByText('May 21, 2019 6:00:48.760 PM UTC')
+    ).not.toBeInTheDocument();
     expect(within(drawerScreen).getAllByText('-1min 2ms')).toHaveLength(
       MOCK_BREADCRUMBS.length
     );
@@ -176,9 +178,9 @@ describe('BreadcrumbsDrawer', () => {
     await userEvent.click(timeControl);
     await userEvent.click(within(drawerScreen).getByRole('option', {name: 'Absolute'}));
 
-    expect(within(drawerScreen).getAllByText('06:00:48.760 PM')).toHaveLength(
-      MOCK_BREADCRUMBS.length
-    );
+    expect(
+      within(drawerScreen).getAllByText('May 21, 2019 6:00:48.760 PM UTC')
+    ).toHaveLength(MOCK_BREADCRUMBS.length);
     expect(within(drawerScreen).queryByText('-1min 2ms')).not.toBeInTheDocument();
   });
 });

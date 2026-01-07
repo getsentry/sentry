@@ -11,7 +11,7 @@ interface Props extends ComponentProps<typeof FluidHeight> {
 const FeedbackErrorDetails = styled(({error, ...props}: Props) => (
   <FluidHeight {...props}>
     <Alert.Container>
-      <Alert type="error">{error}</Alert>
+      <Alert variant="danger">{error}</Alert>
     </Alert.Container>
   </FluidHeight>
 ))`

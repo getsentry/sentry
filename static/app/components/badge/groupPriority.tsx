@@ -1,5 +1,4 @@
 import {Fragment, useMemo} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 
@@ -99,7 +98,7 @@ export function GroupPriorityBadge({
   const label = PRIORITY_KEY_TO_LABEL[priority] ?? t('Unknown');
 
   return (
-    <StyledTag type="default" icon={<IconCellSignal bars={bars} />}>
+    <StyledTag variant="muted" icon={<IconCellSignal bars={bars} />}>
       {showLabel ? label : <VisuallyHidden>{label}</VisuallyHidden>}
       {children}
     </StyledTag>
@@ -212,7 +211,7 @@ export function GroupPriorityDropdown({
           }
         >
           <GroupPriorityBadge showLabel={false} priority={value}>
-            <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" color="subText" />
+            <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" variant="muted" />
           </GroupPriorityBadge>
         </DropdownButton>
       )}
@@ -248,14 +247,9 @@ const DropdownButton = styled(Button)`
   border-radius: 20px;
   box-shadow: none;
 
-  ${p =>
-    // Chonk tags have a smaller border radius, so we need make sure it matches.
-    p.theme.isChonk &&
-    css`
-      > span > div {
-        border-radius: 20px;
-      }
-    `}
+  > span > div {
+    border-radius: 20px;
+  }
 `;
 
 const StyledTag = styled(Tag)`
