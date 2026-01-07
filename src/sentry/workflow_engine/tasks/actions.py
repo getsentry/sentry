@@ -91,7 +91,7 @@ def trigger_action(
     import uuid
 
     from sentry.notifications.notification_action.utils import should_fire_workflow_actions
-    from sentry.workflow_engine.processors.detector import get_preferred_detector
+    from sentry.workflow_engine.processors.detector import get_detector_from_event_data
 
     # Generate UUID if not provided (handles version skew at task boundary)
     if notification_uuid is None:
@@ -129,7 +129,7 @@ def trigger_action(
         )
         raise ValueError("Exactly one of event_id or activity_id must be provided")
 
-    detector = get_preferred_detector(event_data)
+    detector = get_detector_from_event_data(event_data)
 
     metrics.incr(
         "workflow_engine.tasks.trigger_action_task_started",
