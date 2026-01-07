@@ -105,7 +105,6 @@ const settingsRoutes = (): SentryRouteObject => ({
       path: 'subscription/redeem-code/',
       name: 'Redeem Promotional Code',
       component: make(() => import('../views/redeemPromoCode')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'legal/',
