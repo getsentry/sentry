@@ -442,7 +442,7 @@ const TOCContainer = styled('nav')`
   }
   a {
     text-decoration: none;
-    color: ${p => p.theme.linkColor};
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
     &:hover {
       text-decoration: underline;
     }

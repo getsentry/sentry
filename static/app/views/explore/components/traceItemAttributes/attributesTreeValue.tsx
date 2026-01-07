@@ -74,7 +74,7 @@ export function AttributesTreeValue<RendererExtra extends RenderFunctionBaggage>
 }
 
 const AttributeLinkText = styled('span')`
-  color: ${p => p.theme.linkColor};
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
   text-decoration: ${p => p.theme.linkUnderline} underline dotted;
   margin: 0;
   &:hover,
