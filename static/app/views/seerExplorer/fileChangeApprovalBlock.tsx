@@ -100,7 +100,9 @@ const Block = styled('div')<{isFocused?: boolean; isLast?: boolean}>`
   flex-shrink: 0;
   cursor: pointer;
   background: ${p =>
-    p.isFocused ? p.theme.tokens.background.transparent.neutral.muted : 'transparent'};
+    p.isFocused
+      ? p.theme.tokens.interactive.transparent.neutral.background.active
+      : 'transparent'};
 `;
 
 const BlockContentWrapper = styled('div')`

@@ -465,7 +465,9 @@ const MenuItem = styled('div')<{isSelected: boolean}>`
   padding: ${p => p.theme.space.md};
   cursor: pointer;
   background: ${p =>
-    p.isSelected ? p.theme.tokens.background.transparent.neutral.muted : 'transparent'};
+    p.isSelected
+      ? p.theme.tokens.interactive.transparent.neutral.background.active
+      : 'transparent'};
   border-bottom: 1px solid ${p => p.theme.border};
 
   &:last-child {
@@ -473,7 +475,7 @@ const MenuItem = styled('div')<{isSelected: boolean}>`
   }
 
   &:hover {
-    background: ${p => p.theme.tokens.background.transparent.neutral.muted};
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 `;
 

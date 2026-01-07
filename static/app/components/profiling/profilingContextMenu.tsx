@@ -37,11 +37,13 @@ const MenuContentContainer = styled('div')`
   border-radius: ${p => p.theme.radius.md};
   box-sizing: border-box;
   background: ${p =>
-    p.tabIndex === 0 ? p.theme.tokens.background.transparent.neutral.muted : undefined};
+    p.tabIndex === 0
+      ? p.theme.tokens.interactive.transparent.neutral.background.active
+      : undefined};
 
   &:focus {
     color: ${p => p.theme.tokens.content.primary};
-    background: ${p => p.theme.tokens.background.transparent.neutral.muted};
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
     outline: none;
   }
 `;
@@ -118,14 +120,14 @@ const MenuButton = styled('button')`
   box-sizing: border-box;
   background: ${p =>
     p.tabIndex === 0
-      ? p.theme.tokens.background.transparent.neutral.muted
+      ? p.theme.tokens.interactive.transparent.neutral.background.active
       : 'transparent'} !important;
   pointer-events: ${p => (p.disabled ? 'none' : undefined)};
   opacity: ${p => (p.disabled ? 0.7 : undefined)};
 
   &:focus {
     color: ${p => p.theme.tokens.content.primary};
-    background: ${p => p.theme.tokens.background.transparent.neutral.muted};
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
     outline: none;
   }
 

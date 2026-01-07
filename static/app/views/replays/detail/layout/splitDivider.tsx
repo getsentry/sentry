@@ -24,11 +24,11 @@ const SplitDivider = styled((props: Props & DOMAttributes<HTMLDivElement>) => (
   user-select: inherit;
   background: inherit;
 
-  &:hover,
-  &[data-is-held='true'] {
-    background: ${p => p.theme.tokens.background.transparent.neutral.muted};
+  &:hover {
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
   &[data-is-held='true'] {
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
     user-select: none;
   }
 

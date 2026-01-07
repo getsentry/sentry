@@ -218,7 +218,7 @@ const getStylesConfig = ({
         : {
             '&:hover': {
               cursor: 'pointer',
-              background: theme.tokens.background.transparent.neutral.muted,
+              background: theme.tokens.interactive.transparent.neutral.background.hover,
             },
           }),
     }),
