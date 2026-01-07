@@ -6,7 +6,6 @@ import {Container} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import ApiForm from 'sentry/components/forms/apiForm';
 import TextField from 'sentry/components/forms/fields/textField';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -18,21 +17,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import SubscriptionContext from 'getsentry/components/subscriptionContext';
-import useSubscription from 'getsentry/hooks/useSubscription';
+import withSubscription from 'getsentry/components/withSubscription';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {Subscription} from 'getsentry/types';
 import {isDisabledByPartner} from 'getsentry/utils/partnerships';
 import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 import PartnershipNote from 'getsentry/views/subscriptionPage/partnershipNote';
-
-export default function RedeemPromoCodeLoader() {
-  // Wrapper to allow useRouteAnalyticsParams to be used within the component
-  const subscription = useSubscription();
-  if (!subscription) {
-    return <LoadingIndicator />;
-  }
-  return <RedeemPromoCode subscription={subscription} />;
-}
 
 function RedeemPromoCode({subscription}: {subscription: Subscription}) {
   const api = useApi();
@@ -109,6 +99,8 @@ function RedeemPromoCode({subscription}: {subscription: Subscription}) {
     </SubscriptionPageContainer>
   );
 }
+
+export default withSubscription(RedeemPromoCode);
 
 const AccountCreditWrapper = styled('div')`
   width: 100%;
