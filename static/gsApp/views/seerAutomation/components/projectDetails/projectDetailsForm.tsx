@@ -60,9 +60,9 @@ export default function ProjectDetailsForm({canWrite, project, preference}: Prop
               },
               {
                 name: 'automated_run_stopping_point',
-                label: t('Allow PR Creation'),
+                label: t('Allow PR Auto Creation'),
                 help: t(
-                  'Seer will be able to make a pull requests for highly actionable issues.'
+                  'Seer will be able to automatically make a pull requests for highly actionable issues.'
                 ),
                 type: 'boolean',
                 setValue: (
@@ -72,8 +72,17 @@ export default function ProjectDetailsForm({canWrite, project, preference}: Prop
                   value: boolean
                 ): ProjectSeerPreferences['automated_run_stopping_point'] =>
                   value ? 'open_pr' : 'code_changes',
-                disabled: () => Boolean(preference?.automation_handoff),
-                disabledReason: () => {
+                disabled: ({model}) => {
+                  const autofixTuning = model?.getValue('autofixAutomationTuning');
+                  const isAutofixOff = !autofixTuning || autofixTuning === 'off';
+                  return isAutofixOff || Boolean(preference?.automation_handoff);
+                },
+                disabledReason: ({model}) => {
+                  const autofixTuning = model?.getValue('autofixAutomationTuning');
+                  const isAutofixOff = !autofixTuning || autofixTuning === 'off';
+                  if (isAutofixOff) {
+                    return t('Turn on Auto-Triggered Fixes to use this feature.');
+                  }
                   if (preference?.automation_handoff) {
                     return t(
                       'This setting is not available when using background agents.'
