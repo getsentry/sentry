@@ -57,7 +57,7 @@ class OrganizationPullRequestSizeAnalysisDownloadEndpointTest(TestCase):
         response = self.client.get(url)
 
         assert response.status_code == 403
-        assert response.json()["error"] == "Feature not enabled"
+        assert response.json()["detail"] == "Feature not enabled"
 
     def test_size_analysis_download_artifact_not_found(self) -> None:
         with self.feature("organizations:pr-page"):
@@ -108,7 +108,7 @@ class OrganizationPullRequestSizeAnalysisDownloadEndpointTest(TestCase):
 
             assert response.status_code == 404
             assert (
-                response.json()["error"] == "Size analysis results not available for this artifact"
+                response.json()["detail"] == "Size analysis results not available for this artifact"
             )
 
     def test_size_analysis_download_multiple_size_metrics_same_file(self) -> None:
@@ -146,7 +146,8 @@ class OrganizationPullRequestSizeAnalysisDownloadEndpointTest(TestCase):
 
             assert response.status_code == 409
             assert (
-                response.json()["error"] == "Multiple size analysis results found for this artifact"
+                response.json()["detail"]
+                == "Multiple size analysis results found for this artifact"
             )
 
     def test_size_analysis_download_no_analysis_file(self) -> None:
@@ -168,4 +169,6 @@ class OrganizationPullRequestSizeAnalysisDownloadEndpointTest(TestCase):
             response = self.client.get(url)
 
             assert response.status_code == 500
-            assert response.json()["error"] == "Size analysis completed but results are unavailable"
+            assert (
+                response.json()["detail"] == "Size analysis completed but results are unavailable"
+            )

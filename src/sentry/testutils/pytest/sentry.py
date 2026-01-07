@@ -283,14 +283,20 @@ def pytest_configure(config: pytest.Config) -> None:
     asset_version_patcher.start()
     from sentry.runner.initializer import initialize_app
 
-    initialize_app({"settings": settings, "options": None})
+    SENTRY_SKIP_SERVICE_VALIDATION = "SENTRY_SKIP_SERVICE_VALIDATION" in os.environ
+
+    initialize_app(
+        {"settings": settings, "options": None},
+        skip_service_validation=SENTRY_SKIP_SERVICE_VALIDATION,
+    )
     sentry_sdk.get_global_scope().set_client(None)
     register_extensions()
 
-    from sentry.utils.redis import clusters
+    if not SENTRY_SKIP_SERVICE_VALIDATION:
+        from sentry.utils.redis import clusters
 
-    with clusters.get("default").all() as client:
-        client.flushdb()
+        with clusters.get("default").all() as client:
+            client.flushdb()
 
 
 def register_extensions() -> None:

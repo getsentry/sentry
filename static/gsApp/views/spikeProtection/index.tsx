@@ -47,7 +47,7 @@ function SpikeProtectionRoot({organization, subscription}: Props) {
   );
 
   return (
-    <SubscriptionPageContainer background="secondary" organization={organization}>
+    <SubscriptionPageContainer background="secondary">
       <SentryDocumentTitle
         title={t('Spike Protection Settings')}
         orgSlug={organization.slug}

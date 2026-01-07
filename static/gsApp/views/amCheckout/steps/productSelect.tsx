@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -14,7 +13,6 @@ import {IconCheckmark, IconSeer, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import type {Color} from 'sentry/utils/theme';
 
 import {AddOnCategory} from 'getsentry/types';
 import {getReservedBudgetCategoryForAddOn} from 'getsentry/utils/billing';
@@ -55,7 +53,6 @@ function ProductSelect({
       subscription.addOns?.[addOnInfo.apiName]?.isAvailable ?? false
   );
 
-  const theme = useTheme();
   const billingInterval = utils.getShortInterval(activePlan.billingInterval);
 
   return (
@@ -194,7 +191,7 @@ function ProductSelect({
                             data-test-id={`product-option-feature-${category}`}
                           >
                             <IconContainer>
-                              <IconCheckmark color={theme.successText as Color} />
+                              <IconCheckmark variant="success" />
                             </IconContainer>
                             <Flex direction="column" gap="xs">
                               <Text size="md">

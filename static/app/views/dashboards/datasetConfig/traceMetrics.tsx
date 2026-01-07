@@ -10,7 +10,14 @@ import toArray from 'sentry/utils/array/toArray';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {parseFunction, type QueryFieldValue} from 'sentry/utils/discover/fields';
+import {
+  parseFunction,
+  RateUnit,
+  type AggregationOutputType,
+  type DataUnit,
+  type ParsedFunction,
+  type QueryFieldValue,
+} from 'sentry/utils/discover/fields';
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -35,6 +42,7 @@ import {useHasTraceMetricsDashboards} from 'sentry/views/dashboards/hooks/useHas
 import {DisplayType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
@@ -227,11 +235,24 @@ export const TraceMetricsConfig: DatasetConfig<
     );
   },
   getSeriesRequest,
-  transformTable: transformEventsResponseToTable,
-  transformSeries: (data, widgetQuery) => {
-    const multiYAxis = new Set(widgetQuery.aggregates ?? []).size > 1;
-    const hasGroupings = new Set(widgetQuery.columns).size > 0;
+  transformTable: (data, widgetQuery) => {
+    const transformedData = transformEventsResponseToTable(data, widgetQuery);
 
+    // Inject the rate units for per_second and per_minute functions explicitly
+    // because the response does not include these units
+    if (transformedData.meta?.units) {
+      Object.keys(transformedData.meta.units).forEach(key => {
+        const parsedFunction = parseFunction(key);
+        if (parsedFunction?.name === 'per_second') {
+          transformedData.meta!.units![key] = RateUnit.PER_SECOND;
+        } else if (parsedFunction?.name === 'per_minute') {
+          transformedData.meta!.units![key] = RateUnit.PER_MINUTE;
+        }
+      });
+    }
+    return transformedData;
+  },
+  transformSeries: (data, widgetQuery) => {
     return data.timeSeries.map(timeSeries => {
       // The function should always be defined when dealing with a successful
       // time series response
@@ -245,14 +266,11 @@ export const TraceMetricsConfig: DatasetConfig<
           value: value.value ?? 0,
         })),
 
-        // The series name needs to distinctively refer to the yAxis it belongs to
-        // when multiple yAxes and groupings are present, otherwise the response
-        // returns each series with its grouping but they overlap each other in the
-        // legend
-        seriesName:
-          multiYAxis && hasGroupings && func
-            ? `${formatTimeSeriesLabel(timeSeries)} : ${func.name}(…)`
-            : formatTimeSeriesLabel(timeSeries),
+        seriesName: formatMetricsTimeseriesLabel({
+          widgetQuery,
+          func,
+          timeSeries,
+        }),
       };
     });
   },
@@ -268,6 +286,49 @@ export const TraceMetricsConfig: DatasetConfig<
         },
         {} as Record<string, string>
       ) ?? {}
+    );
+  },
+  getSeriesResultType(data, widgetQuery) {
+    return data.timeSeries.reduce(
+      (acc, timeSeries) => {
+        const func = parseFunction(timeSeries.yAxis);
+        if (func) {
+          timeSeries.yAxis = `${func.name}(${func.arguments[0] ?? '…'})`;
+        }
+        const label = formatMetricsTimeseriesLabel({
+          widgetQuery,
+          func,
+          timeSeries,
+        });
+        acc[label] = timeSeries.meta.valueType as AggregationOutputType;
+        return acc;
+      },
+      {} as Record<string, AggregationOutputType>
+    );
+  },
+  getSeriesResultUnit: (data, widgetQuery) => {
+    return data.timeSeries.reduce(
+      (acc, timeSeries) => {
+        const func = parseFunction(timeSeries.yAxis);
+        if (func) {
+          timeSeries.yAxis = `${func.name}(${func.arguments[0] ?? '…'})`;
+        }
+        const label = formatMetricsTimeseriesLabel({
+          widgetQuery,
+          func,
+          timeSeries,
+        });
+
+        if (label.includes('per_second(')) {
+          acc[label] = RateUnit.PER_SECOND;
+        } else if (label.includes('per_minute(')) {
+          acc[label] = RateUnit.PER_MINUTE;
+        } else {
+          acc[label] = timeSeries.meta.valueUnit as DataUnit;
+        }
+        return acc;
+      },
+      {} as Record<string, DataUnit>
     );
   },
 };
@@ -405,4 +466,24 @@ function filterSeriesSortOptions(columns: Set<string>) {
 
     return columns.has(option.value.meta.name);
   };
+}
+
+function formatMetricsTimeseriesLabel({
+  widgetQuery,
+  func,
+  timeSeries,
+}: {
+  func: ParsedFunction | null;
+  timeSeries: TimeSeries;
+  widgetQuery: WidgetQuery;
+}): string {
+  const multiYAxis = new Set(widgetQuery.aggregates ?? []).size > 1;
+  const hasGroupings = new Set(widgetQuery.columns).size > 0;
+  // The series name needs to distinctively refer to the yAxis it belongs to
+  // when multiple yAxes and groupings are present, otherwise the response
+  // returns each series with its grouping but they overlap each other in the
+  // legend
+  return multiYAxis && hasGroupings && func
+    ? `${formatTimeSeriesLabel(timeSeries)} : ${func.name}(…)`
+    : formatTimeSeriesLabel(timeSeries);
 }

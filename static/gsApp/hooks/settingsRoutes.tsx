@@ -42,19 +42,16 @@ const settingsRoutes = (): SentryRouteObject => ({
           path: 'overview/',
           name: 'Overview',
           component: make(() => import('../views/subscriptionPage/overview')),
-          deprecatedRouteProps: true,
         },
         {
           path: 'usage/',
           name: 'Usage History',
           component: make(() => import('../views/subscriptionPage/usageHistory')),
-          deprecatedRouteProps: true,
         },
         {
           path: 'receipts/',
           name: 'Receipts',
           component: make(() => import('../views/subscriptionPage/paymentHistory')),
-          deprecatedRouteProps: true,
         },
         {
           path: 'notifications/',
@@ -116,7 +113,6 @@ const settingsRoutes = (): SentryRouteObject => ({
       path: 'legal/',
       name: 'Legal & Compliance',
       component: make(() => import('../views/legalAndCompliance/legalAndCompliance')),
-      deprecatedRouteProps: true,
     },
     {
       name: 'Support',

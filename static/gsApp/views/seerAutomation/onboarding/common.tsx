@@ -15,15 +15,6 @@ export const PanelDescription = styled('div')`
 export const StepContent = styled('div')`
   margin-top: ${p => p.theme.space.lg};
   margin-bottom: ${p => p.theme.space.xl};
-
-  p {
-    margin-bottom: ${p => p.theme.space.lg};
-    line-height: 1.6;
-  }
-
-  p:last-of-type {
-    margin-bottom: 0;
-  }
 `;
 
 export const ActionSection = styled('div')`
