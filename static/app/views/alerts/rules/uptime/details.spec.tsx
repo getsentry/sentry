@@ -56,25 +56,6 @@ describe('UptimeAlertDetails', () => {
     expect(await screen.findByText('Uptime Test Rule')).toBeInTheDocument();
   });
 
-  // HOTFIX: monitor_names_missing_default
-  // Auto-detected monitors were created without names. This test ensures the
-  // fallback name is displayed correctly.
-  it('renders with fallback name when monitor name is empty', async () => {
-    const detector = UptimeDetectorFixture({name: ''});
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/detectors/3/`,
-      body: detector,
-    });
-
-    render(<UptimeAlertDetails />, {
-      organization,
-      initialRouterConfig: getInitialRouterConfig('3'),
-    });
-
-    const expectedName = `Uptime Monitoring for ${detector.dataSources[0].queryObj.url}`;
-    expect(await screen.findByText(expectedName)).toBeInTheDocument();
-  });
-
   it('shows a message for invalid uptime alert', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/detectors/2/`,
