@@ -76,7 +76,7 @@ const headerRowWidgets: Widget[] = spaceWidgetsEquallyOnRow(
   {h: 1, minH: 1}
 );
 
-const ttidDeviceClassTableWidget: Widget = {
+const TTIDDeviceClassTableWidget: Widget = {
   id: 'ttid-device-class-table',
   title: 'TTID by Device Class',
   description: '',
@@ -100,7 +100,7 @@ const ttidDeviceClassTableWidget: Widget = {
   ],
 };
 
-const averageTtidLineWidget: Widget = {
+const averageTTIDLineWidget: Widget = {
   id: 'average-ttid-line',
   title: 'Average TTID',
   description: '',
@@ -143,11 +143,11 @@ const totalCountLineWidget: Widget = {
 };
 
 const secondRowWidgets: Widget[] = spaceWidgetsEquallyOnRow(
-  [ttidDeviceClassTableWidget, averageTtidLineWidget, totalCountLineWidget],
+  [TTIDDeviceClassTableWidget, averageTTIDLineWidget, totalCountLineWidget],
   1
 );
 
-const ttfdDeviceClassTableWidget: Widget = {
+const TTFDDeviceClassTableWidget: Widget = {
   id: 'ttfd-device-class-table',
   title: 'TTFD by Device Class',
   description: '',
@@ -171,7 +171,7 @@ const ttfdDeviceClassTableWidget: Widget = {
   ],
 };
 
-const averageTtfdLineWidget: Widget = {
+const averageTTFDLineWidget: Widget = {
   id: 'average-ttfd-line',
   title: 'Average TTFD',
   description: '',
@@ -193,7 +193,7 @@ const averageTtfdLineWidget: Widget = {
 };
 
 const thirdRowWidgets: Widget[] = spaceWidgetsEquallyOnRow(
-  [ttfdDeviceClassTableWidget, averageTtfdLineWidget],
+  [TTFDDeviceClassTableWidget, averageTTFDLineWidget],
   3,
   {h: 2, minH: 2}
 );
