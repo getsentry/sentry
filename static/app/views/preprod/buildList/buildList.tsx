@@ -1,6 +1,7 @@
 import {Flex} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
+import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
@@ -12,15 +13,15 @@ import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import {usePreprodBuildsAnalytics} from 'sentry/views/preprod/hooks/usePreprodBuildsAnalytics';
 import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
 
 export default function BuildList() {
   const organization = useOrganization();
-  const params = useParams<{projectId: string}>();
-  const projectId = params.projectId;
+  const location = useLocation();
+  const projectId = decodeScalar(location.query.project);
 
   const {cursor} = useLocationQuery({
     fields: {
@@ -67,6 +68,16 @@ export default function BuildList() {
     pageSource: 'preprod_builds_list',
     projectCount: 1,
   });
+
+  if (!projectId) {
+    return (
+      <Layout.Page>
+        <Alert type="error" showIcon>
+          {t('Project parameter required')}
+        </Alert>
+      </Layout.Page>
+    );
+  }
 
   return (
     <SentryDocumentTitle title="Build list">

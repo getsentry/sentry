@@ -8,7 +8,9 @@ import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
+import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {BuildCompareHeaderContent} from 'sentry/views/preprod/buildComparison/header/buildCompareHeaderContent';
@@ -23,12 +25,12 @@ export default function BuildComparison() {
     headArtifactId: string;
     // eslint-disable-next-line typescript-sort-keys/interface
     baseArtifactId: string | undefined;
-    projectId: string;
   }>();
 
   const headArtifactId = params.headArtifactId;
   const baseArtifactId = params.baseArtifactId;
-  const projectId = params.projectId;
+  const location = useLocation();
+  const projectId = decodeScalar(location.query.project);
 
   const headBuildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError> =
     useApiQuery<BuildDetailsApiResponse>(
@@ -40,6 +42,16 @@ export default function BuildComparison() {
         enabled: !!projectId && !!headArtifactId,
       }
     );
+
+  if (!projectId) {
+    return (
+      <Layout.Page>
+        <Alert type="error" showIcon>
+          {t('Project parameter required')}
+        </Alert>
+      </Layout.Page>
+    );
+  }
 
   if (headBuildDetailsQuery.isLoading) {
     return (

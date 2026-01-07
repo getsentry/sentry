@@ -2,6 +2,7 @@ import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -12,8 +13,10 @@ import {
   useMutation,
   type UseApiQueryResult,
 } from 'sentry/utils/queryClient';
+import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
@@ -29,9 +32,10 @@ import {BuildDetailsSidebarContent} from './sidebar/buildDetailsSidebarContent';
 
 export default function BuildDetails() {
   const organization = useOrganization();
-  const params = useParams<{artifactId: string; projectId: string}>();
+  const params = useParams<{artifactId: string}>();
   const artifactId = params.artifactId;
-  const projectId = params.projectId;
+  const location = useLocation();
+  const projectId = decodeScalar(location.query.project);
 
   const buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError> =
     useApiQuery<BuildDetailsApiResponse>(
@@ -92,6 +96,16 @@ export default function BuildDetails() {
       addErrorMessage(t('Error: %s', error.message));
     },
   });
+
+  if (!projectId) {
+    return (
+      <Layout.Page>
+        <Alert type="error" showIcon>
+          {t('Project parameter required')}
+        </Alert>
+      </Layout.Page>
+    );
+  }
 
   const buildDetails = buildDetailsQuery.data;
   const version = buildDetails?.app_info?.version;

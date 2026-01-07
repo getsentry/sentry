@@ -33,15 +33,16 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import {
   BuildDetailsState,
   isSizeInfoCompleted,
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
+import {getBuildCompareUrl} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {
   formattedPrimaryMetricDownloadSize,
   formattedPrimaryMetricInstallSize,
@@ -63,10 +64,9 @@ export function SizeCompareSelectionContent({
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
   const navigate = useNavigate();
-  const {projectId} = useParams<{
-    projectId: string;
-  }>();
-  const project = ProjectsStore.getBySlug(projectId);
+  const location = useLocation();
+  const projectId = decodeScalar(location.query.project);
+  const project = projectId ? ProjectsStore.getBySlug(projectId) : null;
   const projectType = project?.platform ?? null;
   const [selectedBaseBuild, setSelectedBaseBuild] = useState<
     BuildDetailsApiResponse | undefined
@@ -122,7 +122,12 @@ export function SizeCompareSelectionContent({
     },
     onSuccess: () => {
       navigate(
-        `/organizations/${organization.slug}/preprod/${projectId}/compare/${headBuildDetails.id}/${selectedBaseBuild?.id}/`
+        getBuildCompareUrl({
+          organizationSlug: organization.slug,
+          projectId,
+          headArtifactId: headBuildDetails.id,
+          baseArtifactId: selectedBaseBuild?.id,
+        })
       );
     },
     onError: error => {
@@ -167,7 +172,11 @@ export function SizeCompareSelectionContent({
             // Clear cursor when search query changes to avoid pagination issues
             if (cursor) {
               navigate(
-                `/organizations/${organization.slug}/preprod/${projectId}/compare/${headBuildDetails.id}/`,
+                getBuildCompareUrl({
+                  organizationSlug: organization.slug,
+                  projectId,
+                  headArtifactId: headBuildDetails.id,
+                }),
                 {replace: true}
               );
             }

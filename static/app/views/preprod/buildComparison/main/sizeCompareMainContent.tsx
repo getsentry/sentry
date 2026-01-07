@@ -15,7 +15,9 @@ import {t} from 'sentry/locale';
 import parseApiError from 'sentry/utils/parseApiError';
 import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
+import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -36,6 +38,7 @@ import type {
   SizeAnalysisComparisonResults,
   SizeComparisonApiResponse,
 } from 'sentry/views/preprod/types/appSizeTypes';
+import {getBuildCompareUrl} from 'sentry/views/preprod/utils/buildLinkUtils';
 
 function getMainComparison(
   response: SizeComparisonApiResponse | undefined
@@ -49,17 +52,18 @@ export function SizeCompareMainContent() {
   const organization = useOrganization();
   const navigate = useNavigate();
   const theme = useTheme();
+  const location = useLocation();
   const [isFilesExpanded, setIsFilesExpanded] = useState(true);
   const [hideSmallChanges, setHideSmallChanges] = useQueryState(
     'hideSmallChanges',
     parseAsBoolean.withDefault(true)
   );
   const [searchQuery, setSearchQuery] = useState('');
-  const {baseArtifactId, headArtifactId, projectId} = useParams<{
+  const {baseArtifactId, headArtifactId} = useParams<{
     baseArtifactId: string;
     headArtifactId: string;
-    projectId: string;
   }>();
+  const projectId = decodeScalar(location.query.project);
 
   const sizeComparisonQuery: UseApiQueryResult<SizeComparisonApiResponse, RequestError> =
     useApiQuery<SizeComparisonApiResponse>(
@@ -106,7 +110,12 @@ export function SizeCompareMainContent() {
     },
     onSuccess: () => {
       navigate(
-        `/organizations/${organization.slug}/preprod/${projectId}/compare/${headArtifactId}/${baseArtifactId}/`
+        getBuildCompareUrl({
+          organizationSlug: organization.slug,
+          projectId,
+          headArtifactId,
+          baseArtifactId,
+        })
       );
     },
     onError: error => {
@@ -140,6 +149,15 @@ export function SizeCompareMainContent() {
 
     return items;
   }, [comparisonDataQuery.data?.diff_items, hideSmallChanges, searchQuery]);
+
+  if (!projectId) {
+    return (
+      <BuildError
+        title={t('Project parameter required')}
+        message={t('The project parameter is missing from the URL.')}
+      />
+    );
+  }
 
   if (sizeComparisonQuery.isLoading || comparisonDataQuery.isLoading || isComparing) {
     return (
@@ -258,7 +276,11 @@ export function SizeCompareMainContent() {
         isComparing={false}
         onClearBaseBuild={() => {
           navigate(
-            `/organizations/${organization.slug}/preprod/${projectId}/compare/${headArtifactId}/`
+            getBuildCompareUrl({
+              organizationSlug: organization.slug,
+              projectId,
+              headArtifactId,
+            })
           );
         }}
       />

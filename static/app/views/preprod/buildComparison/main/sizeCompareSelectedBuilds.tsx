@@ -10,9 +10,11 @@ import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {getBuildSizeUrl} from 'sentry/views/preprod/utils/buildLinkUtils';
 
 interface BuildButtonProps {
   buildDetails: BuildDetailsApiResponse;
@@ -32,7 +34,8 @@ function BuildButton({
   projectType,
 }: BuildButtonProps) {
   const organization = useOrganization();
-  const {projectId} = useParams<{projectId: string}>();
+  const location = useLocation();
+  const projectId = decodeScalar(location.query.project);
   const sha = buildDetails.vcs_info?.head_sha?.substring(0, 7);
   const branchName = buildDetails.vcs_info?.head_ref;
   const buildId = buildDetails.id;
@@ -41,7 +44,11 @@ function BuildButton({
   const dateBuilt = buildDetails.app_info?.date_built;
   const dateAdded = buildDetails.app_info?.date_added;
 
-  const buildUrl = `/organizations/${organization.slug}/preprod/${projectId}/${buildId}/`;
+  const buildUrl = getBuildSizeUrl({
+    organizationSlug: organization.slug,
+    projectId,
+    baseArtifactId: buildId,
+  });
   const platform = buildDetails.app_info?.platform ?? null;
 
   const dateToShow = dateBuilt || dateAdded;
@@ -194,9 +201,10 @@ export function SizeCompareSelectedBuilds({
   onTriggerComparison,
 }: SizeCompareSelectedBuildsProps) {
   const organization = useOrganization();
-  const {projectId} = useParams<{projectId: string}>();
+  const location = useLocation();
+  const projectId = decodeScalar(location.query.project);
   const platform = headBuildDetails.app_info?.platform ?? null;
-  const project = ProjectsStore.getBySlug(projectId);
+  const project = projectId ? ProjectsStore.getBySlug(projectId) : null;
   const projectType = project?.platform ?? null;
 
   return (

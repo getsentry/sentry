@@ -2382,6 +2382,51 @@ function buildRoutes(): RouteObject[] {
     children: profilingChildren,
   };
 
+  const buildChildren: SentryRouteObject[] = [
+    {
+      index: true,
+      component: make(() => import('sentry/views/preprod/buildList/buildList')),
+    },
+    {
+      path: ':artifactId/',
+      children: [
+        {
+          index: true,
+          component: errorHandler(RouteNotFound),
+        },
+        {
+          path: 'size/',
+          component: make(() => import('sentry/views/preprod/buildDetails/buildDetails')),
+        },
+        {
+          path: 'install/',
+          component: make(() => import('sentry/views/preprod/install/installPage')),
+        },
+      ],
+    },
+    {
+      path: 'compare/',
+      children: [
+        {
+          index: true,
+          component: errorHandler(RouteNotFound),
+        },
+        {
+          path: ':headArtifactId/',
+          component: make(
+            () => import('sentry/views/preprod/buildComparison/buildComparison')
+          ),
+        },
+        {
+          path: ':headArtifactId/:baseArtifactId/',
+          component: make(
+            () => import('sentry/views/preprod/buildComparison/buildComparison')
+          ),
+        },
+      ],
+    },
+  ];
+
   const exploreChildren: SentryRouteObject[] = [
     {
       index: true,
@@ -2425,6 +2470,11 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'saved-queries/',
       component: make(() => import('sentry/views/explore/savedQueries')),
+    },
+    {
+      path: 'build/',
+      component: make(() => import('sentry/views/preprod/index')),
+      children: buildChildren,
     },
   ];
   const exploreRoutes: SentryRouteObject = {
@@ -2486,48 +2536,6 @@ function buildRoutes(): RouteObject[] {
     withOrgPath: true,
     component: make(() => import('sentry/views/prevent/index')),
     children: codecovChildren,
-  };
-
-  const preprodChildren: SentryRouteObject[] = [
-    {
-      index: true,
-      component: make(() => import('sentry/views/preprod/buildList/buildList')),
-    },
-    {
-      path: ':artifactId/',
-      component: make(() => import('sentry/views/preprod/buildDetails/buildDetails')),
-    },
-    {
-      path: ':artifactId/install/',
-      component: make(() => import('sentry/views/preprod/install/installPage')),
-    },
-    {
-      path: 'compare/',
-      children: [
-        {
-          index: true,
-          component: errorHandler(RouteNotFound),
-        },
-        {
-          path: ':headArtifactId/',
-          component: make(
-            () => import('sentry/views/preprod/buildComparison/buildComparison')
-          ),
-        },
-        {
-          path: ':headArtifactId/:baseArtifactId/',
-          component: make(
-            () => import('sentry/views/preprod/buildComparison/buildComparison')
-          ),
-        },
-      ],
-    },
-  ];
-  const preprodRoutes: SentryRouteObject = {
-    path: '/preprod/:projectId/',
-    component: make(() => import('sentry/views/preprod/index')),
-    withOrgPath: true,
-    children: preprodChildren,
   };
 
   const pullRequestChildren: SentryRouteObject[] = [
@@ -2904,7 +2912,6 @@ function buildRoutes(): RouteObject[] {
       alertRoutes,
       monitorRoutes,
       preventRoutes,
-      preprodRoutes,
       pullRequestRoutes,
       replayRoutes,
       releasesRoutes,
