@@ -13,8 +13,6 @@ import {usePopper} from 'react-popper';
 import {useTheme} from '@emotion/react';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 
-import type {ColorOrAlias} from 'sentry/utils/theme';
-
 function makeDefaultPopperModifiers(arrowElement: HTMLElement | null, offset: number) {
   return [
     {
@@ -137,7 +135,7 @@ interface UseHoverOverlayProps {
   /**
    * Color of the dotted underline, if available. See also: showUnderline.
    */
-  underlineColor?: ColorOrAlias | 'warning' | 'danger' | 'success' | 'muted';
+  underlineColor?: 'warning' | 'danger' | 'success' | 'muted';
 }
 
 export function isOverflown(el: Element): boolean {
