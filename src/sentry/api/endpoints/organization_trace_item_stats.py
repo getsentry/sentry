@@ -179,18 +179,18 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
             sanitized_keys_set = set()
             sanitized_keys = []
             for internal_name in internal_alias_attr_keys:
-                if internal_name in SPANS_STATS_EXCLUDED_ATTRIBUTES_PUBLIC_ALIAS:
-                    continue
-
                 if internal_name in sanitized_keys_set:
                     continue
 
-                substring_match_name = SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS.get("string").get(
+                public_alias = SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS.get("string").get(
                     internal_name, internal_name
                 )
 
+                if public_alias in SPANS_STATS_EXCLUDED_ATTRIBUTES_PUBLIC_ALIAS:
+                    continue
+
                 if value_substring_match:
-                    if value_substring_match in substring_match_name:
+                    if value_substring_match in public_alias:
                         sanitized_keys.append(internal_name)
                         sanitized_keys_set.add(internal_name)
                     continue
