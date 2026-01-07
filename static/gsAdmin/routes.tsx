@@ -61,7 +61,6 @@ function buildRoutes() {
           {
             path: ':beaconId/',
             component: BeaconDetails,
-            deprecatedRouteProps: true,
           },
         ],
       },
