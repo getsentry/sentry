@@ -68,7 +68,7 @@ function buildConditionsString(config: QueryConfig): string {
     params.set('artifact_type', config.artifactType);
   }
   // size_type is client-side only - used to determine which field to request
-  // (max_install_size vs max_download_size), but not sent to the API
+  // (install_size vs download_size), but not sent to the API
   if (config.sizeType) {
     params.set('size_type', config.sizeType);
   }
@@ -138,9 +138,7 @@ export function MobileAppSizeFilters() {
       // Update Y-axis with the aggregates for each query
       const yAxisFields = configs.map(config => {
         const fieldString =
-          config.sizeType === 'install'
-            ? 'max(max_install_size)'
-            : 'max(max_download_size)';
+          config.sizeType === 'install' ? 'max(install_size)' : 'max(download_size)';
         return explodeField({field: fieldString});
       });
 

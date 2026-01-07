@@ -26,8 +26,8 @@ describe('MobileAppSizeConfig', () => {
 
       const widgetQuery = {
         conditions: 'app_id:com.example.app',
-        aggregates: ['max(max_install_size)'],
-        fields: ['max(max_install_size)'],
+        aggregates: ['max(install_size)'],
+        fields: ['max(install_size)'],
         columns: [],
         fieldAliases: [],
         name: '',
@@ -41,7 +41,7 @@ describe('MobileAppSizeConfig', () => {
       );
 
       expect(result).toHaveLength(1);
-      expect(result[0]!.seriesName).toBe('max(max_install_size)');
+      expect(result[0]!.seriesName).toBe('max(install_size)');
       expect(result[0]!.data).toHaveLength(3);
       expect(result[0]!.data[0]).toEqual({
         name: 1609459200000,
@@ -99,8 +99,8 @@ describe('MobileAppSizeConfig', () => {
 
       const widgetQuery = {
         conditions: 'app_id:com.example.app',
-        aggregates: ['max(max_install_size)'],
-        fields: ['max(max_install_size)'],
+        aggregates: ['max(install_size)'],
+        fields: ['max(install_size)'],
         columns: [],
         fieldAliases: [],
         name: 'My Custom Series Name',
@@ -128,8 +128,8 @@ describe('MobileAppSizeConfig', () => {
 
       const widgetQuery = {
         conditions: 'app_id:com.example.app',
-        aggregates: ['max(max_download_size)'],
-        fields: ['max(max_download_size)'],
+        aggregates: ['max(download_size)'],
+        fields: ['max(download_size)'],
         columns: [],
         fieldAliases: [],
         name: '',
@@ -142,7 +142,7 @@ describe('MobileAppSizeConfig', () => {
         organization
       );
 
-      expect(result[0]!.seriesName).toBe('max(max_download_size)');
+      expect(result[0]!.seriesName).toBe('max(download_size)');
     });
 
     it('falls back to App Size when no aggregate or name provided', () => {
@@ -183,8 +183,8 @@ describe('MobileAppSizeConfig', () => {
         queries: [
           {
             conditions: 'app_id:com.example.app',
-            aggregates: ['max(max_install_size)'],
-            fields: ['max(max_install_size)'],
+            aggregates: ['max(install_size)'],
+            fields: ['max(install_size)'],
             columns: [],
             fieldAliases: [],
             name: '',
@@ -214,7 +214,7 @@ describe('MobileAppSizeConfig', () => {
         expect.objectContaining({
           query: expect.objectContaining({
             dataset: 'preprodSize',
-            yAxis: 'max(max_install_size)',
+            yAxis: 'max(install_size)',
           }),
         })
       );
@@ -227,8 +227,8 @@ describe('MobileAppSizeConfig', () => {
         queries: [
           {
             conditions: 'app_id:com.example.app',
-            aggregates: ['max(max_download_size)'],
-            fields: ['max(max_download_size)'],
+            aggregates: ['max(download_size)'],
+            fields: ['max(download_size)'],
             columns: [],
             fieldAliases: [],
             name: '',
@@ -258,7 +258,7 @@ describe('MobileAppSizeConfig', () => {
         expect.objectContaining({
           query: expect.objectContaining({
             dataset: 'preprodSize',
-            yAxis: 'max(max_download_size)',
+            yAxis: 'max(download_size)',
           }),
         })
       );
@@ -282,8 +282,8 @@ describe('MobileAppSizeConfig', () => {
 
       // Both aggregates should be registered to handle multi-query widgets
       expect(result).toEqual({
-        'max(max_install_size)': 'size_base10',
-        'max(max_download_size)': 'size_base10',
+        'max(install_size)': 'size_base10',
+        'max(download_size)': 'size_base10',
       });
     });
   });

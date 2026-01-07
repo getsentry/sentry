@@ -49,21 +49,19 @@ export interface AppSizeResponse {
 // This serves as the initial template for new widgets.
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
-  fields: ['max(max_install_size)'],
+  fields: ['max(install_size)'],
   columns: [],
   fieldAliases: [],
-  aggregates: ['max(max_install_size)'],
+  aggregates: ['max(install_size)'],
   conditions: 'app_id:* git_head_ref:*',
   orderby: '',
 };
 
 const DEFAULT_FIELD: QueryFieldValue = {
-  function: ['max', 'max_install_size', undefined, undefined],
+  function: ['max', 'install_size', undefined, undefined],
   kind: FieldValueKind.FUNCTION,
 };
 
-// Define aggregates that work with mobile app size metrics
-// Only max makes sense for pre-aggregated size data
 const MOBILE_APP_SIZE_AGGREGATIONS: Record<string, Aggregation> = {
   [AggregationKey.MAX]: {
     isSortable: true,
@@ -72,7 +70,7 @@ const MOBILE_APP_SIZE_AGGREGATIONS: Record<string, Aggregation> = {
       {
         kind: 'column',
         columnTypes: ['number'],
-        defaultValue: 'max_install_size',
+        defaultValue: 'install_size',
         required: true,
       },
     ],
@@ -95,18 +93,18 @@ function getPrimaryFieldOptions(
   // String fields like app_id, app_name, build_version are only used
   // for filtering and will be available via the search bar
   const mobileAppSizeFields: Record<string, FieldValueOption> = {
-    'field:max_install_size': {
-      label: 'Max Install Size',
+    'field:install_size': {
+      label: 'Install Size',
       value: {
         kind: FieldValueKind.TAG,
-        meta: {name: 'max_install_size', dataType: 'number'},
+        meta: {name: 'install_size', dataType: 'number'},
       },
     },
-    'field:max_download_size': {
-      label: 'Max Download Size',
+    'field:download_size': {
+      label: 'Download Size',
       value: {
         kind: FieldValueKind.TAG,
-        meta: {name: 'max_download_size', dataType: 'number'},
+        meta: {name: 'download_size', dataType: 'number'},
       },
     },
   };
@@ -237,7 +235,7 @@ export const MobileAppSizeConfig: DatasetConfig<AppSizeResponse[], TableData> = 
     }
 
     const yAxis =
-      widgetQuery.aggregates?.[0] || widgetQuery.fields?.[0] || 'max(max_install_size)';
+      widgetQuery.aggregates?.[0] || widgetQuery.fields?.[0] || 'max(install_size)';
 
     const {start, end, period} = pageFilters.datetime;
     const baseParams: Record<string, any> = {
@@ -301,11 +299,9 @@ export const MobileAppSizeConfig: DatasetConfig<AppSizeResponse[], TableData> = 
     _data: AppSizeResponse[],
     _widgetQuery: WidgetQuery
   ): Record<string, AggregationOutputType> => {
-    // Register both possible aggregates as size_base10 to handle multi-query widgets
-    // where different queries may use different size types (install vs download)
     return {
-      'max(max_install_size)': 'size_base10',
-      'max(max_download_size)': 'size_base10',
+      'max(install_size)': 'size_base10',
+      'max(download_size)': 'size_base10',
     };
   },
   filterAggregateParams,

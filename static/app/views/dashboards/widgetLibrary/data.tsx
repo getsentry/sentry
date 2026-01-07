@@ -348,7 +348,7 @@ const getDefaultWidgets = (organization: Organization) => {
           name: '',
           conditions: '',
           fields: [],
-          aggregates: ['max(max_install_size)'],
+          aggregates: ['max(install_size)'],
           columns: [],
           orderby: '',
         },
