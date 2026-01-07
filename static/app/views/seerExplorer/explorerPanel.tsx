@@ -2,10 +2,12 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import {createPortal} from 'react-dom';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {useUser} from 'sentry/utils/useUser';
 import AskUserQuestionBlock from 'sentry/views/seerExplorer/askUserQuestionBlock';
 import BlockComponent from 'sentry/views/seerExplorer/blockComponents';
 import EmptyState from 'sentry/views/seerExplorer/emptyState';
@@ -108,6 +110,26 @@ function ExplorerPanel() {
 
   // Get blocks from session data or empty array
   const blocks = useMemo(() => sessionData?.blocks || [], [sessionData]);
+
+  // Check owner id to determine edit permission. Defensive against any useUser return shape.
+  // Despite the type annotation, useUser can return null or undefined when not logged in.
+  // This component is in the top-level index so we have to guard against this.
+  const rawUser = useUser() as unknown;
+  const ownerUserId = sessionData?.owner_user_id ?? undefined;
+  const readOnly = useMemo(() => {
+    const isUser = (value: unknown): value is User =>
+      Boolean(
+        value &&
+          typeof value === 'object' &&
+          'id' in value &&
+          typeof value.id === 'string'
+      );
+    const userId = isUser(rawUser) ? rawUser.id : undefined;
+    return (
+      userId === undefined ||
+      (ownerUserId !== undefined && ownerUserId?.toString() !== userId)
+    );
+  }, [rawUser, ownerUserId]);
 
   // Get PR widget data for menu
   const {menuItems: prWidgetItems, menuFooter: prWidgetFooter} = usePRWidgetData({
@@ -225,6 +247,10 @@ function ExplorerPanel() {
   }, [focusedBlockIndex]);
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (readOnly) {
+      return;
+    }
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (inputValue.trim() && !isPolling) {
@@ -420,22 +446,26 @@ function ExplorerPanel() {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isPrintableChar = e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
 
-      if (
-        e.key === 'Escape' &&
-        isPolling &&
-        !interruptRequested &&
-        !isFileApprovalPending
-      ) {
-        e.preventDefault();
-        interruptRun();
-      } else if (e.key === 'Escape' && !isFileApprovalPending) {
-        // Don't minimize if file approval is pending (Escape is used to reject)
-        e.preventDefault();
-        setIsMinimized(true);
-      } else if (isPrintableChar) {
-        // Don't auto-type if file approval or question is pending (textarea isn't visible)
-        if (focusedBlockIndex !== -1 && !isFileApprovalPending && !isQuestionPending) {
-          // If a block is focused, auto-focus input when user starts typing.
+      if (e.key === 'Escape') {
+        if (isPolling && !readOnly && !interruptRequested && !isFileApprovalPending) {
+          e.preventDefault();
+          interruptRun();
+        } else if (readOnly || !isFileApprovalPending) {
+          // Don't minimize if file approval is pending (Escape is used to reject)
+          e.preventDefault();
+          setIsMinimized(true);
+        }
+      }
+
+      if (isPrintableChar) {
+        // If a block is focused, auto-focus input when user starts typing.
+        // Don't do this if file approval or question is pending (textarea isn't visible)
+        if (
+          !readOnly &&
+          focusedBlockIndex !== -1 &&
+          !isFileApprovalPending &&
+          !isQuestionPending
+        ) {
           e.preventDefault();
           setFocusedBlockIndex(-1);
           textareaRef.current?.focus();
@@ -459,6 +489,7 @@ function ExplorerPanel() {
     isVisible,
     isMenuOpen,
     isPolling,
+    readOnly,
     focusedBlockIndex,
     interruptRun,
     interruptRequested,
@@ -534,6 +565,7 @@ function ExplorerPanel() {
         isEmptyState={isEmptyState}
         isPolling={isPolling}
         isSessionHistoryOpen={isMenuOpen && menuMode === 'session-history'}
+        readOnly={readOnly}
         onCreatePR={createPR}
         onFeedbackClick={handleFeedback}
         onNewChatClick={() => {
@@ -575,6 +607,7 @@ function ExplorerPanel() {
                 }
                 isFocused={focusedBlockIndex === index}
                 isPolling={isPolling}
+                readOnly={readOnly}
                 onClick={() => handleBlockClick(index)}
                 onMouseEnter={() => {
                   // Don't change focus while menu is open, if already on this block, or if hover is disabled
@@ -608,14 +641,16 @@ function ExplorerPanel() {
                 }}
               />
             ))}
-            {isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches && (
-              <FileChangeApprovalBlock
-                currentIndex={fileApprovalIndex}
-                isLast
-                pendingInput={pendingInput!}
-              />
-            )}
-            {isQuestionPending && currentQuestion && (
+            {!readOnly &&
+              isFileApprovalPending &&
+              fileApprovalIndex < fileApprovalTotalPatches && (
+                <FileChangeApprovalBlock
+                  currentIndex={fileApprovalIndex}
+                  isLast
+                  pendingInput={pendingInput!}
+                />
+              )}
+            {!readOnly && isQuestionPending && currentQuestion && (
               <AskUserQuestionBlock
                 currentQuestion={currentQuestion}
                 customText={customText}
@@ -631,6 +666,7 @@ function ExplorerPanel() {
         )}
       </BlocksContainer>
       <InputSection
+        enabled={!readOnly}
         focusedBlockIndex={focusedBlockIndex}
         inputValue={inputValue}
         interruptRequested={interruptRequested}

@@ -43,6 +43,7 @@ interface BlockProps {
   onRegisterEnterHandler?: (
     handler: (key: 'Enter' | 'ArrowUp' | 'ArrowDown') => boolean
   ) => void;
+  readOnly?: boolean;
   ref?: React.Ref<HTMLDivElement>;
 }
 
@@ -146,6 +147,7 @@ function BlockComponent({
   onMouseLeave,
   onNavigate,
   onRegisterEnterHandler,
+  readOnly = false,
   ref,
 }: BlockProps) {
   const organization = useOrganization();
@@ -292,7 +294,11 @@ function BlockComponent({
   };
 
   const showActions =
-    isFocused && !block.loading && !isAwaitingFileApproval && !isAwaitingQuestion;
+    isFocused &&
+    !block.loading &&
+    !isAwaitingFileApproval &&
+    !isAwaitingQuestion &&
+    !readOnly; // move this check to inside button bar once there are more actions
 
   return (
     <Block
