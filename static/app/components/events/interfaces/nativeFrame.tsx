@@ -311,7 +311,7 @@ function NativeFrame({
               >
                 <IconWarning
                   size="sm"
-                  color="yellow300"
+                  variant="warning"
                   data-test-id="symbolication-warning-icon"
                 />
               </Tooltip>
@@ -474,7 +474,7 @@ export default withSentryAppComponents(NativeFrame, {componentType: 'stacktrace-
 const AddressCell = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   ${p => p.onClick && `cursor: pointer`};
-  ${p => p.onClick && `color:` + p.theme.linkColor};
+  ${p => p.onClick && `color:` + p.theme.tokens.interactive.link.accent.rest};
 `;
 
 const FunctionNameCell = styled('div')`

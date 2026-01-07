@@ -482,12 +482,12 @@ const TreeColumn = styled('div')`
     margin-left: -${space(1)};
   }
   &:not(:first-child) {
-    border-left: 1px solid ${p => p.theme.innerBorder};
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
     padding-left: ${space(2)};
     margin-left: -1px;
   }
   &:not(:last-child) {
-    border-right: 1px solid ${p => p.theme.innerBorder};
+    border-right: 1px solid ${p => p.theme.tokens.border.secondary};
     padding-right: ${space(2)};
   }
 `;

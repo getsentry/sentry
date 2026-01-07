@@ -18,6 +18,8 @@ type ParamKeys =
   | 'appSlug'
   | 'authId'
   | 'automationId'
+  | 'beaconId'
+  | 'broadcastId'
   | 'codeId'
   | 'dashboardId'
   | 'dataForwarderId'

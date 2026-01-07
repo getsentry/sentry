@@ -7,7 +7,7 @@ import LinksCard from 'getsentry/views/subscriptionPage/headerCards/linksCard';
 describe('LinksCard', () => {
   it('renders for user with billing perms and org with spend visibility notifications', () => {
     const organization = OrganizationFixture({
-      features: ['subscriptions-v3', 'spend-visibility-notifications'],
+      features: ['spend-visibility-notifications'],
       access: ['org:billing'],
     });
     render(<LinksCard organization={organization} />);
@@ -20,7 +20,6 @@ describe('LinksCard', () => {
 
   it('renders for user with billing perms and org without spend visibility notifications', () => {
     const organization = OrganizationFixture({
-      features: ['subscriptions-v3'],
       access: ['org:billing'],
     });
     render(<LinksCard organization={organization} />);
@@ -33,7 +32,7 @@ describe('LinksCard', () => {
 
   it('renders for user without billing perms', () => {
     const organization = OrganizationFixture({
-      features: ['subscriptions-v3', 'spend-visibility-notifications'],
+      features: ['spend-visibility-notifications'],
       access: ['org:read'],
     });
     render(<LinksCard organization={organization} />);

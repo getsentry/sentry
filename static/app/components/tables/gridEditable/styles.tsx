@@ -13,7 +13,7 @@ const GRID_STATUS_MESSAGE_HEIGHT = GRID_BODY_ROW_HEIGHT * 4;
  * Local z-index stacking context
  * https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Positioning/Understanding_z_index/The_stacking_context
  */
-const Z_INDEX_STICKY_HEADER = 1;
+const Z_INDEX_STICKY_HEADER = 2;
 
 // Parent context is GridHeadCell
 const Z_INDEX_GRID_RESIZER = 1;
@@ -203,7 +203,7 @@ export const GridRow = styled('tr')<{isClickable?: boolean}>`
     background-color: ${p => p.theme.tokens.background.primary};
 
     &:not(:last-child) {
-      border-bottom: 1px solid ${p => p.theme.innerBorder};
+      border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
     }
 
     &:last-child {

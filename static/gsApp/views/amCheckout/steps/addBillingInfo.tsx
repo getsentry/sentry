@@ -29,12 +29,11 @@ function AddBillingInformation({
   const showEditBillingInfo = hasBillingInfo(billingDetails, subscription, false);
 
   return (
-    <Flex direction="column" gap="xl">
+    <Flex direction="column" gap="xl" id={`step${stepNumber}`}>
       {billingDetailsError && (
         <Alert variant="danger">{billingDetailsError.message}</Alert>
       )}
       <StepHeader
-        stepNumber={stepNumber}
         title={
           showEditBillingInfo
             ? t('Edit billing information')
@@ -48,14 +47,12 @@ function AddBillingInformation({
           <BillingDetailsPanel
             organization={organization}
             subscription={subscription}
-            isNewBillingUI
             analyticsEvent="checkout.updated_billing_details"
             shouldExpandInitially
           />
           <CreditCardPanel
             organization={organization}
             subscription={subscription}
-            isNewBillingUI
             location={location}
             ftcLocation={FTCConsentLocation.CHECKOUT}
             budgetTerm={activePlan.budgetTerm}
