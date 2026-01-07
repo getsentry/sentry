@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.urls import reverse
 
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
@@ -34,16 +35,16 @@ class OrganizationEventsStatsPreprodSizeEndpointTest(OrganizationEventsEndpointT
     def test_max_install_size_aggregate(self) -> None:
         """Test that max(max_install_size) aggregate returns correct values."""
         size_values = [1000000, 2000000, 3000000, 4000000, 5000000, 6000000]
-        metrics = [
-            self.create_preprod_size_metric(
-                max_install_size=size,
+        for hour, size in enumerate(size_values):
+            Factories.store_preprod_size_metric(
+                project_id=self.project.id,
+                organization_id=self.organization.id,
                 timestamp=self.start + timedelta(hours=hour),
+                max_install_size=size,
+                size_metric_id=hour,
                 app_id="com.example.app",
                 git_head_ref="main",
             )
-            for hour, size in enumerate(size_values)
-        ]
-        self.store_preprod_size_metrics(metrics)
 
         response = self._do_request(
             data={
@@ -56,7 +57,6 @@ class OrganizationEventsStatsPreprodSizeEndpointTest(OrganizationEventsEndpointT
             },
         )
         assert response.status_code == 200, response.content
-        # Verify data is returned for each hour bucket
         assert [attrs for time, attrs in response.data["data"]] == [
             [{"count": size}] for size in size_values
         ]
@@ -64,15 +64,15 @@ class OrganizationEventsStatsPreprodSizeEndpointTest(OrganizationEventsEndpointT
     def test_max_download_size_aggregate(self) -> None:
         """Test that max(max_download_size) aggregate works correctly."""
         size_values = [500000, 600000, 700000]
-        metrics = [
-            self.create_preprod_size_metric(
-                max_download_size=size,
+        for hour, size in enumerate(size_values):
+            Factories.store_preprod_size_metric(
+                project_id=self.project.id,
+                organization_id=self.organization.id,
                 timestamp=self.start + timedelta(hours=hour),
+                max_download_size=size,
+                size_metric_id=hour,
                 app_id="com.example.app",
             )
-            for hour, size in enumerate(size_values)
-        ]
-        self.store_preprod_size_metrics(metrics)
 
         response = self._do_request(
             data={
@@ -107,21 +107,23 @@ class OrganizationEventsStatsPreprodSizeEndpointTest(OrganizationEventsEndpointT
 
     def test_filter_by_app_id(self) -> None:
         """Test filtering by app_id attribute."""
-        metrics = [
-            self.create_preprod_size_metric(
-                max_install_size=1000000,
-                timestamp=self.start + timedelta(hours=0),
-                app_id="com.example.app1",
-            ),
-            self.create_preprod_size_metric(
-                max_install_size=2000000,
-                timestamp=self.start + timedelta(hours=0),
-                app_id="com.example.app2",
-            ),
-        ]
-        self.store_preprod_size_metrics(metrics)
+        Factories.store_preprod_size_metric(
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            timestamp=self.start + timedelta(hours=0),
+            max_install_size=1000000,
+            size_metric_id=1,
+            app_id="com.example.app1",
+        )
+        Factories.store_preprod_size_metric(
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            timestamp=self.start + timedelta(hours=0),
+            max_install_size=2000000,
+            size_metric_id=2,
+            app_id="com.example.app2",
+        )
 
-        # Query for app1 only
         response = self._do_request(
             data={
                 "start": self.start,
@@ -134,27 +136,28 @@ class OrganizationEventsStatsPreprodSizeEndpointTest(OrganizationEventsEndpointT
             },
         )
         assert response.status_code == 200, response.content
-        # First bucket should have app1's size (1000000), second bucket zerofilled
         data = [attrs for time, attrs in response.data["data"]]
         assert data[0] == [{"count": 1000000}]
 
     def test_filter_by_git_head_ref(self) -> None:
         """Test filtering by git_head_ref attribute."""
-        metrics = [
-            self.create_preprod_size_metric(
-                max_install_size=1000000,
-                timestamp=self.start + timedelta(hours=0),
-                git_head_ref="main",
-            ),
-            self.create_preprod_size_metric(
-                max_install_size=2000000,
-                timestamp=self.start + timedelta(hours=0),
-                git_head_ref="feature-branch",
-            ),
-        ]
-        self.store_preprod_size_metrics(metrics)
+        Factories.store_preprod_size_metric(
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            timestamp=self.start + timedelta(hours=0),
+            max_install_size=1000000,
+            size_metric_id=1,
+            git_head_ref="main",
+        )
+        Factories.store_preprod_size_metric(
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            timestamp=self.start + timedelta(hours=0),
+            max_install_size=2000000,
+            size_metric_id=2,
+            git_head_ref="feature-branch",
+        )
 
-        # Query for main branch only
         response = self._do_request(
             data={
                 "start": self.start,
@@ -172,24 +175,30 @@ class OrganizationEventsStatsPreprodSizeEndpointTest(OrganizationEventsEndpointT
 
     def test_multiple_metrics_same_bucket(self) -> None:
         """Test max aggregation correctly selects largest value in same time bucket."""
-        metrics = [
-            self.create_preprod_size_metric(
-                max_install_size=1000000,
-                timestamp=self.start + timedelta(minutes=10),
-                app_id="com.example.app",
-            ),
-            self.create_preprod_size_metric(
-                max_install_size=3000000,
-                timestamp=self.start + timedelta(minutes=20),
-                app_id="com.example.app",
-            ),
-            self.create_preprod_size_metric(
-                max_install_size=2000000,
-                timestamp=self.start + timedelta(minutes=30),
-                app_id="com.example.app",
-            ),
-        ]
-        self.store_preprod_size_metrics(metrics)
+        Factories.store_preprod_size_metric(
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            timestamp=self.start + timedelta(minutes=10),
+            max_install_size=1000000,
+            size_metric_id=1,
+            app_id="com.example.app",
+        )
+        Factories.store_preprod_size_metric(
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            timestamp=self.start + timedelta(minutes=20),
+            max_install_size=3000000,
+            size_metric_id=2,
+            app_id="com.example.app",
+        )
+        Factories.store_preprod_size_metric(
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            timestamp=self.start + timedelta(minutes=30),
+            max_install_size=2000000,
+            size_metric_id=3,
+            app_id="com.example.app",
+        )
 
         response = self._do_request(
             data={
@@ -203,20 +212,17 @@ class OrganizationEventsStatsPreprodSizeEndpointTest(OrganizationEventsEndpointT
         )
         assert response.status_code == 200, response.content
         data = [attrs for time, attrs in response.data["data"]]
-        # First bucket should have max of all three (3000000)
         assert data[0] == [{"count": 3000000}]
 
     def test_requires_feature_flag(self) -> None:
         """Test that the endpoint requires the preprod-frontend-routes feature flag."""
-        metrics = [
-            self.create_preprod_size_metric(
-                max_install_size=1000000,
-                timestamp=self.start,
-            )
-        ]
-        self.store_preprod_size_metrics(metrics)
+        Factories.store_preprod_size_metric(
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            timestamp=self.start,
+            max_install_size=1000000,
+        )
 
-        # Make request without feature flag
         response = self._do_request(
             data={
                 "start": self.start,
@@ -228,22 +234,17 @@ class OrganizationEventsStatsPreprodSizeEndpointTest(OrganizationEventsEndpointT
             },
             features={"organizations:preprod-frontend-routes": False},
         )
-        # Should fail without the feature flag
         assert response.status_code != 200
 
     def test_sub_item_type_filter_automatic(self) -> None:
-        """Test that sub_item_type=size_metric filter is applied automatically.
-
-        The PreprodSize dataset should only return data where sub_item_type=size_metric,
-        filtering out other preprod data types (like build_distribution).
-        """
-        # Create a size_metric (should be returned)
-        size_metric = self.create_preprod_size_metric(
-            max_install_size=1000000,
+        """Test that sub_item_type=size_metric filter is applied automatically."""
+        Factories.store_preprod_size_metric(
+            project_id=self.project.id,
+            organization_id=self.organization.id,
             timestamp=self.start + timedelta(hours=0),
+            max_install_size=1000000,
             app_id="com.example.app",
         )
-        self.store_preprod_size_metrics([size_metric])
 
         response = self._do_request(
             data={
