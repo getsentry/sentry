@@ -303,6 +303,7 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
   return (
     <SearchQueryBuilderProvider
       enableAISearch={areAiFeaturesAllowed}
+      aiSearchBadgeType="alpha"
       {...searchQueryBuilderProviderProps}
     >
       <ExploreBodySearch>

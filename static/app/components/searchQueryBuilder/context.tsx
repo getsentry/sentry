@@ -35,6 +35,7 @@ import type {GetTagValues} from 'sentry/views/dashboards/datasetConfig/base';
 
 interface SearchQueryBuilderContextData {
   actionBarRef: React.RefObject<HTMLDivElement | null>;
+  aiSearchBadgeType: 'alpha' | 'beta';
   askSeerNLQueryRef: React.RefObject<string | null>;
   askSeerSuggestedQueryRef: React.RefObject<string | null>;
   autoSubmitSeer: boolean;
@@ -95,6 +96,7 @@ export const SearchQueryBuilderContext =
 
 export function SearchQueryBuilderProvider({
   children,
+  aiSearchBadgeType = 'beta',
   disabled = false,
   disallowLogicalOperators,
   disallowFreeText,
@@ -234,6 +236,7 @@ export function SearchQueryBuilderProvider({
   const contextValue = useMemo((): SearchQueryBuilderContextData => {
     return {
       ...state,
+      aiSearchBadgeType,
       disabled,
       disallowFreeText: Boolean(disallowFreeText),
       disallowLogicalOperators: Boolean(disallowLogicalOperators),
@@ -274,6 +277,7 @@ export function SearchQueryBuilderProvider({
       onCaseInsensitiveClick,
     };
   }, [
+    aiSearchBadgeType,
     autoSubmitSeer,
     caseInsensitive,
     disabled,
