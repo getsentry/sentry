@@ -1,3 +1,4 @@
+import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
@@ -11,7 +12,7 @@ const OPERATIONS_CONDITION =
 
 export const MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
-  title: 'Mobile Vitals App Start as a Dashboard',
+  title: t('Mobile Vitals App Start as a Dashboard'),
   projects: [],
   widgets: [
     {

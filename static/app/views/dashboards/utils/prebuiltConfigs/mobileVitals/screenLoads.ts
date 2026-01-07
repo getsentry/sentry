@@ -1,3 +1,4 @@
+import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
@@ -8,7 +9,7 @@ const SPAN_OPERATIONS_CONDITION =
 
 export const MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
-  title: 'Mobile Vitals Screen Load as a Dashboard',
+  title: t('Mobile Vitals Screen Load as a Dashboard'),
   projects: [],
   widgets: [
     {
