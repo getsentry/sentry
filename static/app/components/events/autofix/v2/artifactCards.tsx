@@ -244,7 +244,7 @@ function ImpactTreeRow({
       return <IconFatal size="xs" variant="danger" />;
     }
     if (impact.rating === 'medium') {
-      return <IconWarning size="xs" color="yellow300" />;
+      return <IconWarning size="xs" variant="warning" />;
     }
     if (impact.rating === 'low') {
       return <IconCheckmark size="xs" variant="success" />;
@@ -791,7 +791,7 @@ const TreeRow = styled('div')<{$isClickable?: boolean}>`
     cursor: pointer;
 
     &:hover {
-      background-color: ${p.theme.hover};
+      background-color: ${p.theme.tokens.interactive.transparent.neutral.background.hover};
     }
   `}
 `;

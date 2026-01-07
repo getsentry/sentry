@@ -487,6 +487,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.preprod",
     "sentry.releases",
     "sentry.prevent",
+    "sentry.seer",
 )
 
 # Silence internal hints from Django's system checks
@@ -925,6 +926,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tempest.tasks",
     "sentry.uptime.autodetect.notifications",
     "sentry.uptime.autodetect.tasks",
+    "sentry.uptime.consumers.tasks",
     "sentry.uptime.rdap.tasks",
     "sentry.uptime.subscriptions.tasks",
     "sentry.workflow_engine.tasks.delayed_workflows",

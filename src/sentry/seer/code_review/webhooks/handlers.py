@@ -10,13 +10,13 @@ from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 
 from ..preflight import CodeReviewPreflightService
-from ..utils import get_pr_author_id
 
 if TYPE_CHECKING:
     from sentry.integrations.github.webhook import WebhookProcessor
 
 from .check_run import handle_check_run_event
 from .issue_comment import handle_issue_comment_event
+from .pull_request import handle_pull_request_event
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +26,7 @@ METRICS_PREFIX = "seer.code_review.webhook"
 EVENT_TYPE_TO_HANDLER: dict[GithubWebhookType, WebhookProcessor] = {
     GithubWebhookType.CHECK_RUN: handle_check_run_event,
     GithubWebhookType.ISSUE_COMMENT: handle_issue_comment_event,
+    GithubWebhookType.PULL_REQUEST: handle_pull_request_event,
 }
 
 
@@ -56,6 +57,8 @@ def handle_webhook_event(
             extra={"github_event": github_event.value},
         )
         return
+
+    from ..utils import get_pr_author_id
 
     preflight = CodeReviewPreflightService(
         organization=organization,

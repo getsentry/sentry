@@ -175,7 +175,7 @@ const generateThemeUtils = (
   aliases: Aliases
 ) => ({
   tooltipUnderline: (
-    underlineColor: ColorOrAlias | 'warning' | 'danger' | 'success' = 'gray300'
+    underlineColor: ColorOrAlias | 'warning' | 'danger' | 'success' | 'muted' = 'gray300'
   ) => ({
     textDecoration: 'underline' as const,
     textDecorationThickness: '0.75px',
@@ -187,8 +187,10 @@ const generateThemeUtils = (
           ? tokens.content.danger
           : underlineColor === 'success'
             ? tokens.content.success
-            : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-              (colors[underlineColor] ?? aliases[underlineColor]),
+            : underlineColor === 'muted'
+              ? tokens.content.secondary
+              : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                (colors[underlineColor] ?? aliases[underlineColor]),
     textDecorationStyle: 'dotted' as const,
   }),
   overflowEllipsis: css`
@@ -231,7 +233,7 @@ const generateButtonTheme = (
     color: tokens.content.primary,
     colorActive: tokens.content.primary,
     background: alias.background,
-    backgroundActive: alias.hover,
+    backgroundActive: tokens.background.transparent.neutral.muted,
     border: alias.border,
     borderActive: alias.border,
     borderTranslucent: alias.translucentBorder,
@@ -261,8 +263,8 @@ const generateButtonTheme = (
     focusShadow: colors.red200,
   },
   link: {
-    color: alias.linkColor,
-    colorActive: alias.linkHoverColor,
+    color: tokens.interactive.link.accent.rest,
+    colorActive: tokens.interactive.link.accent.hover,
     background: 'transparent',
     backgroundActive: 'transparent',
     border: 'transparent',
@@ -278,7 +280,7 @@ const generateButtonTheme = (
     backgroundActive: alias.background,
     border: alias.disabledBorder,
     borderActive: alias.disabledBorder,
-    borderTranslucent: alias.translucentInnerBorder,
+    borderTranslucent: tokens.border.transparent.neutral.muted,
     focusBorder: 'transparent',
     focusShadow: 'transparent',
   },
@@ -1194,21 +1196,10 @@ const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
   backgroundTertiary: tokens.background.tertiary,
 
   /**
-   * Background for the header of a page
-   */
-  headerBackground: tokens.background.primary,
-
-  /**
    * Primary border color
    */
   border: tokens.border.primary,
   translucentBorder: tokens.border.transparent.neutral.muted,
-
-  /**
-   * Inner borders, e.g. borders inside of a grid
-   */
-  innerBorder: tokens.border.secondary,
-  translucentInnerBorder: tokens.border.transparent.neutral.muted,
 
   /**
    * A color that denotes a "success", or something good
@@ -1237,13 +1228,6 @@ const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
   disabledBorder: colors.gray400,
 
   /**
-   * Indicates a "hover" state. Deprecated – use `InteractionStateLayer` instead for
-   * interaction (hover/press) states.
-   * @deprecated
-   */
-  hover: colors.gray100,
-
-  /**
    * Indicates that something is "active" or "selected"
    * NOTE: These are largely used for form elements, which I haven't mocked in ChonkUI
    */
@@ -1257,23 +1241,6 @@ const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
    */
   focus: tokens.border.accent.vibrant,
   focusBorder: tokens.border.accent.vibrant,
-
-  /**
-   * Link color indicates that something is clickable
-   */
-  linkColor: tokens.interactive.link.accent.rest,
-  linkHoverColor: tokens.interactive.link.accent.hover,
-  linkUnderline: tokens.interactive.link.accent.rest,
-
-  /**
-   * Default Progressbar color
-   */
-  progressBar: colors.chonk.blue400,
-
-  /**
-   * Default Progressbar color
-   */
-  progressBackground: colors.gray100,
 });
 
 const lightAliases = generateAliases(baseLightTheme.tokens, lightColors);
