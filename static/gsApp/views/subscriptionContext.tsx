@@ -1,17 +1,13 @@
-import {Fragment} from 'react';
+import {Outlet} from 'react-router-dom';
 
 import useOrganization from 'sentry/utils/useOrganization';
 
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 
-type Props = {
-  children: React.ReactNode;
-};
-
-export default function SubscriptionContext(props: Props) {
+export default function SubscriptionContext() {
   const organization = useOrganization();
   return organization.access.includes('org:billing') ? (
-    <Fragment>{props.children}</Fragment>
+    <Outlet />
   ) : (
     <ContactBillingMembers />
   );
