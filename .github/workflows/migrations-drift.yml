@@ -1,0 +1,71 @@
+name: migrations-drift
+on:
+  pull_request:
+    paths: ['src/sentry/**/migrations/**.py', '.github/workflows/migrations-drift.yml']
+
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    # the default default is:
+    #      bash --noprofile --norc -eo pipefail {0}
+    shell: bash --noprofile --norc -eo pipefail -ux {0}
+
+jobs:
+  drift:
+    name: migration drift
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      # Checkout master to run all merged migrations.
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          ref: master
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        with:
+          mode: migrations
+
+      - name: Apply migrations
+        env:
+          # This short circuits the create_default_projects post_upgrade hook
+          # which spawns taskworkers which will spin for 5 minutes on kafka
+          # not being up. We don't need the default project here as this is not local dev.
+          SENTRY_NO_CREATE_DEFAULT_PROJECT: 1
+        run: make apply-migrations
+
+      # Checkout the current ref
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          clean: false
+
+      - name: Apply migrations (again)
+        env:
+          SENTRY_NO_CREATE_DEFAULT_PROJECT: 1
+        run: make apply-migrations
+
+      - name: capture database schema before
+        run: docker exec sentry-postgres-1 bash -c 'pg_dumpall -U postgres -s' > schema-before
+
+      - name: clear db
+        run: make drop-db create-db
+
+      - name: squash migrations
+        run: python3 -um tools.migrations.squash
+
+      - name: apply squashed migrations
+        env:
+          SENTRY_NO_CREATE_DEFAULT_PROJECT: 1
+        run: make drop-db apply-migrations
+
+      - name: capture database schema after
+        run: docker exec sentry-postgres-1 bash -c 'pg_dumpall -U postgres -s' > schema-after
+
+      - name: compare schema
+        run: python3 -um tools.migrations.compare --color schema-before schema-after

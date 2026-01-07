@@ -1,0 +1,28 @@
+name: Release GHCR Versioned Image
+
+on:
+  release:
+    types: [prereleased, released]
+
+jobs:
+  release-ghcr-version-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag release version
+        run: |
+          docker buildx imagetools create --tag \
+           ghcr.io/getsentry/sentry:${{ github.ref_name }} \
+           ghcr.io/getsentry/sentry:${{ github.sha }}
+
+      - name: Tag latest version
+        run: |
+          docker buildx imagetools create --tag \
+           ghcr.io/getsentry/sentry:latest \
+           ghcr.io/getsentry/sentry:${{ github.sha }}

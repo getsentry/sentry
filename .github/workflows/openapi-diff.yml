@@ -1,0 +1,74 @@
+name: openapi-diff
+on:
+  pull_request:
+
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+# hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
+env:
+  SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
+
+jobs:
+  check-diff:
+    name: (Optional) Shows the difference between the prod and dev schema
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Check for python file changes
+        uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        with:
+          mode: migrations
+        if: steps.changes.outputs.api_docs == 'true'
+
+      - name: Checkout getsentry/sentry-api-schema
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        if: steps.changes.outputs.api_docs == 'true'
+        with:
+          ref: 'main'
+          repository: getsentry/sentry-api-schema
+          path: sentry-api-schema
+
+      - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
+        id: setup-node
+        with:
+          node-version-file: '.node-version'
+
+      - uses: pnpm/action-setup@36de12bed180fa130ed56a35e7344f2fa7a820ab # v4
+
+      - name: Build OpenAPI Derefed JSON
+        if: steps.changes.outputs.api_docs == 'true'
+        run: |
+          make build-api-docs
+
+      - name: Compare OpenAPI Derefed JSON
+        if: steps.changes.outputs.api_docs == 'true'
+        run: |
+          npx json-diff@0.5.4 --color sentry-api-schema/openapi-derefed.json tests/apidocs/openapi-derefed.json
+
+      - name: Dump RPC schema for new version
+        id: newschema
+        if: steps.changes.outputs.api_docs == 'true'
+        run: |
+          mkdir schemas
+          sentry rpcschema > rpc_method_schema.json
+
+      - name: Output RPC schema comparison
+        uses: oasdiff/oasdiff-action/breaking@a2ff6682b27d175162a74c09ace8771bd3d512f8 # A few commits after v0.0.19 to get fixes
+        if: steps.changes.outputs.api_docs == 'true'
+        with:
+          base: sentry-api-schema/rpc_method_schema.json
+          revision: ./rpc_method_schema.json
+          fail-on: WARN
