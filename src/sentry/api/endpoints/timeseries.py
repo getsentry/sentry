@@ -1,5 +1,9 @@
 from typing import Any, Literal, NotRequired, TypedDict
 
+# Assumed ingestion delay for timeseries, this is a static number for now just to match how the frontend was doing it
+INGESTION_DELAY = 90
+INGESTION_DELAY_MESSAGE = "INCOMPLETE_BUCKET"
+
 
 class StatsMeta(TypedDict):
     dataset: str

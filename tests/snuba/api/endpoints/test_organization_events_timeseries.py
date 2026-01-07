@@ -5,7 +5,7 @@ from datetime import timedelta
 import pytest
 from django.urls import reverse
 
-from sentry.api.endpoints.organization_events_timeseries import INGESTION_DELAY_MESSAGE
+from sentry.api.endpoints.timeseries import INGESTION_DELAY_MESSAGE
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils.samples import load_data
