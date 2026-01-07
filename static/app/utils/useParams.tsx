@@ -19,6 +19,7 @@ type ParamKeys =
   | 'authId'
   | 'automationId'
   | 'beaconId'
+  | 'broadcastId'
   | 'codeId'
   | 'dashboardId'
   | 'dataForwarderId'

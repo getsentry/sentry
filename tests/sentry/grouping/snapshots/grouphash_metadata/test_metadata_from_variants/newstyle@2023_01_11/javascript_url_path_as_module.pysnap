@@ -22,12 +22,12 @@ metrics with tags: {
 ---
 contributing variants:
   system*
-    hash: "0cc175b9c0f1b6a831c399e269772661"
+    hash: "1001e7b7dd0155a6d4021cd6d6b9f50d"
     contributing component: stacktrace
     hint: None
     root_component:
       system*
         stacktrace*
           frame*
-            function*
-              "a"
+            module*
+              "dogs.are.great"
