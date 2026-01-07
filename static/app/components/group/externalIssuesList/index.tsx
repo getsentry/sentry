@@ -1,3 +1,5 @@
+import {Flex} from '@sentry/scraps/layout';
+
 import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
@@ -16,7 +18,9 @@ export default function ExternalIssueList({group, event, project}: Props) {
     <SidebarSection.Wrap data-test-id="linked-issues">
       <SidebarSection.Title>{t('Issue Tracking')}</SidebarSection.Title>
       <SidebarSection.Content>
-        <StreamlinedExternalIssueList group={group} event={event} project={project} />
+        <Flex direction="column" gap="md">
+          <StreamlinedExternalIssueList group={group} event={event} project={project} />
+        </Flex>
       </SidebarSection.Content>
     </SidebarSection.Wrap>
   );
