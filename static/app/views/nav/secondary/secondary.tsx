@@ -70,13 +70,7 @@ SecondaryNav.Header = function SecondaryNavHeader({children}: {children?: ReactN
         <Button
           borderless={isCollapsed ? false : true}
           size="xs"
-          icon={
-            <IconChevron
-              direction={isCollapsed ? 'right' : 'left'}
-              isDouble
-              color={isCollapsed ? 'white' : undefined}
-            />
-          }
+          icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
           aria-label={isCollapsed ? t('Expand') : t('Collapse')}
           onClick={() => setIsCollapsed(!isCollapsed)}
           priority={isCollapsed ? 'primary' : undefined}
@@ -138,7 +132,7 @@ function SectionTitle({
               <IconChevron
                 direction={isCollapsed ? 'down' : 'up'}
                 size="xs"
-                color="subText"
+                variant="muted"
               />
             )
           )}

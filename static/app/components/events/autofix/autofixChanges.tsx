@@ -280,7 +280,7 @@ export function AutofixChanges({
           <HeaderWrapper>
             <HeaderText>
               <Flex justify="center" align="center" ref={iconCodeRef}>
-                <IconCode size="md" color="blue400" />
+                <IconCode size="md" variant="accent" />
               </Flex>
               {t('Code Changes')}
               <Button

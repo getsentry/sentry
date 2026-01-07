@@ -286,7 +286,7 @@ export default function MetricChart({
                   {resolvedPercent ? resolvedPercent.toFixed(2) : 0}%
                 </ValueItem>
                 <ValueItem>
-                  <IconWarning color="yellow300" />
+                  <IconWarning variant="warning" />
                   {warningPercent ? warningPercent.toFixed(2) : 0}%
                 </ValueItem>
                 <ValueItem>

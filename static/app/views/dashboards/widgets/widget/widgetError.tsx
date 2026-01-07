@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DEEMPHASIS_COLOR_NAME} from 'sentry/views/dashboards/widgets/bigNumberWidget/settings';
+import {DEEMPHASIS_VARIANT} from 'sentry/views/dashboards/widgets/bigNumberWidget/settings';
 import {X_GUTTER, Y_GUTTER} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
   ErrorPropWithResponseJSON,
@@ -17,7 +17,7 @@ interface WidgetErrorProps {
 export function WidgetError({error}: WidgetErrorProps) {
   return (
     <Panel>
-      <NonShrinkingWarningIcon color={DEEMPHASIS_COLOR_NAME} size="md" />
+      <NonShrinkingWarningIcon variant={DEEMPHASIS_VARIANT} size="md" />
       <ErrorText>
         {typeof error === 'string'
           ? error
@@ -43,7 +43,7 @@ const Panel = styled('div')<{height?: string}>`
 
   overflow: hidden;
 
-  color: ${p => p.theme[DEEMPHASIS_COLOR_NAME]};
+  color: ${p => p.theme.tokens.content[DEEMPHASIS_VARIANT]};
 `;
 
 const NonShrinkingWarningIcon = styled(IconWarning)`

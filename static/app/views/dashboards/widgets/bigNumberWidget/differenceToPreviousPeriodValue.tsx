@@ -10,7 +10,7 @@ import {
 import {IconArrow} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {
-  DEEMPHASIS_COLOR_NAME,
+  DEEMPHASIS_VARIANT,
   LOADING_PLACEHOLDER,
 } from 'sentry/views/dashboards/widgets/bigNumberWidget/settings';
 import {DEFAULT_FIELD} from 'sentry/views/dashboards/widgets/common/settings';
@@ -73,7 +73,7 @@ const Text = styled('div')`
 `;
 
 const Deemphasize = styled('span')`
-  color: ${p => p.theme[DEEMPHASIS_COLOR_NAME]};
+  color: ${p => p.theme.tokens.content[DEEMPHASIS_VARIANT]};
 `;
 
 function getDifferenceDirectionMarker(difference: number) {

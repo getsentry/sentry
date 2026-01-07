@@ -131,7 +131,7 @@ SavedEntityTable.CellStar = function CellStar({
     <Button
       aria-label={isStarred ? t('Unstar') : t('Star')}
       borderless
-      icon={<IconStar isSolid={isStarred} color={isStarred ? 'yellow300' : 'subText'} />}
+      icon={<IconStar isSolid={isStarred} variant={isStarred ? 'warning' : 'muted'} />}
       size="sm"
       onClick={onClick}
     />

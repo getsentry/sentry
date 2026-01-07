@@ -283,7 +283,7 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
             )}
             {versionInfo && (
               <Flex align="center" gap="sm">
-                <IconTag size="xs" color="gray300" />
+                <IconTag size="xs" variant="muted" />
                 <Text>{versionInfo}</Text>
               </Flex>
             )}

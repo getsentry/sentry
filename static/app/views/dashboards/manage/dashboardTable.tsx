@@ -91,7 +91,7 @@ function FavoriteButton({
       borderless
       icon={
         <IconStar
-          color={favorited ? 'yellow300' : 'subText'}
+          variant={favorited ? 'warning' : 'muted'}
           isSolid={favorited}
           aria-label={favorited ? t('Unstar') : t('Star')}
           size="sm"
