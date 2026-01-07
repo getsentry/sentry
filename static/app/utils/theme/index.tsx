@@ -1,2 +1,2 @@
 export type * from './types';
-export type {Color, ColorOrAlias, StrictCSSObject, SentryTheme as Theme} from './theme';
+export type {ColorOrAlias, StrictCSSObject, SentryTheme as Theme} from './theme';
