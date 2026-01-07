@@ -10,7 +10,11 @@ import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {AggregationOutputType, QueryFieldValue} from 'sentry/utils/discover/fields';
+import type {
+  AggregationOutputType,
+  DataUnit,
+  QueryFieldValue,
+} from 'sentry/utils/discover/fields';
 import {isEquation} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {FieldKind} from 'sentry/utils/fields';
@@ -208,6 +212,13 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     data: SeriesResponse,
     widgetQuery: WidgetQuery
   ) => Record<string, AggregationOutputType>;
+  /**
+   * Get the result unit of the series. ie milliseconds, bytes, etc
+   */
+  getSeriesResultUnit?: (
+    data: SeriesResponse,
+    widgetQuery: WidgetQuery
+  ) => Record<string, DataUnit>;
   /**
    * Generate the request promises for fetching
    * tabular data.

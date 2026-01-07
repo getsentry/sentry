@@ -4,6 +4,7 @@ import {
   aggregateOutputType,
   RateUnit,
   type AggregationOutputType,
+  type DataUnit,
 } from 'sentry/utils/discover/fields';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
@@ -20,6 +21,7 @@ import {convertEventsStatsToTimeSeriesData} from 'sentry/views/insights/common/q
 export function transformLegacySeriesToPlottables(
   timeseriesResults: Series[] | undefined,
   timeseriesResultsTypes: Record<string, AggregationOutputType> | undefined,
+  timeseriesResultsUnits: Record<string, DataUnit> | undefined,
   widget: Widget
 ): Plottable[] {
   if (!timeseriesResults || timeseriesResults.length === 0) {
@@ -33,13 +35,18 @@ export function transformLegacySeriesToPlottables(
       const fieldType =
         timeseriesResultsTypes?.[unaliasedSeriesName] ??
         aggregateOutputType(unaliasedSeriesName);
-      const {valueType, valueUnit} = mapAggregationTypeToValueTypeAndUnit(
-        fieldType,
-        unaliasedSeriesName
-      );
+
+      // Prefer results types and units from the config if available
+      // Fallback to the default mapping logic if not available
+      const mapped = mapAggregationTypeToValueTypeAndUnit(fieldType, unaliasedSeriesName);
+      const valueType =
+        timeseriesResultsTypes?.[series.seriesName] ??
+        (mapped.valueType as AggregationOutputType);
+      const valueUnit = timeseriesResultsUnits?.[series.seriesName] ?? mapped.valueUnit;
+
       const timeSeries = convertEventsStatsToTimeSeriesData(
         series.seriesName,
-        createEventsStatsFromSeries(series, valueType as AggregationOutputType, valueUnit)
+        createEventsStatsFromSeries(series, valueType, valueUnit)
       );
       return createPlottableFromTimeSeries(timeSeries[1], widget);
     })
