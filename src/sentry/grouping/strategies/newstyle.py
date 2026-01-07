@@ -507,7 +507,6 @@ def _single_stacktrace_variant(
     # for grouping.
     if (
         len(frames) == 1
-        and frame_components[0].contributes
         and get_behavior_family_for_platform(frames[0].platform or event.platform) == "javascript"
         and not frames[0].function
     ):
