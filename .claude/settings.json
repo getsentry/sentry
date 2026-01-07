@@ -9,6 +9,7 @@
       "Bash(grep:*)",
       "Bash(pnpm run test:*)",
       "Bash(pytest:*)",
+      "Bash(mypy:*)",
       "Bash(pre-commit run:*)",
       "Bash(gh pr checks:*)",
       "Bash(gh pr view:*)",
