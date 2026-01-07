@@ -14,6 +14,8 @@ from sentry.testutils.helpers.github import GitHubWebhookCodeReviewTestCase
 class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
     """Integration tests for GitHub issue_comment webhook events."""
 
+    OPTIONS_TO_SET = {"github.webhook.issue-comment": False}
+
     @pytest.fixture(autouse=True)
     def mock_github_api_calls(self) -> Generator[None]:
         """
@@ -143,7 +145,7 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
     @patch("sentry.seer.code_review.webhooks.issue_comment._add_eyes_reaction_to_comment")
     def test_skips_processing_when_option_is_true(self, mock_reaction: MagicMock) -> None:
         """Test that when github.webhook.issue-comment option is True (kill switch), no processing occurs."""
-        with self.code_review_setup(forward_to_overwatch=True), self.tasks():
+        with self.code_review_setup(options={"github.webhook.issue-comment": True}), self.tasks():
             event = self._build_issue_comment_event(f"Please {SENTRY_REVIEW_COMMAND} this PR")
             response = self._send_issue_comment_event(event)
             assert response.status_code == 204
