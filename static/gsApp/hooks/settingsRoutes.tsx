@@ -67,13 +67,11 @@ const settingsRoutes = (): SentryRouteObject => ({
           path: 'usage-log/',
           name: 'Usage Log',
           component: make(() => import('../views/subscriptionPage/usageLog')),
-          deprecatedRouteProps: true,
         },
         {
           path: 'activity-logs/',
           name: 'Activity Logs',
           component: make(() => import('../views/subscriptionPage/usageLog')),
-          deprecatedRouteProps: true,
         },
         {
           path: 'receipts/:invoiceGuid/',
