@@ -406,8 +406,8 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         # Ensure ON_COMMAND_PHRASE is always a default code review trigger
         if value is not None:
             triggers = list(value)
-            if CodeReviewTrigger.ON_COMMAND_PHRASE.value not in triggers:
-                triggers.append(CodeReviewTrigger.ON_COMMAND_PHRASE.value)
+            if CodeReviewTrigger.ON_COMMAND_PHRASE not in triggers:
+                triggers.append(CodeReviewTrigger.ON_COMMAND_PHRASE)
                 value = triggers
         return value
 

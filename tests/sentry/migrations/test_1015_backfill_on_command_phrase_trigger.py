@@ -1,5 +1,6 @@
 import pytest
 
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import RepositorySettings
 from sentry.testutils.cases import TestMigrations
@@ -33,6 +34,7 @@ class BackfillOnCommandPhraseTriggerTest(TestMigrations):
 
     def setup_before_migration(self, apps) -> None:
         RepositorySettings = apps.get_model("sentry", "RepositorySettings")
+        OrganizationOption = apps.get_model("sentry", "OrganizationOption")
 
         self.setting_empty = RepositorySettings.objects.create(
             repository_id=self.repo_empty.id,
@@ -52,7 +54,26 @@ class BackfillOnCommandPhraseTriggerTest(TestMigrations):
             code_review_triggers=["on_command_phrase", "on_new_commit"],
         )
 
+        self.org_option_empty = OrganizationOption.objects.create(
+            organization_id=self.org.id,
+            key="sentry:default_code_review_triggers",
+            value=[],
+        )
+
+        self.org_option_with_triggers = OrganizationOption.objects.create(
+            organization_id=self.create_organization().id,
+            key="sentry:default_code_review_triggers",
+            value=["on_new_commit", "on_ready_for_review"],
+        )
+
+        self.org_option_already_has = OrganizationOption.objects.create(
+            organization_id=self.create_organization().id,
+            key="sentry:default_code_review_triggers",
+            value=["on_command_phrase", "on_new_commit"],
+        )
+
     def test_backfills_on_command_phrase_trigger(self) -> None:
+        # Test repository settings backfill
         setting_empty = RepositorySettings.objects.get(id=self.setting_empty.id)
         assert set(setting_empty.code_review_triggers) == {"on_command_phrase"}
         assert len(setting_empty.code_review_triggers) == 1
@@ -71,3 +92,22 @@ class BackfillOnCommandPhraseTriggerTest(TestMigrations):
             "on_command_phrase",
             "on_new_commit",
         }
+
+        # Test organization options backfill
+        org_option_empty = OrganizationOption.objects.get(id=self.org_option_empty.id)
+        assert org_option_empty.value == ["on_command_phrase"]
+
+        org_option_with_triggers = OrganizationOption.objects.get(
+            id=self.org_option_with_triggers.id
+        )
+        assert org_option_with_triggers.value == [
+            "on_new_commit",
+            "on_ready_for_review",
+            "on_command_phrase",
+        ]
+
+        org_option_already_has = OrganizationOption.objects.get(id=self.org_option_already_has.id)
+        assert org_option_already_has.value == [
+            "on_command_phrase",
+            "on_new_commit",
+        ]

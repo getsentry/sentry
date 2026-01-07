@@ -10,9 +10,11 @@ from sentry.new_migrations.migrations import CheckedMigration
 def backfill_on_command_phrase_trigger(
     apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
 ) -> None:
-    """Backfill on_command_phrase code review trigger for all existing RepositorySettings."""
+    """Backfill on_command_phrase code review trigger for all existing RepositorySettings and Organization defaultCodeReviewTriggers."""
     RepositorySettings = apps.get_model("sentry", "RepositorySettings")
+    OrganizationOption = apps.get_model("sentry", "OrganizationOption")
 
+    # Backfill RepositorySettings
     settings_to_update = []
 
     for setting in RepositorySettings.objects.all():
@@ -23,6 +25,18 @@ def backfill_on_command_phrase_trigger(
 
     if settings_to_update:
         RepositorySettings.objects.bulk_update(settings_to_update, ["code_review_triggers"])
+
+    # Backfill Organization defaultCodeReviewTriggers
+    org_options_to_update = []
+
+    for org_option in OrganizationOption.objects.filter(key="sentry:default_code_review_triggers"):
+        triggers = list(org_option.value or [])
+        if "on_command_phrase" not in triggers:
+            org_option.value = triggers + ["on_command_phrase"]
+            org_options_to_update.append(org_option)
+
+    if org_options_to_update:
+        OrganizationOption.objects.bulk_update(org_options_to_update, ["value"])
 
 
 class Migration(CheckedMigration):
@@ -48,6 +62,6 @@ class Migration(CheckedMigration):
         migrations.RunPython(
             backfill_on_command_phrase_trigger,
             reverse_code=migrations.RunPython.noop,
-            hints={"tables": ["sentry_repositorysettings"]},
+            hints={"tables": ["sentry_repositorysettings", "sentry_organizationoptions"]},
         ),
     ]
