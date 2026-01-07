@@ -164,8 +164,16 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
     @patch("sentry.seer.code_review.webhooks.issue_comment._add_eyes_reaction_to_comment")
     def test_skips_processing_when_option_is_true(self, mock_reaction: MagicMock) -> None:
-        """Test that when github.webhook.issue-comment option is True (kill switch), no processing occurs."""
-        with self.code_review_setup(forward_to_overwatch=True), self.tasks():
+        """
+        Test that when github.webhook.issue-comment option is True (kill switch), no processing occurs
+        if the organization has direct-to-seer False.
+        """
+        with (
+            self.code_review_setup(
+                features={"organizations:gen-ai-features"}, forward_to_overwatch=True
+            ),
+            self.tasks(),
+        ):
             event = self._build_issue_comment_event(f"Please {SENTRY_REVIEW_COMMAND} this PR")
             response = self._send_issue_comment_event(event)
             assert response.status_code == 204
