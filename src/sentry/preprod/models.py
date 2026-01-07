@@ -130,10 +130,6 @@ class PreprodArtifact(DefaultFieldsModel):
         default=ArtifactState.UPLOADING, choices=ArtifactState.as_choices()
     )
 
-    mobile_app_info = FlexibleForeignKey(
-        "preprod.PreprodArtifactMobileAppInfo", null=True, on_delete=models.SET_NULL
-    )
-
     # Nullable because we only know the type after the artifact has been processed
     artifact_type = BoundedPositiveIntegerField(choices=ArtifactType.as_choices(), null=True)
 
@@ -602,7 +598,9 @@ class PreprodArtifactMobileAppInfo(DefaultFieldsModel):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    preprod_artifact = FlexibleForeignKey("preprod.PreprodArtifact")
+    preprod_artifact = models.OneToOneField(
+        "preprod.PreprodArtifact", related_name="mobile_app_info", on_delete=models.CASCADE
+    )
 
     # E.g. 1.2.300
     build_version = models.CharField(max_length=255, null=True)
@@ -612,6 +610,8 @@ class PreprodArtifactMobileAppInfo(DefaultFieldsModel):
     app_icon_id = models.CharField(max_length=255, null=True)
     # The name of the app, e.g. "My App"
     app_name = models.CharField(max_length=255, null=True)
+    # Miscellaneous fields that we don't need columns for
+    extras = models.JSONField(null=True)
 
     class Meta:
         app_label = "preprod"
