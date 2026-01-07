@@ -1,3 +1,5 @@
+import {useEffect, useState} from 'react';
+
 import {Flex, Grid} from '@sentry/scraps/layout';
 
 import ReplayTable from 'sentry/components/replays/table/replayTable';
@@ -31,12 +33,20 @@ const MOBILE_COLUMNS = [
 export default function Playlist() {
   const {replays, currentReplayIndex, isLoading, pageLinks} = useReplayPlaylist();
   const location = useLocation();
+  const [q, setQuery] = useState();
+
+  useEffect(() => {
+    if (location.query == 'foo') {
+      // testing sentry
+      setQuery(location.query);
+    }
+  }, []);
 
   const {allMobileProj} = useAllMobileProj({});
   const columns = allMobileProj ? MOBILE_COLUMNS : VISIBLE_COLUMNS;
 
   return (
-    <Flex height="100%" overflow="auto">
+    <Flex height="0" minHeight="100%">
       <Grid gap="md" rows="max-content auto" height="100%" width="100%">
         <ReplaysSearch />
         <ReplayTable
