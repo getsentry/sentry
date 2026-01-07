@@ -60,6 +60,6 @@ const Footer = styled('form')`
   bottom: 0;
   z-index: 100;
   background-color: ${p => p.theme.tokens.background.secondary};
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   padding: ${space(2)};
 `;

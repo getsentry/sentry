@@ -38,7 +38,7 @@ function ExplorerPanelTestWrapper({
   return <Fragment>{children}</Fragment>;
 }
 
-// Wrapper function for render() to provide panel context with isOpen state.
+// Wrapper function for render() to include panel context (isOpen) and router config
 function renderWithPanelContext(
   ui: React.ReactElement,
   isOpen: boolean,
@@ -60,9 +60,17 @@ function renderWithPanelContext(
     );
   }
 
-  const result = render(ui, {
+  const initialRouterConfig = {
+    location: {
+      pathname: '/organizations/org-slug/issues/1234567890/',
+      query: {},
+    },
+    route: '/organizations/:orgId/issues/:groupId/',
+  };
+
+  const result = render(<Wrapper>{ui}</Wrapper>, {
     ...options,
-    wrapper: Wrapper,
+    initialRouterConfig,
   });
 
   const rerenderWithOpen = (newIsOpen: boolean) => {

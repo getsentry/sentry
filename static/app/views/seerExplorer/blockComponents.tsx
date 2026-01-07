@@ -1,6 +1,7 @@
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
+import type {LocationDescriptor} from 'history';
 
 import {inlineCodeStyles} from '@sentry/scraps/code/inlineCode';
 
@@ -10,6 +11,7 @@ import {Text} from 'sentry/components/core/text';
 import {FlippedReturnIcon} from 'sentry/components/events/autofix/insights/autofixInsightCard';
 import {IconChevron, IconLink} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -26,6 +28,7 @@ import {
 interface BlockProps {
   block: Block;
   blockIndex: number;
+  getPageReferrer?: () => string;
   isAwaitingFileApproval?: boolean;
   isAwaitingQuestion?: boolean;
   isFocused?: boolean;
@@ -131,6 +134,7 @@ function getToolStatus(
 function BlockComponent({
   block,
   blockIndex: _blockIndex,
+  getPageReferrer,
   isAwaitingFileApproval,
   isAwaitingQuestion,
   isLast,
@@ -149,10 +153,10 @@ function BlockComponent({
   const organization = useOrganization();
   const navigate = useNavigate();
   const {projects} = useProjects();
+
   const toolsUsed = getToolsStringFromBlock(block);
   const hasTools = toolsUsed.length > 0;
   const hasContent = hasValidContent(block.message.content);
-
   const processedContent = useMemo(
     () => postProcessLLMMarkdown(block.message.content),
     [block.message.content]
@@ -196,6 +200,20 @@ function BlockComponent({
     }
   }, [hasValidLinks, selectedLinkIndex, sortedToolLinks.length]);
 
+  // Tool link navigation, with analytics and onNavigate hook.
+  const navigateToToolLink = useCallback(
+    (url: LocationDescriptor, toolKind: string) => {
+      trackAnalytics('seer.explorer.global_panel.tool_link_navigation', {
+        referrer: getPageReferrer?.() ?? '',
+        organization,
+        tool_kind: toolKind,
+      });
+      navigate(url);
+      onNavigate?.();
+    },
+    [organization, navigate, onNavigate, getPageReferrer]
+  );
+
   // Register the key handler with the parent
   useEffect(() => {
     const handler = (key: 'Enter' | 'ArrowUp' | 'ArrowDown') => {
@@ -234,8 +252,7 @@ function BlockComponent({
         if (selectedLink) {
           const url = buildToolLinkUrl(selectedLink, organization.slug, projects);
           if (url) {
-            navigate(url);
-            onNavigate?.();
+            navigateToToolLink(url, selectedLink.kind);
           }
         }
         return true;
@@ -252,6 +269,7 @@ function BlockComponent({
     navigate,
     onNavigate,
     onRegisterEnterHandler,
+    navigateToToolLink,
   ]);
 
   const handleDeleteClick = (e: React.MouseEvent) => {
@@ -270,8 +288,7 @@ function BlockComponent({
     if (selectedLink) {
       const url = buildToolLinkUrl(selectedLink, organization.slug, projects);
       if (url) {
-        navigate(url);
-        onNavigate?.();
+        navigateToToolLink(url, selectedLink.kind);
       }
     }
   };
@@ -568,7 +585,7 @@ const ToolCallText = styled(Text)<{isHighlighted?: boolean}>`
   ${p =>
     p.isHighlighted &&
     `
-    color: ${p.theme.linkHoverColor};
+    color: ${p.theme.tokens.interactive.link.accent.hover};
   `}
 `;
 
@@ -587,8 +604,8 @@ const ToolCallLink = styled('button')<{isHighlighted?: boolean}>`
   &:hover {
     /* Apply highlighted styles and underline to ToolCallText on hover */
     ${ToolCallText} {
-      color: ${p => p.theme.linkHoverColor};
-      text-decoration-color: ${p => p.theme.linkHoverColor};
+      color: ${p => p.theme.tokens.interactive.link.accent.hover};
+      text-decoration-color: ${p => p.theme.tokens.interactive.link.accent.hover};
     }
   }
 `;
@@ -596,7 +613,7 @@ const ToolCallLink = styled('button')<{isHighlighted?: boolean}>`
 const EnterKeyHint = styled('span')<{isVisible?: boolean}>`
   display: inline-block;
   font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.linkHoverColor};
+  color: ${p => p.theme.tokens.interactive.link.accent.hover};
   flex-shrink: 0;
   margin-left: ${p => p.theme.space.xs};
   visibility: ${p => (p.isVisible ? 'visible' : 'hidden')};
@@ -605,7 +622,8 @@ const EnterKeyHint = styled('span')<{isVisible?: boolean}>`
 `;
 
 const ToolCallLinkIcon = styled(IconLink)<{isHighlighted?: boolean}>`
-  color: ${p => (p.isHighlighted ? p.theme.linkHoverColor : p.theme.subText)};
+  color: ${p =>
+    p.isHighlighted ? p.theme.tokens.interactive.link.accent.hover : p.theme.subText};
   flex-shrink: 0;
 `;
 

@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 from enum import StrEnum
-from typing import Any, Literal
+from typing import Any
 
 import orjson
 from django.conf import settings
@@ -16,6 +16,11 @@ from sentry.net.http import connection_from_url
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 
 
+class RequestType(StrEnum):
+    PR_REVIEW = "pr-review"
+    PR_CLOSED = "pr-closed"
+
+
 class ClientError(Exception):
     "Non-retryable client error from Seer"
 
@@ -28,6 +33,36 @@ class SeerEndpoint(StrEnum):
     OVERWATCH_REQUEST = "/v1/automation/overwatch-request"
     # https://github.com/getsentry/seer/blob/main/src/seer/routes/codegen.py
     PR_REVIEW_RERUN = "/v1/automation/codegen/pr-review/rerun"
+
+
+def get_seer_endpoint_for_event(github_event: GithubWebhookType) -> SeerEndpoint:
+    """
+    Get the appropriate Seer endpoint for a given GitHub webhook event.
+
+    Args:
+        github_event: The GitHub webhook event type
+
+    Returns:
+        The SeerEndpoint to use for the event
+    """
+    if github_event == GithubWebhookType.CHECK_RUN:
+        return SeerEndpoint.PR_REVIEW_RERUN
+    return SeerEndpoint.OVERWATCH_REQUEST
+
+
+def get_webhook_option_key(webhook_type: GithubWebhookType) -> str | None:
+    """
+    Get the option key for a given GitHub webhook type.
+
+    Args:
+        webhook_type: The GitHub webhook event type
+
+    Returns:
+        The option key string if the webhook type has an associated option, None otherwise
+    """
+    from .webhooks.config import WEBHOOK_TYPE_TO_OPTION_KEY
+
+    return WEBHOOK_TYPE_TO_OPTION_KEY.get(webhook_type)
 
 
 def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:
@@ -180,7 +215,7 @@ def transform_webhook_to_codegen_request(
     """
     # Determine request_type based on event_type
     # For now, we only support pr-review for these webhook types
-    request_type: Literal["pr-review", "pr-closed"] = "pr-review"
+    request_type: RequestType = RequestType.PR_REVIEW
 
     # Extract pull request number
     # Different event types have PR info in different locations
@@ -214,9 +249,10 @@ def transform_webhook_to_codegen_request(
 
     trigger_metadata = _get_trigger_metadata(github_event, event_payload)
 
+    # XXX: How can we share classes between Sentry and Seer?
     # Build CodecovTaskRequest
     return {
-        "request_type": request_type,
+        "request_type": request_type.value,
         "external_owner_id": repo.external_id,
         "data": {
             "repo": repo_definition,
