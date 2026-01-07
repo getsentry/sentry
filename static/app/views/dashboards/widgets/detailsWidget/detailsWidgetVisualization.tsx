@@ -9,7 +9,7 @@ import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanM
 import {DomainStatusLink} from 'sentry/views/insights/http/components/domainStatusLink';
 import {ModuleName, SpanFields, type SpanResponse} from 'sentry/views/insights/types';
 
-import {DEEMPHASIS_COLOR_NAME, LOADING_PLACEHOLDER} from './settings';
+import {LOADING_PLACEHOLDER} from './settings';
 
 interface DetailsWidgetVisualizationProps {
   span: Pick<SpanResponse, DefaultDetailWidgetFields>;
@@ -126,7 +126,7 @@ const AutoResizeParent = styled('div')`
 `;
 
 const LoadingPlaceholder = styled('span')`
-  color: ${p => p.theme[DEEMPHASIS_COLOR_NAME]};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.lg};
 `;
 
