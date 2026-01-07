@@ -51,10 +51,6 @@ def collect_test_count():
 
         print("No tests collected", file=sys.stderr)
         return 0
-
-    except subprocess.TimeoutExpired:
-        print("Test collection timed out", file=sys.stderr)
-        return None
     except Exception as e:
         print(f"Error collecting tests: {e}", file=sys.stderr)
         return None
