@@ -186,7 +186,7 @@ export const MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG: PrebuiltDashboard = {
           name: 'transaction',
           kind: FieldKind.TAG,
         },
-        value: 'transaction:HomeActivity',
+        value: '',
       },
       {
         dataset: WidgetType.SPANS,
