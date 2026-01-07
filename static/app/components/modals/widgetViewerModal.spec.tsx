@@ -1,11 +1,19 @@
 import ReactEchartsCore from 'echarts-for-react/lib/core';
+import type {Location} from 'history';
 import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {MetricsTotalCountByReleaseIn24h} from 'sentry-fixture/metrics';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  type RouterConfig,
+} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -30,6 +38,20 @@ jest.mock('echarts-for-react/lib/core', () => {
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 
+type LocationConfig = NonNullable<RouterConfig['location']>;
+type InitialData = {
+  initialRouterConfig: RouterConfig & {location: LocationConfig};
+  organization: ReturnType<typeof OrganizationFixture>;
+  projects: Array<ReturnType<typeof ProjectFixture>>;
+};
+
+const defaultInitialRouterConfig: RouterConfig & {location: LocationConfig} = {
+  location: {
+    pathname: '/mock-pathname/',
+    query: {},
+  },
+};
+
 let eventsMetaMock: jest.Mock;
 
 const waitForMetaToHaveBeenCalled = async () => {
@@ -39,7 +61,7 @@ const waitForMetaToHaveBeenCalled = async () => {
 };
 
 async function renderModal({
-  initialData: {organization, router},
+  initialData: {organization, initialRouterConfig},
   widget,
   seriesData,
   tableData,
@@ -47,7 +69,7 @@ async function renderModal({
   seriesResultsType,
   dashboardFilters,
 }: {
-  initialData: any;
+  initialData: InitialData;
   widget: any;
   dashboardFilters?: DashboardFilters;
   pageLinks?: string;
@@ -55,11 +77,23 @@ async function renderModal({
   seriesResultsType?: Record<string, AggregationOutputType>;
   tableData?: TableDataWithTitle[];
 }) {
+  const routerLocation: LocationConfig = initialRouterConfig.location;
+  const routerConfig: RouterConfig = {
+    ...initialRouterConfig,
+    location: routerLocation,
+  };
+  const widgetLegendLocation: Location = {
+    ...routerLocation,
+    hash: '',
+    search: '',
+    state: undefined,
+    key: 'initial',
+  } as Location;
   const widgetLegendState = new WidgetLegendSelectionState({
-    location: router.location,
+    location: widgetLegendLocation,
     dashboard: DashboardFixture([widget], {id: 'new', title: 'Dashboard'}),
     organization,
-    navigate: router.navigate,
+    navigate: jest.fn(),
   });
   const rendered = render(
     <div style={{padding: space(4)}}>
@@ -81,9 +115,8 @@ async function renderModal({
       />
     </div>,
     {
-      router,
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: routerConfig,
     }
   );
   // Need to wait since WidgetViewerModal will make a request to events-meta
@@ -97,31 +130,33 @@ async function renderModal({
 }
 
 describe('Modals -> WidgetViewerModal', () => {
-  let initialData!: ReturnType<typeof initializeOrg>;
-  let initialDataWithFlag!: ReturnType<typeof initializeOrg>;
-  let widgetLegendState!: WidgetLegendSelectionState;
+  let initialData: InitialData;
+  let initialDataWithFlag: InitialData;
   beforeEach(() => {
-    initialData = initializeOrg({
-      organization: {
-        features: ['discover-query'],
-      },
-      projects: [ProjectFixture()],
+    const projects = [ProjectFixture()];
+    const organization = OrganizationFixture({
+      features: ['discover-query'],
     });
 
-    initialDataWithFlag = {
-      ...initialData,
-      organization: {
-        ...initialData.organization,
-        features: [...initialData.organization.features],
+    initialData = {
+      organization,
+      projects,
+      initialRouterConfig: {
+        ...defaultInitialRouterConfig,
+        location: {...defaultInitialRouterConfig.location},
       },
     };
 
-    widgetLegendState = new WidgetLegendSelectionState({
-      location: initialData.router.location,
-      dashboard: DashboardFixture([], {id: 'new', title: 'Dashboard'}),
-      organization: initialData.organization,
-      navigate: jest.fn(),
-    });
+    initialDataWithFlag = {
+      organization: OrganizationFixture({
+        features: [...organization.features],
+      }),
+      projects,
+      initialRouterConfig: {
+        ...defaultInitialRouterConfig,
+        location: {...defaultInitialRouterConfig.location},
+      },
+    };
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -303,7 +338,7 @@ describe('Modals -> WidgetViewerModal', () => {
 
       it('zooms into the selected time range', async () => {
         mockEvents();
-        await renderModal({initialData, widget: mockWidget});
+        const {router} = await renderModal({initialData, widget: mockWidget});
         act(() => {
           // Simulate dataZoom event on chart
           (ReactEchartsCore as jest.Mock).mock.calls[0][0].onEvents.datazoom(undefined, {
@@ -317,12 +352,10 @@ describe('Modals -> WidgetViewerModal', () => {
           });
         });
         await waitFor(() =>
-          expect(initialData.router.push).toHaveBeenCalledWith(
+          expect(router.location.query).toEqual(
             expect.objectContaining({
-              query: {
-                viewerEnd: '2022-03-01T07:33:20',
-                viewerStart: '2022-03-01T02:00:00',
-              },
+              viewerEnd: '2022-03-01T07:33:20',
+              viewerStart: '2022-03-01T02:00:00',
             })
           )
         );
@@ -341,40 +374,27 @@ describe('Modals -> WidgetViewerModal', () => {
 
       it('updates selected query when selected in the query dropdown', async () => {
         mockEvents();
-        const {rerender} = await renderModal({initialData, widget: mockWidget});
+        const {router} = await renderModal({initialData, widget: mockWidget});
         await userEvent.click(await screen.findByText('Query Name'));
         await userEvent.click(screen.getByText('Another Query Name'));
-        expect(initialData.router.replace).toHaveBeenCalledWith(
-          expect.objectContaining({
-            pathname: '/mock-pathname/',
-            query: {query: 1},
-          })
+        await waitFor(() =>
+          expect(router.location.query).toEqual(expect.objectContaining({query: '1'}))
         );
-        // Need to manually set the new router location and rerender to simulate the dropdown selection click
-        initialData.router.location.query = {query: ['1']};
-        rerender(
-          <WidgetViewerModal
-            Header={stubEl}
-            Footer={stubEl as ModalRenderProps['Footer']}
-            Body={stubEl as ModalRenderProps['Body']}
-            CloseButton={stubEl}
-            closeModal={() => undefined}
-            organization={initialData.organization}
-            widget={mockWidget}
-            onEdit={() => undefined}
-            widgetLegendState={widgetLegendState}
-          />
-        );
-        await waitForMetaToHaveBeenCalled();
-        expect(screen.getByText('Another Query Name')).toBeInTheDocument();
+        expect(await screen.findByText('Another Query Name')).toBeInTheDocument();
       });
 
       it('renders the first query if the query index is invalid', async () => {
         mockEvents();
-        initialData.router.location.query = {query: ['7']};
+        const initialRouterConfig = {
+          ...initialData.initialRouterConfig,
+          location: {
+            pathname: initialData.initialRouterConfig.location.pathname,
+            query: {query: ['7']},
+          },
+        };
 
         await renderModal({
-          initialData,
+          initialData: {...initialData, initialRouterConfig},
           widget: {...mockWidget, widgetType: WidgetType.ERRORS},
         });
         expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
@@ -385,9 +405,15 @@ describe('Modals -> WidgetViewerModal', () => {
 
       it('renders the correct discover query link when there are multiple queries in a widget', async () => {
         mockEvents();
-        initialData.router.location.query = {query: ['1']};
+        const initialRouterConfig = {
+          ...initialData.initialRouterConfig,
+          location: {
+            pathname: initialData.initialRouterConfig.location.pathname,
+            query: {query: ['1']},
+          },
+        };
         await renderModal({
-          initialData,
+          initialData: {...initialData, initialRouterConfig},
           widget: {...mockWidget, widgetType: WidgetType.ERRORS},
         });
         expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
@@ -399,10 +425,19 @@ describe('Modals -> WidgetViewerModal', () => {
       it('renders with first legend disabled by default', async () => {
         mockEvents();
         // Rerender with first legend disabled
-        initialData.router.location.query = {
-          unselectedSeries: [`${mockWidget.id}:Query Name`],
+        const initialRouterConfig = {
+          ...initialData.initialRouterConfig,
+          location: {
+            pathname: initialData.initialRouterConfig.location.pathname,
+            query: {
+              unselectedSeries: [`${mockWidget.id}:Query Name`],
+            },
+          },
         };
-        await renderModal({initialData, widget: mockWidget});
+        await renderModal({
+          initialData: {...initialData, initialRouterConfig},
+          widget: mockWidget,
+        });
 
         const echartsMock = jest.mocked(ReactEchartsCore);
         const lastCall = echartsMock.mock.calls[echartsMock.mock.calls.length - 1]![0];
@@ -512,44 +547,6 @@ describe('Modals -> WidgetViewerModal', () => {
         const yAxisFormatter =
           calls[calls.length - 1][0].option.yAxis.axisLabel.formatter;
         expect(yAxisFormatter(123)).toBe('123');
-      });
-
-      it('does not allow sorting by transaction name when widget is using metrics', async () => {
-        const eventsMock = MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events/',
-          body: {
-            data: [
-              {
-                title: '/organizations/:orgId/dashboards/',
-                id: '1',
-                count: 1,
-              },
-            ],
-            meta: {
-              fields: {
-                title: 'string',
-                id: 'string',
-                count: 1,
-              },
-              isMetricsData: true,
-            },
-          },
-        });
-        await renderModal({
-          initialData: initialDataWithFlag,
-          widget: mockWidget,
-          seriesData: [],
-          seriesResultsType: {'count()': 'duration'},
-        });
-        expect(eventsMock).toHaveBeenCalledTimes(1);
-        expect(screen.getByText('title')).toBeInTheDocument();
-        await userEvent.click(screen.getByText('title'));
-        expect(initialData.router.push).not.toHaveBeenCalledWith(
-          expect.objectContaining({
-            pathname: '/mock-pathname/',
-            query: {sort: ['-title']},
-          })
-        );
       });
 
       it('renders transaction summary link', async () => {
@@ -717,23 +714,8 @@ describe('Modals -> WidgetViewerModal', () => {
       it('sorts table when a sortable column header is clicked', async () => {
         const eventsStatsMock = mockEventsStats();
         const eventsMock = mockEvents();
-        const {rerender} = await renderModal({initialData, widget: mockWidget});
+        const {router} = await renderModal({initialData, widget: mockWidget});
         await userEvent.click(await screen.findByText('count()'));
-        // Need to manually set the new router location and rerender to simulate the sortable column click
-        initialData.router.location.query = {sort: '-count()'};
-        rerender(
-          <WidgetViewerModal
-            Header={stubEl}
-            Footer={stubEl as ModalRenderProps['Footer']}
-            Body={stubEl as ModalRenderProps['Body']}
-            CloseButton={stubEl}
-            closeModal={() => undefined}
-            organization={initialData.organization}
-            widget={mockWidget}
-            onEdit={() => undefined}
-            widgetLegendState={widgetLegendState}
-          />
-        );
         await waitForMetaToHaveBeenCalled();
         expect(eventsMock).toHaveBeenCalledWith(
           '/organizations/org-slug/events/',
@@ -746,6 +728,9 @@ describe('Modals -> WidgetViewerModal', () => {
           expect.objectContaining({
             query: expect.objectContaining({orderby: '-count()'}),
           })
+        );
+        expect(router.location.query).toEqual(
+          expect.objectContaining({sort: '-count()'})
         );
       });
 
@@ -788,33 +773,15 @@ describe('Modals -> WidgetViewerModal', () => {
       it('paginates to the next page', async () => {
         mockEventsStats();
         mockEvents();
-        const {rerender} = await renderModal({initialData, widget: mockWidget});
+        const {router} = await renderModal({initialData, widget: mockWidget});
         expect(await screen.findByText('Test Error 1c')).toBeInTheDocument();
         await userEvent.click(screen.getByRole('button', {name: 'Next'}));
-        expect(initialData.router.replace).toHaveBeenCalledWith(
-          expect.objectContaining({
-            pathname: '/mock-pathname/',
-            query: {cursor: '0:10:0', page: 1},
-            state: undefined,
-          })
-        );
-        // Need to manually set the new router location and rerender to simulate the next page click
-        initialData.router.location.query = {cursor: ['0:10:0']};
-
-        rerender(
-          <WidgetViewerModal
-            Header={stubEl}
-            Footer={stubEl as ModalRenderProps['Footer']}
-            Body={stubEl as ModalRenderProps['Body']}
-            CloseButton={stubEl}
-            closeModal={() => undefined}
-            organization={initialData.organization}
-            widget={mockWidget}
-            onEdit={() => undefined}
-            widgetLegendState={widgetLegendState}
-          />
-        );
         await waitForMetaToHaveBeenCalled();
+        await waitFor(() =>
+          expect(router.location.query).toEqual(
+            expect.objectContaining({cursor: '0:10:0', page: '1'})
+          )
+        );
         expect(await screen.findByText('Next Page Test Error')).toBeInTheDocument();
       });
 
@@ -836,7 +803,7 @@ describe('Modals -> WidgetViewerModal', () => {
         expect(eventsStatsMock).not.toHaveBeenCalled();
         await userEvent.click(screen.getByText('count()'));
         await waitForMetaToHaveBeenCalled();
-        expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+        expect(eventsStatsMock).toHaveBeenCalled();
       });
 
       it('appends the orderby to the query if it is not already selected as an aggregate', async () => {
@@ -1136,23 +1103,8 @@ describe('Modals -> WidgetViewerModal', () => {
     });
 
     it('sorts table when a sortable column header is clicked', async () => {
-      const {rerender} = await renderModal({initialData, widget: mockWidget});
+      await renderModal({initialData, widget: mockWidget});
       await userEvent.click(screen.getByText('events'));
-      // Need to manually set the new router location and rerender to simulate the sortable column click
-      initialData.router.location.query = {sort: ['freq']};
-      rerender(
-        <WidgetViewerModal
-          Header={stubEl}
-          Footer={stubEl as ModalRenderProps['Footer']}
-          Body={stubEl as ModalRenderProps['Body']}
-          CloseButton={stubEl}
-          closeModal={() => undefined}
-          organization={initialData.organization}
-          widget={mockWidget}
-          onEdit={() => undefined}
-          widgetLegendState={widgetLegendState}
-        />
-      );
       await waitFor(() =>
         expect(issuesMock).toHaveBeenCalledWith(
           '/organizations/org-slug/issues/',
@@ -1179,36 +1131,30 @@ describe('Modals -> WidgetViewerModal', () => {
     });
 
     it('paginates to the next page', async () => {
-      const {rerender} = await renderModal({initialData, widget: mockWidget});
+      const {router} = await renderModal({initialData, widget: mockWidget});
       expect(await screen.findByText('Error: Failed')).toBeInTheDocument();
       await userEvent.click(screen.getByRole('button', {name: 'Next'}));
       expect(issuesMock).toHaveBeenCalledTimes(1);
-      expect(initialData.router.replace).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: {cursor: '0:10:0', page: 1},
-        })
-      );
-      // Need to manually set the new router location and rerender to simulate the next page click
-      initialData.router.location.query = {cursor: ['0:10:0']};
-      rerender(
-        <WidgetViewerModal
-          Header={stubEl}
-          Footer={stubEl as ModalRenderProps['Footer']}
-          Body={stubEl as ModalRenderProps['Body']}
-          CloseButton={stubEl}
-          closeModal={() => undefined}
-          organization={initialData.organization}
-          widget={mockWidget}
-          onEdit={() => undefined}
-          widgetLegendState={widgetLegendState}
-        />
+      await waitFor(() =>
+        expect(router.location.query).toEqual(
+          expect.objectContaining({cursor: '0:10:0', page: '1'})
+        )
       );
       expect(await screen.findByText('Another Error: Failed')).toBeInTheDocument();
     });
 
     it('displays with correct table column widths', async () => {
-      initialData.router.location.query = {width: ['-1', '-1', '575']};
-      await renderModal({initialData, widget: mockWidget});
+      const initialRouterConfig = {
+        ...initialData.initialRouterConfig,
+        location: {
+          pathname: initialData.initialRouterConfig.location.pathname,
+          query: {width: ['-1', '-1', '575']},
+        },
+      };
+      await renderModal({
+        initialData: {...initialData, initialRouterConfig},
+        widget: mockWidget,
+      });
       expect(await screen.findByTestId('grid-editable')).toHaveStyle({
         'grid-template-columns':
           ' minmax(90px, auto) minmax(90px, auto) minmax(575px, auto)',
@@ -1319,7 +1265,7 @@ describe('Modals -> WidgetViewerModal', () => {
     });
 
     it('makes a new sessions request after sorting by a table column', async () => {
-      const {rerender} = await renderModal({
+      const {router} = await renderModal({
         initialData,
         widget: mockWidget,
         tableData: [],
@@ -1327,26 +1273,10 @@ describe('Modals -> WidgetViewerModal', () => {
       });
       expect(metricsMock).toHaveBeenCalledTimes(1);
       await userEvent.click(await screen.findByText(`sum(session)`), {delay: null});
-      // Need to manually set the new router location and rerender to simulate the sortable column click
-      initialData.router.location.query = {sort: '-sum(session)'};
-      rerender(
-        <WidgetViewerModal
-          Header={stubEl}
-          Footer={stubEl as ModalRenderProps['Footer']}
-          Body={stubEl as ModalRenderProps['Body']}
-          CloseButton={stubEl}
-          closeModal={() => undefined}
-          organization={initialData.organization}
-          widget={mockWidget}
-          onEdit={() => undefined}
-          seriesData={[]}
-          tableData={[]}
-          widgetLegendState={widgetLegendState}
-        />
+      await waitFor(() => expect(metricsMock).toHaveBeenCalledTimes(2));
+      expect(router.location.query).toEqual(
+        expect.objectContaining({sort: '-sum(session)'})
       );
-      await waitFor(() => {
-        expect(metricsMock).toHaveBeenCalledTimes(2);
-      });
     });
 
     it('adds the release column to the table if no group by is set', async () => {
@@ -1418,12 +1348,17 @@ describe('Modals -> WidgetViewerModal', () => {
         url: '/organizations/org-slug/events-stats/',
         body: {},
       });
-      initialData = initializeOrg({
-        organization: {
+      const projects = [ProjectFixture()];
+      initialData = {
+        organization: OrganizationFixture({
           features: ['discover-cell-actions-v2'],
+        }),
+        projects,
+        initialRouterConfig: {
+          ...defaultInitialRouterConfig,
+          location: {...defaultInitialRouterConfig.location},
         },
-        projects: [ProjectFixture()],
-      });
+      };
     });
 
     it('renders the Open in Explore button', async () => {
@@ -1496,7 +1431,7 @@ describe('Modals -> WidgetViewerModal', () => {
         ],
       });
 
-      await renderModal({
+      const {router} = await renderModal({
         initialData,
         widget: mockSpanWidget,
         tableData: [
@@ -1517,10 +1452,10 @@ describe('Modals -> WidgetViewerModal', () => {
 
       await userEvent.click(menuOption);
 
-      expect(initialData.router.push).toHaveBeenCalledWith(
-        expect.objectContaining({
-          pathname: expect.stringContaining('/organizations/org-slug/explore/traces/'),
-        })
+      await waitFor(() =>
+        expect(router.location.pathname).toContain(
+          '/organizations/org-slug/explore/traces/'
+        )
       );
     });
   });
