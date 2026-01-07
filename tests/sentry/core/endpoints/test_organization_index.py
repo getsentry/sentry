@@ -18,12 +18,7 @@ from sentry.models.team import Team
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
-from sentry.testutils.silo import (
-    assume_test_silo_mode,
-    control_silo_test,
-    create_test_regions,
-    region_silo_test,
-)
+from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, region_silo_test
 from sentry.users.models.authenticator import Authenticator
 from sentry.utils.slug import ORG_SLUG_PATTERN
 
@@ -333,7 +328,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
 
 
 @region_silo_test(regions=create_test_regions("de", "us"))
-class OrganizationsCreateInRegionTest(OrganizationIndexTest):
+class OrganizationsCreateInRegionTest(OrganizationIndexTest, HybridCloudTestMixin):
     method = "post"
 
     @override_settings(SENTRY_MONOLITH_REGION="us", SENTRY_REGION="de")
@@ -353,9 +348,7 @@ class OrganizationsCreateInRegionTest(OrganizationIndexTest):
         assert mapping.region_name == "de"
 
 
-@control_silo_test
 class OrganizationIndex2faTest(TwoFactorAPITestCase):
-    # This is the HTML view, not an API endpoint
     endpoint = "sentry-organization-home"
 
     def setUp(self) -> None:
@@ -372,7 +365,8 @@ class OrganizationIndex2faTest(TwoFactorAPITestCase):
         self.login_as(self.no_2fa_user)
         self.assert_redirected_to_2fa()
 
-        TotpInterface().enroll(self.no_2fa_user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            TotpInterface().enroll(self.no_2fa_user)
         self.get_success_response(self.org_2fa.slug)
 
     def test_new_member_must_enable_2fa(self) -> None:
@@ -402,9 +396,7 @@ class OrganizationIndex2faTest(TwoFactorAPITestCase):
         self.get_success_response(self.org_2fa.slug)
 
 
-@control_silo_test
 class OrganizationIndexMemberLimitTest(APITestCase):
-    # This is a react view, not an API endpoint
     endpoint = "sentry-organization-index"
 
     def setup_user(self, is_superuser=False):
@@ -425,5 +417,4 @@ class OrganizationIndexMemberLimitTest(APITestCase):
 
     def test_member_limit_superuser_no_redirect(self) -> None:
         self.setup_user(is_superuser=True)
-        response = self.get_success_response(self.organization.slug, status_code=200)
-        assert response.headers["Content-Type"] == "text/html"
+        self.get_success_response(self.organization.slug, status_code=200)

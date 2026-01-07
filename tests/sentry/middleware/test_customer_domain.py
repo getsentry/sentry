@@ -12,15 +12,9 @@ from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.middleware.customer_domain import CustomerDomainMiddleware
-from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.silo import (
-    all_silo_test,
-    assume_test_silo_mode,
-    create_test_regions,
-    no_silo_test,
-)
+from sentry.testutils.silo import all_silo_test, create_test_regions, no_silo_test
 from sentry.web.frontend.auth_logout import AuthLogoutView
 
 
@@ -168,12 +162,11 @@ class CustomerDomainMiddlewareTest(TestCase):
         self.login_as(user=non_staff_user)
         self.create_organization(name="albertos-apples", owner=non_staff_user)
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            response = self.client.get(
-                "/settings/billing/overview/",
-                data={"querystring": "value"},
-                follow=True,
-            )
+        response = self.client.get(
+            "/settings/billing/overview/",
+            data={"querystring": "value"},
+            follow=True,
+        )
         assert response.status_code == 200
         assert response.redirect_chain == [
             ("http://albertos-apples.testserver/settings/billing/overview/?querystring=value", 302)

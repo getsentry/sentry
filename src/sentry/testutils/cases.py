@@ -719,9 +719,8 @@ class TwoFactorAPITestCase(APITestCase):
         return reverse("sentry-account-settings-security")
 
     def enable_org_2fa(self, organization):
-        with assume_test_silo_mode(SiloMode.REGION):
-            organization.flags.require_2fa = True
-            organization.save()
+        organization.flags.require_2fa = True
+        organization.save()
 
     def api_enable_org_2fa(self, organization, user):
         self.login_as(user)
