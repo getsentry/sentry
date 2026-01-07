@@ -334,7 +334,7 @@ const PRLink = styled('a')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.xs};
-  color: ${p => p.theme.linkColor};
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
   font-size: ${p => p.theme.fontSize.sm};
   text-decoration: none;
 

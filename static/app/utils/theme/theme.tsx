@@ -261,7 +261,7 @@ const generateButtonTheme = (
     focusShadow: colors.red200,
   },
   link: {
-    color: alias.linkColor,
+    color: tokens.interactive.link.accent.rest,
     colorActive: alias.linkHoverColor,
     background: 'transparent',
     backgroundActive: 'transparent',
@@ -1257,7 +1257,6 @@ const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
   /**
    * Link color indicates that something is clickable
    */
-  linkColor: tokens.interactive.link.accent.rest,
   linkHoverColor: tokens.interactive.link.accent.hover,
   linkUnderline: tokens.interactive.link.accent.rest,
 });

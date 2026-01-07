@@ -45,7 +45,7 @@ export const StyledAutoSelectText = styled(AutoSelectText)`
   min-width: 0;
 
   a & {
-    color: ${p => p.theme.linkColor};
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
   }
 `;
 
