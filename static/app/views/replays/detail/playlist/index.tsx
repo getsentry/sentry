@@ -34,7 +34,7 @@ const MOBILE_COLUMNS = [
 ];
 
 export default function Playlist() {
-  const {replays, currentReplayIndex, isLoading} = useReplayPlaylist();
+  const {replays, currentReplayIndex, isLoading, pageLinks} = useReplayPlaylist();
   const location = useLocation();
   const [query] = useQueryState('query', parseAsString.withDefault(''));
 
@@ -46,13 +46,11 @@ export default function Playlist() {
     <Flex height="100%" overflow="auto">
       <Grid gap="md" rows={rows} height="100%" width="100%">
         {query ? (
-          <Alert
-            variant="info"
-            showIcon
-            defaultExpanded
-            expand={<ProvidedFormattedQuery query={query} />}
-          >
-            <Text>{t('This playlist is filtered by:')} </Text>
+          <Alert variant="info" showIcon>
+            <Flex wrap="wrap" align="center">
+              <Text>{t('This playlist is filtered by')} </Text>
+              <ProvidedFormattedQuery query={query} />
+            </Flex>
           </Alert>
         ) : null}
         <ReplayTable
@@ -64,6 +62,7 @@ export default function Playlist() {
           query={location.query}
           replays={replays}
           showDropdownFilters={false}
+          pageLinks={pageLinks}
           stickyHeader
         />
       </Grid>
